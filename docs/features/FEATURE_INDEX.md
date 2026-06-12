@@ -1,6 +1,6 @@
 # Feature Index — PLPCG Flutter
 
-**Última atualização:** junho de 2026 (**UC-01 busca flexível jun/2026** — [LouvorSearchTokens.compact], [LouvorSearchTokens.hasWordSeparators], [LouvorSearchTokens.matchesText]; tokenização por `[^a-z0-9]+` (hífens/pontuação); campo [Louvor.searchCompactContent]; exemplos `buscarmeeis` / `buscar me eis` / `buscar-me-eis` → `Buscar-me-eis`; testes `louvor_search_tokens_test` + `search_louvor_by_number_or_text_test`; **LOUVOR_GROUPING.md jun/2026** — spec agente `groupId` (hierarquia louvor → classificação → categoria, regras `f(numero, nomeNorm)`, entidades planejadas, pipeline script, anti-padrões); índice em [Especificações de design](#especificações-de-design-agentes); **docs sync UC-14 + catálogo jun/2026** — subseções API [RoutePaths], [LouvorMaterialIcons], [findLouvorByPdfId], [ResolvedActivePlaylist]; doc comments em `route_paths.dart`; **backlog `groupId`** — hierarquia louvor → classificação → categoria documentada; **docs sync pós-initial commit** — tabela transversal [resolveActivePlaylistFromCarousel]; correções [loadIntoCarousel]/`carouselLouvoresDisplayDebounce`; subseção [playlistShareDebugLog*]; **UC-06 debug abrir lista jun/2026**: [playlistOpenDebugLog*] + [showPlaylistOpenErrorSnackbar] — instrumentação [PlaylistListTile]._openPdfInReader / [PlaylistsNotifier.loadIntoCarousel] / [PlaylistsNotifier.findLouvorByPdfId]; console `[UC-06 playlist-open]`; snackbar [pdfActionError] + resumo técnico em debug (8s); **UC-05 fix flicker reorder jun/2026**: [carouselLouvoresDisplayProvider] + [carouselLouvoresDisplayDebounce] (`100ms`) — barra [CarouselChips] coalesce renders só em reordenação; [carouselReorderPersistDebounce] — [CarouselLouvoresNotifier.reorder] otimista sem `_reload` + persist Isar/sync playlist debounced; `_reloadGeneration` ignora corridas; [carouselFocusedIndexProvider] remove `ref.listen` duplicado; teste `carousel_louvores_display_provider_test`; **UC-05 fix drag modal seleção jun/2026**: [carouselSelectionReorderProxyDecorator] — proxy transparente no [ReorderableListView] de [showCarouselSelectionSheet]; remove borda/sombra retangular do `Material` padrão durante reorder de chips pill [CarouselLouvorChipVariant.modal]; **UC-04 share PDF nos cards jun/2026**: [LouvorCard] menu ⋮ à direita do trailing +/✓ → item [sharePdf] **Compartilhar**; [CarouselLouvorChip.onShare] / `shareLoading`; [LouvorCard._handleShare] → [resolvePdfForReaderProvider] + [sharePdfProvider] com [sharePositionOriginFromContextOrFallback] (fix iOS); paridade toolbar [PdfReaderScreen]; testes `louvor_card_share_save_test` + `carousel_louvor_chip_test`; **UC-14 AboutScreen jun/2026**: [AboutScreen] + [AboutInfoCard] — cards "Quem somos" e "Objetivo"; layout scroll `maxWidth: 896`; título Garamond 18px + divisor gold + corpo Open Sans; textos fixos PT; **UC-07 fix share lista + debug**: [resolveActivePlaylistFromCarousel] + [ResolvedActivePlaylist] — alinha carousel Isar com playlist antes do share (recupera rascunho quando [activePlaylistIdProvider] se perde no restart); [sharePositionOriginFromContextOrFallback] obrigatório no iOS para [Share.share]; [playlistShareDebugLog*] + [showPlaylistShareErrorSnackbar]; testes `resolve_active_playlist_from_carousel_test.dart`; **UC-07 share lista na barra carousel**: [CarouselBarTrailingActions] item [carouselSharePlaylist] — menu overflow smartphone + `share_outlined` expandido; delega [PlaylistsNotifier.sharePlaylist] na playlist ativa; paridade PWA `/?sharepdfs=…&sharename=…`; **UI polish app shell jun/2026**: removido [OfflineIndicator] do header; [PlpcgPrimaryAppBar] só título + divisor gold; [ColdiguiApp] `debugShowCheckedModeBanner: false`; **UC-06 polish [PlaylistsScreen]**: FAB stack — `FloatingActionButton.small` branco apagar todas (só aba Não Salvas) acima do extended importar; estado vazio com [AppColors.textLight] nas 3 abas; **UC-05 polish barra carousel ícones**: [carouselBarIconButtonStyle] — setas/lista/ações com [AppColors.title] (vinho PLPCG), inclusive desabilitado; menu overflow `iconColor` alinhado; **UC-08 fix renderização folheto**: [LeafletContent] raiz `Material(transparency)` + `TextDecoration.none` — remove sublinhação amarela debug sem ancestral Material no [OverlayEntry]; **UC-08 redesign folheto PWA+**: identidade PLPCG — moldura dourada, tabela NÚMERO/NOME, rodapé litúrgico; [LeafletContentLabels] + [leafletWeekdayName] + [formatLeafletHeaderDate]; **UC-08 debug**: [leafletDebugLog]; **UC-08 fix captura**: [waitForRepaintBoundary]; **UC-11 navegação 2.3+**: [pdfReaderDisplayedPageProvider] — indicador `page/total` estável durante `animateToPage`; swipe via [PdfxPdfView.navigateToPage]; RTL/LTR + long-press → página 1)
+**Última atualização:** junho de 2026 (**agrupamento `groupId` jun/2026** — [LouvorGroup] / [LouvorGroupCard] / [showLouvorMaterialSheet]; [GroupLouvoresByMaterial]; [LouvorGroupId]; [homeSearchGroupResultsProvider] / [libraryGroupResultsProvider]; script `assign_louvor_group_ids.py`; [openLouvorInReader]; teste `group_louvores_by_material_test`; spec [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **UC-01 busca flexível jun/2026** — [LouvorSearchTokens.compact], [LouvorSearchTokens.hasWordSeparators], [LouvorSearchTokens.matchesText]; tokenização por `[^a-z0-9]+` (hífens/pontuação); campo [Louvor.searchCompactContent]; exemplos `buscarmeeis` / `buscar me eis` / `buscar-me-eis` → `Buscar-me-eis`; testes `louvor_search_tokens_test` + `search_louvor_by_number_or_text_test`; **LOUVOR_GROUPING.md jun/2026** — spec agente `groupId` (hierarquia louvor → classificação → categoria, regras `f(numero, nomeNorm)`, entidades planejadas, pipeline script, anti-padrões); índice em [Especificações de design](#especificações-de-design-agentes); **docs sync UC-14 + catálogo jun/2026** — subseções API [RoutePaths], [LouvorMaterialIcons], [findLouvorByPdfId], [ResolvedActivePlaylist]; doc comments em `route_paths.dart`; **backlog `groupId`** — hierarquia louvor → classificação → categoria documentada; **docs sync pós-initial commit** — tabela transversal [resolveActivePlaylistFromCarousel]; correções [loadIntoCarousel]/`carouselLouvoresDisplayDebounce`; subseção [playlistShareDebugLog*]; **UC-06 debug abrir lista jun/2026**: [playlistOpenDebugLog*] + [showPlaylistOpenErrorSnackbar] — instrumentação [PlaylistListTile]._openPdfInReader / [PlaylistsNotifier.loadIntoCarousel] / [PlaylistsNotifier.findLouvorByPdfId]; console `[UC-06 playlist-open]`; snackbar [pdfActionError] + resumo técnico em debug (8s); **UC-05 fix flicker reorder jun/2026**: [carouselLouvoresDisplayProvider] + [carouselLouvoresDisplayDebounce] (`100ms`) — barra [CarouselChips] coalesce renders só em reordenação; [carouselReorderPersistDebounce] — [CarouselLouvoresNotifier.reorder] otimista sem `_reload` + persist Isar/sync playlist debounced; `_reloadGeneration` ignora corridas; [carouselFocusedIndexProvider] remove `ref.listen` duplicado; teste `carousel_louvores_display_provider_test`; **UC-05 fix drag modal seleção jun/2026**: [carouselSelectionReorderProxyDecorator] — proxy transparente no [ReorderableListView] de [showCarouselSelectionSheet]; remove borda/sombra retangular do `Material` padrão durante reorder de chips pill [CarouselLouvorChipVariant.modal]; **UC-04 share PDF nos cards jun/2026**: [LouvorCard] menu ⋮ à direita do trailing +/✓ → item [sharePdf] **Compartilhar**; [CarouselLouvorChip.onShare] / `shareLoading`; [LouvorCard._handleShare] → [resolvePdfForReaderProvider] + [sharePdfProvider] com [sharePositionOriginFromContextOrFallback] (fix iOS); paridade toolbar [PdfReaderScreen]; testes `louvor_card_share_save_test` + `carousel_louvor_chip_test`; **UC-14 AboutScreen jun/2026**: [AboutScreen] + [AboutInfoCard] — cards "Quem somos" e "Objetivo"; layout scroll `maxWidth: 896`; título Garamond 18px + divisor gold + corpo Open Sans; textos fixos PT; **UC-07 fix share lista + debug**: [resolveActivePlaylistFromCarousel] + [ResolvedActivePlaylist] — alinha carousel Isar com playlist antes do share (recupera rascunho quando [activePlaylistIdProvider] se perde no restart); [sharePositionOriginFromContextOrFallback] obrigatório no iOS para [Share.share]; [playlistShareDebugLog*] + [showPlaylistShareErrorSnackbar]; testes `resolve_active_playlist_from_carousel_test.dart`; **UC-07 share lista na barra carousel**: [CarouselBarTrailingActions] item [carouselSharePlaylist] — menu overflow smartphone + `share_outlined` expandido; delega [PlaylistsNotifier.sharePlaylist] na playlist ativa; paridade PWA `/?sharepdfs=…&sharename=…`; **UI polish app shell jun/2026**: removido [OfflineIndicator] do header; [PlpcgPrimaryAppBar] só título + divisor gold; [ColdiguiApp] `debugShowCheckedModeBanner: false`; **UC-06 polish [PlaylistsScreen]**: FAB stack — `FloatingActionButton.small` branco apagar todas (só aba Não Salvas) acima do extended importar; estado vazio com [AppColors.textLight] nas 3 abas; **UC-05 polish barra carousel ícones**: [carouselBarIconButtonStyle] — setas/lista/ações com [AppColors.title] (vinho PLPCG), inclusive desabilitado; menu overflow `iconColor` alinhado; **UC-08 fix renderização folheto**: [LeafletContent] raiz `Material(transparency)` + `TextDecoration.none` — remove sublinhação amarela debug sem ancestral Material no [OverlayEntry]; **UC-08 redesign folheto PWA+**: identidade PLPCG — moldura dourada, tabela NÚMERO/NOME, rodapé litúrgico; [LeafletContentLabels] + [leafletWeekdayName] + [formatLeafletHeaderDate]; **UC-08 debug**: [leafletDebugLog]; **UC-08 fix captura**: [waitForRepaintBoundary]; **UC-11 navegação 2.3+**: [pdfReaderDisplayedPageProvider] — indicador `page/total` estável durante `animateToPage`; swipe via [PdfxPdfView.navigateToPage]; RTL/LTR + long-press → página 1)
 **Fase atual:** Fase 4 — **4.1 ✅ carousel**, **4.2 ✅ playlists CRUD**, **4.3 ✅ load playlist**, **4.4 ✅ share URL**, **4.5 ✅ deep links**, **4.6 ✅ folheto**, **4.7 ✅ carousel no leitor**, **4.8 ✅ listas sempre ativas + abas**; **polish UI Home** ✅ (+ botão limpar busca); **polish UI Biblioteca** ✅; **polish UI Playlists** ✅ (tile + [PlaylistsScreen] FAB/empty); **polish UI Offline** ✅; **polish chip lista UC-01/03** ✅; **polish UC-14 bottom bar** ✅; **polish barra carousel ícones UC-05** ✅; **polish header app shell** ✅ (sem badge offline; sem selo DEBUG); **polish UC-14 Sobre** ✅ ([AboutScreen] + [AboutInfoCard])
 
 **Próxima fase:** Fase 5 (`PollManifestChecksum`) ou backlog Fase 2 (2.6/2.7)
@@ -10,9 +10,9 @@
 | Feature | UCs | Prioridade | Status | Use cases |
 |---------|-----|------------|--------|-----------|
 | `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar + codegen, `isarProvider`, `AppConfig` |
-| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + polish chip lista + limpar busca + **busca flexível jun/2026** + **share menu ⋮ jun/2026**); **backlog `groupId`**) | Fases 1.1–1.5 ✅; [SearchBar] botão limpar + refoco; busca tolerante hífens + forma compacta ([LouvorSearchTokens]); [LouvorCard] → [CarouselLouvorChip] modal; menu ⋮ **Compartilhar** (UC-04); [LouvorMaterialIcons]; lifecycle Riverpod corrigido; refresh manual via [CatalogRefreshBanner]; `PollManifestChecksum` Fase 5; **pendente:** ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) |
-| `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização jun/2026) | Biblioteca paginada + chips verticais; layout `maxWidth: 896`; [LibraryViewControls] (resumo + paginação integrados); gap 16px card→lista; sync URL; widget tests UC-03 + banner |
-| `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorCard] (tap + menu ⋮), [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
+| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + polish chip + busca flexível + share ⋮ + **agrupamento `groupId` jun/2026**) | [LouvorGroupCard] + sublista materiais; [GroupLouvoresByMaterial]; `groupId` client-side ([LouvorGroupId]); manifest remoto ainda sem campo (opcional); script `assign_louvor_group_ids.py`; ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) |
+| `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL |
+| `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorGroupCard] / [LouvorCard], [openLouvorInReader], [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
 | `pdf_reader` | UC-11 | Alta | **Em progresso** (Fase 2.3 ✅ + **2.4 ✅ fullscreen** + 3.4 ✅ + 4.7 ✅ + lifecycle ✅ + UI 3 barras ✅ + carousel nav fix v3 ✅ + **long-press indicador página ✅** + **swipe horizontal ✅** + **indicador estável animateToPage ✅**) | [_ReaderScaffold]: barra 3 + [PdfReaderPageIndicator]; swipe → [PdfReaderDisplayedPageNotifier]; scroll vertical fixo; sessão `autoDispose`; [readerFullscreenProvider] |
 | `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado |
 | `carousel` | UC-05, UC-07 | Média | **Concluído** (Fase 4.1 + 4.7 ✅ + polish chip + abrir leitor + barra compartilhada + nav leitor fix v3 ✅ + overflow smartphone ✅ + **share lista barra ✅** + metadados chip modo médio ✅ + trailing add/lista + **share card ⋮ UC-04 ✅** + **ícones barra vinho ✅** + **fix drag modal seleção ✅** + **fix flicker reorder ✅**) | [carouselBarIconButtonStyle]; [CarouselBarTrailingActions]; [CarouselNavigatorBar]; [carouselLouvoresDisplayProvider] na barra; reorder otimista + debounce persist; [carouselSelectionReorderProxyDecorator] no modal |
@@ -261,19 +261,26 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + busca flexível jun/2026** | Entidade + `fromManifest()` com `searchTitleNorm`, `searchContentTokens`, `searchCompactContent` |
+| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + groupId jun/2026** | Entidade + `fromManifest()`; `groupId` opcional; `effectiveGroupId`; tokens de busca UC-01 |
+| `LouvorGroup` | `lib/features/catalog/domain/entities/louvor_group.dart` | **Implementado jun/2026 + testes** | Louvor lógico — `groupId`, `numero`, `nome`, `sections`; `fromLouvores()`; `totalMaterials`, `primaryLouvor` |
+| `LouvorMaterialSection` | idem | **Implementado jun/2026** | Sublista por `classificacao` + `displayLabel` + `materials` |
+| `LouvorMaterialEntry` | idem | **Implementado jun/2026** | Folha: `categoria`, `pdfId`, `Louvor` |
+| `LouvorGroupId` | `lib/features/catalog/domain/utils/louvor_group_id.dart` | **Implementado jun/2026 + testes** | `compute()`, `effective()` — espelha `assign_louvor_group_ids.py` |
+| `LouvorCategoryOrder` | `lib/features/catalog/domain/constants/louvor_category_order.dart` | **Implementado jun/2026** | Ordem Partitura → Cifra I/II → Cifra → Gestos; `compare()` |
+| `GroupLouvoresByMaterial` | `lib/features/catalog/domain/usecases/group_louvores_by_material.dart` | **Implementado jun/2026 + testes** | `List<Louvor>` → `List<LouvorGroup>` via [LouvorGroup.fromLouvores] |
+| `groupLouvoresByMaterialProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado jun/2026** | DI [GroupLouvoresByMaterial] |
 | `CatalogRepository` | `lib/features/catalog/domain/repositories/catalog_repository.dart` | Contrato | `loadManifest`, `forceRefreshManifest`, `cacheManifest`, `fetchManifestChecksum` |
 | `LoadLouvoresManifest` | `lib/features/catalog/domain/usecases/load_louvores_manifest.dart` | **Implementado + testes** | UC-12 boot — `call()` → `List<Louvor>` via rede ou cache Isar |
 | `SearchLouvorByNumberOrText` | `lib/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart` | **Implementado + testes + busca flexível jun/2026** | UC-01 — `call(catalog, query)` síncrono; número exato prioritário; texto via [LouvorSearchTokens.matchesText] |
 | `FilterByMaterialAndArranjo` | `lib/features/catalog/domain/usecases/filter_by_material_and_arranjo.dart` | **Implementado + testes** | UC-02 — `call(louvores, selectedMaterials, selectedArranjos)`; Cifra expande I/II |
 | `FilterBySpecialArrangement` | `lib/features/catalog/domain/usecases/filter_by_special_arrangement.dart` | **Implementado + testes** | UC-03 — `call(louvores, selectedSpecialArrangements)`; vazio → sem filtro; match via `LouvorClassification.specialArrangement` |
 | `CatalogMaterials` | `lib/features/catalog/domain/constants/catalog_materials.dart` | **Implementado + testes** | Materiais UI, expansão Cifra, parse/serialize URL |
-| `LouvorClassification` | `lib/features/catalog/domain/utils/louvor_classification.dart` | **Implementado + testes** | `baseClassification()`, `displayLabel()`, `specialArrangement()`; parse/serialize `arranjo=` e `arranjoEspecial=`; constante `specialArrangementPadrao` |
+| `LouvorClassification` | `lib/features/catalog/domain/utils/louvor_classification.dart` | **Implementado + testes + groupId jun/2026** | `baseClassification()`, `displayLabel()`, `materialSectionLabel()`, `specialArrangement()`; parse/serialize URL |
 | `LouvorMaterialIcons` | `lib/features/catalog/domain/utils/louvor_material_icons.dart` | **Implementado + polish chip** | `forCategory(categoria)` → `IconData` (Partitura/Cifra/Gestos) — [LouvorCard], [CarouselLouvorChip] |
 | `findLouvorByPdfId` | `lib/features/catalog/domain/utils/find_louvor_by_pdf_id.dart` | **Implementado 4.7** | `findLouvorByPdfId(catalog, pdfId)` → `Louvor?`; lookup O(n) no manifest — usado por [ReaderCarouselActionsNotifier] e [PlaylistsNotifier] |
 | `ForceRefreshCatalog` | `lib/features/catalog/domain/usecases/force_refresh_catalog.dart` | **Implementado + testes** | UC-12 — `call()` → `forceRefreshManifest()`; fetch remoto obrigatório, sem fallback |
 | `PollManifestChecksum` | `lib/features/catalog/domain/usecases/poll_manifest_checksum.dart` | Esqueleto | UC-12 — Fase 5 (poll automático SHA-256) |
-| `LouvorDto` | `lib/features/catalog/data/models/louvor_dto.dart` | **Implementado** | `fromJson` + `toEntity` → `Louvor.fromManifest` |
+| `LouvorDto` | `lib/features/catalog/data/models/louvor_dto.dart` | **Implementado + groupId jun/2026** | `fromJson` + `toEntity`; campo opcional `groupId` |
 | `OpenPdfDocument` | `lib/features/pdf_reader/domain/usecases/open_pdf_document.dart` | **Implementado + testes** | UC-11 — `validateFilePath()`; sanitiza `file` antes do adapter |
 | `InvalidPdfPathException` | `lib/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart` | **Implementado** | Erro de validação UC-11 antes da abertura PDFx |
 | `SavedPlaylist` | `lib/features/playlists/domain/entities/saved_playlist.dart` | **Implementado 4.2 + 4.8** | Entidade UC-06 — ver seção [playlists (Fase 4.2–4.8)](#apis-públicas--playlists-fase-42–48-uc-0607) |
@@ -333,48 +340,87 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 **Nota:** [PlaylistsNotifier.findLouvorByPdfId] é método de instância distinto — delega lookup + [playlistOpenDebugLog*].
 
-## Backlog — agrupamento manifest (`groupId`)
+## Agrupamento manifest (`groupId`) — implementado (jun/2026)
 
-**Status:** especificado, **não implementado** (jun/2026).  
-**Especificação completa:** [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) — modelo de dados, regras de `groupId`, hierarquia UI, script e anti-padrões para agentes.
+**Status:** **implementado no app** (agrupamento client-side); manifest remoto ainda pode omitir `groupId` (calculado via [LouvorGroupId]).  
+**Especificação:** [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md)
 
-**Problema:** cada entrada do `louvores-manifest.json` é um PDF; o mesmo louvor tem vários materiais (Partitura, Cifra I/II, Gestos…).
+**Problema resolvido:** cada PDF era um card; louvores com Partitura + Cifra + Gestos apareciam duplicados.
 
-**Hierarquia UI acordada:**
+**Hierarquia UI:**
 
 ```text
-[Nível 0 — card na lista]  groupId = louvor lógico (numero + nome)
-609 — Senhor, meu Deus, quando eu maravilhado
-
-[Nível 1 — sublista por classificação]
-├── Coletânea Adultos
-├── Trombetas e Festas 2025          (arranjo especial / classificação completa)
-└── Casamento Fulado de Tal e Fulada
-
-[Nível 2 — folha = 1 PDF por categoria]
-├── Partitura      → pdfId
-├── Cifra nível I  → pdfId
-└── Cifra nível II → pdfId
+[Nível 0 — card]  LouvorGroupCard (groupId)
+[Nível 1 — bottom sheet]  seção por classificacao
+[Nível 2 — folha]  categoria → pdfId → leitor
 ```
 
-**Regra de `groupId` (script manifest):** `f(numero, nomeNormalizado)` — **sem** `classificacao` no id. Avulsos sem número: só `nomeNormalizado`. Carousel/playlists/offline continuam referenciando `pdfId`.
+**Regra `groupId`:** `f(numero, nomeNormalizado)` — ver [LouvorGroupId.compute]. Carousel/playlists/offline continuam com `pdfId`.
 
-**Entidades planejadas:** `LouvorGroup` → `LouvorMaterialSection` (por `classificacao`) → `LouvorMaterialEntry` (por `categoria` + `pdfId`).
+**Script manifest:** `scripts/assign_louvor_group_ids.py` (`--dry-run`, `grouping-report.json`, `grouping-revisao.csv`).
 
-**Próximos passos:** ver seção [APIs planejadas — agrupamento](#apis-planejadas--agrupamento-groupid) e [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md).
+### APIs implementadas — agrupamento (`groupId`)
 
-### APIs planejadas — agrupamento (`groupId`)
+| API | Arquivo | Estado | Descrição |
+|-----|---------|--------|-----------|
+| `LouvorGroup` | `catalog/domain/entities/louvor_group.dart` | **Implementado + testes** | Ver tabela domínio |
+| `GroupLouvoresByMaterial` | `catalog/domain/usecases/group_louvores_by_material.dart` | **Implementado + testes** | `call(louvores)` → grupos ordenados |
+| `LouvorGroupId` | `catalog/domain/utils/louvor_group_id.dart` | **Implementado + testes** | `compute`, `effective` |
+| `LouvorGroupCard` | `catalog/presentation/widgets/louvor_group_card.dart` | **Implementado jun/2026** | Card Home/Biblioteca; tap → sheet ou leitor |
+| `showLouvorMaterialSheet` | `catalog/presentation/widgets/louvor_material_sheet.dart` | **Implementado jun/2026** | Bottom sheet classificação → categoria |
+| `openLouvorInReader` | `catalog/presentation/utils/open_louvor_in_reader.dart` | **Implementado jun/2026** | Resolve + `/leitor`; `resolveLouvorPdf`, `louvorPdfErrorMessage` |
+| `homeSearchGroupResultsProvider` | `catalog/presentation/providers/home_search_provider.dart` | **Implementado jun/2026** | UC-01+02 → `List<LouvorGroup>` |
+| `libraryGroupResultsProvider` | `library/presentation/providers/library_group_results_provider.dart` | **Implementado jun/2026** | UC-03 → [PaginatedLouvorGroups] |
+| `SortLouvorGroups` | `library/domain/usecases/sort_louvor_groups.dart` | **Implementado jun/2026** | Ordena grupos por `numero` ou `nome` |
+| `PaginateLouvorGroups` | `library/domain/usecases/paginate_louvor_groups.dart` | **Implementado jun/2026** | Paginação 10/25/50/100 de grupos |
+| `PaginatedLouvorGroups` | `library/domain/entities/paginated_louvor_groups.dart` | **Implementado jun/2026** | DTO paginado de grupos |
+| `assign_louvor_group_ids.py` | `scripts/` | **Implementado jun/2026** | Atribui `groupId` no JSON do manifest |
+| `Louvor.groupId` / `effectiveGroupId` | `catalog/domain/entities/louvor.dart` | **Implementado jun/2026** | Campo manifest opcional + fallback calculado |
 
-**Status:** especificado em [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **sem código Dart ainda**.
+**Pendente:** publicar manifest remoto com `groupId`; persistir `groupId` em [LouvorCache] (Isar).
 
-| API planejada | Caminho previsto | Descrição |
-|---------------|------------------|-----------|
-| `LouvorGroup` | `catalog/domain/entities/louvor_group.dart` | Louvor lógico — 1 card na lista (`groupId`, `numero`, `nome`, `sections`) |
-| `LouvorMaterialSection` | idem | Sublista por `classificacao` + `displayLabel` |
-| `LouvorMaterialEntry` | idem | Folha: `categoria` + `pdfId` + `Louvor` |
-| `GroupLouvoresByMaterial` | `catalog/domain/usecases/group_louvores_by_material.dart` | `List<Louvor>` → `List<LouvorGroup>` |
-| `assign_louvor_group_ids.py` | `scripts/` | Atribui `groupId` no manifest; `--dry-run`, `grouping-report.json`, `grouping-revisao.csv` |
-| `groupId` (campo manifest) | `LouvorDto` / `Louvor` / `LouvorCache` | Chave de agrupamento; **não** substitui `pdfId` |
+### `LouvorGroup` — API pública (agrupamento jun/2026)
+
+| Membro | Tipo | Descrição |
+|--------|------|-----------|
+| `groupId` | `String` | Chave estável do louvor lógico |
+| `numero` | `String` | Número canônico (pode ser `""`) |
+| `nome` | `String` | Título canônico (prefere Partitura) |
+| `sections` | `List<LouvorMaterialSection>` | Subdivisões por classificação |
+| `totalMaterials` | getter `int` | Contagem de PDFs no grupo |
+| `primaryLouvor` | getter `Louvor?` | Partitura ou primeiro material — atalho `+` no card |
+| `fromLouvores(louvores)` | static | Agrupa, ordena seções/categorias, ordena grupos |
+
+**Consumidores:** [GroupLouvoresByMaterial], [LouvorGroupCard], [showLouvorMaterialSheet].
+
+### `LouvorGroupCard` — API pública (UC-01/03/04/05)
+
+| Comportamento | Descrição |
+|---------------|-----------|
+| Tap | `totalMaterials == 1` → [openLouvorInReader]; senão [showLouvorMaterialSheet] |
+| Trailing `+` | [PlaylistsNotifier.addLouvorToActivePlaylist] com [LouvorGroup.primaryLouvor] |
+| Menu ⋮ share | Só quando grupo tem 1 material (paridade [LouvorCard]) |
+| Visual | Delega a [CarouselLouvorChip] modal |
+
+**Consumidores:** [HomeScreen], [LibraryScreen]. [LouvorCard] delega a [LouvorGroupCard] (wrapper 1 material).
+
+### `showLouvorMaterialSheet` — API pública
+
+| Parâmetro | Descrição |
+|-----------|-----------|
+| `group` | [LouvorGroup] com seções pré-montadas |
+| `onMaterialSelected` | Callback com [Louvor] da categoria escolhida |
+
+**Layout:** título `numero — nome`; seções com [LouvorClassification.materialSectionLabel]; [ListTile] por categoria com [LouvorMaterialIcons].
+
+### `LouvorGroupId` — API pública
+
+| Método | Descrição |
+|--------|-----------|
+| `compute({numero, nome})` | `numero:slug` ou `avulso:slug` |
+| `effective({groupId, numero, nome})` | Manifest se preenchido; senão [compute] |
+
+**Espelho:** `scripts/assign_louvor_group_ids.py`.
 
 ## APIs públicas — Domínio (library, Fase 1.4)
 
@@ -420,9 +466,9 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `SpecialArrangementFilters` | `libraryAvailableSpecialArrangementsProvider` + `librarySpecialArrangementProvider` | FilterChips dinâmicos; label `Padrão` via l10n `specialArrangementPadrao`; título com [AppTypography.label] |
 | `LibraryViewControls` | — (filhos observam providers) | [GoldenTaggedContainer] tag `libraryViewTitle`; agrupa [LibrarySortSelector] + divisor gold + [LibraryPaginationControls] |
 | `LibrarySortSelector` | `libraryViewSettingsProvider.sortBy` | `SegmentedButton` número/nome; estilo gold/title (§6) |
-| `LibraryPaginationControls` | `libraryResultsProvider` + `libraryViewSettingsProvider.itemsPerPage` | [LibraryResultsSummary] no topo; chip dropdown `itemsPerPageValue` (borda gold); indicador `pageIndicator`; navegação `pagePrevious`/`pageNext`; layout responsivo (breakpoint 480px) |
-| `LibraryResultsSummary` | `libraryResultsProvider` | Subcomponente de [LibraryPaginationControls]; texto `libraryResultsSummary(from, to, total)` ou `libraryResultsEmpty`; [AppTypography.body] centralizado |
-| `LibraryScreen` | `libraryResultsProvider`, `catalogFiltersProvider`, … | `ConsumerStatefulWidget`; layout `maxWidth: 896` centralizado; ordem: [CatalogRefreshBanner] → [PdfViewerSelector] → [FiltersPanel] (+ [SpecialArrangementFilters]) → [LibraryViewControls] → `SliverToBoxAdapter(SizedBox 16)` → `SliverList<LouvorCard>` (gap 8px entre chips); sync URL post-frame |
+| `LibraryPaginationControls` | `libraryGroupResultsProvider` + `libraryViewSettingsProvider.itemsPerPage` | [LibraryResultsSummary] no topo; chip dropdown `itemsPerPageValue` (borda gold); indicador `pageIndicator`; navegação `pagePrevious`/`pageNext`; layout responsivo (breakpoint 480px) |
+| `LibraryResultsSummary` | `libraryGroupResultsProvider` | Subcomponente de [LibraryPaginationControls]; texto `libraryResultsSummary(from, to, total)` ou `libraryResultsEmpty`; [AppTypography.body] centralizado |
+| `LibraryScreen` | `libraryGroupResultsProvider`, `catalogFiltersProvider`, … | `ConsumerStatefulWidget`; layout `maxWidth: 896` centralizado; ordem: [CatalogRefreshBanner] → [PdfViewerSelector] → [FiltersPanel] (+ [SpecialArrangementFilters]) → [LibraryViewControls] → `SliverToBoxAdapter(SizedBox 16)` → `SliverList<LouvorGroupCard>` (gap 8px entre chips); sync URL post-frame |
 | `CatalogRefreshBanner` | `catalogRefreshProvider` | [GoldenTaggedContainer] tag `catalogRefreshLabel`; mensagem + botão tonal `btnBackground`; loading inline; erro inline; `Key('catalogRefreshBanner')` no container |
 
 **Ciclo de vida Riverpod ([LibraryScreen])**
@@ -436,15 +482,18 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `ref.listen` (`catalogRefreshProvider`) | Transição loading→idle → `showAppSnackbar` sucesso |
 | `build` | `Scaffold` → `Center` → `ConstrainedBox(maxWidth: 896)` → `CustomScrollView`; seções com gap 12px; `SliverToBoxAdapter(SizedBox 16)` entre header e lista; loading spinner gold; erro manifest via l10n `catalogLoadError` |
 
-### Fluxo Fase 1.4 — biblioteca paginada (UC-03)
+### Fluxo Fase 1.4 — biblioteca paginada (UC-03) + agrupamento jun/2026
 
 ```text
 louvoresManifestProvider (catálogo)
-  → libraryResultsProvider
+  → libraryGroupResultsProvider
       → BrowseLibrary(catalog, materiais, arranjos, arranjosEspeciais)
-      → SortLouvores(louvores, sortBy)
-      → PaginateLouvores(louvores, page, itemsPerPage)
-  → PaginatedLouvores.items → SliverList<LouvorCard> (chips verticais)
+      → GroupLouvoresByMaterial(louvores)
+      → SortLouvorGroups(groups, sortBy)
+      → PaginateLouvorGroups(groups, page, itemsPerPage)
+  → PaginatedLouvorGroups.items → SliverList<LouvorGroupCard> (chips verticais)
+      → tap 1 material → openLouvorInReader
+      → tap 2+ materiais → showLouvorMaterialSheet → categoria → leitor
 
 catalogFiltersProvider + librarySpecialArrangementProvider + libraryViewSettingsProvider
   → LibraryScreen ref.listen → buildLibraryLocation → GoRouter /biblioteca?…
@@ -453,6 +502,8 @@ appRouter /biblioteca?…
   → LibraryScreen(initialMateriais, initialArranjo, initialArranjoEspecial, …)
   → hydrateFromUrl (post-frame) + sync URL quando _urlSyncEnabled
 ```
+
+**Legado:** [libraryResultsProvider] (PDFs individuais) permanece para testes; UI usa [libraryGroupResultsProvider].
 
 **Pendente (Fase 5):** `PollManifestChecksum` (poll automático SHA-256); integração/Gherkin UC-03.
 
@@ -465,7 +516,7 @@ appRouter /biblioteca?…
 | `forceRefreshCatalogProvider` | `Provider<ForceRefreshCatalog>` — DI via [catalogRepositoryProvider] |
 | `CatalogRefreshNotifier.refresh()` | `state = loading` → use case → `ref.invalidate(louvoresManifestProvider)` → `state = idle`; erro → `CatalogRefreshState.error` |
 | `catalogRefreshProvider` | `NotifierProvider<CatalogRefreshNotifier, CatalogRefreshState>` |
-| `manifestAsync.when(..., skipLoadingOnReload: true)` | Em [libraryResultsProvider] e [homeSearchResultsProvider] — preserva lista durante reload |
+| `manifestAsync.when(..., skipLoadingOnReload: true)` | Em [libraryGroupResultsProvider], [libraryResultsProvider] e [homeSearchGroupResultsProvider] / [homeSearchResultsProvider] — preserva lista durante reload |
 | `CatalogRefreshBanner` | `ConsumerWidget`; [GoldenTaggedContainer] tag `catalogRefreshLabel`; `Key('catalogRefreshBanner')` no container; botão desabilitado + spinner em `isLoading` |
 | `LibraryScreen` `ref.listen(catalogRefreshProvider)` | `previous?.isLoading && next.isIdle` → `showAppSnackbar(catalogRefreshSuccess)` |
 
@@ -476,7 +527,7 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
   → ForceRefreshCatalog → CatalogRepositoryImpl.forceRefreshManifest()
       → fetch remoto obrigatório → saveLouvores (Isar)
   → ref.invalidate(louvoresManifestProvider)
-  → libraryResultsProvider / homeSearchResultsProvider (skipLoadingOnReload: true)
+  → libraryGroupResultsProvider / homeSearchGroupResultsProvider (skipLoadingOnReload: true)
   → snackbar catalogRefreshSuccess (ref.listen na LibraryScreen)
 ```
 
@@ -1846,7 +1897,8 @@ ColdiguiApp.listen(louvoresManifestProvider)  // boot; sem rebuild do router
 SearchBar.onChanged → homeSearchRawQueryProvider
   → HomeSearchDebouncer (300ms) → homeSearchDebouncedQueryProvider
   → SearchLouvorByNumberOrText(catalog, query) → homeSearchResultsProvider
-  → HomeScreen SliverList<LouvorCard> (chips verticais — paridade /listas)
+  → homeSearchGroupResultsProvider → GroupLouvoresByMaterial
+  → HomeScreen SliverList<LouvorGroupCard> (chips agrupados — paridade /listas)
 
 SearchLouvorByNumberOrText (texto, após número exato)
   → LouvorSearchTokens.tokenize(query)
@@ -1889,6 +1941,7 @@ homeSearchDebouncedQueryProvider
 CategoryFilters / ClassificationFilters → catalogFiltersProvider
   → FilterByMaterialAndArranjo(searched, materiais, arranjos)
   → homeSearchResultsProvider (após UC-01)
+  → homeSearchGroupResultsProvider → LouvorGroupCard
 
 catalogFiltersProvider + homeSearchUrlSyncQueryProvider
   → HomeScreen ref.listen → buildHomeLocation → GoRouter ?materiais=&arranjo=
@@ -1961,7 +2014,9 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 | `catalogRefreshProvider` | `lib/features/catalog/presentation/providers/catalog_refresh_provider.dart` | **Implementado** | `NotifierProvider` UC-12 refresh manual |
 | `homeSearchRawQueryProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | Texto imediato da [SearchBar] (`onChanged` e botão limpar) |
 | `homeSearchDebouncedQueryProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | Debounce 300ms; `setImmediate()` para URL |
-| `homeSearchResultsProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | UC-01 + UC-02 → `List<Louvor>` filtrado; `skipLoadingOnReload: true` |
+| `homeSearchResultsProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | UC-01 + UC-02 → `List<Louvor>` filtrado; legado — preferir [homeSearchGroupResultsProvider] |
+| `homeSearchGroupResultsProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado jun/2026** | UC-01 + UC-02 → `List<LouvorGroup>` via [GroupLouvoresByMaterial]; `skipLoadingOnReload: true` |
+| `groupLouvoresByMaterialProvider` | `lib/features/catalog/data/providers/catalog_providers.dart` | **Implementado jun/2026** | DI [GroupLouvoresByMaterial] — agrupamento por `groupId` |
 | `homeSearchUrlSyncQueryProvider` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | Debounce 500ms para sync URL `pesquisa=` |
 | `HomeSearchDebouncer` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | `Notifier` 300ms; `setImmediate()` hidrata da URL |
 | `HomeSearchUrlDebouncer` | `lib/features/catalog/presentation/providers/home_search_provider.dart` | **Implementado** | `Notifier` 500ms; alimenta sync GoRouter na Home |
@@ -1981,7 +2036,10 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 | `LibrarySpecialArrangementNotifier` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | `hydrateFromUrl()`, `toggleSpecialArrangement()` |
 | `librarySpecialArrangementProvider` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | Filtro arranjo especial UC-03 |
 | `libraryAvailableSpecialArrangementsProvider` | `lib/features/library/presentation/providers/library_special_arrangement_provider.dart` | **Implementado** | Chips únicos do manifest (inclui `specialArrangementPadrao`) |
-| `libraryResultsProvider` | `lib/features/library/presentation/providers/library_results_provider.dart` | **Implementado** | Pipeline manifest → Browse → Sort → Paginate → [PaginatedLouvores]; `skipLoadingOnReload: true` |
+| `libraryResultsProvider` | `lib/features/library/presentation/providers/library_results_provider.dart` | **Implementado** | Pipeline manifest → Browse → Sort → Paginate → [PaginatedLouvores]; legado — preferir [libraryGroupResultsProvider] |
+| `sortLouvorGroupsProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado jun/2026** | DI [SortLouvorGroups] |
+| `paginateLouvorGroupsProvider` | `lib/features/library/data/providers/library_providers.dart` | **Implementado jun/2026** | DI [PaginateLouvorGroups] |
+| `libraryGroupResultsProvider` | `lib/features/library/presentation/providers/library_group_results_provider.dart` | **Implementado jun/2026** | Pipeline manifest → Browse → Group → Sort → Paginate → [PaginatedLouvorGroups]; `skipLoadingOnReload: true` |
 
 ## APIs públicas — Providers (pdf_opening, Fase 2.1–2.5)
 
@@ -2070,7 +2128,8 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 ```text
 HomeScreen | LibraryScreen
   → PdfViewerSelector → pdfViewerModeProvider
-  → LouvorCard.onTap (loading trailing)
+  → LouvorGroupCard tap (1 material) | showLouvorMaterialSheet (2+)
+      → openLouvorInReader / resolveLouvorPdf
       → LouvorPdfPath.fromLouvor → remotePath (/assets/…)
       → resolvePdfForReaderProvider(pdfId, remotePath)
           → OfflinePdfRepository.lookup [hit] | FetchAndStorePdf [miss + rede]
@@ -2080,7 +2139,7 @@ HomeScreen | LibraryScreen
       → erros: PdfOfflineUnavailableException | PdfExternallyDeletedException
                 | PdfFetchFailedException → snackbar com e.message
 
-LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
+LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
   → sharePositionOriginFromContextOrFallback(context)
   → resolvePdfForReaderProvider → LocalPdfSource.absolutePath
   → sharePdfProvider(absolutePath, displayName: nome, sharePositionOrigin)
@@ -2132,14 +2191,17 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 
 | API | Arquivo | UC | Estado | Descrição |
 |-----|---------|-----|--------|-----------|
-| `HomeScreen` | `catalog/presentation/pages/home_screen.dart` | UC-01/02/04 | **Implementado + polish chip lista jun/2026** | Layout `maxWidth: 896`; ordem Filtros → Leitor → Buscar → `SliverList<LouvorCard>`; [FiltersPanel] + [SearchBar] + [PdfViewerSelector]; sync URL; hidratação/`go` pós-frame |
+| `HomeScreen` | `catalog/presentation/pages/home_screen.dart` | UC-01/02/04 | **Implementado + agrupamento jun/2026** | Layout `maxWidth: 896`; ordem Filtros → Leitor → Buscar → `SliverList<LouvorGroupCard>`; [FiltersPanel] + [SearchBar] + [PdfViewerSelector]; sync URL; hidratação/`go` pós-frame |
 | `FiltersPanel` | `catalog/presentation/widgets/filters_panel.dart` | UC-02/03 | **Implementado + polish + biblioteca jun/2026** | [GoldenTaggedContainer] compacto colapsado; cabeçalho 24px texto+chevron alinhados; `initiallyExpanded`; `additionalExpandedSections` (ex.: [SpecialArrangementFilters] na biblioteca); [CategoryFilters] + [ClassificationFilters] |
 | `SearchBar` | `catalog/presentation/widgets/search_bar.dart` | UC-01 | **Implementado + polish + limpar jun/2026** | [GoldenTaggedContainer] compacto + glow; `Row` lupa + [TextField] + `Icons.close` (visível se não vazio); refoco após limpar; debounce 300ms via provider |
-| `LouvorCard` | `catalog/presentation/widgets/louvor_card.dart` | UC-01/03/04/05 | **Implementado + polish chip lista + share ⋮ jun/2026** | Wrapper [CarouselLouvorChip] modal; `Louvor` → [CarouselItem]; `onTap` resolve PDF; `onAdd`/`isAdded`/`loading`; menu ⋮ [sharePdf]; padding inferior 8px; compartilhado Home + Biblioteca |
+| `LouvorGroupCard` | `catalog/presentation/widgets/louvor_group_card.dart` | UC-01/03/04/05 | **Implementado jun/2026** | Card agrupado Home/Biblioteca; tap → [showLouvorMaterialSheet] ou [openLouvorInReader]; trailing + carousel; menu ⋮ share (1 material) |
+| `showLouvorMaterialSheet` | `catalog/presentation/widgets/louvor_material_sheet.dart` | UC-01/03/04 | **Implementado jun/2026** | Bottom sheet classificação → categoria → callback material |
+| `openLouvorInReader` | `catalog/presentation/utils/open_louvor_in_reader.dart` | UC-04 | **Implementado jun/2026** | Resolve PDF + playlist + `/leitor`; `resolveLouvorPdf`, `louvorPdfErrorMessage` |
+| `LouvorCard` | `catalog/presentation/widgets/louvor_card.dart` | UC-01/03/04/05 | **Implementado + wrapper agrupamento jun/2026** | Delega a [LouvorGroupCard] para 1 material; mantido para testes legados |
 | `CategoryFilters` | `catalog/presentation/widgets/category_filters.dart` | UC-02 | **Implementado + polish** | FilterChips pill gold/title; toggle Riverpod |
 | `ClassificationFilters` | `catalog/presentation/widgets/classification_filters.dart` | UC-02 | **Implementado + polish** | FilterChips arranjo dinâmicos; estilo chip temático |
 | `CatalogRefreshBanner` | `catalog/presentation/widgets/catalog_refresh_banner.dart` | UC-12 | **Implementado + polish biblioteca jun/2026** | [GoldenTaggedContainer] tag `catalogRefreshLabel`; refresh manual via [catalogRefreshProvider]; botão tonal; `Key('catalogRefreshBanner')` |
-| `LibraryScreen` | `library/presentation/pages/library_screen.dart` | UC-03/12 | **Implementado + refatoração Visualização jun/2026** | Layout `maxWidth: 896`; ordem Catálogo → Leitor → Filtros → Visualização → gap 16px → lista; resumo em [LibraryPaginationControls]; sync URL post-frame |
+| `LibraryScreen` | `library/presentation/pages/library_screen.dart` | UC-03/12 | **Implementado + lista agrupada jun/2026** | Layout `maxWidth: 896`; ordem Catálogo → Leitor → Filtros → Visualização → gap 16px → `SliverList<LouvorGroupCard>`; resumo em [LibraryPaginationControls]; sync URL post-frame |
 | `SpecialArrangementFilters` | `library/presentation/widgets/special_arrangement_filters.dart` | UC-03 | **Implementado + polish jun/2026** | FilterChips arranjo especial; chips dinâmicos do manifest; título [AppTypography.label] |
 | `LibraryViewControls` | `library/presentation/widgets/library_view_controls.dart` | UC-03 | **Implementado jun/2026** | [GoldenTaggedContainer] tag `libraryViewTitle`; ordenação + [LibraryPaginationControls] (resumo + chip page size + nav) |
 | `LibraryResultsSummary` | `library/presentation/widgets/library_results_summary.dart` | UC-03 | **Implementado jun/2026** | Subcomponente de [LibraryPaginationControls]; `libraryResultsSummary` / `libraryResultsEmpty`; [AppTypography.body] |
@@ -2193,7 +2255,7 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 | Como abrir | `pdfViewerSelectorLabel` | Dropdown modo PDF | [PdfViewerSelector] (compartilhado com Home) |
 | Filtros | `filtersTitle` | Material + arranjo + arranjo especial | [FiltersPanel] com `additionalExpandedSections: [SpecialArrangementFilters]` |
 | Visualização | `libraryViewTitle` | Ordenar + resumo + paginar | [LibraryViewControls]: [LibrarySortSelector]; [LibraryPaginationControls] com [LibraryResultsSummary] + chip `itemsPerPageValue` + nav |
-| Lista | — | Louvores | `SliverToBoxAdapter(SizedBox 16)` após card Visualização; `SliverList<LouvorCard>` gap 8px entre chips; `maxWidth: 896`; padding horizontal 16/24px |
+| Lista | — | Louvores | `SliverToBoxAdapter(SizedBox 16)` após card Visualização; `SliverList<LouvorGroupCard>` gap 8px entre chips; `maxWidth: 896`; padding horizontal 16/24px |
 
 **Layout Offline (polish UI — §5.2 / §6):**
 
@@ -2408,6 +2470,7 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 
 | Arquivo | Cobertura |
 |---------|-----------|
+| `test/unit/features/catalog/group_louvores_by_material_test.dart` | Agrupamento `groupId`: seções por classificação, ordem categorias, `primaryLouvor`, avulsos |
 | `test/unit/features/catalog/load_louvores_manifest_test.dart` | Delegação ao repository |
 | `test/unit/features/catalog/catalog_repository_impl_test.dart` | Sucesso remoto, fallback, remoto vazio, erro sem cache; `forceRefreshManifest` sem fallback |
 | `test/unit/features/catalog/force_refresh_catalog_test.dart` | Delegação ao `forceRefreshManifest` |
@@ -2419,7 +2482,7 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 | `test/unit/core/utils/home_url_builder_test.dart` | `buildHomeLocation` combina params |
 | `test/unit/core/playlist_share_url_builder_test.dart` | encode/decode share URL; parse CSV; round-trip | **Implementado 4.4** |
 | `test/widget/features/catalog/home_screen_l10n_test.dart` | Hint PT; labels Filtros + `filtersTapToExpand` |
-| `test/widget/features/catalog/home_search_test.dart` | Debounce + LouvorCard |
+| `test/widget/features/catalog/home_search_test.dart` | Debounce + LouvorGroupCard (via LouvorCard wrapper) |
 | `test/widget/features/catalog/category_filters_test.dart` | Toggle material filtra resultados |
 | `test/integration/uc01_search_home_test.dart` | Busca in-memory UC-01 |
 | `integration_test/gherkin/uc01_search_home.feature` | Cenários Gherkin UC-01 |
@@ -2435,7 +2498,7 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 | `test/unit/features/library/sort_louvores_test.dart` | Ordenação `numero` (numérico, lexicográfico, desempate `pdfId`), `nome`, fallback |
 | `test/unit/features/library/paginate_louvores_test.dart` | Páginas 10/25/50/100, clamp página, lista vazia, segunda página |
 | `test/unit/core/utils/library_url_builder_test.dart` | `buildLibraryLocation` combina/omite params; `buildLibraryLocationFromUri` |
-| `test/widget/features/library/library_screen_test.dart` | LouvorCards + chips arranjo especial; resumo dentro do card Visualização; paginação; ordenação; banner refresh + loading |
+| `test/widget/features/library/library_screen_test.dart` | LouvorGroupCards + chips arranjo especial; resumo dentro do card Visualização; paginação; ordenação; banner refresh + loading |
 
 **Pendente:** integração/Gherkin UC-03.
 
@@ -2640,7 +2703,7 @@ Documentos de decisão de produto/arquitetura **antes da implementação**. Agen
 
 | Documento | Feature / UC | Status | Conteúdo |
 |-----------|--------------|--------|----------|
-| [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) | `catalog` — agrupamento manifest | **Especificado** (jun/2026) | `groupId`; hierarquia UI 3 níveis; regras `f(numero, nomeNormalizado)`; entidades `LouvorGroup` / `LouvorMaterialSection` / `LouvorMaterialEntry`; pipeline script; anti-padrões; `pdfId` inalterado em carousel/playlists/offline |
+| [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) | `catalog` — agrupamento manifest | **Implementado parcial** (jun/2026) | App + script ✅; manifest remoto + Isar pendentes; hierarquia UI 3 níveis; regras `f(numero, nomeNormalizado)` |
 
 ## ADRs
 

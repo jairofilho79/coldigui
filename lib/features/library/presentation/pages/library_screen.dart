@@ -7,8 +7,8 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_refresh
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/catalog_refresh_banner.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
-import 'package:coldigui/features/library/presentation/providers/library_results_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
+import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_special_arrangement_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
 import 'package:coldigui/features/library/presentation/widgets/library_view_controls.dart';
@@ -27,7 +27,7 @@ import 'package:go_router/go_router.dart';
 /// ordem Catálogo → Filtros → Visualização → lista.
 ///
 /// Espaçamento: 12px entre seções do header; 16px entre [LibraryViewControls]
-/// e a `SliverList` de [LouvorCard] (paridade Home); 8px entre chips.
+/// e a `SliverList` de [LouvorGroupCard] (paridade Home); 8px entre chips.
 ///
 /// **Ciclo de vida Riverpod:** hidratação e `goRouter.go` adiados com
 /// `addPostFrameCallback` — mesmo padrão de [HomeScreen].
@@ -166,7 +166,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final results = ref.watch(libraryResultsProvider);
+    final results = ref.watch(libraryGroupResultsProvider);
     final manifestAsync = ref.watch(louvoresManifestProvider);
 
     ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, __) {
@@ -264,7 +264,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       padding: EdgeInsets.only(
                         bottom: index < results.items.length - 1 ? 8 : 0,
                       ),
-                      child: LouvorCard(louvor: results.items[index]),
+                      child: LouvorGroupCard(group: results.items[index]),
                     ),
                     childCount: results.items.length,
                   ),

@@ -19,6 +19,18 @@ abstract final class LouvorClassification {
     return base;
   }
 
+  /// Rótulo da seção na sublista de materiais ([LouvorMaterialSection]).
+  ///
+  /// Arranjo especial entre parênteses → só o texto do arranjo; senão
+  /// [displayLabel] ou a classificação completa (ex.: casamentos avulsos).
+  static String materialSectionLabel(String classificacao) {
+    final special = specialArrangement(classificacao);
+    if (special != specialArrangementPadrao) return special;
+    final base = classificacao.trim();
+    if (base.startsWith('Coletânea ')) return base;
+    return displayLabel(classificacao);
+  }
+
   /// Extrai classificação base antes de parênteses.
   ///
   /// Ex.: `ColAdultos (Arranjo X)` → `ColAdultos`.

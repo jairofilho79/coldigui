@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers/catalog_providers.dart';
 import '../../domain/entities/louvor.dart';
+import '../../domain/entities/louvor_group.dart';
 import 'catalog_filters_provider.dart';
 import 'louvores_manifest_provider.dart';
 
@@ -12,6 +13,7 @@ import 'louvores_manifest_provider.dart';
 /// Pipeline: [homeSearchRawQueryProvider] → debounce 300ms
 /// ([homeSearchDebouncedQueryProvider]) → [SearchLouvorByNumberOrText]
 /// → [FilterByMaterialAndArranjo] via [homeSearchResultsProvider].
+/// Resultados agrupados: [homeSearchGroupResultsProvider] → [LouvorGroupCard].
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
 /// consumidos por [HomeScreen] → [buildHomeLocation].
 ///
@@ -43,6 +45,13 @@ final homeSearchResultsProvider = Provider<List<Louvor>>((ref) {
     loading: () => const [],
     error: (_, __) => const [],
   );
+});
+
+/// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
+final homeSearchGroupResultsProvider = Provider<List<LouvorGroup>>((ref) {
+  final louvores = ref.watch(homeSearchResultsProvider);
+  final group = ref.watch(groupLouvoresByMaterialProvider);
+  return group(louvores);
 });
 
 /// Debounce de 300ms entre [homeSearchRawQueryProvider] e filtragem.

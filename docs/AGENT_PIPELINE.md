@@ -46,6 +46,6 @@ Fora do MVP. OpSec varre secrets em todo o projeto; revisão JWT só quando `Fea
 | Documento | Uso |
 |-----------|-----|
 | [FEATURE_INDEX.md](features/FEATURE_INDEX.md) | Índice de features, APIs públicas e status MVP |
-| [LOUVOR_GROUPING.md](features/LOUVOR_GROUPING.md) | Backlog `groupId` — ler **antes** de implementar agrupamento de louvores |
+| [LOUVOR_GROUPING.md](features/LOUVOR_GROUPING.md) | Agrupamento `groupId` — spec + status implementação (app jun/2026; manifest remoto pendente) |
 | [docs/use-cases/](use-cases/) | UCs 01–14 |
 | [MAPEAMENTO_PLPCG_FLUTTER.md](../MAPEAMENTO_PLPCG_FLUTTER.md) | Mapeamento PWA → Flutter |

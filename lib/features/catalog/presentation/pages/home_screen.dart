@@ -4,7 +4,7 @@ import 'package:coldigui/core/utils/home_url_builder.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -15,7 +15,8 @@ import 'package:go_router/go_router.dart';
 /// UC-01, UC-02 — Home / Pesquisador.
 ///
 /// Busca com debounce 300ms, filtros material/arranjo em tempo real,
-/// resultados como [LouvorCard] (chips) e sync URL (`pesquisa=`, `materiais=`, `arranjo=`).
+/// resultados como [LouvorGroupCard] (chips agrupados) e sync URL
+/// (`pesquisa=`, `materiais=`, `arranjo=`).
 ///
 /// **Ciclo de vida Riverpod:** hidratação de URL e `goRouter.go` são adiados com
 /// `addPostFrameCallback` em [didUpdateWidget] e [_syncUrlFromState]
@@ -137,7 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final results = ref.watch(homeSearchResultsProvider);
+    final results = ref.watch(homeSearchGroupResultsProvider);
     final manifestAsync = ref.watch(louvoresManifestProvider);
 
     ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, __) {
@@ -200,7 +201,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => LouvorCard(louvor: results[index]),
+                    (context, index) => LouvorGroupCard(group: results[index]),
                     childCount: results.length,
                   ),
                 ),

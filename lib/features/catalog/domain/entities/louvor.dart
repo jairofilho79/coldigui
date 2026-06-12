@@ -1,10 +1,12 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
+import '../utils/louvor_group_id.dart';
 
 /// Entidade de domínio — louvor do manifest PLPCG.
 ///
 /// Campos espelham o JSON de `louvores-manifest.json`.
 /// [searchTitleNorm], [searchContentTokens] e [searchCompactContent] são
 /// pré-computados na criação via [Louvor.fromManifest] para busca UC-01.
+/// [groupId] agrupa materiais do mesmo louvor (ver [LouvorGroup]).
 class Louvor {
   const Louvor({
     required this.nome,
@@ -13,6 +15,7 @@ class Louvor {
     required this.classificacao,
     required this.pdf,
     required this.pdfId,
+    required this.groupId,
     required this.searchTitleNorm,
     required this.searchContentTokens,
     required this.searchCompactContent,
@@ -36,6 +39,9 @@ class Louvor {
   /// Identificador único — Base64 UTF-8 URL-safe do caminho relativo.
   final String pdfId;
 
+  /// Agrupamento lógico do louvor; vazio → calculado via [LouvorGroupId].
+  final String groupId;
+
   /// Título normalizado ([LouvorSearchTokens.normalize]) para busca.
   final String searchTitleNorm;
 
@@ -45,6 +51,13 @@ class Louvor {
   /// Título compacto (sem separadores) para match de queries como "buscarmeeis".
   final String searchCompactContent;
 
+  /// `groupId` efetivo (manifest ou calculado).
+  String get effectiveGroupId => LouvorGroupId.effective(
+        groupId: groupId,
+        numero: numero,
+        nome: nome,
+      );
+
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
   factory Louvor.fromManifest({
     required String nome,
@@ -53,6 +66,7 @@ class Louvor {
     required String classificacao,
     required String pdf,
     required String pdfId,
+    String groupId = '',
   }) {
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
     final titleTokens = LouvorSearchTokens.tokenize(nome);
@@ -70,6 +84,7 @@ class Louvor {
       classificacao: classificacao,
       pdf: pdf,
       pdfId: pdfId,
+      groupId: groupId,
       searchTitleNorm: searchTitleNorm,
       searchContentTokens: tokens.toList(),
       searchCompactContent: searchCompactContent,

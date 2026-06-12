@@ -2,7 +2,7 @@
 
 > **Para agentes:** documento normativo para backlog de catálogo. Não implementar `groupId` na UI nem no manifest sem seguir este spec. APIs públicas planejadas estão listadas em [FEATURE_INDEX.md § APIs planejadas](./FEATURE_INDEX.md#apis-planejadas--agrupamento-groupid).
 
-**Status:** especificado, **não implementado** (junho de 2026)  
+**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side via `LouvorGroupId.compute`; script Python disponível; campo `groupId` no manifest remoto ainda opcional.  
 **Relacionado:** UC-01 (Home), UC-03 (Biblioteca), UC-12 (manifest)  
 **Índice geral:** [FEATURE_INDEX.md](./FEATURE_INDEX.md) · [AGENT_PIPELINE.md](../AGENT_PIPELINE.md)
 

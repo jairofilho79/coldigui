@@ -9,6 +9,7 @@ class LouvorDto {
     required this.classificacao,
     required this.pdf,
     required this.pdfId,
+    this.groupId = '',
   });
 
   final String nome;
@@ -17,6 +18,7 @@ class LouvorDto {
   final String classificacao;
   final String pdf;
   final String pdfId;
+  final String groupId;
 
   /// Parse do JSON do `louvores-manifest.json`.
   factory LouvorDto.fromJson(Map<String, dynamic> json) => LouvorDto(
@@ -26,6 +28,7 @@ class LouvorDto {
         classificacao: json['classificacao'] as String,
         pdf: json['pdf'] as String,
         pdfId: json['pdfId'] as String,
+        groupId: json['groupId'] as String? ?? '',
       );
 
   /// Converte para entidade de domínio com tokens de busca pré-computados.
@@ -36,5 +39,6 @@ class LouvorDto {
         classificacao: classificacao,
         pdf: pdf,
         pdfId: pdfId,
+        groupId: groupId,
       );
 }
