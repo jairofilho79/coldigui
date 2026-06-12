@@ -24,7 +24,11 @@ import 'active_playlist_provider.dart';
 import 'active_playlist_sync.dart' as active_sync;
 import 'playlists_ui_provider.dart';
 
-/// Playlist ativa alinhada ao carousel — usada antes de compartilhar/salvar.
+/// Playlist ativa alinhada ao carousel — retorno de
+/// [PlaylistsNotifier.resolveActivePlaylistFromCarousel].
+///
+/// Usado por [CarouselBarTrailingActions._sharePlaylist] e
+/// [PlaylistsNotifier.sharePlaylist] antes de gerar URL PWA.
 class ResolvedActivePlaylist {
   const ResolvedActivePlaylist({
     required this.playlistId,
@@ -49,7 +53,11 @@ class PlaylistViewItem {
   final List<String> pdfLabels;
 }
 
-/// Estado reativo das playlists (UC-06).
+/// Estado reativo das playlists — UC-06 (CRUD, load, abas) e UC-07 (share/import).
+///
+/// Expõe [resolveActivePlaylistFromCarousel] para alinhar carousel Isar com
+/// playlist ativa antes de compartilhar; [findLouvorByPdfId] e
+/// [loadIntoCarousel] com instrumentação [playlistOpenDebugLog*] em debug.
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   @override
   List<PlaylistViewItem> build() {

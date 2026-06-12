@@ -77,8 +77,13 @@ class CarouselLouvorChip extends StatelessWidget {
     super.key,
   });
 
+  /// Louvor enriquecido com metadados do manifest (`numero`, `nome`, etc.).
   final CarouselItem item;
+
+  /// `topBar` na barra do shell; `modal` (pill) em listas, modal e leitor.
   final CarouselLouvorChipVariant variant;
+
+  /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
 
   /// Toque no corpo do chip — tipicamente [openCarouselPdfInReader].

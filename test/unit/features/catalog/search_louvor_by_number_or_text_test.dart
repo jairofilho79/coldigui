@@ -26,6 +26,7 @@ void main() {
       _louvor(nome: 'São João', numero: '123', pdfId: 'a'),
       _louvor(nome: 'Aleluia ao Senhor', numero: '456', pdfId: 'b'),
       _louvor(nome: 'Outro louvor', numero: '789', pdfId: 'c'),
+      _louvor(nome: 'Buscar-me-eis', numero: '999', pdfId: 'd'),
     ];
   });
 
@@ -62,5 +63,13 @@ void main() {
 
   test('sem match retorna lista vazia', () {
     expect(search(catalog, 'inexistente xyz'), isEmpty);
+  });
+
+  test('busca flexível com hífens, espaços ou texto compacto', () {
+    for (final query in ['buscarmeeis', 'buscar me eis', 'buscar-me-eis']) {
+      final result = search(catalog, query);
+      expect(result, hasLength(1), reason: 'query: $query');
+      expect(result.first.nome, 'Buscar-me-eis');
+    }
   });
 }

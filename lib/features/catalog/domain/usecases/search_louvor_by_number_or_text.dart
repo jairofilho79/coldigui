@@ -4,7 +4,8 @@ import '../../../../core/utils/louvor_search_tokens.dart';
 /// UC-01 — Buscar louvor por número ou texto na Home.
 ///
 /// Filtro in-memory sobre o manifest: query vazia → `[]`; número exato
-/// prioritário; texto tolerante via tokens pré-computados em [Louvor].
+/// prioritário; texto tolerante via [LouvorSearchTokens.matchesText]
+/// (tokens, hífens, forma compacta — ex.: `buscarmeeis` → `Buscar-me-eis`).
 class SearchLouvorByNumberOrText {
   const SearchLouvorByNumberOrText();
 
@@ -23,9 +24,13 @@ class SearchLouvorByNumberOrText {
     final textMatches = <Louvor>[];
     for (final louvor in catalog) {
       if (exactIds.contains(louvor.pdfId)) continue;
-      final matchesAll =
-          queryTokens.every((t) => louvor.searchContentTokens.contains(t));
-      if (matchesAll) textMatches.add(louvor);
+      final matches = LouvorSearchTokens.matchesText(
+        contentTokens: louvor.searchContentTokens,
+        compactContent: louvor.searchCompactContent,
+        query: trimmed,
+        queryTokens: queryTokens,
+      );
+      if (matches) textMatches.add(louvor);
     }
 
     return [...exactMatches, ...textMatches];

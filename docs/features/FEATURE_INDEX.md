@@ -1,6 +1,6 @@
 # Feature Index — PLPCG Flutter
 
-**Última atualização:** junho de 2026 (**UC-06 debug abrir lista jun/2026**: [playlistOpenDebugLog*] + [showPlaylistOpenErrorSnackbar] — instrumentação [PlaylistListTile]._openPdfInReader / [PlaylistsNotifier.loadIntoCarousel] / [findLouvorByPdfId]; console `[UC-06 playlist-open]`; snackbar [pdfActionError] + resumo técnico em debug (8s); **UC-05 fix flicker reorder jun/2026**: [carouselLouvoresDisplayProvider] + [carouselLouvoresDisplayDebounce] (`100ms`) — barra [CarouselChips] coalesce renders só em reordenação; [carouselReorderPersistDebounce] — [CarouselLouvoresNotifier.reorder] otimista sem `_reload` + persist Isar/sync playlist debounced; `_reloadGeneration` ignora corridas; [carouselFocusedIndexProvider] remove `ref.listen` duplicado; teste `carousel_louvores_display_provider_test`; **UC-05 fix drag modal seleção jun/2026**: [carouselSelectionReorderProxyDecorator] — proxy transparente no [ReorderableListView] de [showCarouselSelectionSheet]; remove borda/sombra retangular do `Material` padrão durante reorder de chips pill [CarouselLouvorChipVariant.modal]; **UC-04 share PDF nos cards jun/2026**: [LouvorCard] menu ⋮ à direita do trailing +/✓ → item [sharePdf] **Compartilhar**; [CarouselLouvorChip.onShare] / `shareLoading`; [LouvorCard._handleShare] → [resolvePdfForReaderProvider] + [sharePdfProvider] com [sharePositionOriginFromContextOrFallback] (fix iOS); paridade toolbar [PdfReaderScreen]; testes `louvor_card_share_save_test` + `carousel_louvor_chip_test`; **UC-14 AboutScreen jun/2026**: [AboutScreen] + [AboutInfoCard] — cards "Quem somos" e "Objetivo"; layout scroll `maxWidth: 896`; título Garamond 18px + divisor gold + corpo Open Sans; textos fixos PT; **UC-07 fix share lista + debug**: [resolveActivePlaylistFromCarousel] + [ResolvedActivePlaylist] — alinha carousel Isar com playlist antes do share (recupera rascunho quando [activePlaylistIdProvider] se perde no restart); [sharePositionOriginFromContextOrFallback] obrigatório no iOS para [Share.share]; [playlistShareDebugLog*] + [showPlaylistShareErrorSnackbar]; testes `resolve_active_playlist_from_carousel_test.dart`; **UC-07 share lista na barra carousel**: [CarouselBarTrailingActions] item [carouselSharePlaylist] — menu overflow smartphone + `share_outlined` expandido; delega [PlaylistsNotifier.sharePlaylist] na playlist ativa; paridade PWA `/?sharepdfs=…&sharename=…`; **UI polish app shell jun/2026**: removido [OfflineIndicator] do header; [PlpcgPrimaryAppBar] só título + divisor gold; [ColdiguiApp] `debugShowCheckedModeBanner: false`; **UC-06 polish [PlaylistsScreen]**: FAB stack — `FloatingActionButton.small` branco apagar todas (só aba Não Salvas) acima do extended importar; estado vazio com [AppColors.textLight] nas 3 abas; **UC-05 polish barra carousel ícones**: [carouselBarIconButtonStyle] — setas/lista/ações com [AppColors.title] (vinho PLPCG), inclusive desabilitado; menu overflow `iconColor` alinhado; **UC-08 fix renderização folheto**: [LeafletContent] raiz `Material(transparency)` + `TextDecoration.none` — remove sublinhação amarela debug sem ancestral Material no [OverlayEntry]; **UC-08 redesign folheto PWA+**: identidade PLPCG — moldura dourada, tabela NÚMERO/NOME, rodapé litúrgico; [LeafletContentLabels] + [leafletWeekdayName] + [formatLeafletHeaderDate]; **UC-08 debug**: [leafletDebugLog]; **UC-08 fix captura**: [waitForRepaintBoundary]; **UC-11 navegação 2.3+**: [pdfReaderDisplayedPageProvider] — indicador `page/total` estável durante `animateToPage`; swipe via [PdfxPdfView.navigateToPage]; RTL/LTR + long-press → página 1)
+**Última atualização:** junho de 2026 (**UC-01 busca flexível jun/2026** — [LouvorSearchTokens.compact], [LouvorSearchTokens.hasWordSeparators], [LouvorSearchTokens.matchesText]; tokenização por `[^a-z0-9]+` (hífens/pontuação); campo [Louvor.searchCompactContent]; exemplos `buscarmeeis` / `buscar me eis` / `buscar-me-eis` → `Buscar-me-eis`; testes `louvor_search_tokens_test` + `search_louvor_by_number_or_text_test`; **LOUVOR_GROUPING.md jun/2026** — spec agente `groupId` (hierarquia louvor → classificação → categoria, regras `f(numero, nomeNorm)`, entidades planejadas, pipeline script, anti-padrões); índice em [Especificações de design](#especificações-de-design-agentes); **docs sync UC-14 + catálogo jun/2026** — subseções API [RoutePaths], [LouvorMaterialIcons], [findLouvorByPdfId], [ResolvedActivePlaylist]; doc comments em `route_paths.dart`; **backlog `groupId`** — hierarquia louvor → classificação → categoria documentada; **docs sync pós-initial commit** — tabela transversal [resolveActivePlaylistFromCarousel]; correções [loadIntoCarousel]/`carouselLouvoresDisplayDebounce`; subseção [playlistShareDebugLog*]; **UC-06 debug abrir lista jun/2026**: [playlistOpenDebugLog*] + [showPlaylistOpenErrorSnackbar] — instrumentação [PlaylistListTile]._openPdfInReader / [PlaylistsNotifier.loadIntoCarousel] / [PlaylistsNotifier.findLouvorByPdfId]; console `[UC-06 playlist-open]`; snackbar [pdfActionError] + resumo técnico em debug (8s); **UC-05 fix flicker reorder jun/2026**: [carouselLouvoresDisplayProvider] + [carouselLouvoresDisplayDebounce] (`100ms`) — barra [CarouselChips] coalesce renders só em reordenação; [carouselReorderPersistDebounce] — [CarouselLouvoresNotifier.reorder] otimista sem `_reload` + persist Isar/sync playlist debounced; `_reloadGeneration` ignora corridas; [carouselFocusedIndexProvider] remove `ref.listen` duplicado; teste `carousel_louvores_display_provider_test`; **UC-05 fix drag modal seleção jun/2026**: [carouselSelectionReorderProxyDecorator] — proxy transparente no [ReorderableListView] de [showCarouselSelectionSheet]; remove borda/sombra retangular do `Material` padrão durante reorder de chips pill [CarouselLouvorChipVariant.modal]; **UC-04 share PDF nos cards jun/2026**: [LouvorCard] menu ⋮ à direita do trailing +/✓ → item [sharePdf] **Compartilhar**; [CarouselLouvorChip.onShare] / `shareLoading`; [LouvorCard._handleShare] → [resolvePdfForReaderProvider] + [sharePdfProvider] com [sharePositionOriginFromContextOrFallback] (fix iOS); paridade toolbar [PdfReaderScreen]; testes `louvor_card_share_save_test` + `carousel_louvor_chip_test`; **UC-14 AboutScreen jun/2026**: [AboutScreen] + [AboutInfoCard] — cards "Quem somos" e "Objetivo"; layout scroll `maxWidth: 896`; título Garamond 18px + divisor gold + corpo Open Sans; textos fixos PT; **UC-07 fix share lista + debug**: [resolveActivePlaylistFromCarousel] + [ResolvedActivePlaylist] — alinha carousel Isar com playlist antes do share (recupera rascunho quando [activePlaylistIdProvider] se perde no restart); [sharePositionOriginFromContextOrFallback] obrigatório no iOS para [Share.share]; [playlistShareDebugLog*] + [showPlaylistShareErrorSnackbar]; testes `resolve_active_playlist_from_carousel_test.dart`; **UC-07 share lista na barra carousel**: [CarouselBarTrailingActions] item [carouselSharePlaylist] — menu overflow smartphone + `share_outlined` expandido; delega [PlaylistsNotifier.sharePlaylist] na playlist ativa; paridade PWA `/?sharepdfs=…&sharename=…`; **UI polish app shell jun/2026**: removido [OfflineIndicator] do header; [PlpcgPrimaryAppBar] só título + divisor gold; [ColdiguiApp] `debugShowCheckedModeBanner: false`; **UC-06 polish [PlaylistsScreen]**: FAB stack — `FloatingActionButton.small` branco apagar todas (só aba Não Salvas) acima do extended importar; estado vazio com [AppColors.textLight] nas 3 abas; **UC-05 polish barra carousel ícones**: [carouselBarIconButtonStyle] — setas/lista/ações com [AppColors.title] (vinho PLPCG), inclusive desabilitado; menu overflow `iconColor` alinhado; **UC-08 fix renderização folheto**: [LeafletContent] raiz `Material(transparency)` + `TextDecoration.none` — remove sublinhação amarela debug sem ancestral Material no [OverlayEntry]; **UC-08 redesign folheto PWA+**: identidade PLPCG — moldura dourada, tabela NÚMERO/NOME, rodapé litúrgico; [LeafletContentLabels] + [leafletWeekdayName] + [formatLeafletHeaderDate]; **UC-08 debug**: [leafletDebugLog]; **UC-08 fix captura**: [waitForRepaintBoundary]; **UC-11 navegação 2.3+**: [pdfReaderDisplayedPageProvider] — indicador `page/total` estável durante `animateToPage`; swipe via [PdfxPdfView.navigateToPage]; RTL/LTR + long-press → página 1)
 **Fase atual:** Fase 4 — **4.1 ✅ carousel**, **4.2 ✅ playlists CRUD**, **4.3 ✅ load playlist**, **4.4 ✅ share URL**, **4.5 ✅ deep links**, **4.6 ✅ folheto**, **4.7 ✅ carousel no leitor**, **4.8 ✅ listas sempre ativas + abas**; **polish UI Home** ✅ (+ botão limpar busca); **polish UI Biblioteca** ✅; **polish UI Playlists** ✅ (tile + [PlaylistsScreen] FAB/empty); **polish UI Offline** ✅; **polish chip lista UC-01/03** ✅; **polish UC-14 bottom bar** ✅; **polish barra carousel ícones UC-05** ✅; **polish header app shell** ✅ (sem badge offline; sem selo DEBUG); **polish UC-14 Sobre** ✅ ([AboutScreen] + [AboutInfoCard])
 
 **Próxima fase:** Fase 5 (`PollManifestChecksum`) ou backlog Fase 2 (2.6/2.7)
@@ -10,7 +10,7 @@
 | Feature | UCs | Prioridade | Status | Use cases |
 |---------|-----|------------|--------|-----------|
 | `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar + codegen, `isarProvider`, `AppConfig` |
-| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + polish chip lista + limpar busca + **share menu ⋮ jun/2026**) | Fases 1.1–1.5 ✅; [SearchBar] botão limpar + refoco; [LouvorCard] → [CarouselLouvorChip] modal; menu ⋮ **Compartilhar** (UC-04); lifecycle Riverpod corrigido; refresh manual via [CatalogRefreshBanner]; `PollManifestChecksum` Fase 5 |
+| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + polish chip lista + limpar busca + **busca flexível jun/2026** + **share menu ⋮ jun/2026**); **backlog `groupId`**) | Fases 1.1–1.5 ✅; [SearchBar] botão limpar + refoco; busca tolerante hífens + forma compacta ([LouvorSearchTokens]); [LouvorCard] → [CarouselLouvorChip] modal; menu ⋮ **Compartilhar** (UC-04); [LouvorMaterialIcons]; lifecycle Riverpod corrigido; refresh manual via [CatalogRefreshBanner]; `PollManifestChecksum` Fase 5; **pendente:** ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) |
 | `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização jun/2026) | Biblioteca paginada + chips verticais; layout `maxWidth: 896`; [LibraryViewControls] (resumo + paginação integrados); gap 16px card→lista; sync URL; widget tests UC-03 + banner |
 | `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorCard] (tap + menu ⋮), [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
 | `pdf_reader` | UC-11 | Alta | **Em progresso** (Fase 2.3 ✅ + **2.4 ✅ fullscreen** + 3.4 ✅ + 4.7 ✅ + lifecycle ✅ + UI 3 barras ✅ + carousel nav fix v3 ✅ + **long-press indicador página ✅** + **swipe horizontal ✅** + **indicador estável animateToPage ✅**) | [_ReaderScaffold]: barra 3 + [PdfReaderPageIndicator]; swipe → [PdfReaderDisplayedPageNotifier]; scroll vertical fixo; sessão `autoDispose`; [readerFullscreenProvider] |
@@ -57,7 +57,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `PdfPathNormalizer` | `lib/core/utils/pdf_path_normalizer.dart` | **Implementado + testes** | `getPdfRelPath` (§10.3 UTF-8 Base64) + `normalizePdfUrl` |
-| `LouvorSearchTokens` | `lib/core/utils/louvor_search_tokens.dart` | **Implementado + testes** | Stop words PT, `normalize`, `tokenize` — base da busca UC-01 |
+| `LouvorSearchTokens` | `lib/core/utils/louvor_search_tokens.dart` | **Implementado + testes + busca flexível jun/2026** | Stop words PT; `normalize`, `compact`, `hasWordSeparators`, `tokenize`, `matchesText` — base da busca UC-01 |
 | `UrlSyncParams` | `lib/core/utils/url_sync_params.dart` | **Implementado 4.7** | Query params sincronizados: Home, Biblioteca, leitor (`file`, `pdfId`, `titulo`, `subtitulo`), share playlist (`sharepdfs`, `sharename`) |
 | `buildHomeLocation` | `lib/core/utils/home_url_builder.dart` | **Implementado + testes** | Monta `/` com `pesquisa`, `materiais`, `arranjo`; omite defaults |
 | `buildHomeLocationFromUri` | `lib/core/utils/home_url_builder.dart` | **Implementado + testes** | Normaliza `Uri` da Home para comparação no sync GoRouter |
@@ -98,6 +98,27 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | `onTap` | `VoidCallback?` | `null` | [FiltersPanel] colapsado — toque na caixa expande |
 
 **Padrão de implementação:** `Row` + `crossAxisAlignment: center` + `SizedBox(height: compactRowHeight)`; evitar `prefixIcon`/`suffixIcon` em [TextField] e usar `isDense: true` em [DropdownButton] para não herdar tap target de 48px.
+
+### `LouvorSearchTokens` — API pública (UC-01)
+
+| Membro | Tipo | Descrição |
+|--------|------|-----------|
+| `stopWords` | `static const Set<String>` | ~40 stop words PT removidas na tokenização |
+| `normalize(text)` | `static String` | Minúsculas + remoção de acentos (`São João` → `sao joao`) |
+| `compact(text)` | `static String` | Remove separadores/pontuação após `normalize` (`Buscar-me-eis` → `buscarmeeis`) |
+| `hasWordSeparators(text)` | `static bool` | `true` se há espaço, hífen ou pontuação na query normalizada |
+| `tokenize(title)` | `static List<String>` | Split `[^a-z0-9]+` + filtro stop words (`Buscar-me-eis` → `['buscar','me','eis']`) |
+| `matchesText({...})` | `static bool` | Match UC-01: todos os tokens **ou** substring compacta (query sem separadores, ≥3 chars) |
+
+**Exemplos de match textual** (título manifest `Buscar-me-eis`):
+
+| Query digitada | Estratégia |
+|----------------|------------|
+| `buscar me eis` | tokens — cada token em `searchContentTokens` |
+| `buscar-me-eis` | tokens — hífens tratados como separadores |
+| `buscarmeeis` | compacto — `compact(query)` ⊆ `searchCompactContent` |
+
+**Consumidores:** [SearchLouvorByNumberOrText]; [Louvor.fromManifest] pré-computa `searchContentTokens` e `searchCompactContent`.
 
 ### `LightBeam` — API pública (design system §6.2)
 
@@ -158,6 +179,19 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 
 **Consumidores:** [AboutScreen] (seções "Quem somos" e "Objetivo").
 
+### `RoutePaths` — API pública (UC-14 / routing)
+
+| Membro | Valor | Tela | Bottom bar |
+|--------|-------|------|------------|
+| `about` | `/sobre` | [AboutScreen] | índice 0 |
+| `library` | `/biblioteca` | [LibraryScreen] | índice 1 |
+| `home` | `/` | [HomeScreen] | índice 2 (Pesquisar) |
+| `offline` | `/offline` | [OfflineSettingsScreen] | índice 3 |
+| `playlists` | `/listas` | [PlaylistsScreen] | índice 4 |
+| `reader` | `/leitor` | [PdfReaderScreen] | oculta bottom bar |
+
+**Consumidores:** [appRouterProvider], [ShellScaffold._onTap], deep links UC-07.
+
 ### `SearchBar` — API pública (UC-01)
 
 | Membro | Tipo | Default | Descrição |
@@ -169,7 +203,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | Provider | [homeSearchRawQueryProvider] | — | `onChanged` e limpar escrevem texto imediato; debounce 300ms em [homeSearchDebouncedQueryProvider] |
 
 | `PlpcgPrimaryAppBar` | `lib/core/widgets/plpcg_primary_app_bar.dart` | **Implementado UI 3 barras + polish jun/2026** | `PreferredSizeWidget` — [PlpcgAppBarTitle] + divisor gold 4px; sem `actions`; [ShellScaffold.appBar] e leitor (barra 1 em `SizedBox` no [_ReaderScaffold]) |
-| `RoutePaths` | `lib/core/routing/route_paths.dart` | Constantes | Paths das 6 telas |
+| `RoutePaths` | `lib/core/routing/route_paths.dart` | **Implementado + doc jun/2026** | 6 paths shell + leitor; ver subseção [RoutePaths](#routepaths--api-pública-uc-14--routing) |
 | `appRouterProvider` | `lib/core/routing/app_router.dart` | **Implementado** | GoRouter + [rootNavigatorKey]; `ShellRoute` (5 destinos) + `/leitor` com `parentNavigatorKey` (fullscreen fora do shell); Home lê `pesquisa=`, `materiais=`, `arranjo=`; Biblioteca lê `materiais=`, `arranjo=`, `arranjoEspecial=`, `ordenar=`, `itensPorPagina=`, `pagina=` |
 | `dioProvider` | `lib/core/providers/dio_provider.dart` | **Implementado** | Cliente HTTP Dio com `baseUrl` de [AppConfig] |
 | `sharedPreferencesProvider` | `lib/core/providers/shared_prefs_provider.dart` | **Implementado** | Override em `main()` via `SharedPreferences.getInstance()` |
@@ -227,10 +261,10 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado** | Entidade + `fromManifest()` com `searchTitleNorm` / `searchContentTokens` |
+| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + busca flexível jun/2026** | Entidade + `fromManifest()` com `searchTitleNorm`, `searchContentTokens`, `searchCompactContent` |
 | `CatalogRepository` | `lib/features/catalog/domain/repositories/catalog_repository.dart` | Contrato | `loadManifest`, `forceRefreshManifest`, `cacheManifest`, `fetchManifestChecksum` |
 | `LoadLouvoresManifest` | `lib/features/catalog/domain/usecases/load_louvores_manifest.dart` | **Implementado + testes** | UC-12 boot — `call()` → `List<Louvor>` via rede ou cache Isar |
-| `SearchLouvorByNumberOrText` | `lib/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart` | **Implementado + testes** | UC-01 — `call(catalog, query)` síncrono; número exato prioritário |
+| `SearchLouvorByNumberOrText` | `lib/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart` | **Implementado + testes + busca flexível jun/2026** | UC-01 — `call(catalog, query)` síncrono; número exato prioritário; texto via [LouvorSearchTokens.matchesText] |
 | `FilterByMaterialAndArranjo` | `lib/features/catalog/domain/usecases/filter_by_material_and_arranjo.dart` | **Implementado + testes** | UC-02 — `call(louvores, selectedMaterials, selectedArranjos)`; Cifra expande I/II |
 | `FilterBySpecialArrangement` | `lib/features/catalog/domain/usecases/filter_by_special_arrangement.dart` | **Implementado + testes** | UC-03 — `call(louvores, selectedSpecialArrangements)`; vazio → sem filtro; match via `LouvorClassification.specialArrangement` |
 | `CatalogMaterials` | `lib/features/catalog/domain/constants/catalog_materials.dart` | **Implementado + testes** | Materiais UI, expansão Cifra, parse/serialize URL |
@@ -262,6 +296,7 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `EmptyPlaylistShareException` | `lib/features/playlists/domain/exceptions/empty_playlist_share_exception.dart` | **Implementado 4.4** | Playlist vazia ao compartilhar |
 | `InvalidSharePlaylistException` | `lib/features/playlists/domain/exceptions/invalid_share_playlist_exception.dart` | **Implementado 4.4** | Params de import inválidos |
 | `ResolvedActivePlaylist` | `lib/features/playlists/presentation/providers/playlists_provider.dart` | **Implementado jun/2026** | `{playlistId, nome}` — resultado de [resolveActivePlaylistFromCarousel] |
+| `PlaylistsNotifier.resolveActivePlaylistFromCarousel()` | `lib/features/playlists/presentation/providers/playlists_provider.dart` | **Implementado jun/2026 + testes** | Carousel Isar → sync/reutiliza/cria rascunho; restaura [activePlaylistIdProvider]; `null` se vazio |
 | `playlistShareDebugLog` / `playlistShareDebugLogError` / `playlistShareDebugErrorSummary` | `lib/features/playlists/presentation/utils/playlist_share_debug_log.dart` | **Implementado jun/2026** | Diagnóstico UC-07 em [kDebugMode] — console `[UC-07 playlist-share]` + resumo na snackbar |
 | `showPlaylistShareErrorSnackbar` | `lib/features/playlists/presentation/utils/playlist_share_debug_log.dart` | **Implementado jun/2026** | Snackbar [playlistShareError] + detalhe técnico em debug (8s) |
 | `playlistOpenLastStage` / `playlistOpenLastError` | `lib/features/playlists/presentation/utils/playlist_open_debug_log.dart` | **Implementado jun/2026** | Estado de diagnóstico da última falha UC-06 — preenchido em [kDebugMode] |
@@ -269,7 +304,7 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `playlistOpenDebugLog` / `playlistOpenDebugLogError` / `playlistOpenDebugLogFailure` / `playlistOpenDebugErrorSummary` | idem | **Implementado jun/2026** | Diagnóstico UC-06 abrir lista no leitor em [kDebugMode] — console `[UC-06 playlist-open]` + resumo na snackbar |
 | `showPlaylistOpenErrorSnackbar` | idem | **Implementado jun/2026** | Snackbar [pdfActionError] + detalhe técnico em debug (8s) |
 | `PlaylistsNotifier.findLouvorByPdfId(pdfId)` | `lib/features/playlists/presentation/providers/playlists_provider.dart` | **Implementado jun/2026** | Lookup manifest + instrumentação [playlistOpenDebugLog*]; `null` se órfão |
-| `PlaylistsNotifier.loadIntoCarousel(playlistId)` | idem | **Implementado 4.3 + debug jun/2026** | Load + reload carousel + reset foco; `false` em erro; [playlistOpenDebugLog*] |
+| `PlaylistsNotifier.loadIntoCarousel(playlistId)` | idem | **Implementado 4.3 + debug jun/2026** | [LoadPlaylistIntoCarousel] → [activePlaylistIdProvider].set → reload carousel → reset foco; `false` em erro; [playlistOpenDebugLog*] |
 | `LeafletEntry` | `lib/features/leaflet/domain/entities/leaflet_entry.dart` | **Implementado 4.6 + redesign** | `{index, numero, nome}` — linha da tabela UC-08 |
 | `LeafletDocument` | `lib/features/leaflet/domain/entities/leaflet_document.dart` | **Implementado 4.6 + redesign + testes** | `{entries, generatedAt}`; factory `fromCarouselItems` |
 | `GenerateLeafletFromSelection` | `lib/features/leaflet/domain/usecases/generate_leaflet_from_selection.dart` | **Implementado 4.6 + redesign + testes** | UC-08 — carousel ordenado → `LeafletDocument`; [EmptyCarouselException] |
@@ -279,6 +314,67 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 | `LeafletContent` | `lib/features/leaflet/presentation/widgets/leaflet_content.dart` | **Implementado 4.6 + redesign + fix render jun/2026** | Layout folheto; raiz `Material(transparency)` para captura off-screen sem sublinhação debug |
 | `leafletActionsProvider` | `lib/features/leaflet/presentation/providers/leaflet_actions_provider.dart` | **Implementado 4.6 + redesign** | `generateAndShare` — [LeafletContentLabels] + overlay + PNG + [share_plus] |
 | `leafletDebugLog` / `leafletDebugLogError` / `leafletDebugErrorSummary` | `lib/features/leaflet/presentation/utils/leaflet_debug_log.dart` | **Implementado jun/2026** | Diagnóstico UC-08 em [kDebugMode] — console + resumo na snackbar |
+
+### `LouvorMaterialIcons` — API pública (UC-01/02 polish)
+
+| Membro | Tipo | Descrição |
+|--------|------|-----------|
+| `forCategory(categoria)` | `static IconData` | Heurística `toLowerCase()` + `contains`: `cifra` → `Icons.music_note`; `gest` → `Icons.pan_tool_outlined`; demais → `Icons.piano` |
+
+**Consumidores:** [LouvorCard], [CarouselLouvorChip] (ícone de material no chip modal/topBar).
+
+### `findLouvorByPdfId` — API pública (UC-04/05/06/07)
+
+| Assinatura | Retorno | Descrição |
+|------------|---------|-----------|
+| `findLouvorByPdfId(catalog, pdfId)` | `Louvor?` | Lookup O(n) no manifest; `null` se [catalog] nulo ou id órfão |
+
+**Consumidores:** [ReaderCarouselActionsNotifier.navigateToPdfId] (4.7), [PlaylistsNotifier.findLouvorByPdfId] (wrapper com debug UC-06).
+
+**Nota:** [PlaylistsNotifier.findLouvorByPdfId] é método de instância distinto — delega lookup + [playlistOpenDebugLog*].
+
+## Backlog — agrupamento manifest (`groupId`)
+
+**Status:** especificado, **não implementado** (jun/2026).  
+**Especificação completa:** [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) — modelo de dados, regras de `groupId`, hierarquia UI, script e anti-padrões para agentes.
+
+**Problema:** cada entrada do `louvores-manifest.json` é um PDF; o mesmo louvor tem vários materiais (Partitura, Cifra I/II, Gestos…).
+
+**Hierarquia UI acordada:**
+
+```text
+[Nível 0 — card na lista]  groupId = louvor lógico (numero + nome)
+609 — Senhor, meu Deus, quando eu maravilhado
+
+[Nível 1 — sublista por classificação]
+├── Coletânea Adultos
+├── Trombetas e Festas 2025          (arranjo especial / classificação completa)
+└── Casamento Fulado de Tal e Fulada
+
+[Nível 2 — folha = 1 PDF por categoria]
+├── Partitura      → pdfId
+├── Cifra nível I  → pdfId
+└── Cifra nível II → pdfId
+```
+
+**Regra de `groupId` (script manifest):** `f(numero, nomeNormalizado)` — **sem** `classificacao` no id. Avulsos sem número: só `nomeNormalizado`. Carousel/playlists/offline continuam referenciando `pdfId`.
+
+**Entidades planejadas:** `LouvorGroup` → `LouvorMaterialSection` (por `classificacao`) → `LouvorMaterialEntry` (por `categoria` + `pdfId`).
+
+**Próximos passos:** ver seção [APIs planejadas — agrupamento](#apis-planejadas--agrupamento-groupid) e [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md).
+
+### APIs planejadas — agrupamento (`groupId`)
+
+**Status:** especificado em [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **sem código Dart ainda**.
+
+| API planejada | Caminho previsto | Descrição |
+|---------------|------------------|-----------|
+| `LouvorGroup` | `catalog/domain/entities/louvor_group.dart` | Louvor lógico — 1 card na lista (`groupId`, `numero`, `nome`, `sections`) |
+| `LouvorMaterialSection` | idem | Sublista por `classificacao` + `displayLabel` |
+| `LouvorMaterialEntry` | idem | Folha: `categoria` + `pdfId` + `Louvor` |
+| `GroupLouvoresByMaterial` | `catalog/domain/usecases/group_louvores_by_material.dart` | `List<Louvor>` → `List<LouvorGroup>` |
+| `assign_louvor_group_ids.py` | `scripts/` | Atribui `groupId` no manifest; `--dry-run`, `grouping-report.json`, `grouping-revisao.csv` |
+| `groupId` (campo manifest) | `LouvorDto` / `Louvor` / `LouvorCache` | Chave de agrupamento; **não** substitui `pdfId` |
 
 ## APIs públicas — Domínio (library, Fase 1.4)
 
@@ -1040,7 +1136,7 @@ ShellScaffold
 
 | Membro | Tipo | Default | Descrição |
 |--------|------|---------|-----------|
-| `carouselLouvoresDisplayDebounce` | `static const Duration` | `100ms` | Debounce aplicado **somente** quando o conjunto de `pdfId` é idêntico e só a ordem mudou (reorder no modal) |
+| `carouselLouvoresDisplayDebounce` | `const Duration` (top-level) | `100ms` | Em `carousel_louvores_display_provider.dart`; debounce **somente** quando o conjunto de `pdfId` é idêntico e só a ordem mudou (reorder no modal) |
 | `CarouselLouvoresDisplayNotifier` | `Notifier<List<CarouselItem>>` | — | `ref.listen(carouselLouvoresProvider)`; cancela timer em `onDispose` |
 | `carouselLouvoresDisplayProvider` | `NotifierProvider` | — | Lista para renderização em [CarouselChips]; fonte de navegação permanece [carouselLouvoresProvider] |
 | Add/remove/clear | interno | imediato | `state = next` sem debounce quando o conjunto de `pdfId` muda |
@@ -1056,6 +1152,7 @@ ShellScaffold
 
 | Parâmetro | Tipo | Default | Comportamento |
 |-----------|------|---------|---------------|
+| `onRemove` | `VoidCallback?` | `null` | Botão `X` no trailing — modal de seleção e [PlaylistListTile] expandido |
 | `onAdd` | `VoidCallback?` | `null` | Botão circular `+` no trailing; dispara [carouselLouvoresProvider.notifier.add] |
 | `isAdded` | `bool` | `false` | Exibe check no trailing quando louvor já está na seleção |
 | `loading` | `bool` | `false` | Spinner dourado no trailing; desabilita `onTap`, `onAdd` e `onShare` em [LouvorCard] |
@@ -1077,6 +1174,19 @@ Prioridade do trailing: `loading` → `onRemove` → `isAdded` → `onAdd`; depo
 **Share lista na barra carousel (jun/2026 — UC-07):** Entrada [carouselSharePlaylist] no menu overflow e botão `share_outlined` no layout expandido. Compartilha a seleção do carousel sem exigir visita a `/listas` — paridade PWA `/?sharepdfs=…&sharename=…`. Fluxo: [resolveActivePlaylistFromCarousel] (sincroniza/recupera playlist; corrige falso “lista vazia” após restart) → [GeneratePlaylistShareUrl] → `Share.share` com [sharePositionOriginFromContextOrFallback] (fix iOS). Diagnóstico: [playlistShareDebugLog*]; falha → [showPlaylistShareErrorSnackbar]. Testes: `carousel_chips_test.dart`, `resolve_active_playlist_from_carousel_test.dart`.
 
 **Fix share iOS (jun/2026 — UC-07):** `PlatformException: sharePositionOrigin: argument must be set` ao chamar [Share.share] sem âncora. Correção: capturar `sharePositionOrigin` do contexto do botão/menu **antes** de awaits; repassar em [PlaylistsNotifier.sharePlaylist]. Fallback [sharePositionOriginFromContextOrFallback] quando [RenderBox] ainda sem layout (menu overflow).
+
+### `playlistShareDebugLog*` — API pública (UC-07 debug jun/2026)
+
+| API | Arquivo | Descrição |
+|-----|---------|-----------|
+| `playlistShareLastStage` / `playlistShareLastError` | `playlist_share_debug_log.dart` | Estado da última falha de share — preenchido em [kDebugMode] |
+| `playlistShareDebugClearLastFailure()` | idem | Limpa estado antes de nova tentativa em [CarouselBarTrailingActions._sharePlaylist] |
+| `playlistShareDebugLog(message)` | idem | `debugPrint('[UC-07 playlist-share] …')` só em debug |
+| `playlistShareDebugLogError(stage, error, stack)` | idem | Exceção + stack; preenche `playlistShareLast*` |
+| `playlistShareDebugErrorSummary()` | idem | Resumo `estágio — Tipo: mensagem` para snackbar |
+| `showPlaylistShareErrorSnackbar(context, l10n)` | idem | [playlistShareError] + resumo em debug (8s) |
+
+**Instrumentação em:** [PlaylistsNotifier.resolveActivePlaylistFromCarousel], [PlaylistsNotifier.sharePlaylist], [CarouselBarTrailingActions._sharePlaylist].
 
 **Polish ícones barra carousel (jun/2026):** Setas (`chevron_left`/`chevron_right`), lista (`view_list`) e menu overflow (`more_vert`) passam a usar [AppColors.title] (vinho PLPCG) em vez do preto/cinza padrão do Material — especialmente visível quando setas ficam desabilitadas durante `loading`. API compartilhada: [carouselBarIconButtonStyle] em [CarouselBarShell]; [CarouselBarTrailingActions] define `iconColor: AppColors.title` no [PopupMenuButton] compacto e reutiliza o mesmo estilo no layout expandido. Sem alteração de contrato funcional (UC-05).
 
@@ -1211,8 +1321,8 @@ Playlists em Isar ([Playlist]). Substitui `localStorage.savedPlaylists` da PWA. 
 |------------|---------------|
 | `LoadPlaylistIntoCarousel.call({required playlistId})` | `PlaylistRepository.getById` → `CarouselRepository.replaceAll(pdfIds)`; lança [PlaylistNotFoundException] se ausente; **não** valida manifest |
 | `loadPlaylistIntoCarouselProvider` | DI — injeta [PlaylistRepository] + [CarouselRepository] |
-| `PlaylistsNotifier.loadIntoCarousel(playlistId)` | Delega use case; `carouselLouvoresProvider.notifier.reload()`; retorna `false` se playlist ausente ou erro; instrumentação [playlistOpenDebugLog*] |
-| `PlaylistsNotifier.findLouvorByPdfId(pdfId)` | Lookup O(n) no `louvoresManifestProvider.value`; `null` se manifest vazio ou id órfão; log estado do manifest em debug |
+| `PlaylistsNotifier.loadIntoCarousel(playlistId)` | Delega [LoadPlaylistIntoCarousel]; `activePlaylistIdProvider.set(playlistId)`; `carouselLouvoresProvider.notifier.reload()`; `carouselFocusedIndexProvider.reset()`; retorna `false` se playlist ausente ou erro; [playlistOpenDebugLog*] |
+| `PlaylistsNotifier.findLouvorByPdfId(pdfId)` | Método do notifier (≠ `findLouvorByPdfId(catalog, pdfId)` do domínio catálogo); lookup O(n) no manifest; `null` se órfão; [playlistOpenDebugLog*] em debug |
 | `CarouselLouvoresNotifier.reload()` | Re-fetch Isar + re-enriquece labels — chamado após load externo |
 | `PlaylistListTile` menu **Carregar no carousel** | Se `carouselLouvoresProvider` não vazio → [showConfirmDialog] → `loadIntoCarousel` → snackbar [playlistLoaded] |
 | `PlaylistListTile` menu **Abrir no leitor** | Delega `_openPdfInReader(pdfIds.first)` — load carousel + resolve + `context.push` |
@@ -1318,6 +1428,19 @@ _openPdfInReader(pdfId)
 | `showPlaylistOpenErrorSnackbar(context, l10n)` | idem | [pdfActionError] + resumo em debug (8s) |
 
 **Instrumentação em:** [PlaylistsNotifier.loadIntoCarousel], [PlaylistsNotifier.findLouvorByPdfId], [PlaylistListTile._openPdfInReader].
+
+### `ResolvedActivePlaylist` — API pública (UC-07 jun/2026)
+
+| Membro | Tipo | Descrição |
+|--------|------|-----------|
+| `playlistId` | `String` | ID estável ([SavedPlaylist.playlistId]) |
+| `nome` | `String` | Nome exibido no share sheet (`subject` do [Share.share]) |
+
+| Método | Retorno | Descrição |
+|--------|---------|-----------|
+| `PlaylistsNotifier.resolveActivePlaylistFromCarousel()` | `Future<ResolvedActivePlaylist?>` | Carousel Isar → reutiliza playlist ativa (sync se `pdfIds` divergirem), match por `pdfIds`, ou cria rascunho; restaura [activePlaylistIdProvider]; `null` se carousel vazio |
+
+**Consumidores:** [CarouselBarTrailingActions._sharePlaylist], [PlaylistsNotifier.sharePlaylist]. Testes: `resolve_active_playlist_from_carousel_test.dart`.
 
 **Checkpoint 4.3:** carregar playlist substitui chips globais; confirma se seleção existente; abrir louvor no leitor (menu 1º ou chip específico); restart mantém playlist.
 
@@ -1724,6 +1847,17 @@ SearchBar.onChanged → homeSearchRawQueryProvider
   → HomeSearchDebouncer (300ms) → homeSearchDebouncedQueryProvider
   → SearchLouvorByNumberOrText(catalog, query) → homeSearchResultsProvider
   → HomeScreen SliverList<LouvorCard> (chips verticais — paridade /listas)
+
+SearchLouvorByNumberOrText (texto, após número exato)
+  → LouvorSearchTokens.tokenize(query)
+  → LouvorSearchTokens.matchesText(
+       contentTokens: louvor.searchContentTokens,
+       compactContent: louvor.searchCompactContent,
+       query, queryTokens)
+     • tokens: todos os tokens da query em searchContentTokens
+       (hífens/pontuação como separadores — ex. buscar-me-eis)
+     • compacto: query sem separadores, len≥3, substring de searchCompactContent
+       (ex. buscarmeeis → Buscar-me-eis)
 
 SearchBar botão limpar (Icons.close)
   → controller.clear() + homeSearchRawQueryProvider = ''
@@ -2278,7 +2412,8 @@ LouvorCard menu ⋮ → Compartilhar (shareLoading no ícone)
 | `test/unit/features/catalog/catalog_repository_impl_test.dart` | Sucesso remoto, fallback, remoto vazio, erro sem cache; `forceRefreshManifest` sem fallback |
 | `test/unit/features/catalog/force_refresh_catalog_test.dart` | Delegação ao `forceRefreshManifest` |
 | `test/unit/features/catalog/catalog_local_datasource_test.dart` | save/load Isar |
-| `test/unit/features/catalog/search_louvor_by_number_or_text_test.dart` | UC-01: vazio, número exato, texto, prioridade |
+| `test/unit/core/utils/louvor_search_tokens_test.dart` | UC-01: `normalize`, `tokenize` (hífens), `compact`, `matchesText` |
+| `test/unit/features/catalog/search_louvor_by_number_or_text_test.dart` | UC-01: vazio, número exato, texto, prioridade, busca flexível (`buscarmeeis` / `buscar me eis` / `buscar-me-eis`) |
 | `test/unit/features/catalog/filter_by_material_and_arranjo_test.dart` | UC-02: material, Cifra I/II, arranjo base |
 | `test/unit/features/catalog/catalog_materials_test.dart` | Expansão Cifra, parse/serialize URL |
 | `test/unit/core/utils/home_url_builder_test.dart` | `buildHomeLocation` combina params |
@@ -2498,6 +2633,14 @@ flutter test --dart-define=PLPCG_API_BASE_URL=https://example.com   # 173 testes
 # ou:
 flutter test --dart-define-from-file=dart_defines/plpcg.json
 ```
+
+## Especificações de design (agentes)
+
+Documentos de decisão de produto/arquitetura **antes da implementação**. Agentes de dev devem ler o spec correspondente antes de codar.
+
+| Documento | Feature / UC | Status | Conteúdo |
+|-----------|--------------|--------|----------|
+| [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) | `catalog` — agrupamento manifest | **Especificado** (jun/2026) | `groupId`; hierarquia UI 3 níveis; regras `f(numero, nomeNormalizado)`; entidades `LouvorGroup` / `LouvorMaterialSection` / `LouvorMaterialEntry`; pipeline script; anti-padrões; `pdfId` inalterado em carousel/playlists/offline |
 
 ## ADRs
 

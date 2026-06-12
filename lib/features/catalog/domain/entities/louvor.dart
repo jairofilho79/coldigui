@@ -3,8 +3,8 @@ import '../../../../core/utils/louvor_search_tokens.dart';
 /// Entidade de domínio — louvor do manifest PLPCG.
 ///
 /// Campos espelham o JSON de `louvores-manifest.json`.
-/// [searchTitleNorm] e [searchContentTokens] são pré-computados na criação
-/// via [Louvor.fromManifest] para busca UC-01 sem re-tokenização.
+/// [searchTitleNorm], [searchContentTokens] e [searchCompactContent] são
+/// pré-computados na criação via [Louvor.fromManifest] para busca UC-01.
 class Louvor {
   const Louvor({
     required this.nome,
@@ -15,6 +15,7 @@ class Louvor {
     required this.pdfId,
     required this.searchTitleNorm,
     required this.searchContentTokens,
+    required this.searchCompactContent,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -41,6 +42,9 @@ class Louvor {
   /// Tokens de título + número pré-computados para filtro UC-01.
   final List<String> searchContentTokens;
 
+  /// Título compacto (sem separadores) para match de queries como "buscarmeeis".
+  final String searchCompactContent;
+
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
   factory Louvor.fromManifest({
     required String nome,
@@ -52,6 +56,7 @@ class Louvor {
   }) {
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
     final titleTokens = LouvorSearchTokens.tokenize(nome);
+    final searchCompactContent = LouvorSearchTokens.compact(nome);
     final numeroToken = LouvorSearchTokens.normalize(numero.trim());
     final tokens = <String>{...titleTokens};
     if (numeroToken.isNotEmpty) {
@@ -67,6 +72,7 @@ class Louvor {
       pdfId: pdfId,
       searchTitleNorm: searchTitleNorm,
       searchContentTokens: tokens.toList(),
+      searchCompactContent: searchCompactContent,
     );
   }
 }
