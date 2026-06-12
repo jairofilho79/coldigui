@@ -1,0 +1,55 @@
+---
+description: Clean code principles — readable, maintainable code that humans can understand
+globs:
+  - lib/**/*
+alwaysApply: false
+---
+
+# Clean Code Principles
+
+Good code is functional, readable, understandable, and maintainable — not just code a computer can execute.
+
+## Why Clean Code Matters
+
+- **Readability and maintenance**: clarity reduces time to understand and modify code.
+- **Team collaboration**: consistent, clear code helps developers understand each other's work.
+- **Debugging**: clear structure, meaningful names, and well-defined functions make issues easier to locate.
+- **Quality and reliability**: well-structured code reduces errors and improves software quality.
+
+## Principles
+
+### 1. Avoid Hard-Coded Numbers
+
+Use named constants with meaningful names instead of magic values. Change the constant in one place rather than hunting literals across the codebase.
+
+### 2. Use Meaningful and Descriptive Names
+
+Choose names for variables, functions, and classes that reflect purpose and behavior. A name should tell you why it exists, what it does, and how it is used.
+
+### 3. Use Comments Sparingly — Make Them Meaningful
+
+Do not comment the obvious. Use comments to explain *why*, document unusual behavior, and warn about pitfalls. Prefer doc comments on public APIs.
+
+### 4. Write Short Functions That Do One Thing
+
+Follow the Single Responsibility Principle. If a function grows too long or complex, split it into smaller, focused functions that are easier to test and maintain.
+
+### 5. Follow DRY (Don't Repeat Yourself)
+
+Reuse code through functions, classes, modules, or shared utilities. Duplicate logic increases maintenance cost and bug risk.
+
+### 6. Follow Established Coding Standards
+
+Know and follow language conventions (e.g., [Effective Dart](https://dart.dev/effective-dart) for Dart/Flutter). Match the project's existing style for naming, formatting, and structure.
+
+### 7. Encapsulate Nested Conditionals
+
+Extract complex nested conditionals into well-named functions. This clarifies intent and improves reuse and testability.
+
+### 8. Refactor Continuously
+
+Regularly review and improve structure, readability, and maintainability. Leave the codebase cleaner than you found it.
+
+### 9. Use Version Control
+
+Track changes with Git. Use meaningful commits and collaborate through pull requests with review.

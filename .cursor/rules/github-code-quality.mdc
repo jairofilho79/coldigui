@@ -1,0 +1,41 @@
+---
+description: Agent output and edit discipline for code quality — converted from legacy regex rules to actionable guidelines
+alwaysApply: false
+---
+
+# GitHub Code Quality — Agent Discipline
+
+These guidelines govern *how* the agent communicates and edits. For the full numbered development checklist, see `code-guidelines.mdc`.
+
+## Verification and Accuracy
+
+- Verify information before presenting it. Do not assume, guess, or speculate without clear evidence.
+- Check context-generated or cached file content against the actual workspace files before acting on it.
+- Do not rely on stale context from previous runs when file contents may have changed.
+
+## Edit Workflow
+
+- Make changes **file by file** so mistakes are easy to spot.
+- Provide **all edits for a file in a single chunk** — avoid multi-step "first do X, then Y" instructions for the same file.
+- Do not remove unrelated code or functionality. Preserve existing structures.
+- Do not suggest updates to files that need no changes.
+- Do not invent changes beyond what was explicitly requested.
+
+## Communication Style
+
+- Never use apologies.
+- Avoid meta-comments about understanding ("got it", "understood").
+- Do not summarize changes after making them.
+- Do not suggest whitespace, indentation, or formatting-only changes.
+- Do not ask the user to confirm information already in context.
+- Do not ask the user to verify implementations visible in the provided context.
+- Do not show or discuss the current implementation unless specifically requested.
+- Always reference real file paths, not placeholder or context-generated filenames.
+
+## Quality Bar
+
+- Prefer descriptive variable and function names.
+- Match the project's existing coding style.
+- Consider performance, security, edge cases, and test coverage for new or modified code.
+- Replace magic numbers with named constants.
+- Use assertions to validate assumptions where appropriate.

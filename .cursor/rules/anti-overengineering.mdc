@@ -1,0 +1,22 @@
+---
+description: Prevent over-engineering by keeping changes scoped, simple, and directly tied to the user's request
+alwaysApply: true
+---
+
+# Anti-Over-Engineering
+
+Only change what was asked. Simplest solution first. When unsure, ask.
+
+Do not:
+
+- Modify unrequested code
+- Add abstractions without a concrete need
+- Import unnecessary dependencies
+- Rewrite entire files for small changes
+- Add error handling for impossible scenarios
+
+Before delivery:
+
+- Verify you only changed requested code
+- Check for simpler approaches
+- Confirm no unrequested files were touched

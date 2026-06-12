@@ -1,0 +1,72 @@
+import '../../../../core/utils/louvor_search_tokens.dart';
+
+/// Entidade de domínio — louvor do manifest PLPCG.
+///
+/// Campos espelham o JSON de `louvores-manifest.json`.
+/// [searchTitleNorm] e [searchContentTokens] são pré-computados na criação
+/// via [Louvor.fromManifest] para busca UC-01 sem re-tokenização.
+class Louvor {
+  const Louvor({
+    required this.nome,
+    required this.numero,
+    required this.categoria,
+    required this.classificacao,
+    required this.pdf,
+    required this.pdfId,
+    required this.searchTitleNorm,
+    required this.searchContentTokens,
+  });
+
+  /// Título do louvor (manifest `nome`).
+  final String nome;
+
+  /// Número do louvor; usado para match exato na busca UC-01.
+  final String numero;
+
+  /// Material: Partitura, Cifra, Gestos em Gravura, etc.
+  final String categoria;
+
+  /// Classificação normalizada (ex.: ColAdultos).
+  final String classificacao;
+
+  /// Nome do arquivo PDF no manifest.
+  final String pdf;
+
+  /// Identificador único — Base64 UTF-8 URL-safe do caminho relativo.
+  final String pdfId;
+
+  /// Título normalizado ([LouvorSearchTokens.normalize]) para busca.
+  final String searchTitleNorm;
+
+  /// Tokens de título + número pré-computados para filtro UC-01.
+  final List<String> searchContentTokens;
+
+  /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
+  factory Louvor.fromManifest({
+    required String nome,
+    required String numero,
+    required String categoria,
+    required String classificacao,
+    required String pdf,
+    required String pdfId,
+  }) {
+    final searchTitleNorm = LouvorSearchTokens.normalize(nome);
+    final titleTokens = LouvorSearchTokens.tokenize(nome);
+    final numeroToken = LouvorSearchTokens.normalize(numero.trim());
+    final tokens = <String>{...titleTokens};
+    if (numeroToken.isNotEmpty) {
+      tokens.add(numeroToken);
+    }
+
+    return Louvor(
+      nome: nome,
+      numero: numero,
+      categoria: categoria,
+      classificacao: classificacao,
+      pdf: pdf,
+      pdfId: pdfId,
+      searchTitleNorm: searchTitleNorm,
+      searchContentTokens: tokens.toList(),
+    );
+  }
+}

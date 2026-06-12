@@ -1,0 +1,506 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for English (`en`).
+class AppLocalizationsEn extends AppLocalizations {
+  AppLocalizationsEn([String locale = 'en']) : super(locale);
+
+  @override
+  String get appTitle => 'PLPCG';
+
+  @override
+  String get searchHint => 'Search by number or title';
+
+  @override
+  String get searchLabel => 'Search';
+
+  @override
+  String get searchClear => 'Clear search';
+
+  @override
+  String get filtersTitle => 'Filters';
+
+  @override
+  String get filtersTapToExpand => 'Tap to see more';
+
+  @override
+  String get sharePdf => 'Share';
+
+  @override
+  String get savePdf => 'Download';
+
+  @override
+  String get pdfShareSuccess => 'PDF ready to share';
+
+  @override
+  String get pdfSaveSuccess => 'PDF saved successfully';
+
+  @override
+  String get pdfActionError => 'Could not complete the action';
+
+  @override
+  String get libraryTitle => 'Library';
+
+  @override
+  String get libraryViewTitle => 'View';
+
+  @override
+  String get sortByLabel => 'Sort by';
+
+  @override
+  String get sortByNumber => 'Number';
+
+  @override
+  String get sortByName => 'Name';
+
+  @override
+  String get itemsPerPage => 'Items per page';
+
+  @override
+  String itemsPerPageValue(int count) {
+    return '$count per page';
+  }
+
+  @override
+  String get pagePrevious => 'Previous';
+
+  @override
+  String get pageNext => 'Next';
+
+  @override
+  String pageIndicator(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get specialArrangementPadrao => 'Default';
+
+  @override
+  String get filtersSpecialArrangementTitle => 'Special arrangement';
+
+  @override
+  String get catalogRefreshAction => 'Update list';
+
+  @override
+  String get catalogRefreshLabel => 'Catalog';
+
+  @override
+  String get catalogRefreshMessage => 'Download the latest catalog';
+
+  @override
+  String get catalogRefreshSuccess => 'Catalog updated';
+
+  @override
+  String get catalogRefreshError => 'Could not update the catalog';
+
+  @override
+  String get catalogLoadError => 'Could not load the catalog';
+
+  @override
+  String libraryResultsSummary(int from, int to, int total) {
+    return 'Showing $from–$to of $total hymns';
+  }
+
+  @override
+  String get libraryResultsEmpty => 'No hymns match the current filters';
+
+  @override
+  String get offlineTitle => 'Offline';
+
+  @override
+  String get offlineSelectCategories => 'Select categories';
+
+  @override
+  String get offlineDownloadSelected => 'Download selected';
+
+  @override
+  String get offlineCancelDownload => 'Cancel';
+
+  @override
+  String get offlineResumeBanner => 'An offline download was interrupted.';
+
+  @override
+  String get offlineResumeDownload => 'Resume';
+
+  @override
+  String get offlineDismissCheckpoint => 'Dismiss';
+
+  @override
+  String get offlineDownloadCompleted => 'Offline download completed';
+
+  @override
+  String get offlineDownloadError => 'Could not complete offline download';
+
+  @override
+  String get offlineInsufficientDiskSpace =>
+      'Not enough disk space for download';
+
+  @override
+  String get offlinePhaseFetching => 'downloading';
+
+  @override
+  String get offlinePhaseExtracting => 'extracting';
+
+  @override
+  String get offlinePhaseStoring => 'storing';
+
+  @override
+  String get offlinePhaseSyncing => 'syncing';
+
+  @override
+  String offlineProgressDetail(String category, int part, int totalParts,
+      int done, int total, String phase) {
+    return '$category — part $part/$totalParts — $done/$total PDFs ($phase)';
+  }
+
+  @override
+  String get offlineStatsTitle => 'Stored PDFs';
+
+  @override
+  String offlineStatsTotal(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count offline PDFs',
+      one: '1 offline PDF',
+      zero: 'No offline PDFs',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String offlineStatsCategory(String category, int count) {
+    return '$category: $count';
+  }
+
+  @override
+  String offlineStatsCategoryWithMissing(
+      String category, int downloaded, int missing) {
+    return '$category: $downloaded ($missing missing)';
+  }
+
+  @override
+  String offlineStatsTotalMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count PDFs missing in total',
+      one: '1 PDF missing in total',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get offlineRefreshStats => 'Refresh';
+
+  @override
+  String get offlineRefreshSuccess => 'Offline info updated';
+
+  @override
+  String get offlineRefreshError => 'Could not update offline info';
+
+  @override
+  String offlineRemovedBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count PDFs are no longer available locally',
+      one: '1 PDF is no longer available locally',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get offlineDownloadMissing => 'Download missing';
+
+  @override
+  String get offlineDismissRemoved => 'Dismiss';
+
+  @override
+  String get offlineClearCache => 'Clear offline cache';
+
+  @override
+  String get offlineClearCacheConfirmTitle => 'Clear offline cache?';
+
+  @override
+  String get offlineClearCacheConfirmBody =>
+      'All downloaded PDFs will be removed. This action cannot be undone.';
+
+  @override
+  String get offlineClearCacheConfirm => 'Clear';
+
+  @override
+  String get offlineClearCacheCancel => 'Cancel';
+
+  @override
+  String get offlineClearCacheSuccess => 'Offline cache cleared';
+
+  @override
+  String offlineMissingProgress(int done, int total) {
+    return 'Downloading missing: $done/$total';
+  }
+
+  @override
+  String offlineMissingCompleted(int downloaded, int failed) {
+    return 'Download complete: $downloaded downloaded, $failed failed';
+  }
+
+  @override
+  String get offlineMissingError => 'Could not download missing PDFs';
+
+  @override
+  String get carouselClear => 'Clear selection';
+
+  @override
+  String get carouselClearConfirmTitle => 'Clear selection?';
+
+  @override
+  String get carouselClearConfirmMessage =>
+      'All songs will be removed from the selection.';
+
+  @override
+  String get carouselAdded => 'Added to selection';
+
+  @override
+  String get carouselAlreadyAdded => 'Already in selection';
+
+  @override
+  String get carouselRemoveTooltip => 'Remove';
+
+  @override
+  String get carouselAddTooltip => 'Add to selection';
+
+  @override
+  String get carouselSavePlaylist => 'Save as playlist';
+
+  @override
+  String get carouselSharePlaylist => 'Share playlist';
+
+  @override
+  String get carouselGenerateLeaflet => 'Generate leaflet';
+
+  @override
+  String get carouselOverflowMenu => 'More actions';
+
+  @override
+  String get carouselOpenList => 'View selection';
+
+  @override
+  String get carouselListTitle => 'Temporary selection';
+
+  @override
+  String get carouselListClose => 'Close';
+
+  @override
+  String get readerCarouselPrevious => 'Previous hymn';
+
+  @override
+  String get readerCarouselNext => 'Next hymn';
+
+  @override
+  String readerCarouselPosition(int current, int total) {
+    return '$current of $total';
+  }
+
+  @override
+  String get leafletGenerating => 'Generating leaflet…';
+
+  @override
+  String get leafletShareSubject => 'PLPCG leaflet';
+
+  @override
+  String get leafletGenerateFailed => 'Could not generate leaflet';
+
+  @override
+  String get leafletHeaderTitle => 'HYMNS';
+
+  @override
+  String get leafletColumnNumber => 'NUMBER';
+
+  @override
+  String get leafletColumnName => 'HYMN NAME';
+
+  @override
+  String get leafletFooterPeace => 'THE PEACE OF THE LORD JESUS CHRIST';
+
+  @override
+  String get leafletFooterGreeting => 'Have a blessed service!';
+
+  @override
+  String get leafletWeekdayMonday => 'MONDAY';
+
+  @override
+  String get leafletWeekdayTuesday => 'TUESDAY';
+
+  @override
+  String get leafletWeekdayWednesday => 'WEDNESDAY';
+
+  @override
+  String get leafletWeekdayThursday => 'THURSDAY';
+
+  @override
+  String get leafletWeekdayFriday => 'FRIDAY';
+
+  @override
+  String get leafletWeekdaySaturday => 'SATURDAY';
+
+  @override
+  String get leafletWeekdaySunday => 'SUNDAY';
+
+  @override
+  String get playlistSaveTitle => 'Save playlist';
+
+  @override
+  String get playlistSaveNameLabel => 'Playlist name';
+
+  @override
+  String get playlistSaveCancel => 'Cancel';
+
+  @override
+  String get playlistSaveConfirm => 'Save';
+
+  @override
+  String get playlistSaved => 'Playlist saved';
+
+  @override
+  String get playlistViewLists => 'View playlists';
+
+  @override
+  String get playlistEmptyCarousel => 'Selection is empty';
+
+  @override
+  String get playlistEmptyList =>
+      'No saved playlists. Build a selection on Home or Library and use \"Save as playlist\".';
+
+  @override
+  String get playlistRename => 'Rename';
+
+  @override
+  String get playlistRenameTitle => 'Rename playlist';
+
+  @override
+  String get playlistRenameConfirm => 'Save';
+
+  @override
+  String get playlistDelete => 'Delete';
+
+  @override
+  String get playlistDeleteConfirmTitle => 'Delete playlist?';
+
+  @override
+  String get playlistDeleteConfirmMessage =>
+      'This playlist will be permanently removed.';
+
+  @override
+  String get playlistFavoriteOn => 'Mark as favorite';
+
+  @override
+  String get playlistFavoriteOff => 'Remove from favorites';
+
+  @override
+  String playlistPdfCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistDeleteLastPdfTitle => 'Remove last song?';
+
+  @override
+  String get playlistDeleteLastPdfMessage =>
+      'The playlist will be empty and will be deleted.';
+
+  @override
+  String get playlistLoadIntoCarousel => 'Load into carousel';
+
+  @override
+  String get playlistOpenInReader => 'Open in reader';
+
+  @override
+  String get playlistLoadConfirmTitle => 'Replace selection?';
+
+  @override
+  String get playlistLoadConfirmMessage =>
+      'The current selection will be replaced with songs from this playlist.';
+
+  @override
+  String get playlistLoaded => 'Playlist loaded into carousel';
+
+  @override
+  String get playlistEmptyPdfList => 'This playlist has no songs.';
+
+  @override
+  String get playlistShare => 'Share';
+
+  @override
+  String get playlistImport => 'Import playlist';
+
+  @override
+  String get playlistImportTitle => 'Import shared playlist';
+
+  @override
+  String get playlistImportUrlLabel => 'Shared URL or link';
+
+  @override
+  String get playlistImportPaste => 'Paste';
+
+  @override
+  String get playlistImportConfirm => 'Import';
+
+  @override
+  String get playlistImported => 'Playlist imported';
+
+  @override
+  String get playlistImportInvalidUrl =>
+      'Invalid link. Use a URL with sharepdfs and sharename.';
+
+  @override
+  String get playlistShareError => 'Could not share the playlist.';
+
+  @override
+  String get playlistTabUnsaved => 'Unsaved';
+
+  @override
+  String get playlistTabSaved => 'Saved';
+
+  @override
+  String get playlistTabFavorites => 'Favorites';
+
+  @override
+  String get playlistSaveAction => 'Save playlist';
+
+  @override
+  String get playlistEmptyUnsaved =>
+      'No unsaved playlists. Open a song in the reader to create one automatically.';
+
+  @override
+  String get playlistEmptySaved => 'No saved playlists.';
+
+  @override
+  String get playlistEmptyFavorites => 'No favorite playlists.';
+
+  @override
+  String get playlistDeleteAllUnsaved => 'Delete all';
+
+  @override
+  String get playlistDeleteAllUnsavedTitle => 'Delete all unsaved playlists?';
+
+  @override
+  String get playlistDeleteAllUnsavedMessage =>
+      'All playlists in the Unsaved tab will be permanently removed.';
+
+  @override
+  String get playlistDeleteAllUnsavedDone => 'Unsaved playlists deleted';
+
+  @override
+  String get playlistClearSavedBlocked =>
+      'Saved playlists cannot be cleared from the bar. Use the playlist menu.';
+}

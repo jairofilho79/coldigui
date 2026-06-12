@@ -1,0 +1,29 @@
+---
+description: DRY, SOLID, and architectural principles for code changes
+globs:
+  - lib/**/*
+alwaysApply: false
+---
+
+# DRY and SOLID Principles
+
+## Communication and Problem-Solving
+
+- If clarification is needed on any part of the task, ask before implementing.
+- When outputting code blocks, include a file name comment before the block with a few lines of surrounding context so the user can locate changes.
+
+## Code Quality and Best Practices
+
+- Follow DRY: do not duplicate logic — extract shared behavior into reusable functions, classes, or modules.
+- Apply SOLID principles, especially Single Responsibility and Dependency Inversion, when structuring features.
+
+## Paradigms and Principles
+
+- Stick to the current architecture choices (see `pubspec.yaml` and existing project structure) unless the user suggests a new approach.
+- Prefer semantic naming and abstractions that reflect domain concepts, not implementation details.
+- Think in terms of platform constraints (Flutter mobile/web/desktop) when designing solutions.
+
+## Handling Uncertainty
+
+- Do not guess at requirements or architecture decisions.
+- Surface trade-offs when multiple valid approaches exist.

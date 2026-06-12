@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-plpcg-context.sh"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": ".cursor/hooks/dispatch-uc-refinement.sh",
+        "matcher": "UserPromptSubmit"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": ".cursor/hooks/guard-subagent-policy.sh"
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/chain-qa-after-dev.sh",
+        "matcher": "generalPurpose|code-architect",
+        "loop_limit": 2
+      },
+      {
+        "command": ".cursor/hooks/chain-opsec-after-qa.sh",
+        "matcher": "generalPurpose",
+        "loop_limit": 1
+      },
+      {
+        "command": ".cursor/hooks/chain-perf-after-opsec.sh",
+        "matcher": "generalPurpose",
+        "loop_limit": 1
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/dart-format.sh"
+      },
+      {
+        "command": ".cursor/hooks/trigger-opsec-on-sensitive.sh"
+      }
+    ],
+    "afterTabFileEdit": [
+      {
+        "command": ".cursor/hooks/dart-format.sh"
+      }
+    ],
+    "beforeReadFile": [
+      {
+        "command": ".cursor/hooks/guard-secrets-read.sh"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/guard-shell.sh",
+        "matcher": "rm\\s+-rf|flutter\\s+clean|dart\\s+pub\\s+cache\\s+clean"
+      },
+      {
+        "command": ".cursor/hooks/guard-secrets-commit.sh",
+        "matcher": "git\\s+(add|commit)"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/guard-secrets-write.sh",
+        "matcher": "Write"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/flutter-analyze-stop.sh",
+        "loop_limit": 1
+      }
+    ]
+  }
+}

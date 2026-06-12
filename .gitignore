@@ -1,0 +1,136 @@
+# =============================================================================
+# coldigui — Flutter 3 / Dart 3.5+ (iOS; Riverpod, Isar, build_runner, l10n)
+# =============================================================================
+
+# --- Flutter / Dart / Pub ----------------------------------------------------
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+**/doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.dart.js
+*.info.json
+*.js
+*.js_
+*.js.deps
+*.js.map
+
+# Codegen / coverage (mantém *.g.dart do Isar e l10n versionados)
+coverage/
+.test_coverage.dart
+.test_runner.dart
+
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Native libs copiadas localmente (ex.: libisar.dylib na raiz)
+*.dylib
+*.so
+*.dll
+
+# --- iOS ---------------------------------------------------------------------
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/**/xcuserdata/
+**/ios/**/DerivedData/
+**/ios/**/*.xcuserstate
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/dgph
+**/ios/**/profile
+
+# --- Android (quando a plataforma for adicionada) ----------------------------
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/**/google-services.json
+
+# --- macOS / Linux / Windows (desktop, se habilitado) ------------------------
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+
+# --- IDE ---------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# Cursor — estado de runtime dos hooks (não versionar)
+.cursor/hooks/.loop-state
+
+# --- Segredos e credenciais (nunca commitar) ---------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+credentials.json
+credentials.yaml
+credentials.yml
+secrets.json
+secrets.yaml
+secrets.yml
+
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+id_ed25519_sk
+service-account*.json
+
+# Overrides locais de --dart-define-from-file (plpcg.json permanece versionado)
+dart_defines/*.local.json
+dart_defines/local.json
+dart_defines/private.json
+dart_defines/*.secret.json
+
+# Fastlane / assinatura (iOS/Android)
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/
+**/fastlane/test_output/
+**/fastlane/.env*
+
+# --- OS ----------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Logs / temporários ------------------------------------------------------
+*.log
+*.tmp
+*.temp
+migrate_working_dir/
+
+# --- Testes ------------------------------------------------------------------
+**/failures/
+**/test-results/

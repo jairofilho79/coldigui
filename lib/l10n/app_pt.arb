@@ -1,0 +1,244 @@
+{
+  "@@locale": "pt",
+  "appTitle": "PLPCG",
+  "searchHint": "Buscar por número ou título",
+  "searchLabel": "Buscar",
+  "searchClear": "Limpar busca",
+  "@searchClear": {
+    "description": "Tooltip do botão X dentro do SearchBar (UC-01 Home)"
+  },
+  "filtersTitle": "Filtros",
+  "filtersTapToExpand": "Toque para ver mais",
+  "sharePdf": "Compartilhar",
+  "savePdf": "Baixar",
+  "pdfShareSuccess": "PDF pronto para compartilhar",
+  "pdfSaveSuccess": "PDF salvo com sucesso",
+  "pdfActionError": "Não foi possível concluir a ação",
+  "libraryTitle": "Biblioteca",
+  "libraryViewTitle": "Visualização",
+  "sortByLabel": "Ordenar por",
+  "sortByNumber": "Número",
+  "sortByName": "Nome",
+  "itemsPerPage": "Itens por página",
+  "itemsPerPageValue": "{count} por página",
+  "@itemsPerPageValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pagePrevious": "Anterior",
+  "pageNext": "Próxima",
+  "pageIndicator": "Página {current} de {total}",
+  "@pageIndicator": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "specialArrangementPadrao": "Padrão",
+  "filtersSpecialArrangementTitle": "Arranjo especial",
+  "catalogRefreshAction": "Atualizar lista",
+  "catalogRefreshLabel": "Catálogo",
+  "catalogRefreshMessage": "Baixar a versão mais recente do catálogo",
+  "catalogRefreshSuccess": "Catálogo atualizado",
+  "catalogRefreshError": "Não foi possível atualizar o catálogo",
+  "catalogLoadError": "Não foi possível carregar o catálogo",
+  "libraryResultsSummary": "Mostrando {from}–{to} de {total} louvores",
+  "@libraryResultsSummary": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryResultsEmpty": "Nenhum louvor encontrado com os filtros atuais",
+  "offlineTitle": "Offline",
+  "offlineSelectCategories": "Selecione as categorias",
+  "offlineDownloadSelected": "Baixar selecionados",
+  "offlineCancelDownload": "Cancelar",
+  "offlineResumeBanner": "Há um download offline interrompido.",
+  "offlineResumeDownload": "Retomar",
+  "offlineDismissCheckpoint": "Descartar",
+  "offlineDownloadCompleted": "Download offline concluído",
+  "offlineDownloadError": "Não foi possível concluir o download offline",
+  "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
+  "offlinePhaseFetching": "baixando",
+  "offlinePhaseExtracting": "extraindo",
+  "offlinePhaseStoring": "armazenando",
+  "offlinePhaseSyncing": "sincronizando",
+  "offlineProgressDetail": "{category} — parte {part}/{totalParts} — {done}/{total} PDFs ({phase})",
+  "@offlineProgressDetail": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "part": { "type": "int" },
+      "totalParts": { "type": "int" },
+      "done": { "type": "int" },
+      "total": { "type": "int" },
+      "phase": { "type": "String" }
+    }
+  },
+  "offlineStatsTitle": "PDFs armazenados",
+  "offlineStatsTotal": "{count, plural, =0{Nenhum PDF offline} one{1 PDF offline} other{{count} PDFs offline}}",
+  "@offlineStatsTotal": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineStatsCategory": "{category}: {count}",
+  "@offlineStatsCategory": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} faltantes)",
+  "@offlineStatsCategoryWithMissing": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "downloaded": { "type": "int" },
+      "missing": { "type": "int" }
+    }
+  },
+  "offlineStatsTotalMissing": "{count, plural, one{1 PDF faltante no total} other{{count} PDFs faltantes no total}}",
+  "@offlineStatsTotalMissing": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineRefreshStats": "Atualizar",
+  "offlineRefreshSuccess": "Informações offline atualizadas",
+  "offlineRefreshError": "Não foi possível atualizar as informações offline",
+  "offlineRemovedBanner": "{count, plural, one{1 PDF deixou de estar disponível localmente} other{{count} PDFs deixaram de estar disponíveis localmente}}",
+  "@offlineRemovedBanner": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineDownloadMissing": "Baixar faltantes",
+  "offlineDismissRemoved": "Dispensar",
+  "offlineClearCache": "Limpar cache offline",
+  "offlineClearCacheConfirmTitle": "Limpar cache offline?",
+  "offlineClearCacheConfirmBody": "Todos os PDFs baixados serão removidos. Esta ação não pode ser desfeita.",
+  "offlineClearCacheConfirm": "Limpar",
+  "offlineClearCacheCancel": "Cancelar",
+  "offlineClearCacheSuccess": "Cache offline limpo",
+  "offlineMissingProgress": "Baixando faltantes: {done}/{total}",
+  "@offlineMissingProgress": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "offlineMissingCompleted": "Download concluído: {downloaded} baixados, {failed} falhas",
+  "@offlineMissingCompleted": {
+    "placeholders": {
+      "downloaded": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "offlineMissingError": "Não foi possível baixar os PDFs faltantes",
+  "carouselClear": "Limpar seleção",
+  "carouselClearConfirmTitle": "Limpar seleção?",
+  "carouselClearConfirmMessage": "Todos os louvores serão removidos da seleção.",
+  "carouselAdded": "Adicionado à seleção",
+  "carouselAlreadyAdded": "Já está na seleção",
+  "carouselRemoveTooltip": "Remover",
+  "carouselAddTooltip": "Adicionar à seleção",
+  "carouselSavePlaylist": "Salvar como lista",
+  "carouselSharePlaylist": "Compartilhar lista",
+  "@carouselSharePlaylist": {
+    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07)."
+  },
+  "carouselGenerateLeaflet": "Gerar folheto",
+  "carouselOverflowMenu": "Mais ações",
+  "carouselOpenList": "Ver seleção",
+  "carouselListTitle": "Seleção temporária",
+  "carouselListClose": "Fechar",
+  "readerCarouselPrevious": "Louvor anterior",
+  "readerCarouselNext": "Próximo louvor",
+  "readerCarouselPosition": "{current} de {total}",
+  "@readerCarouselPosition": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "leafletGenerating": "Gerando folheto…",
+  "leafletShareSubject": "Folheto PLPCG",
+  "leafletGenerateFailed": "Não foi possível gerar o folheto",
+  "leafletHeaderTitle": "LOUVORES",
+  "leafletColumnNumber": "NÚMERO",
+  "leafletColumnName": "NOME DO HINO",
+  "leafletFooterPeace": "A PAZ DO SENHOR JESUS CRISTO",
+  "leafletFooterGreeting": "Bom culto!",
+  "leafletWeekdayMonday": "SEGUNDA-FEIRA",
+  "leafletWeekdayTuesday": "TERÇA-FEIRA",
+  "leafletWeekdayWednesday": "QUARTA-FEIRA",
+  "leafletWeekdayThursday": "QUINTA-FEIRA",
+  "leafletWeekdayFriday": "SEXTA-FEIRA",
+  "leafletWeekdaySaturday": "SÁBADO",
+  "leafletWeekdaySunday": "DOMINGO",
+  "playlistSaveTitle": "Salvar lista",
+  "playlistSaveNameLabel": "Nome da lista",
+  "playlistSaveCancel": "Cancelar",
+  "playlistSaveConfirm": "Salvar",
+  "playlistSaved": "Lista salva",
+  "playlistViewLists": "Ver listas",
+  "playlistEmptyCarousel": "A seleção está vazia",
+  "playlistEmptyList": "Nenhuma lista salva. Monte uma seleção na Home ou Biblioteca e use \"Salvar como lista\".",
+  "playlistRename": "Renomear",
+  "playlistRenameTitle": "Renomear lista",
+  "playlistRenameConfirm": "Salvar",
+  "playlistDelete": "Excluir",
+  "playlistDeleteConfirmTitle": "Excluir lista?",
+  "playlistDeleteConfirmMessage": "Esta lista será removida permanentemente.",
+  "playlistFavoriteOn": "Marcar como favorita",
+  "playlistFavoriteOff": "Remover dos favoritos",
+  "playlistPdfCount": "{count, plural, =1{1 louvor} other{{count} louvores}}",
+  "@playlistPdfCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistDeleteLastPdfTitle": "Remover último louvor?",
+  "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
+  "playlistLoadIntoCarousel": "Carregar no carousel",
+  "playlistOpenInReader": "Abrir no leitor",
+  "playlistLoadConfirmTitle": "Substituir seleção?",
+  "playlistLoadConfirmMessage": "A seleção atual será substituída pelos louvores desta lista.",
+  "playlistLoaded": "Lista carregada no carousel",
+  "playlistEmptyPdfList": "Esta lista não tem louvores.",
+  "playlistShare": "Compartilhar",
+  "playlistImport": "Importar lista",
+  "playlistImportTitle": "Importar lista compartilhada",
+  "playlistImportUrlLabel": "URL ou link compartilhado",
+  "playlistImportPaste": "Colar",
+  "playlistImportConfirm": "Importar",
+  "playlistImported": "Lista importada",
+  "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
+  "playlistShareError": "Não foi possível compartilhar a lista.",
+  "playlistTabUnsaved": "Não Salvas",
+  "playlistTabSaved": "Salvas",
+  "playlistTabFavorites": "Favoritas",
+  "playlistSaveAction": "Salvar lista",
+  "playlistEmptyUnsaved": "Nenhuma lista não salva. Abra um louvor no leitor para criar uma automaticamente.",
+  "playlistEmptySaved": "Nenhuma lista salva.",
+  "playlistEmptyFavorites": "Nenhuma lista favorita.",
+  "playlistDeleteAllUnsaved": "Apagar todas",
+  "playlistDeleteAllUnsavedTitle": "Apagar todas as listas não salvas?",
+  "playlistDeleteAllUnsavedMessage": "Todas as listas da aba Não Salvas serão removidas permanentemente.",
+  "playlistDeleteAllUnsavedDone": "Listas não salvas apagadas",
+  "playlistClearSavedBlocked": "Listas salvas não podem ser limpas pela barra. Use o menu da lista."
+}

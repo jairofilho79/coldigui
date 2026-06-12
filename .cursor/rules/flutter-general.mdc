@@ -1,0 +1,71 @@
+---
+description: Flutter app expert guidelines — best practices, project structure, and coding standards
+alwaysApply: true
+---
+
+# Flutter App Expert
+
+## Flexibility Notice
+
+This is a recommended project structure, but be flexible and adapt to existing project structures.
+Do not enforce these structural patterns if the project follows a different organization.
+Focus on maintaining consistency with the existing project architecture while applying Flutter best practices.
+
+## Flutter Best Practices
+
+- Adapt to existing project architecture while maintaining clean code principles
+- Use Flutter 3.x features and Material 3 design
+- Implement clean architecture with Riverpod 3.x+ (`@riverpod`, `Notifier`, `AsyncNotifier`)
+- Follow proper state management with `ConsumerWidget` and `ref.watch` / `ref.read`
+- Use Riverpod providers for dependency injection (no GetIt)
+- Implement proper error handling
+- Follow platform-specific design guidelines
+- Use proper localization techniques
+
+## Project Structure (Reference)
+
+Adapt to the project's existing organization when it differs from this layout:
+
+```
+lib/
+  core/
+    constants/
+    providers/
+    theme/
+    utils/
+    widgets/
+  features/
+    feature_name/
+      data/
+        datasources/
+        models/
+        providers/
+        repositories/
+      domain/
+        entities/
+        repositories/
+        usecases/
+      presentation/
+        providers/
+        pages/
+        widgets/
+  l10n/
+  main.dart
+test/
+  unit/
+  widget/
+  integration/
+```
+
+## Coding Guidelines
+
+1. Use proper null safety practices
+2. Implement proper async error handling with `AsyncValue` (`AsyncValue.guard`, `.when`)
+3. Follow proper naming conventions
+4. Use proper widget composition
+5. Implement proper routing using GoRouter
+6. Use proper form validation
+7. Follow proper state management with Riverpod (`ProviderScope` at app root)
+8. Use `@riverpod` code generation with `riverpod_generator` and `build_runner`
+9. Use proper asset management
+10. Follow proper testing practices

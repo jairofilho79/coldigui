@@ -1,0 +1,31 @@
+---
+description: Clean architecture and Riverpod state management for Flutter feature modules
+globs:
+  - lib/features/**/*
+  - lib/core/providers/**/*
+  - lib/l10n/**/*
+alwaysApply: false
+---
+
+# Flutter Feature Rules
+
+- Adapt to existing project architecture while maintaining clean code principles
+- Use Flutter 3.x features and Material 3 design
+- Implement clean architecture with Riverpod 3.x+ (`@riverpod`, `Notifier`, `AsyncNotifier`)
+- Use Riverpod providers for dependency injection — no GetIt
+- Implement async error handling with `AsyncValue` (`AsyncValue.guard`, `.when`)
+- Use `ConsumerWidget` / `ConsumerStatefulWidget` for reactive UI
+- Use `ref.listen` for side effects (navigation, snackbars)
+- Implement proper routing using GoRouter
+- Use proper form validation
+- Use proper localization techniques (`lib/l10n/`)
+
+## Provider placement
+
+- `lib/core/providers/` — app-wide DI (HTTP client, config, shared services)
+- `lib/features/<name>/data/providers/` — repository and data-source providers
+- `lib/features/<name>/presentation/providers/` — UI state (`Notifier`, `AsyncNotifier`)
+
+## Skill reference
+
+For detailed Riverpod patterns, follow `.cursor/skills/rimthan-lab-rimthan-plugins-riverpod-state-management/SKILL.md`.

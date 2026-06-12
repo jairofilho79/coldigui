@@ -1,0 +1,4 @@
+// URL pública do backend PLPCG (não é secret).
+// base64("PLPCG_API_BASE_URL=https://plpcg.com")
+// Garante o define em builds Xcode / flutter install sem flags no terminal.
+DART_DEFINES=$(DART_DEFINES),UExQQ0dfQVBJX0JBU0VfVVJMPWh0dHBzOi8vcGxwY2cuY29t

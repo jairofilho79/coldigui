@@ -1,0 +1,238 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
+import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
+import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
+import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
+import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
+import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
+import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'offline_test_helpers.dart';
+
+class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
+  _FakeManifestDatasource(this._manifest) : super(Dio());
+
+  final OfflineManifest _manifest;
+
+  @override
+  Future<OfflineManifest> fetchManifest() async => _manifest;
+}
+
+class _FakeDiskSpaceChecker extends DiskSpaceChecker {
+  _FakeDiskSpaceChecker(this._freeBytes);
+
+  final int? _freeBytes;
+
+  @override
+  Future<int?> getFreeBytes() async => _freeBytes;
+}
+
+class _FakeZipDownloader extends ZipPackageDownloader {
+  _FakeZipDownloader(PdfLocalStore store, this._zipPath) : super(Dio(), store);
+
+  final String _zipPath;
+
+  @override
+  Future<String> download({
+    required String url,
+    required String filename,
+    CancelToken? cancelToken,
+  }) async {
+    if (cancelToken?.isCancelled == true) {
+      throw const OfflineBulkCancelledException();
+    }
+    return _zipPath;
+  }
+}
+
+void main() {
+  late Directory tempDir;
+  late Directory docsDir;
+  late Isar isar;
+  late PdfLocalStore store;
+  late OfflinePdfRepositoryImpl repository;
+  late String zipPath;
+  late String pdfId1;
+  late String pdfId2;
+
+  final pdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
+
+  setUpAll(() async {
+    await Isar.initializeIsarCore(download: true);
+    pdfId1 = encodePdfId('ColAdultos/010.pdf');
+    pdfId2 = encodePdfId('ColAdultos/011.pdf');
+  });
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    tempDir = await Directory.systemTemp.createTemp('download_packages_');
+    docsDir = Directory('${tempDir.path}/docs');
+    await docsDir.create(recursive: true);
+
+    isar = await openOfflineTestIsar(tempDir);
+    store = PdfLocalStore(
+      getApplicationDocumentsDirectory: () async => docsDir,
+    );
+    repository = OfflinePdfRepositoryImpl(
+      store: store,
+      local: OfflinePdfLocalDatasource(isar),
+    );
+
+    zipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/010.pdf': pdfBytes,
+        'ColAdultos/011.pdf': pdfBytes,
+      },
+    );
+  });
+
+  tearDown(() async {
+    await isar.close(deleteFromDisk: true);
+    if (tempDir.existsSync()) {
+      await tempDir.delete(recursive: true);
+    }
+  });
+
+  OfflineManifest buildManifest() {
+    return OfflineManifest(
+      version: '1.0.0',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Partitura-1.zip',
+              size: 1000,
+              url: '/packages/Partitura-1.zip',
+              pdfs: [pdfId1, pdfId2],
+            ),
+          ],
+          totalSize: 1000,
+          totalParts: 1,
+        ),
+      },
+    );
+  }
+
+  test('falha quando espaço em disco insuficiente', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: _FakeZipDownloader(store, zipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, zipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(10),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    await expectLater(
+      useCase.call(categories: const ['Partitura']),
+      throwsA(isA<InsufficientDiskSpaceException>()),
+    );
+  });
+
+  test('baixa e indexa categoria com sucesso', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: _FakeZipDownloader(store, zipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, zipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    await useCase.call(categories: const ['Partitura']);
+
+    expect(await repository.lookup(pdfId1), isNotNull);
+    expect(await repository.lookup(pdfId2), isNotNull);
+    expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
+  });
+
+  test('resume de checkpoint continua da part correta', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final checkpointStore = OfflineBulkCheckpointStore(prefs);
+
+    await checkpointStore.save(
+      OfflineBulkCheckpoint(
+        categories: const ['Partitura'],
+        categoryIndex: 0,
+        partIndex: 0,
+        extractedPdfCount: 1,
+        startedAt: DateTime.now(),
+      ),
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: _FakeZipDownloader(store, zipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, zipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: checkpointStore,
+    );
+
+    await useCase.call(
+      categories: const ['Partitura'],
+      resumeCheckpoint: await checkpointStore.load(),
+    );
+
+    expect(await repository.lookup(pdfId2), isNotNull);
+  });
+
+  test('cancel token interrompe com exceção', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final cancelToken = CancelToken()..cancel('test');
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: _FakeZipDownloader(store, zipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, zipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    await expectLater(
+      useCase.call(
+        categories: const ['Partitura'],
+        cancelToken: cancelToken,
+      ),
+      throwsA(isA<OfflineBulkCancelledException>()),
+    );
+  });
+}

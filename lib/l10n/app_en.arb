@@ -1,0 +1,244 @@
+{
+  "@@locale": "en",
+  "appTitle": "PLPCG",
+  "searchHint": "Search by number or title",
+  "searchLabel": "Search",
+  "searchClear": "Clear search",
+  "@searchClear": {
+    "description": "Tooltip for the clear (X) button inside SearchBar (UC-01 Home)"
+  },
+  "filtersTitle": "Filters",
+  "filtersTapToExpand": "Tap to see more",
+  "sharePdf": "Share",
+  "savePdf": "Download",
+  "pdfShareSuccess": "PDF ready to share",
+  "pdfSaveSuccess": "PDF saved successfully",
+  "pdfActionError": "Could not complete the action",
+  "libraryTitle": "Library",
+  "libraryViewTitle": "View",
+  "sortByLabel": "Sort by",
+  "sortByNumber": "Number",
+  "sortByName": "Name",
+  "itemsPerPage": "Items per page",
+  "itemsPerPageValue": "{count} per page",
+  "@itemsPerPageValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pagePrevious": "Previous",
+  "pageNext": "Next",
+  "pageIndicator": "Page {current} of {total}",
+  "@pageIndicator": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "specialArrangementPadrao": "Default",
+  "filtersSpecialArrangementTitle": "Special arrangement",
+  "catalogRefreshAction": "Update list",
+  "catalogRefreshLabel": "Catalog",
+  "catalogRefreshMessage": "Download the latest catalog",
+  "catalogRefreshSuccess": "Catalog updated",
+  "catalogRefreshError": "Could not update the catalog",
+  "catalogLoadError": "Could not load the catalog",
+  "libraryResultsSummary": "Showing {from}–{to} of {total} hymns",
+  "@libraryResultsSummary": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryResultsEmpty": "No hymns match the current filters",
+  "offlineTitle": "Offline",
+  "offlineSelectCategories": "Select categories",
+  "offlineDownloadSelected": "Download selected",
+  "offlineCancelDownload": "Cancel",
+  "offlineResumeBanner": "An offline download was interrupted.",
+  "offlineResumeDownload": "Resume",
+  "offlineDismissCheckpoint": "Dismiss",
+  "offlineDownloadCompleted": "Offline download completed",
+  "offlineDownloadError": "Could not complete offline download",
+  "offlineInsufficientDiskSpace": "Not enough disk space for download",
+  "offlinePhaseFetching": "downloading",
+  "offlinePhaseExtracting": "extracting",
+  "offlinePhaseStoring": "storing",
+  "offlinePhaseSyncing": "syncing",
+  "offlineProgressDetail": "{category} — part {part}/{totalParts} — {done}/{total} PDFs ({phase})",
+  "@offlineProgressDetail": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "part": { "type": "int" },
+      "totalParts": { "type": "int" },
+      "done": { "type": "int" },
+      "total": { "type": "int" },
+      "phase": { "type": "String" }
+    }
+  },
+  "offlineStatsTitle": "Stored PDFs",
+  "offlineStatsTotal": "{count, plural, =0{No offline PDFs} one{1 offline PDF} other{{count} offline PDFs}}",
+  "@offlineStatsTotal": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineStatsCategory": "{category}: {count}",
+  "@offlineStatsCategory": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} missing)",
+  "@offlineStatsCategoryWithMissing": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "downloaded": { "type": "int" },
+      "missing": { "type": "int" }
+    }
+  },
+  "offlineStatsTotalMissing": "{count, plural, one{1 PDF missing in total} other{{count} PDFs missing in total}}",
+  "@offlineStatsTotalMissing": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineRefreshStats": "Refresh",
+  "offlineRefreshSuccess": "Offline info updated",
+  "offlineRefreshError": "Could not update offline info",
+  "offlineRemovedBanner": "{count, plural, one{1 PDF is no longer available locally} other{{count} PDFs are no longer available locally}}",
+  "@offlineRemovedBanner": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "offlineDownloadMissing": "Download missing",
+  "offlineDismissRemoved": "Dismiss",
+  "offlineClearCache": "Clear offline cache",
+  "offlineClearCacheConfirmTitle": "Clear offline cache?",
+  "offlineClearCacheConfirmBody": "All downloaded PDFs will be removed. This action cannot be undone.",
+  "offlineClearCacheConfirm": "Clear",
+  "offlineClearCacheCancel": "Cancel",
+  "offlineClearCacheSuccess": "Offline cache cleared",
+  "offlineMissingProgress": "Downloading missing: {done}/{total}",
+  "@offlineMissingProgress": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "offlineMissingCompleted": "Download complete: {downloaded} downloaded, {failed} failed",
+  "@offlineMissingCompleted": {
+    "placeholders": {
+      "downloaded": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "offlineMissingError": "Could not download missing PDFs",
+  "carouselClear": "Clear selection",
+  "carouselClearConfirmTitle": "Clear selection?",
+  "carouselClearConfirmMessage": "All songs will be removed from the selection.",
+  "carouselAdded": "Added to selection",
+  "carouselAlreadyAdded": "Already in selection",
+  "carouselRemoveTooltip": "Remove",
+  "carouselAddTooltip": "Add to selection",
+  "carouselSavePlaylist": "Save as playlist",
+  "carouselSharePlaylist": "Share playlist",
+  "@carouselSharePlaylist": {
+    "description": "Carousel bar overflow menu item and share button tooltip (UC-07)."
+  },
+  "carouselGenerateLeaflet": "Generate leaflet",
+  "carouselOverflowMenu": "More actions",
+  "carouselOpenList": "View selection",
+  "carouselListTitle": "Temporary selection",
+  "carouselListClose": "Close",
+  "readerCarouselPrevious": "Previous hymn",
+  "readerCarouselNext": "Next hymn",
+  "readerCarouselPosition": "{current} of {total}",
+  "@readerCarouselPosition": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "leafletGenerating": "Generating leaflet…",
+  "leafletShareSubject": "PLPCG leaflet",
+  "leafletGenerateFailed": "Could not generate leaflet",
+  "leafletHeaderTitle": "HYMNS",
+  "leafletColumnNumber": "NUMBER",
+  "leafletColumnName": "HYMN NAME",
+  "leafletFooterPeace": "THE PEACE OF THE LORD JESUS CHRIST",
+  "leafletFooterGreeting": "Have a blessed service!",
+  "leafletWeekdayMonday": "MONDAY",
+  "leafletWeekdayTuesday": "TUESDAY",
+  "leafletWeekdayWednesday": "WEDNESDAY",
+  "leafletWeekdayThursday": "THURSDAY",
+  "leafletWeekdayFriday": "FRIDAY",
+  "leafletWeekdaySaturday": "SATURDAY",
+  "leafletWeekdaySunday": "SUNDAY",
+  "playlistSaveTitle": "Save playlist",
+  "playlistSaveNameLabel": "Playlist name",
+  "playlistSaveCancel": "Cancel",
+  "playlistSaveConfirm": "Save",
+  "playlistSaved": "Playlist saved",
+  "playlistViewLists": "View playlists",
+  "playlistEmptyCarousel": "Selection is empty",
+  "playlistEmptyList": "No saved playlists. Build a selection on Home or Library and use \"Save as playlist\".",
+  "playlistRename": "Rename",
+  "playlistRenameTitle": "Rename playlist",
+  "playlistRenameConfirm": "Save",
+  "playlistDelete": "Delete",
+  "playlistDeleteConfirmTitle": "Delete playlist?",
+  "playlistDeleteConfirmMessage": "This playlist will be permanently removed.",
+  "playlistFavoriteOn": "Mark as favorite",
+  "playlistFavoriteOff": "Remove from favorites",
+  "playlistPdfCount": "{count, plural, =1{1 song} other{{count} songs}}",
+  "@playlistPdfCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistDeleteLastPdfTitle": "Remove last song?",
+  "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
+  "playlistLoadIntoCarousel": "Load into carousel",
+  "playlistOpenInReader": "Open in reader",
+  "playlistLoadConfirmTitle": "Replace selection?",
+  "playlistLoadConfirmMessage": "The current selection will be replaced with songs from this playlist.",
+  "playlistLoaded": "Playlist loaded into carousel",
+  "playlistEmptyPdfList": "This playlist has no songs.",
+  "playlistShare": "Share",
+  "playlistImport": "Import playlist",
+  "playlistImportTitle": "Import shared playlist",
+  "playlistImportUrlLabel": "Shared URL or link",
+  "playlistImportPaste": "Paste",
+  "playlistImportConfirm": "Import",
+  "playlistImported": "Playlist imported",
+  "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
+  "playlistShareError": "Could not share the playlist.",
+  "playlistTabUnsaved": "Unsaved",
+  "playlistTabSaved": "Saved",
+  "playlistTabFavorites": "Favorites",
+  "playlistSaveAction": "Save playlist",
+  "playlistEmptyUnsaved": "No unsaved playlists. Open a song in the reader to create one automatically.",
+  "playlistEmptySaved": "No saved playlists.",
+  "playlistEmptyFavorites": "No favorite playlists.",
+  "playlistDeleteAllUnsaved": "Delete all",
+  "playlistDeleteAllUnsavedTitle": "Delete all unsaved playlists?",
+  "playlistDeleteAllUnsavedMessage": "All playlists in the Unsaved tab will be permanently removed.",
+  "playlistDeleteAllUnsavedDone": "Unsaved playlists deleted",
+  "playlistClearSavedBlocked": "Saved playlists cannot be cleared from the bar. Use the playlist menu."
+}

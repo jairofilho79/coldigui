@@ -1,0 +1,75 @@
+import 'dart:typed_data';
+
+import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
+import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
+import 'package:coldigui/features/pdf_opening/domain/usecases/validate_pdf_availability.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+class _FakeOfflinePdfRepository implements OfflinePdfRepository {
+  _FakeOfflinePdfRepository({this.entry});
+
+  OfflinePdfEntry? entry;
+
+  @override
+  Future<OfflinePdfEntry?> lookup(String pdfId) async => entry;
+
+  @override
+  Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => entry;
+
+  @override
+  Future<OfflinePdfEntry> upsert({
+    required String pdfId,
+    required Uint8List bytes,
+    required String category,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> remove(String pdfId) async {}
+
+  @override
+  Future<Map<String, int>> countByCategory() async => {};
+
+  @override
+  Future<List<OfflinePdfEntry>> listAll() async => [];
+
+  @override
+  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
+
+  @override
+  Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
+
+  @override
+  Future<int> removeIndexEntries(Set<String> pdfIds) async => 0;
+
+  @override
+  Future<void> clearAll() async {}
+}
+
+void main() {
+  const pdfId = 'test-pdf-id';
+
+  test('retorna true quando lookup encontra entrada válida', () async {
+    final repository = _FakeOfflinePdfRepository(
+      entry: OfflinePdfEntry(
+        pdfId: pdfId,
+        absolutePath: '/tmp/plpcg_pdfs/foo.pdf',
+        category: 'ColAdultos',
+        fileSize: 100,
+        downloadedAt: DateTime(2026),
+      ),
+    );
+    final useCase = ValidatePdfAvailability(repository);
+
+    expect(await useCase.call(pdfId: pdfId), isTrue);
+  });
+
+  test('retorna false quando lookup retorna null', () async {
+    final repository = _FakeOfflinePdfRepository();
+    final useCase = ValidatePdfAvailability(repository);
+
+    expect(await useCase.call(pdfId: pdfId), isFalse);
+  });
+}

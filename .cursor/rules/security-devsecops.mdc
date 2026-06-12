@@ -1,0 +1,68 @@
+---
+description: Secure coding, secret handling, dependency hygiene, authentication, authorization, and security testing
+globs:
+  - lib/**/*
+  - test/**/*
+  - integration_test/**/*
+  - "**/*.dart"
+  - "**/*.yaml"
+  - "**/*.yml"
+  - "**/*.sh"
+alwaysApply: true
+---
+
+# DevSecOps + SSDLC + AppSec
+
+## General Security Principles
+
+- Never hardcode secrets, credentials, or API keys. Use environment variables or secure vaults.
+- Prohibit committing `.env`, secret config files, or unknown tokens to source control.
+- Never log sensitive data, secrets, or session tokens.
+- Validate and sanitize all user input. Escape output in HTML, JS, and SQL contexts.
+- Avoid unsafe functions such as `exec`, `eval`, or similar dynamic code execution.
+
+## Database Security
+
+- Use parameterized queries or ORM for all database access. Do not concatenate strings into queries.
+- Ensure database users have the least privilege required.
+- Regularly review and update database access policies.
+
+## Dependency Management
+
+- Only use packages from verified sources (pub.dev with healthy maintenance signals).
+- Do not add new dependencies without explicit approval and security review.
+- Regularly update dependencies and scan for known vulnerabilities (SCA).
+
+## Authentication and Authorization
+
+- Use secure authentication frameworks; never roll custom authentication.
+- Store passwords using strong, salted hashes (e.g., Argon2, bcrypt).
+- Implement Role-Based Access Control (RBAC) for sensitive operations.
+- Enforce the principle of least privilege for APIs and UI actions.
+
+## Secure SDLC Practices
+
+- Integrate Static Application Security Testing (SAST) and Software Composition Analysis (SCA) into CI.
+- Scan all code for secrets before merging.
+- Use Infrastructure as Code (IaC) scanning for infrastructure code.
+- Integrate Dynamic Application Security Testing (DAST) in CD for deployed applications.
+- Enforce Policy as Code (PaC) for automated, version-controlled security policies.
+
+## Monitoring and Feedback
+
+- Enable continuous vulnerability monitoring and alerting.
+- Integrate Runtime Application Self-Protection (RASP) and Web Application Firewall (WAF) as appropriate.
+- Encourage regular vulnerability assessments and penetration testing.
+- Maintain a feedback loop to update rules based on recurring vulnerabilities.
+
+## Compliance and Documentation
+
+- Align with industry standards (OWASP Top 10, NIST, ISO 27001).
+- Document security controls and decisions for auditability.
+
+## Flutter-Specific Notes
+
+- Do not embed API keys in Dart source or commit them via `--dart-define` defaults in tracked files.
+- Use `flutter_secure_storage` or platform keychains for tokens on device.
+- Validate deep links and intent URIs before navigation.
+- Sanitize user-generated content rendered in `WebView` or rich text widgets.
