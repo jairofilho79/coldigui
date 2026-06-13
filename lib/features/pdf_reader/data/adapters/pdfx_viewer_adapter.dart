@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 
@@ -67,11 +69,16 @@ class PdfxViewerAdapter implements PdfReaderControllerPort {
   }
 
   Future<PdfDocument> _openDocument(ResolvedPdfSource source) {
-    return switch (source.kind) {
+    Timeline.startSync(
+      'PdfDocument.open',
+      arguments: <String, String>{'kind': source.kind.name},
+    );
+    final documentFuture = switch (source.kind) {
       PdfSourceKind.remoteUrl => _openRemote(source.value),
       PdfSourceKind.asset => PdfDocument.openAsset(source.value),
       PdfSourceKind.localFile => PdfDocument.openFile(source.value),
     };
+    return documentFuture.whenComplete(Timeline.finishSync);
   }
 
   Future<PdfDocument> _openRemote(String url) async {
