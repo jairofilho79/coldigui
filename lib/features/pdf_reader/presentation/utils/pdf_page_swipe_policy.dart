@@ -10,6 +10,15 @@ const kPdfPageSwipeHorizontalDominanceFactor = 1.2;
 /// Tolerância em pixels para considerar o viewport encostado na borda da página.
 const kPdfPageSwipeEdgeTolerance = 12.0;
 
+/// Direção de troca de página reconhecida durante um swipe horizontal.
+enum PdfPageSwipeDirection {
+  /// Swipe direita→esquerda — avança para a próxima página.
+  next,
+
+  /// Swipe esquerda→direita — volta para a página anterior.
+  previous,
+}
+
 /// Política de quando um swipe horizontal pode trocar de página sem conflitar
 /// com pan horizontal ou pinch-to-zoom do [PdfViewPinch].
 ///
@@ -17,6 +26,9 @@ const kPdfPageSwipeEdgeTolerance = 12.0;
 /// [kPdfPageSwipeMinDistance], [kPdfPageSwipeHorizontalDominanceFactor],
 /// [kPdfPageSwipeEdgeTolerance].
 abstract final class PdfPageSwipePolicy {
+  /// Distância horizontal mínima para feedback e reconhecimento de swipe.
+  static double get minHorizontalDx => kPdfPageSwipeMinDistance;
+
   /// Retorna `true` se um swipe direita→esquerda pode avançar para a próxima página.
   ///
   /// Exige documento carregado. Com pan horizontal disponível (zoom), só permite
@@ -101,5 +113,14 @@ abstract final class PdfPageSwipePolicy {
     final dy = totalDelta.dy;
     if (dx.abs() < kPdfPageSwipeMinDistance) return false;
     return dx.abs() > dy.abs() * kPdfPageSwipeHorizontalDominanceFactor;
+  }
+
+  /// Retorna a direção do swipe horizontal ativo, ou `null` se o gesto ainda
+  /// não atingiu o threshold ou não é predominantemente horizontal.
+  static PdfPageSwipeDirection? activeHorizontalSwipe(Offset totalDelta) {
+    if (!isHorizontalSwipe(totalDelta)) return null;
+    return totalDelta.dx < 0
+        ? PdfPageSwipeDirection.next
+        : PdfPageSwipeDirection.previous;
   }
 }

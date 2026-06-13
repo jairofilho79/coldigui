@@ -96,4 +96,43 @@ void main() {
       );
     });
   });
+
+  group('PdfPageSwipePolicy.activeHorizontalSwipe', () {
+    test('retorna next para swipe direita→esquerda válido', () {
+      expect(
+        PdfPageSwipePolicy.activeHorizontalSwipe(const Offset(-60, 10)),
+        PdfPageSwipeDirection.next,
+      );
+    });
+
+    test('retorna previous para swipe esquerda→direita válido', () {
+      expect(
+        PdfPageSwipePolicy.activeHorizontalSwipe(const Offset(60, 10)),
+        PdfPageSwipeDirection.previous,
+      );
+    });
+
+    test('retorna null abaixo do threshold horizontal', () {
+      expect(
+        PdfPageSwipePolicy.activeHorizontalSwipe(const Offset(30, 5)),
+        isNull,
+      );
+    });
+
+    test('retorna null para gesto predominantemente vertical', () {
+      expect(
+        PdfPageSwipePolicy.activeHorizontalSwipe(const Offset(50, 80)),
+        isNull,
+      );
+    });
+  });
+
+  group('PdfPageSwipePolicy.minHorizontalDx', () {
+    test('expõe o mesmo valor de kPdfPageSwipeMinDistance', () {
+      expect(
+        PdfPageSwipePolicy.minHorizontalDx,
+        kPdfPageSwipeMinDistance,
+      );
+    });
+  });
 }
