@@ -24,10 +24,18 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
   @override
   Future<OfflinePdfEntry?> lookup(String pdfId) async {
+    final (entry, _) = await lookupWithIndexState(pdfId);
+    return entry;
+  }
+
+  @override
+  Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
+    String pdfId,
+  ) async {
     final index = await _local.findByPdfId(pdfId);
-    if (index == null) return null;
-    if (!await _hasValidIndexFile(index)) return null;
-    return _toEntry(index);
+    if (index == null) return (null, false);
+    if (!await _hasValidIndexFile(index)) return (null, true);
+    return (_toEntry(index), true);
   }
 
   @override

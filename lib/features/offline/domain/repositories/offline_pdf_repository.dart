@@ -14,6 +14,14 @@ abstract class OfflinePdfRepository {
   /// Índice órfão permanece até [ReconcileOfflineIndex] (3.6).
   Future<OfflinePdfEntry?> lookup(String pdfId);
 
+  /// Lookup com estado do índice — uma query Isar + validação de disco.
+  ///
+  /// [entry] é não-nulo apenas com índice e arquivo válido.
+  /// [hasIndexEntry] indica presença no Isar mesmo com arquivo inválido/ausente.
+  Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
+    String pdfId,
+  );
+
   /// Subconjunto de [pdfIds] com índice Isar e arquivo válido no disco.
   ///
   /// Uma consulta Isar em lote + validação de disco paralelizada (bulk UC-09).

@@ -20,7 +20,8 @@ class ResolvePdfForReader {
     required String pdfId,
     required String remotePath,
   }) async {
-    final entry = await _repository.lookup(pdfId);
+    final (entry, hasIndexEntry) =
+        await _repository.lookupWithIndexState(pdfId);
     if (entry != null) {
       return LocalPdfSource(
         pdfId: pdfId,
@@ -29,8 +30,6 @@ class ResolvePdfForReader {
       );
     }
 
-    final hasStaleIndex = await _repository.findIndexEntry(pdfId) != null;
-
     try {
       return await _fetchAndStore(
         pdfId: pdfId,
@@ -38,7 +37,7 @@ class ResolvePdfForReader {
       );
     } on DioException catch (e) {
       if (_isNetworkError(e)) {
-        if (hasStaleIndex) {
+        if (hasIndexEntry) {
           throw PdfExternallyDeletedException(pdfId: pdfId);
         }
         throw PdfOfflineUnavailableException(pdfId: pdfId);

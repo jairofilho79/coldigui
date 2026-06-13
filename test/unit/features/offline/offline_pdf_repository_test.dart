@@ -122,6 +122,29 @@ void main() {
     expect(index, isNotNull);
   });
 
+  test('lookupWithIndexState distingue órfão de ausente', () async {
+    final bytes = Uint8List.fromList([1]);
+    final entry = await repository.upsert(
+      pdfId: pdfId,
+      bytes: bytes,
+      category: category,
+    );
+
+    final hit = await repository.lookupWithIndexState(pdfId);
+    expect(hit.$1, isNotNull);
+    expect(hit.$2, isTrue);
+
+    await File(entry.absolutePath).delete();
+
+    final stale = await repository.lookupWithIndexState(pdfId);
+    expect(stale.$1, isNull);
+    expect(stale.$2, isTrue);
+
+    final missing = await repository.lookupWithIndexState('inexistente');
+    expect(missing.$1, isNull);
+    expect(missing.$2, isFalse);
+  });
+
   test('findIndexEntry retorna órfão sem validar disco', () async {
     final bytes = Uint8List.fromList([1]);
     final entry = await repository.upsert(

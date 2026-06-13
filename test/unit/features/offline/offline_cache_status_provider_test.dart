@@ -40,6 +40,12 @@ class _StatsRepo implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> lookup(String pdfId) async => null;
 
   @override
+  Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
+    String pdfId,
+  ) async =>
+      (null, false);
+
+  @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) async => {};
 
   @override
