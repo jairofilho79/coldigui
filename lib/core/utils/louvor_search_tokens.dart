@@ -6,6 +6,14 @@ abstract final class LouvorSearchTokens {
   /// Mínimo de caracteres para match compacto sem separadores (ex.: buscarmeeis).
   static const int _minCompactQueryLength = 3;
 
+  static final RegExp _regA = RegExp(r'[àáâãäå]');
+  static final RegExp _regE = RegExp(r'[èéêë]');
+  static final RegExp _regI = RegExp(r'[ìíîï]');
+  static final RegExp _regO = RegExp(r'[òóôõö]');
+  static final RegExp _regU = RegExp(r'[ùúûü]');
+  static final RegExp _nonAlphanumeric = RegExp(r'[^a-z0-9]');
+  static final RegExp _nonAlphanumericPlus = RegExp(r'[^a-z0-9]+');
+
   /// ~40 stop words funcionais em português removidas na tokenização.
   static const Set<String> stopWords = {
     'a',
@@ -49,29 +57,29 @@ abstract final class LouvorSearchTokens {
   static String normalize(String text) {
     return text
         .toLowerCase()
-        .replaceAll(RegExp(r'[àáâãäå]'), 'a')
-        .replaceAll(RegExp(r'[èéêë]'), 'e')
-        .replaceAll(RegExp(r'[ìíîï]'), 'i')
-        .replaceAll(RegExp(r'[òóôõö]'), 'o')
-        .replaceAll(RegExp(r'[ùúûü]'), 'u')
+        .replaceAll(_regA, 'a')
+        .replaceAll(_regE, 'e')
+        .replaceAll(_regI, 'i')
+        .replaceAll(_regO, 'o')
+        .replaceAll(_regU, 'u')
         .replaceAll('ç', 'c')
         .replaceAll('ñ', 'n');
   }
 
   /// Remove separadores e pontuação — ex.: "Buscar-me-eis" → "buscarmeeis".
   static String compact(String text) {
-    return normalize(text).replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return normalize(text).replaceAll(_nonAlphanumeric, '');
   }
 
   /// Indica se a query usa separadores (espaço, hífen, pontuação, etc.).
   static bool hasWordSeparators(String text) {
-    return RegExp(r'[^a-z0-9]').hasMatch(normalize(text));
+    return _nonAlphanumeric.hasMatch(normalize(text));
   }
 
   /// Tokeniza título removendo stop words e separadores (hífen, pontuação).
   static List<String> tokenize(String title) {
     return normalize(title)
-        .split(RegExp(r'[^a-z0-9]+'))
+        .split(_nonAlphanumericPlus)
         .where((t) => t.isNotEmpty && !stopWords.contains(t))
         .toList();
   }

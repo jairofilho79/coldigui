@@ -123,7 +123,8 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
 
 /// Lista ordenada de louvores no carousel temporário (UC-05) — fonte de verdade.
 ///
-/// Consumido por [LouvorCard] (`isAdded`), [showCarouselSelectionSheet] (modal),
+/// Consumido por [LouvorGroupCard] (`isAdded` via [carouselPdfIdsProvider]),
+/// [showCarouselSelectionSheet] (modal),
 /// [PlaylistListTile] (confirmação de substituição) e navegação via
 /// [carouselFocusedIndexProvider].
 ///
@@ -135,3 +136,12 @@ final carouselLouvoresProvider =
     NotifierProvider<CarouselLouvoresNotifier, List<CarouselItem>>(
   CarouselLouvoresNotifier.new,
 );
+
+/// Conjunto de [CarouselItem.pdfId] no carousel — membership O(1).
+///
+/// Derivado de [carouselLouvoresProvider]. Consumido por [LouvorGroupCard]
+/// (`isAdded`) via [carouselPdfIdsProvider.select].
+final carouselPdfIdsProvider = Provider<Set<String>>((ref) {
+  final items = ref.watch(carouselLouvoresProvider);
+  return {for (final item in items) item.pdfId};
+});

@@ -109,10 +109,14 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final carouselItems = ref.watch(carouselLouvoresProvider);
     final primary = widget.group.primaryLouvor;
-    final isAdded = primary != null &&
-        carouselItems.any((item) => item.pdfId == primary.pdfId);
+    final isAdded = primary != null
+        ? ref.watch(
+            carouselPdfIdsProvider.select(
+              (ids) => ids.contains(primary.pdfId),
+            ),
+          )
+        : false;
     final isMultiMaterial = widget.group.totalMaterials > 1;
 
     final chipItem = primary != null

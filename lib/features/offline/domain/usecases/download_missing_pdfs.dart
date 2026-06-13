@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' show min;
 
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
@@ -91,9 +92,12 @@ class DownloadMissingPdfs {
     final entries = await _repository.listAll();
     final validPdfIds = <String>{};
 
-    for (final entry in entries) {
-      if (await _hasValidFile(entry)) {
-        validPdfIds.add(entry.pdfId);
+    const batchSize = 50;
+    for (var i = 0; i < entries.length; i += batchSize) {
+      final batch = entries.sublist(i, min(i + batchSize, entries.length));
+      final results = await Future.wait(batch.map(_hasValidFile));
+      for (var j = 0; j < batch.length; j++) {
+        if (results[j]) validPdfIds.add(batch[j].pdfId);
       }
     }
 
