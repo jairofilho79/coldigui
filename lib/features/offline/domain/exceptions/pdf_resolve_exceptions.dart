@@ -30,6 +30,21 @@ class PdfOfflineUnavailableException implements Exception {
   String toString() => 'PdfOfflineUnavailableException: $message';
 }
 
+/// PDF em cache local passou validação de disco mas falhou ao abrir no leitor.
+class PdfLocalCorruptedException implements Exception {
+  const PdfLocalCorruptedException({
+    required this.pdfId,
+    this.message =
+        'O PDF salvo no dispositivo está corrompido. Baixe novamente para continuar.',
+  });
+
+  final String pdfId;
+  final String message;
+
+  @override
+  String toString() => 'PdfLocalCorruptedException: $message';
+}
+
 /// Fetch falhou por motivo diferente de indisponibilidade de rede (Fase 3.2).
 class PdfFetchFailedException implements Exception {
   const PdfFetchFailedException(this.message, {this.cause});

@@ -2,7 +2,12 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
+import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -13,6 +18,7 @@ import 'package:coldigui/features/pdf_reader/presentation/widgets/pdfx_pdf_view.
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pdfx/pdfx.dart';
 
 /// UC-11 — Leitor PDF (PDFx), rota filha do [ShellScaffold].
@@ -45,6 +51,7 @@ class PdfReaderScreen extends ConsumerStatefulWidget {
 class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   String? _appliedFitForPath;
   var _shareLoading = false;
+  var _redownloadLoading = false;
 
   @override
   void initState() {
@@ -116,6 +123,58 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     }
   }
 
+  Future<void> _redownloadCorruptedPdf(String pdfId) async {
+    if (_redownloadLoading) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() => _redownloadLoading = true);
+    try {
+      final louvor = findLouvorByPdfId(
+        ref.read(louvoresManifestProvider).value?.louvores,
+        pdfId,
+      );
+      if (louvor == null) {
+        if (mounted) {
+          showAppSnackbar(
+            context,
+            l10n?.pdfActionError ?? 'Não foi possível concluir a ação',
+          );
+        }
+        return;
+      }
+
+      final remotePath = LouvorPdfPath.fromLouvor(louvor);
+      final source = await ref.read(resolvePdfForReaderProvider)(
+        pdfId: pdfId,
+        remotePath: remotePath,
+      );
+      if (!mounted) return;
+
+      final location = ref.read(openPdfInReaderProvider).call(
+            pdfPath: source.absolutePath,
+            pdfId: louvor.pdfId,
+            titulo: louvor.nome,
+          );
+      context.replace(location);
+    } on PdfOfflineUnavailableException catch (e) {
+      if (mounted) showAppSnackbar(context, e.message);
+    } on PdfExternallyDeletedException catch (e) {
+      if (mounted) showAppSnackbar(context, e.message);
+    } on PdfFetchFailedException catch (e) {
+      if (mounted) showAppSnackbar(context, e.message);
+    } on Object {
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          l10n?.pdfActionError ?? 'Não foi possível concluir a ação',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _redownloadLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final titulo = widget.queryParams[UrlSyncParams.titulo] ?? 'Leitor PDF';
@@ -171,10 +230,21 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.gold),
         ),
-        error: (error, _) => _ReaderMessage(
-          message: pdfReaderErrorMessage(error),
-          onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
-        ),
+        error: (error, _) {
+          if (error is PdfLocalCorruptedException) {
+            return _ReaderMessage(
+              message: pdfReaderErrorMessage(error),
+              retryLabel: _redownloadLoading ? null : 'Baixar novamente',
+              onRetry: _redownloadLoading
+                  ? null
+                  : () => _redownloadCorruptedPdf(error.pdfId),
+            );
+          }
+          return _ReaderMessage(
+            message: pdfReaderErrorMessage(error),
+            onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
+          );
+        },
         data: (session) => PdfxPdfView(
           controller: session.controller,
           navigateToPage: (pageNumber) => ref
@@ -305,10 +375,12 @@ class _ReaderMessage extends StatelessWidget {
   const _ReaderMessage({
     required this.message,
     this.onRetry,
+    this.retryLabel = 'Tentar novamente',
   });
 
   final String message;
   final VoidCallback? onRetry;
+  final String? retryLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -323,11 +395,11 @@ class _ReaderMessage extends StatelessWidget {
               style: const TextStyle(color: AppColors.textLight),
               textAlign: TextAlign.center,
             ),
-            if (onRetry != null) ...[
+            if (onRetry != null && retryLabel != null) ...[
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: onRetry,
-                child: const Text('Tentar novamente'),
+                child: Text(retryLabel!),
               ),
             ],
           ],

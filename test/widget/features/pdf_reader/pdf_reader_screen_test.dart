@@ -180,11 +180,47 @@ void main() {
   test('pdfReaderErrorMessage formata exceções offline', () {
     const offline = PdfOfflineUnavailableException(pdfId: 'x');
     const deleted = PdfExternallyDeletedException(pdfId: 'y');
+    const corrupted = PdfLocalCorruptedException(pdfId: 'z');
     const fetchFailed = PdfFetchFailedException('erro fetch');
 
     expect(pdfReaderErrorMessage(offline), offline.message);
     expect(pdfReaderErrorMessage(deleted), deleted.message);
+    expect(pdfReaderErrorMessage(corrupted), corrupted.message);
     expect(pdfReaderErrorMessage(fetchFailed), 'erro fetch');
+  });
+
+  testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido',
+      (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    const corrupted = PdfLocalCorruptedException(pdfId: 'pdf-1');
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('/tmp/corrupt.pdf').overrideWith(
+            (ref) => Future.error(corrupted),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': '/tmp/corrupt.pdf',
+                'pdfId': 'pdf-1',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text(corrupted.message), findsOneWidget);
+    expect(find.text('Baixar novamente'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsNothing);
   });
 
   testWidgets('PdfReaderScreen exibe botão share com sessão carregada',

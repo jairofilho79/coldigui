@@ -42,6 +42,9 @@ abstract class OfflinePdfRepository {
   /// Remove arquivo no disco e entrada no índice (idempotente se ausente).
   Future<void> remove(String pdfId);
 
+  /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
+  Future<String?> findPdfIdByAbsolutePath(String absolutePath);
+
   /// Agregação por categoria a partir do índice Isar — sem scan filesystem.
   Future<Map<String, int>> countByCategory();
 

@@ -12,6 +12,13 @@ class OfflinePdfLocalDatasource {
   Future<OfflinePdfIndex?> findByPdfId(String pdfId) =>
       _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
 
+  /// Lookup por [storagePath] absoluto — sem validação de disco.
+  Future<OfflinePdfIndex?> findByStoragePath(String storagePath) =>
+      _isar.offlinePdfIndexs
+          .filter()
+          .storagePathEqualTo(storagePath)
+          .findFirst();
+
   /// Busca entradas do índice para [pdfIds] — sem validação de disco.
   Future<List<OfflinePdfIndex>> findByPdfIds(Set<String> pdfIds) async {
     if (pdfIds.isEmpty) return const [];

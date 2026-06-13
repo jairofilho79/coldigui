@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../../../core/utils/url_sync_params.dart';
+import '../../../offline/data/providers/offline_providers.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../data/adapters/pdfx_viewer_adapter.dart';
 import '../../data/providers/pdf_reader_providers.dart';
+import '../../data/utils/pdf_source_resolver.dart';
 import '../../domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';
 
@@ -35,13 +37,32 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
     .family<PdfReaderSession, String>((ref, filePath) async {
   final openPdf = ref.watch(openPdfDocumentProvider);
   final adapter = ref.watch(pdfxViewerAdapterProvider);
+  const resolver = PdfSourceResolver();
 
   openPdf.validateFilePath(filePath);
-  final controller = await adapter.openDocument(filePath);
+  final source = resolver.resolve(filePath);
+
+  PdfControllerPinch? controller;
+  try {
+    controller = await adapter.openDocument(filePath);
+    if (source.kind == PdfSourceKind.localFile) {
+      await controller.document;
+    }
+  } on Object catch (_) {
+    controller?.dispose();
+    if (source.kind == PdfSourceKind.localFile) {
+      final pdfId = await _removeCorruptedLocalPdf(ref, source.value);
+      if (pdfId != null) {
+        throw PdfLocalCorruptedException(pdfId: pdfId);
+      }
+    }
+    rethrow;
+  }
+
   adapter.bindController(controller);
 
   ref.onDispose(() {
-    adapter.unbindController(controller);
+    adapter.unbindController(controller!);
     controller.dispose();
   });
 
@@ -51,10 +72,19 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
   );
 });
 
+Future<String?> _removeCorruptedLocalPdf(Ref ref, String absolutePath) async {
+  final repository = ref.read(offlinePdfRepositoryProvider);
+  final pdfId = await repository.findPdfIdByAbsolutePath(absolutePath);
+  if (pdfId == null) return null;
+  await repository.remove(pdfId);
+  return pdfId;
+}
+
 /// Mensagem amigável para erros de abertura PDF na UI.
 ///
 /// Suporta [InvalidPdfPathException] e exceções offline ([PdfOfflineUnavailableException],
-/// [PdfExternallyDeletedException], [PdfFetchFailedException]); fallback genérico.
+/// [PdfExternallyDeletedException], [PdfFetchFailedException], [PdfLocalCorruptedException]);
+/// fallback genérico.
 String pdfReaderErrorMessage(Object error) {
   if (error is InvalidPdfPathException) {
     return error.message;
@@ -66,6 +96,9 @@ String pdfReaderErrorMessage(Object error) {
     return error.message;
   }
   if (error is PdfFetchFailedException) {
+    return error.message;
+  }
+  if (error is PdfLocalCorruptedException) {
     return error.message;
   }
   return 'Não foi possível abrir o PDF';

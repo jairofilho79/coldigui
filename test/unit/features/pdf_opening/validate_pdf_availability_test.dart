@@ -44,6 +44,9 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) async {}
 
   @override
+  Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
+
+  @override
   Future<Map<String, int>> countByCategory() async => {};
 
   @override

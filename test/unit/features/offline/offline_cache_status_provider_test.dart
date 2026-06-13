@@ -52,6 +52,9 @@ class _StatsRepo implements OfflinePdfRepository {
   Future<void> remove(String pdfId) async {}
 
   @override
+  Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
+
+  @override
   Future<int> removeIndexEntries(Set<String> pdfIds) async => 0;
 
   @override

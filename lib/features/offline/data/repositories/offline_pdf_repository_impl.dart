@@ -117,6 +117,12 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   @override
+  Future<String?> findPdfIdByAbsolutePath(String absolutePath) async {
+    final index = await _local.findByStoragePath(absolutePath);
+    return index?.pdfId;
+  }
+
+  @override
   Future<Map<String, int>> countByCategory() => _local.countByCategory();
 
   @override

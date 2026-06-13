@@ -104,6 +104,24 @@ void main() {
     expect(found.fileSize, bytes.length);
   });
 
+  test('findPdfIdByAbsolutePath resolve pdfId do índice', () async {
+    final bytes = _validPdfBytes();
+    final entry = await repository.upsert(
+      pdfId: pdfId,
+      bytes: bytes,
+      category: category,
+    );
+
+    expect(
+      await repository.findPdfIdByAbsolutePath(entry.absolutePath),
+      pdfId,
+    );
+    expect(
+      await repository.findPdfIdByAbsolutePath('/inexistente/foo.pdf'),
+      isNull,
+    );
+  });
+
   test('lookup miss quando índice ausente', () async {
     expect(await repository.lookup('inexistente'), isNull);
   });

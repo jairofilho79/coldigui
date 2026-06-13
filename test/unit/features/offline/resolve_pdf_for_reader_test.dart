@@ -83,6 +83,9 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
+  Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
+
+  @override
   Future<OfflinePdfEntry> upsert({
     required String pdfId,
     required Uint8List bytes,
