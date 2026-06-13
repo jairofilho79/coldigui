@@ -39,10 +39,12 @@ class FetchAndStorePdf {
     required String pdfId,
     required String remotePath,
     String? category,
+    ProgressCallback? onProgress,
   }) async {
     final resolvedCategory =
         category ?? OfflineCategoryResolver.fromPdfId(pdfId);
-    final bytes = await _fetchBytesWithRetry(remotePath);
+    final bytes =
+        await _fetchBytesWithRetry(remotePath, onProgress: onProgress);
     final entry = await _repository.upsert(
       pdfId: pdfId,
       bytes: bytes,
@@ -56,14 +58,20 @@ class FetchAndStorePdf {
     );
   }
 
-  Future<Uint8List> _fetchBytesWithRetry(String remotePath) async {
+  Future<Uint8List> _fetchBytesWithRetry(
+    String remotePath, {
+    ProgressCallback? onProgress,
+  }) async {
     Object? lastError;
 
     for (var attempt = 1;
         attempt <= OfflineConfig.maxRetryAttempts;
         attempt++) {
       try {
-        return await _bytesDatasource.fetchBytes(remotePath);
+        return await _bytesDatasource.fetchBytes(
+          remotePath,
+          onReceiveProgress: onProgress,
+        );
       } on DioException catch (e) {
         lastError = e;
         if (!_isRetryable(e) || attempt >= OfflineConfig.maxRetryAttempts) {

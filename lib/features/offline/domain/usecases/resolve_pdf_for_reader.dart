@@ -19,6 +19,7 @@ class ResolvePdfForReader {
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
+    ProgressCallback? onProgress,
   }) async {
     final (entry, hasIndexEntry) =
         await _repository.lookupWithIndexState(pdfId);
@@ -34,6 +35,7 @@ class ResolvePdfForReader {
       return await _fetchAndStore(
         pdfId: pdfId,
         remotePath: remotePath,
+        onProgress: onProgress,
       );
     } on DioException catch (e) {
       if (_isNetworkError(e)) {

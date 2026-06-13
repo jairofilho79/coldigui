@@ -164,6 +164,18 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir a ação'**
   String get pdfActionError;
 
+  /// No description provided for @louvorPdfDownloading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando...'**
+  String get louvorPdfDownloading;
+
+  /// No description provided for @louvorPdfDownloadingWithProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando... {percent}%'**
+  String louvorPdfDownloadingWithProgress(int percent);
+
   /// No description provided for @libraryTitle.
   ///
   /// In pt, this message translates to:

@@ -12,6 +12,7 @@ import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart'
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_list_tile.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +51,7 @@ class _FakeResolvePdfForReader implements ResolvePdfForReader {
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
+    ProgressCallback? onProgress,
   }) async {
     return LocalPdfSource(
       pdfId: pdfId,

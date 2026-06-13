@@ -42,6 +42,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pdfActionError => 'Não foi possível concluir a ação';
 
   @override
+  String get louvorPdfDownloading => 'Baixando...';
+
+  @override
+  String louvorPdfDownloadingWithProgress(int percent) {
+    return 'Baixando... $percent%';
+  }
+
+  @override
   String get libraryTitle => 'Biblioteca';
 
   @override

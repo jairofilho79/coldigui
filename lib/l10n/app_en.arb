@@ -14,6 +14,13 @@
   "pdfShareSuccess": "PDF ready to share",
   "pdfSaveSuccess": "PDF saved successfully",
   "pdfActionError": "Could not complete the action",
+  "louvorPdfDownloading": "Downloading...",
+  "louvorPdfDownloadingWithProgress": "Downloading... {percent}%",
+  "@louvorPdfDownloadingWithProgress": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
   "libraryTitle": "Library",
   "libraryViewTitle": "View",
   "sortByLabel": "Sort by",

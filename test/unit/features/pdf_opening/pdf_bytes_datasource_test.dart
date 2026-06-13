@@ -12,6 +12,8 @@ class _FakeDio implements Dio {
 
   final Uint8List _bytes;
   Options? lastOptions;
+  int progressInvocations = 0;
+  ProgressCallback? lastOnReceiveProgress;
 
   @override
   Future<Response<T>> get<T>(
@@ -23,6 +25,9 @@ class _FakeDio implements Dio {
     ProgressCallback? onReceiveProgress,
   }) async {
     lastOptions = options;
+    lastOnReceiveProgress = onReceiveProgress;
+    onReceiveProgress?.call(_bytes.length, _bytes.length);
+    progressInvocations = onReceiveProgress != null ? 1 : 0;
     return Response<T>(
       data: _bytes as T,
       requestOptions: RequestOptions(path: path),
@@ -87,6 +92,24 @@ void main() {
         dio.lastOptions?.sendTimeout,
         OfflineConfig.pdfDownloadSendTimeout,
       );
+    });
+
+    test('fetchBytes remoto repassa onReceiveProgress ao Dio', () async {
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final dio = _FakeDio(bytes);
+      final datasource = PdfBytesDatasource(
+        dio,
+        resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
+      );
+      var progressCalls = 0;
+
+      await datasource.fetchBytes(
+        'https://example.com/assets/test.pdf',
+        onReceiveProgress: (_, __) => progressCalls++,
+      );
+
+      expect(progressCalls, dio.progressInvocations);
+      expect(dio.progressInvocations, greaterThan(0));
     });
 
     test('fetchBytes remoto lança quando resposta vazia', () async {

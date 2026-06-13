@@ -29,13 +29,19 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
     Dio? dio,
   }) : super(dio ?? Dio());
 
-  final Future<Uint8List> Function(String filePath) onFetch;
+  final Future<Uint8List> Function(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) onFetch;
   int callCount = 0;
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) async {
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
     callCount++;
-    return onFetch(filePath);
+    return onFetch(filePath, onReceiveProgress: onReceiveProgress);
   }
 }
 
@@ -89,7 +95,7 @@ void main() {
 
   test('download + upsert feliz retorna fromCache false', () async {
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async => pdfBytes,
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
     );
     final useCase = createUseCase(datasource);
 
@@ -112,7 +118,7 @@ void main() {
 
   test('category derivada quando null', () async {
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async => pdfBytes,
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
     );
     final useCase = createUseCase(datasource);
 
@@ -126,7 +132,7 @@ void main() {
   test('category explícita não deriva', () async {
     const explicitCategory = 'ColJovens';
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async => pdfBytes,
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
     );
     final useCase = createUseCase(datasource);
 
@@ -144,7 +150,7 @@ void main() {
   test('retry: falha rede na 1ª tentativa e sucesso na 2ª', () async {
     var attempts = 0;
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async {
+      onFetch: (_, {onReceiveProgress}) async {
         attempts++;
         if (attempts == 1) {
           throw DioException.connectionError(
@@ -194,7 +200,7 @@ void main() {
 
   test('retry esgotado propaga DioException após maxRetryAttempts', () async {
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async {
+      onFetch: (_, {onReceiveProgress}) async {
         throw DioException.connectionError(
           requestOptions: RequestOptions(path: remotePath),
           reason: 'offline',
@@ -213,7 +219,7 @@ void main() {
 
   test('HTTP 404 falha imediatamente sem retry', () async {
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async {
+      onFetch: (_, {onReceiveProgress}) async {
         throw DioException.badResponse(
           statusCode: 404,
           requestOptions: RequestOptions(path: remotePath),
@@ -235,7 +241,7 @@ void main() {
 
   test('resposta vazia propaga Exception sem retry', () async {
     final datasource = _FakePdfBytesDatasource(
-      onFetch: (_) async {
+      onFetch: (_, {onReceiveProgress}) async {
         throw Exception('Resposta PDF vazia');
       },
     );
@@ -246,5 +252,24 @@ void main() {
       throwsA(isA<Exception>()),
     );
     expect(datasource.callCount, 1);
+  });
+
+  test('repassa onProgress ao datasource remoto', () async {
+    ProgressCallback? captured;
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async {
+        captured = onReceiveProgress;
+        return pdfBytes;
+      },
+    );
+    final useCase = createUseCase(datasource);
+
+    await useCase(
+      pdfId: pdfId,
+      remotePath: remotePath,
+      onProgress: (_, __) {},
+    );
+
+    expect(captured, isNotNull);
   });
 }

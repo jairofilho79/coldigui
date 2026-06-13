@@ -94,7 +94,11 @@ class _FakeBytesDatasource extends PdfBytesDatasource {
   final Uint8List _bytes;
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) async => _bytes;
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async =>
+      _bytes;
 }
 
 class _FakeResolvePdfForReader extends ResolvePdfForReader {
@@ -105,6 +109,7 @@ class _FakeResolvePdfForReader extends ResolvePdfForReader {
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
+    ProgressCallback? onProgress,
   }) async {
     return const LocalPdfSource(
       pdfId: 'fake',

@@ -35,6 +35,7 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
     required String pdfId,
     required String remotePath,
     String? category,
+    ProgressCallback? onProgress,
   }) _onCall;
 
   @override
@@ -42,15 +43,24 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
     required String pdfId,
     required String remotePath,
     String? category,
+    ProgressCallback? onProgress,
   }) =>
-      _onCall(pdfId: pdfId, remotePath: remotePath, category: category);
+      _onCall(
+        pdfId: pdfId,
+        remotePath: remotePath,
+        category: category,
+        onProgress: onProgress,
+      );
 }
 
 class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   _UnusedPdfBytesDatasource() : super(Dio());
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) {
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) {
     throw StateError('_FakeFetchAndStorePdf não deve chamar fetchBytes');
   }
 }
@@ -117,7 +127,11 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   final Uint8List _bytes;
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) async => _bytes;
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async =>
+      _bytes;
 }
 
 void main() {
@@ -178,6 +192,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         fetchCalled = true;
         throw StateError('fetch não deveria ser chamado em hit');
@@ -227,6 +242,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         capturedPdfId = pdfId;
         capturedRemotePath = remotePath;
@@ -265,6 +281,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         throw DioException.connectionError(
           requestOptions: RequestOptions(path: remotePath),
@@ -291,6 +308,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         throw DioException.connectionError(
           requestOptions: RequestOptions(path: remotePath),
@@ -326,6 +344,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         return LocalPdfSource(
           pdfId: pdfId,
@@ -351,6 +370,7 @@ void main() {
         required String pdfId,
         required String remotePath,
         String? category,
+        ProgressCallback? onProgress,
       }) async {
         throw DioException.badResponse(
           statusCode: 404,

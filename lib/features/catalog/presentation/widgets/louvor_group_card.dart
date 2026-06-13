@@ -4,6 +4,8 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -27,8 +29,6 @@ class LouvorGroupCard extends ConsumerStatefulWidget {
 }
 
 class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
-  var _loading = false;
-
   Louvor? get _singleLouvor =>
       widget.group.totalMaterials == 1 ? widget.group.primaryLouvor : null;
 
@@ -44,17 +44,13 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   }
 
   Future<void> _openLouvor(Louvor louvor) async {
-    if (_loading) return;
     final l10n = AppLocalizations.of(context)!;
-    setState(() => _loading = true);
     try {
       await openLouvorInReader(ref: ref, context: context, louvor: louvor);
     } on Object catch (e) {
       if (mounted) {
         showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -106,9 +102,36 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
   }
 
+  LouvorPdfDownloadState? _activeDownloadState(
+    Map<String, LouvorPdfDownloadState> states,
+  ) {
+    for (final section in widget.group.sections) {
+      for (final material in section.materials) {
+        final state = states[material.pdfId];
+        if (state?.isLoading == true) return state;
+      }
+    }
+    return null;
+  }
+
+  String? _downloadProgressLabel(
+    LouvorPdfDownloadState? state,
+    AppLocalizations l10n,
+  ) {
+    if (state == null || !state.isLoading) return null;
+    if (state.showProgressLabel && state.progressFraction != null) {
+      final percent = (state.progressFraction! * 100).round();
+      return l10n.louvorPdfDownloadingWithProgress(percent);
+    }
+    return l10n.louvorPdfDownloading;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final downloadStates = ref.watch(louvorPdfDownloadProvider);
+    final activeDownload = _activeDownloadState(downloadStates);
+    final isLoading = activeDownload?.isLoading ?? false;
     final primary = widget.group.primaryLouvor;
     final isAdded = primary != null
         ? ref.watch(
@@ -130,24 +153,25 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             classificacao: '',
           );
 
-    final metadataSummary = isMultiMaterial
-        ? l10n.louvorGroupMetadataSummary(
-            widget.group.totalMaterials,
-            widget.group.totalArrangements,
-          )
-        : null;
+    final metadataSummary = _downloadProgressLabel(activeDownload, l10n) ??
+        (isMultiMaterial
+            ? l10n.louvorGroupMetadataSummary(
+                widget.group.totalMaterials,
+                widget.group.totalArrangements,
+              )
+            : null);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: CarouselLouvorChip(
         item: chipItem,
         metadataSummary: metadataSummary,
-        onTap: _loading ? null : _handleTap,
-        onAdd: _loading || isAdded || primary == null
+        onTap: isLoading ? null : _handleTap,
+        onAdd: isLoading || isAdded || primary == null
             ? null
             : _handleAddToCarousel,
         isAdded: isAdded,
-        loading: _loading,
+        loading: isLoading,
       ),
     );
   }

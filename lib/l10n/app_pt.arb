@@ -14,6 +14,13 @@
   "pdfShareSuccess": "PDF pronto para compartilhar",
   "pdfSaveSuccess": "PDF salvo com sucesso",
   "pdfActionError": "Não foi possível concluir a ação",
+  "louvorPdfDownloading": "Baixando...",
+  "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
+  "@louvorPdfDownloadingWithProgress": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
   "libraryTitle": "Biblioteca",
   "libraryViewTitle": "Visualização",
   "sortByLabel": "Ordenar por",

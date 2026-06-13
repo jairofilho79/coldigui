@@ -20,16 +20,23 @@ class PdfBytesDatasource {
   final AssetBundle _bundle;
 
   /// Baixa ou lê bytes do [filePath] (mesmas convenções de [PdfSourceResolver]).
-  Future<Uint8List> fetchBytes(String filePath) async {
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
     final source = _resolver.resolve(filePath);
     return switch (source.kind) {
-      PdfSourceKind.remoteUrl => _fetchRemote(source.value),
+      PdfSourceKind.remoteUrl =>
+        _fetchRemote(source.value, onReceiveProgress: onReceiveProgress),
       PdfSourceKind.asset => _fetchAsset(source.value),
       PdfSourceKind.localFile => _fetchLocal(source.value),
     };
   }
 
-  Future<Uint8List> _fetchRemote(String url) async {
+  Future<Uint8List> _fetchRemote(
+    String url, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
     final response = await _dio.get<List<int>>(
       url,
       options: Options(
@@ -37,6 +44,7 @@ class PdfBytesDatasource {
         receiveTimeout: OfflineConfig.pdfDownloadReceiveTimeout,
         sendTimeout: OfflineConfig.pdfDownloadSendTimeout,
       ),
+      onReceiveProgress: onReceiveProgress,
     );
 
     final data = response.data;
