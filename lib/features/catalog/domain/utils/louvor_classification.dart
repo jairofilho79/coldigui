@@ -1,3 +1,5 @@
+import '../entities/louvor.dart';
+
 /// Utilitários de classificação/arranjo para filtros UC-02 e UC-03.
 ///
 /// Contrato URL: param [UrlSyncParams.arranjo] (CSV de classificações base);
@@ -29,6 +31,11 @@ abstract final class LouvorClassification {
     final base = classificacao.trim();
     if (base.startsWith('Coletânea ')) return base;
     return displayLabel(classificacao);
+  }
+
+  /// Classificações base únicas do catálogo (chips UC-02).
+  static Set<String> collectAvailableArranjos(Iterable<Louvor> louvores) {
+    return louvores.map((l) => baseClassification(l.classificacao)).toSet();
   }
 
   /// Extrai classificação base antes de parênteses.

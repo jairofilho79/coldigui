@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
+import '../../../catalog/domain/entities/louvores_manifest.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../data/providers/library_providers.dart';
@@ -73,7 +73,7 @@ class LibraryGroupPipelineDriver extends Notifier<int> {
         }
       },
     );
-    ref.listen<AsyncValue<List<Louvor>>>(
+    ref.listen<AsyncValue<LouvoresManifest>>(
       louvoresManifestProvider,
       (_, __) => _schedulePipeline(),
       fireImmediately: true,
@@ -95,7 +95,7 @@ class LibraryGroupPipelineDriver extends Notifier<int> {
       return;
     }
 
-    final catalog = manifestAsync.value;
+    final catalog = manifestAsync.value?.louvores;
     if (catalog == null) {
       return;
     }

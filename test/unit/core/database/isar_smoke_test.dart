@@ -35,7 +35,8 @@ void main() {
       ..numero = '001'
       ..categoria = 'ColAdultos'
       ..classificacao = 'Partitura'
-      ..pdf = 'assets/ColAdultos/001.pdf';
+      ..pdf = 'assets/ColAdultos/001.pdf'
+      ..groupId = '001:louvor-teste';
 
     await isar.writeTxn(() async {
       await isar.louvorCaches.put(entry);

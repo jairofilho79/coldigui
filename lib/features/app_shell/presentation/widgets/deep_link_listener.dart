@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/constants/app_config.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/home_url_builder.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
@@ -38,7 +37,7 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   }
 
   Future<void> _subscribeToLinks() async {
-    if (AppConfig.isApiBaseUrlMissing) return;
+    if (!ref.read(deepLinkHandlingEnabledProvider)) return;
 
     final appLinks = ref.read(appLinksProvider);
     try {
@@ -61,7 +60,7 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   Future<void> handleUriForTest(Uri uri) => _handleUri(uri);
 
   Future<void> _handleUri(Uri uri) async {
-    if (_handling || AppConfig.isApiBaseUrlMissing) return;
+    if (_handling || !ref.read(deepLinkHandlingEnabledProvider)) return;
 
     final params = parsePlaylistShareParams(uri);
     if (params == null) return;

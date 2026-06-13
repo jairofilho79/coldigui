@@ -19,9 +19,9 @@ final libraryResultsProvider = Provider<PaginatedLouvores>((ref) {
 
   return manifestAsync.when(
     skipLoadingOnReload: true,
-    data: (catalog) {
+    data: (manifest) {
       final filtered = browse(
-        catalog,
+        manifest.louvores,
         selectedMaterials: filters.selectedMaterials,
         selectedArranjos: filters.selectedArranjos,
         selectedSpecialArrangements: special.selectedSpecialArrangements,

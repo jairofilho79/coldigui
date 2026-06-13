@@ -92,7 +92,8 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
-    final labelMap = _buildLabelMap(ref.read(louvoresManifestProvider).value);
+    final labelMap =
+        _buildLabelMap(ref.read(louvoresManifestProvider).value?.louvores);
     final playlists = await repository.getAll();
 
     state = playlists
@@ -349,7 +350,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   /// manifest e falhas via [playlistOpenDebugLog*].
   Louvor? findLouvorByPdfId(String pdfId) {
     final manifestAsync = ref.read(louvoresManifestProvider);
-    final catalog = manifestAsync.value;
+    final catalog = manifestAsync.value?.louvores;
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
       'manifest=${manifestAsync.isLoading ? 'loading' : manifestAsync.hasError ? 'error' : catalog == null ? 'null' : '${catalog.length} itens'}',

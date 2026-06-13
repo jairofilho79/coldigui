@@ -254,7 +254,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       return false;
     }
 
-    if (!await _confirmReplaceIfNeeded(l10n) || !context.mounted) {
+    if (!await _confirmReplaceIfNeeded(l10n) || !mounted) {
       playlistOpenDebugLog('_loadPlaylist: cancelado pelo usuário');
       return false;
     }
@@ -262,14 +262,14 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     final loaded = await ref
         .read(playlistsProvider.notifier)
         .loadIntoCarousel(playlist.playlistId);
-    if (!context.mounted) return false;
+    if (!mounted) return false;
 
     if (!loaded) {
       playlistOpenDebugLogFailure(
         '_loadPlaylist',
         'loadIntoCarousel retornou false',
       );
-      showPlaylistOpenErrorSnackbar(context, l10n);
+      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
       return false;
     }
 
@@ -562,7 +562,7 @@ class _PlaylistDetailChips extends ConsumerWidget {
 
   static Louvor? _findLouvorFromManifest(WidgetRef ref, String pdfId) {
     try {
-      final catalog = ref.read(louvoresManifestProvider).asData?.value;
+      final catalog = ref.read(louvoresManifestProvider).asData?.value.louvores;
       if (catalog == null) return null;
       for (final louvor in catalog) {
         if (louvor.pdfId == pdfId) return louvor;

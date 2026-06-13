@@ -52,11 +52,8 @@ final catalogFiltersProvider =
 
 /// Classificações base disponíveis no manifest (chips de arranjo).
 final catalogAvailableArranjosProvider = Provider<Set<String>>((ref) {
-  final catalog = ref.watch(louvoresManifestProvider).value;
-  if (catalog == null) return const {};
-  return catalog
-      .map((l) => LouvorClassification.baseClassification(l.classificacao))
-      .toSet();
+  return ref.watch(louvoresManifestProvider).value?.availableArranjos ??
+      const {};
 });
 
 /// Gerencia seleção de materiais/arranjos e hidratação da URL.

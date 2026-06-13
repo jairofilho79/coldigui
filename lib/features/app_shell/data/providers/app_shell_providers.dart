@@ -1,6 +1,7 @@
 import 'package:app_links/app_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_config.dart';
 import '../../../playlists/data/providers/playlist_providers.dart';
 import '../../domain/usecases/sync_deep_link_state.dart';
 
@@ -8,6 +9,13 @@ import '../../domain/usecases/sync_deep_link_state.dart';
 ///
 /// Consumido por [DeepLinkListener] para `getInitialLink` e `uriLinkStream`.
 final appLinksProvider = Provider<AppLinks>((ref) => AppLinks());
+
+/// Gate de deep links — `false` quando [AppConfig.apiBaseUrl] não foi injetado.
+///
+/// Sobrescrever em testes widget que exercitam [DeepLinkListener].
+final deepLinkHandlingEnabledProvider = Provider<bool>(
+  (ref) => !AppConfig.isApiBaseUrlMissing,
+);
 
 /// DI — [SyncDeepLinkState] via [importSharedPlaylistFromUrlProvider].
 final syncDeepLinkStateProvider = Provider<SyncDeepLinkState>((ref) {

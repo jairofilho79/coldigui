@@ -58,7 +58,7 @@ class LeafletActionsNotifier extends Notifier<void> {
     try {
       leafletDebugLog('generateAndShare: início');
       final metadata =
-          _buildMetadataMap(ref.read(louvoresManifestProvider).value);
+          _buildMetadataMap(ref.read(louvoresManifestProvider).value?.louvores);
       leafletDebugLog(
         'generateAndShare: manifest metadata=${metadata.length} itens',
       );

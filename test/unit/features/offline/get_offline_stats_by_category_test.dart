@@ -90,7 +90,8 @@ void main() {
           ..numero = '001'
           ..categoria = categoria
           ..classificacao = 'ColAdultos'
-          ..pdf = '001.pdf',
+          ..pdf = '001.pdf'
+          ..groupId = '001:teste',
       );
     });
   }

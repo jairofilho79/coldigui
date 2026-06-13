@@ -5,6 +5,7 @@ import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -32,7 +33,9 @@ void main() {
     container = ProviderContainer(
       overrides: [
         isarProvider.overrideWithValue(isar),
-        louvoresManifestProvider.overrideWith((ref) async => const []),
+        louvoresManifestProvider.overrideWith(
+          (ref) async => LouvoresManifest.fromLouvores(const []),
+        ),
       ],
     );
   });

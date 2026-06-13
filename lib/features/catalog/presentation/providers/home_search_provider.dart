@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvor_group.dart';
+import '../../domain/entities/louvores_manifest.dart';
 import 'catalog_filters_provider.dart';
 import 'home_search_worker.dart';
 import 'louvores_manifest_provider.dart';
@@ -97,7 +97,7 @@ class HomeSearchPipelineDriver extends Notifier<int> {
       catalogFiltersProvider,
       (_, __) => _scheduleSearch(),
     );
-    ref.listen<AsyncValue<List<Louvor>>>(
+    ref.listen<AsyncValue<LouvoresManifest>>(
       louvoresManifestProvider,
       (_, __) => _scheduleSearch(),
       fireImmediately: true,
@@ -113,7 +113,7 @@ class HomeSearchPipelineDriver extends Notifier<int> {
   Future<void> _runSearch() async {
     final query = ref.read(homeSearchDebouncedQueryProvider);
     final filters = ref.read(catalogFiltersProvider);
-    final catalog = ref.read(louvoresManifestProvider).value;
+    final catalog = ref.read(louvoresManifestProvider).value?.louvores;
 
     if (catalog == null || query.trim().isEmpty) {
       _generation++;

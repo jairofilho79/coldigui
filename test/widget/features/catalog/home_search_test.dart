@@ -1,6 +1,7 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
@@ -35,7 +36,9 @@ List<Override> _homeSearchTestOverrides({
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    louvoresManifestProvider.overrideWith((ref) async => catalog),
+    louvoresManifestProvider.overrideWith(
+      (ref) async => LouvoresManifest.fromLouvores(catalog),
+    ),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     homeSearchPipelineExecutorProvider.overrideWith(
       (ref) => (input) async => runHomeSearchPipeline(input),

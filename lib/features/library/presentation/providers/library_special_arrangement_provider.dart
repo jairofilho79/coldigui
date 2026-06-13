@@ -40,7 +40,7 @@ final librarySpecialArrangementProvider = NotifierProvider<
 /// Arranjos especiais únicos do manifest (inclui [LouvorClassification.specialArrangementPadrao]).
 final libraryAvailableSpecialArrangementsProvider =
     Provider<Set<String>>((ref) {
-  final catalog = ref.watch(louvoresManifestProvider).value;
+  final catalog = ref.watch(louvoresManifestProvider).value?.louvores;
   if (catalog == null) return const {};
   return catalog
       .map((l) => LouvorClassification.specialArrangement(l.classificacao))

@@ -34,7 +34,7 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
     final generation = ++_reloadGeneration;
     final repository = ref.read(carouselRepositoryProvider);
     final metadata =
-        _buildMetadataMap(ref.read(louvoresManifestProvider).value);
+        _buildMetadataMap(ref.read(louvoresManifestProvider).value?.louvores);
     final items = await repository.getOrderedItems(pdfIdToMetadata: metadata);
     if (generation != _reloadGeneration) return;
     state = items;

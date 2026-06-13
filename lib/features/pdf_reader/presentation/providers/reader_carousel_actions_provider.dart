@@ -39,7 +39,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
     final louvor = findLouvorByPdfId(
-      ref.read(louvoresManifestProvider).value,
+      ref.read(louvoresManifestProvider).value?.louvores,
       targetPdfId,
     );
     if (louvor == null) return null;

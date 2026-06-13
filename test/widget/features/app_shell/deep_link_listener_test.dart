@@ -90,6 +90,7 @@ void main() {
       ProviderScope(
         overrides: [
           appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
           syncDeepLinkStateProvider.overrideWithValue(
             _StubSyncDeepLinkState(
               SyncDeepLinkResult.success('playlist-id'),
@@ -140,6 +141,7 @@ void main() {
       ProviderScope(
         overrides: [
           appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
           syncDeepLinkStateProvider.overrideWithValue(
             _StubSyncDeepLinkState(
               SyncDeepLinkResult.invalid,
