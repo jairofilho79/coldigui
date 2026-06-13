@@ -5,15 +5,15 @@ import '../../../../core/constants/app_config.dart';
 import '../../domain/entities/louvor.dart';
 import '../models/louvor_dto.dart';
 
-/// Fonte remota do catálogo (R2 / Cloudflare) — UC-12.
+/// Fonte remota do catálogo (Worker + D1) — UC-12.
 ///
-/// Baixa `louvores-manifest.json` via [Dio] e valida entradas antes de retornar.
+/// Baixa `/api/catalog/louvores` via [Dio] e valida entradas antes de retornar.
 class CatalogRemoteDatasource {
   const CatalogRemoteDatasource(this._dio);
 
   final Dio _dio;
 
-  /// Baixa `louvores-manifest.json`, valida shape e filtra entradas inválidas.
+  /// Baixa `/api/catalog/louvores` (Worker + D1), valida shape e filtra entradas inválidas.
   ///
   /// Entradas sem [Louvor.pdfId] não vazio ou com campos obrigatórios ausentes
   /// são ignoradas (paridade com `prepareLouvoresManifestPayload` do Svelte).
@@ -30,7 +30,7 @@ class CatalogRemoteDatasource {
 
     if (data is! List) {
       throw const FormatException(
-        'louvores-manifest.json deve ser um array JSON',
+        'Resposta do catálogo deve ser um array JSON',
       );
     }
 
@@ -51,7 +51,10 @@ class CatalogRemoteDatasource {
     return louvores;
   }
 
-  /// Consulta `/louvores-manifest.sha256`; retorna `null` se inalterado (204).
+  /// Consulta `/api/catalog/checksum` (Worker + D1).
+  ///
+  /// Retorna hex SHA-256 em `200`; `null` se `204` (inalterado, header `If-None-Match`)
+  /// ou em falha de rede.
   Future<String?> fetchChecksum() async {
     try {
       final response = await _dio.get<String>(

@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Tap: sublista se [LouvorGroup.totalMaterials] > 1; senão abre PDF direto.
 /// Trailing +: adiciona material primário (Partitura ou primeiro) ao carousel.
+/// Compartilhar (UC-04): no sheet de materiais; com 1 PDF, só no leitor.
 class LouvorGroupCard extends ConsumerStatefulWidget {
   const LouvorGroupCard({required this.group, super.key});
 
@@ -27,7 +28,6 @@ class LouvorGroupCard extends ConsumerStatefulWidget {
 
 class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   var _loading = false;
-  var _shareLoading = false;
 
   Louvor? get _singleLouvor =>
       widget.group.totalMaterials == 1 ? widget.group.primaryLouvor : null;
@@ -68,15 +68,12 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       context: context,
       group: widget.group,
       onMaterialSelected: _openLouvor,
+      onMaterialShare: _shareLouvor,
     );
   }
 
-  Future<void> _handleShare(Rect sharePositionOrigin) async {
-    final louvor = _singleLouvor ?? widget.group.primaryLouvor;
-    if (louvor == null || _shareLoading || _loading) return;
-
+  Future<void> _shareLouvor(Louvor louvor, Rect sharePositionOrigin) async {
     final l10n = AppLocalizations.of(context)!;
-    setState(() => _shareLoading = true);
     try {
       final source = await resolveLouvorPdf(ref: ref, louvor: louvor);
       if (!mounted) return;
@@ -90,8 +87,6 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       if (mounted) {
         showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
       }
-    } finally {
-      if (mounted) setState(() => _shareLoading = false);
     }
   }
 
@@ -113,10 +108,12 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final carouselItems = ref.watch(carouselLouvoresProvider);
     final primary = widget.group.primaryLouvor;
     final isAdded = primary != null &&
         carouselItems.any((item) => item.pdfId == primary.pdfId);
+    final isMultiMaterial = widget.group.totalMaterials > 1;
 
     final chipItem = primary != null
         ? _toCarouselItem(primary)
@@ -125,22 +122,28 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             sortOrder: 0,
             numero: widget.group.numero,
             nome: widget.group.nome,
-            categoria: '${widget.group.totalMaterials} materiais',
-            classificacao: widget.group.sections.first.displayLabel,
+            categoria: '',
+            classificacao: '',
           );
+
+    final metadataSummary = isMultiMaterial
+        ? l10n.louvorGroupMetadataSummary(
+            widget.group.totalMaterials,
+            widget.group.totalArrangements,
+          )
+        : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: CarouselLouvorChip(
         item: chipItem,
+        metadataSummary: metadataSummary,
         onTap: _loading ? null : _handleTap,
         onAdd: _loading || isAdded || primary == null
             ? null
             : _handleAddToCarousel,
-        onShare: _loading || _singleLouvor == null ? null : _handleShare,
         isAdded: isAdded,
         loading: _loading,
-        shareLoading: _shareLoading,
       ),
     );
   }

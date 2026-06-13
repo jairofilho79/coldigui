@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Build e executa o app no iPhone físico (modo debug).
+# Build e executa o app no iPhone/iPad físico (modo debug).
+#
+# Usa Runner-Homolog.entitlements (sem Associated Domains) — conta Apple pessoal.
+# Resolve dispositivo via scripts/ios_resolve_device.py (iPhone ou iPad).
 #
 # Usa ios/Runner.xcworkspace (projeto real). Evita --use-application-binary,
 # que cria um Runner.xcworkspace temporário em /var/folders/.../flutter_empty_xcode.*
@@ -13,23 +16,7 @@ BUNDLE_ID="com.example.coldigui"
 DART_DEFINES_FILE="dart_defines/plpcg.json"
 
 resolve_ios_device() {
-  if [[ -n "${FLUTTER_DEVICE_ID:-}" ]]; then
-    echo "$FLUTTER_DEVICE_ID"
-    return
-  fi
-
-  python3 - <<'PY'
-import json
-import subprocess
-import sys
-
-raw = subprocess.check_output(["flutter", "devices", "--machine"], text=True)
-devices = json.loads(raw)
-ios = [d for d in devices if d.get("targetPlatform") == "ios" and not d.get("emulator")]
-if not ios:
-    sys.exit("Nenhum iPhone físico conectado. Conecte via USB e tente novamente.")
-print(ios[0]["id"])
-PY
+  python3 "$ROOT_DIR/scripts/ios_resolve_device.py"
 }
 
 if pgrep -x Xcode >/dev/null 2>&1; then

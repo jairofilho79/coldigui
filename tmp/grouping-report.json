@@ -1,8 +1,8 @@
 {
   "total_entries": 4627,
-  "unique_group_ids": 2348,
-  "groups_with_multiple_pdfs": 1162,
-  "singleton_groups": 1186,
+  "unique_group_ids": 2153,
+  "groups_with_multiple_pdfs": 1142,
+  "singleton_groups": 1011,
   "duplicate_categoria_slots": 11,
-  "conflict_rows": 349
+  "conflict_rows": 229
 }

@@ -46,6 +46,9 @@ class LouvorGroup {
   int get totalMaterials =>
       sections.fold(0, (sum, section) => sum + section.materials.length);
 
+  /// Classificações distintas no grupo (uma seção por arranjo).
+  int get totalArrangements => sections.length;
+
   /// Material preferido para atalhos (+ no card): Partitura ou primeiro.
   Louvor? get primaryLouvor {
     for (final section in sections) {

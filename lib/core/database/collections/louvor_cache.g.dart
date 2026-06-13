@@ -27,23 +27,28 @@ const LouvorCacheSchema = CollectionSchema(
       name: r'classificacao',
       type: IsarType.string,
     ),
-    r'nome': PropertySchema(
+    r'groupId': PropertySchema(
       id: 2,
+      name: r'groupId',
+      type: IsarType.string,
+    ),
+    r'nome': PropertySchema(
+      id: 3,
       name: r'nome',
       type: IsarType.string,
     ),
     r'numero': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'numero',
       type: IsarType.string,
     ),
     r'pdf': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'pdf',
       type: IsarType.string,
     ),
     r'pdfId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'pdfId',
       type: IsarType.string,
     )
@@ -84,6 +89,7 @@ int _louvorCacheEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.categoria.length * 3;
   bytesCount += 3 + object.classificacao.length * 3;
+  bytesCount += 3 + object.groupId.length * 3;
   bytesCount += 3 + object.nome.length * 3;
   bytesCount += 3 + object.numero.length * 3;
   bytesCount += 3 + object.pdf.length * 3;
@@ -99,10 +105,11 @@ void _louvorCacheSerialize(
 ) {
   writer.writeString(offsets[0], object.categoria);
   writer.writeString(offsets[1], object.classificacao);
-  writer.writeString(offsets[2], object.nome);
-  writer.writeString(offsets[3], object.numero);
-  writer.writeString(offsets[4], object.pdf);
-  writer.writeString(offsets[5], object.pdfId);
+  writer.writeString(offsets[2], object.groupId);
+  writer.writeString(offsets[3], object.nome);
+  writer.writeString(offsets[4], object.numero);
+  writer.writeString(offsets[5], object.pdf);
+  writer.writeString(offsets[6], object.pdfId);
 }
 
 LouvorCache _louvorCacheDeserialize(
@@ -114,11 +121,12 @@ LouvorCache _louvorCacheDeserialize(
   final object = LouvorCache();
   object.categoria = reader.readString(offsets[0]);
   object.classificacao = reader.readString(offsets[1]);
+  object.groupId = reader.readString(offsets[2]);
   object.id = id;
-  object.nome = reader.readString(offsets[2]);
-  object.numero = reader.readString(offsets[3]);
-  object.pdf = reader.readString(offsets[4]);
-  object.pdfId = reader.readString(offsets[5]);
+  object.nome = reader.readString(offsets[3]);
+  object.numero = reader.readString(offsets[4]);
+  object.pdf = reader.readString(offsets[5]);
+  object.pdfId = reader.readString(offsets[6]);
   return object;
 }
 
@@ -140,6 +148,8 @@ P _louvorCacheDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -606,6 +616,140 @@ extension LouvorCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'classificacao',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition>
+      groupIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'groupId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition>
+      groupIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'groupId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition> groupIdMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'groupId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition>
+      groupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'groupId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterFilterCondition>
+      groupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'groupId',
         value: '',
       ));
     });
@@ -1226,6 +1370,18 @@ extension LouvorCacheQuerySortBy
     });
   }
 
+  QueryBuilder<LouvorCache, LouvorCache, QAfterSortBy> sortByGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterSortBy> sortByGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.desc);
+    });
+  }
+
   QueryBuilder<LouvorCache, LouvorCache, QAfterSortBy> sortByNome() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'nome', Sort.asc);
@@ -1299,6 +1455,18 @@ extension LouvorCacheQuerySortThenBy
       thenByClassificacaoDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'classificacao', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterSortBy> thenByGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LouvorCache, LouvorCache, QAfterSortBy> thenByGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.desc);
     });
   }
 
@@ -1380,6 +1548,13 @@ extension LouvorCacheQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LouvorCache, LouvorCache, QDistinct> distinctByGroupId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'groupId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<LouvorCache, LouvorCache, QDistinct> distinctByNome(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1426,6 +1601,12 @@ extension LouvorCacheQueryProperty
   QueryBuilder<LouvorCache, String, QQueryOperations> classificacaoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'classificacao');
+    });
+  }
+
+  QueryBuilder<LouvorCache, String, QQueryOperations> groupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'groupId');
     });
   }
 

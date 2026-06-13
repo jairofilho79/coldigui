@@ -3,7 +3,7 @@
 Atribui groupId às entradas de louvores-manifest.json.
 
 Regra principal (ver docs/features/LOUVOR_GROUPING.md):
-  groupId = f(numero, nomeNormalizado)  — sem classificacao/categoria
+  groupId = f(numeroPad3, nomeNormalizado)  — pad 3 dígitos; sem classificacao/categoria
 
 Uso:
   python scripts/assign_louvor_group_ids.py --input tmp/louvores-manifest.json
@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 FUZZY_THRESHOLD = 0.85
+CATALOG_NUMERO_PAD_WIDTH = 3
 
 
 def normalize_nome(text: str) -> str:
@@ -47,9 +48,19 @@ def slug(text: str) -> str:
     return s or "sem-titulo"
 
 
+def normalize_numero(numero: str) -> str:
+    """Pad-left em números puros — espelha LouvorNumeroNormalizer (Dart)."""
+    num = (numero or "").strip()
+    if not num:
+        return ""
+    if num.isdigit():
+        return str(int(num)).zfill(CATALOG_NUMERO_PAD_WIDTH)
+    return num
+
+
 def compute_group_id(numero: str, nome: str) -> str:
     nome_norm = normalize_nome(nome.strip())
-    num = numero.strip()
+    num = normalize_numero(numero)
     if num:
         return f"{num}:{slug(nome_norm)}"
     return f"avulso:{slug(nome_norm)}"
@@ -66,7 +77,7 @@ def fuzzy_canonical_nomes(entries: list[dict[str, Any]]) -> dict[int, str]:
     """
     by_num: dict[str, list[tuple[int, str]]] = defaultdict(list)
     for idx, e in enumerate(entries):
-        num = (e.get("numero") or "").strip()
+        num = normalize_numero((e.get("numero") or "").strip())
         if not num:
             continue
         by_num[num].append((idx, e.get("nome") or ""))
@@ -106,7 +117,8 @@ def assign_group_ids(
     out: list[dict[str, Any]] = []
     for idx, entry in enumerate(entries):
         row = dict(entry)
-        numero = (row.get("numero") or "").strip()
+        numero = normalize_numero((row.get("numero") or "").strip())
+        row["numero"] = numero
         nome = canonical_nome.get(idx, row.get("nome") or "")
         gid = compute_group_id(numero, nome)
         row["groupId"] = gid
@@ -131,7 +143,7 @@ def assign_group_ids(
 
     multi_nome_by_num: dict[str, set[str]] = defaultdict(set)
     for idx, entry in enumerate(entries):
-        num = (entry.get("numero") or "").strip()
+        num = normalize_numero((entry.get("numero") or "").strip())
         if not num:
             continue
         multi_nome_by_num[num].add(normalize_nome(entry.get("nome") or ""))

@@ -1,11 +1,12 @@
 import '../entities/louvor.dart';
 import '../../../../core/utils/louvor_search_tokens.dart';
+import '../utils/louvor_numero_normalizer.dart';
 
 /// UC-01 — Buscar louvor por número ou texto na Home.
 ///
 /// Filtro in-memory sobre o manifest: query vazia → `[]`; número exato
-/// prioritário; texto tolerante via [LouvorSearchTokens.matchesText]
-/// (tokens, hífens, forma compacta — ex.: `buscarmeeis` → `Buscar-me-eis`).
+/// prioritário ([LouvorNumeroNormalizer] — `3` ≡ `003`); texto tolerante via
+/// [LouvorSearchTokens.matchesText].
 class SearchLouvorByNumberOrText {
   const SearchLouvorByNumberOrText();
 
@@ -14,8 +15,9 @@ class SearchLouvorByNumberOrText {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    final exactMatches =
-        catalog.where((l) => l.numero == trimmed).toList(growable: false);
+    final exactMatches = catalog
+        .where((l) => _matchesNumero(l.numero, trimmed))
+        .toList(growable: false);
     final exactIds = exactMatches.map((l) => l.pdfId).toSet();
 
     final queryTokens = LouvorSearchTokens.tokenize(trimmed);
@@ -34,5 +36,12 @@ class SearchLouvorByNumberOrText {
     }
 
     return [...exactMatches, ...textMatches];
+  }
+
+  bool _matchesNumero(String louvorNumero, String query) {
+    if (louvorNumero == query) return true;
+    final normalizedQuery = LouvorNumeroNormalizer.normalize(query);
+    if (normalizedQuery.isEmpty) return false;
+    return LouvorNumeroNormalizer.normalize(louvorNumero) == normalizedQuery;
   }
 }

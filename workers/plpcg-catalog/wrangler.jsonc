@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "plpcg-catalog",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "plpcg-catalog",
+      "database_id": "a3dbbf0a-9bc7-4d3c-8046-5dfa8f72a06f",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "plpcg.com/api/catalog/*",
+      "zone_name": "plpcg.com"
+    }
+  ]
+}

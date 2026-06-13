@@ -4,8 +4,8 @@ import 'package:coldigui/core/utils/home_url_builder.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
@@ -138,7 +138,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final results = ref.watch(homeSearchGroupResultsProvider);
     final manifestAsync = ref.watch(louvoresManifestProvider);
 
     ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, __) {
@@ -177,6 +176,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     key: ValueKey(_searchHydrationEpoch),
                     hintText: l10n.searchHint,
                     initialValue: widget.initialSearchQuery,
+                    onQueryChanged: (value) {
+                      ref.read(homeSearchRawQueryProvider.notifier).state =
+                          value;
+                    },
                   ),
                 ),
                 if (manifestAsync.isLoading) ...[
@@ -199,12 +202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => LouvorGroupCard(group: results[index]),
-                    childCount: results.length,
-                  ),
-                ),
+                const HomeSearchResultsSliver(),
               ],
             ),
           ),

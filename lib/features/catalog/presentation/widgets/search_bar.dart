@@ -3,14 +3,14 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../providers/home_search_provider.dart';
 
 /// UC-01 — Campo de busca da Home.
 ///
 /// Não confundir com [SearchBar] do Material — widget específico PLPCG.
-/// Atualiza [homeSearchRawQueryProvider]; debounce 300ms no provider.
+/// [onQueryChanged] propaga texto imediato; debounce 300ms fica no provider.
+///
+/// Widget [StatefulWidget] puro (sem Riverpod) para não reconstruir com
+/// resultados da busca — input sempre fluido no main thread.
 ///
 /// Layout compacto: `Row` com ícone lupa + [TextField] + botão limpar opcional
 /// (sem `prefixIcon`/`suffixIcon` do Material — controles explícitos no `Row`).
@@ -18,27 +18,31 @@ import '../providers/home_search_provider.dart';
 /// [GoldenTaggedContainer.compactRowHeight].
 ///
 /// **Botão limpar:** exibido quando o texto não está vazio (`ValueListenableBuilder`
-/// no [TextEditingController]). Ao tocar: zera o controller, atualiza
-/// [homeSearchRawQueryProvider] e chama [FocusNode.requestFocus] para manter o
-/// teclado aberto. Tooltip via [AppLocalizations.searchClear].
-class SearchBar extends ConsumerStatefulWidget {
+/// no [TextEditingController]). Ao tocar: zera o controller, chama [onQueryChanged]
+/// e [FocusNode.requestFocus] para manter o teclado aberto. Tooltip via
+/// [AppLocalizations.searchClear].
+class SearchBar extends StatefulWidget {
   const SearchBar({
     super.key,
     required this.hintText,
+    required this.onQueryChanged,
     this.initialValue = '',
   });
 
   /// Texto do placeholder — tipicamente [AppLocalizations.searchHint].
   final String hintText;
 
+  /// Callback imediato a cada alteração do texto (sem debounce).
+  final ValueChanged<String> onQueryChanged;
+
   /// Valor inicial (ex.: query `pesquisa=` da URL).
   final String initialValue;
 
   @override
-  ConsumerState<SearchBar> createState() => _SearchBarState();
+  State<SearchBar> createState() => _SearchBarState();
 }
 
-class _SearchBarState extends ConsumerState<SearchBar> {
+class _SearchBarState extends State<SearchBar> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
 
@@ -67,7 +71,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
 
   void _clearSearch() {
     _controller.clear();
-    ref.read(homeSearchRawQueryProvider.notifier).state = '';
+    widget.onQueryChanged('');
     _focusNode.requestFocus();
   }
 
@@ -103,9 +107,7 @@ class _SearchBarState extends ConsumerState<SearchBar> {
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
-                onChanged: (value) {
-                  ref.read(homeSearchRawQueryProvider.notifier).state = value;
-                },
+                onChanged: widget.onQueryChanged,
               ),
             ),
             ValueListenableBuilder<TextEditingValue>(

@@ -7,7 +7,11 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
 
-Louvor _sampleLouvor({required String pdfId, required String numero}) =>
+Louvor _sampleLouvor({
+  required String pdfId,
+  required String numero,
+  String groupId = '',
+}) =>
     Louvor.fromManifest(
       nome: 'Louvor $numero',
       numero: numero,
@@ -15,6 +19,7 @@ Louvor _sampleLouvor({required String pdfId, required String numero}) =>
       classificacao: 'ColAdultos',
       pdf: '$numero.pdf',
       pdfId: pdfId,
+      groupId: groupId,
     );
 
 void main() {
@@ -64,5 +69,19 @@ void main() {
     expect(loaded, hasLength(1));
     expect(loaded.first.numero, '001');
     expect(loaded.first.pdfId, 'id-1');
+  });
+
+  test('persiste e restaura groupId no cache Isar', () async {
+    await datasource.saveLouvores([
+      _sampleLouvor(
+        pdfId: 'id-1',
+        numero: '003',
+        groupId: '003:clamo-a-ti',
+      ),
+    ]);
+
+    final loaded = await datasource.loadLouvores();
+    expect(loaded.single.groupId, '003:clamo-a-ti');
+    expect(loaded.single.effectiveGroupId, '003:clamo-a-ti');
   });
 }

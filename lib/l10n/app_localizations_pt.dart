@@ -508,4 +508,21 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Listas salvas não podem ser limpas pela barra. Use o menu da lista.';
+
+  @override
+  String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      entryCount,
+      locale: localeName,
+      other: '$entryCount entradas',
+      one: '1 entrada',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      arrangementCount,
+      locale: localeName,
+      other: '$arrangementCount arranjos',
+      one: '1 arranjo',
+    );
+    return '$_temp0 com $_temp1';
+  }
 }

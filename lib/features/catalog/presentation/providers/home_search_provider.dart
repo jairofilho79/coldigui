@@ -1,19 +1,21 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/providers/catalog_providers.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvor_group.dart';
 import 'catalog_filters_provider.dart';
+import 'home_search_worker.dart';
 import 'louvores_manifest_provider.dart';
 
 /// Estado da busca e filtros na Home (UC-01 + UC-02).
 ///
 /// Pipeline: [homeSearchRawQueryProvider] → debounce 300ms
-/// ([homeSearchDebouncedQueryProvider]) → [SearchLouvorByNumberOrText]
-/// → [FilterByMaterialAndArranjo] via [homeSearchResultsProvider].
-/// Resultados agrupados: [homeSearchGroupResultsProvider] → [LouvorGroupCard].
+/// ([homeSearchDebouncedQueryProvider]) → busca + filtros + agrupamento
+/// off-main-thread ([homeSearchPipelineDriverProvider]) →
+/// [homeSearchGroupResultsDataProvider] → [homeSearchGroupResultsProvider]
+/// → [LouvorGroupCard].
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
 /// consumidos por [HomeScreen] → [buildHomeLocation].
 ///
@@ -24,35 +26,30 @@ final homeSearchRawQueryProvider = StateProvider<String>((ref) => '');
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
-/// Resultados da Home: busca UC-01 aplicada antes de filtros UC-02.
-final homeSearchResultsProvider = Provider<List<Louvor>>((ref) {
-  final query = ref.watch(homeSearchDebouncedQueryProvider);
-  final filters = ref.watch(catalogFiltersProvider);
-  final manifestAsync = ref.watch(louvoresManifestProvider);
-  final search = ref.watch(searchLouvorByNumberOrTextProvider);
-  final filterByMaterial = ref.watch(filterByMaterialAndArranjoProvider);
-
-  return manifestAsync.when(
-    skipLoadingOnReload: true,
-    data: (catalog) {
-      final searched = search(catalog, query);
-      return filterByMaterial(
-        searched,
-        selectedMaterials: filters.selectedMaterials,
-        selectedArranjos: filters.selectedArranjos,
-      );
-    },
-    loading: () => const [],
-    error: (_, __) => const [],
-  );
-});
+/// Cache dos grupos exibidos — atualizado pelo pipeline assíncrono.
+final homeSearchGroupResultsDataProvider =
+    StateProvider<List<LouvorGroup>>((ref) => const []);
 
 /// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
+///
+/// Interface síncrona (como antes) — apenas [HomeSearchResultsSliver] observa
+/// este provider; a [SearchBar] não é reconstruída quando os resultados mudam.
 final homeSearchGroupResultsProvider = Provider<List<LouvorGroup>>((ref) {
-  final louvores = ref.watch(homeSearchResultsProvider);
-  final group = ref.watch(groupLouvoresByMaterialProvider);
-  return group(louvores);
+  ref.watch(homeSearchPipelineDriverProvider);
+  return ref.watch(homeSearchGroupResultsDataProvider);
 });
+
+/// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
+final homeSearchPipelineExecutorProvider =
+    Provider<HomeSearchPipelineExecutor>((ref) {
+  return (input) => compute(runHomeSearchPipeline, input);
+});
+
+/// Dispara busca UC-01 + filtros UC-02 + agrupamento fora do main thread.
+final homeSearchPipelineDriverProvider =
+    NotifierProvider<HomeSearchPipelineDriver, int>(
+  HomeSearchPipelineDriver.new,
+);
 
 /// Debounce de 300ms entre [homeSearchRawQueryProvider] e filtragem.
 class HomeSearchDebouncer extends Notifier<String> {
@@ -82,6 +79,63 @@ class HomeSearchDebouncer extends Notifier<String> {
     ref.read(homeSearchRawQueryProvider.notifier).state = query;
     _debounceTimer?.cancel();
     state = query;
+  }
+}
+
+/// Executa o pipeline da Home fora do main thread; descarta resultados obsoletos.
+class HomeSearchPipelineDriver extends Notifier<int> {
+  int _generation = 0;
+
+  @override
+  int build() {
+    ref.listen<String>(
+      homeSearchDebouncedQueryProvider,
+      (_, __) => _scheduleSearch(),
+      fireImmediately: true,
+    );
+    ref.listen<CatalogFilterState>(
+      catalogFiltersProvider,
+      (_, __) => _scheduleSearch(),
+    );
+    ref.listen<AsyncValue<List<Louvor>>>(
+      louvoresManifestProvider,
+      (_, __) => _scheduleSearch(),
+      fireImmediately: true,
+    );
+
+    return 0;
+  }
+
+  void _scheduleSearch() {
+    Future.microtask(() => unawaited(_runSearch()));
+  }
+
+  Future<void> _runSearch() async {
+    final query = ref.read(homeSearchDebouncedQueryProvider);
+    final filters = ref.read(catalogFiltersProvider);
+    final catalog = ref.read(louvoresManifestProvider).value;
+
+    if (catalog == null || query.trim().isEmpty) {
+      _generation++;
+      ref.read(homeSearchGroupResultsDataProvider.notifier).state = const [];
+      return;
+    }
+
+    final generation = ++_generation;
+
+    final input = HomeSearchPipelineInput(
+      catalog: List.of(catalog),
+      query: query,
+      selectedMaterials: filters.selectedMaterials,
+      selectedArranjos: filters.selectedArranjos,
+    );
+
+    final execute = ref.read(homeSearchPipelineExecutorProvider);
+    final groups = await execute(input);
+
+    if (generation != _generation) return;
+
+    ref.read(homeSearchGroupResultsDataProvider.notifier).state = groups;
   }
 }
 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Sem Associated Domains — necessário para instalação com Apple ID pessoal
+  (conta gratuita não suporta com.apple.developer.associated-domains).
+  Deep links (applinks:plpcg.com) ficam em Runner.entitlements (Release).
+-->
+<plist version="1.0">
+<dict/>
+</plist>

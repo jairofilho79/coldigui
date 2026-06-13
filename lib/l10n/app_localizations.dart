@@ -963,6 +963,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Listas salvas não podem ser limpas pela barra. Use o menu da lista.'**
   String get playlistClearSavedBlocked;
+
+  /// Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)
+  ///
+  /// In pt, this message translates to:
+  /// **'{entryCount, plural, one{1 entrada} other{{entryCount} entradas}} com {arrangementCount, plural, one{1 arranjo} other{{arrangementCount} arranjos}}'**
+  String louvorGroupMetadataSummary(int entryCount, int arrangementCount);
 }
 
 class _AppLocalizationsDelegate

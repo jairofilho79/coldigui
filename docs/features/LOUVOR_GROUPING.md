@@ -1,8 +1,8 @@
 # Agrupamento de louvores (`groupId`) — especificação para agentes
 
-> **Para agentes:** documento normativo para backlog de catálogo. Não implementar `groupId` na UI nem no manifest sem seguir este spec. APIs públicas planejadas estão listadas em [FEATURE_INDEX.md § APIs planejadas](./FEATURE_INDEX.md#apis-planejadas--agrupamento-groupid).
+> **Para agentes:** documento normativo para agrupamento de catálogo. APIs implementadas: [FEATURE_INDEX.md § Agrupamento manifest](./FEATURE_INDEX.md#agrupamento-manifest-groupid--implementado-jun2026).
 
-**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side via `LouvorGroupId.compute`; script Python disponível; campo `groupId` no manifest remoto ainda opcional.  
+**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side; [LouvorNumeroNormalizer] pad 3 dígitos; Worker `plpcg-catalog` + D1 (local); [LouvorCache.groupId] persistido; deploy remoto D1 pendente; fallback [LouvorGroupId] se JSON legado omitir `groupId`.  
 **Relacionado:** UC-01 (Home), UC-03 (Biblioteca), UC-12 (manifest)  
 **Índice geral:** [FEATURE_INDEX.md](./FEATURE_INDEX.md) · [AGENT_PIPELINE.md](../AGENT_PIPELINE.md)
 
@@ -97,6 +97,8 @@ A classificação **não** define o grupo na lista principal; ela organiza a sub
 }
 ```
 
+O script normaliza `numero` na saída (pad 3 — ex. `"003"`). Ver [LouvorNumeroNormalizer].
+
 ### Entidades de domínio (Flutter)
 
 ```dart
@@ -138,9 +140,10 @@ class LouvorMaterialEntry {
 ### Regra principal
 
 ```
-groupId = f(numero, nomeNormalizado)
+groupId = f(numeroPad3, nomeNormalizado)
 ```
 
+- `numeroPad3` = [LouvorNumeroNormalizer.normalize](`numero`) — pad-left **3 dígitos** (`"3"` → `"003"`); espelha `normalize_numero()` no script (`CATALOG_NUMERO_PAD_WIDTH=3`).
 - `nomeNormalizado` = `LouvorSearchTokens.normalize(nome)` (`lib/core/utils/louvor_search_tokens.dart`).
 - **Não incluir** `classificacao` no `groupId`.
 - **Não incluir** `categoria` no `groupId`.
@@ -149,7 +152,7 @@ groupId = f(numero, nomeNormalizado)
 
 | Situação | Regra |
 |----------|--------|
-| Com `numero` preenchido | `slug(numero) + ":" + slug(nomeNormalizado)` — ex.: `609:senhor-meu-deus-quando-eu-maravilhado` |
+| Com `numero` preenchido | `{numeroPad3}:{slug(nomeNorm)}` — ex.: `003:clamo-a-ti`, `609:senhor-meu-deus-quando-eu-maravilhado` |
 | Sem `numero` (Avulsos) | `avulso:` + slug(`nomeNormalizado`) ou hash curto estável do título |
 | Mesmo número, títulos diferentes | **Grupos distintos** — o número sozinho não identifica o louvor entre coletâneas (ex.: `10` em ColAdultos vs ColCIAs são músicas diferentes) |
 | Variantes de título no mesmo louvor | Unir no mesmo grupo se `nomeNormalizado` for igual ou similaridade ≥ 0,85 (`SequenceMatcher`); escolher título canônico |
@@ -243,12 +246,13 @@ Categorias no manifest: Partitura, Cifra nível I/II, Cifra, Gestos em Gravura.
 
 ## Próximos passos de implementação
 
-1. **Script:** `scripts/assign_louvor_group_ids.py` — atribuir `groupId` no manifest.
-2. **DTO/entidade:** `groupId` em `LouvorDto`, `Louvor`, cache Isar (`LouvorCache`).
-3. **Use case:** `GroupLouvoresByMaterial` — `List<Louvor>` → `List<LouvorGroup>`.
-4. **UI:** `LouvorCard` / biblioteca — lista de grupos; widget de sublista por classificação → categoria.
-5. **Testes:** unitários do agrupamento + widget da sublista.
-6. **Publicação:** atualizar manifest remoto + checksum (skill `plpcg-louvores-manifest`).
+1. ~~**Script:** `assign_louvor_group_ids.py`~~ ✅
+2. ~~**DTO/entidade/cache:** `groupId` em `LouvorDto`, `Louvor`, `LouvorCache`~~ ✅
+3. ~~**Use case + UI:** `GroupLouvoresByMaterial`, `LouvorGroupCard`, sublista~~ ✅
+4. ~~**Worker D1 local:** `workers/plpcg-catalog/` + `seed_d1_louvores.py`~~ ✅
+5. **Deploy remoto:** migrar + seed + deploy D1 em produção (`wrangler`).
+6. **Curadoria:** revisar `tmp/grouping-revisao.csv` antes do próximo seed.
+7. **PWA web:** migrar de `/louvores-manifest.json` para `/api/catalog/*` (opcional).
 
 ---
 
@@ -267,7 +271,10 @@ Categorias no manifest: Partitura, Cifra nível I/II, Cifra, Gestos em Gravura.
 | Artefato | Caminho |
 |----------|---------|
 | Entidade atual | `lib/features/catalog/domain/entities/louvor.dart` |
+| Normalização de número | `lib/features/catalog/domain/utils/louvor_numero_normalizer.dart` |
 | Normalização de título | `lib/core/utils/louvor_search_tokens.dart` |
+| Worker catálogo D1 | `workers/plpcg-catalog/` |
+| Seed D1 | `scripts/seed_d1_louvores.py` |
 | Classificação / arranjo especial | `lib/features/catalog/domain/utils/louvor_classification.dart` |
 | Ícones por categoria | `lib/features/catalog/domain/utils/louvor_material_icons.dart` |
 | Card atual (1 PDF = 1 tap) | `lib/features/catalog/presentation/widgets/louvor_card.dart` |

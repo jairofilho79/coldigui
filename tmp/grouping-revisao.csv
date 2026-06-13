@@ -1,204 +1,165 @@
 categoria,classificacao,groupId,max_similaridade,nomes,numero,pdfId_a,pdfId_b,tipo
-,,,0.45,"meu deus, meu pai | o sangue de jesus tem poder",001,,,numero_nomes_distintos
-,,,0.33,"o sangue de jesus tem poder para salvar | pai, estou a te clamar",002,,,numero_nomes_distintos
-,,,0.40,"clamo a ti | clamo, o senhor por teu sangue",003,,,numero_nomes_distintos
-,,,0.29,"clamo, o senhor | quando te prostrares",004,,,numero_nomes_distintos
-,,,0.26,clamando estou | estou aqui pra confessar,005,,,numero_nomes_distintos
-,,,0.34,"jesus, o meu jesus | perdoa-me, senhor",006,,,numero_nomes_distintos
-,,,0.28,"e teu sangue, meu senhor jesus | nesta hora em oracao",007,,,numero_nomes_distintos
-,,,0.41,diante do teu altar | pelo sangue de jesus,008,,,numero_nomes_distintos
-,,,0.34,dobro os meus joelhos | senhor me chego a ti,009,,,numero_nomes_distintos
-,,,0.28,"clama, o igreja | vamos lavar as vestes",010,,,numero_nomes_distintos
-,,,0.45,"clamo a ti, meu senhor e pai (uma nova cancao) | reveste, senhor, teu povo",011,,,numero_nomes_distintos
-,,,0.18,"ha vitoria para mim | perdoa-me, senhor, segundo o seu amor",012,,,numero_nomes_distintos
-,,,0.51,poe teu sangue sobre mim | purificado com sangue estou,013,,,numero_nomes_distintos
-,,,0.21,"em teu altar senhor | te suplico, o deus, em oracao",014,,,numero_nomes_distintos
-,,,0.15,"clamarei, clamarei | jesus, vem me abencoar",015,,,numero_nomes_distintos
-,,,0.14,pai celeste | se andarmos na luz,016,,,numero_nomes_distintos
-,,,0.23,em tua presenca entramos | quando falo com deus,017,,,numero_nomes_distintos
-,,,0.39,buscai ao senhor | prostrado estou,018,,,numero_nomes_distintos
-,,,0.24,quando davi ao senhor orava | teu povo clama,019,,,numero_nomes_distintos
-,,,0.33,o teu pecado tu queres deixar | quando oro ao senhor,020,,,numero_nomes_distintos
-,,,0.32,"nesta hora de clamor | santo, justo, principe da vida",021,,,numero_nomes_distintos
-,,,0.29,bendito seja o cordeiro | faze oracao,022,,,numero_nomes_distintos
-,,,0.19,quando israel saiu do egito | senhor ouve a minha oracao,023,,,numero_nomes_distintos
-,,,0.43,eis o cordeiro de deus | uma ovelhinha de jesus eu sou,024,,,numero_nomes_distintos
-,,,0.23,"onde quer que tu fores, irei jesus | senhor, a ti clamo",025,,,numero_nomes_distintos
-,,,0.38,eu sou uma ovelhinha de jesus | seja so o senhor louvado aqui,026,,,numero_nomes_distintos
-,,,0.30,cordeiro eterno | ele e a raiz,027,,,numero_nomes_distintos
-,,,0.26,o poder do sangue de jesus | sou uma crianca feliz,028,,,numero_nomes_distintos
-,,,0.27,"jesus, quando me lembro | transborda-me, senhor",029,,,numero_nomes_distintos
-,,,0.22,ele vive em mim | oh que precioso sangue,030,,,numero_nomes_distintos
-,,,0.30,"eu quero ser o sal da terra | junto a ti suplico , o pai",031,,,numero_nomes_distintos
-,,,0.26,"o sangue de jesus, vertido ali na cruz | principe da paz",032,,,numero_nomes_distintos
+,,,0.49,"ainda ha tempo | meu deus, meu pai | o sangue de jesus tem poder",001,,,numero_nomes_distintos
+,,,0.36,"aquele que ha de vir, vira (viveremos pela fe) | o sangue de jesus tem poder para salvar | pai, estou a te clamar",002,,,numero_nomes_distintos
+,,,0.40,"abrindo teu livro | clamo a ti | clamo, o senhor por teu sangue",003,,,numero_nomes_distintos
+,,,0.42,"a minha voz, o deus, atende (salmo 5) | clamo, o senhor | quando te prostrares",004,,,numero_nomes_distintos
+,,,0.33,"barnabe, homem de deus | clamando estou | estou aqui pra confessar",005,,,numero_nomes_distintos
+,,,0.34,"canta igreja, igreja fiel | jesus, o meu jesus | perdoa-me, senhor",006,,,numero_nomes_distintos
+,,,0.29,"cantarei a cristo! | e teu sangue, meu senhor jesus | nesta hora em oracao",007,,,numero_nomes_distintos
+,,,0.50,cante aleluia | diante do teu altar | pelo sangue de jesus,008,,,numero_nomes_distintos
+,,,0.66,"clama, o igreja | das profundezas (salmo 130) | vamos lavar as vestes | vamos lavar as vestes no sangue do cordeiro",010,,,numero_nomes_distintos
+,,,0.46,"clamo a ti, meu senhor e pai (uma nova cancao) | reveste, senhor, teu povo | vai, moises (deixa meu povo ir)",011,,,numero_nomes_distintos
+,,,0.25,"deus, deus, deus | ha vitoria para mim | perdoa-me, senhor, segundo o seu amor",012,,,numero_nomes_distintos
+,,,0.51,"eis-me, o salvador, aqui | poe teu sangue sobre mim | purificado com sangue estou",013,,,numero_nomes_distintos
+,,,0.40,"clamarei, clamarei | em caminhos de dor | jesus, vem me abencoar",015,,,numero_nomes_distintos
+,,,0.25,"em obediencia, servi ao senhor (i sam. 17.47) | pai celeste | se andarmos na luz",016,,,numero_nomes_distintos
+,,,0.18,em tua presenca entramos | quando falo com deus,017,,,numero_nomes_distintos
+,,,0.70,buscai ao senhor | firme estarei e confiarei | prostrado estou | prostrado estou diante de ti,018,,,numero_nomes_distintos
+,,,0.25,forte deus | quando davi ao senhor orava | teu povo clama,019,,,numero_nomes_distintos
+,,,0.32,"imutavel deus | nesta hora de clamor | santo, justo, principe da vida",021,,,numero_nomes_distintos
+,,,0.32,"bendito seja o cordeiro | faze oracao | jesus, o misterio revelado",022,,,numero_nomes_distintos
+,,,0.43,eis o cordeiro de deus | nao ha o que temer (sei que deus e por mim) | uma ovelhinha de jesus eu sou,024,,,numero_nomes_distintos
+,,,0.38,"no exilio (oh bela siao) | onde quer que tu fores, irei jesus | senhor, a ti clamo",025,,,numero_nomes_distintos
+,,,0.41,eu sou uma ovelhinha de jesus | o amor do nosso pai | seja so o senhor louvado aqui,026,,,numero_nomes_distintos
+,,,0.30,cordeiro eterno | ele e a raiz | o caminho de siao,027,,,numero_nomes_distintos
+,,,0.28,"o poder do sangue de jesus | o, senhor, tu es o meu pastor | sou uma crianca feliz",028,,,numero_nomes_distintos
+,,,0.39,"jesus, quando me lembro | oh! que paz jesus me da | transborda-me, senhor",029,,,numero_nomes_distintos
 ,,,0.38,"cristo, meu bom mestre | eu me prostro em teu altar",033,,,numero_nomes_distintos
-,,,0.33,quando buscamos | tenho um senhor muito forte,034,,,numero_nomes_distintos
+,,,0.38,pelo vale escuro seguirei jesus | quando buscamos | tenho um senhor muito forte,034,,,numero_nomes_distintos
 ,,,0.32,a meu senhor | quero ser como davi,035,,,numero_nomes_distintos
-,,,0.29,crucificado foi meu jesus | eu quero andar sempre com jesus,036,,,numero_nomes_distintos
-,,,0.16,nesta hora esqueco o mundo | no meu coracao ha um tesouro (principe da vida),037,,,numero_nomes_distintos
-,,,0.25,pelo sangue de jesus irei clamar | tenho um coracao alegre,038,,,numero_nomes_distintos
+,,,0.39,crucificado foi meu jesus | eu quero andar sempre com jesus | por nossa patria oramos (oracao pela patria),036,,,numero_nomes_distintos
+,,,0.42,nesta hora esqueco o mundo | no meu coracao ha um tesouro (principe da vida) | preciosa graca de jesus (amazing grace),037,,,numero_nomes_distintos
+,,,0.37,pelo sangue de jesus irei clamar | primeiro quero ver meu salvador | tenho um coracao alegre,038,,,numero_nomes_distintos
 ,,,0.28,"jesus, tu es o meu deus | na areia nao quero construir (firme, sim!)",039,,,numero_nomes_distintos
-,,,0.30,oh que sangue poderoso | quero ouvir (meu querer),040,,,numero_nomes_distintos
-,,,0.42,a minha casa firme esta | alem do veu eu quero esta,041,,,numero_nomes_distintos
-,,,0.53,minha vida e meu coracao | senhor suplico a ti em oracao,042,,,numero_nomes_distintos
-,,,0.40,sou feliz! | vou clamar,043,,,numero_nomes_distintos
-,,,0.17,conforme a tua infinita graca | sou servo do senhor,044,,,numero_nomes_distintos
-,,,0.28,jesus ressuscitou! (meu amigo jesus) | nos atrios do senhor entramos,045,,,numero_nomes_distintos
-,,,0.43,ao sentir o teu perdao | como e bom servir a deus,046,,,numero_nomes_distintos
-,,,0.31,e teu sangue | tenho no meu coracao,047,,,numero_nomes_distintos
-,,,0.46,jesus cristo e o amado | pelo sangue de jesus eu vou clamar,048,,,numero_nomes_distintos
-,,,0.47,a minha alegria e crescer com o meu senhor | na hora em que eu quiser falar com deus,049,,,numero_nomes_distintos
-,,,0.43,do alto ceu | o sangue de jesus,050,,,numero_nomes_distintos
-,,,0.35,"eis-me aqui, senhor, em teu altar | o cordeiro que na cruz morreu",051,,,numero_nomes_distintos
-,,,0.26,"escuta-me, senhor | seu nome e maravilhoso",052,,,numero_nomes_distintos
-,,,0.38,"e bom, e bom demais | o sangue do cordeiro de deus",053,,,numero_nomes_distintos
-,,,0.38,"como e bom saber | ha vitoria sempre em ti, senhor",054,,,numero_nomes_distintos
-,,,0.38,"e somente teu meu coracao | senhor, meu deus e pai",055,,,numero_nomes_distintos
-,,,0.42,cristo e o senhor | vitoria sobre vitoria,056,,,numero_nomes_distintos
+,,,0.40,"sabe, filho | sou feliz! | vou clamar",043,,,numero_nomes_distintos
+,,,0.53,conforme a tua infinita graca | sou servo do senhor | varao de guerra e o senhor,044,,,numero_nomes_distintos
+,,,0.36,jesus ressuscitou! (meu amigo jesus) | nos atrios do senhor entramos | se confessarmos,045,,,numero_nomes_distintos
+,,,0.43,"ao sentir o teu perdao | como e bom servir a deus | sei que es fiel, jesus",046,,,numero_nomes_distintos
+,,,0.38,e teu sangue | shekinah | tenho no meu coracao,047,,,numero_nomes_distintos
+,,,0.46,jesus cristo e o amado | pelo sangue de jesus eu vou clamar | torre forte,048,,,numero_nomes_distintos
+,,,0.29,"do alto ceu | o sangue de jesus | tua alma esta ferida, magoado o coracao (vinde a mim)",050,,,numero_nomes_distintos
+,,,0.36,"eis-me aqui, senhor, em teu altar | o cordeiro que na cruz morreu | pelo sangue de jesus eu vou clamar | vozes lindas (coro celestial)",051,,,numero_nomes_distintos
+,,,0.30,"deus mesmo revelou o novo ceu | escuta-me, senhor | seu nome e maravilhoso",052,,,numero_nomes_distintos
+,,,0.43,"e bom, e bom demais | o sangue do cordeiro de deus | pai nosso (coro masculino)",053,,,numero_nomes_distintos
+,,,0.42,cristo e o senhor | uma voz mansa e delicada (i reis 19) | vitoria sobre vitoria,056,,,numero_nomes_distintos
 ,,,0.36,em fervente oracao | ha uma linda cancao de amor,057,,,numero_nomes_distintos
-,,,0.19,atende a voz do meu clamor | viver e tao lindo,058,,,numero_nomes_distintos
+,,,0.37,atende a voz do meu clamor | viver e tao lindo,058,,,numero_nomes_distintos
 ,,,0.54,o nome do meu senhor! | se orarmos ao senhor,059,,,numero_nomes_distintos
-,,,0.32,"bem de manha, embora o ceu sereno | deus falou comigo",060,,,numero_nomes_distintos
-,,,0.27,sei que na cruz seu sangue verteu | suba a minha oracao,061,,,numero_nomes_distintos
-,,,0.39,e tao triste nao ver a luz (cego bastimeu) | no silencio da noite,062,,,numero_nomes_distintos
-,,,0.26,"invoca-me e te responderei | tem bom animo, pobre pecador",063,,,numero_nomes_distintos
-,,,0.12,brilhe sobre mim | eu vou contar uma historia (zaqueu),064,,,numero_nomes_distintos
-,,,0.32,onde nasceu jesus | quando o dia amanhece,065,,,numero_nomes_distintos
-,,,0.29,de madrugada eu busco a face do senhor | nasceu um novo dia,066,,,numero_nomes_distintos
-,,,0.26,maravilha e o amor de deus | toca pela fe,067,,,numero_nomes_distintos
-,,,0.22,la no cimo do monte | vem para o meio (aguas de salvacao),068,,,numero_nomes_distintos
-,,,0.39,o anjo do senhor esta passeando | voce sabe o que e salvacao,069,,,numero_nomes_distintos
-,,,0.30,o dia do senhor vira (o sol da justica) | preciosas sao as horas,070,,,numero_nomes_distintos
-,,,0.23,"jesus viu a multidao (a multiplicacao) | vem, amado meu",071,,,numero_nomes_distintos
-,,,0.45,"e preciso confiar e buscar a deus | tu es o cristo, filho do deus vivo",072,,,numero_nomes_distintos
-,,,0.40,de eternidade a eternidade | deus esta no templo,073,,,numero_nomes_distintos
-,,,0.34,"aquilo que melhor existe | sei, senhor",074,,,numero_nomes_distintos
-,,,0.32,sente em tua face o rocar | voce sabe quem foi joao batista,075,,,numero_nomes_distintos
+,,,0.38,"bem de manha, embora o ceu sereno | deus falou comigo | tudo esta pronto (a ceia)",060,,,numero_nomes_distintos
+,,,0.25,"grande e o senhor, inclinai-vos | sei que na cruz seu sangue verteu | suba a minha oracao",061,,,numero_nomes_distintos
+,,,0.27,e tao triste nao ver a luz (cego bastimeu) | no silencio da noite | ouco o som,062,,,numero_nomes_distintos
+,,,0.28,"invoca-me e te responderei | me encontrava orfao (eu tenho um pai) (adocao) | tem bom animo, pobre pecador",063,,,numero_nomes_distintos
+,,,0.31,brilhe sobre mim | eu vou contar uma historia (zaqueu) | qual foi o preco,064,,,numero_nomes_distintos
+,,,0.31,maravilha e o amor de deus | nao ha deus como nosso deus | toca pela fe,067,,,numero_nomes_distintos
+,,,0.42,la no cimo do monte | os olhos da fe | vem para o meio (aguas de salvacao),068,,,numero_nomes_distintos
+,,,0.30,"o dia do senhor vira (o sol da justica) | preciosas sao as horas | vem, sim, vem",070,,,numero_nomes_distintos
+,,,0.35,"celebrai | jesus viu a multidao (a multiplicacao) | vem, amado meu",071,,,numero_nomes_distintos
+,,,0.51,"a vida tem tristezas mil (confia em deus) | e preciso confiar e buscar a deus | tu es o cristo, filho do deus vivo",072,,,numero_nomes_distintos
+,,,0.41,"de eternidade a eternidade | deus esta no templo | e lindo, e lindo sim",073,,,numero_nomes_distintos
+,,,0.40,"aquilo que melhor existe | eu te amo | sei, senhor",074,,,numero_nomes_distintos
 ,,,0.21,jesus falou que o ceu e pra mim | nesta noite feliz,076,,,numero_nomes_distintos
-,,,0.31,"vem, visita tua igreja | vou contar-vos de jesus",077,,,numero_nomes_distintos
 ,,,0.28,o senhor e a minha luz e a minha salvacao | uma voz mansa e delicada,078,,,numero_nomes_distintos
-,,,0.29,deus ama voce | deus esta presente entre pecadores como nos,079,,,numero_nomes_distintos
-,,,0.37,existe um lugar | vives muito alem do ceu,080,,,numero_nomes_distintos
-,,,0.24,"grande deus, unico deus | quando ouvi jesus me chamar",081,,,numero_nomes_distintos
-,,,0.12,cada instante | jesus vem nos buscar,082,,,numero_nomes_distintos
-,,,0.26,foi no caminho para damasco | mais uma vez,083,,,numero_nomes_distintos
-,,,0.35,"atende, senhor, a minha oracao | queres ser feliz",084,,,numero_nomes_distintos
-,,,0.36,envia a tua luz | neste dia especial,085,,,numero_nomes_distintos
-,,,0.55,em teu nome estamos | um dia morreu o meu jesus,086,,,numero_nomes_distintos
-,,,0.28,meu pecado resgatado | o senhor e o bom pastor,087,,,numero_nomes_distintos
-,,,0.18,das profundezas | vou contar para voce uma historia especial,088,,,numero_nomes_distintos
-,,,0.28,"certo homem, principe dos judeus (nicodemos) | das profundezas clamo a ti, o senhor",089,,,numero_nomes_distintos
-,,,0.40,"ele morreu, mas ressurgiu | em tuas maos, senhor",090,,,numero_nomes_distintos
-,,,0.27,"jesus, a minhalma tem sede de ti | tenho algo pra voce",091,,,numero_nomes_distintos
-,,,0.21,jesus cura e salva | pai celeste,092,,,numero_nomes_distintos
-,,,0.40,jesus te ama | logo de manha,093,,,numero_nomes_distintos
-,,,0.14,aquele que tem sede | bendita a hora de oracao,094,,,numero_nomes_distintos
-,,,0.08,buscar-me-eis | do pao do ceu,095,,,numero_nomes_distintos
-,,,0.28,com a minha voz clamo ao senhor | sonhei com jesus esta noite,096,,,numero_nomes_distintos
-,,,0.37,buscou-me com ternura | jesus e o caminho,097,,,numero_nomes_distintos
-,,,0.47,eu abri meu coracao | onde estaria eu,098,,,numero_nomes_distintos
-,,,0.22,no meu coracao | um dia jesus achou - me,099,,,numero_nomes_distintos
-,,,0.49,"ainda ha tempo | meu deus, meu pai | o sangue de jesus tem poder",1,,,numero_nomes_distintos
-,,,0.66,"clama, o igreja | das profundezas (salmo 130) | vamos lavar as vestes | vamos lavar as vestes no sangue do cordeiro",10,,,numero_nomes_distintos
+,,,0.37,existe um lugar | suplica | vives muito alem do ceu,080,,,numero_nomes_distintos
+,,,0.38,"ele e o senhor | grande deus, unico deus | quando ouvi jesus me chamar",081,,,numero_nomes_distintos
+,,,0.31,cada instante | e veio a mim | jesus vem nos buscar,082,,,numero_nomes_distintos
+,,,0.36,em meio a multidao | foi no caminho para damasco | mais uma vez,083,,,numero_nomes_distintos
+,,,0.54,envia a tua luz | neste dia especial | perante a tua grandeza,085,,,numero_nomes_distintos
+,,,0.73,em teu nome | em teu nome estamos | lugar de oracao | um dia morreu o meu jesus,086,,,numero_nomes_distintos
+,,,0.40,meu pecado resgatado | minha possessao eterna (junto a ti) | o senhor e o bom pastor,087,,,numero_nomes_distintos
+,,,0.31,das profundezas | pes divinos | vou contar para voce uma historia especial,088,,,numero_nomes_distintos
+,,,0.40,"ele morreu, mas ressurgiu | em tuas maos, senhor | se tua alma alegre esta (canta aleluia)",090,,,numero_nomes_distintos
+,,,0.39,jesus cura e salva | no ceu nao entra pecado | pai celeste,092,,,numero_nomes_distintos
+,,,0.40,jesus te ama | logo de manha | ques sao estes de brancos vestidos?,093,,,numero_nomes_distintos
+,,,0.27,buscar-me-eis | do pao do ceu | finda-se este dia,095,,,numero_nomes_distintos
+,,,0.32,com a minha voz clamo ao senhor | ha um maior conosco | sonhei com jesus esta noite,096,,,numero_nomes_distintos
+,,,0.37,buscou-me com ternura | jesus e o caminho | salmo 91,097,,,numero_nomes_distintos
 ,,,0.29,cristo sente seu amor por mim | eu me lembro quando jesus me tocou | venho clamar,100,,,numero_nomes_distintos
 ,,,0.24,"no caminho, ele me guiara | vivi tao longe do senhor",104,,,numero_nomes_distintos
-,,,0.27,haveremos de chegar | perdido foi que ele me encontrou,105,,,numero_nomes_distintos
-,,,0.27,jesus cristo e o caminho | pela fe somos salvos,106,,,numero_nomes_distintos
-,,,0.24,eu quero cantar | quando andava no mundo escravizado,107,,,numero_nomes_distintos
-,,,0.25,hoje e um grande dia | israel saiu do egito,108,,,numero_nomes_distintos
-,,,0.32,"a minha vida tao vazia | canta, alegremente, o filha de siao",109,,,numero_nomes_distintos
-,,,0.46,"clamo a ti, meu senhor e pai (uma nova cancao) | reveste, senhor, teu povo | vai, moises (deixa meu povo ir)",11,,,numero_nomes_distintos
+,,,0.31,haveremos de chegar | perdido foi que ele me encontrou,105,,,numero_nomes_distintos
+,,,0.32,jesus cristo e o caminho | pela fe somos salvos,106,,,numero_nomes_distintos
+,,,0.33,eu quero cantar | quando andava no mundo escravizado,107,,,numero_nomes_distintos
+,,,0.30,hoje e um grande dia | israel saiu do egito,108,,,numero_nomes_distintos
+,,,0.35,"a minha vida tao vazia | canta, alegremente, o filha de siao",109,,,numero_nomes_distintos
 ,,,0.68,entrega o teu caminho | o povo que andava em trevas viu uma grande luz | o povo que andava nas trevas,111,,,numero_nomes_distintos
-,,,0.21,"consola-me, espirito santo | uma luz brilhou em meu caminho",112,,,numero_nomes_distintos
-,,,0.22,"jesus, a luz divina | tua mao e poderosa",113,,,numero_nomes_distintos
+,,,0.32,"consola-me, espirito santo | uma luz brilhou em meu caminho",112,,,numero_nomes_distintos
+,,,0.32,"jesus, a luz divina | tua mao e poderosa",113,,,numero_nomes_distintos
 ,,,0.42,as riquezas do mundo | o senhor e quem cuida de mim,114,,,numero_nomes_distintos
 ,,,0.67,"gracas dou | gracas dou, o senhor | jesus, o bom pastor",115,,,numero_nomes_distintos
 ,,,0.14,achei salvacao | sobre as ondas,116,,,numero_nomes_distintos
 ,,,0.72,"ancora segura | o senhor, deus de israel | o senhor, deus de israel edifiquei uma casa",118,,,numero_nomes_distintos
-,,,0.25,"deus, deus, deus | ha vitoria para mim | perdoa-me, senhor, segundo o seu amor",12,,,numero_nomes_distintos
 ,,,0.20,jesus cristo mudou meu viver | podera cantar,120,,,numero_nomes_distintos
 ,,,0.10,"meu barquinho | tudo, o cristo, a ti entrego",121,,,numero_nomes_distintos
 ,,,0.21,nesta batalha nao tereis que pelejar | seguir-te-ei,123,,,numero_nomes_distintos
 ,,,0.81,o ceu e a terra passarao | peregrinando por sobre os montes | peregrinando por sobre os montes brilho celeste,124,,,numero_nomes_distintos
 ,,,0.10,com jesus vencedor serei | pela fe eu caminho,125,,,numero_nomes_distintos
 ,,,0.70,deus forte como jeova | quero prosseguir | quero prosseguir nesta jornada,126,,,numero_nomes_distintos
-,,,0.31,cristo e vitoria | estou a caminhar,127,,,numero_nomes_distintos
+,,,0.44,cristo e vitoria | estou a caminhar,127,,,numero_nomes_distintos
 ,,,0.12,"cristo e meu amigo, e meu amigo | quando a mao de deus em mim veio tocar",128,,,numero_nomes_distintos
 ,,,0.79,"felicidade e ter cristo | felicidade e ter cristo ao meu lado | ontem, hoje e para sempre",129,,,numero_nomes_distintos
-,,,0.51,"eis-me, o salvador, aqui | poe teu sangue sobre mim | purificado com sangue estou",13,,,numero_nomes_distintos
 ,,,0.30,meu bom pastor e cristo | tenho grande gozo,130,,,numero_nomes_distintos
-,,,0.26,ja nao estou sozinho | meu barco e pequeno,132,,,numero_nomes_distintos
+,,,0.41,ja nao estou sozinho | meu barco e pequeno,132,,,numero_nomes_distintos
 ,,,0.34,"eu estava so, sem o senhor | jesus ve a sua igreja",133,,,numero_nomes_distintos
-,,,0.32,que seguranca tenho em jesus | vou caminhando pra jerusalem,134,,,numero_nomes_distintos
+,,,0.46,que seguranca tenho em jesus | vou caminhando pra jerusalem,134,,,numero_nomes_distintos
 ,,,0.42,"em meu coracao | flua em mim, senhor",135,,,numero_nomes_distintos
 ,,,0.15,nao por forca | que doce voz tem meu senhor,137,,,numero_nomes_distintos
-,,,0.30,ha sempre alguem que nao provou | sou um soldado do bom salvador,138,,,numero_nomes_distintos
-,,,0.28,"em teu altar, senhor | expirou | te suplico, o deus, em oracao",14,,,numero_nomes_distintos
+,,,0.10,ha sempre alguem que nao provou | sou um soldado do bom salvador,138,,,numero_nomes_distintos
 ,,,0.75,as muitas aguas | as muitas aguas nao podem | uma luz resplandecente,140,,,numero_nomes_distintos
-,,,0.31,se nao fosse o amor | tenho uma candeia (candeia acesa),143,,,numero_nomes_distintos
-,,,0.17,"jesus, agora eu bem sei | nova alianca",144,,,numero_nomes_distintos
+,,,0.27,se nao fosse o amor | tenho uma candeia (candeia acesa),143,,,numero_nomes_distintos
+,,,0.23,"jesus, agora eu bem sei | nova alianca",144,,,numero_nomes_distintos
 ,,,0.41,e o amor de deus | revelacao abre pra voce,145,,,numero_nomes_distintos
-,,,0.39,a igreja que ora e vitoriosa | existe um alguem que cuida de mim,146,,,numero_nomes_distintos
+,,,0.43,a igreja que ora e vitoriosa | existe um alguem que cuida de mim,146,,,numero_nomes_distintos
 ,,,0.32,jesus fez a promessa | nos somos uma voz,149,,,numero_nomes_distintos
-,,,0.40,"clamarei, clamarei | em caminhos de dor | jesus, vem me abencoar",15,,,numero_nomes_distintos
-,,,0.39,cristo jesus e o meu bom salvador | no principio era o verbo,151,,,numero_nomes_distintos
+,,,0.35,cristo jesus e o meu bom salvador | no principio era o verbo,151,,,numero_nomes_distintos
 ,,,0.36,mais perto de jesus | nas batalhas sou um vencedor (armadura de deus),152,,,numero_nomes_distintos
 ,,,0.40,"como noe | cristo, nome mais alto",153,,,numero_nomes_distintos
-,,,0.34,com o espirito de deus em minha vida | o tu que habitas entre os querubins,154,,,numero_nomes_distintos
+,,,0.31,com o espirito de deus em minha vida | o tu que habitas entre os querubins,154,,,numero_nomes_distintos
 ,,,0.30,"ha um ser que vive em mim | quero estar em tua presenca, o deus",155,,,numero_nomes_distintos
 ,,,0.29,somos cidadaos do ceu | totalmente desejavel e o meu amado,156,,,numero_nomes_distintos
 ,,,0.39,cristo e a rosa mais bela | este mundo nao e meu lugar,157,,,numero_nomes_distintos
-,,,0.33,ele e a rosa de sarom | servo do senhor eu sou,159,,,numero_nomes_distintos
-,,,0.25,"em obediencia, servi ao senhor (i sam. 17.47) | pai celeste | se andarmos na luz",16,,,numero_nomes_distintos
+,,,0.28,ele e a rosa de sarom | servo do senhor eu sou,159,,,numero_nomes_distintos
 ,,,0.64,eu sou do meu amado | eu sou do meu amado e ele me tem afeicao | existem segredos na tua palavra,160,,,numero_nomes_distintos
 ,,,0.47,era uma oliveira | tu es pra mim um vaso escolhido,161,,,numero_nomes_distintos
-,,,0.39,andai na minha presenca | grandioso para mim,162,,,numero_nomes_distintos
+,,,0.44,andai na minha presenca | grandioso para mim,162,,,numero_nomes_distintos
 ,,,0.30,da-me um coracao cheio do teu amor | tenho uma pedra viva,163,,,numero_nomes_distintos
 ,,,0.26,da-me um coracao humilde e reto | e bastante para mim a tua graca,164,,,numero_nomes_distintos
 ,,,0.26,maravilhosa graca | quero ser santo para o senhor,165,,,numero_nomes_distintos
 ,,,0.34,amo ao meu senhor | daniel na cova dos leoes,167,,,numero_nomes_distintos
 ,,,0.34,"jesus chama os seus ministros | tu es fiel, senhor",168,,,numero_nomes_distintos
 ,,,0.19,como a flor do campo | sete cartas,169,,,numero_nomes_distintos
-,,,0.23,em tua presenca entramos | quando falo com deus,17,,,numero_nomes_distintos
 ,,,0.67,eu sou tao feliz | eu sou tao feliz com o meu jesus | nos somos a carta de cristo,170,,,numero_nomes_distintos
 ,,,0.29,o amor de jesus e grande | sou o santo,171,,,numero_nomes_distintos
-,,,0.16,"quatro coisas tao pequeninas | senhor, te amo, te amo",172,,,numero_nomes_distintos
+,,,0.32,"quatro coisas tao pequeninas | senhor, te amo, te amo",172,,,numero_nomes_distintos
 ,,,0.35,ouco o clamor do bom pastor | quando jesus um dia,173,,,numero_nomes_distintos
 ,,,0.49,a minha heranca e o senhor | a tua palavra e semente,174,,,numero_nomes_distintos
 ,,,0.27,"fala ao meu coracao, jesus | sempre vou lembrar o que fizeste por mim",177,,,numero_nomes_distintos
-,,,0.28,disse jesus aos judeus (eu trabalho tambem) | o deus a quem servimos,178,,,numero_nomes_distintos
+,,,0.34,disse jesus aos judeus (eu trabalho tambem) | o deus a quem servimos,178,,,numero_nomes_distintos
 ,,,0.22,orar faz bem | pela fe eu posso contemplar jesus,179,,,numero_nomes_distintos
-,,,0.34,buscai ao senhor | firme estarei e confiarei | prostrado estou diante de ti,18,,,numero_nomes_distintos
-,,,0.22,encontrei o grande amor | quero ser fiel (jesus esta vivo),180,,,numero_nomes_distintos
+,,,0.29,encontrei o grande amor | quero ser fiel (jesus esta vivo),180,,,numero_nomes_distintos
 ,,,0.33,como e bom servir ao senhor | quero viver para sempre com jesus,182,,,numero_nomes_distintos
-,,,0.32,"a minha alegria | um novo ceu, uma nova terra se fara",183,,,numero_nomes_distintos
+,,,0.36,"a minha alegria | um novo ceu, uma nova terra se fara",183,,,numero_nomes_distintos
 ,,,0.31,no expresso viajamos | redentor onipotente,184,,,numero_nomes_distintos
 ,,,0.26,"ha uma linda morada | jesus, senhor, me chego a ti",185,,,numero_nomes_distintos
 ,,,0.14,nossas vidas sao mudadas | para quem iremos nos,186,,,numero_nomes_distintos
 ,,,0.19,"jerusalem anseio ver | venho, senhor, minha vida oferecer",188,,,numero_nomes_distintos
 ,,,0.76,"dependo de ti | dependo de ti, senhor | um dia a igreja subira",189,,,numero_nomes_distintos
-,,,0.25,forte deus | quando davi ao senhor orava | teu povo clama,19,,,numero_nomes_distintos
-,,,0.09,"igreja, corpo de cristo | todo o meu ser te ama",190,,,numero_nomes_distintos
-,,,0.15,a noiva amada do cordeiro | eu quero sentir,191,,,numero_nomes_distintos
+,,,0.23,"igreja, corpo de cristo | todo o meu ser te ama",190,,,numero_nomes_distintos
+,,,0.30,a noiva amada do cordeiro | eu quero sentir,191,,,numero_nomes_distintos
 ,,,0.40,"jesus, jesus, eu te amo | vou pra jerusalem",192,,,numero_nomes_distintos
 ,,,0.41,as muitas aguas nao poderiam apagar | ha uma igreja que aguarda o senhor,193,,,numero_nomes_distintos
 ,,,0.20,"na nova jerusalem | quero andar em teu caminho, senhor",194,,,numero_nomes_distintos
 ,,,0.41,"em breve estaremos na gloria | grande amor, o grande amor",195,,,numero_nomes_distintos
-,,,0.36,jesus nos prometeu | o grande amor do meu senhor,196,,,numero_nomes_distintos
+,,,0.31,jesus nos prometeu | o grande amor do meu senhor,196,,,numero_nomes_distintos
 ,,,0.76,"hoje quero somente agradecer | hoje quero somente agradecer somente agradecer | maranata! vem, senhor jesus",197,,,numero_nomes_distintos
-,,,0.15,ele e a minha alegria | o dia esta chegando,198,,,numero_nomes_distintos
-,,,0.33,"aquele que ha de vir, vira (viveremos pela fe) | o sangue de jesus tem poder para salvar | pai, estou a te clamar",2,,,numero_nomes_distintos
-,,,0.35,jesus no ceu me encontrara (honra e gloria ao cordeiro) | o teu pecado tu queres deixar? | quando oro ao senhor,20,,,numero_nomes_distintos
+,,,0.40,ele e a minha alegria | o dia esta chegando,198,,,numero_nomes_distintos
 ,,,0.24,eu sirvo um deus | vou para o meu lar,200,,,numero_nomes_distintos
 ,,,0.67,seu corpo cansado | seu corpo cansado pelas caminhadas | sobre as nuvens jesus vem,201,,,numero_nomes_distintos
 ,,,0.39,a raabe veio a ordem | ha uma fonte aberta no calvario,202,,,numero_nomes_distintos
-,,,0.40,jesus ia subindo o monte | o fio da escarlata e o misterio,203,,,numero_nomes_distintos
+,,,0.36,jesus ia subindo o monte | o fio da escarlata e o misterio,203,,,numero_nomes_distintos
 ,,,0.22,marchai! marchai! | morri na cruz por ti,204,,,numero_nomes_distintos
-,,,0.17,a minha alma espera | jesus ia seguindo,205,,,numero_nomes_distintos
+,,,0.22,a minha alma espera | jesus ia seguindo,205,,,numero_nomes_distintos
 ,,,0.42,deus enviou seu filho amado | jesus prometeu nos buscar,207,,,numero_nomes_distintos
 ,,,0.30,deus amou o mundo de tal maneira | eu quero ir para o ceu,208,,,numero_nomes_distintos
 ,,,0.36,deus o seu filho enviou | se eu falo do grande amor do pai,209,,,numero_nomes_distintos
-,,,0.32,"imutavel deus | nesta hora de clamor | santo, justo, principe da vida",21,,,numero_nomes_distintos
 ,,,0.31,jesus voltara pra me buscar! (maranata) | um dia jesus desceu da sua gloria,210,,,numero_nomes_distintos
 ,,,0.26,cortaram o madeiro | o dias estao passando,211,,,numero_nomes_distintos
 ,,,0.32,rude cruz | sei que cristo voltara,212,,,numero_nomes_distintos
@@ -209,17 +170,15 @@ categoria,classificacao,groupId,max_similaridade,nomes,numero,pdfId_a,pdfId_b,ti
 ,,,0.38,deixou o esplendor de sua gloria | verei meu grande rei,217,,,numero_nomes_distintos
 ,,,0.14,maranata | por amor jesus morreu,218,,,numero_nomes_distintos
 ,,,0.24,ele vira no meio da noite | por amor,219,,,numero_nomes_distintos
-,,,0.37,"bendito seja o cordeiro | faze oracao | jesus, o misterio revelado",22,,,numero_nomes_distintos
 ,,,0.22,"jesus, em tua presenca | vai raiar o dia",221,,,numero_nomes_distintos
-,,,0.23,deus habita no meio dos louvores | eis que estou a porta,222,,,numero_nomes_distintos
+,,,0.26,deus habita no meio dos louvores | eis que estou a porta,222,,,numero_nomes_distintos
 ,,,0.31,"onde esta o cordeiro | pai, tua beleza me admira",223,,,numero_nomes_distintos
 ,,,0.10,"deus criou os ceus e a terra | era um pecador, andava sem jesus",224,,,numero_nomes_distintos
-,,,0.22,"eu vim aqui, senhor | jesus e melhor, sim, que ouro e bens",225,,,numero_nomes_distintos
-,,,0.28,irei cantar e adorar o rei jesus | o sentido de viver,226,,,numero_nomes_distintos
+,,,0.33,"eu vim aqui, senhor | jesus e melhor, sim, que ouro e bens",225,,,numero_nomes_distintos
+,,,0.12,irei cantar e adorar o rei jesus | o sentido de viver,226,,,numero_nomes_distintos
 ,,,0.30,entrega o teu caminho ao senhor | hosana ao filho de davi,228,,,numero_nomes_distintos
-,,,0.26,ao poco de jaco chegou jesus | cantai alegremente a deus,229,,,numero_nomes_distintos
-,,,0.19,"quando israel saiu do egito | senhor, ouve a minha oracao",23,,,numero_nomes_distintos
-,,,0.19,esta cancao | fonte de aguas vivas,230,,,numero_nomes_distintos
+,,,0.23,ao poco de jaco chegou jesus | cantai alegremente a deus,229,,,numero_nomes_distintos
+,,,0.06,esta cancao | fonte de aguas vivas,230,,,numero_nomes_distintos
 ,,,0.29,hoje eu nao quero pedir | quem beber da agua que eu lhe der,232,,,numero_nomes_distintos
 ,,,0.16,na cidade de davi nasceu o salvador | vou guiar-te a uma rica fonte,233,,,numero_nomes_distintos
 ,,,0.43,deus hoje quer te falar | sei que sou amado do meu salvador,234,,,numero_nomes_distintos
@@ -227,116 +186,37 @@ categoria,classificacao,groupId,max_similaridade,nomes,numero,pdfId_a,pdfId_b,ti
 ,,,0.42,"ouve a voz de jesus | senhor, deus tu es varao de guerra",236,,,numero_nomes_distintos
 ,,,0.48,eis mensagem do senhor | muitos motivos tenho,237,,,numero_nomes_distintos
 ,,,0.15,eu vou cantar | tanto tempo ja faz que o chamado divinal,238,,,numero_nomes_distintos
-,,,0.41,deixa deus falar ao teu coracao | jesus e a nossa vitoria,239,,,numero_nomes_distintos
-,,,0.43,eis o cordeiro de deus | nao ha o que temer (sei que deus e por mim) | uma ovelhinha de jesus eu sou,24,,,numero_nomes_distintos
-,,,0.47,o senhor dos exercitos esta aqui | se cansado tu estas,240,,,numero_nomes_distintos
+,,,0.44,deixa deus falar ao teu coracao | jesus e a nossa vitoria,239,,,numero_nomes_distintos
+,,,0.31,o senhor dos exercitos esta aqui | se cansado tu estas,240,,,numero_nomes_distintos
 ,,,0.32,"exaltai, exaltai | meu amado filho",241,,,numero_nomes_distintos
-,,,0.38,"no exilio (oh bela siao) | onde quer que tu fores, irei jesus | senhor, a ti clamo",25,,,numero_nomes_distintos
-,,,0.38,eu sou uma ovelhinha de jesus | o amor do nosso pai | seja so o senhor louvado aqui,26,,,numero_nomes_distintos
-,,,0.38,cordeiro eterno | ele e a raiz | o caminho de siao,27,,,numero_nomes_distintos
-,,,0.28,"o poder do sangue de jesus | o, senhor, tu es o meu pastor | sou uma crianca feliz",28,,,numero_nomes_distintos
-,,,0.39,"jesus, quando me lembro | oh! que paz jesus me da | transborda-me, senhor",29,,,numero_nomes_distintos
 ,,,0.83,"das profundezas a ti clamo, o senhor | das profundezas clamo a ti, senhor",295,,,numero_nomes_distintos
-,,,0.40,"abrindo teu livro | clamo a ti | clamo, o senhor por teu sangue",3,,,numero_nomes_distintos
-,,,0.36,ele vive em mim | oh! que precioso sangue | olhar unicamente para jesus,30,,,numero_nomes_distintos
-,,,0.37,"eu quero ser o sal da terra | junto a ti suplico, o pai | os ceus declaram",31,,,numero_nomes_distintos
 ,,,0.77,quando vem nos olhos | quando vem nos olhos uma lagrima,317,,,numero_nomes_distintos
 ,,,0.71,deus esta presente sempre | deus esta presente sempre pronto a nos ajudar,323,,,numero_nomes_distintos
-,,,0.38,"cristo, meu bom mestre | eu me prostro em teu altar",33,,,numero_nomes_distintos
 ,,,0.83,se te encontrares triste | se te encontrares triste e cansado,333,,,numero_nomes_distintos
-,,,0.38,pelo vale escuro seguirei jesus | quando buscamos | tenho um senhor muito forte,34,,,numero_nomes_distintos
-,,,0.32,a meu senhor | quero ser como davi,35,,,numero_nomes_distintos
 ,,,0.68,queres neste mundo | queres neste mundo ser um vencedor?,352,,,numero_nomes_distintos
 ,,,0.67,"deus e nosso amparo | deus e o nosso amparo, nossa fortaleza",359,,,numero_nomes_distintos
-,,,0.29,crucificado foi meu jesus | eu quero andar sempre com jesus | por nossa patria oramos (oracao pela patria),36,,,numero_nomes_distintos
 ,,,0.70,rochedo forte | rochedo forte e o senhor,360,,,numero_nomes_distintos
 ,,,0.71,"nao temas, pois te escolhi | nao temas, pois te escolhi (quando pelas aguas)",365,,,numero_nomes_distintos
-,,,0.28,nesta hora esqueco o mundo | no meu coracao ha um tesouro (principe da vida) | preciosa graca de jesus (amazing grace),37,,,numero_nomes_distintos
-,,,0.37,pelo sangue de jesus irei clamar | primeiro quero ver meu salvador | tenho um coracao alegre,38,,,numero_nomes_distintos
-,,,0.28,"jesus, tu es o meu deus | na areia nao quero construir (firme, sim!)",39,,,numero_nomes_distintos
-,,,0.42,"a minha voz, o deus, atende (salmo 5) | clamo, o senhor | quando te prostrares",4,,,numero_nomes_distintos
-,,,0.33,oh! que sangue poderoso | quando entrei neste lugar | quero ouvir (meu querer),40,,,numero_nomes_distintos
-,,,0.40,"a minha casa firme esta | alem do veu, eu quero estar | quando jesus aparecer nas nuvens",41,,,numero_nomes_distintos
 ,,,0.85,sou forasteiro | sou forasteiro aqui,412,,,numero_nomes_distintos
-,,,0.80,"minha vida e meu coracao | quanto tempo faz | senhor, suplico a ti | senhor, suplico a ti em oracao",42,,,numero_nomes_distintos
-,,,0.40,"sabe, filho | sou feliz! | vou clamar",43,,,numero_nomes_distintos
-,,,0.53,conforme a tua infinita graca | sou servo do senhor | varao de guerra e o senhor,44,,,numero_nomes_distintos
-,,,0.36,jesus ressuscitou! (meu amigo jesus) | nos atrios do senhor entramos | se confessarmos,45,,,numero_nomes_distintos
 ,,,0.76,"a tua justica | a tua justica, o deus",450,,,numero_nomes_distintos
 ,,,0.68,"e tempo, e tempo | e tempo, e tempo marchar avante",459,,,numero_nomes_distintos
-,,,0.43,"ao sentir o teu perdao | como e bom servir a deus | sei que es fiel, jesus",46,,,numero_nomes_distintos
 ,,,0.68,"tu, o senhor aviva a tua obra | tu, o senhor, tu es tao puro de olhos (aviva a tua obra)",461,,,numero_nomes_distintos
-,,,0.31,e teu sangue | shekinah | tenho no meu coracao,47,,,numero_nomes_distintos
-,,,0.46,jesus cristo e o amado | pelo sangue de jesus eu vou clamar | torre forte,48,,,numero_nomes_distintos
-,,,0.33,"barnabe, homem de deus | clamando estou | estou aqui pra confessar",5,,,numero_nomes_distintos
-,,,0.43,"do alto ceu | o sangue de jesus | tua alma esta ferida, magoado o coracao (vinde a mim)",50,,,numero_nomes_distintos
-,,,0.36,"eis-me aqui, senhor, em teu altar | pelo sangue de jesus eu vou clamar | vozes lindas (coro celestial)",51,,,numero_nomes_distintos
-,,,0.30,"deus mesmo revelou o novo ceu | escuta-me, senhor | seu nome e maravilhoso",52,,,numero_nomes_distintos
-,,,0.38,"e bom, e bom demais | o sangue do cordeiro de deus | pai nosso (coro masculino)",53,,,numero_nomes_distintos
 ,,,0.62,arrebatado fui | arrebatado fui no dia do senhor,541,,,numero_nomes_distintos
 ,,,0.67,ao lado de deus | ao lado de deus eu quero estar,543,,,numero_nomes_distintos
-,,,0.42,cristo e o senhor | uma voz mansa e delicada (i reis 19) | vitoria sobre vitoria,56,,,numero_nomes_distintos
 ,,,0.62,ouvi como que a voz | ouvi como que a voz de uma grande multidao,561,,,numero_nomes_distintos
 ,,,0.63,quando sera | quando sera o grande dia,567,,,numero_nomes_distintos
-,,,0.36,em fervente oracao | ha uma linda cancao de amor,57,,,numero_nomes_distintos
 ,,,0.70,ja refulge a gloria eterna | ja refulge a gloria eterna (vencendo vem jesus!),570,,,numero_nomes_distintos
 ,,,0.67,reunimo - nos aqui | reunimo-nos aqui pra te adorar,576,,,numero_nomes_distintos
-,,,0.19,atende a voz do meu clamor | viver e tao lindo,58,,,numero_nomes_distintos
 ,,,0.65,nos prostemos | nos prostremos aos seus pes,580,,,numero_nomes_distintos
 ,,,0.54,"pai de amor | pai de amor, gosto tanto de ti",581,,,numero_nomes_distintos
-,,,0.54,o nome do meu senhor! | se orarmos ao senhor,59,,,numero_nomes_distintos
 ,,,0.60,es majestade | es majestade o rei da gloria,596,,,numero_nomes_distintos
 ,,,0.72,"jesus te entronizamos | jesus, te entronizamos aqui entre nos",599,,,numero_nomes_distintos
-,,,0.34,"canta igreja, igreja fiel | jesus, o meu jesus | perdoa-me, senhor",6,,,numero_nomes_distintos
-,,,0.38,"bem de manha, embora o ceu sereno | deus falou comigo | tudo esta pronto (a ceia)",60,,,numero_nomes_distintos
-,,,0.27,"grande e o senhor, inclinai-vos | sei que na cruz seu sangue verteu | suba a minha oracao",61,,,numero_nomes_distintos
-,,,0.39,e tao triste nao ver a luz (cego bastimeu) | no silencio da noite | ouco o som,62,,,numero_nomes_distintos
-,,,0.26,"invoca-me e te responderei | me encontrava orfao (eu tenho um pai) (adocao) | tem bom animo, pobre pecador",63,,,numero_nomes_distintos
-,,,0.31,brilhe sobre mim | eu vou contar uma historia (zaqueu) | qual foi o preco,64,,,numero_nomes_distintos
-,,,0.31,a palavra de poder | onde nasceu jesus? | quando o dia amanhece,65,,,numero_nomes_distintos
 ,,,0.61,aleluia | aleluia (sl 113),653,,,numero_nomes_distintos
-,,,0.40,de madrugada eu busca a face do senhor | jesus ira voltar! | nasceu um novo dia,66,,,numero_nomes_distintos
-,,,0.31,maravilha e o amor de deus | nao ha deus como nosso deus | toca pela fe,67,,,numero_nomes_distintos
 ,,,0.66,"se paz, a mais doce | se paz, a mais doce sou feliz com jesus",670,,,numero_nomes_distintos
-,,,0.42,la no cimo do monte | os olhos da fe | vem para o meio (aguas de salvacao),68,,,numero_nomes_distintos
 ,,,0.70,perfeito amor | perfeito amor eu conheci,685,,,numero_nomes_distintos
-,,,0.50,o anjo do senhor esta passeando | tudo o que precisamos | voce sabe o que e salvacao?,69,,,numero_nomes_distintos
 ,,,0.83,ao deus de abraao | ao deus de abraao louvai,691,,,numero_nomes_distintos
-,,,0.29,"cantarei a cristo! | e teu sangue, meu senhor jesus | nesta hora em oracao",7,,,numero_nomes_distintos
-,,,0.30,"o dia do senhor vira (o sol da justica) | preciosas sao as horas | vem, sim, vem",70,,,numero_nomes_distintos
 ,,,0.83,"senhor se estivesses aqui | senhor, se estivesses aqui (lazaro)",704,,,numero_nomes_distintos
 ,,,0.52,desde mundo escravo fui (grandes coisas fez o senhor por nos) | deste mundo escravo fui,706,,,numero_nomes_distintos
-,,,0.23,"celebrai | jesus viu a multidao (a multiplicacao) | vem, amado meu",71,,,numero_nomes_distintos
-,,,0.49,"a vida tem tristezas mil (confia em deus) | e preciso confiar e buscar a deus | tu es o cristo, filho do deus vivo",72,,,numero_nomes_distintos
-,,,0.41,"de eternidade a eternidade | deus esta no templo | e lindo, e lindo sim",73,,,numero_nomes_distintos
-,,,0.40,"aquilo que melhor existe | eu te amo | sei, senhor",74,,,numero_nomes_distintos
-,,,0.33,eu tenho um amigo | sente em tua face o rocar | voce sabe quem foi joao batista?,75,,,numero_nomes_distintos
-,,,0.21,jesus falou que o ceu e pra mim | nesta noite feliz,76,,,numero_nomes_distintos
-,,,0.30,"vem, visita a tua igreja | vou contar-vos de jesus",77,,,numero_nomes_distintos
-,,,0.28,o senhor e a minha luz e a minha salvacao | uma voz mansa e delicada,78,,,numero_nomes_distintos
-,,,0.35,deus ama voce | deus esta presente entre os pecadores como nos | o jordao eu nao passarei so,79,,,numero_nomes_distintos
-,,,0.50,cante aleluia | diante do teu altar | pelo sangue de jesus,8,,,numero_nomes_distintos
-,,,0.37,existe um lugar | suplica | vives muito alem do ceu,80,,,numero_nomes_distintos
-,,,0.38,"ele e o senhor | grande deus, unico deus | quando ouvi jesus me chamar",81,,,numero_nomes_distintos
-,,,0.44,cada instante | e veio a mim | jesus vem nos buscar,82,,,numero_nomes_distintos
-,,,0.36,em meio a multidao | foi no caminho para damasco | mais uma vez,83,,,numero_nomes_distintos
-,,,0.34,"atende, senhor, a minha oracao | o amigo incomparavel | queres ser feliz?",84,,,numero_nomes_distintos
-,,,0.54,envia a tua luz | neste dia especial | perante a tua grandeza,85,,,numero_nomes_distintos
-,,,0.44,em teu nome | lugar de oracao | um dia morreu o meu jesus,86,,,numero_nomes_distintos
-,,,0.29,meu pecado resgatado | minha possessao eterna (junto a ti) | o senhor e o bom pastor,87,,,numero_nomes_distintos
-,,,0.31,das profundezas | pes divinos | vou contar para voce uma historia especial,88,,,numero_nomes_distintos
-,,,0.32,"certo homem, principe dos judeus (nicodemos) | das profundezas clamo a ti, o senhor! | rosa vermelha",89,,,numero_nomes_distintos
-,,,0.33,"cidade eternal | dobro os meus joelhos | senhor, me chego a ti",9,,,numero_nomes_distintos
-,,,0.40,"ele morreu, mas ressurgiu | em tuas maos, senhor | se tua alma alegre esta (canta aleluia)",90,,,numero_nomes_distintos
-,,,0.42,"jesus, minh’alma tem sede de ti | tenho algo pra voce | teras vida em olhar pra jesus",91,,,numero_nomes_distintos
-,,,0.39,jesus cura e salva | no ceu nao entra pecado | pai celeste,92,,,numero_nomes_distintos
-,,,0.40,jesus te ama | logo de manha | ques sao estes de brancos vestidos?,93,,,numero_nomes_distintos
-,,,0.33,ao nosso deus (apoc. 7.10) | aquele que tem sede | bendita seja a hora de oracao,94,,,numero_nomes_distintos
-,,,0.27,buscar-me-eis | do pao do ceu | finda-se este dia,95,,,numero_nomes_distintos
-,,,0.40,com a minha voz clamo ao senhor | ha um maior conosco | sonhei com jesus esta noite,96,,,numero_nomes_distintos
-,,,0.37,buscou-me com ternura | jesus e o caminho | salmo 91,97,,,numero_nomes_distintos
-,,,0.46,cantares 2 | eu abri meu coracao | onde estaria eu?,98,,,numero_nomes_distintos
-,,,0.42,a salvacao | no meu coracao | um dia jesus achou-me,99,,,numero_nomes_distintos
 Partitura,Avulsos Diversos,avulso:quem-sou-eu-senhor-vaso-de-alabastro,,,,QXZ1bHNvcy84NDcucGRm,QXZ1bHNvcy9EcExJQ00gLSBRdWVtIHNvdSBldSBTZW5ob3IgKFZhc28gZGUgQWxhYmFzdHJvKSAtIENPUk8ucGRm,duplicate_categoria
 Partitura,Avulsos Diversos,avulso:sempre-imaginei-em-minha-vida,,,,QXZ1bHNvcy85MjAucGRm,QXZ1bHNvcy9EcExJQ00gLSBTZW1wcmUgSW1hZ2luZWkgZW0gTWluaGEgVmlkYSAtIENPUk8ucGRm,duplicate_categoria
 Cifra,Avulsos Diversos,avulso:quem-sou-eu-senhor,,,,QWRpY2lvbmFkb3MvUVdScFkybHZibUZrYjNNdlVYVmxiU0J6YjNVZ1pYVWdVMlZ1YUc5eUwwTnBabkpoTG5Ca1pnPT0ucGRm,QWRpY2lvbmFkb3MvUVdScFkybHZibUZrYjNNdlVYVmxiU0J6YjNVZ1pYVXNJRk5sYm1odmNpOURhV1p5WVM1d1pHWT0ucGRm,duplicate_categoria

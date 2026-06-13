@@ -66,6 +66,7 @@ class CarouselLouvorChip extends StatelessWidget {
   const CarouselLouvorChip({
     required this.item,
     this.variant = CarouselLouvorChipVariant.modal,
+    this.metadataSummary,
     this.showDragHandle = false,
     this.onTap,
     this.onRemove,
@@ -82,6 +83,9 @@ class CarouselLouvorChip extends StatelessWidget {
 
   /// `topBar` na barra do shell; `modal` (pill) em listas, modal e leitor.
   final CarouselLouvorChipVariant variant;
+
+  /// Substitui categoria/classificação — ex.: "2 entradas com 1 arranjo".
+  final String? metadataSummary;
 
   /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
@@ -180,6 +184,7 @@ class CarouselLouvorChip extends StatelessWidget {
                       _MetadataRow(
                         width: width,
                         numero: _isTopBar ? item.numero : null,
+                        summary: metadataSummary,
                         classificationLabel: classificationLabel,
                         categoria: item.categoria,
                         categoryIcon: categoryIcon,
@@ -221,10 +226,12 @@ class _MetadataRow extends StatelessWidget {
     required this.categoria,
     required this.categoryIcon,
     this.numero,
+    this.summary,
   });
 
   final double width;
   final String? numero;
+  final String? summary;
   final String classificationLabel;
   final String categoria;
   final IconData categoryIcon;
@@ -247,6 +254,25 @@ class _MetadataRow extends StatelessWidget {
       fontWeight: FontWeight.w500,
     );
     final numeroWidget = _numeroLeading(metaStyle);
+
+    if (summary != null) {
+      return Row(
+        children: [
+          if (numeroWidget != null) ...[
+            numeroWidget,
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              summary!,
+              style: metaStyle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
 
     if (width < _compactWidth) {
       return Row(

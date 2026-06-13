@@ -1,0 +1,114 @@
+export interface Env {
+  DB: D1Database;
+}
+
+interface LouvorRow {
+  nome: string;
+  numero: string;
+  classificacao: string;
+  categoria: string;
+  pdf: string;
+  pdf_id: string;
+  group_id: string;
+}
+
+interface LouvorJson {
+  nome: string;
+  numero: string;
+  classificacao: string;
+  categoria: string;
+  pdf: string;
+  pdfId: string;
+  groupId: string;
+}
+
+const CACHE_CONTROL = 'public, max-age=300';
+
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('Cache-Control', CACHE_CONTROL);
+  return new Response(JSON.stringify(body), { ...init, headers });
+}
+
+function textResponse(body: string, init: ResponseInit = {}): Response {
+  const headers = new Headers(init.headers);
+  headers.set('Content-Type', 'text/plain; charset=utf-8');
+  headers.set('Cache-Control', CACHE_CONTROL);
+  return new Response(body, { ...init, headers });
+}
+
+function mapRow(row: LouvorRow): LouvorJson {
+  return {
+    nome: row.nome,
+    numero: row.numero,
+    classificacao: row.classificacao,
+    categoria: row.categoria,
+    pdf: row.pdf,
+    pdfId: row.pdf_id,
+    groupId: row.group_id,
+  };
+}
+
+async function fetchLouvores(db: D1Database): Promise<Response> {
+  const result = await db
+    .prepare(
+      `SELECT nome, numero, classificacao, categoria, pdf, pdf_id, group_id
+       FROM louvores
+       ORDER BY numero, nome`,
+    )
+    .all<LouvorRow>();
+
+  const louvores = (result.results ?? []).map(mapRow);
+  return jsonResponse(louvores);
+}
+
+async function fetchChecksum(
+  db: D1Database,
+  request: Request,
+): Promise<Response> {
+  const row = await db
+    .prepare(`SELECT value FROM catalog_meta WHERE key = 'checksum'`)
+    .first<{ value: string }>();
+
+  if (!row?.value) {
+    return textResponse('checksum not configured', { status: 503 });
+  }
+
+  const etag = `"${row.value}"`;
+  const ifNoneMatch = request.headers.get('If-None-Match');
+  if (ifNoneMatch === etag || ifNoneMatch === row.value) {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ETag: etag,
+        'Cache-Control': CACHE_CONTROL,
+      },
+    });
+  }
+
+  return textResponse(row.value, {
+    status: 200,
+    headers: { ETag: etag },
+  });
+}
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method !== 'GET') {
+      return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+    }
+
+    if (url.pathname === '/api/catalog/louvores') {
+      return fetchLouvores(env.DB);
+    }
+
+    if (url.pathname === '/api/catalog/checksum') {
+      return fetchChecksum(env.DB, request);
+    }
+
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  },
+};

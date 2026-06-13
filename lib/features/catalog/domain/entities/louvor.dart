@@ -1,5 +1,6 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
 import '../utils/louvor_group_id.dart';
+import '../utils/louvor_numero_normalizer.dart';
 
 /// Entidade de domínio — louvor do manifest PLPCG.
 ///
@@ -39,7 +40,7 @@ class Louvor {
   /// Identificador único — Base64 UTF-8 URL-safe do caminho relativo.
   final String pdfId;
 
-  /// Agrupamento lógico do louvor; vazio → calculado via [LouvorGroupId].
+  /// Agrupamento lógico do louvor (D1 ou manifest); vazio → [LouvorGroupId.effective].
   final String groupId;
 
   /// Título normalizado ([LouvorSearchTokens.normalize]) para busca.
@@ -59,6 +60,8 @@ class Louvor {
       );
 
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
+  ///
+  /// [numero] é normalizado via [LouvorNumeroNormalizer] (pad-left 3 dígitos).
   factory Louvor.fromManifest({
     required String nome,
     required String numero,
@@ -68,10 +71,11 @@ class Louvor {
     required String pdfId,
     String groupId = '',
   }) {
+    final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
     final titleTokens = LouvorSearchTokens.tokenize(nome);
     final searchCompactContent = LouvorSearchTokens.compact(nome);
-    final numeroToken = LouvorSearchTokens.normalize(numero.trim());
+    final numeroToken = LouvorSearchTokens.normalize(normalizedNumero);
     final tokens = <String>{...titleTokens};
     if (numeroToken.isNotEmpty) {
       tokens.add(numeroToken);
@@ -79,7 +83,7 @@ class Louvor {
 
     return Louvor(
       nome: nome,
-      numero: numero,
+      numero: normalizedNumero,
       categoria: categoria,
       classificacao: classificacao,
       pdf: pdf,

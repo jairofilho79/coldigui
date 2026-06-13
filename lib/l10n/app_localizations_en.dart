@@ -503,4 +503,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Saved playlists cannot be cleared from the bar. Use the playlist menu.';
+
+  @override
+  String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      entryCount,
+      locale: localeName,
+      other: '$entryCount entries',
+      one: '1 entry',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      arrangementCount,
+      locale: localeName,
+      other: '$arrangementCount arrangements',
+      one: '1 arrangement',
+    );
+    return '$_temp0 with $_temp1';
+  }
 }

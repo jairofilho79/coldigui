@@ -240,5 +240,17 @@
   "playlistDeleteAllUnsavedTitle": "Apagar todas as listas não salvas?",
   "playlistDeleteAllUnsavedMessage": "Todas as listas da aba Não Salvas serão removidas permanentemente.",
   "playlistDeleteAllUnsavedDone": "Listas não salvas apagadas",
-  "playlistClearSavedBlocked": "Listas salvas não podem ser limpas pela barra. Use o menu da lista."
+  "playlistClearSavedBlocked": "Listas salvas não podem ser limpas pela barra. Use o menu da lista.",
+  "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entrada} other{{entryCount} entradas}} com {arrangementCount, plural, one{1 arranjo} other{{arrangementCount} arranjos}}",
+  "@louvorGroupMetadataSummary": {
+    "description": "Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)",
+    "placeholders": {
+      "entryCount": {
+        "type": "int"
+      },
+      "arrangementCount": {
+        "type": "int"
+      }
+    }
+  }
 }

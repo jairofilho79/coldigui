@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
@@ -19,6 +20,7 @@ import 'package:coldigui/features/pdf_reader/domain/usecases/open_pdf_document.d
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -29,23 +31,57 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _localPdfPath = '/tmp/plpcg_pdfs/ColAdultos/001.pdf';
+const _groupId = '001:aleluia';
 
-Louvor _louvor({required String nome}) {
-  const relPath = 'assets/ColAdultos/001.pdf';
-  final pdfId = base64Url
+String _pdfIdForPath(String relPath) {
+  return base64Url
       .encode(utf8.encode(relPath))
       .replaceAll('+', '-')
       .replaceAll('/', '_')
       .replaceAll('=', '');
+}
 
+Louvor _louvor({
+  required String nome,
+  required String categoria,
+  required String pdf,
+  required String relPath,
+}) {
   return Louvor.fromManifest(
     nome: nome,
     numero: '001',
-    categoria: 'Partitura',
+    categoria: categoria,
     classificacao: 'ColAdultos',
-    pdf: '001.pdf',
-    pdfId: pdfId,
+    pdf: pdf,
+    pdfId: _pdfIdForPath(relPath),
+    groupId: _groupId,
   );
+}
+
+Louvor _singleLouvor({required String nome}) {
+  return _louvor(
+    nome: nome,
+    categoria: 'Partitura',
+    pdf: '001.pdf',
+    relPath: 'assets/ColAdultos/001.pdf',
+  );
+}
+
+LouvorGroup _multiMaterialGroup() {
+  return LouvorGroup.fromLouvores([
+    _louvor(
+      nome: 'Aleluia',
+      categoria: 'Partitura',
+      pdf: '001.pdf',
+      relPath: 'assets/ColAdultos/001.pdf',
+    ),
+    _louvor(
+      nome: 'Aleluia',
+      categoria: 'Cifra',
+      pdf: '001-cifra.pdf',
+      relPath: 'assets/ColAdultos/001-cifra.pdf',
+    ),
+  ]).first;
 }
 
 class _StubDio implements Dio {
@@ -179,7 +215,7 @@ void main() {
         GoRoute(
           path: RoutePaths.home,
           builder: (_, __) => Scaffold(
-            body: LouvorCard(louvor: _louvor(nome: 'Aleluia')),
+            body: LouvorCard(louvor: _singleLouvor(nome: 'Aleluia')),
           ),
         ),
         GoRoute(
@@ -213,7 +249,33 @@ void main() {
     expect(router.state.uri.queryParameters['titulo'], 'Aleluia');
   });
 
-  testWidgets('LouvorCard menu Compartilhar dispara SharePdf', (tester) async {
+  testWidgets('LouvorCard com 1 material não exibe menu compartilhar no card',
+      (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ..._commonOverrides(),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: LouvorCard(louvor: _singleLouvor(nome: 'Aleluia')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.more_vert), findsNothing);
+  });
+
+  testWidgets('LouvorGroupCard com vários materiais compartilha pelo sheet',
+      (tester) async {
     final prefs = await SharedPreferences.getInstance();
     final sharePdf = _RecordingSharePdf();
 
@@ -229,17 +291,21 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('pt'),
           home: Scaffold(
-            body: LouvorCard(louvor: _louvor(nome: 'Aleluia')),
+            body: LouvorGroupCard(group: _multiMaterialGroup()),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    expect(find.byIcon(Icons.more_vert), findsNothing);
+
+    await tester.tap(find.textContaining('Aleluia'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Compartilhar'));
+    expect(find.byIcon(Icons.share_outlined), findsNWidgets(2));
+
+    await tester.tap(find.byIcon(Icons.share_outlined).first);
     await tester.pumpAndSettle();
 
     expect(sharePdf.lastFilePath, _localPdfPath);

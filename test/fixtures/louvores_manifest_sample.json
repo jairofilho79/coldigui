@@ -5,7 +5,8 @@
     "categoria": "Partitura",
     "classificacao": "ColAdultos",
     "pdf": "001.pdf",
-    "pdfId": "YXNzZXRzL0NvbEFkdWx0b3MvMDAxLnBkZg"
+    "pdfId": "YXNzZXRzL0NvbEFkdWx0b3MvMDAxLnBkZg",
+    "groupId": "001:louvor-teste-um"
   },
   {
     "nome": "Louvor Teste Dois",
@@ -13,7 +14,8 @@
     "categoria": "Cifra",
     "classificacao": "ColAdultos",
     "pdf": "002.pdf",
-    "pdfId": "YXNzZXRzL0NvbEFkdWx0b3MvMDAyLnBkZg"
+    "pdfId": "YXNzZXRzL0NvbEFkdWx0b3MvMDAyLnBkZg",
+    "groupId": "002:louvor-teste-dois"
   },
   {
     "nome": "Entrada inválida",

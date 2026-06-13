@@ -4,6 +4,8 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,20 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   List<CarouselItem> build() => const [];
 }
 
+List<Override> _homeSearchTestOverrides({
+  required SharedPreferences prefs,
+  required List<Louvor> catalog,
+}) {
+  return [
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    louvoresManifestProvider.overrideWith((ref) async => catalog),
+    carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+    homeSearchPipelineExecutorProvider.overrideWith(
+      (ref) => (input) async => runHomeSearchPipeline(input),
+    ),
+  ];
+}
+
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -42,11 +58,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestProvider.overrideWith((ref) async => catalog),
-          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-        ],
+        overrides: _homeSearchTestOverrides(prefs: prefs, catalog: catalog),
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -88,11 +100,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-            louvoresManifestProvider.overrideWith((ref) async => catalog),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          ],
+          overrides: _homeSearchTestOverrides(prefs: prefs, catalog: catalog),
           child: MaterialApp.router(
             routerConfig: router,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

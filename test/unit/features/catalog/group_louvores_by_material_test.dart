@@ -37,6 +37,13 @@ void main() {
         'avulso:abriga-me',
       );
     });
+
+    test('compute normaliza zeros à esquerda', () {
+      expect(
+        LouvorGroupId.compute(numero: '003', nome: 'Clamo a ti'),
+        LouvorGroupId.compute(numero: '3', nome: 'Clamo a ti'),
+      );
+    });
   });
 
   group('GroupLouvoresByMaterial', () {
@@ -90,6 +97,28 @@ void main() {
       ];
 
       expect(group(louvores), hasLength(2));
+    });
+
+    test('003 e 3 no mesmo nome agrupam no mesmo groupId', () {
+      final louvores = [
+        _louvor(
+          nome: 'Clamo a ti',
+          categoria: CatalogMaterials.partitura,
+          classificacao: 'Coletânea CIAs',
+          pdfId: 'a',
+          numero: '003',
+        ),
+        _louvor(
+          nome: 'Clamo a ti',
+          categoria: CatalogMaterials.cifraNivelI,
+          classificacao: 'Coletânea CIAs',
+          pdfId: 'b',
+          numero: '3',
+        ),
+      ];
+
+      expect(group(louvores), hasLength(1));
+      expect(group(louvores).first.numero, '003');
     });
   });
 }

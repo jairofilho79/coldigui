@@ -1,11 +1,7 @@
 #!/bin/bash
-# stop — flutter analyze + encadeia Docs Creator se budget permitir.
+# stop — flutter analyze antes de encerrar a tarefa.
 
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=loop-budget.sh
-source "$SCRIPT_DIR/loop-budget.sh"
 
 input=$(cat)
 status=$(echo "$input" | jq -r '.status // empty')
@@ -37,12 +33,5 @@ if echo "$analyze_output" | grep -Eq '(^|\s)(error|warning)\s+•'; then
   exit 0
 fi
 
-if loop_budget_consume 1; then
-  jq -n '{
-    "followup_message": "flutter analyze OK. Use a skill plpcg-docs-creator: atualize docs/features/FEATURE_INDEX.md e documente APIs públicas novas."
-  }'
-else
-  echo '{}'
-fi
-
+echo '{}'
 exit 0

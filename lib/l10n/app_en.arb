@@ -240,5 +240,17 @@
   "playlistDeleteAllUnsavedTitle": "Delete all unsaved playlists?",
   "playlistDeleteAllUnsavedMessage": "All playlists in the Unsaved tab will be permanently removed.",
   "playlistDeleteAllUnsavedDone": "Unsaved playlists deleted",
-  "playlistClearSavedBlocked": "Saved playlists cannot be cleared from the bar. Use the playlist menu."
+  "playlistClearSavedBlocked": "Saved playlists cannot be cleared from the bar. Use the playlist menu.",
+  "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entry} other{{entryCount} entries}} with {arrangementCount, plural, one{1 arrangement} other{{arrangementCount} arrangements}}",
+  "@louvorGroupMetadataSummary": {
+    "description": "Card subtitle when a hymn groups multiple PDFs (Home/Library)",
+    "placeholders": {
+      "entryCount": {
+        "type": "int"
+      },
+      "arrangementCount": {
+        "type": "int"
+      }
+    }
+  }
 }

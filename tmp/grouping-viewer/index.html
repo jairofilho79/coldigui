@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Louvores grouped — revisão</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 12px; }
+    h1 { font-size: 1.1rem; margin: 0 0 12px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .toolbar label { font-size: 0.85rem; }
+    .toolbar input[type="text"], .toolbar input[type="search"] { min-width: 200px; }
+    .tabs button { padding: 6px 12px; cursor: pointer; }
+    .tabs button.active { font-weight: bold; }
+    .status { font-size: 0.85rem; color: #444; margin-bottom: 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
+    th { background: #eee; position: sticky; top: 0; }
+    .group { border: 1px solid #999; margin-bottom: 8px; }
+    .group summary { cursor: pointer; padding: 6px 8px; background: #f5f5f5; font-weight: 600; }
+    .group table { margin: 0; }
+    .group table td, .group table th { border-left: none; border-right: none; }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; }
+    .actions button, .actions a { margin-right: 6px; font-size: 0.8rem; }
+    .hidden { display: none; }
+    #rawWrap { max-height: calc(100vh - 160px); overflow: auto; }
+    .warn { color: #a00; }
+    .ok { color: #060; }
+  </style>
+</head>
+<body>
+  <h1>Louvores manifest grouped</h1>
+
+  <div class="toolbar">
+    <label>JSON <input type="file" id="fileInput" accept=".json,application/json" /></label>
+    <button type="button" id="reloadBtn">Recarregar padrão</button>
+    <label>API base
+      <input type="text" id="apiBase" value="https://plpcg.com" size="28" />
+    </label>
+    <label>Busca
+      <input type="search" id="search" placeholder="nome, pdfId, groupId, número…" />
+    </label>
+    <button type="button" id="saveBtn">Baixar JSON</button>
+  </div>
+
+  <div class="tabs toolbar">
+    <button type="button" id="tabPreview" class="active">Preview (agrupado)</button>
+    <button type="button" id="tabRaw">Raw (editável)</button>
+  </div>
+
+  <div class="status" id="status">Carregando…</div>
+
+  <div id="previewView"></div>
+  <div id="rawView" class="hidden">
+    <div id="rawWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>nome</th>
+            <th>numero</th>
+            <th>classificacao</th>
+            <th>categoria</th>
+            <th>pdfId</th>
+            <th>groupId</th>
+            <th>ações</th>
+          </tr>
+        </thead>
+        <tbody id="rawBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

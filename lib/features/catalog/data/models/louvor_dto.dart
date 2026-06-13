@@ -1,6 +1,10 @@
 import '../../domain/entities/louvor.dart';
 
-/// DTO de serialização do manifest remoto → entidade [Louvor].
+/// DTO de serialização do catálogo remoto → entidade [Louvor].
+///
+/// Shape idêntico ao JSON de `/api/catalog/louvores` (Worker D1) e
+/// `louvores-manifest.json` legado. [groupId] é obrigatório no D1;
+/// omitido no JSON antigo → `''` (fallback via [LouvorGroupId.effective]).
 class LouvorDto {
   const LouvorDto({
     required this.nome,
@@ -18,9 +22,11 @@ class LouvorDto {
   final String classificacao;
   final String pdf;
   final String pdfId;
+
+  /// Agrupamento lógico do louvor; vem do D1 ou do manifest agrupado.
   final String groupId;
 
-  /// Parse do JSON do `louvores-manifest.json`.
+  /// Parse do JSON do catálogo (`/api/catalog/louvores` ou manifest legado).
   factory LouvorDto.fromJson(Map<String, dynamic> json) => LouvorDto(
         nome: json['nome'] as String,
         numero: json['numero'] as String,

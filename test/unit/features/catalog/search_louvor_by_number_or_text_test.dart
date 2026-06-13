@@ -42,6 +42,17 @@ void main() {
     expect(result.first.numero, '123');
   });
 
+  test('busca por número aceita zeros à esquerda', () {
+    final extended = [
+      ...catalog,
+      _louvor(nome: 'Clamo a ti', numero: '003', pdfId: 'e'),
+    ];
+
+    expect(search(extended, '3'), hasLength(1));
+    expect(search(extended, '3').first.numero, '003');
+    expect(search(extended, '003'), hasLength(1));
+  });
+
   test('número exato vem antes de matches textuais', () {
     final extended = [
       ...catalog,
