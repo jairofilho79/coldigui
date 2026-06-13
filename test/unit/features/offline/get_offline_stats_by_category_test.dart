@@ -125,6 +125,7 @@ void main() {
     expect(stats.byCategory[CatalogMaterials.partitura], 1);
     expect(stats.byCategory[CatalogMaterials.cifra], 1);
     expect(stats.totalCount, 2);
+    expect(stats.totalDiskUsageBytes, 2);
     expect(stats.missingByCategory[CatalogMaterials.partitura], 1);
   });
 }

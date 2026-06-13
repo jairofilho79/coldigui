@@ -67,6 +67,16 @@ class _StatsRepo implements OfflinePdfRepository {
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
+
+  @override
+  Future<int> totalCachedBytes() async => 0;
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async =>
+      0;
 }
 
 class _StubCatalogLocal extends CatalogLocalDatasource {

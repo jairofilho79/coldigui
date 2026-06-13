@@ -6,8 +6,13 @@ import 'dart:typed_data';
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
+import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
@@ -45,12 +50,22 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   }
 }
 
+class _FakeDiskSpaceChecker extends DiskSpaceChecker {
+  _FakeDiskSpaceChecker(this._freeBytes);
+
+  final int? _freeBytes;
+
+  @override
+  Future<int?> getFreeBytes() async => _freeBytes;
+}
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
   late Isar isar;
   late PdfLocalStore store;
   late OfflinePdfRepositoryImpl repository;
+  late FavoritePdfIdsResolver favoritePdfIdsResolver;
 
   const relPath = 'ColAdultos/001.pdf';
   const remotePath = '/assets/ColAdultos/001.pdf';
@@ -69,7 +84,7 @@ void main() {
     await docsDir.create(recursive: true);
 
     isar = await Isar.open(
-      [LouvorCacheSchema, OfflinePdfIndexSchema],
+      [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
       directory: tempDir.path,
     );
 
@@ -80,6 +95,8 @@ void main() {
       store: store,
       local: OfflinePdfLocalDatasource(isar),
     );
+    favoritePdfIdsResolver =
+        FavoritePdfIdsResolver(PlaylistLocalDatasource(isar));
   });
 
   tearDown(() async {
@@ -89,8 +106,19 @@ void main() {
     }
   });
 
-  FetchAndStorePdf createUseCase(_FakePdfBytesDatasource datasource) {
-    return FetchAndStorePdf(datasource, repository);
+  FetchAndStorePdf createUseCase(
+    _FakePdfBytesDatasource datasource, {
+    int? freeBytes = 999999999,
+    FavoritePdfIdsResolver? favoritesResolver,
+    int cacheQuotaBytes = OfflineConfig.defaultPdfCacheQuotaBytes,
+  }) {
+    return FetchAndStorePdf(
+      datasource,
+      repository,
+      diskSpaceChecker: _FakeDiskSpaceChecker(freeBytes),
+      favoritePdfIdsResolver: favoritesResolver ?? favoritePdfIdsResolver,
+      cacheQuotaBytes: cacheQuotaBytes,
+    );
   }
 
   test('download + upsert feliz retorna fromCache false', () async {
@@ -271,5 +299,49 @@ void main() {
     );
 
     expect(captured, isNotNull);
+  });
+
+  test('espaço livre insuficiente lança InsufficientDiskSpaceException',
+      () async {
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
+    );
+    final useCase = createUseCase(datasource, freeBytes: 1024);
+
+    await expectLater(
+      useCase(pdfId: pdfId, remotePath: remotePath),
+      throwsA(isA<InsufficientDiskSpaceException>()),
+    );
+    expect(await repository.lookup(pdfId), isNull);
+  });
+
+  test('evict LRU quando quota seria excedida', () async {
+    final oldId = _encodePdfId('ColAdultos/old.pdf');
+    final newId = _encodePdfId('ColAdultos/new.pdf');
+
+    await repository.upsert(
+      pdfId: oldId,
+      bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 1, 2, 3, 4]),
+      category: 'ColAdultos',
+    );
+
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async =>
+          Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 5, 6, 7]),
+    );
+
+    final useCase = createUseCase(
+      datasource,
+      cacheQuotaBytes: 12,
+    );
+
+    await useCase(
+      pdfId: newId,
+      remotePath: '/assets/ColAdultos/new.pdf',
+    );
+
+    expect(await repository.lookup(oldId), isNull);
+    expect(await repository.lookup(newId), isNotNull);
+    expect(await repository.totalCachedBytes(), lessThanOrEqualTo(12));
   });
 }

@@ -5,6 +5,8 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
@@ -171,11 +173,31 @@ class _UnusedRepository implements OfflinePdfRepository {
 
   @override
   Future<void> clearAll() => throw UnimplementedError();
+
+  @override
+  Future<int> totalCachedBytes() async => 0;
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async =>
+      0;
 }
 
 class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
   _UnusedFetchAndStorePdf()
-      : super(_FakeBytesDatasource(Uint8List(0)), _UnusedRepository());
+      : super(
+          _FakeBytesDatasource(Uint8List(0)),
+          _UnusedRepository(),
+          diskSpaceChecker: _UnusedDiskSpaceChecker(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        );
+}
+
+class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
 }
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {

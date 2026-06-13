@@ -30,7 +30,10 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   int fetchCount = 0;
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) async {
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
     fetchCount++;
     return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
   }
@@ -87,7 +90,7 @@ void main() {
     useCase = DownloadMissingPdfs(
       _FakeManifestDatasource(manifest),
       repository,
-      FetchAndStorePdf(bytesDatasource, repository),
+      createTestFetchAndStorePdf(bytesDatasource, repository),
     );
   });
 

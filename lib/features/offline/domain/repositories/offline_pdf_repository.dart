@@ -62,4 +62,16 @@ abstract class OfflinePdfRepository {
 
   /// Limpa todo o índice Isar — sem tocar arquivos no disco.
   Future<void> clearAll();
+
+  /// Soma de [OfflinePdfEntry.fileSize] no índice — stats e quota LRU.
+  Future<int> totalCachedBytes();
+
+  /// Remove PDFs menos recentes até liberar [targetBytes] (LRU por lastAccessedAt).
+  ///
+  /// [excludePdfIds] permanecem no cache (ex.: favoritos ou PDF em download).
+  /// Retorna bytes efetivamente liberados.
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  });
 }

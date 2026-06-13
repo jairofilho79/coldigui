@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
@@ -61,7 +63,17 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
 
 class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
   _UnusedFetchAndStorePdf()
-      : super(_UnusedPdfBytesDatasource(), _UnusedRepository());
+      : super(
+          _UnusedPdfBytesDatasource(),
+          _UnusedRepository(),
+          diskSpaceChecker: _UnusedDiskSpaceChecker(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        );
+}
+
+class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
 }
 
 class _UnusedRepository implements OfflinePdfRepository {
@@ -116,6 +128,16 @@ class _UnusedRepository implements OfflinePdfRepository {
 
   @override
   Future<void> clearAll() => throw UnimplementedError();
+
+  @override
+  Future<int> totalCachedBytes() async => 0;
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async =>
+      0;
 }
 
 void main() {

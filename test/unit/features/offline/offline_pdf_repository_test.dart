@@ -104,6 +104,28 @@ void main() {
     expect(found.fileSize, bytes.length);
   });
 
+  test('lookup atualiza lastAccessedAt no índice', () async {
+    final bytes = _validPdfBytes();
+    await repository.upsert(pdfId: pdfId, bytes: bytes, category: category);
+
+    final indexBefore =
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    final lastAccessBefore = indexBefore!.lastAccessedAt;
+
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await repository.lookup(pdfId);
+
+    final indexAfter =
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    expect(indexAfter!.lastAccessedAt, isNotNull);
+    expect(
+      indexAfter.lastAccessedAt!.isAfter(
+        lastAccessBefore ?? indexBefore.downloadedAt,
+      ),
+      isTrue,
+    );
+  });
+
   test('findPdfIdByAbsolutePath resolve pdfId do índice', () async {
     final bytes = _validPdfBytes();
     final entry = await repository.upsert(
@@ -276,6 +298,85 @@ void main() {
 
     expect(entry.absolutePath, isNot(contains('assets/')));
     expect(entry.absolutePath, endsWith('ColAdultos/001.pdf'));
+  });
+
+  test('totalCachedBytes soma fileSize do índice', () async {
+    final id1 = _encodePdfId('ColAdultos/a.pdf');
+    final id2 = _encodePdfId('ColAdultos/b.pdf');
+
+    await repository.upsert(
+      pdfId: id1,
+      bytes: _validPdfBytes([1, 2, 3, 4, 5]),
+      category: 'ColAdultos',
+    );
+    await repository.upsert(
+      pdfId: id2,
+      bytes: _validPdfBytes([1, 2]),
+      category: 'ColAdultos',
+    );
+
+    expect(await repository.totalCachedBytes(), 15);
+  });
+
+  group('evictOldestPdfs LRU', () {
+    test('remove PDF menos recentemente acessado primeiro', () async {
+      final oldestId = _encodePdfId('ColAdultos/oldest.pdf');
+      final middleId = _encodePdfId('ColAdultos/middle.pdf');
+      final newestId = _encodePdfId('ColAdultos/newest.pdf');
+
+      await repository.upsert(
+        pdfId: oldestId,
+        bytes: _validPdfBytes([1, 2, 3, 4]),
+        category: 'ColAdultos',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+      await repository.upsert(
+        pdfId: middleId,
+        bytes: _validPdfBytes([1, 2, 3, 4, 5, 6]),
+        category: 'ColAdultos',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+      await repository.upsert(
+        pdfId: newestId,
+        bytes: _validPdfBytes([1, 2, 3, 4, 5, 6, 7]),
+        category: 'ColAdultos',
+      );
+
+      await repository.lookup(middleId);
+      await repository.lookup(newestId);
+
+      final freed = await repository.evictOldestPdfs(targetBytes: 4);
+      expect(freed, 8);
+      expect(await repository.lookup(oldestId), isNull);
+      expect(await repository.lookup(middleId), isNotNull);
+      expect(await repository.lookup(newestId), isNotNull);
+    });
+
+    test('não remove PDFs em excludePdfIds', () async {
+      final protectedId = _encodePdfId('ColAdultos/protected.pdf');
+      final evictId = _encodePdfId('ColAdultos/evict.pdf');
+
+      await repository.upsert(
+        pdfId: protectedId,
+        bytes: _validPdfBytes([1, 2, 3, 4]),
+        category: 'ColAdultos',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+      await repository.upsert(
+        pdfId: evictId,
+        bytes: _validPdfBytes([1, 2, 3, 4, 5, 6]),
+        category: 'ColAdultos',
+      );
+
+      final freed = await repository.evictOldestPdfs(
+        targetBytes: 100,
+        excludePdfIds: {protectedId},
+      );
+
+      expect(freed, 10);
+      expect(await repository.lookup(protectedId), isNotNull);
+      expect(await repository.lookup(evictId), isNull);
+    });
   });
 
   test('clearAll remove todas as entradas do índice', () async {

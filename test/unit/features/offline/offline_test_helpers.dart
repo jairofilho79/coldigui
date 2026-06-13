@@ -3,9 +3,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
+import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
+import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -72,4 +78,23 @@ Future<void> seedOfflineEntries({
       category: category,
     );
   }
+}
+
+class UnlimitedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
+}
+
+FetchAndStorePdf createTestFetchAndStorePdf(
+  PdfBytesDatasource bytesDatasource,
+  OfflinePdfRepository repository, {
+  int cacheQuotaBytes = OfflineConfig.defaultPdfCacheQuotaBytes,
+}) {
+  return FetchAndStorePdf(
+    bytesDatasource,
+    repository,
+    diskSpaceChecker: UnlimitedDiskSpaceChecker(),
+    favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+    cacheQuotaBytes: cacheQuotaBytes,
+  );
 }

@@ -63,6 +63,16 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
 
   @override
   Future<void> clearAll() async {}
+
+  @override
+  Future<int> totalCachedBytes() async => 0;
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async =>
+      0;
 }
 
 void main() {

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
@@ -55,13 +57,24 @@ class _FakeOfflineRepository implements OfflinePdfRepository {
       }
       return Future<(OfflinePdfEntry?, bool)>.value((null, false));
     }
+    if (invocation.memberName == #totalCachedBytes) {
+      return Future<int>.value(0);
+    }
+    if (invocation.memberName == #evictOldestPdfs) {
+      return Future<int>.value(0);
+    }
     return super.noSuchMethod(invocation);
   }
 }
 
 class _TrackingFetchAndStore extends FetchAndStorePdf {
   _TrackingFetchAndStore(this.resolvedPdfIds)
-      : super(_UnusedBytesDatasource(), _UnusedRepo());
+      : super(
+          _UnusedBytesDatasource(),
+          _UnusedRepo(),
+          diskSpaceChecker: _UnusedDiskSpaceChecker(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        );
 
   final List<String> resolvedPdfIds;
 
@@ -85,9 +98,22 @@ class _UnusedBytesDatasource extends PdfBytesDatasource {
   _UnusedBytesDatasource() : super(Dio());
 }
 
+class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
+}
+
 class _UnusedRepo implements OfflinePdfRepository {
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #totalCachedBytes) {
+      return Future<int>.value(0);
+    }
+    if (invocation.memberName == #evictOldestPdfs) {
+      return Future<int>.value(0);
+    }
+    return super.noSuchMethod(invocation);
+  }
 }
 
 String _pdfIdForPath(String relPath) {

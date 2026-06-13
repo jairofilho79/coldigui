@@ -37,6 +37,9 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
     switch (await _validateIndexFile(index)) {
       case _IndexFileValidation.valid:
+        final now = DateTime.now();
+        await _local.touchLastAccessed(pdfId, now);
+        index.lastAccessedAt = now;
         return (_toEntry(index), true);
       case _IndexFileValidation.missing:
         return (null, true);
@@ -94,7 +97,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       ..storagePath = absolutePath
       ..category = category
       ..fileSize = bytes.length
-      ..downloadedAt = now;
+      ..downloadedAt = now
+      ..lastAccessedAt = now;
 
     await _local.put(index);
 
@@ -104,6 +108,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       category: category,
       fileSize: bytes.length,
       downloadedAt: now,
+      lastAccessedAt: now,
     );
   }
 
@@ -143,7 +148,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
             ..storagePath = item.absolutePath
             ..category = OfflineCategoryResolver.fromPdfId(item.pdfId)
             ..fileSize = item.fileSize
-            ..downloadedAt = now,
+            ..downloadedAt = now
+            ..lastAccessedAt = now,
         )
         .toList();
 
@@ -166,7 +172,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
           ..storagePath = absolutePath
           ..category = item.category
           ..fileSize = item.bytes.length
-          ..downloadedAt = now,
+          ..downloadedAt = now
+          ..lastAccessedAt = now,
       );
     }
 
@@ -179,6 +186,37 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
   @override
   Future<void> clearAll() => _local.clearAll();
+
+  @override
+  Future<int> totalCachedBytes() => _local.sumFileSizes();
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async {
+    if (targetBytes <= 0) return 0;
+
+    final indexes = await _local.findAll();
+    indexes.sort((a, b) {
+      final aAccess = a.lastAccessedAt ?? a.downloadedAt;
+      final bAccess = b.lastAccessedAt ?? b.downloadedAt;
+      final byAccess = aAccess.compareTo(bAccess);
+      if (byAccess != 0) return byAccess;
+      return a.downloadedAt.compareTo(b.downloadedAt);
+    });
+
+    var freed = 0;
+    for (final index in indexes) {
+      if (freed >= targetBytes) break;
+      if (excludePdfIds.contains(index.pdfId)) continue;
+
+      await remove(index.pdfId);
+      freed += index.fileSize;
+    }
+
+    return freed;
+  }
 
   static String _resolveStorageRelPath(String pdfId) {
     var rel = PdfPathNormalizer.getPdfRelPath(pdfId);
@@ -224,6 +262,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
         category: index.category,
         fileSize: index.fileSize,
         downloadedAt: index.downloadedAt,
+        lastAccessedAt: index.lastAccessedAt,
       );
 }
 

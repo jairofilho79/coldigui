@@ -64,6 +64,23 @@ class OfflinePdfLocalDatasource {
   Future<List<OfflinePdfIndex>> findAll() =>
       _isar.offlinePdfIndexs.where().findAll();
 
+  /// Soma [OfflinePdfIndex.fileSize] — quota LRU sem scan filesystem.
+  Future<int> sumFileSizes() async {
+    final all = await findAll();
+    return all.fold<int>(0, (sum, index) => sum + index.fileSize);
+  }
+
+  /// Atualiza [OfflinePdfIndex.lastAccessedAt] após lookup bem-sucedido.
+  Future<void> touchLastAccessed(String pdfId, DateTime accessedAt) async {
+    await _isar.writeTxn(() async {
+      final existing =
+          await _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+      if (existing == null) return;
+      existing.lastAccessedAt = accessedAt;
+      await _isar.offlinePdfIndexs.put(existing);
+    });
+  }
+
   /// Upsert em lote por `pdfId` em uma única transação (bulk UC-09).
   Future<void> putAllByPdfId(List<OfflinePdfIndex> indexes) async {
     if (indexes.isEmpty) return;

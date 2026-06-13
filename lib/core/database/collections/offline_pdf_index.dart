@@ -23,4 +23,9 @@ class OfflinePdfIndex {
 
   /// Timestamp do último upsert bem-sucedido.
   late DateTime downloadedAt;
+
+  /// Timestamp do último lookup/upsert bem-sucedido — base do LRU (backlog #10).
+  ///
+  /// Registros legados sem valor usam [downloadedAt] na ordenação de eviction.
+  DateTime? lastAccessedAt;
 }

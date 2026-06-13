@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
@@ -29,7 +31,12 @@ String _encodePdfId(String path) {
 
 class _FakeFetchAndStorePdf extends FetchAndStorePdf {
   _FakeFetchAndStorePdf(this._onCall)
-      : super(_UnusedPdfBytesDatasource(), _UnusedRepository());
+      : super(
+          _UnusedPdfBytesDatasource(),
+          _UnusedRepository(),
+          diskSpaceChecker: _UnusedDiskSpaceChecker(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        );
 
   final Future<LocalPdfSource> Function({
     required String pdfId,
@@ -63,6 +70,11 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   }) {
     throw StateError('_FakeFetchAndStorePdf não deve chamar fetchBytes');
   }
+}
+
+class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
 }
 
 class _UnusedRepository implements OfflinePdfRepository {
@@ -119,6 +131,16 @@ class _UnusedRepository implements OfflinePdfRepository {
 
   @override
   Future<void> clearAll() => throw UnimplementedError();
+
+  @override
+  Future<int> totalCachedBytes() async => 0;
+
+  @override
+  Future<int> evictOldestPdfs({
+    required int targetBytes,
+    Set<String> excludePdfIds = const {},
+  }) async =>
+      0;
 }
 
 class _FakePdfBytesDatasource extends PdfBytesDatasource {
@@ -217,6 +239,8 @@ void main() {
     final fetchAndStore = FetchAndStorePdf(
       _FakePdfBytesDatasource(bytes),
       repository,
+      diskSpaceChecker: _UnusedDiskSpaceChecker(),
+      favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
     );
     final resolver = ResolvePdfForReader(repository, fetchAndStore);
 

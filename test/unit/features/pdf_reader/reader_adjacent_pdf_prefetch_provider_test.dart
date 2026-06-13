@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
@@ -61,13 +63,24 @@ class _FakeOfflineRepository implements OfflinePdfRepository {
       }
       return Future<(OfflinePdfEntry?, bool)>.value((null, false));
     }
+    if (invocation.memberName == #totalCachedBytes) {
+      return Future<int>.value(0);
+    }
+    if (invocation.memberName == #evictOldestPdfs) {
+      return Future<int>.value(0);
+    }
     return super.noSuchMethod(invocation);
   }
 }
 
 class _TrackingFetchAndStore extends FetchAndStorePdf {
   _TrackingFetchAndStore(this.resolvedPdfIds)
-      : super(_NoOpBytesDatasource(), _FakeOfflineRepository(cachedPdfIds: {}));
+      : super(
+          _NoOpBytesDatasource(),
+          _FakeOfflineRepository(cachedPdfIds: {}),
+          diskSpaceChecker: _UnusedDiskSpaceChecker(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        );
 
   final List<String> resolvedPdfIds;
 
@@ -93,6 +106,11 @@ class _NoOpBytesDatasource extends PdfBytesDatasource {
           Dio(),
           resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
         );
+}
+
+class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
+  @override
+  Future<int?> getFreeBytes() async => 999999999;
 }
 
 class _SessionTestAdapter extends PdfxViewerAdapter {

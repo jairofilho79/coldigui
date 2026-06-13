@@ -16,7 +16,9 @@ import '../../domain/usecases/download_missing_pdfs.dart';
 import '../../domain/usecases/migrate_offline_storage.dart';
 import '../../domain/usecases/reconcile_offline_index.dart';
 import '../../domain/usecases/resolve_pdf_for_reader.dart';
+import '../../../playlists/data/providers/playlist_providers.dart';
 import '../datasources/disk_space_checker.dart';
+import '../datasources/favorite_pdf_ids_resolver.dart';
 import '../datasources/offline_available_store.dart';
 import '../datasources/offline_bulk_checkpoint_store.dart';
 import '../datasources/offline_manifest_remote_datasource.dart';
@@ -52,6 +54,8 @@ final fetchAndStorePdfProvider = Provider<FetchAndStorePdf>((ref) {
   return FetchAndStorePdf(
     ref.watch(pdfBytesDatasourceProvider),
     ref.watch(offlinePdfRepositoryProvider),
+    diskSpaceChecker: ref.watch(diskSpaceCheckerProvider),
+    favoritePdfIdsResolver: ref.watch(favoritePdfIdsResolverProvider),
   );
 });
 
@@ -82,6 +86,11 @@ final offlineManifestRemoteDatasourceProvider =
 /// DI — checagem de espaço livre em disco.
 final diskSpaceCheckerProvider = Provider<DiskSpaceChecker>((ref) {
   return DiskSpaceChecker();
+});
+
+/// DI — PDFs em playlists favoritas (protegidos da eviction LRU).
+final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
+  return FavoritePdfIdsResolver(ref.watch(playlistLocalDatasourceProvider));
 });
 
 /// DI — download de ZIPs transitórios.

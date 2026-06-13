@@ -51,9 +51,13 @@ class GetOfflineStatsByCategory {
       }
     }
 
+    final totalDiskUsageBytes =
+        entries.fold<int>(0, (sum, entry) => sum + entry.fileSize);
+
     return OfflineStats(
       byCategory: byCategory,
       missingByCategory: missingByCategory,
+      totalDiskUsageBytes: totalDiskUsageBytes,
     );
   }
 
