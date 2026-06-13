@@ -9,11 +9,12 @@ import '../../data/providers/pdf_reader_providers.dart';
 import '../../data/utils/pdf_source_resolver.dart';
 import '../../domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';
+import 'pdf_session_cache.dart';
 
 /// Sessão PDF aberta no leitor — controller PDFx + metadados (UC-11 Fase 2.2).
 ///
-/// Uma instância por visita a `/leitor`; o [PdfControllerPinch] é descartado
-/// quando [pdfReaderSessionProvider] faz autoDispose ao sair da rota.
+/// O [PdfControllerPinch] pode ser reutilizado via [PdfSessionCache] ao trocar
+/// PDF no carousel; descartado ao sair de `/leitor` (cache limpo).
 class PdfReaderSession {
   const PdfReaderSession({
     required this.controller,
@@ -29,27 +30,32 @@ class PdfReaderSession {
 
 /// Abre documento PDF para a rota `/leitor` (UC-11 Fase 2.2).
 ///
-/// `autoDispose.family` — cada visita ao leitor cria sessão e controller novos;
-/// ao sair, `ref.onDispose` libera o controller (evita reutilização PDFx).
+/// `autoDispose.family` — sessão por [filePath]; ao trocar no carousel o
+/// controller vai para [PdfSessionCache] (LRU) em vez de ser descartado.
+/// Ao sair de `/leitor`, o cache é limpo e todos os controllers são liberados.
 ///
 /// Valida via [OpenPdfDocument], delega renderização a [PdfxViewerAdapter].
 final pdfReaderSessionProvider = FutureProvider.autoDispose
     .family<PdfReaderSession, String>((ref, filePath) async {
   final openPdf = ref.watch(openPdfDocumentProvider);
   final adapter = ref.watch(pdfxViewerAdapterProvider);
+  final cache = ref.watch(pdfSessionCacheProvider);
   const resolver = PdfSourceResolver();
 
   openPdf.validateFilePath(filePath);
   final source = resolver.resolve(filePath);
 
-  PdfControllerPinch? controller;
+  var controller = cache.acquire(filePath);
   try {
-    controller = await adapter.openDocument(filePath);
-    if (source.kind == PdfSourceKind.localFile) {
-      await controller.document;
+    if (controller == null) {
+      controller = await adapter.openDocument(filePath);
+      if (source.kind == PdfSourceKind.localFile) {
+        await controller.document;
+      }
     }
   } on Object catch (_) {
     controller?.dispose();
+    cache.remove(filePath);
     if (source.kind == PdfSourceKind.localFile) {
       final pdfId = await _removeCorruptedLocalPdf(ref, source.value);
       if (pdfId != null) {
@@ -63,7 +69,7 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
 
   ref.onDispose(() {
     adapter.unbindController(controller!);
-    controller.dispose();
+    cache.release(filePath, controller!);
   });
 
   return PdfReaderSession(
