@@ -30,17 +30,20 @@ class LouvorMaterialSection {
 
 /// Louvor lógico — um card na Home/Biblioteca (vários PDFs possíveis).
 class LouvorGroup {
-  const LouvorGroup({
+  LouvorGroup({
     required this.groupId,
     required this.numero,
     required this.nome,
     required this.sections,
-  });
+  }) : numeroSortKey = _parseNumeroSortKey(numero);
 
   final String groupId;
   final String numero;
   final String nome;
   final List<LouvorMaterialSection> sections;
+
+  /// Chave numérica para ordenação — parse feito uma vez no construtor.
+  final int numeroSortKey;
 
   /// Total de PDFs/materiais no grupo.
   int get totalMaterials =>
@@ -147,9 +150,11 @@ class LouvorGroup {
     return '';
   }
 
+  static int _parseNumeroSortKey(String numero) => int.tryParse(numero) ?? -1;
+
   static int _compareGroups(LouvorGroup a, LouvorGroup b) {
-    final na = int.tryParse(a.numero) ?? -1;
-    final nb = int.tryParse(b.numero) ?? -1;
+    final na = a.numeroSortKey;
+    final nb = b.numeroSortKey;
     if (na != -1 && nb != -1 && na != nb) return na.compareTo(nb);
     if (na != -1 && nb == -1) return -1;
     if (na == -1 && nb != -1) return 1;

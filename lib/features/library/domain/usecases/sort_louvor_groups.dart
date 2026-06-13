@@ -10,11 +10,11 @@ class SortLouvorGroups {
       if (sortBy == 'nome') {
         return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
       }
-      final na = int.tryParse(a.numero);
-      final nb = int.tryParse(b.numero);
-      if (na != null && nb != null && na != nb) return na.compareTo(nb);
-      if (na != null && nb == null) return -1;
-      if (na == null && nb != null) return 1;
+      final na = a.numeroSortKey;
+      final nb = b.numeroSortKey;
+      if (na != -1 && nb != -1 && na != nb) return na.compareTo(nb);
+      if (na != -1 && nb == -1) return -1;
+      if (na == -1 && nb != -1) return 1;
       return a.groupId.compareTo(b.groupId);
     });
     return sorted;
