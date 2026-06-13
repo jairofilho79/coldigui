@@ -10,6 +10,7 @@ import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_provide
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjacent_pdf_prefetch_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_displayed_page_provider.dart';
@@ -179,6 +180,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   Widget build(BuildContext context) {
     final titulo = widget.queryParams[UrlSyncParams.titulo] ?? 'Leitor PDF';
     final filePath = widget.queryParams[UrlSyncParams.file] ?? '';
+    final pdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
     final l10n = AppLocalizations.of(context);
 
     if (filePath.trim().isEmpty) {
@@ -192,6 +194,17 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     }
 
     final isFullscreen = ref.watch(readerFullscreenProvider);
+
+    if (pdfId.isNotEmpty) {
+      ref.watch(
+        readerAdjacentPdfPrefetchProvider(
+          ReaderAdjacentPdfPrefetchParams(
+            filePath: filePath,
+            pdfId: pdfId,
+          ),
+        ),
+      );
+    }
 
     final sessionAsync = ref.watch(pdfReaderSessionProvider(filePath));
 
