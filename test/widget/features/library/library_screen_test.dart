@@ -10,6 +10,8 @@ import 'package:coldigui/features/catalog/domain/repositories/catalog_repository
 import 'package:coldigui/features/catalog/domain/usecases/force_refresh_catalog.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
+import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
+import 'package:coldigui/features/library/presentation/providers/library_group_worker.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +73,9 @@ Widget _libraryTestApp({
       sharedPreferencesProvider.overrideWithValue(prefs),
       louvoresManifestProvider.overrideWith((ref) async => catalog),
       carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+      libraryGroupPipelineExecutorProvider.overrideWith(
+        (ref) => (input) async => runLibraryGroupPipeline(input),
+      ),
       ...extraOverrides,
     ],
     child: MaterialApp(
