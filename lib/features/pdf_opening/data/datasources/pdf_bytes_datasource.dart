@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/constants/offline_config.dart';
 import '../../../pdf_reader/data/utils/pdf_source_resolver.dart';
 
 /// Obtém bytes PDF de origem remota, asset ou arquivo local (UC-04 Fase 2.5).
@@ -31,7 +32,11 @@ class PdfBytesDatasource {
   Future<Uint8List> _fetchRemote(String url) async {
     final response = await _dio.get<List<int>>(
       url,
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(
+        responseType: ResponseType.bytes,
+        receiveTimeout: OfflineConfig.pdfDownloadReceiveTimeout,
+        sendTimeout: OfflineConfig.pdfDownloadSendTimeout,
+      ),
     );
 
     final data = response.data;

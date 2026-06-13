@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:coldigui/features/pdf_reader/data/utils/pdf_source_resolver.dart';
 import 'package:dio/dio.dart';
@@ -10,6 +11,7 @@ class _FakeDio implements Dio {
   _FakeDio(this._bytes);
 
   final Uint8List _bytes;
+  Options? lastOptions;
 
   @override
   Future<Response<T>> get<T>(
@@ -20,6 +22,7 @@ class _FakeDio implements Dio {
     CancelToken? cancelToken,
     ProgressCallback? onReceiveProgress,
   }) async {
+    lastOptions = options;
     return Response<T>(
       data: _bytes as T,
       requestOptions: RequestOptions(path: path),
@@ -63,6 +66,27 @@ void main() {
       );
 
       expect(result, bytes);
+    });
+
+    test('fetchBytes remoto usa timeouts específicos de OfflineConfig',
+        () async {
+      final dio = _FakeDio(Uint8List.fromList([1]));
+      final datasource = PdfBytesDatasource(
+        dio,
+        resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
+      );
+
+      await datasource.fetchBytes('https://example.com/assets/test.pdf');
+
+      expect(dio.lastOptions?.responseType, ResponseType.bytes);
+      expect(
+        dio.lastOptions?.receiveTimeout,
+        OfflineConfig.pdfDownloadReceiveTimeout,
+      );
+      expect(
+        dio.lastOptions?.sendTimeout,
+        OfflineConfig.pdfDownloadSendTimeout,
+      );
     });
 
     test('fetchBytes remoto lança quando resposta vazia', () async {

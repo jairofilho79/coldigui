@@ -25,6 +25,14 @@ abstract final class OfflineConfig {
   /// Teto do backoff exponencial com jitter em [FetchAndStorePdf].
   static const Duration maxRetryDelay = Duration(seconds: 30);
 
+  /// Timeout de recepção por request em [PdfBytesDatasource._fetchRemote].
+  ///
+  /// Independente do timeout global do Dio (PDFs podem levar mais de 30s).
+  static const Duration pdfDownloadReceiveTimeout = Duration(seconds: 120);
+
+  /// Timeout de envio por request em [PdfBytesDatasource._fetchRemote].
+  static const Duration pdfDownloadSendTimeout = Duration(seconds: 10);
+
   /// Tamanho de chunk para upsert Isar no bulk UC-09 (Fase 3.5).
   static const int bulkIsarChunkSize = 75;
 
