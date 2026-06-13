@@ -16,10 +16,14 @@ abstract final class OfflineConfig {
   /// Tentativas máximas de [FetchAndStorePdf] antes de propagar [DioException].
   static const int maxRetryAttempts = 3;
 
-  /// Base do backoff linear entre tentativas de fetch on-demand (Fase 3.3).
+  /// Base do backoff exponencial entre tentativas de fetch on-demand (Fase 3.3).
   ///
-  /// Delay efetivo: `retryBackoffBase * attempt` (500ms, 1s, 1.5s).
+  /// Delay efetivo: `retryBackoffBase * 2^(attempt-1) * (1 + jitter)` com
+  /// jitter até 30% e teto [maxRetryDelay] (≈500ms, ≈1s nas 2 primeiras esperas).
   static const Duration retryBackoffBase = Duration(milliseconds: 500);
+
+  /// Teto do backoff exponencial com jitter em [FetchAndStorePdf].
+  static const Duration maxRetryDelay = Duration(seconds: 30);
 
   /// Tamanho de chunk para upsert Isar no bulk UC-09 (Fase 3.5).
   static const int bulkIsarChunkSize = 75;

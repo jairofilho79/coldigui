@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../../pdf_opening/data/datasources/pdf_bytes_datasource.dart';
@@ -67,9 +69,7 @@ class FetchAndStorePdf {
         if (!_isRetryable(e) || attempt >= OfflineConfig.maxRetryAttempts) {
           rethrow;
         }
-        await Future<void>.delayed(
-          OfflineConfig.retryBackoffBase * attempt,
-        );
+        await Future<void>.delayed(retryDelayForAttempt(attempt));
       } on Object catch (e) {
         lastError = e;
         rethrow;
@@ -90,4 +90,19 @@ class FetchAndStorePdf {
     final statusCode = e.response?.statusCode;
     return statusCode != null && statusCode >= 500;
   }
+}
+
+/// Backoff exponencial com jitter (±30%) para retentativas de fetch on-demand.
+@visibleForTesting
+Duration retryDelayForAttempt(int attempt, [Random? random]) {
+  final jitter = (random ?? Random()).nextDouble() * 0.3;
+  final delay =
+      OfflineConfig.retryBackoffBase * (1 << (attempt - 1)) * (1.0 + jitter);
+  if (delay > OfflineConfig.maxRetryDelay) {
+    return OfflineConfig.maxRetryDelay;
+  }
+  if (delay < Duration.zero) {
+    return Duration.zero;
+  }
+  return delay;
 }

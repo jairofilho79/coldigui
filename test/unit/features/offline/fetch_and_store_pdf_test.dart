@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
@@ -160,6 +161,35 @@ void main() {
 
     expect(datasource.callCount, 2);
     expect(await repository.lookup(pdfId), isNotNull);
+  });
+
+  test('retryDelayForAttempt dobra a cada tentativa com jitter até 30%', () {
+    final random = Random(42);
+    final first = retryDelayForAttempt(1, random);
+    final second = retryDelayForAttempt(2, random);
+
+    expect(
+      first.inMicroseconds,
+      inInclusiveRange(
+        OfflineConfig.retryBackoffBase.inMicroseconds,
+        (OfflineConfig.retryBackoffBase * 1.3).inMicroseconds,
+      ),
+    );
+    expect(
+      second.inMicroseconds,
+      inInclusiveRange(
+        (OfflineConfig.retryBackoffBase * 2).inMicroseconds,
+        (OfflineConfig.retryBackoffBase * 2 * 1.3).inMicroseconds,
+      ),
+    );
+    expect(second.inMicroseconds, greaterThan(first.inMicroseconds));
+  });
+
+  test('retryDelayForAttempt respeita maxRetryDelay', () {
+    final random = Random(0);
+    final delay = retryDelayForAttempt(20, random);
+
+    expect(delay, OfflineConfig.maxRetryDelay);
   });
 
   test('retry esgotado propaga DioException após maxRetryAttempts', () async {
