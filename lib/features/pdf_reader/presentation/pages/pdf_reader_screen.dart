@@ -14,6 +14,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjac
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_displayed_page_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdfx_pdf_view.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -227,10 +228,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       data: (_) => true,
       orElse: () => false,
     );
+    final sessionLoading = sessionAsync.isLoading;
 
     return _ReaderScaffold(
       titulo: titulo,
-      showTitle: false,
+      showTitle: sessionLoading,
       isFullscreen: isFullscreen,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
@@ -240,9 +242,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       shareLoading: _shareLoading,
       shareTooltip: l10n?.sharePdf ?? 'Compartilhar',
       body: sessionAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.gold),
-        ),
+        loading: () => const PdfPageSkeleton(),
         error: (error, _) {
           if (error is PdfLocalCorruptedException) {
             return _ReaderMessage(
