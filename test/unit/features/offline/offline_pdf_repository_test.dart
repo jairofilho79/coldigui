@@ -19,6 +19,10 @@ String _encodePdfId(String path) {
       .replaceAll('=', '');
 }
 
+Uint8List _validPdfBytes([List<int> extra = const []]) {
+  return Uint8List.fromList([0x25, 0x50, 0x44, 0x46, ...extra]);
+}
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
@@ -91,7 +95,7 @@ void main() {
   });
 
   test('lookup retorna hit após upsert', () async {
-    final bytes = Uint8List.fromList([1, 2, 3]);
+    final bytes = _validPdfBytes([1, 2, 3]);
     await repository.upsert(pdfId: pdfId, bytes: bytes, category: category);
 
     final found = await repository.lookup(pdfId);
@@ -105,7 +109,7 @@ void main() {
   });
 
   test('lookup miss quando arquivo apagado externamente', () async {
-    final bytes = Uint8List.fromList([1]);
+    final bytes = _validPdfBytes();
     final entry = await repository.upsert(
       pdfId: pdfId,
       bytes: bytes,
@@ -123,7 +127,7 @@ void main() {
   });
 
   test('lookupWithIndexState distingue órfão de ausente', () async {
-    final bytes = Uint8List.fromList([1]);
+    final bytes = _validPdfBytes();
     final entry = await repository.upsert(
       pdfId: pdfId,
       bytes: bytes,
@@ -146,7 +150,7 @@ void main() {
   });
 
   test('findIndexEntry retorna órfão sem validar disco', () async {
-    final bytes = Uint8List.fromList([1]);
+    final bytes = _validPdfBytes();
     final entry = await repository.upsert(
       pdfId: pdfId,
       bytes: bytes,
@@ -160,7 +164,7 @@ void main() {
   });
 
   test('remove apaga disco e índice', () async {
-    final bytes = Uint8List.fromList([1]);
+    final bytes = _validPdfBytes();
     final entry = await repository.upsert(
       pdfId: pdfId,
       bytes: bytes,
@@ -183,12 +187,12 @@ void main() {
 
     await repository.upsert(
       pdfId: id1,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: id2,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
 
@@ -202,12 +206,12 @@ void main() {
 
     final entry1 = await repository.upsert(
       pdfId: id1,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: id2,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
     await File(entry1.absolutePath).delete();
@@ -223,17 +227,17 @@ void main() {
 
     await repository.upsert(
       pdfId: id1,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: id2,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: id3,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: 'ColJovens',
     );
 
@@ -248,7 +252,7 @@ void main() {
 
     final entry = await repository.upsert(
       pdfId: encodedId,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: category,
     );
 
@@ -259,7 +263,7 @@ void main() {
   test('clearAll remove todas as entradas do índice', () async {
     await repository.upsert(
       pdfId: pdfId,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes(),
       category: category,
     );
 
@@ -269,5 +273,106 @@ void main() {
       await isar.offlinePdfIndexs.where().count(),
       0,
     );
+  });
+
+  group('validação magic bytes %PDF', () {
+    test('lookup miss e purge para arquivo vazio', () async {
+      final entry = await repository.upsert(
+        pdfId: pdfId,
+        bytes: Uint8List(0),
+        category: category,
+      );
+
+      expect(await repository.lookup(pdfId), isNull);
+
+      expect(await File(entry.absolutePath).exists(), isFalse);
+      expect(
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        0,
+      );
+    });
+
+    test('lookup miss e purge para bytes aleatórios', () async {
+      final entry = await repository.upsert(
+        pdfId: pdfId,
+        bytes: Uint8List.fromList([0x00, 0x01, 0x02, 0x03, 0x04]),
+        category: category,
+      );
+
+      expect(await repository.lookup(pdfId), isNull);
+
+      expect(await File(entry.absolutePath).exists(), isFalse);
+      expect(
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        0,
+      );
+    });
+
+    test('lookup hit para PDF válido com header %PDF', () async {
+      final bytes = _validPdfBytes([0x2D, 0x31, 0x2E, 0x34]);
+      final entry = await repository.upsert(
+        pdfId: pdfId,
+        bytes: bytes,
+        category: category,
+      );
+
+      final found = await repository.lookup(pdfId);
+      expect(found, isNotNull);
+      expect(found!.absolutePath, entry.absolutePath);
+      expect(
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        1,
+      );
+    });
+
+    test('lookup hit para PDF truncado com header válido', () async {
+      final bytes = _validPdfBytes([0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25]);
+      final entry = await repository.upsert(
+        pdfId: pdfId,
+        bytes: bytes,
+        category: category,
+      );
+
+      final found = await repository.lookup(pdfId);
+      expect(found, isNotNull);
+      expect(found!.absolutePath, entry.absolutePath);
+    });
+
+    test('lookupBatch exclui e purge corruptos', () async {
+      final validId = _encodePdfId('ColAdultos/valid.pdf');
+      final corruptId = _encodePdfId('ColAdultos/corrupt.pdf');
+
+      await repository.upsert(
+        pdfId: validId,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      );
+      final corruptEntry = await repository.upsert(
+        pdfId: corruptId,
+        bytes: Uint8List.fromList([0xDE, 0xAD, 0xBE, 0xEF]),
+        category: 'ColAdultos',
+      );
+
+      final found = await repository.lookupBatch({validId, corruptId});
+      expect(found, {validId});
+      expect(await File(corruptEntry.absolutePath).exists(), isFalse);
+      expect(
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(corruptId).count(),
+        0,
+      );
+    });
+
+    test('lookupWithIndexState purge corrupto retorna hasIndexEntry false',
+        () async {
+      await repository.upsert(
+        pdfId: pdfId,
+        bytes: Uint8List.fromList([0xCA, 0xFE, 0xBA, 0xBE]),
+        category: category,
+      );
+
+      final result = await repository.lookupWithIndexState(pdfId);
+      expect(result.$1, isNull);
+      expect(result.$2, isFalse);
+    });
   });
 }

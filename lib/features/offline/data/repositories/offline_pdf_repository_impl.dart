@@ -34,8 +34,16 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   ) async {
     final index = await _local.findByPdfId(pdfId);
     if (index == null) return (null, false);
-    if (!await _hasValidIndexFile(index)) return (null, true);
-    return (_toEntry(index), true);
+
+    switch (await _validateIndexFile(index)) {
+      case _IndexFileValidation.valid:
+        return (_toEntry(index), true);
+      case _IndexFileValidation.missing:
+        return (null, true);
+      case _IndexFileValidation.corrupt:
+        await _purgeInvalidIndexFile(index);
+        return (null, false);
+    }
   }
 
   @override
@@ -49,9 +57,16 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     const batchSize = 50;
     for (var i = 0; i < indexes.length; i += batchSize) {
       final batch = indexes.sublist(i, min(i + batchSize, indexes.length));
-      final results = await Future.wait(batch.map(_hasValidIndexFile));
+      final results = await Future.wait(batch.map(_validateIndexFile));
       for (var j = 0; j < batch.length; j++) {
-        if (results[j]) validIds.add(batch[j].pdfId);
+        switch (results[j]) {
+          case _IndexFileValidation.valid:
+            validIds.add(batch[j].pdfId);
+          case _IndexFileValidation.corrupt:
+            await _purgeInvalidIndexFile(batch[j]);
+          case _IndexFileValidation.missing:
+            break;
+        }
       }
     }
     return validIds;
@@ -167,10 +182,34 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     return rel;
   }
 
-  static Future<bool> _hasValidIndexFile(OfflinePdfIndex index) async {
-    final file = File(index.storagePath);
-    if (!await file.exists()) return false;
-    return await file.length() > 0;
+  Future<void> _purgeInvalidIndexFile(OfflinePdfIndex index) async {
+    await _store.delete(index.storagePath);
+    await _local.deleteByPdfId(index.pdfId);
+  }
+
+  static Future<_IndexFileValidation> _validateIndexFile(
+    OfflinePdfIndex index,
+  ) async {
+    final stat = await FileStat.stat(index.storagePath);
+    if (stat.type != FileSystemEntityType.file) {
+      return _IndexFileValidation.missing;
+    }
+    if (stat.size < 4) return _IndexFileValidation.corrupt;
+
+    final raf = await File(index.storagePath).open();
+    try {
+      final header = await raf.read(4);
+      final validHeader = header.length == 4 &&
+          header[0] == 0x25 &&
+          header[1] == 0x50 &&
+          header[2] == 0x44 &&
+          header[3] == 0x46;
+      return validHeader
+          ? _IndexFileValidation.valid
+          : _IndexFileValidation.corrupt;
+    } finally {
+      await raf.close();
+    }
   }
 
   static OfflinePdfEntry _toEntry(OfflinePdfIndex index) => OfflinePdfEntry(
@@ -181,3 +220,5 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
         downloadedAt: index.downloadedAt,
       );
 }
+
+enum _IndexFileValidation { valid, missing, corrupt }
