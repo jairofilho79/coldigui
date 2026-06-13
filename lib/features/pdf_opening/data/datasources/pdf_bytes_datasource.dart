@@ -38,7 +38,7 @@ class PdfBytesDatasource {
     if (data == null || data.isEmpty) {
       throw Exception('Resposta PDF vazia');
     }
-    return Uint8List.fromList(data);
+    return data is Uint8List ? data : Uint8List.fromList(data);
   }
 
   Future<Uint8List> _fetchAsset(String assetPath) async {
