@@ -153,6 +153,46 @@ void main() {
     );
   });
 
+  test('lookupBatch retorna pdfIds com índice e arquivo válido', () async {
+    final id1 = _encodePdfId('ColAdultos/a.pdf');
+    final id2 = _encodePdfId('ColAdultos/b.pdf');
+    final id3 = _encodePdfId('ColAdultos/c.pdf');
+
+    await repository.upsert(
+      pdfId: id1,
+      bytes: Uint8List.fromList([1]),
+      category: 'ColAdultos',
+    );
+    await repository.upsert(
+      pdfId: id2,
+      bytes: Uint8List.fromList([1]),
+      category: 'ColAdultos',
+    );
+
+    final found = await repository.lookupBatch({id1, id2, id3});
+    expect(found, {id1, id2});
+  });
+
+  test('lookupBatch exclui órfão sem arquivo no disco', () async {
+    final id1 = _encodePdfId('ColAdultos/a.pdf');
+    final id2 = _encodePdfId('ColAdultos/b.pdf');
+
+    final entry1 = await repository.upsert(
+      pdfId: id1,
+      bytes: Uint8List.fromList([1]),
+      category: 'ColAdultos',
+    );
+    await repository.upsert(
+      pdfId: id2,
+      bytes: Uint8List.fromList([1]),
+      category: 'ColAdultos',
+    );
+    await File(entry1.absolutePath).delete();
+
+    final found = await repository.lookupBatch({id1, id2});
+    expect(found, {id2});
+  });
+
   test('countByCategory agrega corretamente', () async {
     final id1 = _encodePdfId('ColAdultos/a.pdf');
     final id2 = _encodePdfId('ColAdultos/b.pdf');

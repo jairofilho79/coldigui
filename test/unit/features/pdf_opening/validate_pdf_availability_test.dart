@@ -15,6 +15,14 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> lookup(String pdfId) async => entry;
 
   @override
+  Future<Set<String>> lookupBatch(Set<String> pdfIds) async {
+    if (entry != null && pdfIds.contains(entry!.pdfId)) {
+      return {entry!.pdfId};
+    }
+    return {};
+  }
+
+  @override
   Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => entry;
 
   @override

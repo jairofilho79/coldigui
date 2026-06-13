@@ -40,12 +40,8 @@ class ExtractAndStorePdfs {
       );
     }
 
-    final skipPdfIds = <String>[];
-    for (final pdfId in pendingIds) {
-      if (await _repository.lookup(pdfId) != null) {
-        skipPdfIds.add(pdfId);
-      }
-    }
+    final skipPdfIds =
+        (await _repository.lookupBatch(pendingIds.toSet())).toList();
 
     final root = await _store.rootDirectory;
     final extractResult = await compute(

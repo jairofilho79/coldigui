@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' show min;
 import 'dart:typed_data';
 
 import '../../../../core/database/collections/offline_pdf_index.dart';
@@ -25,12 +26,27 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> lookup(String pdfId) async {
     final index = await _local.findByPdfId(pdfId);
     if (index == null) return null;
-
-    final file = File(index.storagePath);
-    if (!await file.exists()) return null;
-    if (await file.length() == 0) return null;
-
+    if (!await _hasValidIndexFile(index)) return null;
     return _toEntry(index);
+  }
+
+  @override
+  Future<Set<String>> lookupBatch(Set<String> pdfIds) async {
+    if (pdfIds.isEmpty) return {};
+
+    final indexes = await _local.findByPdfIds(pdfIds);
+    if (indexes.isEmpty) return {};
+
+    final validIds = <String>{};
+    const batchSize = 50;
+    for (var i = 0; i < indexes.length; i += batchSize) {
+      final batch = indexes.sublist(i, min(i + batchSize, indexes.length));
+      final results = await Future.wait(batch.map(_hasValidIndexFile));
+      for (var j = 0; j < batch.length; j++) {
+        if (results[j]) validIds.add(batch[j].pdfId);
+      }
+    }
+    return validIds;
   }
 
   @override
@@ -141,6 +157,12 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       rel = rel.substring('assets/'.length);
     }
     return rel;
+  }
+
+  static Future<bool> _hasValidIndexFile(OfflinePdfIndex index) async {
+    final file = File(index.storagePath);
+    if (!await file.exists()) return false;
+    return await file.length() > 0;
   }
 
   static OfflinePdfEntry _toEntry(OfflinePdfIndex index) => OfflinePdfEntry(

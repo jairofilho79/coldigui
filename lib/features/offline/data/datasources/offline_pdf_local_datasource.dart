@@ -12,6 +12,19 @@ class OfflinePdfLocalDatasource {
   Future<OfflinePdfIndex?> findByPdfId(String pdfId) =>
       _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
 
+  /// Busca entradas do índice para [pdfIds] — sem validação de disco.
+  Future<List<OfflinePdfIndex>> findByPdfIds(Set<String> pdfIds) async {
+    if (pdfIds.isEmpty) return const [];
+
+    final results = <OfflinePdfIndex>[];
+    for (final pdfId in pdfIds) {
+      final index =
+          await _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+      if (index != null) results.add(index);
+    }
+    return results;
+  }
+
   /// Upsert por `pdfId` único em transação Isar.
   Future<void> put(OfflinePdfIndex index) async {
     await _isar.writeTxn(() async {

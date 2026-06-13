@@ -130,6 +130,10 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> lookup(String pdfId) => throw UnimplementedError();
 
   @override
+  Future<Set<String>> lookupBatch(Set<String> pdfIds) =>
+      throw UnimplementedError();
+
+  @override
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
