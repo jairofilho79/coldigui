@@ -10,8 +10,9 @@ typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
 /// Widget PDFx encapsulado — único ponto de import `pdfx` na presentation (ADR-002).
 ///
-/// Scroll vertical contínuo fixo (`Axis.vertical`). `ValueKey(controller)` força
-/// `initState` limpo no PDFx a cada sessão.
+/// Scroll vertical contínuo fixo (`Axis.vertical`). `ValueKey(controller)` evita
+/// duas instâncias simultâneas do mesmo controller. Controllers reutilizados do
+/// cache LRU exigem `_scheduleReattachIfCached` — PDFx não repopula `_pages` sozinho.
 ///
 /// Swipe horizontal (UC-11): direita→esquerda avança; esquerda→direita volta.
 /// O gesto só é reconhecido ao soltar o dedo; no máximo ±1 página em relação
@@ -45,6 +46,44 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   var _pageTurnInProgress = false;
   PdfPageSwipeDirection? _swipeFeedbackDirection;
   var _hapticTriggeredForSwipe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleReattachIfCached();
+  }
+
+  @override
+  void didUpdateWidget(covariant PdfxPdfView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      _scheduleReattachIfCached();
+    }
+  }
+
+  /// PDFx `_attach` não repopula `_pages` quando `_document != null` (cache LRU).
+  /// Sem isso, voltar a um PDF cacheado deixa o canvas vazio.
+  void _scheduleReattachIfCached() {
+    final controller = widget.controller;
+    if (controller.loadingState.value != PdfLoadingState.success) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (!identical(widget.controller, controller)) return;
+      if (controller.loadingState.value != PdfLoadingState.success) return;
+
+      try {
+        await controller.loadDocument(
+          controller.document,
+          initialPage: controller.pageListenable.value,
+        );
+      } on Object {
+        // PDFx expõe falhas via loadingState / errorBuilder.
+      }
+    });
+  }
 
   void _resetTracking() {
     final hadFeedback = _swipeFeedbackDirection != null;
