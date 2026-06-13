@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -25,17 +27,16 @@ Future<void> openLouvorInReader({
 
   if (!context.mounted) return;
 
-  await ref
-      .read(playlistsProvider.notifier)
-      .ensurePlaylistForLouvor(louvor.pdfId);
-  if (!context.mounted) return;
-
   final location = ref.read(openPdfInReaderProvider).call(
         pdfPath: source.absolutePath,
         pdfId: louvor.pdfId,
         titulo: louvor.nome,
       );
-  await context.push(location);
+  unawaited(context.push(location));
+  ref
+      .read(playlistsProvider.notifier)
+      .ensurePlaylistForLouvor(louvor.pdfId)
+      .ignore();
 }
 
 /// Resolve PDF do louvor — expõe erros tipados para UI.
