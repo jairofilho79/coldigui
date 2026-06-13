@@ -128,8 +128,10 @@ class PdfxViewerAdapter implements PdfReaderControllerPort {
       if (matrix != null) {
         await controller.goTo(destination: matrix);
       }
-    } on Object {
+    } on AssertionError {
       // Controller ainda não anexado ao PdfViewPinch.
+    } catch (e, st) {
+      debugPrint('[PdfxViewerAdapter.applyFitMode] $e\n$st');
     }
   }
 
@@ -139,7 +141,7 @@ class PdfxViewerAdapter implements PdfReaderControllerPort {
     required int pageNumber,
   }) {
     final pageRect = controller.getPageRect(pageNumber);
-    if (pageRect == null) return null;
+    if (pageRect == null || pageRect.height <= 0) return null;
 
     final viewRect = controller.viewRect;
     final viewHeight = viewRect.height;

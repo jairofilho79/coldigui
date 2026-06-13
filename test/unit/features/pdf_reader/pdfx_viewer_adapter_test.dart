@@ -6,6 +6,8 @@ import 'package:coldigui/features/pdf_reader/data/adapters/pdfx_viewer_adapter.d
 import 'package:coldigui/features/pdf_reader/data/utils/pdf_source_resolver.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/pdf_reader_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdfx/pdfx.dart';
 
@@ -37,6 +39,56 @@ class _FakeDio implements Dio {
 PdfBytesDatasource _datasource(Uint8List bytes) {
   return PdfBytesDatasource(
     _FakeDio(bytes),
+    resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
+  );
+}
+
+class _FitModeTestController extends PdfControllerPinch {
+  _FitModeTestController({
+    required this.pageRect,
+    required this.viewRectValue,
+    this.calculatePageFitMatrixImpl,
+  }) : super(document: Completer<PdfDocument>().future) {
+    loadingState.value = PdfLoadingState.success;
+  }
+
+  final Rect? pageRect;
+  final Rect viewRectValue;
+  final Matrix4? Function({required int pageNumber, double? padding})?
+      calculatePageFitMatrixImpl;
+  void Function(Matrix4? destination)? onGoTo;
+
+  @override
+  int get page => 1;
+
+  @override
+  Rect? getPageRect(int pageNumber) => pageRect;
+
+  @override
+  Rect get viewRect => viewRectValue;
+
+  @override
+  Matrix4? calculatePageFitMatrix({required int pageNumber, double? padding}) {
+    return calculatePageFitMatrixImpl?.call(
+          pageNumber: pageNumber,
+          padding: padding,
+        ) ??
+        Matrix4.identity();
+  }
+
+  @override
+  Future<void> goTo({
+    Matrix4? destination,
+    Duration duration = const Duration(milliseconds: 200),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    onGoTo?.call(destination);
+  }
+}
+
+PdfxViewerAdapter _adapter() {
+  return PdfxViewerAdapter(
+    _datasource(Uint8List(0)),
     resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
   );
 }
@@ -129,5 +181,70 @@ void main() {
     expect(created, isNot(same(previous)));
     expect(adapter.controller, same(previous));
     addTearDown(created.dispose);
+  });
+
+  test('applyFitMode pageFit ignora pageRect nulo sem chamar goTo', () async {
+    final adapter = _adapter();
+    final controller = _FitModeTestController(
+      pageRect: null,
+      viewRectValue: const Rect.fromLTWH(0, 0, 400, 800),
+    );
+    addTearDown(controller.dispose);
+
+    var goToCalls = 0;
+    controller.onGoTo = (_) => goToCalls++;
+
+    adapter.bindController(controller);
+    await expectLater(adapter.applyFitMode(PdfFitMode.pageFit), completes);
+
+    expect(goToCalls, 0);
+  });
+
+  test('applyFitMode pageFit ignora altura zero sem chamar goTo', () async {
+    final adapter = _adapter();
+    final controller = _FitModeTestController(
+      pageRect: const Rect.fromLTWH(0, 0, 100, 0),
+      viewRectValue: const Rect.fromLTWH(0, 0, 400, 800),
+    );
+    addTearDown(controller.dispose);
+
+    var goToCalls = 0;
+    controller.onGoTo = (_) => goToCalls++;
+
+    adapter.bindController(controller);
+    await expectLater(adapter.applyFitMode(PdfFitMode.pageFit), completes);
+
+    expect(goToCalls, 0);
+  });
+
+  test('applyFitMode registra erros inesperados sem propagar', () async {
+    final adapter = _adapter();
+    final controller = _FitModeTestController(
+      pageRect: const Rect.fromLTWH(0, 0, 100, 200),
+      viewRectValue: const Rect.fromLTWH(0, 0, 400, 800),
+      calculatePageFitMatrixImpl: ({required int pageNumber, double? padding}) {
+        throw StateError('unexpected fit failure');
+      },
+    );
+    addTearDown(controller.dispose);
+
+    final logs = <String>[];
+    final originalDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      logs.add(message ?? '');
+    };
+    addTearDown(() => debugPrint = originalDebugPrint);
+
+    adapter.bindController(controller);
+    await expectLater(adapter.applyFitMode(PdfFitMode.pageWidth), completes);
+
+    expect(
+      logs.any((line) => line.contains('[PdfxViewerAdapter.applyFitMode]')),
+      isTrue,
+    );
+    expect(
+      logs.any((line) => line.contains('unexpected fit failure')),
+      isTrue,
+    );
   });
 }
