@@ -35,7 +35,8 @@ class SearchBar extends StatefulWidget {
   /// Callback imediato a cada alteração do texto (sem debounce).
   final ValueChanged<String> onQueryChanged;
 
-  /// Valor inicial (ex.: query `pesquisa=` da URL).
+  /// Valor inicial na criação do widget (ex.: query `pesquisa=` da URL).
+  /// Não é re-sincronizado em rebuilds — hidratação externa recria via [Key].
   final String initialValue;
 
   @override
@@ -51,15 +52,6 @@ class _SearchBarState extends State<SearchBar> {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
     _focusNode = FocusNode();
-  }
-
-  @override
-  void didUpdateWidget(SearchBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialValue != widget.initialValue &&
-        widget.initialValue != _controller.text) {
-      _controller.text = widget.initialValue;
-    }
   }
 
   @override

@@ -54,11 +54,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Recria [SearchBar] só em hidratação externa (deep link, voltar no histórico).
   var _searchHydrationEpoch = 0;
 
+  /// Valor inicial da [SearchBar] — não segue `?pesquisa=` a cada sync de URL.
+  late String _searchBarInitialValue;
+
   static const double _maxContentWidth = 896;
 
   @override
   void initState() {
     super.initState();
+    _searchBarInitialValue = widget.initialSearchQuery;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromUrl());
   }
 
@@ -98,7 +102,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref
             .read(homeSearchDebouncedQueryProvider.notifier)
             .setImmediate(widget.initialSearchQuery);
-        setState(() => _searchHydrationEpoch++);
+        setState(() {
+          _searchBarInitialValue = widget.initialSearchQuery;
+          _searchHydrationEpoch++;
+        });
       }
       if (filtersChanged) {
         ref.read(catalogFiltersProvider.notifier).hydrateFromUrl(
@@ -175,7 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: SearchBar(
                     key: ValueKey(_searchHydrationEpoch),
                     hintText: l10n.searchHint,
-                    initialValue: widget.initialSearchQuery,
+                    initialValue: _searchBarInitialValue,
                     onQueryChanged: (value) {
                       ref.read(homeSearchRawQueryProvider.notifier).state =
                           value;

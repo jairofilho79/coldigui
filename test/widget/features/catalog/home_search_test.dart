@@ -5,11 +5,12 @@ import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -128,6 +129,48 @@ void main() {
           findsOneWidget);
       expect(find.textContaining('Louvor número dois'), findsNothing);
       expect(tester.widget<TextField>(field).controller!.text, '258');
+    },
+  );
+
+  testWidgets(
+    'SearchBar mantém texto digitado quando initialValue muda por eco de URL',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: SearchBar(
+              hintText: 'Buscar',
+              initialValue: '',
+              onQueryChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      final field = find.byType(TextField);
+      await tester.enterText(field, 'hello');
+      await tester.pump();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: SearchBar(
+              hintText: 'Buscar',
+              initialValue: 'hell',
+              onQueryChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.widget<TextField>(field).controller!.text, 'hello');
     },
   );
 }
