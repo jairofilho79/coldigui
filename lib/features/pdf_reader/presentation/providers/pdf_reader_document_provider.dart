@@ -65,15 +65,16 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
     rethrow;
   }
 
-  adapter.bindController(controller);
+  final sessionController = controller;
+  adapter.bindController(sessionController);
 
   ref.onDispose(() {
-    adapter.unbindController(controller!);
-    cache.release(filePath, controller!);
+    adapter.unbindController(sessionController);
+    cache.release(filePath, sessionController);
   });
 
   return PdfReaderSession(
-    controller: controller,
+    controller: sessionController,
     filePath: filePath,
   );
 });

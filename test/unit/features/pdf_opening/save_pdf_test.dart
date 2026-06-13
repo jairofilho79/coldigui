@@ -20,7 +20,10 @@ class _FakeBytesDatasource extends PdfBytesDatasource {
   var fetchCalled = false;
 
   @override
-  Future<Uint8List> fetchBytes(String filePath) async {
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
     fetchCalled = true;
     return _bytes;
   }
