@@ -13,6 +13,7 @@ import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
 import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
@@ -116,6 +117,43 @@ class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
   }
 }
 
+class _FakeWakelock implements BulkDownloadWakelock {
+  var enableCount = 0;
+  var disableCount = 0;
+
+  @override
+  Future<void> enable() async => enableCount++;
+
+  @override
+  Future<void> disable() async => disableCount++;
+}
+
+class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
+  _SuccessDownloadOfflinePackages({
+    required PdfLocalStore store,
+    required super.checkpointStore,
+  }) : super(
+          manifestDatasource: OfflineManifestRemoteDatasource(Dio()),
+          zipDownloader: ZipPackageDownloader(Dio(), store),
+          extractAndStorePdfs: ExtractAndStorePdfs(
+            _StubRepo(),
+            store,
+            ZipPackageDownloader(Dio(), store),
+          ),
+          reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
+          diskSpaceChecker: DiskSpaceChecker(),
+        );
+
+  @override
+  Future<DownloadOfflinePackagesResult> call({
+    required List<String> categories,
+    void Function(OfflineDownloadProgress progress)? onProgress,
+    CancelToken? cancelToken,
+    OfflineBulkCheckpoint? resumeCheckpoint,
+  }) async =>
+      const DownloadOfflinePackagesResult();
+}
+
 class _IdleOfflineModeNotifier extends OfflineModeNotifier {
   @override
   bool build() => false;
@@ -147,16 +185,24 @@ void main() {
     checkpointStore = OfflineBulkCheckpointStore(prefs);
   });
 
-  ProviderContainer createContainer(Object error) {
+  ProviderContainer createContainer(
+    Object error, {
+    BulkDownloadWakelock? wakelock,
+    DownloadOfflinePackages? useCase,
+  }) {
+    final fakeWakelock = wakelock ?? _FakeWakelock();
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        bulkDownloadWakelockProvider.overrideWithValue(fakeWakelock),
         downloadOfflinePackagesProvider.overrideWith(
-          (ref) => _ThrowingDownloadOfflinePackages(
-            error: error,
-            store: store,
-            checkpointStore: checkpointStore,
-          ),
+          (ref) =>
+              useCase ??
+              _ThrowingDownloadOfflinePackages(
+                error: error,
+                store: store,
+                checkpointStore: checkpointStore,
+              ),
         ),
         offlineModeProvider.overrideWith(_IdleOfflineModeNotifier.new),
         offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
@@ -232,4 +278,67 @@ void main() {
       expect(state.errorMessage, 'offlineDownloadNetworkError');
     },
   );
+
+  test('wakelock habilitado ao iniciar bulk e liberado ao falhar', () async {
+    final wakelock = _FakeWakelock();
+    final container = createContainer(
+      DioException(
+        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        type: DioExceptionType.receiveTimeout,
+      ),
+      wakelock: wakelock,
+    );
+    await pumpMicrotasks();
+
+    await container
+        .read(offlineBulkDownloadProvider.notifier)
+        .start(['Partitura']);
+
+    expect(wakelock.enableCount, 1);
+    expect(wakelock.disableCount, 1);
+  });
+
+  test('wakelock liberado ao concluir bulk com sucesso', () async {
+    final wakelock = _FakeWakelock();
+    final container = createContainer(
+      StateError('unused'),
+      wakelock: wakelock,
+      useCase: _SuccessDownloadOfflinePackages(
+        store: store,
+        checkpointStore: checkpointStore,
+      ),
+    );
+    await pumpMicrotasks();
+
+    await container
+        .read(offlineBulkDownloadProvider.notifier)
+        .start(['Partitura']);
+
+    expect(wakelock.enableCount, 1);
+    expect(wakelock.disableCount, 1);
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.completed,
+    );
+  });
+
+  test('wakelock liberado ao cancelar bulk', () async {
+    final wakelock = _FakeWakelock();
+    final container = createContainer(
+      const OfflineBulkCancelledException(),
+      wakelock: wakelock,
+    );
+    await pumpMicrotasks();
+
+    await container
+        .read(offlineBulkDownloadProvider.notifier)
+        .start(['Partitura']);
+
+    expect(wakelock.enableCount, 1);
+    expect(wakelock.disableCount, 1);
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.cancelled,
+    );
+  });
 }

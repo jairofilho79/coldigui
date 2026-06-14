@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../data/providers/offline_providers.dart';
 import 'offline_cache_status_provider.dart';
@@ -25,6 +26,26 @@ String offlineBulkDownloadErrorKey(Object error) {
   }
   return 'offlineDownloadError';
 }
+
+/// Mantém a tela ligada durante bulk download prolongado (backlog #12).
+abstract interface class BulkDownloadWakelock {
+  Future<void> enable();
+  Future<void> disable();
+}
+
+class WakelockPlusBulkDownloadWakelock implements BulkDownloadWakelock {
+  const WakelockPlusBulkDownloadWakelock();
+
+  @override
+  Future<void> enable() => WakelockPlus.enable();
+
+  @override
+  Future<void> disable() => WakelockPlus.disable();
+}
+
+final bulkDownloadWakelockProvider = Provider<BulkDownloadWakelock>(
+  (ref) => const WakelockPlusBulkDownloadWakelock(),
+);
 
 /// Estado do bulk download UC-09 na UI (Fase 3.5).
 enum OfflineBulkDownloadStatus {
@@ -88,14 +109,32 @@ final offlineBulkDownloadProvider =
 /// de [offlineCacheStatusProvider] ao concluir (Fase 3.7).
 class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   CancelToken? _cancelToken;
+  var _wakelockHeld = false;
+
+  BulkDownloadWakelock get _wakelock => ref.read(bulkDownloadWakelockProvider);
 
   @override
   OfflineBulkDownloadState build() {
-    ref.onDispose(() => _cancelToken?.cancel());
+    ref.onDispose(() {
+      _cancelToken?.cancel();
+      _releaseWakelock();
+    });
 
     Future.microtask(_loadCheckpoint);
 
     return const OfflineBulkDownloadState();
+  }
+
+  Future<void> _acquireWakelock() async {
+    if (_wakelockHeld) return;
+    await _wakelock.enable();
+    _wakelockHeld = true;
+  }
+
+  Future<void> _releaseWakelock() async {
+    if (!_wakelockHeld) return;
+    await _wakelock.disable();
+    _wakelockHeld = false;
   }
 
   Future<void> _loadCheckpoint() async {
@@ -116,6 +155,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       clearCheckpoint: true,
       clearUnmatchedZipEntries: true,
     );
+    await _acquireWakelock();
 
     try {
       final result = await ref.read(downloadOfflinePackagesProvider).call(
@@ -131,6 +171,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
       await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
+      await _releaseWakelock();
       final checkpoint =
           await ref.read(offlineBulkCheckpointStoreProvider).load();
       state = state.copyWith(
@@ -157,6 +198,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       status: OfflineBulkDownloadStatus.running,
       clearError: true,
     );
+    await _acquireWakelock();
 
     try {
       final result = await ref.read(downloadOfflinePackagesProvider).call(
@@ -173,6 +215,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
       await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
+      await _releaseWakelock();
       final saved = await ref.read(offlineBulkCheckpointStoreProvider).load();
       state = state.copyWith(
         status: OfflineBulkDownloadStatus.cancelled,
@@ -189,6 +232,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   }
 
   Future<void> _failBulkDownload(Object error) async {
+    await _releaseWakelock();
     final checkpoint =
         await ref.read(offlineBulkCheckpointStoreProvider).load();
     state = state.copyWith(
@@ -201,6 +245,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
   Future<void> _completeBulkDownload(
       DownloadOfflinePackagesResult result) async {
+    await _releaseWakelock();
     state = state.copyWith(
       status: result.hasWarnings
           ? OfflineBulkDownloadStatus.completedWithWarnings
