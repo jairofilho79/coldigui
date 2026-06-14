@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/offline_config.dart';
@@ -29,6 +31,7 @@ class ExtractAndStorePdfs {
     required List<String> expectedPdfIds,
     required String materialCategory,
     int startFromPdfIndex = 0,
+    void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
   }) async {
@@ -42,6 +45,7 @@ class ExtractAndStorePdfs {
         skippedCount: expectedPdfIds.length,
         totalInZip: expectedPdfIds.length,
         unmatchedPdfIds: const [],
+        failedPdfIds: const [],
       );
     }
 
@@ -49,14 +53,14 @@ class ExtractAndStorePdfs {
         (await _repository.lookupBatch(pendingIds.toSet())).toList();
 
     final root = await _store.rootDirectory;
-    final extractResult = await compute(
-      extractZipPdfs,
+    final extractResult = await _runExtractionIsolate(
       ZipExtractParams(
         zipPath: zipPath,
         rootPath: root.path,
         expectedPdfIds: pendingIds,
         skipPdfIds: skipPdfIds,
       ),
+      onExtractProgress: onExtractProgress,
     );
 
     var storedCount = 0;
@@ -90,7 +94,41 @@ class ExtractAndStorePdfs {
       skippedCount: skipPdfIds.length,
       totalInZip: expectedPdfIds.length,
       unmatchedPdfIds: extractResult.unmatchedEntries,
+      failedPdfIds: extractResult.failedPdfIds,
     );
+  }
+
+  Future<ZipExtractResult> _runExtractionIsolate(
+    ZipExtractParams params, {
+    void Function(int extracted, int total)? onExtractProgress,
+  }) async {
+    if (onExtractProgress == null) {
+      return compute(extractZipPdfs, params);
+    }
+
+    final receivePort = ReceivePort();
+    await Isolate.spawn(
+      extractZipPdfsIsolateEntry,
+      [params, receivePort.sendPort],
+    );
+
+    ZipExtractResult? result;
+    await for (final message in receivePort) {
+      if (message is ZipExtractProgressReport) {
+        onExtractProgress(message.extracted, message.total);
+      } else if (message is ZipExtractResult) {
+        result = message;
+        break;
+      } else if (message is List<Object?>) {
+        receivePort.close();
+        Error.throwWithStackTrace(
+          message[0] as Object,
+          message[1] as StackTrace,
+        );
+      }
+    }
+    receivePort.close();
+    return result!;
   }
 
   Future<void> _emitProgressCheckpoints({

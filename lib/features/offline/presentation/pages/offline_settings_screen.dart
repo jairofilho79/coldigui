@@ -127,6 +127,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
           next.errorMessage != previous?.errorMessage) {
         final message = switch (next.errorMessage) {
           'offlineInsufficientDiskSpace' => l10n.offlineInsufficientDiskSpace,
+          'offlineDownloadTimeout' => l10n.offlineDownloadTimeout,
+          'offlineDownloadNetworkError' => l10n.offlineDownloadNetworkError,
           _ => l10n.offlineDownloadError,
         };
         ScaffoldMessenger.of(context).showSnackBar(
@@ -278,8 +280,12 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
                         ),
                     ],
                   ),
-                  if (bulkState.isRunning && bulkState.progress != null) ...[
+                  if (bulkState.isRunning) ...[
                     const SizedBox(height: 16),
+                    _KeepAppOpenBanner(l10n: l10n),
+                  ],
+                  if (bulkState.isRunning && bulkState.progress != null) ...[
+                    const SizedBox(height: 12),
                     _ProgressSection(progress: bulkState.progress!),
                   ],
                   const SizedBox(height: 20),
@@ -495,6 +501,43 @@ class _StatChip extends StatelessWidget {
   }
 }
 
+class _KeepAppOpenBanner extends StatelessWidget {
+  const _KeepAppOpenBanner({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.title.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.title.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: AppColors.title.withValues(alpha: 0.75),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.offlineKeepAppOpenDuringDownload,
+              style: AppTypography.body.copyWith(
+                color: AppColors.title.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CheckpointBanner extends StatelessWidget {
   const _CheckpointBanner({
     required this.l10n,
@@ -551,24 +594,39 @@ class _ProgressSection extends StatelessWidget {
       OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
     };
 
+    final isFetching = progress.phase == OfflineDownloadPhase.fetching;
+    final hasZipProgress = isFetching &&
+        progress.zipBytesReceived != null &&
+        progress.zipBytesTotal != null &&
+        progress.zipBytesTotal! > 0;
+    final fraction =
+        hasZipProgress ? progress.zipFraction : progress.pdfFraction;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LinearProgressIndicator(
-          value: progress.pdfFraction,
+          value: fraction,
           color: AppColors.gold,
           backgroundColor: AppColors.title.withValues(alpha: 0.12),
         ),
         const SizedBox(height: 8),
         Text(
-          l10n.offlineProgressDetail(
-            progress.currentCategory,
-            progress.currentPart,
-            progress.totalParts,
-            progress.donePdfs,
-            progress.totalPdfs,
-            phaseLabel,
-          ),
+          hasZipProgress
+              ? l10n.offlineFetchProgress(
+                  progress.currentPart,
+                  progress.totalParts,
+                  formatCompactBytes(progress.zipBytesReceived!),
+                  formatCompactBytes(progress.zipBytesTotal!),
+                )
+              : l10n.offlineProgressDetail(
+                  progress.currentCategory,
+                  progress.currentPart,
+                  progress.totalParts,
+                  progress.donePdfs,
+                  progress.totalPdfs,
+                  phaseLabel,
+                ),
           style: AppTypography.body.copyWith(
             color: AppColors.title.withValues(alpha: 0.75),
           ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../catalog/presentation/providers/catalog_checksum_poll_provider.dart';
 import '../../data/providers/offline_providers.dart';
+import '../providers/offline_bulk_download_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 
 /// Observa lifecycle e dispara reconcile debounced ao retornar ao foreground.
@@ -44,6 +45,7 @@ class _OfflineLifecycleListenerState
               .read(offlinePdfRepositoryProvider)
               .flushPendingTouchLastAccessed(),
         );
+        ref.read(offlineBulkDownloadProvider.notifier).pauseForBackground();
       case AppLifecycleState.resumed:
         ref.read(offlineReconcileProvider.notifier).requestReconcileDebounced();
         ref.read(catalogChecksumPollProvider.notifier).requestPollDebounced();

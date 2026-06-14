@@ -20,11 +20,14 @@ import 'reconcile_offline_index.dart';
 class DownloadOfflinePackagesResult {
   const DownloadOfflinePackagesResult({
     this.unmatchedZipEntries = const [],
+    this.failedPdfIds = const [],
   });
 
   final List<String> unmatchedZipEntries;
+  final List<String> failedPdfIds;
 
-  bool get hasWarnings => unmatchedZipEntries.isNotEmpty;
+  bool get hasWarnings =>
+      unmatchedZipEntries.isNotEmpty || failedPdfIds.isNotEmpty;
 }
 
 /// UC-09 — Prefetch em lote por categoria (Fase 3.5).
@@ -82,6 +85,7 @@ class DownloadOfflinePackages {
     var donePdfsGlobal = _countDonePdfs(manifest, checkpoint);
     final totalPdfsGlobal = _countTotalPdfs(manifest, categories);
     final unmatchedAccumulator = <String>[];
+    final failedPdfIdsAccumulator = <String>[];
 
     for (var catIdx = checkpoint.categoryIndex;
         catIdx < checkpoint.categories.length;
@@ -124,6 +128,22 @@ class DownloadOfflinePackages {
           filename: part.filename,
           expectedSize: part.size,
           cancelToken: cancelToken,
+          onReceiveProgress: (received, total) {
+            onProgress?.call(
+              OfflineDownloadProgress(
+                phase: OfflineDownloadPhase.fetching,
+                currentCategory: materialCategory,
+                categoryIndex: catIdx,
+                totalCategories: categories.length,
+                currentPart: partIdx + 1,
+                totalParts: package.totalParts,
+                donePdfs: donePdfsGlobal,
+                totalPdfs: totalPdfsGlobal,
+                zipBytesReceived: received,
+                zipBytesTotal: total > 0 ? total : part.size,
+              ),
+            );
+          },
         );
 
         onProgress?.call(
@@ -144,6 +164,20 @@ class DownloadOfflinePackages {
           expectedPdfIds: part.pdfs,
           materialCategory: materialCategory,
           startFromPdfIndex: startPdfIdx,
+          onExtractProgress: (extracted, total) {
+            onProgress?.call(
+              OfflineDownloadProgress(
+                phase: OfflineDownloadPhase.extracting,
+                currentCategory: materialCategory,
+                categoryIndex: catIdx,
+                totalCategories: categories.length,
+                currentPart: partIdx + 1,
+                totalParts: package.totalParts,
+                donePdfs: donePdfsGlobal + startPdfIdx + extracted,
+                totalPdfs: totalPdfsGlobal,
+              ),
+            );
+          },
           onProgress: (done, total) {
             onProgress?.call(
               OfflineDownloadProgress(
@@ -180,7 +214,33 @@ class DownloadOfflinePackages {
           unmatchedAccumulator.addAll(extractResult.unmatchedPdfIds);
         }
 
-        donePdfsGlobal += part.pdfs.length - startPdfIdx;
+        if (extractResult.failedPdfIds.isNotEmpty) {
+          developer.log(
+            'Part ${part.filename}: ${extractResult.failedPdfIds.length} '
+            'PDFs esperados falharam na extração: '
+            '${extractResult.failedPdfIds.take(5).toList()}',
+            name: 'DownloadOfflinePackages',
+            level: 900,
+          );
+          failedPdfIdsAccumulator.addAll(extractResult.failedPdfIds);
+        }
+
+        final processedInPart =
+            extractResult.storedCount + extractResult.skippedCount;
+        final expectedInPart = part.pdfs.length - startPdfIdx;
+        if (processedInPart != expectedInPart) {
+          developer.log(
+            'Part ${part.filename}: esperados $expectedInPart PDFs, '
+            'processados $processedInPart '
+            '(stored=${extractResult.storedCount}, '
+            'skipped=${extractResult.skippedCount}, '
+            'failed=${extractResult.failedPdfIds.length})',
+            name: 'DownloadOfflinePackages',
+            level: 900,
+          );
+        }
+
+        donePdfsGlobal += processedInPart;
 
         final nextCheckpoint = OfflineBulkCheckpoint(
           categories: checkpoint.categories,
@@ -191,24 +251,6 @@ class DownloadOfflinePackages {
         );
         await _checkpointStore.save(nextCheckpoint);
       }
-
-      onProgress?.call(
-        OfflineDownloadProgress(
-          phase: OfflineDownloadPhase.syncing,
-          currentCategory: materialCategory,
-          categoryIndex: catIdx,
-          totalCategories: categories.length,
-          currentPart: package.totalParts,
-          totalParts: package.totalParts,
-          donePdfs: donePdfsGlobal,
-          totalPdfs: totalPdfsGlobal,
-        ),
-      );
-
-      await _reconcileOfflineIndex(
-        materialPackage: package,
-        materialCategory: materialCategory,
-      );
 
       await _checkpointStore.save(
         OfflineBulkCheckpoint(
@@ -221,10 +263,31 @@ class DownloadOfflinePackages {
       );
     }
 
+    if (categories.isNotEmpty) {
+      final lastCategory = checkpoint.categories.last;
+      final lastPackage = manifest.packageFor(lastCategory);
+
+      onProgress?.call(
+        OfflineDownloadProgress(
+          phase: OfflineDownloadPhase.syncing,
+          currentCategory: lastCategory,
+          categoryIndex: checkpoint.categories.length - 1,
+          totalCategories: categories.length,
+          currentPart: lastPackage?.totalParts ?? 0,
+          totalParts: lastPackage?.totalParts ?? 0,
+          donePdfs: donePdfsGlobal,
+          totalPdfs: totalPdfsGlobal,
+        ),
+      );
+
+      await _reconcileOfflineIndex();
+    }
+
     await _checkpointStore.clear();
 
     return DownloadOfflinePackagesResult(
       unmatchedZipEntries: unmatchedAccumulator,
+      failedPdfIds: failedPdfIdsAccumulator,
     );
   }
 
@@ -257,6 +320,7 @@ class DownloadOfflinePackages {
     required String filename,
     required int expectedSize,
     CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
   }) async {
     try {
       return await _zipDownloader.download(
@@ -264,6 +328,7 @@ class DownloadOfflinePackages {
         filename: filename,
         expectedSize: expectedSize,
         cancelToken: cancelToken,
+        onReceiveProgress: onReceiveProgress,
       );
     } on FileSystemException catch (e) {
       if (_isEnospc(e)) {
@@ -281,6 +346,7 @@ class DownloadOfflinePackages {
     required List<String> expectedPdfIds,
     required String materialCategory,
     required int startFromPdfIndex,
+    void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
   }) async {
@@ -290,6 +356,7 @@ class DownloadOfflinePackages {
         expectedPdfIds: expectedPdfIds,
         materialCategory: materialCategory,
         startFromPdfIndex: startFromPdfIndex,
+        onExtractProgress: onExtractProgress,
         onProgress: onProgress,
         onProgressCheckpoint: onProgressCheckpoint,
       );

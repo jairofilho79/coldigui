@@ -356,6 +356,24 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir o download offline'**
   String get offlineDownloadError;
 
+  /// No description provided for @offlineDownloadTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conexão lenta. Toque em Retomar quando a rede melhorar.'**
+  String get offlineDownloadTimeout;
+
+  /// No description provided for @offlineDownloadNetworkError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão. Verifique a internet e retome.'**
+  String get offlineDownloadNetworkError;
+
+  /// No description provided for @offlineKeepAppOpenDuringDownload.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mantenha o app aberto durante o download.'**
+  String get offlineKeepAppOpenDuringDownload;
+
   /// No description provided for @offlineInsufficientDiskSpace.
   ///
   /// In pt, this message translates to:
@@ -392,6 +410,13 @@ abstract class AppLocalizations {
   /// **'{category} — parte {part}/{totalParts} — {done}/{total} PDFs ({phase})'**
   String offlineProgressDetail(String category, int part, int totalParts,
       int done, int total, String phase);
+
+  /// No description provided for @offlineFetchProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixando pacote {part}/{totalParts} — {received} / {total}'**
+  String offlineFetchProgress(
+      int part, int totalParts, String received, String total);
 
   /// No description provided for @offlineStatsTitle.
   ///

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' show max;
 import 'dart:typed_data';
 
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
@@ -36,6 +37,52 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
     ProgressCallback? onReceiveProgress,
   }) async {
     fetchCount++;
+    return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
+  }
+}
+
+class _ConcurrentTrackingPdfBytesDatasource extends PdfBytesDatasource {
+  _ConcurrentTrackingPdfBytesDatasource(this._delayMs) : super(Dio());
+
+  final int _delayMs;
+  int activeDownloads = 0;
+  int maxConcurrent = 0;
+  int fetchCount = 0;
+
+  @override
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    fetchCount++;
+    activeDownloads++;
+    maxConcurrent = max(maxConcurrent, activeDownloads);
+    await Future<void>.delayed(Duration(milliseconds: _delayMs));
+    activeDownloads--;
+    return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
+  }
+}
+
+class _FailingPdfBytesDatasource extends PdfBytesDatasource {
+  _FailingPdfBytesDatasource() : super(Dio());
+  int fetchCount = 0;
+
+  @override
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    fetchCount++;
+    if (filePath.contains('fail.pdf')) {
+      throw DioException(
+        requestOptions: RequestOptions(path: filePath),
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: RequestOptions(path: filePath),
+          statusCode: 404,
+        ),
+      );
+    }
     return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
   }
 }
@@ -165,6 +212,94 @@ void main() {
 
     expect(result.skippedCount, 0);
     expect(result.downloadedCount, 2);
+    expect(result.failedCount, 0);
     expect(bytesDatasource.fetchCount, 2);
+  });
+
+  test('baixa PDFs faltantes em paralelo com limite de concorrência', () async {
+    const pdfCount = 10;
+    final pdfIds = List.generate(
+      pdfCount,
+      (i) => encodePdfId('ColAdultos/${i.toString().padLeft(3, '0')}.pdf'),
+    );
+
+    final manifest = OfflineManifest(
+      version: '1',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'p1.zip',
+              size: 100,
+              url: '/p1.zip',
+              pdfs: pdfIds,
+            ),
+          ],
+          totalSize: 100,
+          totalParts: 1,
+        ),
+      },
+    );
+
+    final trackingDatasource = _ConcurrentTrackingPdfBytesDatasource(30);
+    final concurrentUseCase = DownloadMissingPdfs(
+      _FakeManifestDatasource(manifest),
+      repository,
+      createTestFetchAndStorePdf(trackingDatasource, repository),
+    );
+
+    final progressUpdates = <int>[];
+    final result = await concurrentUseCase(
+      materialCategories: {'Partitura'},
+      onProgress: (done, total) {
+        progressUpdates.add(done);
+        expect(total, pdfCount);
+      },
+    );
+
+    expect(result.downloadedCount, pdfCount);
+    expect(result.failedCount, 0);
+    expect(trackingDatasource.fetchCount, pdfCount);
+    expect(trackingDatasource.maxConcurrent, greaterThan(1));
+    expect(trackingDatasource.maxConcurrent, lessThanOrEqualTo(3));
+    expect(progressUpdates, [0, for (var i = 1; i <= pdfCount; i++) i]);
+  });
+
+  test('falha em um PDF não aborta os demais downloads', () async {
+    final failPdfId = encodePdfId('ColAdultos/fail.pdf');
+    final okPdfId = encodePdfId('ColAdultos/ok.pdf');
+
+    final manifest = OfflineManifest(
+      version: '1',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'p1.zip',
+              size: 100,
+              url: '/p1.zip',
+              pdfs: [failPdfId, okPdfId],
+            ),
+          ],
+          totalSize: 100,
+          totalParts: 1,
+        ),
+      },
+    );
+
+    final failingDatasource = _FailingPdfBytesDatasource();
+    final failingUseCase = DownloadMissingPdfs(
+      _FakeManifestDatasource(manifest),
+      repository,
+      createTestFetchAndStorePdf(failingDatasource, repository),
+    );
+
+    final result = await failingUseCase(materialCategories: {'Partitura'});
+
+    expect(result.downloadedCount, 1);
+    expect(result.failedCount, 1);
+    expect(failingDatasource.fetchCount, 2);
+    expect(await repository.lookup(okPdfId), isNotNull);
+    expect(await repository.lookup(failPdfId), isNull);
   });
 }

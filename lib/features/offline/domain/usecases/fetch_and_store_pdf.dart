@@ -10,6 +10,7 @@ import '../../data/datasources/favorite_pdf_ids_resolver.dart';
 import '../entities/local_pdf_source.dart';
 import '../exceptions/offline_bulk_exceptions.dart';
 import '../repositories/offline_pdf_repository.dart';
+import '../utils/download_retry.dart';
 import '../utils/offline_category_resolver.dart';
 
 /// Cache on-demand: baixa PDF remoto, persiste em disco e indexa no Isar (Fase 3.3).
@@ -149,7 +150,8 @@ class FetchAndStorePdf {
         );
       } on DioException catch (e) {
         lastError = e;
-        if (!_isRetryable(e) || attempt >= OfflineConfig.maxRetryAttempts) {
+        if (!isRetryableDioException(e) ||
+            attempt >= OfflineConfig.maxRetryAttempts) {
           rethrow;
         }
         await Future<void>.delayed(retryDelayForAttempt(attempt));
@@ -161,31 +163,4 @@ class FetchAndStorePdf {
 
     throw lastError ?? StateError('fetchBytes falhou sem erro capturado');
   }
-
-  static bool _isRetryable(DioException e) {
-    if (e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      return true;
-    }
-
-    final statusCode = e.response?.statusCode;
-    return statusCode != null && statusCode >= 500;
-  }
-}
-
-/// Backoff exponencial com jitter (±30%) para retentativas de fetch on-demand.
-@visibleForTesting
-Duration retryDelayForAttempt(int attempt, [Random? random]) {
-  final jitter = (random ?? Random()).nextDouble() * 0.3;
-  final delay =
-      OfflineConfig.retryBackoffBase * (1 << (attempt - 1)) * (1.0 + jitter);
-  if (delay > OfflineConfig.maxRetryDelay) {
-    return OfflineConfig.maxRetryDelay;
-  }
-  if (delay < Duration.zero) {
-    return Duration.zero;
-  }
-  return delay;
 }

@@ -9,11 +9,13 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
+import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,11 +53,56 @@ class _FakeZipDownloader extends ZipPackageDownloader {
     required String filename,
     int? expectedSize,
     CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
   }) async {
     if (cancelToken?.isCancelled == true) {
       throw const OfflineBulkCancelledException();
     }
     return _zipPath;
+  }
+}
+
+class _ProgressZipDownloader extends ZipPackageDownloader {
+  _ProgressZipDownloader(PdfLocalStore store, this._zipPath)
+      : super(Dio(), store);
+
+  final String _zipPath;
+
+  @override
+  Future<String> download({
+    required String url,
+    required String filename,
+    int? expectedSize,
+    CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
+  }) async {
+    onReceiveProgress?.call(500, 1000);
+    onReceiveProgress?.call(1000, 1000);
+    return _zipPath;
+  }
+}
+
+class _RetainedZipDownloader extends ZipPackageDownloader {
+  _RetainedZipDownloader(PdfLocalStore store, this._sourceZipPath)
+      : super(Dio(), store);
+
+  final String _sourceZipPath;
+
+  @override
+  Future<String> download({
+    required String url,
+    required String filename,
+    int? expectedSize,
+    CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
+  }) async {
+    if (cancelToken?.isCancelled == true) {
+      throw const OfflineBulkCancelledException();
+    }
+    final copyPath =
+        '${Directory(_sourceZipPath).parent.path}/retained_${filename}_${DateTime.now().microsecondsSinceEpoch}.zip';
+    await File(_sourceZipPath).copy(copyPath);
+    return copyPath;
   }
 }
 
@@ -68,6 +115,7 @@ class _EnospcZipDownloader extends ZipPackageDownloader {
     required String filename,
     int? expectedSize,
     CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
   }) async {
     throw FileSystemException(
       'No space left on device',
@@ -79,10 +127,10 @@ class _EnospcZipDownloader extends ZipPackageDownloader {
 
 class _EnospcExtractAndStorePdfs extends ExtractAndStorePdfs {
   _EnospcExtractAndStorePdfs(
-    OfflinePdfRepositoryImpl repository,
-    PdfLocalStore store,
-    ZipPackageDownloader zipDownloader,
-  ) : super(repository, store, zipDownloader);
+    super.repository,
+    super.store,
+    super.zipDownloader,
+  );
 
   @override
   Future<ExtractResult> call({
@@ -90,6 +138,7 @@ class _EnospcExtractAndStorePdfs extends ExtractAndStorePdfs {
     required List<String> expectedPdfIds,
     required String materialCategory,
     int startFromPdfIndex = 0,
+    void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
   }) async {
@@ -110,6 +159,26 @@ class _RecordingCheckpointStore extends OfflineBulkCheckpointStore {
   Future<void> save(OfflineBulkCheckpoint checkpoint) async {
     saves.add(checkpoint);
     await super.save(checkpoint);
+  }
+}
+
+class _CountingReconcile extends ReconcileOfflineIndex {
+  _CountingReconcile(super.repository, super.store);
+
+  int callCount = 0;
+  final scopedCalls = <String?>[];
+
+  @override
+  Future<ReconcileResult> call({
+    OfflineMaterialPackage? materialPackage,
+    String? materialCategory,
+  }) async {
+    callCount++;
+    scopedCalls.add(materialCategory);
+    return super.call(
+      materialPackage: materialPackage,
+      materialCategory: materialCategory,
+    );
   }
 }
 
@@ -203,6 +272,40 @@ void main() {
       useCase.call(categories: const ['Partitura']),
       throwsA(isA<InsufficientDiskSpaceException>()),
     );
+  });
+
+  test('retorna failedPdfIds quando PDF esperado falha na extração', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final corruptedZipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/010.pdf':
+            Uint8List.fromList([0x3C, 0x68, 0x74, 0x6D, 0x6C]),
+        'ColAdultos/011.pdf': pdfBytes,
+      },
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: _FakeZipDownloader(store, corruptedZipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, corruptedZipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final result = await useCase.call(categories: const ['Partitura']);
+
+    expect(result.hasWarnings, isTrue);
+    expect(result.failedPdfIds, contains(pdfId1));
+    expect(await repository.lookup(pdfId2), isNotNull);
+    expect(await repository.lookup(pdfId1), isNull);
   });
 
   test('retorna unmatchedZipEntries quando ZIP tem PDFs extras', () async {
@@ -562,5 +665,192 @@ void main() {
     }
 
     expect(await checkpointStore.load(), isNull);
+  });
+
+  test('emite progresso byte-a-byte durante fetching', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final progressZip = _ProgressZipDownloader(store, zipPath);
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      zipDownloader: progressZip,
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        progressZip,
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final fetchProgress = <OfflineDownloadProgress>[];
+    await useCase.call(
+      categories: const ['Partitura'],
+      onProgress: (progress) {
+        if (progress.phase == OfflineDownloadPhase.fetching &&
+            progress.zipBytesReceived != null) {
+          fetchProgress.add(progress);
+        }
+      },
+    );
+
+    expect(fetchProgress, isNotEmpty);
+    expect(
+      fetchProgress.any(
+        (p) => p.zipBytesReceived == 500 && p.zipBytesTotal == 1000,
+      ),
+      isTrue,
+    );
+    expect(
+      fetchProgress.any(
+        (p) => p.zipBytesReceived == 1000 && p.zipBytesTotal == 1000,
+      ),
+      isTrue,
+    );
+  });
+
+  test('emite progresso durante extração a cada 25 PDFs', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    const pdfCount = 55;
+    final pdfIds = List.generate(
+      pdfCount,
+      (i) =>
+          encodePdfId('ColAdultos/${(i + 10).toString().padLeft(3, '0')}.pdf'),
+    );
+    final zipEntries = {
+      for (var i = 0; i < pdfCount; i++)
+        'ColAdultos/${(i + 10).toString().padLeft(3, '0')}.pdf': pdfBytes,
+    };
+    final largeZipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: zipEntries,
+    );
+
+    final manifest = OfflineManifest(
+      version: '1.0.0',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Partitura-extract-progress.zip',
+              size: 1000,
+              url: '/packages/Partitura-extract-progress.zip',
+              pdfs: pdfIds,
+            ),
+          ],
+          totalSize: 1000,
+          totalParts: 1,
+        ),
+      },
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(manifest),
+      zipDownloader: _FakeZipDownloader(store, largeZipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        _FakeZipDownloader(store, largeZipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final extractingDonePdfs = <int>[];
+    await useCase.call(
+      categories: const ['Partitura'],
+      onProgress: (progress) {
+        if (progress.phase == OfflineDownloadPhase.extracting) {
+          extractingDonePdfs.add(progress.donePdfs);
+        }
+      },
+    );
+
+    expect(extractingDonePdfs.any((d) => d >= 25), isTrue);
+  });
+
+  test('bulk de múltiplas categorias executa reconcile único ao final',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final pdfId3 = encodePdfId('ColAdultos/012.pdf');
+    final multiCategoryZipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/010.pdf': pdfBytes,
+        'ColAdultos/011.pdf': pdfBytes,
+        'ColAdultos/012.pdf': pdfBytes,
+      },
+    );
+
+    final manifest = OfflineManifest(
+      version: '1.0.0',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Partitura-1.zip',
+              size: 1000,
+              url: '/packages/Partitura-1.zip',
+              pdfs: [pdfId1, pdfId2],
+            ),
+          ],
+          totalSize: 1000,
+          totalParts: 1,
+        ),
+        'Cifra': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Cifra-1.zip',
+              size: 500,
+              url: '/packages/Cifra-1.zip',
+              pdfs: [pdfId3],
+            ),
+          ],
+          totalSize: 500,
+          totalParts: 1,
+        ),
+      },
+    );
+
+    final reconcile = _CountingReconcile(repository, store);
+    final retainedZipDownloader =
+        _RetainedZipDownloader(store, multiCategoryZipPath);
+    final dualUseCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(manifest),
+      zipDownloader: retainedZipDownloader,
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        store,
+        retainedZipDownloader,
+      ),
+      reconcileOfflineIndex: reconcile,
+      diskSpaceChecker: _FakeDiskSpaceChecker(999999999),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final syncingPhases = <OfflineDownloadPhase>[];
+    await dualUseCase.call(
+      categories: const ['Partitura', 'Cifra'],
+      onProgress: (progress) {
+        if (progress.phase == OfflineDownloadPhase.syncing) {
+          syncingPhases.add(progress.phase);
+        }
+      },
+    );
+
+    expect(reconcile.callCount, 1);
+    expect(reconcile.scopedCalls, [null]);
+    expect(syncingPhases.length, 1);
+    expect(await repository.lookup(pdfId1), isNotNull);
+    expect(await repository.lookup(pdfId2), isNotNull);
+    expect(await repository.lookup(pdfId3), isNotNull);
+    expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
   });
 }

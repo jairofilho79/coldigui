@@ -8,12 +8,11 @@ class _FakeCatalogRepository implements CatalogRepository {
   _FakeCatalogRepository({
     this.checksum,
     this.louvores = const [],
-    this.forceRefreshError,
   });
 
   final String? checksum;
   final List<Louvor> louvores;
-  final Object? forceRefreshError;
+  Object? forceRefreshError;
 
   var fetchChecksumCalls = 0;
   var forceRefreshCalls = 0;

@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:archive/archive.dart';
 
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import 'pdf_integrity_validator.dart';
+
+/// Intervalo de reporte de progresso durante extração em isolate (backlog #5).
+const zipExtractProgressInterval = 25;
 
 /// Parâmetros serializáveis para extração em isolate (`compute`).
 class ZipExtractParams {
@@ -21,21 +25,54 @@ class ZipExtractParams {
   final List<String> skipPdfIds;
 }
 
+/// Progresso emitido pelo isolate a cada [zipExtractProgressInterval] PDFs.
+class ZipExtractProgressReport {
+  const ZipExtractProgressReport({
+    required this.extracted,
+    required this.total,
+  });
+
+  final int extracted;
+  final int total;
+}
+
 /// Resultado serializável da extração em isolate.
 class ZipExtractResult {
   const ZipExtractResult({
     required this.items,
     required this.unmatchedEntries,
+    this.failedPdfIds = const [],
   });
 
   final List<ExtractedPdfItem> items;
 
   /// Nomes relativos de entradas PDF no ZIP sem pdfId no manifest.
   final List<String> unmatchedEntries;
+
+  /// pdfIds esperados cujo conteúdo não pôde ser gravado ou validado.
+  final List<String> failedPdfIds;
+}
+
+/// Entry point para [Isolate.spawn] com reporte de progresso.
+void extractZipPdfsIsolateEntry(List<Object?> args) {
+  final params = args[0] as ZipExtractParams;
+  final sendPort = args[1] as SendPort;
+  try {
+    final result = _extractZipPdfsImpl(params, progressPort: sendPort);
+    sendPort.send(result);
+  } on Object catch (e, st) {
+    sendPort.send(<Object?>[e, st]);
+  }
 }
 
 /// Extrai PDFs de [params.zipPath] e grava em [params.rootPath] (isolate-safe).
-ZipExtractResult extractZipPdfs(ZipExtractParams params) {
+ZipExtractResult extractZipPdfs(ZipExtractParams params) =>
+    _extractZipPdfsImpl(params);
+
+ZipExtractResult _extractZipPdfsImpl(
+  ZipExtractParams params, {
+  SendPort? progressPort,
+}) {
   if (!_hasZipMagicBytesSync(params.zipPath)) {
     throw FormatException('ZIP corrompido ou inválido: ${params.zipPath}');
   }
@@ -61,6 +98,9 @@ ZipExtractResult extractZipPdfs(ZipExtractParams params) {
 
   final items = <ExtractedPdfItem>[];
   final unmatched = <String>[];
+  final failedPdfIds = <String>[];
+  final totalExpected = params.expectedPdfIds.length;
+  var extractedCount = 0;
 
   for (final entry in archive) {
     if (!entry.isFile) continue;
@@ -78,10 +118,16 @@ ZipExtractResult extractZipPdfs(ZipExtractParams params) {
 
     final relPath = _storageRelPath(pdfId);
     final absolutePath = _writeEntryAtomic(entry, params.rootPath, relPath);
-    if (absolutePath == null) continue;
+    if (absolutePath == null) {
+      failedPdfIds.add(pdfId);
+      continue;
+    }
 
     final fileSize = File(absolutePath).lengthSync();
-    if (fileSize == 0) continue;
+    if (fileSize == 0) {
+      failedPdfIds.add(pdfId);
+      continue;
+    }
 
     items.add(
       ExtractedPdfItem(
@@ -90,9 +136,24 @@ ZipExtractResult extractZipPdfs(ZipExtractParams params) {
         fileSize: fileSize,
       ),
     );
+
+    extractedCount++;
+    if (progressPort != null &&
+        extractedCount % zipExtractProgressInterval == 0) {
+      progressPort.send(
+        ZipExtractProgressReport(
+          extracted: extractedCount,
+          total: totalExpected,
+        ),
+      );
+    }
   }
 
-  return ZipExtractResult(items: items, unmatchedEntries: unmatched);
+  return ZipExtractResult(
+    items: items,
+    unmatchedEntries: unmatched,
+    failedPdfIds: failedPdfIds,
+  );
 }
 
 String _normalizeRelPath(String path) {

@@ -150,6 +150,18 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível concluir o download offline';
 
   @override
+  String get offlineDownloadTimeout =>
+      'Conexão lenta. Toque em Retomar quando a rede melhorar.';
+
+  @override
+  String get offlineDownloadNetworkError =>
+      'Sem conexão. Verifique a internet e retome.';
+
+  @override
+  String get offlineKeepAppOpenDuringDownload =>
+      'Mantenha o app aberto durante o download.';
+
+  @override
   String get offlineInsufficientDiskSpace =>
       'Espaço em disco insuficiente para o download';
 
@@ -169,6 +181,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String offlineProgressDetail(String category, int part, int totalParts,
       int done, int total, String phase) {
     return '$category — parte $part/$totalParts — $done/$total PDFs ($phase)';
+  }
+
+  @override
+  String offlineFetchProgress(
+      int part, int totalParts, String received, String total) {
+    return 'Baixando pacote $part/$totalParts — $received / $total';
   }
 
   @override

@@ -81,6 +81,9 @@
   "offlineDismissCheckpoint": "Dismiss",
   "offlineDownloadCompleted": "Offline download completed",
   "offlineDownloadError": "Could not complete offline download",
+  "offlineDownloadTimeout": "Slow connection. Tap Resume when the network improves.",
+  "offlineDownloadNetworkError": "No connection. Check your internet and resume.",
+  "offlineKeepAppOpenDuringDownload": "Keep the app open while downloading.",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
   "offlinePhaseFetching": "downloading",
   "offlinePhaseExtracting": "extracting",
@@ -95,6 +98,15 @@
       "done": { "type": "int" },
       "total": { "type": "int" },
       "phase": { "type": "String" }
+    }
+  },
+  "offlineFetchProgress": "Downloading package {part}/{totalParts} — {received} / {total}",
+  "@offlineFetchProgress": {
+    "placeholders": {
+      "part": { "type": "int" },
+      "totalParts": { "type": "int" },
+      "received": { "type": "String" },
+      "total": { "type": "String" }
     }
   },
   "offlineStatsTitle": "Stored PDFs",

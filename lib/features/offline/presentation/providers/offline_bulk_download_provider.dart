@@ -9,6 +9,23 @@ import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/usecases/download_offline_packages.dart';
 
+/// Chave l10n para falhas de bulk mapeadas a partir de exceções concretas.
+String offlineBulkDownloadErrorKey(Object error) {
+  if (error is InsufficientDiskSpaceException) {
+    return 'offlineInsufficientDiskSpace';
+  }
+  if (error is DioException) {
+    return switch (error.type) {
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.connectionTimeout =>
+        'offlineDownloadTimeout',
+      DioExceptionType.connectionError => 'offlineDownloadNetworkError',
+      _ => 'offlineDownloadError',
+    };
+  }
+  return 'offlineDownloadError';
+}
+
 /// Estado do bulk download UC-09 na UI (Fase 3.5).
 enum OfflineBulkDownloadStatus {
   idle,
@@ -121,21 +138,12 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
         checkpoint: checkpoint,
         progress: null,
       );
-    } on InsufficientDiskSpaceException {
-      state = state.copyWith(
-        status: OfflineBulkDownloadStatus.failed,
-        errorMessage: 'offlineInsufficientDiskSpace',
-        progress: null,
-      );
-    } on Object catch (_) {
-      final checkpoint =
-          await ref.read(offlineBulkCheckpointStoreProvider).load();
-      state = state.copyWith(
-        status: OfflineBulkDownloadStatus.failed,
-        errorMessage: 'offlineDownloadError',
-        checkpoint: checkpoint,
-        progress: null,
-      );
+    } on InsufficientDiskSpaceException catch (e) {
+      await _failBulkDownload(e);
+    } on DioException catch (e) {
+      await _failBulkDownload(e);
+    } on Object catch (e) {
+      await _failBulkDownload(e);
     }
   }
 
@@ -171,15 +179,24 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
         checkpoint: saved,
         progress: null,
       );
-    } on Object catch (_) {
-      final saved = await ref.read(offlineBulkCheckpointStoreProvider).load();
-      state = state.copyWith(
-        status: OfflineBulkDownloadStatus.failed,
-        errorMessage: 'offlineDownloadError',
-        checkpoint: saved,
-        progress: null,
-      );
+    } on InsufficientDiskSpaceException catch (e) {
+      await _failBulkDownload(e);
+    } on DioException catch (e) {
+      await _failBulkDownload(e);
+    } on Object catch (e) {
+      await _failBulkDownload(e);
     }
+  }
+
+  Future<void> _failBulkDownload(Object error) async {
+    final checkpoint =
+        await ref.read(offlineBulkCheckpointStoreProvider).load();
+    state = state.copyWith(
+      status: OfflineBulkDownloadStatus.failed,
+      errorMessage: offlineBulkDownloadErrorKey(error),
+      checkpoint: checkpoint,
+      progress: null,
+    );
   }
 
   Future<void> _completeBulkDownload(
@@ -198,6 +215,12 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
   void cancel() {
     _cancelToken?.cancel('cancelled by user');
+  }
+
+  /// Pausa bulk em andamento ao ir para background (salva checkpoint via cancel).
+  void pauseForBackground() {
+    if (!state.isRunning) return;
+    _cancelToken?.cancel('app backgrounded');
   }
 
   void dismissCheckpoint() {

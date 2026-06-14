@@ -118,6 +118,7 @@ void main() {
 
     expect(result.items, hasLength(1));
     expect(result.items.single.pdfId, pdfId2);
+    expect(result.failedPdfIds, [pdfId1]);
     expect(File('${rootDir.path}/ColAdultos/001.pdf').existsSync(), isFalse);
   });
 }

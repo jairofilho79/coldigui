@@ -1,3 +1,4 @@
+import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
@@ -30,6 +31,26 @@ class _IdleReconcileNotifier extends OfflineReconcileNotifier {
 class _IdleBulkNotifier extends OfflineBulkDownloadNotifier {
   @override
   OfflineBulkDownloadState build() => const OfflineBulkDownloadState();
+}
+
+class _RunningBulkWithFetchProgressNotifier
+    extends OfflineBulkDownloadNotifier {
+  @override
+  OfflineBulkDownloadState build() => OfflineBulkDownloadState(
+        status: OfflineBulkDownloadStatus.running,
+        progress: OfflineDownloadProgress(
+          phase: OfflineDownloadPhase.fetching,
+          currentCategory: 'Partitura',
+          categoryIndex: 0,
+          totalCategories: 1,
+          currentPart: 1,
+          totalParts: 3,
+          donePdfs: 0,
+          totalPdfs: 100,
+          zipBytesReceived: 45 * 1024 * 1024,
+          zipBytesTotal: 82 * 1024 * 1024,
+        ),
+      );
 }
 
 class _IdleMissingNotifier extends OfflineMissingDownloadNotifier {
@@ -148,5 +169,26 @@ void main() {
       find.text('Partitura: 2 (— faltantes, sem conexão)'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('shows zip byte progress during fetching phase', (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {}),
+        ),
+        maintenanceMode: false,
+        extraOverrides: [
+          offlineBulkDownloadProvider.overrideWith(
+            _RunningBulkWithFetchProgressNotifier.new,
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Baixando pacote 1/3'), findsOneWidget);
+    expect(find.textContaining('45,0 MB'), findsOneWidget);
+    expect(find.textContaining('82,0 MB'), findsOneWidget);
   });
 }

@@ -27,6 +27,9 @@ class DownloadMissingResult {
   final int failedCount;
 }
 
+/// Limite de downloads on-demand simultâneos (UC-10, backlog #10).
+const _maxConcurrentDownloads = 3;
+
 /// UC-10 — Baixar PDFs faltantes no índice (Fase 3.6).
 ///
 /// Pré-filtra PDFs válidos (índice + arquivo no disco) e faz fetch **somente**
@@ -63,21 +66,34 @@ class DownloadMissingPdfs {
 
     onProgress?.call(0, missingPdfIds.length);
 
-    for (var i = 0; i < missingPdfIds.length; i++) {
-      final pdfId = missingPdfIds[i];
+    if (missingPdfIds.isNotEmpty) {
+      var completed = 0;
+      var nextIndex = 0;
 
-      try {
-        await _fetchAndStorePdf(
-          pdfId: pdfId,
-          remotePath: _remotePathFromPdfId(pdfId),
-          category: OfflineCategoryResolver.fromPdfId(pdfId),
-        );
-        downloaded++;
-      } on Object {
-        failed++;
+      Future<void> worker() async {
+        while (true) {
+          if (nextIndex >= missingPdfIds.length) break;
+          final index = nextIndex++;
+          final pdfId = missingPdfIds[index];
+
+          try {
+            await _fetchAndStorePdf(
+              pdfId: pdfId,
+              remotePath: _remotePathFromPdfId(pdfId),
+              category: OfflineCategoryResolver.fromPdfId(pdfId),
+            );
+            downloaded++;
+          } on Object {
+            failed++;
+          }
+
+          completed++;
+          onProgress?.call(completed, missingPdfIds.length);
+        }
       }
 
-      onProgress?.call(i + 1, missingPdfIds.length);
+      final workerCount = min(_maxConcurrentDownloads, missingPdfIds.length);
+      await Future.wait(List.generate(workerCount, (_) => worker()));
     }
 
     return DownloadMissingResult(

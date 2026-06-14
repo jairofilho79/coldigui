@@ -81,6 +81,9 @@
   "offlineDismissCheckpoint": "Descartar",
   "offlineDownloadCompleted": "Download offline concluído",
   "offlineDownloadError": "Não foi possível concluir o download offline",
+  "offlineDownloadTimeout": "Conexão lenta. Toque em Retomar quando a rede melhorar.",
+  "offlineDownloadNetworkError": "Sem conexão. Verifique a internet e retome.",
+  "offlineKeepAppOpenDuringDownload": "Mantenha o app aberto durante o download.",
   "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
   "offlinePhaseFetching": "baixando",
   "offlinePhaseExtracting": "extraindo",
@@ -95,6 +98,15 @@
       "done": { "type": "int" },
       "total": { "type": "int" },
       "phase": { "type": "String" }
+    }
+  },
+  "offlineFetchProgress": "Baixando pacote {part}/{totalParts} — {received} / {total}",
+  "@offlineFetchProgress": {
+    "placeholders": {
+      "part": { "type": "int" },
+      "totalParts": { "type": "int" },
+      "received": { "type": "String" },
+      "total": { "type": "String" }
     }
   },
   "offlineStatsTitle": "PDFs armazenados",

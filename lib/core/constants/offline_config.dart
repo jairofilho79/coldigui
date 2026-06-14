@@ -33,6 +33,17 @@ abstract final class OfflineConfig {
   /// Timeout de envio por request em [PdfBytesDatasource._fetchRemote].
   static const Duration pdfDownloadSendTimeout = Duration(seconds: 10);
 
+  /// Watchdog inter-chunk para download de ZIP bulk (UC-09).
+  ///
+  /// `Duration.zero` = sem limite (recomendado para arquivos grandes).
+  static const Duration zipDownloadReceiveTimeout = Duration.zero;
+
+  /// Timeout de conexão por request em [ZipPackageDownloader.download].
+  static const Duration zipDownloadConnectTimeout = Duration(seconds: 60);
+
+  /// Timeout de envio por request em [ZipPackageDownloader.download].
+  static const Duration zipDownloadSendTimeout = Duration(seconds: 30);
+
   /// Tamanho de chunk para upsert Isar no bulk UC-09 (Fase 3.5).
   static const int bulkIsarChunkSize = 75;
 
