@@ -108,22 +108,40 @@ void main() {
     final bytes = _validPdfBytes();
     await repository.upsert(pdfId: pdfId, bytes: bytes, category: category);
 
-    final indexBefore =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
-    final lastAccessBefore = indexBefore!.lastAccessedAt;
+    final staleAccess = DateTime.now().subtract(const Duration(hours: 1));
+    await isar.writeTxn(() async {
+      final index =
+          await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+      index!.lastAccessedAt = staleAccess;
+      await isar.offlinePdfIndexs.put(index);
+    });
 
-    await Future<void>.delayed(const Duration(milliseconds: 5));
     await repository.lookup(pdfId);
+    await repository.flushPendingTouchLastAccessed();
 
     final indexAfter =
         await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
     expect(indexAfter!.lastAccessedAt, isNotNull);
-    expect(
-      indexAfter.lastAccessedAt!.isAfter(
-        lastAccessBefore ?? indexBefore.downloadedAt,
-      ),
-      isTrue,
-    );
+    expect(indexAfter.lastAccessedAt!.isAfter(staleAccess), isTrue);
+  });
+
+  test('lookup debounce evita write txn repetida em 5 minutos', () async {
+    final bytes = _validPdfBytes();
+    await repository.upsert(pdfId: pdfId, bytes: bytes, category: category);
+
+    await repository.lookup(pdfId);
+    await repository.flushPendingTouchLastAccessed();
+
+    final indexAfterFirst =
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    final firstTouch = indexAfterFirst!.lastAccessedAt!;
+
+    await repository.lookup(pdfId);
+    await repository.flushPendingTouchLastAccessed();
+
+    final indexAfterSecond =
+        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    expect(indexAfterSecond!.lastAccessedAt, firstTouch);
   });
 
   test('findPdfIdByAbsolutePath resolve pdfId do índice', () async {

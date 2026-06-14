@@ -51,4 +51,38 @@ void main() {
     expect(find.text('Filtros'), findsOneWidget);
     expect(find.text('Toque para ver mais'), findsOneWidget);
   });
+
+  testWidgets('HomeScreen exibe banner quando catálogo está obsoleto',
+      (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresManifestProvider.overrideWith(
+            (ref) async =>
+                LouvoresManifest.fromLouvores(const [], isStale: true),
+          ),
+          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+          homeSearchPipelineExecutorProvider.overrideWith(
+            (ref) => (input) async => runHomeSearchPipeline(input),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

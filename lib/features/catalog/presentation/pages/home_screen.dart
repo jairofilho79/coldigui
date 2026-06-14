@@ -208,6 +208,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ],
+                if (manifestAsync.value?.isStale == true) ...[
+                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                  SliverToBoxAdapter(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.gold.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Text(
+                        l10n.catalogStaleBanner,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.title.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
                 const HomeSearchResultsSliver(),
               ],

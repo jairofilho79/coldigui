@@ -109,4 +109,94 @@ void main() {
     expect(result.storedCount, 1);
     expect(result.skippedCount, 1);
   });
+
+  test('propaga unmatchedEntries do ZIP no ExtractResult', () async {
+    final zipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/001.pdf': pdfBytes,
+        'ColAdultos/extra.pdf': pdfBytes,
+      },
+    );
+
+    final result = await useCase(
+      zipPath: zipPath,
+      expectedPdfIds: [pdfId1],
+      materialCategory: 'Partitura',
+    );
+
+    expect(result.storedCount, 1);
+    expect(result.unmatchedPdfIds, contains('ColAdultos/extra.pdf'));
+  });
+
+  test('emite checkpoint intra-part a cada 50 PDFs indexados', () async {
+    const pdfCount = 55;
+    final pdfIds = List.generate(
+      pdfCount,
+      (i) =>
+          encodePdfId('ColAdultos/${(i + 1).toString().padLeft(3, '0')}.pdf'),
+    );
+    final zipEntries = {
+      for (var i = 0; i < pdfCount; i++)
+        'ColAdultos/${(i + 1).toString().padLeft(3, '0')}.pdf': pdfBytes,
+    };
+
+    final zipPath = await createSampleZip(dir: tempDir, pdfEntries: zipEntries);
+    final checkpoints = <int>[];
+
+    await useCase(
+      zipPath: zipPath,
+      expectedPdfIds: pdfIds,
+      materialCategory: 'Partitura',
+      onProgressCheckpoint: (count) async {
+        checkpoints.add(count);
+      },
+    );
+
+    expect(checkpoints, [50]);
+  });
+
+  test('resume intra-part não re-escreve PDFs já indexados', () async {
+    final marker1 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x01]);
+    final marker2 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x02]);
+    final marker3 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x03]);
+
+    await repository.upsert(
+      pdfId: pdfId1,
+      bytes: marker1,
+      category: 'ColAdultos',
+    );
+
+    final zipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/001.pdf': marker3,
+        'ColAdultos/002.pdf': marker2,
+        'ColAdultos/003.pdf': marker3,
+      },
+    );
+
+    await useCase(
+      zipPath: zipPath,
+      expectedPdfIds: [pdfId1, pdfId2, pdfId3],
+      materialCategory: 'Partitura',
+      startFromPdfIndex: 1,
+    );
+
+    final entry1 = await repository.lookup(pdfId1);
+    expect(entry1, isNotNull);
+    expect(
+      await File(entry1!.absolutePath).readAsBytes(),
+      marker1,
+      reason: 'PDF já indexado não deve ser sobrescrito no resume',
+    );
+
+    final entry2 = await repository.lookup(pdfId2);
+    expect(entry2, isNotNull);
+    expect(await File(entry2!.absolutePath).readAsBytes(), marker2);
+
+    final entry3 = await repository.lookup(pdfId3);
+    expect(entry3, isNotNull);
+    expect(await File(entry3!.absolutePath).readAsBytes(), marker3);
+  });
 }

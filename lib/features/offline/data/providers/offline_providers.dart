@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
@@ -95,10 +97,12 @@ final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
 
 /// DI — download de ZIPs transitórios.
 final zipPackageDownloaderProvider = Provider<ZipPackageDownloader>((ref) {
-  return ZipPackageDownloader(
+  final downloader = ZipPackageDownloader(
     ref.watch(dioProvider),
     ref.watch(pdfLocalStoreProvider),
   );
+  unawaited(downloader.cleanOrphanedTempFiles());
+  return downloader;
 });
 
 /// DI — checkpoint de resume bulk.
@@ -149,6 +153,7 @@ final getOfflineStatsByCategoryProvider =
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
     ref.watch(offlineManifestRemoteDatasourceProvider),
+    ref.watch(pdfLocalStoreProvider),
   );
 });
 

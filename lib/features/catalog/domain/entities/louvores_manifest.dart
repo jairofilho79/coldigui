@@ -9,16 +9,24 @@ class LouvoresManifest {
   const LouvoresManifest({
     required this.louvores,
     required this.availableArranjos,
+    this.isStale = false,
   });
 
   final List<Louvor> louvores;
   final Set<String> availableArranjos;
 
-  factory LouvoresManifest.fromLouvores(List<Louvor> louvores) {
+  /// `true` se o catálogo nunca foi sincronizado ou está há >7 dias sem sync.
+  final bool isStale;
+
+  factory LouvoresManifest.fromLouvores(
+    List<Louvor> louvores, {
+    bool isStale = false,
+  }) {
     return LouvoresManifest(
       louvores: louvores,
       availableArranjos:
           LouvorClassification.collectAvailableArranjos(louvores),
+      isStale: isStale,
     );
   }
 }

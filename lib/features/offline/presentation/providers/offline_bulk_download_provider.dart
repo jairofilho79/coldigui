@@ -7,12 +7,14 @@ import 'offline_mode_provider.dart';
 import '../../domain/entities/offline_bulk_checkpoint.dart';
 import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../domain/usecases/download_offline_packages.dart';
 
 /// Estado do bulk download UC-09 na UI (Fase 3.5).
 enum OfflineBulkDownloadStatus {
   idle,
   running,
   completed,
+  completedWithWarnings,
   failed,
   cancelled,
 }
@@ -23,29 +25,38 @@ class OfflineBulkDownloadState {
     this.progress,
     this.checkpoint,
     this.errorMessage,
+    this.unmatchedZipEntries = const [],
   });
 
   final OfflineBulkDownloadStatus status;
   final OfflineDownloadProgress? progress;
   final OfflineBulkCheckpoint? checkpoint;
   final String? errorMessage;
+  final List<String> unmatchedZipEntries;
 
   bool get isRunning => status == OfflineBulkDownloadStatus.running;
   bool get hasCheckpoint => checkpoint != null;
+  bool get completedWithWarnings =>
+      status == OfflineBulkDownloadStatus.completedWithWarnings;
 
   OfflineBulkDownloadState copyWith({
     OfflineBulkDownloadStatus? status,
     OfflineDownloadProgress? progress,
     OfflineBulkCheckpoint? checkpoint,
     String? errorMessage,
+    List<String>? unmatchedZipEntries,
     bool clearCheckpoint = false,
     bool clearError = false,
+    bool clearUnmatchedZipEntries = false,
   }) {
     return OfflineBulkDownloadState(
       status: status ?? this.status,
       progress: progress ?? this.progress,
       checkpoint: clearCheckpoint ? null : (checkpoint ?? this.checkpoint),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      unmatchedZipEntries: clearUnmatchedZipEntries
+          ? const []
+          : (unmatchedZipEntries ?? this.unmatchedZipEntries),
     );
   }
 }
@@ -86,10 +97,11 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       status: OfflineBulkDownloadStatus.running,
       clearError: true,
       clearCheckpoint: true,
+      clearUnmatchedZipEntries: true,
     );
 
     try {
-      await ref.read(downloadOfflinePackagesProvider).call(
+      final result = await ref.read(downloadOfflinePackagesProvider).call(
             categories: categories,
             cancelToken: _cancelToken,
             onProgress: (progress) {
@@ -100,7 +112,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
             },
           );
 
-      await _completeBulkDownload();
+      await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
       final checkpoint =
           await ref.read(offlineBulkCheckpointStoreProvider).load();
@@ -139,7 +151,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     );
 
     try {
-      await ref.read(downloadOfflinePackagesProvider).call(
+      final result = await ref.read(downloadOfflinePackagesProvider).call(
             categories: checkpoint.categories,
             cancelToken: _cancelToken,
             resumeCheckpoint: checkpoint,
@@ -151,7 +163,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
             },
           );
 
-      await _completeBulkDownload();
+      await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
       final saved = await ref.read(offlineBulkCheckpointStoreProvider).load();
       state = state.copyWith(
@@ -170,11 +182,15 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     }
   }
 
-  Future<void> _completeBulkDownload() async {
+  Future<void> _completeBulkDownload(
+      DownloadOfflinePackagesResult result) async {
     state = state.copyWith(
-      status: OfflineBulkDownloadStatus.completed,
+      status: result.hasWarnings
+          ? OfflineBulkDownloadStatus.completedWithWarnings
+          : OfflineBulkDownloadStatus.completed,
       progress: null,
       clearCheckpoint: true,
+      unmatchedZipEntries: result.unmatchedZipEntries,
     );
     await ref.read(offlineModeProvider.notifier).markConfigured();
     await ref.read(offlineCacheStatusProvider.notifier).refresh();

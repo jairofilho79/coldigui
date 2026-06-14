@@ -13,14 +13,19 @@ import '../datasources/pdf_local_store.dart';
 
 /// Orquestra [PdfLocalStore] + [OfflinePdfLocalDatasource] (Fase 3.1).
 class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
-  const OfflinePdfRepositoryImpl({
+  OfflinePdfRepositoryImpl({
     required PdfLocalStore store,
     required OfflinePdfLocalDatasource local,
   })  : _store = store,
         _local = local;
 
+  static const _touchDebounce = Duration(minutes: 5);
+  static const _touchFlushThreshold = 20;
+  static const _evictionBatchSize = 100;
+
   final PdfLocalStore _store;
   final OfflinePdfLocalDatasource _local;
+  final Map<String, DateTime> _pendingTouchAt = {};
 
   @override
   Future<OfflinePdfEntry?> lookup(String pdfId) async {
@@ -38,8 +43,11 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     switch (await _validateIndexFile(index)) {
       case _IndexFileValidation.valid:
         final now = DateTime.now();
-        await _local.touchLastAccessed(pdfId, now);
-        index.lastAccessedAt = now;
+        _recordTouch(pdfId, now, index.lastAccessedAt);
+        index.lastAccessedAt = _pendingTouchAt[pdfId] ?? index.lastAccessedAt;
+        if (_pendingTouchAt.length >= _touchFlushThreshold) {
+          await flushPendingTouchLastAccessed();
+        }
         return (_toEntry(index), true);
       case _IndexFileValidation.missing:
         return (null, true);
@@ -119,6 +127,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
     await _store.delete(index.storagePath);
     await _local.deleteByPdfId(pdfId);
+    _pendingTouchAt.remove(pdfId);
   }
 
   @override
@@ -191,31 +200,56 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   Future<int> totalCachedBytes() => _local.sumFileSizes();
 
   @override
+  Future<void> flushPendingTouchLastAccessed() async {
+    if (_pendingTouchAt.isEmpty) return;
+
+    final batch = Map<String, DateTime>.from(_pendingTouchAt);
+    _pendingTouchAt.clear();
+    await _local.touchLastAccessedBatch(batch);
+  }
+
+  @override
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
   }) async {
     if (targetBytes <= 0) return 0;
 
-    final indexes = await _local.findAll();
-    indexes.sort((a, b) {
-      final aAccess = a.lastAccessedAt ?? a.downloadedAt;
-      final bAccess = b.lastAccessedAt ?? b.downloadedAt;
-      final byAccess = aAccess.compareTo(bAccess);
-      if (byAccess != 0) return byAccess;
-      return a.downloadedAt.compareTo(b.downloadedAt);
-    });
+    await flushPendingTouchLastAccessed();
 
+    var offset = 0;
     var freed = 0;
-    for (final index in indexes) {
-      if (freed >= targetBytes) break;
-      if (excludePdfIds.contains(index.pdfId)) continue;
 
-      await remove(index.pdfId);
-      freed += index.fileSize;
+    while (freed < targetBytes) {
+      final batch = await _local.findOldestForEviction(
+        limit: _evictionBatchSize,
+        offset: offset,
+      );
+      if (batch.isEmpty) break;
+
+      var removedAny = false;
+      for (final index in batch) {
+        if (freed >= targetBytes) break;
+        if (excludePdfIds.contains(index.pdfId)) continue;
+
+        await remove(index.pdfId);
+        freed += index.fileSize;
+        removedAny = true;
+      }
+
+      offset = removedAny ? 0 : offset + _evictionBatchSize;
     }
 
     return freed;
+  }
+
+  void _recordTouch(
+      String pdfId, DateTime now, DateTime? existingLastAccessed) {
+    final lastKnown = _pendingTouchAt[pdfId] ?? existingLastAccessed;
+    if (lastKnown != null && now.difference(lastKnown) < _touchDebounce) {
+      return;
+    }
+    _pendingTouchAt[pdfId] = now;
   }
 
   static String _resolveStorageRelPath(String pdfId) {

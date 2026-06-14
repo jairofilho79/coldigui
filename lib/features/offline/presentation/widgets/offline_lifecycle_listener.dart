@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../catalog/presentation/providers/catalog_checksum_poll_provider.dart';
+import '../../data/providers/offline_providers.dart';
 import '../providers/offline_reconcile_provider.dart';
 
 /// Observa lifecycle e dispara reconcile debounced ao retornar ao foreground.
@@ -33,8 +37,20 @@ class _OfflineLifecycleListenerState
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(offlineReconcileProvider.notifier).requestReconcileDebounced();
+    switch (state) {
+      case AppLifecycleState.paused:
+        unawaited(
+          ref
+              .read(offlinePdfRepositoryProvider)
+              .flushPendingTouchLastAccessed(),
+        );
+      case AppLifecycleState.resumed:
+        ref.read(offlineReconcileProvider.notifier).requestReconcileDebounced();
+        ref.read(catalogChecksumPollProvider.notifier).requestPollDebounced();
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.inactive:
+        break;
     }
   }
 

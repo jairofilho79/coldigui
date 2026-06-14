@@ -50,6 +50,20 @@ void main() {
     }
   });
 
+  test('remove entrada índice com conteúdo HTML inválido', () async {
+    final entry = await repository.upsert(
+      pdfId: pdfId,
+      bytes: Uint8List.fromList('<html>'.codeUnits),
+      category: 'ColAdultos',
+    );
+    expect(await File(entry.absolutePath).exists(), isTrue);
+
+    final result = await useCase();
+
+    expect(result.removedFromIndex, 1);
+    expect(await repository.lookup(pdfId), isNull);
+  });
+
   test('remove entrada índice sem arquivo no disco', () async {
     final entry = await repository.upsert(
       pdfId: pdfId,

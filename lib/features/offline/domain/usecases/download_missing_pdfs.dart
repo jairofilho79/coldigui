@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'dart:math' show min;
 
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
+import '../../data/utils/pdf_integrity_validator.dart';
 import '../entities/offline_manifest.dart';
 import '../entities/offline_pdf_entry.dart';
 import '../repositories/offline_pdf_repository.dart';
@@ -104,11 +104,8 @@ class DownloadMissingPdfs {
     return validPdfIds;
   }
 
-  Future<bool> _hasValidFile(OfflinePdfEntry entry) async {
-    final file = File(entry.absolutePath);
-    if (!await file.exists()) return false;
-    return await file.length() > 0;
-  }
+  Future<bool> _hasValidFile(OfflinePdfEntry entry) =>
+      PdfIntegrityValidator.isValidPdfFile(entry.absolutePath);
 
   List<String> _collectPdfIds(
     OfflineManifest manifest,

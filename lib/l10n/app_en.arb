@@ -55,6 +55,7 @@
   "catalogRefreshMessage": "Download the latest catalog",
   "catalogRefreshSuccess": "Catalog updated",
   "catalogRefreshError": "Could not update the catalog",
+  "catalogStaleBanner": "Catalog last updated over 7 days ago. Connect to refresh.",
   "catalogLoadError": "Could not load the catalog",
   "libraryResultsSummary": "Showing {from}–{to} of {total} hymns",
   "@libraryResultsSummary": {
@@ -122,6 +123,27 @@
   "@offlineStatsTotalMissing": {
     "placeholders": {
       "count": { "type": "int" }
+    }
+  },
+  "offlineStatsMissingUnreliable": "Missing count unavailable (offline)",
+  "offlineStatsDiskUsage": "Offline library: {used} | Available: {free}",
+  "@offlineStatsDiskUsage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "free": { "type": "String" }
+    }
+  },
+  "offlineStatsDiskUsageUsedOnly": "Offline library: {used}",
+  "@offlineStatsDiskUsageUsedOnly": {
+    "placeholders": {
+      "used": { "type": "String" }
+    }
+  },
+  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— missing, offline)",
+  "@offlineStatsCategoryUnreliableMissing": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "downloaded": { "type": "int" }
     }
   },
   "offlineRefreshStats": "Refresh",

@@ -1,10 +1,12 @@
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_remote_datasource.dart';
+import 'package:coldigui/features/catalog/data/datasources/catalog_sync_metadata_store.dart';
 import 'package:coldigui/features/catalog/data/repositories/catalog_repository_impl.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Louvor _louvor(String pdfId) => Louvor.fromManifest(
       nome: 'Louvor',
@@ -50,37 +52,64 @@ class _FakeIsar implements Isar {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+CatalogRepositoryImpl _repo({
+  required _TestRemote remote,
+  required _TestLocal local,
+  SharedPreferences? prefs,
+}) {
+  return CatalogRepositoryImpl(
+    remote: remote,
+    local: local,
+    syncMetadata: CatalogSyncMetadataStore(
+      prefs ?? _throwingPrefs(),
+    ),
+  );
+}
+
+SharedPreferences _throwingPrefs() {
+  throw StateError('SharedPreferences not initialized — call setUp');
+}
+
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   test('sucesso remoto persiste e retorna louvores', () async {
     final remote = _TestRemote(louvores: [_louvor('remote-1')]);
     final local = _TestLocal();
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     final result = await repo.loadManifest();
 
     expect(result, hasLength(1));
     expect(result.first.pdfId, 'remote-1');
     expect(local.store, hasLength(1));
+    expect(await repo.isCatalogStale(), isFalse);
   });
 
   test('falha remota usa cache local', () async {
     final remote = _TestRemote(error: Exception('offline'));
     final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     final result = await repo.loadManifest();
 
     expect(result, hasLength(1));
     expect(result.first.pdfId, 'cached-1');
+    expect(await repo.isCatalogStale(), isTrue);
   });
 
   test('remoto vazio preserva cache existente', () async {
     final remote = _TestRemote(louvores: []);
     final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     final result = await repo.loadManifest();
 
@@ -92,8 +121,9 @@ void main() {
   test('falha remota sem cache propaga erro', () async {
     final remote = _TestRemote(error: Exception('offline'));
     final local = _TestLocal();
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     expect(repo.loadManifest(), throwsA(isA<Exception>()));
   });
@@ -101,8 +131,9 @@ void main() {
   test('forceRefreshManifest sucesso persiste e retorna louvores', () async {
     final remote = _TestRemote(louvores: [_louvor('remote-refresh')]);
     final local = _TestLocal();
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     final result = await repo.forceRefreshManifest();
 
@@ -110,13 +141,15 @@ void main() {
     expect(result.first.pdfId, 'remote-refresh');
     expect(local.store, hasLength(1));
     expect(local.store.first.pdfId, 'remote-refresh');
+    expect(await repo.isCatalogStale(), isFalse);
   });
 
   test('forceRefreshManifest falha remota sem fallback ao cache', () async {
     final remote = _TestRemote(error: Exception('offline'));
     final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     await expectLater(
       repo.forceRefreshManifest(),
@@ -128,13 +161,48 @@ void main() {
   test('forceRefreshManifest remoto vazio falha sem fallback', () async {
     final remote = _TestRemote(louvores: []);
     final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final prefs = await SharedPreferences.getInstance();
 
-    final repo = CatalogRepositoryImpl(remote: remote, local: local);
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
 
     await expectLater(
       repo.forceRefreshManifest(),
       throwsA(isA<StateError>()),
     );
     expect(local.store.first.pdfId, 'cached-1');
+  });
+
+  test('isCatalogStale true quando sync antigo', () async {
+    final remote = _TestRemote(error: Exception('offline'));
+    final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final staleDate =
+        DateTime.now().subtract(const Duration(days: 8)).toIso8601String();
+    SharedPreferences.setMockInitialValues({
+      'catalogLastSyncAt': staleDate,
+    });
+    final prefs = await SharedPreferences.getInstance();
+
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
+
+    await repo.loadManifest();
+
+    expect(await repo.isCatalogStale(), isTrue);
+  });
+
+  test('isCatalogStale false após sync recente em prefs', () async {
+    final remote = _TestRemote(error: Exception('offline'));
+    final local = _TestLocal()..store.add(_louvor('cached-1'));
+    final recentDate =
+        DateTime.now().subtract(const Duration(days: 2)).toIso8601String();
+    SharedPreferences.setMockInitialValues({
+      'catalogLastSyncAt': recentDate,
+    });
+    final prefs = await SharedPreferences.getInstance();
+
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
+
+    await repo.loadManifest();
+
+    expect(await repo.isCatalogStale(), isFalse);
   });
 }

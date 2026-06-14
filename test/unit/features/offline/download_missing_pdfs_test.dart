@@ -14,6 +14,8 @@ import 'package:isar/isar.dart';
 
 import 'offline_test_helpers.dart';
 
+final _validPdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D]);
+
 class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
   _FakeManifestDatasource(this._manifest) : super(Dio());
 
@@ -103,7 +105,7 @@ void main() {
   test('baixa apenas PDFs ausentes no índice', () async {
     await repository.upsert(
       pdfId: pdfId1,
-      bytes: Uint8List.fromList([1, 2, 3]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
@@ -119,7 +121,7 @@ void main() {
   test('progresso usa total de faltantes, não o manifest completo', () async {
     await repository.upsert(
       pdfId: pdfId1,
-      bytes: Uint8List.fromList([1, 2, 3]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
@@ -136,12 +138,12 @@ void main() {
   test('não refaz fetch quando arquivo local já é válido', () async {
     await repository.upsert(
       pdfId: pdfId1,
-      bytes: Uint8List.fromList([1, 2, 3]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: pdfId2,
-      bytes: Uint8List.fromList([4, 5, 6]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
@@ -150,5 +152,19 @@ void main() {
     expect(result.skippedCount, 2);
     expect(result.downloadedCount, 0);
     expect(bytesDatasource.fetchCount, 0);
+  });
+
+  test('re-baixa PDF com conteúdo HTML inválido no disco', () async {
+    await repository.upsert(
+      pdfId: pdfId1,
+      bytes: Uint8List.fromList('<html>'.codeUnits),
+      category: 'ColAdultos',
+    );
+
+    final result = await useCase(materialCategories: {'Partitura'});
+
+    expect(result.skippedCount, 0);
+    expect(result.downloadedCount, 2);
+    expect(bytesDatasource.fetchCount, 2);
   });
 }

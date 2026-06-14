@@ -5,6 +5,8 @@ import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
+import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
+import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
@@ -15,6 +17,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
+import 'dart:io';
 
 class _StatsRepo implements OfflinePdfRepository {
   _StatsRepo(this.byCategory);
@@ -77,6 +80,9 @@ class _StatsRepo implements OfflinePdfRepository {
     Set<String> excludePdfIds = const {},
   }) async =>
       0;
+
+  @override
+  Future<void> flushPendingTouchLastAccessed() async {}
 }
 
 class _StubCatalogLocal extends CatalogLocalDatasource {
@@ -97,7 +103,14 @@ class _StubIsar implements Isar {
 
 class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
   _FixedGetOfflineStatsByCategory(this.result)
-      : super(_StatsRepo({}), _StubCatalogLocal(), _StubManifestDatasource());
+      : super(
+          _StatsRepo({}),
+          _StubCatalogLocal(),
+          _StubManifestDatasource(),
+          PdfLocalStore(
+            getApplicationDocumentsDirectory: () async => Directory.systemTemp,
+          ),
+        );
 
   final OfflineStats result;
 
@@ -105,16 +118,35 @@ class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
   Future<OfflineStats> call({bool includeMissing = true}) async => result;
 }
 
+class _FixedDiskSpaceChecker extends DiskSpaceChecker {
+  _FixedDiskSpaceChecker(this._freeBytes);
+
+  final int? _freeBytes;
+
+  @override
+  Future<int?> getFreeBytes() async => _freeBytes;
+}
+
+List<Override> _offlineCacheStatusTestOverrides({
+  required OfflineStats stats,
+  int? freeDiskBytes,
+}) {
+  return [
+    getOfflineStatsByCategoryProvider.overrideWith(
+      (ref) => _FixedGetOfflineStatsByCategory(stats),
+    ),
+    diskSpaceCheckerProvider.overrideWith(
+      (ref) => _FixedDiskSpaceChecker(freeDiskBytes),
+    ),
+  ];
+}
+
 void main() {
   test('refresh populates stats and isReady', () async {
     final container = ProviderContainer(
-      overrides: [
-        getOfflineStatsByCategoryProvider.overrideWith(
-          (ref) => _FixedGetOfflineStatsByCategory(
-            const OfflineStats(byCategory: {'Partitura': 2}),
-          ),
-        ),
-      ],
+      overrides: _offlineCacheStatusTestOverrides(
+        stats: const OfflineStats(byCategory: {'Partitura': 2}),
+      ),
     );
     addTearDown(container.dispose);
 
@@ -128,13 +160,9 @@ void main() {
 
   test('refresh with removedCount propagates aviso', () async {
     final container = ProviderContainer(
-      overrides: [
-        getOfflineStatsByCategoryProvider.overrideWith(
-          (ref) => _FixedGetOfflineStatsByCategory(
-            const OfflineStats(byCategory: {}),
-          ),
-        ),
-      ],
+      overrides: _offlineCacheStatusTestOverrides(
+        stats: const OfflineStats(byCategory: {}),
+      ),
     );
     addTearDown(container.dispose);
 
@@ -149,13 +177,9 @@ void main() {
 
   test('dismissRemovedWarning clears removedCount', () async {
     final container = ProviderContainer(
-      overrides: [
-        getOfflineStatsByCategoryProvider.overrideWith(
-          (ref) => _FixedGetOfflineStatsByCategory(
-            const OfflineStats(byCategory: {}),
-          ),
-        ),
-      ],
+      overrides: _offlineCacheStatusTestOverrides(
+        stats: const OfflineStats(byCategory: {}),
+      ),
     );
     addTearDown(container.dispose);
 
@@ -172,10 +196,8 @@ void main() {
   test('reconcile completion triggers refresh with removedFromIndex', () async {
     final container = ProviderContainer(
       overrides: [
-        getOfflineStatsByCategoryProvider.overrideWith(
-          (ref) => _FixedGetOfflineStatsByCategory(
-            const OfflineStats(byCategory: {'Partitura': 1}),
-          ),
+        ..._offlineCacheStatusTestOverrides(
+          stats: const OfflineStats(byCategory: {'Partitura': 1}),
         ),
         offlineReconcileProvider.overrideWith(_TestReconcileNotifier.new),
       ],

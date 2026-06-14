@@ -32,9 +32,13 @@ class ExtractResult {
     required this.storedCount,
     required this.skippedCount,
     required this.totalInZip,
+    this.unmatchedPdfIds = const [],
   });
 
   final int storedCount;
   final int skippedCount;
   final int totalInZip;
+
+  /// Entradas PDF no ZIP sem correspondência no manifest.
+  final List<String> unmatchedPdfIds;
 }

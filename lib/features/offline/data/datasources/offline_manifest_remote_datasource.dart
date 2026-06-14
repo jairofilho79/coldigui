@@ -7,11 +7,29 @@ import '../models/offline_manifest_dto.dart';
 
 /// Fonte remota do manifesto de pacotes offline — UC-09.
 class OfflineManifestRemoteDatasource {
-  const OfflineManifestRemoteDatasource(this._dio);
+  OfflineManifestRemoteDatasource(this._dio);
+
+  static const _cacheTtl = Duration(hours: 24);
 
   final Dio _dio;
 
+  OfflineManifest? _cachedManifest;
+  DateTime? _cacheTime;
+
   Future<OfflineManifest> fetchManifest() async {
+    if (_cachedManifest != null &&
+        _cacheTime != null &&
+        DateTime.now().difference(_cacheTime!) < _cacheTtl) {
+      return _cachedManifest!;
+    }
+
+    final manifest = await _fetchFromNetwork();
+    _cachedManifest = manifest;
+    _cacheTime = DateTime.now();
+    return manifest;
+  }
+
+  Future<OfflineManifest> _fetchFromNetwork() async {
     if (AppConfig.apiBaseUrl.isEmpty) {
       throw StateError(
         'PLPCG_API_BASE_URL não definido. '

@@ -74,4 +74,7 @@ abstract class OfflinePdfRepository {
     required int targetBytes,
     Set<String> excludePdfIds = const {},
   });
+
+  /// Persiste toques LRU pendentes (debounce) — ex.: ao pausar o app.
+  Future<void> flushPendingTouchLastAccessed();
 }

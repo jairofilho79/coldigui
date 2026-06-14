@@ -14,9 +14,13 @@ class ZipPackageDownloader {
   final PdfLocalStore _store;
 
   /// Baixa [url] (ex.: `/packages/Partitura-1.zip`) e retorna path absoluto local.
+  ///
+  /// Quando [expectedSize] é informado, reutiliza cache apenas se o tamanho
+  /// no disco coincidir com o manifest.
   Future<String> download({
     required String url,
     required String filename,
+    int? expectedSize,
     CancelToken? cancelToken,
   }) async {
     final zipDir = await _zipDirectory();
@@ -24,7 +28,14 @@ class ZipPackageDownloader {
     final tmp = File('${target.path}.tmp');
 
     if (await target.exists()) {
-      return target.path;
+      if (expectedSize == null) {
+        return target.path;
+      }
+      final stat = await FileStat.stat(target.path);
+      if (stat.size == expectedSize) {
+        return target.path;
+      }
+      await target.delete();
     }
 
     final absoluteUrl =
@@ -43,6 +54,22 @@ class ZipPackageDownloader {
         await tmp.delete();
       }
       rethrow;
+    }
+  }
+
+  /// Remove arquivos `.tmp` órfãos de downloads interrompidos (backlog #13).
+  Future<void> cleanOrphanedTempFiles() async {
+    final zipDir = await _zipDirectory();
+    if (!await zipDir.exists()) return;
+
+    await for (final entity in zipDir.list()) {
+      if (entity is File && entity.path.endsWith('.tmp')) {
+        try {
+          await entity.delete();
+        } on FileSystemException {
+          // Arquivo pode ter sido removido concorrentemente.
+        }
+      }
     }
   }
 

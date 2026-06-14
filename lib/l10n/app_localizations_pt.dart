@@ -106,6 +106,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get catalogRefreshError => 'Não foi possível atualizar o catálogo';
 
   @override
+  String get catalogStaleBanner =>
+      'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.';
+
+  @override
   String get catalogLoadError => 'Não foi possível carregar o catálogo';
 
   @override
@@ -202,6 +206,26 @@ class AppLocalizationsPt extends AppLocalizations {
       one: '1 PDF faltante no total',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get offlineStatsMissingUnreliable =>
+      'Faltantes indisponíveis (sem conexão)';
+
+  @override
+  String offlineStatsDiskUsage(String used, String free) {
+    return 'Acervo offline: $used | Disponível: $free';
+  }
+
+  @override
+  String offlineStatsDiskUsageUsedOnly(String used) {
+    return 'Acervo offline: $used';
+  }
+
+  @override
+  String offlineStatsCategoryUnreliableMissing(
+      String category, int downloaded) {
+    return '$category: $downloaded (— faltantes, sem conexão)';
   }
 
   @override

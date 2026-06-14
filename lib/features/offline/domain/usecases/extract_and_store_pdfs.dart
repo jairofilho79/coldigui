@@ -7,6 +7,9 @@ import '../../data/utils/zip_pdf_extractor.dart';
 import '../entities/offline_pdf_batch_item.dart';
 import '../repositories/offline_pdf_repository.dart';
 
+/// Intervalo de checkpoint intra-part durante extração/indexação bulk (backlog #2).
+const _checkpointInterval = 50;
+
 /// UC-09 — Extrair ZIP e gravar PDFs no store local (Fase 3.5).
 ///
 /// Descompacta [zipPath] em isolate → indexa em chunks Isar no isolate principal.
@@ -27,6 +30,7 @@ class ExtractAndStorePdfs {
     required String materialCategory,
     int startFromPdfIndex = 0,
     void Function(int done, int total)? onProgress,
+    Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
   }) async {
     final pendingIds = expectedPdfIds.skip(startFromPdfIndex).toList();
     final total = pendingIds.length;
@@ -37,6 +41,7 @@ class ExtractAndStorePdfs {
         storedCount: 0,
         skippedCount: expectedPdfIds.length,
         totalInZip: expectedPdfIds.length,
+        unmatchedPdfIds: const [],
       );
     }
 
@@ -62,10 +67,17 @@ class ExtractAndStorePdfs {
       final end = (i + chunkSize < items.length) ? i + chunkSize : items.length;
       final chunk = items.sublist(i, end);
       await _repository.indexExtractedBatch(chunk);
+
+      final prevProcessed = startFromPdfIndex + skipPdfIds.length + storedCount;
       storedCount += chunk.length;
-      onProgress?.call(
-        startFromPdfIndex + skipPdfIds.length + storedCount,
-        expectedPdfIds.length,
+      final newProcessed = startFromPdfIndex + skipPdfIds.length + storedCount;
+
+      onProgress?.call(newProcessed, expectedPdfIds.length);
+
+      await _emitProgressCheckpoints(
+        prevProcessed: prevProcessed,
+        newProcessed: newProcessed,
+        onProgressCheckpoint: onProgressCheckpoint,
       );
     }
 
@@ -77,6 +89,22 @@ class ExtractAndStorePdfs {
       storedCount: storedCount,
       skippedCount: skipPdfIds.length,
       totalInZip: expectedPdfIds.length,
+      unmatchedPdfIds: extractResult.unmatchedEntries,
     );
+  }
+
+  Future<void> _emitProgressCheckpoints({
+    required int prevProcessed,
+    required int newProcessed,
+    required Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
+  }) async {
+    if (onProgressCheckpoint == null) return;
+
+    var checkpointAt =
+        ((prevProcessed ~/ _checkpointInterval) + 1) * _checkpointInterval;
+    while (checkpointAt <= newProcessed) {
+      await onProgressCheckpoint(checkpointAt);
+      checkpointAt += _checkpointInterval;
+    }
   }
 }

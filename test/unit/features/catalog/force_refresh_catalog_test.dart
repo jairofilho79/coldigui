@@ -23,6 +23,9 @@ class _FakeCatalogRepository implements CatalogRepository {
 
   @override
   Future<String?> fetchManifestChecksum() async => null;
+
+  @override
+  Future<bool> isCatalogStale() async => false;
 }
 
 void main() {

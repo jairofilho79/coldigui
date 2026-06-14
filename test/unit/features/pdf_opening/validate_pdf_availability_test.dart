@@ -73,6 +73,9 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
     Set<String> excludePdfIds = const {},
   }) async =>
       0;
+
+  @override
+  Future<void> flushPendingTouchLastAccessed() async {}
 }
 
 void main() {

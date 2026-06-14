@@ -9,7 +9,9 @@ import '../../domain/entities/louvores_manifest.dart';
 /// ~4600 itens); consumido por [homeSearchGroupResultsProvider] e demais `ref.watch`.
 /// [LouvoresManifest.availableArranjos] é pré-computado no carregamento (UC-02).
 final louvoresManifestProvider = FutureProvider<LouvoresManifest>((ref) async {
+  final repository = ref.watch(catalogRepositoryProvider);
   final loadManifest = ref.watch(loadLouvoresManifestProvider);
   final louvores = await loadManifest();
-  return LouvoresManifest.fromLouvores(louvores);
+  final isStale = await repository.isCatalogStale();
+  return LouvoresManifest.fromLouvores(louvores, isStale: isStale);
 });

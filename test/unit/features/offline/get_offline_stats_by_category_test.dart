@@ -25,10 +25,20 @@ class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
   Future<OfflineManifest> fetchManifest() async => _manifest;
 }
 
+class _FailingManifestDatasource extends OfflineManifestRemoteDatasource {
+  _FailingManifestDatasource() : super(Dio());
+
+  @override
+  Future<OfflineManifest> fetchManifest() async {
+    throw Exception('offline');
+  }
+}
+
 void main() {
   late Isar isar;
   late OfflinePdfRepositoryImpl repository;
   late CatalogLocalDatasource catalogLocal;
+  late PdfLocalStore store;
   late GetOfflineStatsByCategory useCase;
 
   setUpAll(() async {
@@ -41,11 +51,12 @@ void main() {
     await docsDir.create(recursive: true);
 
     isar = await openOfflineCatalogTestIsar(tempDir);
-    final store = PdfLocalStore(
+    final pdfStore = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
+    store = pdfStore;
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStore,
       local: OfflinePdfLocalDatasource(isar),
     );
     catalogLocal = CatalogLocalDatasource(isar);
@@ -71,6 +82,7 @@ void main() {
           },
         ),
       ),
+      store,
     );
   });
 
@@ -127,5 +139,42 @@ void main() {
     expect(stats.totalCount, 2);
     expect(stats.totalDiskUsageBytes, 2);
     expect(stats.missingByCategory[CatalogMaterials.partitura], 1);
+    expect(stats.missingCountReliable, isTrue);
+  });
+
+  test('totalDiskUsageBytes reflete bytes reais no filesystem', () async {
+    final partituraId = encodePdfId('ColAdultos/a.pdf');
+    await seedLouvor(
+      pdfId: partituraId,
+      categoria: CatalogMaterials.partitura,
+    );
+
+    await repository.upsert(
+      pdfId: partituraId,
+      bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x31]),
+      category: 'ColAdultos',
+    );
+
+    final root = await store.rootDirectory;
+    await File('${root.path}/orphan.bin').writeAsBytes([9, 9, 9]);
+
+    final stats = await useCase();
+
+    expect(stats.totalDiskUsageBytes, 8);
+  });
+
+  test('falha de manifest marca missingCountReliable como false', () async {
+    final failingUseCase = GetOfflineStatsByCategory(
+      repository,
+      catalogLocal,
+      _FailingManifestDatasource(),
+      store,
+    );
+
+    final stats = await failingUseCase();
+
+    expect(stats.missingCountReliable, isFalse);
+    expect(stats.missingByCategory, isEmpty);
+    expect(stats.totalMissing, 0);
   });
 }

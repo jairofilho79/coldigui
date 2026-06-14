@@ -7,6 +7,7 @@ class OfflineStats {
     required this.byCategory,
     this.missingByCategory = const {},
     this.totalDiskUsageBytes = 0,
+    this.missingCountReliable = true,
   });
 
   /// Contagem baixada por material de UI (`Partitura`, `Cifra`, etc.).
@@ -15,8 +16,11 @@ class OfflineStats {
   /// PDFs do manifest ainda ausentes no índice, por material de UI.
   final Map<String, int> missingByCategory;
 
-  /// Soma de `fileSize` no índice Isar — uso de disco do cache PDF.
+  /// Bytes totais em `plpcg_pdfs/` (scan do filesystem).
   final int totalDiskUsageBytes;
+
+  /// `false` quando o manifest remoto não pôde ser obtido (ex.: sem rede).
+  final bool missingCountReliable;
 
   /// Soma de [byCategory] — total de PDFs offline por material.
   int get totalCount => byCategory.values.fold(0, (sum, count) => sum + count);

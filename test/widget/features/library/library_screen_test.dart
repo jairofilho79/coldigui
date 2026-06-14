@@ -61,6 +61,9 @@ class _TestCatalogRepository implements CatalogRepository {
 
   @override
   Future<String?> fetchManifestChecksum() async => null;
+
+  @override
+  Future<bool> isCatalogStale() async => false;
 }
 
 Widget _libraryTestApp({

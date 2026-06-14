@@ -2,6 +2,7 @@ import '../../domain/entities/louvor.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../datasources/catalog_local_datasource.dart';
 import '../datasources/catalog_remote_datasource.dart';
+import '../datasources/catalog_sync_metadata_store.dart';
 
 /// Implementação de [CatalogRepository] — orquestra remote + local (UC-12).
 ///
@@ -10,11 +11,14 @@ class CatalogRepositoryImpl implements CatalogRepository {
   const CatalogRepositoryImpl({
     required CatalogRemoteDatasource remote,
     required CatalogLocalDatasource local,
+    required CatalogSyncMetadataStore syncMetadata,
   })  : _remote = remote,
-        _local = local;
+        _local = local,
+        _syncMetadata = syncMetadata;
 
   final CatalogRemoteDatasource _remote;
   final CatalogLocalDatasource _local;
+  final CatalogSyncMetadataStore _syncMetadata;
 
   @override
   Future<List<Louvor>> loadManifest() async {
@@ -28,6 +32,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       }
 
       await cacheManifest(remoteLouvores);
+      await _syncMetadata.markSyncedNow();
       return remoteLouvores;
     } on Object {
       final cached = await _local.loadLouvores();
@@ -45,6 +50,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     }
 
     await cacheManifest(remoteLouvores);
+    await _syncMetadata.markSyncedNow();
     return remoteLouvores;
   }
 
@@ -54,4 +60,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<String?> fetchManifestChecksum() => _remote.fetchChecksum();
+
+  @override
+  Future<bool> isCatalogStale() => _syncMetadata.isStale();
 }

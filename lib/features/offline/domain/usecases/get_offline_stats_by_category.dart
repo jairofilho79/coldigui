@@ -1,6 +1,7 @@
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
+import '../../data/datasources/pdf_local_store.dart';
 import '../entities/offline_manifest.dart';
 import '../entities/offline_stats.dart';
 import '../repositories/offline_pdf_repository.dart';
@@ -16,11 +17,13 @@ class GetOfflineStatsByCategory {
     this._repository,
     this._catalogLocal,
     this._manifestDatasource,
+    this._store,
   );
 
   final OfflinePdfRepository _repository;
   final CatalogLocalDatasource _catalogLocal;
   final OfflineManifestRemoteDatasource _manifestDatasource;
+  final PdfLocalStore _store;
 
   Future<OfflineStats> call({bool includeMissing = true}) async {
     final entries = await _repository.listAll();
@@ -40,6 +43,7 @@ class GetOfflineStatsByCategory {
     var missingByCategory = {
       for (final material in CatalogMaterials.uiMaterials) material: 0,
     };
+    var missingCountReliable = true;
     if (includeMissing) {
       try {
         missingByCategory = await _countMissing(
@@ -48,16 +52,17 @@ class GetOfflineStatsByCategory {
         );
       } on Object {
         missingByCategory = const {};
+        missingCountReliable = false;
       }
     }
 
-    final totalDiskUsageBytes =
-        entries.fold<int>(0, (sum, entry) => sum + entry.fileSize);
+    final totalDiskUsageBytes = await _store.getTotalOfflineBytes();
 
     return OfflineStats(
       byCategory: byCategory,
       missingByCategory: missingByCategory,
       totalDiskUsageBytes: totalDiskUsageBytes,
+      missingCountReliable: missingCountReliable,
     );
   }
 

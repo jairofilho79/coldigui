@@ -80,6 +80,20 @@ class PdfLocalStore {
     await rootDirectory;
   }
 
+  /// Soma bytes de todos os arquivos em `plpcg_pdfs/` (auditoria UC-10).
+  Future<int> getTotalOfflineBytes() async {
+    final root = await rootDirectory;
+    if (!await root.exists()) return 0;
+
+    var total = 0;
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is! File) continue;
+      if (entity.path.endsWith('.tmp')) continue;
+      total += await entity.length();
+    }
+    return total;
+  }
+
   /// PDFs no disco que não constam em [indexedAbsolutePaths] (reconcile 3.6).
   Future<List<String>> listOrphans(Set<String> indexedAbsolutePaths) async {
     final root = await rootDirectory;

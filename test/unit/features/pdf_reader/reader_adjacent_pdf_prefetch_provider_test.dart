@@ -69,6 +69,9 @@ class _FakeOfflineRepository implements OfflinePdfRepository {
     if (invocation.memberName == #evictOldestPdfs) {
       return Future<int>.value(0);
     }
+    if (invocation.memberName == #flushPendingTouchLastAccessed) {
+      return Future<void>.value();
+    }
     return super.noSuchMethod(invocation);
   }
 }

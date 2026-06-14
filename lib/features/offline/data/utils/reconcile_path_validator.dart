@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:coldigui/features/offline/data/utils/pdf_integrity_validator.dart';
 
 /// Entrada serializável para validação de paths em isolate (Fase 3.6).
 class ReconcilePathEntry {
@@ -22,7 +22,7 @@ class ReconcilePathValidationResult {
   final List<String> validAbsolutePaths;
 }
 
-/// Valida existência e tamanho > 0 de PDFs no disco — top-level para [compute].
+/// Valida existência e magic bytes `%PDF` — top-level para [compute].
 ReconcilePathValidationResult validatePdfPathsChunk(
   List<ReconcilePathEntry> entries,
 ) {
@@ -30,9 +30,7 @@ ReconcilePathValidationResult validatePdfPathsChunk(
   final validAbsolutePaths = <String>[];
 
   for (final entry in entries) {
-    final file = File(entry.absolutePath);
-    final valid = file.existsSync() && file.lengthSync() > 0;
-    if (valid) {
+    if (PdfIntegrityValidator.isValidPdfFileSync(entry.absolutePath)) {
       validAbsolutePaths.add(entry.absolutePath);
     } else {
       invalidPdfIds.add(entry.pdfId);

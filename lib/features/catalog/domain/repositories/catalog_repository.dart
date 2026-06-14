@@ -13,4 +13,7 @@ abstract class CatalogRepository {
 
   /// Retorna checksum SHA-256 esperado ou `null` se inalterado (204).
   Future<String?> fetchManifestChecksum();
+
+  /// `true` se o catálogo nunca foi sincronizado ou está há >7 dias sem sync.
+  Future<bool> isCatalogStale();
 }

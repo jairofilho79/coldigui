@@ -55,6 +55,7 @@
   "catalogRefreshMessage": "Baixar a versão mais recente do catálogo",
   "catalogRefreshSuccess": "Catálogo atualizado",
   "catalogRefreshError": "Não foi possível atualizar o catálogo",
+  "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
   "catalogLoadError": "Não foi possível carregar o catálogo",
   "libraryResultsSummary": "Mostrando {from}–{to} de {total} louvores",
   "@libraryResultsSummary": {
@@ -122,6 +123,27 @@
   "@offlineStatsTotalMissing": {
     "placeholders": {
       "count": { "type": "int" }
+    }
+  },
+  "offlineStatsMissingUnreliable": "Faltantes indisponíveis (sem conexão)",
+  "offlineStatsDiskUsage": "Acervo offline: {used} | Disponível: {free}",
+  "@offlineStatsDiskUsage": {
+    "placeholders": {
+      "used": { "type": "String" },
+      "free": { "type": "String" }
+    }
+  },
+  "offlineStatsDiskUsageUsedOnly": "Acervo offline: {used}",
+  "@offlineStatsDiskUsageUsedOnly": {
+    "placeholders": {
+      "used": { "type": "String" }
+    }
+  },
+  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— faltantes, sem conexão)",
+  "@offlineStatsCategoryUnreliableMissing": {
+    "placeholders": {
+      "category": { "type": "String" },
+      "downloaded": { "type": "int" }
     }
   },
   "offlineRefreshStats": "Atualizar",

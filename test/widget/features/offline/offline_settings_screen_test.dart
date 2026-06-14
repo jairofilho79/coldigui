@@ -125,4 +125,28 @@ void main() {
     );
     expect(find.text('Dispensar'), findsOneWidget);
   });
+
+  testWidgets('shows unreliable missing label when manifest unavailable',
+      (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(
+            byCategory: {'Partitura': 2},
+            missingCountReliable: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Faltantes indisponíveis (sem conexão)'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Partitura: 2 (— faltantes, sem conexão)'),
+      findsOneWidget,
+    );
+  });
 }

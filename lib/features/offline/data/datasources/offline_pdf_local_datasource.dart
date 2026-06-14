@@ -23,14 +23,22 @@ class OfflinePdfLocalDatasource {
   Future<List<OfflinePdfIndex>> findByPdfIds(Set<String> pdfIds) async {
     if (pdfIds.isEmpty) return const [];
 
-    final results = <OfflinePdfIndex>[];
-    for (final pdfId in pdfIds) {
-      final index =
-          await _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
-      if (index != null) results.add(index);
-    }
-    return results;
+    final indexes = await _isar.offlinePdfIndexs.getAllByPdfId(pdfIds.toList());
+    return indexes.whereType<OfflinePdfIndex>().toList();
   }
+
+  /// Candidatos LRU para eviction — ordenados do mais antigo ao mais novo.
+  Future<List<OfflinePdfIndex>> findOldestForEviction({
+    required int limit,
+    int offset = 0,
+  }) =>
+      _isar.offlinePdfIndexs
+          .where()
+          .sortByLastAccessedAt()
+          .thenByDownloadedAt()
+          .offset(offset)
+          .limit(limit)
+          .findAll();
 
   /// Upsert por `pdfId` único em transação Isar.
   Future<void> put(OfflinePdfIndex index) async {
@@ -72,12 +80,22 @@ class OfflinePdfLocalDatasource {
 
   /// Atualiza [OfflinePdfIndex.lastAccessedAt] após lookup bem-sucedido.
   Future<void> touchLastAccessed(String pdfId, DateTime accessedAt) async {
+    await touchLastAccessedBatch({pdfId: accessedAt});
+  }
+
+  /// Atualiza [OfflinePdfIndex.lastAccessedAt] em lote — uma write txn.
+  Future<void> touchLastAccessedBatch(Map<String, DateTime> touches) async {
+    if (touches.isEmpty) return;
+
     await _isar.writeTxn(() async {
-      final existing =
-          await _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
-      if (existing == null) return;
-      existing.lastAccessedAt = accessedAt;
-      await _isar.offlinePdfIndexs.put(existing);
+      final pdfIds = touches.keys.toList();
+      final indexes = await _isar.offlinePdfIndexs.getAllByPdfId(pdfIds);
+      for (var i = 0; i < pdfIds.length; i++) {
+        final index = indexes[i];
+        if (index == null) continue;
+        index.lastAccessedAt = touches[pdfIds[i]];
+        await _isar.offlinePdfIndexs.put(index);
+      }
     });
   }
 

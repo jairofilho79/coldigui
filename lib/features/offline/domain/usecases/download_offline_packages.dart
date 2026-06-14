@@ -1,3 +1,6 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/offline_config.dart';
@@ -8,9 +11,21 @@ import '../../data/datasources/zip_package_downloader.dart';
 import '../entities/offline_bulk_checkpoint.dart';
 import '../entities/offline_download_progress.dart';
 import '../entities/offline_manifest.dart';
+import '../entities/offline_pdf_batch_item.dart';
 import '../exceptions/offline_bulk_exceptions.dart';
 import 'extract_and_store_pdfs.dart';
 import 'reconcile_offline_index.dart';
+
+/// Resultado de [DownloadOfflinePackages.call].
+class DownloadOfflinePackagesResult {
+  const DownloadOfflinePackagesResult({
+    this.unmatchedZipEntries = const [],
+  });
+
+  final List<String> unmatchedZipEntries;
+
+  bool get hasWarnings => unmatchedZipEntries.isNotEmpty;
+}
 
 /// UC-09 — Prefetch em lote por categoria (Fase 3.5).
 ///
@@ -38,13 +53,15 @@ class DownloadOfflinePackages {
   final DiskSpaceChecker _diskSpaceChecker;
   final OfflineBulkCheckpointStore _checkpointStore;
 
-  Future<void> call({
+  Future<DownloadOfflinePackagesResult> call({
     required List<String> categories,
     void Function(OfflineDownloadProgress progress)? onProgress,
     CancelToken? cancelToken,
     OfflineBulkCheckpoint? resumeCheckpoint,
   }) async {
-    if (categories.isEmpty) return;
+    if (categories.isEmpty) {
+      return const DownloadOfflinePackagesResult();
+    }
 
     _ensureNotCancelled(cancelToken);
 
@@ -64,6 +81,7 @@ class DownloadOfflinePackages {
 
     var donePdfsGlobal = _countDonePdfs(manifest, checkpoint);
     final totalPdfsGlobal = _countTotalPdfs(manifest, categories);
+    final unmatchedAccumulator = <String>[];
 
     for (var catIdx = checkpoint.categoryIndex;
         catIdx < checkpoint.categories.length;
@@ -101,9 +119,10 @@ class DownloadOfflinePackages {
           ),
         );
 
-        final zipPath = await _zipDownloader.download(
+        final zipPath = await _downloadZip(
           url: part.url,
           filename: part.filename,
+          expectedSize: part.size,
           cancelToken: cancelToken,
         );
 
@@ -120,7 +139,7 @@ class DownloadOfflinePackages {
           ),
         );
 
-        await _extractAndStorePdfs(
+        final extractResult = await _extractPdfs(
           zipPath: zipPath,
           expectedPdfIds: part.pdfs,
           materialCategory: materialCategory,
@@ -139,7 +158,27 @@ class DownloadOfflinePackages {
               ),
             );
           },
+          onProgressCheckpoint: (count) => _checkpointStore.save(
+            OfflineBulkCheckpoint(
+              categories: checkpoint.categories,
+              categoryIndex: catIdx,
+              partIndex: partIdx,
+              extractedPdfCount: count,
+              startedAt: checkpoint.startedAt,
+            ),
+          ),
         );
+
+        if (extractResult.unmatchedPdfIds.isNotEmpty) {
+          developer.log(
+            'Part ${part.filename}: ${extractResult.unmatchedPdfIds.length} '
+            'entries no ZIP sem correspondência no manifest: '
+            '${extractResult.unmatchedPdfIds.take(5).toList()}',
+            name: 'DownloadOfflinePackages',
+            level: 900,
+          );
+          unmatchedAccumulator.addAll(extractResult.unmatchedPdfIds);
+        }
 
         donePdfsGlobal += part.pdfs.length - startPdfIdx;
 
@@ -183,6 +222,10 @@ class DownloadOfflinePackages {
     }
 
     await _checkpointStore.clear();
+
+    return DownloadOfflinePackagesResult(
+      unmatchedZipEntries: unmatchedAccumulator,
+    );
   }
 
   Future<void> _ensureDiskSpace(
@@ -200,7 +243,68 @@ class DownloadOfflinePackages {
         availableBytes: freeBytes,
       );
     }
+    if (freeBytes == null) {
+      developer.log(
+        'DiskSpaceChecker retornou null — verificação de espaço ignorada',
+        name: 'DownloadOfflinePackages',
+        level: 900,
+      );
+    }
   }
+
+  Future<String> _downloadZip({
+    required String url,
+    required String filename,
+    required int expectedSize,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await _zipDownloader.download(
+        url: url,
+        filename: filename,
+        expectedSize: expectedSize,
+        cancelToken: cancelToken,
+      );
+    } on FileSystemException catch (e) {
+      if (_isEnospc(e)) {
+        throw const InsufficientDiskSpaceException(
+          requiredBytes: -1,
+          availableBytes: 0,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<ExtractResult> _extractPdfs({
+    required String zipPath,
+    required List<String> expectedPdfIds,
+    required String materialCategory,
+    required int startFromPdfIndex,
+    void Function(int done, int total)? onProgress,
+    Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
+  }) async {
+    try {
+      return await _extractAndStorePdfs(
+        zipPath: zipPath,
+        expectedPdfIds: expectedPdfIds,
+        materialCategory: materialCategory,
+        startFromPdfIndex: startFromPdfIndex,
+        onProgress: onProgress,
+        onProgressCheckpoint: onProgressCheckpoint,
+      );
+    } on FileSystemException catch (e) {
+      if (_isEnospc(e)) {
+        throw const InsufficientDiskSpaceException(
+          requiredBytes: -1,
+          availableBytes: 0,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  bool _isEnospc(FileSystemException e) => e.osError?.errorCode == 28;
 
   int _countTotalPdfs(OfflineManifest manifest, List<String> categories) {
     var total = 0;

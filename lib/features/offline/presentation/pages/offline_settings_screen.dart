@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/utils/byte_format.dart';
 import '../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
@@ -337,6 +338,9 @@ class _StatsSection extends StatelessWidget {
 
   String _categoryLabel(String material) {
     final downloaded = cacheStatus.stats.byCategory[material] ?? 0;
+    if (!cacheStatus.stats.missingCountReliable) {
+      return l10n.offlineStatsCategoryUnreliableMissing(material, downloaded);
+    }
     final missing = cacheStatus.stats.missingByCategory[material] ?? 0;
     if (missing > 0) {
       return l10n.offlineStatsCategoryWithMissing(
@@ -346,6 +350,16 @@ class _StatsSection extends StatelessWidget {
       );
     }
     return l10n.offlineStatsCategory(material, downloaded);
+  }
+
+  String _diskUsageLabel() {
+    final used = formatCompactBytes(cacheStatus.stats.totalDiskUsageBytes);
+    final freeBytes = cacheStatus.freeDiskBytes;
+    if (freeBytes == null) {
+      return l10n.offlineStatsDiskUsageUsedOnly(used);
+    }
+    final free = formatCompactBytes(freeBytes);
+    return l10n.offlineStatsDiskUsage(used, free);
   }
 
   @override
@@ -374,7 +388,22 @@ class _StatsSection extends StatelessWidget {
                         color: AppColors.offlineMissing,
                       ),
                     ),
+                  ] else if (!cacheStatus.stats.missingCountReliable) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.offlineStatsMissingUnreliable,
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.title.withValues(alpha: 0.75),
+                      ),
+                    ),
                   ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _diskUsageLabel(),
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.title.withValues(alpha: 0.75),
+                    ),
+                  ),
                 ],
               ),
             ),

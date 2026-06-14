@@ -183,6 +183,9 @@ class _UnusedRepository implements OfflinePdfRepository {
     Set<String> excludePdfIds = const {},
   }) async =>
       0;
+
+  @override
+  Future<void> flushPendingTouchLastAccessed() async {}
 }
 
 class _UnusedFetchAndStorePdf extends FetchAndStorePdf {

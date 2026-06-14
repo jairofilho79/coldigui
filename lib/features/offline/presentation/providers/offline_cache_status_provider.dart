@@ -15,6 +15,7 @@ class OfflineCacheStatus {
     required this.stats,
     this.removedCount = 0,
     this.isRefreshing = false,
+    this.freeDiskBytes,
   });
 
   static const empty = OfflineCacheStatus(
@@ -22,6 +23,9 @@ class OfflineCacheStatus {
   );
 
   final OfflineStats stats;
+
+  /// Bytes livres no volume de armazenamento (`null` se indisponível).
+  final int? freeDiskBytes;
 
   /// PDFs removidos do índice no último reconcile (aviso na [OfflineSettingsScreen]).
   final int removedCount;
@@ -42,11 +46,15 @@ class OfflineCacheStatus {
     OfflineStats? stats,
     int? removedCount,
     bool? isRefreshing,
+    int? freeDiskBytes,
+    bool clearFreeDiskBytes = false,
   }) {
     return OfflineCacheStatus(
       stats: stats ?? this.stats,
       removedCount: removedCount ?? this.removedCount,
       isRefreshing: isRefreshing ?? this.isRefreshing,
+      freeDiskBytes:
+          clearFreeDiskBytes ? null : (freeDiskBytes ?? this.freeDiskBytes),
     );
   }
 }
@@ -68,25 +76,35 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
     ref.listen(offlineReconcileProvider, (previous, next) {
       final wasRunning = previous?.isRunning ?? false;
       if (wasRunning && !next.isRunning) {
-        unawaited(refresh(
-          removedCount: next.lastResult?.removedFromIndex ?? 0,
-        ));
+        final removed = next.lastResult?.removedFromIndex ?? 0;
+        unawaited(refresh(removedCount: removed));
       }
     });
 
-    Future.microtask(() => refresh());
+    Future.microtask(refresh);
     return OfflineCacheStatus.empty;
+  }
+
+  Future<int?> _loadFreeDiskBytes() async {
+    try {
+      return await ref.read(diskSpaceCheckerProvider).getFreeBytes();
+    } on Object {
+      return null;
+    }
   }
 
   /// Recarrega stats do índice Isar. [removedCount] opcional após reconcile.
   Future<void> refresh({int? removedCount}) async {
+    final preservedRemovedCount = removedCount ?? state.removedCount;
     state = state.copyWith(isRefreshing: true);
 
     try {
       final stats = await ref.read(getOfflineStatsByCategoryProvider).call();
+      final freeDiskBytes = await _loadFreeDiskBytes();
       state = OfflineCacheStatus(
         stats: stats,
-        removedCount: removedCount ?? state.removedCount,
+        removedCount: preservedRemovedCount,
+        freeDiskBytes: freeDiskBytes,
       );
     } finally {
       if (state.isRefreshing) {
@@ -104,9 +122,11 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
       final removed =
           ref.read(offlineReconcileProvider).lastResult?.removedFromIndex ?? 0;
       final stats = await ref.read(getOfflineStatsByCategoryProvider).call();
+      final freeDiskBytes = await _loadFreeDiskBytes();
       state = OfflineCacheStatus(
         stats: stats,
         removedCount: removed,
+        freeDiskBytes: freeDiskBytes,
       );
     } finally {
       if (state.isRefreshing) {

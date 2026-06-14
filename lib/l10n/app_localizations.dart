@@ -278,6 +278,12 @@ abstract class AppLocalizations {
   /// **'Não foi possível atualizar o catálogo'**
   String get catalogRefreshError;
 
+  /// No description provided for @catalogStaleBanner.
+  ///
+  /// In pt, this message translates to:
+  /// **'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.'**
+  String get catalogStaleBanner;
+
   /// No description provided for @catalogLoadError.
   ///
   /// In pt, this message translates to:
@@ -417,6 +423,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{count, plural, one{1 PDF faltante no total} other{{count} PDFs faltantes no total}}'**
   String offlineStatsTotalMissing(int count);
+
+  /// No description provided for @offlineStatsMissingUnreliable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faltantes indisponíveis (sem conexão)'**
+  String get offlineStatsMissingUnreliable;
+
+  /// No description provided for @offlineStatsDiskUsage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acervo offline: {used} | Disponível: {free}'**
+  String offlineStatsDiskUsage(String used, String free);
+
+  /// No description provided for @offlineStatsDiskUsageUsedOnly.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acervo offline: {used}'**
+  String offlineStatsDiskUsageUsedOnly(String used);
+
+  /// No description provided for @offlineStatsCategoryUnreliableMissing.
+  ///
+  /// In pt, this message translates to:
+  /// **'{category}: {downloaded} (— faltantes, sem conexão)'**
+  String offlineStatsCategoryUnreliableMissing(String category, int downloaded);
 
   /// No description provided for @offlineRefreshStats.
   ///

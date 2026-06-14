@@ -105,6 +105,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get catalogRefreshError => 'Could not update the catalog';
 
   @override
+  String get catalogStaleBanner =>
+      'Catalog last updated over 7 days ago. Connect to refresh.';
+
+  @override
   String get catalogLoadError => 'Could not load the catalog';
 
   @override
@@ -199,6 +203,26 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 PDF missing in total',
     );
     return '$_temp0';
+  }
+
+  @override
+  String get offlineStatsMissingUnreliable =>
+      'Missing count unavailable (offline)';
+
+  @override
+  String offlineStatsDiskUsage(String used, String free) {
+    return 'Offline library: $used | Available: $free';
+  }
+
+  @override
+  String offlineStatsDiskUsageUsedOnly(String used) {
+    return 'Offline library: $used';
+  }
+
+  @override
+  String offlineStatsCategoryUnreliableMissing(
+      String category, int downloaded) {
+    return '$category: $downloaded (— missing, offline)';
   }
 
   @override

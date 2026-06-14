@@ -51,6 +51,12 @@ abstract final class OfflineConfig {
   /// Debounce antes de reconcile global ao retornar ao foreground (Fase 3.6).
   static const Duration reconcileForegroundDebounce = Duration(seconds: 3);
 
+  /// Intervalo mínimo entre polls de checksum do manifest ao foreground (UC-12).
+  static const Duration catalogChecksumPollMinInterval = Duration(minutes: 30);
+
+  /// Intervalo mínimo entre reconciles globais (backlog #12).
+  static const Duration reconcileMinInterval = Duration(minutes: 30);
+
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
   static const int offlineStorageVersion = 1;
 }
