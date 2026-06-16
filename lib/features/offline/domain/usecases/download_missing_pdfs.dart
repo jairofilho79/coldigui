@@ -81,6 +81,7 @@ class DownloadMissingPdfs {
               pdfId: pdfId,
               remotePath: _remotePathFromPdfId(pdfId),
               category: OfflineCategoryResolver.fromPdfId(pdfId),
+              persistentDownload: true,
             );
             downloaded++;
           } on Object {

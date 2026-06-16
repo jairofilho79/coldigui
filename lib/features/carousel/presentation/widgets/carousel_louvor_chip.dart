@@ -448,6 +448,18 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return CarouselLouvorAddButton(onPressed: onPressed);
+  }
+}
+
+/// Botão "+" circular — chip vermelho e sheet de materiais agrupados.
+class CarouselLouvorAddButton extends StatelessWidget {
+  const CarouselLouvorAddButton({required this.onPressed, super.key});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
     return _CircleActionButton(
       icon: Icons.add,
       onPressed: onPressed,

@@ -65,9 +65,11 @@ final fetchAndStorePdfProvider = Provider<FetchAndStorePdf>((ref) {
 ///
 /// Consumido por [LouvorCard] antes de abrir/compartilhar/salvar PDF.
 final resolvePdfForReaderProvider = Provider<ResolvePdfForReader>((ref) {
+  final offlineStore = ref.watch(offlineAvailableStoreProvider);
   return ResolvePdfForReader(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(fetchAndStorePdfProvider),
+    isFullOfflineMode: () => offlineStore.isConfigured,
   );
 });
 

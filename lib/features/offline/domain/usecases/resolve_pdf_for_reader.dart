@@ -9,11 +9,22 @@ import 'fetch_and_store_pdf.dart';
 ///
 /// Hit → path absoluto local; miss → delega [FetchAndStorePdf]; falha de rede
 /// → exceção tipada conforme índice órfão ou ausente.
+///
+/// Quando [isFullOfflineMode] retorna `true` (`OFFLINE_AVAILABLE=TRUE`), o miss
+/// usa `persistentDownload` e omite eviction LRU — preserva acervo bulk ao abrir
+/// PDFs novos fora dos packages.
 class ResolvePdfForReader {
-  const ResolvePdfForReader(this._repository, this._fetchAndStore);
+  const ResolvePdfForReader(
+    this._repository,
+    this._fetchAndStore, {
+    bool Function() isFullOfflineMode = _defaultIsFullOfflineMode,
+  }) : _isFullOfflineMode = isFullOfflineMode;
+
+  static bool _defaultIsFullOfflineMode() => false;
 
   final OfflinePdfRepository _repository;
   final FetchAndStorePdf _fetchAndStore;
+  final bool Function() _isFullOfflineMode;
 
   /// Resolve [pdfId] para path absoluto local, baixando on-demand se necessário.
   Future<LocalPdfSource> call({
@@ -36,6 +47,7 @@ class ResolvePdfForReader {
         pdfId: pdfId,
         remotePath: remotePath,
         onProgress: onProgress,
+        persistentDownload: _isFullOfflineMode(),
       );
     } on DioException catch (e) {
       if (_isNetworkError(e)) {

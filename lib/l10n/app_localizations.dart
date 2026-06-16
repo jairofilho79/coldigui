@@ -236,6 +236,48 @@ abstract class AppLocalizations {
   /// **'Página {current} de {total}'**
   String pageIndicator(int current, int total);
 
+  /// No description provided for @pageGoTo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para página'**
+  String get pageGoTo;
+
+  /// No description provided for @pageGoToTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para página'**
+  String get pageGoToTitle;
+
+  /// No description provided for @pageGoToHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Número da página (1–{total})'**
+  String pageGoToHint(int total);
+
+  /// No description provided for @pageGoToConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir'**
+  String get pageGoToConfirm;
+
+  /// No description provided for @pageGoToCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get pageGoToCancel;
+
+  /// No description provided for @pageNumberLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Página {number}'**
+  String pageNumberLabel(int number);
+
+  /// No description provided for @pageEllipsis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais páginas'**
+  String get pageEllipsis;
+
   /// No description provided for @specialArrangementPadrao.
   ///
   /// In pt, this message translates to:

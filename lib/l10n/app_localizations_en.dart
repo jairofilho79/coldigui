@@ -84,6 +84,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pageGoTo => 'Go to page';
+
+  @override
+  String get pageGoToTitle => 'Go to page';
+
+  @override
+  String pageGoToHint(int total) {
+    return 'Page number (1–$total)';
+  }
+
+  @override
+  String get pageGoToConfirm => 'Go';
+
+  @override
+  String get pageGoToCancel => 'Cancel';
+
+  @override
+  String pageNumberLabel(int number) {
+    return 'Page $number';
+  }
+
+  @override
+  String get pageEllipsis => 'More pages';
+
+  @override
   String get specialArrangementPadrao => 'Default';
 
   @override

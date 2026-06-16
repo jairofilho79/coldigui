@@ -84,6 +84,31 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get pageGoTo => 'Ir para página';
+
+  @override
+  String get pageGoToTitle => 'Ir para página';
+
+  @override
+  String pageGoToHint(int total) {
+    return 'Número da página (1–$total)';
+  }
+
+  @override
+  String get pageGoToConfirm => 'Ir';
+
+  @override
+  String get pageGoToCancel => 'Cancelar';
+
+  @override
+  String pageNumberLabel(int number) {
+    return 'Página $number';
+  }
+
+  @override
+  String get pageEllipsis => 'Mais páginas';
+
+  @override
   String get specialArrangementPadrao => 'Padrão';
 
   @override

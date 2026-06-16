@@ -38,6 +38,8 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
           favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
         );
 
+  bool? lastPersistentDownload;
+
   final Future<LocalPdfSource> Function({
     required String pdfId,
     required String remotePath,
@@ -51,13 +53,16 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
     required String remotePath,
     String? category,
     ProgressCallback? onProgress,
-  }) =>
-      _onCall(
-        pdfId: pdfId,
-        remotePath: remotePath,
-        category: category,
-        onProgress: onProgress,
-      );
+    bool persistentDownload = false,
+  }) {
+    lastPersistentDownload = persistentDownload;
+    return _onCall(
+      pdfId: pdfId,
+      remotePath: remotePath,
+      category: category,
+      onProgress: onProgress,
+    );
+  }
 }
 
 class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
@@ -414,5 +419,84 @@ void main() {
       () => resolver(pdfId: pdfId, remotePath: remotePath),
       throwsA(isA<PdfFetchFailedException>()),
     );
+  });
+
+  test('miss com isFullOfflineMode false passa persistentDownload false',
+      () async {
+    const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
+    final fake = _FakeFetchAndStorePdf(({
+      required String pdfId,
+      required String remotePath,
+      String? category,
+      ProgressCallback? onProgress,
+    }) async {
+      return LocalPdfSource(
+        pdfId: pdfId,
+        absolutePath: fetchedPath,
+        fromCache: false,
+      );
+    });
+    final resolver = ResolvePdfForReader(repository, fake);
+
+    await resolver(pdfId: pdfId, remotePath: remotePath);
+
+    expect(fake.lastPersistentDownload, isFalse);
+  });
+
+  test('miss com isFullOfflineMode true passa persistentDownload true',
+      () async {
+    const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
+    final fake = _FakeFetchAndStorePdf(({
+      required String pdfId,
+      required String remotePath,
+      String? category,
+      ProgressCallback? onProgress,
+    }) async {
+      return LocalPdfSource(
+        pdfId: pdfId,
+        absolutePath: fetchedPath,
+        fromCache: false,
+      );
+    });
+    final resolver = ResolvePdfForReader(
+      repository,
+      fake,
+      isFullOfflineMode: () => true,
+    );
+
+    await resolver(pdfId: pdfId, remotePath: remotePath);
+
+    expect(fake.lastPersistentDownload, isTrue);
+  });
+
+  test('miss com isFullOfflineMode true não evicta PDFs existentes', () async {
+    final oldId = _encodePdfId('ColAdultos/old.pdf');
+    final newId = _encodePdfId('ColAdultos/new.pdf');
+    const newRemotePath = '/assets/ColAdultos/new.pdf';
+
+    await repository.upsert(
+      pdfId: oldId,
+      bytes: Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 1, 2, 3, 4]),
+      category: category,
+    );
+
+    final newBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 5, 6, 7]);
+    final fetchAndStore = FetchAndStorePdf(
+      _FakePdfBytesDatasource(newBytes),
+      repository,
+      diskSpaceChecker: _UnusedDiskSpaceChecker(),
+      favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+      cacheQuotaBytes: 12,
+    );
+    final resolver = ResolvePdfForReader(
+      repository,
+      fetchAndStore,
+      isFullOfflineMode: () => true,
+    );
+
+    await resolver(pdfId: newId, remotePath: newRemotePath);
+
+    expect(await repository.lookup(oldId), isNotNull);
+    expect(await repository.lookup(newId), isNotNull);
   });
 }

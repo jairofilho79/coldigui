@@ -50,17 +50,23 @@ class FetchAndStorePdf {
   /// (via [LouvorPdfPath.fromLouvor]).
   /// [category] — classificação Isar; se `null`, derivada do primeiro segmento de
   /// [PdfPathNormalizer.getPdfRelPath] (ex.: `ColAdultos`).
+  /// [persistentDownload] — quando `true`, omite a eviction LRU e mantém apenas a
+  /// guarda de espaço físico em disco. Use em downloads bulk (UC-10 "baixar faltantes")
+  /// para evitar que PDFs recém-persistidos sejam deletados para abrir espaço no cache.
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
     String? category,
     ProgressCallback? onProgress,
+    bool persistentDownload = false,
   }) async {
     final protectedPdfIds = await _favoritePdfIdsResolver.resolve();
     final excludePdfIds = {...protectedPdfIds, pdfId};
 
     await _ensureDeviceDiskSpace();
-    await _ensureCacheQuota(excludePdfIds: excludePdfIds);
+    if (!persistentDownload) {
+      await _ensureCacheQuota(excludePdfIds: excludePdfIds);
+    }
 
     final resolvedCategory =
         category ?? OfflineCategoryResolver.fromPdfId(pdfId);
@@ -68,10 +74,12 @@ class FetchAndStorePdf {
         await _fetchBytesWithRetry(remotePath, onProgress: onProgress);
 
     await _ensureDeviceDiskSpace(requiredBytes: bytes.length);
-    await _ensureCacheQuota(
-      excludePdfIds: excludePdfIds,
-      incomingBytes: bytes.length,
-    );
+    if (!persistentDownload) {
+      await _ensureCacheQuota(
+        excludePdfIds: excludePdfIds,
+        incomingBytes: bytes.length,
+      );
+    }
 
     final entry = await _repository.upsert(
       pdfId: pdfId,
@@ -79,7 +87,9 @@ class FetchAndStorePdf {
       category: resolvedCategory,
     );
 
-    await _trimCacheToQuota(excludePdfIds: excludePdfIds);
+    if (!persistentDownload) {
+      await _trimCacheToQuota(excludePdfIds: excludePdfIds);
+    }
 
     return LocalPdfSource(
       pdfId: pdfId,

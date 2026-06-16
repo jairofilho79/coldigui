@@ -8,7 +8,6 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
-import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -17,8 +16,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Card agrupado na Home/Biblioteca — um louvor lógico, vários materiais.
 ///
 /// Tap: sublista se [LouvorGroup.totalMaterials] > 1; senão abre PDF direto.
-/// Trailing +: adiciona material primário (Partitura ou primeiro) ao carousel.
-/// Compartilhar (UC-04): no sheet de materiais; com 1 PDF, só no leitor.
+/// Trailing +: adiciona ao carousel só com 1 material; com vários, + fica no sheet.
+/// Compartilhar (UC-04): com 1 PDF, só no leitor.
 class LouvorGroupCard extends ConsumerStatefulWidget {
   const LouvorGroupCard({required this.group, super.key});
 
@@ -64,32 +63,27 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       context: context,
       group: widget.group,
       onMaterialSelected: _openLouvor,
-      onMaterialShare: _shareLouvor,
+      onMaterialAdd: _handleAddMaterialToCarousel,
     );
-  }
-
-  Future<void> _shareLouvor(Louvor louvor, Rect sharePositionOrigin) async {
-    final l10n = AppLocalizations.of(context)!;
-    try {
-      final source = await resolveLouvorPdf(ref: ref, louvor: louvor);
-      if (!mounted) return;
-      await ref.read(sharePdfProvider).call(
-            filePath: source.absolutePath,
-            displayName: louvor.nome,
-            sharePositionOrigin: sharePositionOrigin,
-          );
-      if (mounted) showAppSnackbar(context, l10n.pdfShareSuccess);
-    } on Object catch (e) {
-      if (mounted) {
-        showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
-      }
-    }
   }
 
   Future<void> _handleAddToCarousel() async {
     final louvor = widget.group.primaryLouvor;
     if (louvor == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+    final added = await ref
+        .read(playlistsProvider.notifier)
+        .addLouvorToActivePlaylist(louvor.pdfId);
+
+    if (!mounted) return;
+    showAppSnackbar(
+      context,
+      added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
+    );
+  }
+
+  Future<void> _handleAddMaterialToCarousel(Louvor louvor) async {
     final l10n = AppLocalizations.of(context)!;
     final added = await ref
         .read(playlistsProvider.notifier)
@@ -167,10 +161,10 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         item: chipItem,
         metadataSummary: metadataSummary,
         onTap: isLoading ? null : _handleTap,
-        onAdd: isLoading || isAdded || primary == null
+        onAdd: isLoading || isAdded || primary == null || isMultiMaterial
             ? null
             : _handleAddToCarousel,
-        isAdded: isAdded,
+        isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
       ),
     );

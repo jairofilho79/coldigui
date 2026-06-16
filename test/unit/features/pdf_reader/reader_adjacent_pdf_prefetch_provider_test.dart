@@ -93,6 +93,7 @@ class _TrackingFetchAndStore extends FetchAndStorePdf {
     required String remotePath,
     String? category,
     ProgressCallback? onProgress,
+    bool persistentDownload = false,
   }) async {
     resolvedPdfIds.add(pdfId);
     return LocalPdfSource(

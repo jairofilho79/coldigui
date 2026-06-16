@@ -1,28 +1,27 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/core/utils/share_position_origin.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Callback de compartilhamento de um material no sheet (UC-04).
-typedef LouvorMaterialShareCallback = Future<void> Function(
-  Louvor louvor,
-  Rect sharePositionOrigin,
-);
+/// Callback de adição de um material ao carousel no sheet.
+typedef LouvorMaterialAddCallback = Future<void> Function(Louvor louvor);
 
 /// Bottom sheet — escolha de material por classificação → categoria.
 ///
 /// Exibido quando [LouvorGroup.totalMaterials] > 1. Seções ordenadas por
 /// [LouvorMaterialSection.displayLabel]; materiais por [LouvorCategoryOrder].
-/// Compartilhar ([onMaterialShare]) fica no trailing de cada linha — não no card.
+/// Adicionar ([onMaterialAdd]) fica no trailing de cada linha — não no card.
 Future<void> showLouvorMaterialSheet({
   required BuildContext context,
   required LouvorGroup group,
   required ValueChanged<Louvor> onMaterialSelected,
-  LouvorMaterialShareCallback? onMaterialShare,
+  LouvorMaterialAddCallback? onMaterialAdd,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -35,43 +34,41 @@ Future<void> showLouvorMaterialSheet({
       return _LouvorMaterialSheetBody(
         group: group,
         onMaterialSelected: onMaterialSelected,
-        onMaterialShare: onMaterialShare,
+        onMaterialAdd: onMaterialAdd,
       );
     },
   );
 }
 
-class _LouvorMaterialSheetBody extends StatefulWidget {
+class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
   const _LouvorMaterialSheetBody({
     required this.group,
     required this.onMaterialSelected,
-    this.onMaterialShare,
+    this.onMaterialAdd,
   });
 
   final LouvorGroup group;
   final ValueChanged<Louvor> onMaterialSelected;
-  final LouvorMaterialShareCallback? onMaterialShare;
+  final LouvorMaterialAddCallback? onMaterialAdd;
 
   @override
-  State<_LouvorMaterialSheetBody> createState() =>
+  ConsumerState<_LouvorMaterialSheetBody> createState() =>
       _LouvorMaterialSheetBodyState();
 }
 
-class _LouvorMaterialSheetBodyState extends State<_LouvorMaterialSheetBody> {
-  String? _sharingPdfId;
+class _LouvorMaterialSheetBodyState
+    extends ConsumerState<_LouvorMaterialSheetBody> {
+  String? _addingPdfId;
 
-  Future<void> _handleShare(Louvor louvor, BuildContext buttonContext) async {
-    final onShare = widget.onMaterialShare;
-    if (onShare == null || _sharingPdfId != null) return;
+  Future<void> _handleAdd(Louvor louvor) async {
+    final onAdd = widget.onMaterialAdd;
+    if (onAdd == null || _addingPdfId != null) return;
 
-    setState(() => _sharingPdfId = louvor.pdfId);
+    setState(() => _addingPdfId = louvor.pdfId);
     try {
-      await onShare(
-        louvor,
-        sharePositionOriginFromContextOrFallback(buttonContext),
-      );
+      await onAdd(louvor);
     } finally {
-      if (mounted) setState(() => _sharingPdfId = null);
+      if (mounted) setState(() => _addingPdfId = null);
     }
   }
 
@@ -81,7 +78,8 @@ class _LouvorMaterialSheetBodyState extends State<_LouvorMaterialSheetBody> {
     final maxHeight = MediaQuery.sizeOf(context).height * 0.75;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = widget.group;
-    final onMaterialShare = widget.onMaterialShare;
+    final onMaterialAdd = widget.onMaterialAdd;
+    final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
@@ -157,35 +155,13 @@ class _LouvorMaterialSheetBodyState extends State<_LouvorMaterialSheetBody> {
                             color: AppColors.textDark,
                           ),
                         ),
-                        trailing: onMaterialShare == null
+                        trailing: onMaterialAdd == null
                             ? null
-                            : Builder(
-                                builder: (buttonContext) {
-                                  final sharing =
-                                      _sharingPdfId == material.pdfId;
-                                  return IconButton(
-                                    tooltip: l10n.sharePdf,
-                                    onPressed: sharing
-                                        ? null
-                                        : () => _handleShare(
-                                              material.louvor,
-                                              buttonContext,
-                                            ),
-                                    icon: sharing
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: AppColors.title,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.share_outlined,
-                                            color: AppColors.title,
-                                          ),
-                                  );
-                                },
+                            : _MaterialAddTrailing(
+                                isAdded:
+                                    carouselPdfIds.contains(material.pdfId),
+                                isAdding: _addingPdfId == material.pdfId,
+                                onAdd: () => _handleAdd(material.louvor),
                               ),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -200,5 +176,49 @@ class _LouvorMaterialSheetBodyState extends State<_LouvorMaterialSheetBody> {
         ),
       ),
     );
+  }
+}
+
+class _MaterialAddTrailing extends StatelessWidget {
+  const _MaterialAddTrailing({
+    required this.isAdded,
+    required this.isAdding,
+    required this.onAdd,
+  });
+
+  final bool isAdded;
+  final bool isAdding;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isAdding) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.title,
+        ),
+      );
+    }
+    if (isAdded) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.title, width: 1.5),
+        ),
+        child: const SizedBox(
+          width: 24,
+          height: 24,
+          child: Icon(
+            Icons.check,
+            size: 16,
+            color: AppColors.title,
+          ),
+        ),
+      );
+    }
+    return CarouselLouvorAddButton(onPressed: onAdd);
   }
 }

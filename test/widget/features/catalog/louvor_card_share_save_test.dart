@@ -15,9 +15,6 @@ import 'package:coldigui/features/offline/domain/repositories/offline_pdf_reposi
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
-import 'package:coldigui/features/pdf_opening/domain/usecases/share_pdf.dart';
-import 'package:coldigui/features/pdf_reader/domain/usecases/open_pdf_document.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
@@ -214,24 +211,24 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
 
   @override
   Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
-}
-
-class _RecordingSharePdf extends SharePdf {
-  _RecordingSharePdf()
-      : super(_FakeBytesDatasource(Uint8List.fromList([1, 2, 3])),
-            const OpenPdfDocument());
-
-  String? lastFilePath;
-  String? lastDisplayName;
 
   @override
-  Future<void> call({
-    required String filePath,
-    String? displayName,
-    Rect? sharePositionOrigin,
-  }) async {
-    lastFilePath = filePath;
-    lastDisplayName = displayName;
+  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
+}
+
+class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
+  String? lastAddedPdfId;
+
+  @override
+  List<PlaylistViewItem> build() => const [];
+
+  @override
+  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
+
+  @override
+  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
+    lastAddedPdfId = pdfId;
+    return true;
   }
 }
 
@@ -316,16 +313,14 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
-  testWidgets('LouvorGroupCard com vários materiais compartilha pelo sheet',
+  testWidgets('LouvorGroupCard com vários materiais não exibe + no card',
       (tester) async {
     final prefs = await SharedPreferences.getInstance();
-    final sharePdf = _RecordingSharePdf();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          sharePdfProvider.overrideWithValue(sharePdf),
           ..._commonOverrides(),
         ],
         child: MaterialApp(
@@ -340,18 +335,44 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.more_vert), findsNothing);
+    expect(find.byIcon(Icons.add), findsNothing);
+  });
+
+  testWidgets('LouvorGroupCard com vários materiais adiciona pelo sheet',
+      (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    final playlists = _RecordingPlaylistsNotifier();
+    final cifraPdfId = _pdfIdForPath('assets/ColAdultos/001-cifra.pdf');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ..._commonOverrides(),
+          playlistsProvider.overrideWith(() => playlists),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: LouvorGroupCard(group: _multiMaterialGroup()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('Aleluia'));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.share_outlined), findsNWidgets(2));
+    expect(find.byIcon(Icons.share_outlined), findsNothing);
+    expect(find.byIcon(Icons.add), findsNWidgets(2));
 
-    await tester.tap(find.byIcon(Icons.share_outlined).first);
+    await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
-    expect(sharePdf.lastFilePath, _localPdfPath);
-    expect(sharePdf.lastDisplayName, 'Aleluia');
-    expect(find.text('PDF pronto para compartilhar'), findsOneWidget);
+    expect(playlists.lastAddedPdfId, cifraPdfId);
+    expect(find.text('Adicionado à seleção'), findsOneWidget);
   });
 }
