@@ -32,18 +32,23 @@ const OfflinePdfIndexSchema = CollectionSchema(
       name: r'fileSize',
       type: IsarType.long,
     ),
-    r'lastAccessedAt': PropertySchema(
+    r'isPersistent': PropertySchema(
       id: 3,
+      name: r'isPersistent',
+      type: IsarType.bool,
+    ),
+    r'lastAccessedAt': PropertySchema(
+      id: 4,
       name: r'lastAccessedAt',
       type: IsarType.dateTime,
     ),
     r'pdfId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'pdfId',
       type: IsarType.string,
     ),
     r'storagePath': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'storagePath',
       type: IsarType.string,
     )
@@ -97,9 +102,10 @@ void _offlinePdfIndexSerialize(
   writer.writeString(offsets[0], object.category);
   writer.writeDateTime(offsets[1], object.downloadedAt);
   writer.writeLong(offsets[2], object.fileSize);
-  writer.writeDateTime(offsets[3], object.lastAccessedAt);
-  writer.writeString(offsets[4], object.pdfId);
-  writer.writeString(offsets[5], object.storagePath);
+  writer.writeBool(offsets[3], object.isPersistent);
+  writer.writeDateTime(offsets[4], object.lastAccessedAt);
+  writer.writeString(offsets[5], object.pdfId);
+  writer.writeString(offsets[6], object.storagePath);
 }
 
 OfflinePdfIndex _offlinePdfIndexDeserialize(
@@ -113,9 +119,10 @@ OfflinePdfIndex _offlinePdfIndexDeserialize(
   object.downloadedAt = reader.readDateTime(offsets[1]);
   object.fileSize = reader.readLong(offsets[2]);
   object.id = id;
-  object.lastAccessedAt = reader.readDateTimeOrNull(offsets[3]);
-  object.pdfId = reader.readString(offsets[4]);
-  object.storagePath = reader.readString(offsets[5]);
+  object.isPersistent = reader.readBool(offsets[3]);
+  object.lastAccessedAt = reader.readDateTimeOrNull(offsets[4]);
+  object.pdfId = reader.readString(offsets[5]);
+  object.storagePath = reader.readString(offsets[6]);
   return object;
 }
 
@@ -133,10 +140,12 @@ P _offlinePdfIndexDeserializeProp<P>(
     case 2:
       return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -643,6 +652,16 @@ extension OfflinePdfIndexQueryFilter
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+      isPersistentEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPersistent',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
       lastAccessedAtIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1040,6 +1059,20 @@ extension OfflinePdfIndexQuerySortBy
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+      sortByIsPersistent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPersistent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+      sortByIsPersistentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPersistent', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
       sortByLastAccessedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastAccessedAt', Sort.asc);
@@ -1138,6 +1171,20 @@ extension OfflinePdfIndexQuerySortThenBy
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+      thenByIsPersistent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPersistent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+      thenByIsPersistentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPersistent', Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
       thenByLastAccessedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastAccessedAt', Sort.asc);
@@ -1203,6 +1250,13 @@ extension OfflinePdfIndexQueryWhereDistinct
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
+      distinctByIsPersistent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPersistent');
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
       distinctByLastAccessedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastAccessedAt');
@@ -1248,6 +1302,12 @@ extension OfflinePdfIndexQueryProperty
   QueryBuilder<OfflinePdfIndex, int, QQueryOperations> fileSizeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fileSize');
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, bool, QQueryOperations> isPersistentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPersistent');
     });
   }
 

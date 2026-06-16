@@ -28,12 +28,15 @@ class OfflinePdfLocalDatasource {
   }
 
   /// Candidatos LRU para eviction — ordenados do mais antigo ao mais novo.
+  ///
+  /// Exclui PDFs com [OfflinePdfIndex.isPersistent] = `true`.
   Future<List<OfflinePdfIndex>> findOldestForEviction({
     required int limit,
     int offset = 0,
   }) =>
       _isar.offlinePdfIndexs
-          .where()
+          .filter()
+          .isPersistentEqualTo(false)
           .sortByLastAccessedAt()
           .thenByDownloadedAt()
           .offset(offset)
@@ -104,6 +107,18 @@ class OfflinePdfLocalDatasource {
     if (indexes.isEmpty) return;
     await _isar.writeTxn(() async {
       await _isar.offlinePdfIndexs.putAllByPdfId(indexes);
+    });
+  }
+
+  /// Marca todas as entradas como persistentes — migração v2 (bulk legado).
+  Future<void> markAllPersistent() async {
+    await _isar.writeTxn(() async {
+      final all = await _isar.offlinePdfIndexs.where().findAll();
+      for (final index in all) {
+        if (index.isPersistent) continue;
+        index.isPersistent = true;
+        await _isar.offlinePdfIndexs.put(index);
+      }
     });
   }
 

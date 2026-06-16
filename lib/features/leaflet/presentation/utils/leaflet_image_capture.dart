@@ -1,11 +1,32 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import 'leaflet_debug_log.dart';
+
+/// [debugNeedsPaint] só existe em debug — em profile/release lança
+/// [LateInitializationError] (visto no iPad, build homolog).
+bool _repaintBoundaryReady(RenderRepaintBoundary boundary) {
+  if (!boundary.hasSize) return false;
+  final size = boundary.size;
+  if (size.width <= 0 || size.height <= 0) return false;
+  if (kDebugMode) {
+    return !boundary.debugNeedsPaint;
+  }
+  return true;
+}
+
+String _boundaryStatus(RenderRepaintBoundary? boundary) {
+  if (boundary == null) return 'boundary=false';
+  final size = boundary.hasSize ? boundary.size : Size.zero;
+  if (kDebugMode) {
+    return 'boundary=true, needsPaint=${boundary.debugNeedsPaint}, size=$size';
+  }
+  return 'boundary=true, hasSize=${boundary.hasSize}, size=$size';
+}
 
 /// Aguarda [boundaryKey] ligar a um [RenderRepaintBoundary] pintável.
 ///
@@ -13,23 +34,38 @@ import 'leaflet_debug_log.dart';
 Future<RenderRepaintBoundary> waitForRepaintBoundary(
   GlobalKey boundaryKey, {
   int maxFrames = 10,
+  int releaseSettleFrames = 2,
 }) async {
+  RenderRepaintBoundary? ready;
+
   for (var frame = 0; frame < maxFrames; frame++) {
     await SchedulerBinding.instance.endOfFrame;
     final boundary = boundaryKey.currentContext?.findRenderObject()
         as RenderRepaintBoundary?;
-    if (boundary != null && !boundary.debugNeedsPaint) {
+    if (boundary != null && _repaintBoundaryReady(boundary)) {
+      ready = boundary;
       leafletDebugLog(
         'waitForRepaintBoundary: pronto no frame $frame '
         '(size=${boundary.size}, hasSize=${boundary.hasSize})',
       );
-      return boundary;
+      break;
     }
     leafletDebugLog(
-      'waitForRepaintBoundary: frame $frame — '
-      'boundary=${boundary != null}, '
-      'needsPaint=${boundary?.debugNeedsPaint}',
+      'waitForRepaintBoundary: frame $frame — ${_boundaryStatus(boundary)}',
     );
+  }
+
+  if (ready != null) {
+    if (!kDebugMode) {
+      for (var i = 0; i < releaseSettleFrames; i++) {
+        await SchedulerBinding.instance.endOfFrame;
+      }
+      leafletDebugLog(
+        'waitForRepaintBoundary: settle profile/release '
+        '($releaseSettleFrames frames extras)',
+      );
+    }
+    return ready;
   }
 
   final last =
@@ -37,7 +73,7 @@ Future<RenderRepaintBoundary> waitForRepaintBoundary(
   if (last != null) {
     leafletDebugLog(
       'waitForRepaintBoundary: timeout após $maxFrames frames; '
-      'usando boundary com needsPaint=${last.debugNeedsPaint}, size=${last.size}',
+      'usando boundary (${_boundaryStatus(last)})',
     );
     return last;
   }

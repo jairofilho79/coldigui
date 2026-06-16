@@ -1,5 +1,6 @@
 # =============================================================================
 # coldigui — Flutter 3 / Dart 3.5+ (iOS; Riverpod, Isar, build_runner, l10n)
+# workers/plpcg-catalog/ — Cloudflare Worker (catálogo D1)
 # =============================================================================
 
 # --- Flutter / Dart / Pub ----------------------------------------------------
@@ -11,9 +12,10 @@ build/
 **/doc/api/
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Saída Dart web (não usar *.js global — quebra configs JS dos workers)
 *.dart.js
 *.info.json
-*.js
 *.js_
 *.js.deps
 *.js.map
@@ -31,6 +33,15 @@ app.*.map.json
 *.dylib
 *.so
 *.dll
+
+# --- Node / Cloudflare Workers (workers/plpcg-catalog/) ----------------------
+node_modules/
+.npm/
+.pnpm-store/
+*.tsbuildinfo
+.wrangler/
+.dev.vars
+**/.dev.vars
 
 # --- iOS ---------------------------------------------------------------------
 **/ios/Flutter/.last_build_id
@@ -125,12 +136,17 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# --- Logs / temporários ------------------------------------------------------
+# --- Logs / temporários / scratch local --------------------------------------
 *.log
 *.tmp
 *.temp
 migrate_working_dir/
+tmp/
 
 # --- Testes ------------------------------------------------------------------
 **/failures/
 **/test-results/
+
+# --- FVM (se adotar version pinning do Flutter) ------------------------------
+.fvm/flutter_sdk
+.fvm/versions/

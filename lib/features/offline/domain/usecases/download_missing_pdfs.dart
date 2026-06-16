@@ -1,12 +1,12 @@
 import 'dart:math' show min;
 
 import '../../../../core/utils/pdf_path_normalizer.dart';
-import '../../data/datasources/offline_manifest_remote_datasource.dart';
+import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../data/utils/pdf_integrity_validator.dart';
-import '../entities/offline_manifest.dart';
 import '../entities/offline_pdf_entry.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_category_resolver.dart';
+import '../utils/offline_material_resolver.dart';
 import 'fetch_and_store_pdf.dart';
 
 /// Resultado de [DownloadMissingPdfs] (UC-10, Fase 3.6/3.7 UI).
@@ -32,17 +32,16 @@ const _maxConcurrentDownloads = 3;
 
 /// UC-10 — Baixar PDFs faltantes no índice (Fase 3.6).
 ///
-/// Pré-filtra PDFs válidos (índice + arquivo no disco) e faz fetch **somente**
-/// dos ausentes no manifest. [onProgress] reporta `done/total` onde `total` é
-/// a quantidade de faltantes, não o tamanho total do manifest.
+/// Usa o catálogo Isar (D1 local) como SSOT dos PDFs esperados. Pré-filtra PDFs
+/// válidos (índice + arquivo no disco) e faz fetch **somente** dos ausentes.
 class DownloadMissingPdfs {
   DownloadMissingPdfs(
-    this._manifestDatasource,
+    this._catalogLocal,
     this._repository,
     this._fetchAndStorePdf,
   );
 
-  final OfflineManifestRemoteDatasource _manifestDatasource;
+  final CatalogLocalDatasource _catalogLocal;
   final OfflinePdfRepository _repository;
   final FetchAndStorePdf _fetchAndStorePdf;
 
@@ -52,9 +51,7 @@ class DownloadMissingPdfs {
     /// Chamado após cada fetch (ou falha). [total] = quantidade de faltantes.
     void Function(int done, int total)? onProgress,
   }) async {
-    final manifest = await _manifestDatasource.fetchManifest();
-    final categories = materialCategories ?? manifest.packages.keys.toSet();
-    final allPdfIds = _collectPdfIds(manifest, categories);
+    final allPdfIds = await _collectPdfIds(materialCategories);
     final validPdfIds = await _collectValidPdfIds();
     final missingPdfIds = [
       for (final pdfId in allPdfIds)
@@ -124,19 +121,20 @@ class DownloadMissingPdfs {
   Future<bool> _hasValidFile(OfflinePdfEntry entry) =>
       PdfIntegrityValidator.isValidPdfFile(entry.absolutePath);
 
-  List<String> _collectPdfIds(
-    OfflineManifest manifest,
-    Set<String> categories,
-  ) {
-    final ids = <String>[];
-    for (final category in categories) {
-      final package = manifest.packages[category];
-      if (package == null) continue;
-      for (final part in package.parts) {
-        ids.addAll(part.pdfs);
-      }
+  Future<List<String>> _collectPdfIds(Set<String>? materialCategories) async {
+    final pdfIdToCategoria = await _catalogLocal.loadPdfIdToCategoriaMap();
+
+    if (materialCategories == null) {
+      return pdfIdToCategoria.keys.toList();
     }
-    return ids;
+
+    return [
+      for (final entry in pdfIdToCategoria.entries)
+        if (materialCategories.contains(
+          OfflineMaterialResolver.toUiMaterial(entry.value),
+        ))
+          entry.key,
+    ];
   }
 
   static String _remotePathFromPdfId(String pdfId) {

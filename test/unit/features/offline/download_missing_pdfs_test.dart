@@ -2,11 +2,12 @@ import 'dart:io';
 import 'dart:math' show max;
 import 'dart:typed_data';
 
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
+import 'package:coldigui/core/database/collections/louvor_cache.dart';
+import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
+import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_missing_pdfs.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
@@ -17,13 +18,23 @@ import 'offline_test_helpers.dart';
 
 final _validPdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x2D]);
 
-class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
-  _FakeManifestDatasource(this._manifest) : super(Dio());
-
-  final OfflineManifest _manifest;
-
-  @override
-  Future<OfflineManifest> fetchManifest() async => _manifest;
+Future<void> _seedCatalogLouvor(
+  Isar isar, {
+  required String pdfId,
+  String categoria = CatalogMaterials.partitura,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.louvorCaches.put(
+      LouvorCache()
+        ..pdfId = pdfId
+        ..nome = 'Teste'
+        ..numero = '001'
+        ..categoria = categoria
+        ..classificacao = 'ColAdultos'
+        ..pdf = '001.pdf'
+        ..groupId = '001:teste',
+    );
+  });
 }
 
 class _FakePdfBytesDatasource extends PdfBytesDatasource {
@@ -91,6 +102,7 @@ void main() {
   late Directory tempDir;
   late Isar isar;
   late OfflinePdfRepositoryImpl repository;
+  late CatalogLocalDatasource catalogLocal;
   late _FakePdfBytesDatasource bytesDatasource;
   late DownloadMissingPdfs useCase;
   late String pdfId1;
@@ -102,12 +114,24 @@ void main() {
     pdfId2 = encodePdfId('ColAdultos/b.pdf');
   });
 
+  Future<DownloadMissingPdfs> buildUseCase(
+    PdfBytesDatasource bytesDatasource,
+  ) {
+    return Future.value(
+      DownloadMissingPdfs(
+        catalogLocal,
+        repository,
+        createTestFetchAndStorePdf(bytesDatasource, repository),
+      ),
+    );
+  }
+
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('download_missing_');
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineTestIsar(tempDir);
+    isar = await openOfflineCatalogTestIsar(tempDir);
     final store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -115,31 +139,10 @@ void main() {
       store: store,
       local: OfflinePdfLocalDatasource(isar),
     );
+    catalogLocal = CatalogLocalDatasource(isar);
     bytesDatasource = _FakePdfBytesDatasource();
 
-    final manifest = OfflineManifest(
-      version: '1',
-      packages: {
-        'Partitura': OfflineMaterialPackage(
-          parts: [
-            OfflinePackagePart(
-              filename: 'p1.zip',
-              size: 100,
-              url: '/p1.zip',
-              pdfs: [pdfId1, pdfId2],
-            ),
-          ],
-          totalSize: 100,
-          totalParts: 1,
-        ),
-      },
-    );
-
-    useCase = DownloadMissingPdfs(
-      _FakeManifestDatasource(manifest),
-      repository,
-      createTestFetchAndStorePdf(bytesDatasource, repository),
-    );
+    useCase = await buildUseCase(bytesDatasource);
   });
 
   tearDown(() async {
@@ -150,13 +153,16 @@ void main() {
   });
 
   test('baixa apenas PDFs ausentes no índice', () async {
+    await _seedCatalogLouvor(isar, pdfId: pdfId1);
+    await _seedCatalogLouvor(isar, pdfId: pdfId2);
     await repository.upsert(
       pdfId: pdfId1,
       bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
-    final result = await useCase(materialCategories: {'Partitura'});
+    final result =
+        await useCase(materialCategories: {CatalogMaterials.partitura});
 
     expect(result.skippedCount, 1);
     expect(result.downloadedCount, 1);
@@ -165,7 +171,21 @@ void main() {
     expect(await repository.lookup(pdfId2), isNotNull);
   });
 
+  test('inclui pdf do catálogo fora de qualquer package do manifest', () async {
+    final catalogOnlyId = encodePdfId('ColAdultos/only-catalog.pdf');
+    await _seedCatalogLouvor(isar, pdfId: catalogOnlyId);
+
+    final result =
+        await useCase(materialCategories: {CatalogMaterials.partitura});
+
+    expect(result.downloadedCount, 1);
+    expect(result.failedCount, 0);
+    expect(await repository.lookup(catalogOnlyId), isNotNull);
+  });
+
   test('progresso usa total de faltantes, não o manifest completo', () async {
+    await _seedCatalogLouvor(isar, pdfId: pdfId1);
+    await _seedCatalogLouvor(isar, pdfId: pdfId2);
     await repository.upsert(
       pdfId: pdfId1,
       bytes: _validPdfBytes,
@@ -174,7 +194,7 @@ void main() {
 
     int? lastTotal;
     await useCase(
-      materialCategories: {'Partitura'},
+      materialCategories: {CatalogMaterials.partitura},
       onProgress: (_, total) => lastTotal = total,
     );
 
@@ -183,6 +203,8 @@ void main() {
   });
 
   test('não refaz fetch quando arquivo local já é válido', () async {
+    await _seedCatalogLouvor(isar, pdfId: pdfId1);
+    await _seedCatalogLouvor(isar, pdfId: pdfId2);
     await repository.upsert(
       pdfId: pdfId1,
       bytes: _validPdfBytes,
@@ -194,7 +216,8 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result = await useCase(materialCategories: {'Partitura'});
+    final result =
+        await useCase(materialCategories: {CatalogMaterials.partitura});
 
     expect(result.skippedCount, 2);
     expect(result.downloadedCount, 0);
@@ -202,13 +225,16 @@ void main() {
   });
 
   test('re-baixa PDF com conteúdo HTML inválido no disco', () async {
+    await _seedCatalogLouvor(isar, pdfId: pdfId1);
+    await _seedCatalogLouvor(isar, pdfId: pdfId2);
     await repository.upsert(
       pdfId: pdfId1,
       bytes: Uint8List.fromList('<html>'.codeUnits),
       category: 'ColAdultos',
     );
 
-    final result = await useCase(materialCategories: {'Partitura'});
+    final result =
+        await useCase(materialCategories: {CatalogMaterials.partitura});
 
     expect(result.skippedCount, 0);
     expect(result.downloadedCount, 2);
@@ -223,34 +249,16 @@ void main() {
       (i) => encodePdfId('ColAdultos/${i.toString().padLeft(3, '0')}.pdf'),
     );
 
-    final manifest = OfflineManifest(
-      version: '1',
-      packages: {
-        'Partitura': OfflineMaterialPackage(
-          parts: [
-            OfflinePackagePart(
-              filename: 'p1.zip',
-              size: 100,
-              url: '/p1.zip',
-              pdfs: pdfIds,
-            ),
-          ],
-          totalSize: 100,
-          totalParts: 1,
-        ),
-      },
-    );
+    for (final pdfId in pdfIds) {
+      await _seedCatalogLouvor(isar, pdfId: pdfId);
+    }
 
     final trackingDatasource = _ConcurrentTrackingPdfBytesDatasource(30);
-    final concurrentUseCase = DownloadMissingPdfs(
-      _FakeManifestDatasource(manifest),
-      repository,
-      createTestFetchAndStorePdf(trackingDatasource, repository),
-    );
+    final concurrentUseCase = await buildUseCase(trackingDatasource);
 
     final progressUpdates = <int>[];
     final result = await concurrentUseCase(
-      materialCategories: {'Partitura'},
+      materialCategories: {CatalogMaterials.partitura},
       onProgress: (done, total) {
         progressUpdates.add(done);
         expect(total, pdfCount);
@@ -269,32 +277,15 @@ void main() {
     final failPdfId = encodePdfId('ColAdultos/fail.pdf');
     final okPdfId = encodePdfId('ColAdultos/ok.pdf');
 
-    final manifest = OfflineManifest(
-      version: '1',
-      packages: {
-        'Partitura': OfflineMaterialPackage(
-          parts: [
-            OfflinePackagePart(
-              filename: 'p1.zip',
-              size: 100,
-              url: '/p1.zip',
-              pdfs: [failPdfId, okPdfId],
-            ),
-          ],
-          totalSize: 100,
-          totalParts: 1,
-        ),
-      },
-    );
+    await _seedCatalogLouvor(isar, pdfId: failPdfId);
+    await _seedCatalogLouvor(isar, pdfId: okPdfId);
 
     final failingDatasource = _FailingPdfBytesDatasource();
-    final failingUseCase = DownloadMissingPdfs(
-      _FakeManifestDatasource(manifest),
-      repository,
-      createTestFetchAndStorePdf(failingDatasource, repository),
-    );
+    final failingUseCase = await buildUseCase(failingDatasource);
 
-    final result = await failingUseCase(materialCategories: {'Partitura'});
+    final result = await failingUseCase(
+      materialCategories: {CatalogMaterials.partitura},
+    );
 
     expect(result.downloadedCount, 1);
     expect(result.failedCount, 1);

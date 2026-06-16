@@ -1,13 +1,8 @@
-import 'dart:async';
-
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
-import 'package:coldigui/features/catalog/data/providers/catalog_providers.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/repositories/catalog_repository.dart';
-import 'package:coldigui/features/catalog/domain/usecases/force_refresh_catalog.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
@@ -36,34 +31,6 @@ Louvor _louvor({
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
   List<CarouselItem> build() => const [];
-}
-
-class _TestCatalogRepository implements CatalogRepository {
-  _TestCatalogRepository({this.onForceRefresh});
-
-  final Future<List<Louvor>> Function()? onForceRefresh;
-  var forceRefreshCalls = 0;
-
-  @override
-  Future<List<Louvor>> loadManifest() async => const [];
-
-  @override
-  Future<List<Louvor>> forceRefreshManifest() async {
-    forceRefreshCalls++;
-    if (onForceRefresh != null) {
-      return onForceRefresh!();
-    }
-    return const [];
-  }
-
-  @override
-  Future<void> cacheManifest(List<Louvor> louvores) async {}
-
-  @override
-  Future<String?> fetchManifestChecksum() async => null;
-
-  @override
-  Future<bool> isCatalogStale() async => false;
 }
 
 Widget _libraryTestApp({
@@ -132,8 +99,6 @@ void main() {
     expect(find.text('Arranjo especial'), findsOneWidget);
     expect(find.text('Padrão'), findsOneWidget);
     expect(find.text('Especial'), findsOneWidget);
-    expect(find.text('Atualizar lista'), findsOneWidget);
-    expect(find.byKey(const Key('catalogRefreshBanner')), findsOneWidget);
   });
 
   testWidgets('LibraryScreen exibe resumo dentro do card Visualização',
@@ -204,70 +169,5 @@ void main() {
     final louvor10Finder = find.text('#010 — Louvor 10');
     expect(tester.getTopLeft(louvor1Finder).dy,
         lessThan(tester.getTopLeft(louvor10Finder).dy));
-  });
-
-  testWidgets('CatalogRefreshBanner dispara refresh ao tocar', (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = [_louvor(nome: 'Louvor 1', numero: '001')];
-    final repository = _TestCatalogRepository();
-
-    await pumpLibrary(
-      tester,
-      _libraryTestApp(
-        prefs: prefs,
-        catalog: catalog,
-        extraOverrides: [
-          forceRefreshCatalogProvider.overrideWith(
-            (ref) => ForceRefreshCatalog(repository),
-          ),
-        ],
-      ),
-    );
-
-    await tester.tap(find.text('Atualizar lista'));
-    await tester.pumpAndSettle();
-
-    expect(repository.forceRefreshCalls, 1);
-    expect(find.text('Catálogo atualizado'), findsOneWidget);
-  });
-
-  testWidgets('CatalogRefreshBanner desabilita botão durante loading',
-      (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = [_louvor(nome: 'Louvor 1', numero: '001')];
-    final completer = Completer<List<Louvor>>();
-    final repository = _TestCatalogRepository(
-      onForceRefresh: () => completer.future,
-    );
-
-    await pumpLibrary(
-      tester,
-      _libraryTestApp(
-        prefs: prefs,
-        catalog: catalog,
-        extraOverrides: [
-          forceRefreshCatalogProvider.overrideWith(
-            (ref) => ForceRefreshCatalog(repository),
-          ),
-        ],
-      ),
-    );
-
-    final refreshButton = find.descendant(
-      of: find.byKey(const Key('catalogRefreshBanner')),
-      matching: find.byType(FilledButton),
-    );
-    expect(tester.widget<FilledButton>(refreshButton).onPressed, isNotNull);
-
-    await tester.tap(refreshButton);
-    await tester.pump();
-
-    expect(tester.widget<FilledButton>(refreshButton).onPressed, isNull);
-    expect(find.byType(CircularProgressIndicator), findsWidgets);
-
-    completer.complete(catalog);
-    await tester.pumpAndSettle();
-
-    expect(repository.forceRefreshCalls, 1);
   });
 }

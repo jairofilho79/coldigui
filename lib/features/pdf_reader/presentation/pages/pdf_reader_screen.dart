@@ -5,7 +5,9 @@ import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
@@ -158,9 +160,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           );
       context.replace(location);
     } on PdfOfflineUnavailableException catch (e) {
-      if (mounted) showAppSnackbar(context, e.message);
+      if (mounted) {
+        showPdfOfflineUnavailableSnackbar(context, message: e.message);
+      }
     } on PdfExternallyDeletedException catch (e) {
-      if (mounted) showAppSnackbar(context, e.message);
+      if (mounted) {
+        showPdfOfflineUnavailableSnackbar(context, message: e.message);
+      }
     } on PdfFetchFailedException catch (e) {
       if (mounted) showAppSnackbar(context, e.message);
     } on Object {
@@ -251,6 +257,14 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
               onRetry: _redownloadLoading
                   ? null
                   : () => _redownloadCorruptedPdf(error.pdfId),
+            );
+          }
+          if (error is PdfOfflineUnavailableException ||
+              error is PdfExternallyDeletedException) {
+            return _ReaderMessage(
+              message: pdfReaderErrorMessage(error),
+              retryLabel: l10n?.pdfOfflineGoToSettings ?? 'Baixar',
+              onRetry: () => context.push(RoutePaths.offline),
             );
           }
           return _ReaderMessage(

@@ -7,16 +7,12 @@ import '../utils/leaflet_header_date.dart';
 /// Usado por [LeafletContent] via [LeafletActionsNotifier.generateAndShare].
 class LeafletContentLabels {
   const LeafletContentLabels({
-    required this.headerTitle,
     required this.headerDateLine,
     required this.columnNumber,
     required this.columnName,
     required this.footerPeace,
     required this.footerGreeting,
   });
-
-  /// Título do cabeçalho — ex.: `LOUVORES` ([leafletHeaderTitle]).
-  final String headerTitle;
 
   /// Data formatada — ex.: `QUINTA-FEIRA 11/06/2026` ([formatLeafletHeaderDate]).
   final String headerDateLine;
@@ -39,7 +35,6 @@ class LeafletContentLabels {
     DateTime generatedAt,
   ) {
     return LeafletContentLabels(
-      headerTitle: l10n.leafletHeaderTitle,
       headerDateLine: formatLeafletHeaderDate(l10n, generatedAt),
       columnNumber: l10n.leafletColumnNumber,
       columnName: l10n.leafletColumnName,

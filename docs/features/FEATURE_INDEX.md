@@ -1,6 +1,6 @@
 # Feature Index — PLPCG Flutter
 
-**Última atualização:** junho de 2026 (**agrupamento UI jun/2026** — [LouvorGroupCard] subtítulo `X entradas com Y arranjos` ([CarouselLouvorChip.metadataSummary]); [LouvorGroup.totalArrangements]; [showLouvorMaterialSheet] botão fechar; l10n [louvorGroupMetadataSummary]; **iOS homolog jun/2026** — [Runner-Homolog.entitlements] Debug/Profile; [ios_resolve_device.py] valida pareamento; [ios_homolog_install.sh] `xcodebuild -allowProvisioningUpdates` (UDID iPad/iPhone); **catálogo D1 jun/2026** — Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorNumeroNormalizer] pad 3; spec [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md))
+**Última atualização:** junho de 2026 (**fix offline UC-04/10 jun/2026** — quota LRU desligada quando `OFFLINE_AVAILABLE=TRUE`: [ResolvePdfForReader] `isFullOfflineMode` → `persistentDownload`; UC-10 [DownloadMissingPdfs] idem; **agrupamento UI jun/2026** — [LouvorGroupCard] subtítulo `X entradas com Y arranjos` ([CarouselLouvorChip.metadataSummary]); [LouvorGroup.totalArrangements]; [showLouvorMaterialSheet] botão fechar; l10n [louvorGroupMetadataSummary]; **iOS homolog jun/2026** — [Runner-Homolog.entitlements] Debug/Profile; [ios_resolve_device.py] valida pareamento; [ios_homolog_install.sh] `xcodebuild -allowProvisioningUpdates` (UDID iPad/iPhone); **catálogo D1 jun/2026** — Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorNumeroNormalizer] pad 3; spec [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md))
 **Fase atual:** Fase 4 — **4.1 ✅ carousel**, **4.2 ✅ playlists CRUD**, **4.3 ✅ load playlist**, **4.4 ✅ share URL**, **4.5 ✅ deep links**, **4.6 ✅ folheto**, **4.7 ✅ carousel no leitor**, **4.8 ✅ listas sempre ativas + abas**; **polish UI Home** ✅ (+ botão limpar busca); **polish UI Biblioteca** ✅; **polish UI Playlists** ✅ (tile + [PlaylistsScreen] FAB/empty); **polish UI Offline** ✅; **polish chip lista UC-01/03** ✅; **polish UC-14 bottom bar** ✅; **polish barra carousel ícones UC-05** ✅; **polish header app shell** ✅ (sem badge offline; sem selo DEBUG); **polish UC-14 Sobre** ✅ ([AboutScreen] + [AboutInfoCard])
 
 **Próxima fase:** Fase 5 (`PollManifestChecksum`) ou backlog Fase 2 (2.6/2.7)
@@ -14,7 +14,7 @@
 | `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL |
 | `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorGroupCard] / [LouvorCard], [openLouvorInReader], [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
 | `pdf_reader` | UC-11 | Alta | **Em progresso** (Fase 2.3 ✅ + **2.4 ✅ fullscreen** + 3.4 ✅ + 4.7 ✅ + lifecycle ✅ + UI 3 barras ✅ + carousel nav fix v3 ✅ + **long-press indicador página ✅** + **swipe horizontal ✅** + **indicador estável animateToPage ✅**) | [_ReaderScaffold]: barra 3 + [PdfReaderPageIndicator]; swipe → [PdfReaderDisplayedPageNotifier]; scroll vertical fixo; sessão `autoDispose`; [readerFullscreenProvider] |
-| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado |
+| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026 + **fix quota UC-04/10 jun/2026**) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado; **fix** LRU 500 MB só sem flag `TRUE` ([isFullOfflineMode] / [persistentDownload]) |
 | `carousel` | UC-05, UC-07 | Média | **Concluído** (Fase 4.1 + 4.7 ✅ + polish chip + abrir leitor + barra compartilhada + nav leitor fix v3 ✅ + overflow smartphone ✅ + **share lista barra ✅** + metadados chip modo médio ✅ + trailing add/lista + **share card ⋮ UC-04 ✅** + **ícones barra vinho ✅** + **fix drag modal seleção ✅** + **fix flicker reorder ✅**) | [carouselBarIconButtonStyle]; [CarouselBarTrailingActions]; [CarouselNavigatorBar]; [carouselLouvoresDisplayProvider] na barra; reorder otimista + debounce persist; [carouselSelectionReorderProxyDecorator] no modal |
 | `playlists` | UC-06, UC-07 | Média | **Concluído** (Fase 4.2–4.5 ✅ + 4.8 ✅ + polish UI tile + screen ✅ + **fix share jun/2026** + **debug abrir lista jun/2026**) | UC-06 ✅: CRUD + rascunhos; abas [PlaylistsScreen]; lista ativa [activePlaylistIdProvider]; [resolveActivePlaylistFromCarousel]; debug abrir [playlistOpenDebugLog*]; UC-07 ✅: share/import + deep link + debug [playlistShareDebugLog*]; share em [CarouselBarTrailingActions] e [PlaylistListTile] com `sharePositionOrigin` |
 | `leaflet` | UC-08 | Média | **Concluído** (Fase 4.6 + redesign PWA jun/2026 + fix render jun/2026) | [LeafletContent] PLPCG (`Material` off-screen); `LeafletEntry` `{numero,nome}`; [LeafletContentLabels]; captura PNG + share |
@@ -77,7 +77,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | `ApiEndpoints` | `lib/core/constants/api_endpoints.dart` | **Implementado + D1 jun/2026** | `louvoresManifest` → `/api/catalog/louvores`; `louvoresManifestChecksum` → `/api/catalog/checksum` (Worker + D1); demais endpoints inalterados |
 | `AppConfig` | `lib/core/constants/app_config.dart` | **Implementado + D1 dev jun/2026** | `apiBaseUrl` compile-time; `isApiBaseUrlMissing`; ver [dart_defines/plpcg.json], [dart_defines/plpcg.dev.json] + [PlpcgDartDefines.xcconfig] |
 | `StorageKeys` | `lib/core/constants/storage_keys.dart` | Constantes | Chaves SharedPreferences; inclui `pdfViewerMode` (UC-04 Fase 2.5) |
-| `OfflineConfig` | `lib/core/constants/offline_config.dart` | Constantes | `maxRetryAttempts`, `retryBackoffBase`, batch e TTLs; **Fase 3** — revisar constantes legadas PWA (`sw*`, `pdfCacheName`) |
+| `OfflineConfig` | `lib/core/constants/offline_config.dart` | Constantes | `maxRetryAttempts`, `retryBackoffBase`, batch e TTLs; **`defaultPdfCacheQuotaBytes` = 500 MB** — quota LRU só para cache on-demand (UC-04); **não** aplica a UC-10 com `persistentDownload`; revisar constantes legadas PWA (`sw*`, `pdfCacheName`) |
 | `FeatureFlags` | `lib/core/constants/feature_flags.dart` | Constantes | Flags de feature (UC-13 off) |
 | `AppColors` | `lib/core/theme/color_extensions.dart` | **Implementado + polish** | Tokens de cor Coletânea Digital; inclui `shadowMd`, `shadowLg`, `goldGlow` (§6.2) |
 | `AppTypography` | `lib/core/theme/app_typography.dart` | **Implementado** | EB Garamond + Open Sans bundled; `displayPlcpg`, `headline`, `body`, `label`, `tagLabel`, `hint()`, `textTheme()` (§6.3) |
@@ -827,7 +827,7 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 
 ## APIs públicas — offline (Fase 3 — local-first)
 
-Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store nativo no filesystem + índice Isar; leitor resolve **local-first** e faz cache on-demand. A flag PWA [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`) **só** gateia a UI de [OfflineSettingsScreen] (UC-09 bulk vs UC-10 manutenção) — **não** bloqueia abertura de PDF ([offlineCacheStatusProvider] / [ResolvePdfForReader] local-first).
+Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store nativo no filesystem + índice Isar; leitor resolve **local-first** e faz cache on-demand. A flag PWA [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`) gateia a UI de [OfflineSettingsScreen] (UC-09 bulk vs UC-10 manutenção) **e** define modo acervo completo em [resolvePdfForReaderProvider] (`isFullOfflineMode` → `persistentDownload` sem LRU). **Não** bloqueia abertura de PDF ([offlineCacheStatusProvider] / [ResolvePdfForReader] local-first).
 
 ### Data layer (3.1 ✅)
 
@@ -849,8 +849,8 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `PdfExternallyDeletedException` | `lib/features/offline/domain/exceptions/pdf_resolve_exceptions.dart` | **Implementado 3.2** | Índice órfão + fetch offline; `canRetryWhenOnline` para CTA 3.4 |
 | `PdfOfflineUnavailableException` | `lib/features/offline/domain/exceptions/pdf_resolve_exceptions.dart` | **Implementado 3.2** | Nunca cacheado + fetch offline |
 | `PdfFetchFailedException` | `lib/features/offline/domain/exceptions/pdf_resolve_exceptions.dart` | **Implementado 3.2** | Fetch falhou (HTTP/erro não-rede) |
-| `ResolvePdfForReader` | `lib/features/offline/domain/usecases/resolve_pdf_for_reader.dart` | **Implementado 3.2 + testes** | Hit: path absoluto + stat; miss → [FetchAndStorePdf]; falha rede → exceção tipada (órfão vs ausente) |
-| `FetchAndStorePdf` | `lib/features/offline/domain/usecases/fetch_and_store_pdf.dart` | **Implementado 3.3 + testes** | HTTP via [PdfBytesDatasource] → [OfflinePdfRepository.upsert]; retry [OfflineConfig.maxRetryAttempts]; `category` derivável de `getPdfRelPath` |
+| `ResolvePdfForReader` | `lib/features/offline/domain/usecases/resolve_pdf_for_reader.dart` | **Implementado 3.2 + fix jun/2026 + testes** | Hit: path absoluto + stat; miss → [FetchAndStorePdf] com `persistentDownload: isFullOfflineMode()`; callback injetável — produção lê [OfflineAvailableStore.isConfigured]; falha rede → exceção tipada (órfão vs ausente) |
+| `FetchAndStorePdf` | `lib/features/offline/domain/usecases/fetch_and_store_pdf.dart` | **Implementado 3.3 + fix jun/2026 + testes** | HTTP via [PdfBytesDatasource] → [OfflinePdfRepository.upsert]; retry [OfflineConfig.maxRetryAttempts]; `category` derivável de `getPdfRelPath`; **`persistentDownload`** — `true` omite eviction LRU (UC-10); default `false` mantém quota [OfflineConfig.defaultPdfCacheQuotaBytes] (UC-04 on-demand) |
 | `ValidatePdfAvailability` | `lib/features/pdf_opening/domain/usecases/validate_pdf_availability.dart` | **Implementado 3.4 + testes** | UC-04 — `call(pdfId)` → `repository.lookup` (sem fetch) |
 
 ### Domínio — bulk e manutenção (3.5 ✅ / 3.6 ✅)
@@ -862,7 +862,7 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `ReconcileOfflineIndex` | `lib/features/offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.6 + testes + benchmark** | Global isolate/chunked `< 20s/5000`; escopo pós-bulk preservado |
 | `OfflineMaterialResolver` | `lib/features/offline/domain/utils/offline_material_resolver.dart` | **Implementado jun/2026** | UC-10 — `toUiMaterial(categoria)` → chip UI (`Partitura`, `Cifra`, `Gestos em Gravura`); expande Cifra nível I/II |
 | `GetOfflineStatsByCategory` | `lib/features/offline/domain/usecases/get_offline_stats_by_category.dart` | **Implementado 3.6 + jun/2026** | UC-10 — baixados por material (índice + [CatalogLocalDatasource]); faltantes via manifest remoto → [OfflineStats] |
-| `DownloadMissingPdfs` | `lib/features/offline/domain/usecases/download_missing_pdfs.dart` | **Implementado 3.6 + jun/2026** | UC-10 — pré-filtra faltantes (índice + arquivo válido); fetch **somente** misses; progresso `done/total` = faltantes |
+| `DownloadMissingPdfs` | `lib/features/offline/domain/usecases/download_missing_pdfs.dart` | **Implementado 3.6 + jun/2026 + fix quota jun/2026** | UC-10 — pré-filtra faltantes (índice + arquivo válido); fetch **somente** misses via [FetchAndStorePdf] com **`persistentDownload: true`**; progresso `done/total` = faltantes |
 | `ClearOfflineCache` | `lib/features/offline/domain/usecases/clear_offline_cache.dart` | **Implementado 3.6 + jun/2026 + testes** | UC-10 — clear Isar + deleteTree + checkpoint + `OFFLINE_AVAILABLE=FALSE` |
 | `MigrateOfflineStorage` | `lib/features/offline/domain/usecases/migrate_offline_storage.dart` | **Implementado 3.6 + testes** | UC-10 — v1 no-op; versão em [StorageKeys.offlineStorageVersion] |
 | `OfflineStats` | `lib/features/offline/domain/entities/offline_stats.dart` | **Implementado 3.6 + jun/2026** | `{byCategory, missingByCategory}` + `totalCount` / `totalMissing` — chaves = material UI |
@@ -879,7 +879,7 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `pdfLocalStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.1** | DI [PdfLocalStore] via `path_provider` |
 | `offlinePdfLocalDatasourceProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.1** | DI [OfflinePdfLocalDatasource] via [isarProvider] |
 | `offlinePdfRepositoryProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.1** | DI [OfflinePdfRepositoryImpl] |
-| `resolvePdfForReaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.2 + 3.3 + 3.4** | DI [ResolvePdfForReader] — consumido por [LouvorCard] |
+| `resolvePdfForReaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.2 + 3.3 + 3.4 + fix jun/2026** | DI [ResolvePdfForReader] — `isFullOfflineMode: () => offlineAvailableStore.isConfigured`; consumido por [LouvorCard] |
 | `fetchAndStorePdfProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.3** | DI [FetchAndStorePdf] + [PdfBytesDatasource] + [offlinePdfRepositoryProvider] |
 | `validatePdfAvailabilityProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.4** | DI [ValidatePdfAvailability] — provider em offline para evitar ciclo DI |
 | `offlineCacheStatusProvider` | `lib/features/offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | [OfflineCacheStatus]; `refresh` / `refreshAll`; stats por material + faltantes |
@@ -953,17 +953,18 @@ ResolvePdfForReader (3.2) ✅
 
 | Assinatura | Comportamento |
 |------------|---------------|
-| `ResolvePdfForReader.call({required pdfId, required remotePath})` | Hit → [LocalPdfSource] `fromCache: true`; miss → delega [FetchAndStorePdf]; `DioException` rede + órfão → [PdfExternallyDeletedException]; rede + sem índice → [PdfOfflineUnavailableException]; HTTP/outros → [PdfFetchFailedException] |
+| `ResolvePdfForReader({repository, fetchAndStore, isFullOfflineMode?})` | Callback `isFullOfflineMode` default `false` — testes; produção via [resolvePdfForReaderProvider] |
+| `ResolvePdfForReader.call({required pdfId, required remotePath})` | Hit → [LocalPdfSource] `fromCache: true`; miss → [FetchAndStorePdf] com `persistentDownload: isFullOfflineMode()`; `DioException` rede + órfão → [PdfExternallyDeletedException]; rede + sem índice → [PdfOfflineUnavailableException]; HTTP/outros → [PdfFetchFailedException] |
 | `LocalPdfSource` | `{pdfId, absolutePath, fromCache}` — resultado para leitor (3.4) |
 | `OfflinePdfRepository.findIndexEntry(pdfId)` | Índice Isar sem stat disco — distingue órfão de nunca cacheado |
-| `resolvePdfForReaderProvider` | Injeta repositório + [fetchAndStorePdfProvider] |
+| `resolvePdfForReaderProvider` | Injeta repositório + [fetchAndStorePdfProvider] + `isFullOfflineMode` de [offlineAvailableStoreProvider] |
 
 ### Contrato implementado — Fase 3.3 (fetch on-demand)
 
 | Assinatura | Comportamento |
 |------------|---------------|
 | `FetchAndStorePdf({PdfBytesDatasource, OfflinePdfRepository})` | Construtor injetável — DI via [fetchAndStorePdfProvider] |
-| `FetchAndStorePdf.call({required pdfId, required remotePath, category?})` | `fetchBytes` com retry → `upsert` → [LocalPdfSource] `fromCache: false` |
+| `FetchAndStorePdf.call({required pdfId, required remotePath, category?, persistentDownload?})` | `fetchBytes` com retry → `upsert` → [LocalPdfSource] `fromCache: false`. Se `persistentDownload: false` (default): `_ensureCacheQuota` + `_trimCacheToQuota` com [OfflineConfig.defaultPdfCacheQuotaBytes] (LRU via [OfflinePdfRepository.evictOldestPdfs]; protege favoritos). Se `persistentDownload: true`: só `_ensureDeviceDiskSpace` — sem eviction (UC-10) |
 | `_resolveCategory(pdfId)` | Primeiro segmento de `getPdfRelPath` (strip `assets/`); fallback = path inteiro |
 | Retry | Até [OfflineConfig.maxRetryAttempts]; backoff linear [OfflineConfig.retryBackoffBase] × attempt; retentável: erros de rede + HTTP ≥ 500; 4xx falha imediata |
 | `fetchAndStorePdfProvider` | [PdfBytesDatasource] + [offlinePdfRepositoryProvider] |
@@ -998,7 +999,7 @@ ResolvePdfForReader (3.2) ✅
 | `ReconcileOfflineIndex.call()` (global) | Idempotente; validação disco em isolate via [compute]; chunks [OfflineConfig.bulkIsarChunkSize]; **< 20s / 5000 entradas**; remove órfãos índice + opcional orphan files |
 | `GetOfflineStatsByCategory.call({includeMissing = true})` | Índice Isar + [CatalogLocalDatasource.loadPdfIdToCategoriaMap] → [OfflineMaterialResolver.toUiMaterial] → `byCategory`; manifest remoto → `missingByCategory`; falha rede em faltantes → mapa vazio |
 | `OfflineMaterialResolver.toUiMaterial(categoria)` | `Partitura` / `Gestos em Gravura` direto; `Cifra` + níveis I/II → chip `Cifra`; classificação (`ColAdultos`) → `null` |
-| `DownloadMissingPdfs.call({materialCategories?, onProgress})` | Uma passagem no índice → set de PDFs válidos (arquivo existe, `length > 0`); loop **somente** faltantes; `onProgress(done, total)` com `total = missing`; `skippedCount = manifest − missing` |
+| `DownloadMissingPdfs.call({materialCategories?, onProgress})` | Uma passagem no índice → set de PDFs válidos (arquivo existe, magic `%PDF`); loop **somente** faltantes; cada fetch via [FetchAndStorePdf] com **`persistentDownload: true`**; `onProgress(done, total)` com `total = missing`; `skippedCount = manifest − missing` |
 | `ClearOfflineCache.call()` | [OfflinePdfRepository.clearAll] + [PdfLocalStore.deleteTree] + checkpoint clear + [OfflineAvailableStore.clear] (`OFFLINE_AVAILABLE=FALSE`) |
 | `MigrateOfflineStorage.call()` | v1 no-op; persiste [StorageKeys.offlineStorageVersion] |
 | `offlineReconcileProvider.requestReconcile()` | [MigrateOfflineStorage] → [ReconcileOfflineIndex] global; deduplica se `isRunning` |
@@ -1142,10 +1143,42 @@ OfflineSettingsScreen — "Baixar faltantes"
       → DownloadMissingPdfs
           → _collectValidPdfIds() — uma passagem no índice
           → missingPdfIds = manifest − válidos
-          → FetchAndStorePdf **somente** para missingPdfIds
+          → FetchAndStorePdf(persistentDownload: true) **somente** para missingPdfIds
+              → SEM eviction LRU (quota 500 MB não aplica)
+              → guarda apenas espaço físico em disco (_ensureDeviceDiskSpace)
           → onProgress(done, missingPdfIds.length)
   → refresh cache status + dismiss banner removidos
 ```
+
+### Lição aprendida — quota LRU vs download persistente (UC-04/10, jun/2026)
+
+**Sintoma observado (iPad):** Acervo offline travado em ~500 MB com ~2164 PDFs presentes e ~2455 faltantes, apesar de ~169 GB livres no dispositivo. "Baixar faltantes" parecia não acumular PDFs.
+
+**Causa raiz (parte 1 — UC-10):** [FetchAndStorePdf] aplica eviction LRU em [OfflineConfig.defaultPdfCacheQuotaBytes] (500 MB) em **todo** download on-demand — `_ensureCacheQuota` (antes) + `_trimCacheToQuota` (depois) via [OfflinePdfRepository.evictOldestPdfs]. [DownloadMissingPdfs] (UC-10) reutilizava o mesmo use case sem desligar a quota. Resultado: janela deslizante — cada PDF novo expulsava o mais antigo; total no disco permanecia ~500 MB.
+
+**Causa raiz (parte 2 — UC-04):** Mesmo com `OFFLINE_AVAILABLE=TRUE` e acervo bulk (~8 GB), abrir PDF novo fora dos packages passava por [ResolvePdfForReader] → [FetchAndStorePdf] com LRU ativo — podia evictar o acervo inteiro ao buscar um único PDF avulso. A flag só gateava UI, não o fetch.
+
+**Hipóteses descartadas:**
+
+| Hipótese | Veredito |
+|----------|----------|
+| Perda de PDFs ao baixar por packages (UC-09 bulk ZIP) | **Não** — bulk usa [ExtractAndStorePdfs] → [OfflinePdfRepository.indexExtractedBatch] sem passar por [FetchAndStorePdf] |
+| Falso positivo de ausência (falha de leitura) | **Não** — [PdfIntegrityValidator] e `_validateIndexFile` checam existência + magic `%PDF`; faltantes eram PDFs genuinamente eviccionados |
+| Remoção acidental em "Baixar faltantes" | **Parcial** — remoção era intencional pelo LRU, não bug de reconcile/clear |
+
+**Correção:** parâmetro `persistentDownload: true` em [FetchAndStorePdf.call]. [DownloadMissingPdfs] passa `persistentDownload: true` explicitamente. [ResolvePdfForReader] injeta `isFullOfflineMode` — quando [OfflineAvailableStore.isConfigured] (`OFFLINE_AVAILABLE=TRUE`), miss usa `persistentDownload: true` (sem LRU). Sem flag: cache LRU 500 MB (uso casual).
+
+**Regra para agentes/devs:**
+
+| Fluxo | UC | Quota LRU 500 MB | Limite real |
+|-------|-----|------------------|-------------|
+| Abrir PDF on-demand / prefetch carousel | UC-04 | **Sim** se `OFFLINE_AVAILABLE` ausente/`FALSE` | 500 MB LRU + favoritos protegidos |
+| Abrir PDF on-demand / prefetch carousel | UC-04 | **Não** se `OFFLINE_AVAILABLE=TRUE` | Espaço físico do dispositivo |
+| Baixar faltantes | UC-10 | **Não** (`persistentDownload: true`) | Espaço físico do dispositivo |
+| Bulk ZIP por categoria | UC-09 | **Não** (não usa [FetchAndStorePdf]) | Espaço físico × [OfflineConfig.diskSpaceSafetyMargin] |
+| Limpar cache → `FALSE` | UC-10 | Volta LRU no on-demand | 500 MB LRU |
+
+**Arquivos:** `fetch_and_store_pdf.dart`, `resolve_pdf_for_reader.dart`, `offline_providers.dart`, `download_missing_pdfs.dart`, `offline_config.dart` (`defaultPdfCacheQuotaBytes`).
 
 ### Subfases MVP — critérios de aceite (referência)
 

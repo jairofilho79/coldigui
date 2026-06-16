@@ -84,31 +84,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get pageGoTo => 'Ir para página';
-
-  @override
-  String get pageGoToTitle => 'Ir para página';
-
-  @override
-  String pageGoToHint(int total) {
-    return 'Número da página (1–$total)';
-  }
-
-  @override
-  String get pageGoToConfirm => 'Ir';
-
-  @override
-  String get pageGoToCancel => 'Cancelar';
-
-  @override
-  String pageNumberLabel(int number) {
-    return 'Página $number';
-  }
-
-  @override
-  String get pageEllipsis => 'Mais páginas';
-
-  @override
   String get specialArrangementPadrao => 'Padrão';
 
   @override
@@ -329,6 +304,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get offlineMissingError => 'Não foi possível baixar os PDFs faltantes';
+
+  @override
+  String get pdfOfflineUnavailableMessage =>
+      'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
+
+  @override
+  String get pdfOfflineGoToSettings => 'Baixar';
+
+  @override
+  String get pdfOfflinePersistentTooltip =>
+      'Disponível offline (download garantido)';
+
+  @override
+  String get pdfOfflineCachedLruTooltip =>
+      'Cache temporário — pode ser removido para liberar espaço';
 
   @override
   String get carouselClear => 'Limpar seleção';
@@ -583,6 +573,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Listas salvas não podem ser limpas pela barra. Use o menu da lista.';
+
+  @override
+  String get playlistOpenLouvorChoiceTitle => 'Como adicionar à lista?';
+
+  @override
+  String get playlistOpenLouvorChoiceMessage =>
+      'Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.';
+
+  @override
+  String get playlistOpenLouvorChoiceAddToCurrent => 'Adicionar à lista atual';
+
+  @override
+  String get playlistOpenLouvorChoiceCreateNew => 'Criar nova lista';
 
   @override
   String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {

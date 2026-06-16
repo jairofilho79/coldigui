@@ -1,18 +1,26 @@
 import '../../../offline/domain/repositories/offline_pdf_repository.dart';
+import '../entities/pdf_offline_availability.dart';
 
 /// UC-04 — Validar disponibilidade offline do PDF (Fase 3.4).
 ///
-/// Alias fino sobre [OfflinePdfRepository.lookup]: retorna `true` se o PDF está
-/// no índice Isar e o arquivo no disco é válido, **sem** disparar download.
+/// Diferencia PDF permanente offline de cache LRU transitório via
+/// [OfflinePdfRepository.findIndexEntry] — sem disparar download.
 class ValidatePdfAvailability {
   const ValidatePdfAvailability(this._repository);
 
   final OfflinePdfRepository _repository;
 
-  /// Verifica se [pdfId] está cacheado com arquivo válido no disco.
-  ///
-  /// Não dispara download — apenas delega a [OfflinePdfRepository.lookup].
-  Future<bool> call({required String pdfId}) async {
+  /// Classifica a disponibilidade offline de [pdfId] no índice Isar.
+  Future<PdfOfflineAvailability> call({required String pdfId}) async {
+    final entry = await _repository.findIndexEntry(pdfId);
+    if (entry == null) return PdfOfflineAvailability.notAvailable;
+    return entry.isPersistent
+        ? PdfOfflineAvailability.persistentOffline
+        : PdfOfflineAvailability.cachedLru;
+  }
+
+  /// `true` se o PDF está cacheado com arquivo válido no disco.
+  Future<bool> isCachedOnDisk({required String pdfId}) async {
     return (await _repository.lookup(pdfId)) != null;
   }
 }

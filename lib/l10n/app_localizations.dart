@@ -236,48 +236,6 @@ abstract class AppLocalizations {
   /// **'Página {current} de {total}'**
   String pageIndicator(int current, int total);
 
-  /// No description provided for @pageGoTo.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ir para página'**
-  String get pageGoTo;
-
-  /// No description provided for @pageGoToTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ir para página'**
-  String get pageGoToTitle;
-
-  /// No description provided for @pageGoToHint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Número da página (1–{total})'**
-  String pageGoToHint(int total);
-
-  /// No description provided for @pageGoToConfirm.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ir'**
-  String get pageGoToConfirm;
-
-  /// No description provided for @pageGoToCancel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cancelar'**
-  String get pageGoToCancel;
-
-  /// No description provided for @pageNumberLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Página {number}'**
-  String pageNumberLabel(int number);
-
-  /// No description provided for @pageEllipsis.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mais páginas'**
-  String get pageEllipsis;
-
   /// No description provided for @specialArrangementPadrao.
   ///
   /// In pt, this message translates to:
@@ -604,6 +562,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível baixar os PDFs faltantes'**
   String get offlineMissingError;
+
+  /// No description provided for @pdfOfflineUnavailableMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
+  String get pdfOfflineUnavailableMessage;
+
+  /// No description provided for @pdfOfflineGoToSettings.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar'**
+  String get pdfOfflineGoToSettings;
+
+  /// No description provided for @pdfOfflinePersistentTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível offline (download garantido)'**
+  String get pdfOfflinePersistentTooltip;
+
+  /// No description provided for @pdfOfflineCachedLruTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cache temporário — pode ser removido para liberar espaço'**
+  String get pdfOfflineCachedLruTooltip;
 
   /// No description provided for @carouselClear.
   ///
@@ -1072,6 +1054,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Listas salvas não podem ser limpas pela barra. Use o menu da lista.'**
   String get playlistClearSavedBlocked;
+
+  /// No description provided for @playlistOpenLouvorChoiceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como adicionar à lista?'**
+  String get playlistOpenLouvorChoiceTitle;
+
+  /// No description provided for @playlistOpenLouvorChoiceMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.'**
+  String get playlistOpenLouvorChoiceMessage;
+
+  /// No description provided for @playlistOpenLouvorChoiceAddToCurrent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar à lista atual'**
+  String get playlistOpenLouvorChoiceAddToCurrent;
+
+  /// No description provided for @playlistOpenLouvorChoiceCreateNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar nova lista'**
+  String get playlistOpenLouvorChoiceCreateNew;
 
   /// Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)
   ///

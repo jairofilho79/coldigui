@@ -3,8 +3,8 @@ class PdfExternallyDeletedException implements Exception {
   const PdfExternallyDeletedException({
     required this.pdfId,
     this.canRetryWhenOnline = true,
-    this.message =
-        'O PDF foi removido do dispositivo. Conecte-se à internet para baixá-lo novamente.',
+    this.message = 'O PDF foi removido do dispositivo. '
+        'Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.',
   });
 
   final String pdfId;
@@ -19,8 +19,8 @@ class PdfExternallyDeletedException implements Exception {
 class PdfOfflineUnavailableException implements Exception {
   const PdfOfflineUnavailableException({
     required this.pdfId,
-    this.message =
-        'Este PDF não está disponível offline. Conecte-se à internet para abri-lo.',
+    this.message = 'Este PDF não foi baixado para uso offline. '
+        'Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.',
   });
 
   final String pdfId;

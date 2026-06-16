@@ -85,6 +85,7 @@ class FetchAndStorePdf {
       pdfId: pdfId,
       bytes: bytes,
       category: resolvedCategory,
+      isPersistent: persistentDownload,
     );
 
     if (!persistentDownload) {

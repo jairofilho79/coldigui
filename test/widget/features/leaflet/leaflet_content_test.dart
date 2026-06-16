@@ -15,7 +15,6 @@ void main() {
     ],
   );
   const labels = LeafletContentLabels(
-    headerTitle: 'LOUVORES',
     headerDateLine: 'QUINTA-FEIRA 11/06/2026',
     columnNumber: 'NÚMERO',
     columnName: 'NOME DO HINO',
@@ -38,7 +37,7 @@ void main() {
       ),
     );
 
-    expect(find.text('LOUVORES'), findsOneWidget);
+    expect(find.bySemanticsLabel('PLPCG'), findsOneWidget);
     expect(find.text('QUINTA-FEIRA 11/06/2026'), findsOneWidget);
     expect(find.text('NÚMERO'), findsOneWidget);
     expect(find.text('NOME DO HINO'), findsOneWidget);

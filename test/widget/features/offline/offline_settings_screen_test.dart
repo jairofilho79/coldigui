@@ -187,6 +187,8 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(2));
+    expect(find.textContaining('0/100 PDFs'), findsOneWidget);
     expect(find.textContaining('Baixando pacote 1/3'), findsOneWidget);
     expect(find.textContaining('45,0 MB'), findsOneWidget);
     expect(find.textContaining('82,0 MB'), findsOneWidget);

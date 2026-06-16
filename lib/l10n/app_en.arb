@@ -190,6 +190,10 @@
     }
   },
   "offlineMissingError": "Could not download missing PDFs",
+  "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.",
+  "pdfOfflineGoToSettings": "Download",
+  "pdfOfflinePersistentTooltip": "Available offline (guaranteed download)",
+  "pdfOfflineCachedLruTooltip": "Temporary cache — may be removed to free space",
   "carouselClear": "Clear selection",
   "carouselClearConfirmTitle": "Clear selection?",
   "carouselClearConfirmMessage": "All songs will be removed from the selection.",
@@ -282,6 +286,10 @@
   "playlistDeleteAllUnsavedMessage": "All playlists in the Unsaved tab will be permanently removed.",
   "playlistDeleteAllUnsavedDone": "Unsaved playlists deleted",
   "playlistClearSavedBlocked": "Saved playlists cannot be cleared from the bar. Use the playlist menu.",
+  "playlistOpenLouvorChoiceTitle": "How to add to the playlist?",
+  "playlistOpenLouvorChoiceMessage": "This song is not in the current playlist. How would you like to continue?\n\nWhen creating a new playlist, the current one will not be lost — it will remain in Unsaved playlists.",
+  "playlistOpenLouvorChoiceAddToCurrent": "Add to current playlist",
+  "playlistOpenLouvorChoiceCreateNew": "Create new playlist",
   "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entry} other{{entryCount} entries}} with {arrangementCount, plural, one{1 arrangement} other{{arrangementCount} arrangements}}",
   "@louvorGroupMetadataSummary": {
     "description": "Card subtitle when a hymn groups multiple PDFs (Home/Library)",

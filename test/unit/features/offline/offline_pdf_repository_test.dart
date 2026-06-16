@@ -395,6 +395,30 @@ void main() {
       expect(await repository.lookup(protectedId), isNotNull);
       expect(await repository.lookup(evictId), isNull);
     });
+
+    test('evictOldestPdfs não remove PDFs persistentes', () async {
+      final persistentId = _encodePdfId('ColAdultos/persistent.pdf');
+      final lruId = _encodePdfId('ColAdultos/lru.pdf');
+
+      await repository.upsert(
+        pdfId: persistentId,
+        bytes: _validPdfBytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        category: 'ColAdultos',
+        isPersistent: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+      await repository.upsert(
+        pdfId: lruId,
+        bytes: _validPdfBytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        category: 'ColAdultos',
+      );
+
+      final freed = await repository.evictOldestPdfs(targetBytes: 100);
+
+      expect(await repository.lookup(persistentId), isNotNull);
+      expect(await repository.lookup(lruId), isNull);
+      expect(freed, greaterThan(0));
+    });
   });
 
   test('clearAll remove todas as entradas do índice', () async {

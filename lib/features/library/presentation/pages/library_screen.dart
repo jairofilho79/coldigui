@@ -1,11 +1,8 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
-import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/catalog_refresh_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/catalog_refresh_banner.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
@@ -24,7 +21,7 @@ import 'package:go_router/go_router.dart';
 /// sem busca obrigatória. Sync URL via [buildLibraryLocation].
 ///
 /// Layout alinhado à Home: `maxWidth: 896`, containers dourados (§5.2),
-/// ordem Catálogo → Filtros → Visualização → lista.
+/// ordem Filtros → Visualização → lista.
 ///
 /// Espaçamento: 12px entre seções do header; 16px entre [LibraryViewControls]
 /// e a `SliverList` de [LouvorGroupCard] (paridade Home); 8px entre chips.
@@ -195,12 +192,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
-    ref.listen<CatalogRefreshState>(catalogRefreshProvider, (previous, next) {
-      if (previous?.isLoading == true && next.isIdle) {
-        showAppSnackbar(context, l10n.catalogRefreshSuccess);
-      }
-    });
-
     final hasInitialFilters = widget.initialMateriais != null ||
         widget.initialArranjo != null ||
         widget.initialArranjoEspecial != null;
@@ -226,8 +217,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const CatalogRefreshBanner(),
-                      const SizedBox(height: 12),
                       FiltersPanel(
                         initiallyExpanded: hasInitialFilters,
                         additionalExpandedSections: const [

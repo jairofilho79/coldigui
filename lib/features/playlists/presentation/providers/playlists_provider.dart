@@ -147,6 +147,17 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return result.playlistId;
   }
 
+  /// `true` quando há lista ativa com louvores e [pdfId] ainda não está nela.
+  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async {
+    final activeId = ref.read(activePlaylistIdProvider);
+    if (activeId == null) return false;
+
+    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
+    if (active == null || active.pdfIds.isEmpty) return false;
+
+    return !active.pdfIds.contains(pdfId);
+  }
+
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {
     var activeId = ref.read(activePlaylistIdProvider);
@@ -166,6 +177,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final added = await ref.read(carouselLouvoresProvider.notifier).add(pdfId);
     if (added) {
       await syncActivePlaylistFromCarousel();
+      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
     }
     return added;
   }

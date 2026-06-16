@@ -42,6 +42,13 @@ class ResolvePdfForReader {
       );
     }
 
+    if (_isFullOfflineMode()) {
+      if (hasIndexEntry) {
+        throw PdfExternallyDeletedException(pdfId: pdfId);
+      }
+      throw PdfOfflineUnavailableException(pdfId: pdfId);
+    }
+
     try {
       return await _fetchAndStore(
         pdfId: pdfId,

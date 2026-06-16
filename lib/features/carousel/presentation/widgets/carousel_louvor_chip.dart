@@ -3,7 +3,9 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_classification.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/offline_availability_badge.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -75,6 +77,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.isAdded = false,
     this.loading = false,
     this.shareLoading = false,
+    this.offlineAvailability = PdfOfflineAvailability.notAvailable,
     super.key,
   });
 
@@ -110,6 +113,9 @@ class CarouselLouvorChip extends StatelessWidget {
 
   /// Spinner no menu ⋮ enquanto o share está em curso.
   final bool shareLoading;
+
+  /// Badge de disponibilidade offline no catálogo (permanente vs LRU).
+  final PdfOfflineAvailability offlineAvailability;
 
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
@@ -188,6 +194,7 @@ class CarouselLouvorChip extends StatelessWidget {
                         classificationLabel: classificationLabel,
                         categoria: item.categoria,
                         categoryIcon: categoryIcon,
+                        offlineAvailability: offlineAvailability,
                       ),
                     ],
                   );
@@ -227,6 +234,7 @@ class _MetadataRow extends StatelessWidget {
     required this.categoryIcon,
     this.numero,
     this.summary,
+    this.offlineAvailability = PdfOfflineAvailability.notAvailable,
   });
 
   final double width;
@@ -235,6 +243,17 @@ class _MetadataRow extends StatelessWidget {
   final String classificationLabel;
   final String categoria;
   final IconData categoryIcon;
+  final PdfOfflineAvailability offlineAvailability;
+
+  Widget _offlineBadge() {
+    if (offlineAvailability == PdfOfflineAvailability.notAvailable) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: OfflineAvailabilityBadge(availability: offlineAvailability),
+    );
+  }
 
   Widget? _numeroLeading(TextStyle metaStyle) {
     if (numero == null || numero!.isEmpty) return null;
@@ -270,6 +289,7 @@ class _MetadataRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          _offlineBadge(),
         ],
       );
     }
@@ -302,6 +322,7 @@ class _MetadataRow extends StatelessWidget {
                 color: AppColors.textLight.withValues(alpha: 0.9),
               ),
             ),
+          _offlineBadge(),
         ],
       );
     }
@@ -356,6 +377,7 @@ class _MetadataRow extends StatelessWidget {
               ),
             ),
           ],
+          _offlineBadge(),
         ],
       );
     }
@@ -396,6 +418,7 @@ class _MetadataRow extends StatelessWidget {
             ),
           ),
         ],
+        _offlineBadge(),
       ],
     );
   }
@@ -557,19 +580,29 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.textLight,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: Icon(
-            icon,
-            size: 16,
-            color: AppColors.title,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: AppColors.shadowMd,
+      ),
+      child: Material(
+        color: AppColors.textLight,
+        shape: const CircleBorder(
+          side: BorderSide(color: AppColors.gold, width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          splashColor: AppColors.gold.withValues(alpha: 0.25),
+          highlightColor: AppColors.gold.withValues(alpha: 0.12),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: Icon(
+              icon,
+              size: 16,
+              color: AppColors.title,
+            ),
           ),
         ),
       ),

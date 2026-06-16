@@ -41,6 +41,7 @@ disable-model-invocation: true
 
 ## Referências
 
+- `docs/PERFORMANCE_BACKLOG.md` — backlog de melhorias identificadas (jun/2026)
 - `MAPEAMENTO_PLPCG_FLUTTER.md` §9.2 e §9.5
 - `docs/adr/ADR-001-isar-storage.md`
 - `docs/adr/ADR-002-pdfx-reader.md`

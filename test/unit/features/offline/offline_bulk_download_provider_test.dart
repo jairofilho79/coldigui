@@ -67,6 +67,7 @@ class _StubRepo implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) async =>
       throw UnimplementedError();
 
@@ -91,9 +92,10 @@ class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
   _ThrowingDownloadOfflinePackages({
     required this.error,
     required PdfLocalStore store,
+    required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
-          manifestDatasource: OfflineManifestRemoteDatasource(Dio()),
+          manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
           zipDownloader: ZipPackageDownloader(Dio(), store),
           extractAndStorePdfs: ExtractAndStorePdfs(
             _StubRepo(),
@@ -131,9 +133,10 @@ class _FakeWakelock implements BulkDownloadWakelock {
 class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
   _SuccessDownloadOfflinePackages({
     required PdfLocalStore store,
+    required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
-          manifestDatasource: OfflineManifestRemoteDatasource(Dio()),
+          manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
           zipDownloader: ZipPackageDownloader(Dio(), store),
           extractAndStorePdfs: ExtractAndStorePdfs(
             _StubRepo(),
@@ -201,6 +204,7 @@ void main() {
               _ThrowingDownloadOfflinePackages(
                 error: error,
                 store: store,
+                prefs: prefs,
                 checkpointStore: checkpointStore,
               ),
         ),
@@ -305,6 +309,7 @@ void main() {
       wakelock: wakelock,
       useCase: _SuccessDownloadOfflinePackages(
         store: store,
+        prefs: prefs,
         checkpointStore: checkpointStore,
       ),
     );

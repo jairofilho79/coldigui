@@ -8,6 +8,10 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
+import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
+import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +50,10 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final l10n = AppLocalizations.of(context)!;
     try {
       await openLouvorInReader(ref: ref, context: context, louvor: louvor);
+    } on PdfOfflineUnavailableException catch (e) {
+      if (mounted) {
+        showPdfOfflineUnavailableSnackbar(context, message: e.message);
+      }
     } on Object catch (e) {
       if (mounted) {
         showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
@@ -155,6 +163,11 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
               )
             : null);
 
+    final offlineAvailability = primary != null
+        ? ref.watch(_offlineAvailabilityProvider(primary.pdfId)).valueOrNull ??
+            PdfOfflineAvailability.notAvailable
+        : PdfOfflineAvailability.notAvailable;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: CarouselLouvorChip(
@@ -166,7 +179,13 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             : _handleAddToCarousel,
         isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
+        offlineAvailability: offlineAvailability,
       ),
     );
   }
 }
+
+final _offlineAvailabilityProvider = FutureProvider.autoDispose
+    .family<PdfOfflineAvailability, String>((ref, pdfId) {
+  return ref.watch(validatePdfAvailabilityProvider).call(pdfId: pdfId);
+});

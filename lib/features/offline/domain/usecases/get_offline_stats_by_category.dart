@@ -1,8 +1,6 @@
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
-import '../../data/datasources/offline_manifest_remote_datasource.dart';
 import '../../data/datasources/pdf_local_store.dart';
-import '../entities/offline_manifest.dart';
 import '../entities/offline_stats.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_material_resolver.dart';
@@ -10,19 +8,17 @@ import '../utils/offline_material_resolver.dart';
 /// UC-10 — Estatísticas por material de UI (Fase 3.6).
 ///
 /// Contagem baixada: índice Isar + [CatalogLocalDatasource] +
-/// [OfflineMaterialResolver]. Faltantes: comparação com manifest remoto
-/// (`includeMissing: false` ignora rede e retorna `missingByCategory` vazio).
+/// [OfflineMaterialResolver]. Faltantes: catálogo Isar (D1 local) como SSOT —
+/// independente do manifest de packages.
 class GetOfflineStatsByCategory {
   const GetOfflineStatsByCategory(
     this._repository,
     this._catalogLocal,
-    this._manifestDatasource,
     this._store,
   );
 
   final OfflinePdfRepository _repository;
   final CatalogLocalDatasource _catalogLocal;
-  final OfflineManifestRemoteDatasource _manifestDatasource;
   final PdfLocalStore _store;
 
   Future<OfflineStats> call({bool includeMissing = true}) async {
@@ -40,21 +36,13 @@ class GetOfflineStatsByCategory {
       byCategory[material] = (byCategory[material] ?? 0) + 1;
     }
 
-    var missingByCategory = {
-      for (final material in CatalogMaterials.uiMaterials) material: 0,
-    };
-    var missingCountReliable = true;
-    if (includeMissing) {
-      try {
-        missingByCategory = await _countMissing(
-          manifest: await _manifestDatasource.fetchManifest(),
-          indexedPdfIds: entries.map((entry) => entry.pdfId).toSet(),
-        );
-      } on Object {
-        missingByCategory = const {};
-        missingCountReliable = false;
-      }
-    }
+    final missingByCategory = includeMissing
+        ? await _countMissing(
+            indexedPdfIds: entries.map((entry) => entry.pdfId).toSet(),
+          )
+        : {
+            for (final material in CatalogMaterials.uiMaterials) material: 0,
+          };
 
     final totalDiskUsageBytes = await _store.getTotalOfflineBytes();
 
@@ -62,29 +50,26 @@ class GetOfflineStatsByCategory {
       byCategory: byCategory,
       missingByCategory: missingByCategory,
       totalDiskUsageBytes: totalDiskUsageBytes,
-      missingCountReliable: missingCountReliable,
+      missingCountReliable: includeMissing,
     );
   }
 
   Future<Map<String, int>> _countMissing({
-    required OfflineManifest manifest,
     required Set<String> indexedPdfIds,
   }) async {
+    final pdfIdToCategoria = await _catalogLocal.loadPdfIdToCategoriaMap();
+
     final missingByCategory = {
       for (final material in CatalogMaterials.uiMaterials) material: 0,
     };
 
-    for (final material in CatalogMaterials.uiMaterials) {
-      final package = manifest.packages[material];
-      if (package == null) continue;
+    for (final entry in pdfIdToCategoria.entries) {
+      final pdfId = entry.key;
+      if (indexedPdfIds.contains(pdfId)) continue;
 
-      for (final part in package.parts) {
-        for (final pdfId in part.pdfs) {
-          if (!indexedPdfIds.contains(pdfId)) {
-            missingByCategory[material] = missingByCategory[material]! + 1;
-          }
-        }
-      }
+      final material = OfflineMaterialResolver.toUiMaterial(entry.value);
+      if (material == null) continue;
+      missingByCategory[material] = missingByCategory[material]! + 1;
     }
 
     return missingByCategory;

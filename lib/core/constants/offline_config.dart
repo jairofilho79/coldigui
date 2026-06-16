@@ -69,5 +69,5 @@ abstract final class OfflineConfig {
   static const Duration reconcileMinInterval = Duration(minutes: 30);
 
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
-  static const int offlineStorageVersion = 1;
+  static const int offlineStorageVersion = 2;
 }

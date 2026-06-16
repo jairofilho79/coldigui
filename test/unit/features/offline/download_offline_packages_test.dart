@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
@@ -24,13 +23,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
 
-class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
-  _FakeManifestDatasource(this._manifest) : super(Dio());
-
-  final OfflineManifest _manifest;
-
-  @override
-  Future<OfflineManifest> fetchManifest() async => _manifest;
+class _FakeManifestDatasource extends FakeOfflineManifestRemoteDatasource {
+  _FakeManifestDatasource(super.manifest, super.prefs);
 }
 
 class _FakeDiskSpaceChecker extends DiskSpaceChecker {
@@ -256,7 +250,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -288,7 +282,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, corruptedZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -322,7 +316,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, extraZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -345,7 +339,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -380,7 +374,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -405,7 +399,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -428,7 +422,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _EnospcZipDownloader(store),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -458,7 +452,7 @@ void main() {
     final fakeZip = _FakeZipDownloader(store, zipPath);
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: fakeZip,
       extractAndStorePdfs: _EnospcExtractAndStorePdfs(
         repository,
@@ -488,7 +482,7 @@ void main() {
     final cancelToken = CancelToken()..cancel('test');
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -548,7 +542,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(manifest),
+      manifestDatasource: _FakeManifestDatasource(manifest, prefs),
       zipDownloader: _FakeZipDownloader(store, largeZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -633,7 +627,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(manifest),
+      manifestDatasource: _FakeManifestDatasource(manifest, prefs),
       zipDownloader: _FakeZipDownloader(store, largeZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -673,7 +667,7 @@ void main() {
     final progressZip = _ProgressZipDownloader(store, zipPath);
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(buildManifest()),
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: progressZip,
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -749,7 +743,7 @@ void main() {
     );
 
     final useCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(manifest),
+      manifestDatasource: _FakeManifestDatasource(manifest, prefs),
       zipDownloader: _FakeZipDownloader(store, largeZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
@@ -823,7 +817,7 @@ void main() {
     final retainedZipDownloader =
         _RetainedZipDownloader(store, multiCategoryZipPath);
     final dualUseCase = DownloadOfflinePackages(
-      manifestDatasource: _FakeManifestDatasource(manifest),
+      manifestDatasource: _FakeManifestDatasource(manifest, prefs),
       zipDownloader: retainedZipDownloader,
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,

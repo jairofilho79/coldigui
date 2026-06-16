@@ -10,6 +10,7 @@ class OfflinePdfEntry {
     required this.fileSize,
     required this.downloadedAt,
     this.lastAccessedAt,
+    this.isPersistent = false,
   });
 
   /// Identificador Base64 URL-safe do path relativo (manifest).
@@ -29,4 +30,7 @@ class OfflinePdfEntry {
 
   /// Momento do último acesso bem-sucedido — LRU eviction.
   final DateTime? lastAccessedAt;
+
+  /// `true` quando baixado via bulk ou "baixar faltantes" — isento de eviction LRU.
+  final bool isPersistent;
 }

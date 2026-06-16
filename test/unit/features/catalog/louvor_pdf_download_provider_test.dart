@@ -111,6 +111,7 @@ class _UnusedRepository implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) =>
       throw UnimplementedError();
 

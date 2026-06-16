@@ -190,6 +190,10 @@
     }
   },
   "offlineMissingError": "Não foi possível baixar os PDFs faltantes",
+  "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "pdfOfflineGoToSettings": "Baixar",
+  "pdfOfflinePersistentTooltip": "Disponível offline (download garantido)",
+  "pdfOfflineCachedLruTooltip": "Cache temporário — pode ser removido para liberar espaço",
   "carouselClear": "Limpar seleção",
   "carouselClearConfirmTitle": "Limpar seleção?",
   "carouselClearConfirmMessage": "Todos os louvores serão removidos da seleção.",
@@ -282,6 +286,10 @@
   "playlistDeleteAllUnsavedMessage": "Todas as listas da aba Não Salvas serão removidas permanentemente.",
   "playlistDeleteAllUnsavedDone": "Listas não salvas apagadas",
   "playlistClearSavedBlocked": "Listas salvas não podem ser limpas pela barra. Use o menu da lista.",
+  "playlistOpenLouvorChoiceTitle": "Como adicionar à lista?",
+  "playlistOpenLouvorChoiceMessage": "Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.",
+  "playlistOpenLouvorChoiceAddToCurrent": "Adicionar à lista atual",
+  "playlistOpenLouvorChoiceCreateNew": "Criar nova lista",
   "louvorGroupMetadataSummary": "{entryCount, plural, one{1 entrada} other{{entryCount} entradas}} com {arrangementCount, plural, one{1 arranjo} other{{arrangementCount} arranjos}}",
   "@louvorGroupMetadataSummary": {
     "description": "Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)",

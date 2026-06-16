@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -9,12 +10,19 @@ import '../../../../core/widgets/light_beam.dart';
 /// Usado em [PlpcgBottomNavBar.destinations].
 class PlpcgBottomNavDestination {
   const PlpcgBottomNavDestination({
-    required this.icon,
+    this.icon,
+    this.svgAsset,
     required this.label,
-  });
+  }) : assert(
+          icon != null || svgAsset != null,
+          'Informe icon ou svgAsset',
+        );
 
   /// Ícone Material exibido acima do rótulo.
-  final IconData icon;
+  final IconData? icon;
+
+  /// SVG colorido (ex.: logo PLPCG na aba Pesquisar).
+  final String? svgAsset;
 
   /// Rótulo curto (ex.: `Pesquisar`, `Biblioteca`). Truncado com ellipsis se necessário.
   final String label;
@@ -24,7 +32,8 @@ class PlpcgBottomNavDestination {
 /// aba ativa ampliada com [LightBeam] sob o rótulo e transição ease ao trocar.
 ///
 /// Substitui `NavigationBar` Material 3 em [ShellScaffold]. Respeita
-/// `MediaQuery.disableAnimationsOf` (reduce-motion).
+/// `MediaQuery.disableAnimationsOf` (reduce-motion) e a safe area inferior via
+/// [MediaQuery.viewPaddingOf] (Scaffold zera `padding.bottom` neste slot).
 class PlpcgBottomNavBar extends StatelessWidget {
   const PlpcgBottomNavBar({
     required this.selectedIndex,
@@ -49,7 +58,8 @@ class PlpcgBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Scaffold zera `MediaQuery.padding` neste slot — usar viewPadding.
+    final viewPadding = MediaQuery.viewPaddingOf(context);
 
     return ColoredBox(
       color: AppColors.background,
@@ -62,11 +72,11 @@ class PlpcgBottomNavBar extends StatelessWidget {
             color: AppColors.gold,
           ),
           Padding(
-            padding: EdgeInsets.only(
-              left: 4,
-              right: 4,
-              top: 6,
-              bottom: bottomInset > 0 ? 4 : 8,
+            padding: EdgeInsets.fromLTRB(
+              4 + viewPadding.left,
+              4,
+              4 + viewPadding.right,
+              viewPadding.bottom > 0 ? viewPadding.bottom + 2 : 4,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -139,18 +149,10 @@ class _PlpcgBottomNavItem extends StatelessWidget {
                     width: selected ? 34 : 26,
                     height: selected ? 34 : 26,
                     alignment: Alignment.center,
-                    child: AnimatedTheme(
+                    child: _NavIcon(
+                      destination: destination,
+                      selected: selected,
                       duration: duration,
-                      curve: PlpcgBottomNavBar._animationCurve,
-                      data: Theme.of(context).copyWith(
-                        iconTheme: IconThemeData(
-                          color: selected
-                              ? AppColors.placeholder
-                              : AppColors.textLight.withValues(alpha: 0.52),
-                          size: selected ? 26 : 20,
-                        ),
-                      ),
-                      child: Icon(destination.icon),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -165,6 +167,52 @@ class _PlpcgBottomNavItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  const _NavIcon({
+    required this.destination,
+    required this.selected,
+    required this.duration,
+  });
+
+  final PlpcgBottomNavDestination destination;
+  final bool selected;
+  final Duration duration;
+
+  @override
+  Widget build(BuildContext context) {
+    final svgAsset = destination.svgAsset;
+    if (svgAsset != null) {
+      final size = selected ? 32.0 : 24.0;
+      return AnimatedOpacity(
+        opacity: selected ? 1 : 0.52,
+        duration: duration,
+        curve: PlpcgBottomNavBar._animationCurve,
+        child: SvgPicture.asset(
+          svgAsset,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          alignment: Alignment.bottomCenter,
+        ),
+      );
+    }
+
+    return AnimatedTheme(
+      duration: duration,
+      curve: PlpcgBottomNavBar._animationCurve,
+      data: Theme.of(context).copyWith(
+        iconTheme: IconThemeData(
+          color: selected
+              ? AppColors.placeholder
+              : AppColors.textLight.withValues(alpha: 0.52),
+          size: selected ? 26 : 20,
+        ),
+      ),
+      child: Icon(destination.icon),
     );
   }
 }

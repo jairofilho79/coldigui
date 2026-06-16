@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
+import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/features/pdf_opening/domain/usecases/validate_pdf_availability.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,6 +37,7 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) {
     throw UnimplementedError();
   }
@@ -81,7 +83,26 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
 void main() {
   const pdfId = 'test-pdf-id';
 
-  test('retorna true quando lookup encontra entrada válida', () async {
+  test('retorna persistentOffline quando isPersistent é true', () async {
+    final repository = _FakeOfflinePdfRepository(
+      entry: OfflinePdfEntry(
+        pdfId: pdfId,
+        absolutePath: '/tmp/plpcg_pdfs/foo.pdf',
+        category: 'ColAdultos',
+        fileSize: 100,
+        downloadedAt: DateTime(2026),
+        isPersistent: true,
+      ),
+    );
+    final useCase = ValidatePdfAvailability(repository);
+
+    expect(
+      await useCase.call(pdfId: pdfId),
+      PdfOfflineAvailability.persistentOffline,
+    );
+  });
+
+  test('retorna cachedLru quando isPersistent é false', () async {
     final repository = _FakeOfflinePdfRepository(
       entry: OfflinePdfEntry(
         pdfId: pdfId,
@@ -93,13 +114,19 @@ void main() {
     );
     final useCase = ValidatePdfAvailability(repository);
 
-    expect(await useCase.call(pdfId: pdfId), isTrue);
+    expect(
+      await useCase.call(pdfId: pdfId),
+      PdfOfflineAvailability.cachedLru,
+    );
   });
 
-  test('retorna false quando lookup retorna null', () async {
+  test('retorna notAvailable quando índice ausente', () async {
     final repository = _FakeOfflinePdfRepository();
     final useCase = ValidatePdfAvailability(repository);
 
-    expect(await useCase.call(pdfId: pdfId), isFalse);
+    expect(
+      await useCase.call(pdfId: pdfId),
+      PdfOfflineAvailability.notAvailable,
+    );
   });
 }

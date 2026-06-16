@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/utils/share_position_origin.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../catalog/domain/entities/louvor.dart';
@@ -49,7 +50,8 @@ class LeafletActionsNotifier extends Notifier<void> {
     CaptureWidgetToPngFn? capture,
   }) async {
     final l10n = AppLocalizations.of(context)!;
-    final shareOrigin = _sharePositionOrigin(context);
+    // Obrigatório no iPad — capturar antes de qualquer await.
+    final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     final shareFn = shareXFiles ?? Share.shareXFiles;
     final tempDirFn =
         getTemporaryDirectory ?? path_provider.getTemporaryDirectory;
@@ -87,7 +89,8 @@ class LeafletActionsNotifier extends Notifier<void> {
       leafletDebugLog('generateAndShare: arquivo ${file.path}');
 
       leafletDebugLog(
-        'generateAndShare: share sheet (origin=$shareOrigin)…',
+        'generateAndShare: share sheet (origin=$shareOrigin, '
+        'entries=${document.entries.length})…',
       );
       await shareFn(
         [
@@ -174,13 +177,6 @@ class LeafletActionsNotifier extends Notifier<void> {
     } finally {
       entry.remove();
     }
-  }
-
-  /// Âncora do share sheet no iPad; em iPhone o parâmetro é ignorado.
-  Rect? _sharePositionOrigin(BuildContext context) {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return null;
-    return box.localToGlobal(Offset.zero) & box.size;
   }
 }
 

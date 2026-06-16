@@ -33,10 +33,12 @@ abstract class OfflinePdfRepository {
   /// Grava bytes via escrita atômica e upsert no índice Isar.
   ///
   /// [category] = `Louvor.classificacao`. Path no disco via [PdfPathNormalizer.getPdfRelPath].
+  /// [isPersistent] — quando `true`, marca o PDF como isento de eviction LRU.
   Future<OfflinePdfEntry> upsert({
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   });
 
   /// Remove arquivo no disco e entrada no índice (idempotente se ausente).

@@ -4,35 +4,14 @@ import 'dart:typed_data';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/usecases/get_offline_stats_by_category.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
 
 import 'offline_test_helpers.dart';
-
-class _FakeManifestDatasource extends OfflineManifestRemoteDatasource {
-  _FakeManifestDatasource(this._manifest) : super(Dio());
-
-  final OfflineManifest _manifest;
-
-  @override
-  Future<OfflineManifest> fetchManifest() async => _manifest;
-}
-
-class _FailingManifestDatasource extends OfflineManifestRemoteDatasource {
-  _FailingManifestDatasource() : super(Dio());
-
-  @override
-  Future<OfflineManifest> fetchManifest() async {
-    throw Exception('offline');
-  }
-}
 
 void main() {
   late Isar isar;
@@ -63,25 +42,6 @@ void main() {
     useCase = GetOfflineStatsByCategory(
       repository,
       catalogLocal,
-      _FakeManifestDatasource(
-        const OfflineManifest(
-          version: '1',
-          packages: {
-            CatalogMaterials.partitura: OfflineMaterialPackage(
-              parts: [
-                OfflinePackagePart(
-                  filename: 'p.zip',
-                  size: 1,
-                  url: 'https://example.com/p.zip',
-                  pdfs: ['missing-partitura'],
-                ),
-              ],
-              totalSize: 1,
-              totalParts: 1,
-            ),
-          },
-        ),
-      ),
       store,
     );
   });
@@ -138,6 +98,31 @@ void main() {
     expect(stats.byCategory[CatalogMaterials.cifra], 1);
     expect(stats.totalCount, 2);
     expect(stats.totalDiskUsageBytes, 2);
+    expect(stats.missingByCategory[CatalogMaterials.partitura], 0);
+    expect(stats.missingCountReliable, isTrue);
+  });
+
+  test('louvor no catálogo ausente do índice conta como faltante', () async {
+    final downloadedId = encodePdfId('ColAdultos/a.pdf');
+    final missingId = encodePdfId('ColAdultos/new.pdf');
+
+    await seedLouvor(
+      pdfId: downloadedId,
+      categoria: CatalogMaterials.partitura,
+    );
+    await seedLouvor(
+      pdfId: missingId,
+      categoria: CatalogMaterials.partitura,
+    );
+
+    await repository.upsert(
+      pdfId: downloadedId,
+      bytes: Uint8List.fromList([1]),
+      category: 'ColAdultos',
+    );
+
+    final stats = await useCase();
+
     expect(stats.missingByCategory[CatalogMaterials.partitura], 1);
     expect(stats.missingCountReliable, isTrue);
   });
@@ -161,20 +146,5 @@ void main() {
     final stats = await useCase();
 
     expect(stats.totalDiskUsageBytes, 8);
-  });
-
-  test('falha de manifest marca missingCountReliable como false', () async {
-    final failingUseCase = GetOfflineStatsByCategory(
-      repository,
-      catalogLocal,
-      _FailingManifestDatasource(),
-      store,
-    );
-
-    final stats = await failingUseCase();
-
-    expect(stats.missingCountReliable, isFalse);
-    expect(stats.missingByCategory, isEmpty);
-    expect(stats.totalMissing, 0);
   });
 }

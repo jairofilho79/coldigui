@@ -311,6 +311,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required VoidCallback onOpenList,
   }) {
     return CarouselBarShell(
+      applySafeArea: false,
       child: CarouselNavigatorBar(
         item: item,
         chipVariant: CarouselLouvorChipVariant.topBar,

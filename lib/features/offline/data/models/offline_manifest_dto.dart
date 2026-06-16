@@ -69,4 +69,33 @@ abstract final class OfflineManifestDto {
       pdfs: pdfs,
     );
   }
+
+  static Map<String, dynamic> toJson(OfflineManifest manifest) {
+    return {
+      'version': manifest.version,
+      'packages': {
+        for (final entry in manifest.packages.entries)
+          entry.key: _materialPackageToJson(entry.value),
+      },
+    };
+  }
+
+  static Map<String, dynamic> _materialPackageToJson(
+    OfflineMaterialPackage package,
+  ) {
+    return {
+      'parts': package.parts.map(_partToJson).toList(),
+      'totalSize': package.totalSize,
+      'totalParts': package.totalParts,
+    };
+  }
+
+  static Map<String, dynamic> _partToJson(OfflinePackagePart part) {
+    return {
+      'filename': part.filename,
+      'size': part.size,
+      'url': part.url,
+      'pdfs': part.pdfs,
+    };
+  }
 }

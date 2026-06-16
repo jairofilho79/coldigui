@@ -84,7 +84,10 @@ final validatePdfAvailabilityProvider =
 /// DI — manifest remoto de pacotes offline (UC-09).
 final offlineManifestRemoteDatasourceProvider =
     Provider<OfflineManifestRemoteDatasource>((ref) {
-  return OfflineManifestRemoteDatasource(ref.watch(dioProvider));
+  return OfflineManifestRemoteDatasource(
+    ref.watch(dioProvider),
+    ref.watch(sharedPreferencesProvider),
+  );
 });
 
 /// DI — checagem de espaço livre em disco.
@@ -154,7 +157,6 @@ final getOfflineStatsByCategoryProvider =
   return GetOfflineStatsByCategory(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
-    ref.watch(offlineManifestRemoteDatasourceProvider),
     ref.watch(pdfLocalStoreProvider),
   );
 });
@@ -162,7 +164,7 @@ final getOfflineStatsByCategoryProvider =
 /// DI — [DownloadMissingPdfs] (Fase 3.6).
 final downloadMissingPdfsProvider = Provider<DownloadMissingPdfs>((ref) {
   return DownloadMissingPdfs(
-    ref.watch(offlineManifestRemoteDatasourceProvider),
+    ref.watch(catalogLocalDatasourceProvider),
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(fetchAndStorePdfProvider),
   );
@@ -180,5 +182,9 @@ final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
 
 /// DI — [MigrateOfflineStorage] (Fase 3.6).
 final migrateOfflineStorageProvider = Provider<MigrateOfflineStorage>((ref) {
-  return MigrateOfflineStorage(ref.watch(sharedPreferencesProvider));
+  return MigrateOfflineStorage(
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(offlinePdfLocalDatasourceProvider),
+    ref.watch(offlineAvailableStoreProvider),
+  );
 });

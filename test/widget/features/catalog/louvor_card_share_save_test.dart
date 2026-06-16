@@ -153,6 +153,7 @@ class _UnusedRepository implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) =>
       throw UnimplementedError();
 
@@ -213,6 +214,9 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
 
   @override
+  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
+
+  @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
 }
 
@@ -224,6 +228,9 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
 
   @override
   Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
+
+  @override
+  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
 
   @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {

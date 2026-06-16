@@ -18,7 +18,7 @@ import 'widgets/plpcg_bottom_nav_bar.dart';
 ///
 /// Bottom bar: [PlpcgBottomNavBar] com fundo marrom, aba ativa ampliada e
 /// feixe dourado; oculta em `/leitor`. Destino central: rótulo **Pesquisar**
-/// (ícone `search`, rota [RoutePaths.home]).
+/// (logo PLPCG, rota [RoutePaths.home]).
 ///
 /// [child] é a rota ativa dentro do [ShellRoute] (home, biblioteca, leitor, etc.).
 class ShellScaffold extends ConsumerWidget {
@@ -71,12 +71,18 @@ class ShellScaffold extends ConsumerWidget {
     return OfflineLifecycleListener(
       child: Scaffold(
         appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
-        body: Column(
-          children: [
-            if (!hideChrome) const CarouselChips(),
-            Expanded(child: child),
-          ],
-        ),
+        body: hideChrome
+            ? child
+            : SafeArea(
+                top: false,
+                bottom: false,
+                child: Column(
+                  children: [
+                    const CarouselChips(),
+                    Expanded(child: child),
+                  ],
+                ),
+              ),
         bottomNavigationBar: isReader
             ? null
             : PlpcgBottomNavBar(
@@ -92,7 +98,8 @@ class ShellScaffold extends ConsumerWidget {
                     label: 'Biblioteca',
                   ),
                   PlpcgBottomNavDestination(
-                    icon: Icons.search,
+                    svgAsset:
+                        'assets/branding/logo_colorido_no_bg_logo_only.svg',
                     label: 'Pesquisar',
                   ),
                   PlpcgBottomNavDestination(

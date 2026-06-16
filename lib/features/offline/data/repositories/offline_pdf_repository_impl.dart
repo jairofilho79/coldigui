@@ -95,7 +95,11 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) async {
+    final existing = await _local.findByPdfId(pdfId);
+    final persistent = isPersistent || (existing?.isPersistent ?? false);
+
     final relPath = _resolveStorageRelPath(pdfId);
     final absolutePath = await _store.writeAtomic(bytes, relPath);
     final now = DateTime.now();
@@ -106,7 +110,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       ..category = category
       ..fileSize = bytes.length
       ..downloadedAt = now
-      ..lastAccessedAt = now;
+      ..lastAccessedAt = now
+      ..isPersistent = persistent;
 
     await _local.put(index);
 
@@ -117,6 +122,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       fileSize: bytes.length,
       downloadedAt: now,
       lastAccessedAt: now,
+      isPersistent: persistent,
     );
   }
 
@@ -158,7 +164,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
             ..category = OfflineCategoryResolver.fromPdfId(item.pdfId)
             ..fileSize = item.fileSize
             ..downloadedAt = now
-            ..lastAccessedAt = now,
+            ..lastAccessedAt = now
+            ..isPersistent = true,
         )
         .toList();
 
@@ -182,7 +189,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
           ..category = item.category
           ..fileSize = item.bytes.length
           ..downloadedAt = now
-          ..lastAccessedAt = now,
+          ..lastAccessedAt = now
+          ..isPersistent = true,
       );
     }
 
@@ -297,6 +305,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
         fileSize: index.fileSize,
         downloadedAt: index.downloadedAt,
         lastAccessedAt: index.lastAccessedAt,
+        isPersistent: index.isPersistent,
       );
 }
 

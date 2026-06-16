@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/plpcg_app_bar_title.dart';
 import '../../domain/entities/leaflet_document.dart';
 import '../../domain/entities/leaflet_entry.dart';
 import 'leaflet_content_labels.dart';
@@ -31,10 +32,41 @@ class LeafletContent extends StatelessWidget {
   final LeafletContentLabels labels;
 
   static const _garamond = AppTypography.garamondFamily;
-  static const _numberColumnWidth = 88.0;
-  static const _rowMinHeight = 52.0;
-  static const _bandPadding =
-      EdgeInsets.symmetric(horizontal: 20, vertical: 14);
+
+  /// Grade horizontal única — alinha logo, colunas e rodapé.
+  static const _insetH = 20.0;
+  static const _numberColumnWidth = 80.0;
+  static const _rowMinHeight = 48.0;
+  static const _borderWidth = 2.0;
+  static const _borderRadius = 6.0;
+
+  /// Ritmo vertical em múltiplos de 4pt.
+  static const _headerInsetV = 14.0;
+  static const _rowInsetV = 12.0;
+  static const _footerInsetV = 16.0;
+
+  /// Escala tipográfica do folheto (corpo 14 → rótulos 12 → meta 11).
+  static const _fontDate = 11.0;
+  static const _fontColumnLabel = 12.0;
+  static const _fontEntryNumber = 18.0;
+  static const _fontEntryName = 14.0;
+  static const _fontFooterPrimary = 15.0;
+  static const _fontFooterSecondary = 12.0;
+
+  static const _rowPadding =
+      EdgeInsets.symmetric(horizontal: _insetH, vertical: _rowInsetV);
+
+  /// Uma única espessura dourada em todo o folheto — evita soma de linhas
+  /// adjacentes e mantém a moldura externa alinhada às divisórias internas.
+  static const _goldBorder = BorderSide(
+    color: AppColors.gold,
+    width: _borderWidth,
+  );
+
+  /// Divisória horizontal desenhada só pelo bloco superior (borda inferior).
+  static const _sectionDivider = BoxDecoration(
+    border: Border(bottom: _goldBorder),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +77,12 @@ class LeafletContent extends StatelessWidget {
         width: kLeafletContentWidth,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.gold, width: 2.5),
-            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.gold, width: _borderWidth),
+            borderRadius: BorderRadius.circular(_borderRadius),
             color: AppColors.background,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(_borderRadius - _borderWidth),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -76,25 +108,28 @@ class _HeaderBand extends StatelessWidget {
 
   final LeafletContentLabels labels;
 
+  static const _leafletLogo = PlpcgAppBarTitle(showLightBeam: false);
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: LeafletContent._bandPadding,
-      color: AppColors.background,
+      padding: const EdgeInsets.symmetric(
+        horizontal: LeafletContent._insetH,
+        vertical: LeafletContent._headerInsetV,
+      ),
+      decoration: LeafletContent._sectionDivider.copyWith(
+        color: AppColors.background,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            child: Text(
-              labels.headerTitle,
-              style: _goldHeaderStyle(fontSize: 22),
-            ),
-          ),
+          _leafletLogo,
+          const Spacer(),
           Text(
             labels.headerDateLine,
             textAlign: TextAlign.right,
-            style: _goldHeaderStyle(fontSize: 13),
+            style: _leafletMetaStyle(),
           ),
         ],
       ),
@@ -109,32 +144,60 @@ class _ColumnHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _LeafletTableRow(
+      decoration: LeafletContent._sectionDivider.copyWith(
+        color: AppColors.background,
+      ),
+      numberChild: Text(
+        labels.columnNumber,
+        textAlign: TextAlign.center,
+        style: _leafletColumnLabelStyle(),
+      ),
+      nameChild: Text(
+        labels.columnName,
+        textAlign: TextAlign.center,
+        style: _leafletColumnLabelStyle(),
+      ),
+    );
+  }
+}
+
+/// Linha de duas colunas (número + nome) com grade e padding compartilhados.
+class _LeafletTableRow extends StatelessWidget {
+  const _LeafletTableRow({
+    required this.numberChild,
+    required this.nameChild,
+    this.decoration,
+    this.background,
+  });
+
+  final Widget numberChild;
+  final Widget nameChild;
+  final BoxDecoration? decoration;
+  final Color? background;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedDecoration = decoration ??
+        (background != null
+            ? LeafletContent._sectionDivider.copyWith(color: background)
+            : null);
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.gold, width: 1),
-          bottom: BorderSide(color: AppColors.gold, width: 1),
-        ),
+      constraints: const BoxConstraints(
+        minHeight: LeafletContent._rowMinHeight,
       ),
+      padding: LeafletContent._rowPadding,
+      decoration: resolvedDecoration,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: LeafletContent._numberColumnWidth,
-            child: Text(
-              labels.columnNumber,
-              textAlign: TextAlign.center,
-              style: _goldHeaderStyle(fontSize: 14),
-            ),
+            child: numberChild,
           ),
-          Expanded(
-            child: Text(
-              labels.columnName,
-              textAlign: TextAlign.center,
-              style: _goldHeaderStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: nameChild),
         ],
       ),
     );
@@ -157,45 +220,32 @@ class _EntryRow extends StatelessWidget {
         entry.numero.isEmpty ? '${entry.index}' : entry.numero;
     final displayNome = entry.nome.toUpperCase();
 
-    return Container(
-      width: double.infinity,
-      constraints:
-          const BoxConstraints(minHeight: LeafletContent._rowMinHeight),
-      color: background,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: LeafletContent._numberColumnWidth,
-            child: Text(
-              displayNumero,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: LeafletContent._garamond,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-                color: AppColors.title,
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              displayNome,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: LeafletContent._garamond,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                height: 1.35,
-                letterSpacing: 0.3,
-                color: AppColors.textDark,
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ),
-        ],
+    return _LeafletTableRow(
+      background: background,
+      numberChild: Text(
+        displayNumero,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: LeafletContent._garamond,
+          fontWeight: FontWeight.w700,
+          fontSize: LeafletContent._fontEntryNumber,
+          height: 1.2,
+          color: AppColors.title,
+          decoration: TextDecoration.none,
+        ),
+      ),
+      nameChild: Text(
+        displayNome,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: LeafletContent._garamond,
+          fontWeight: FontWeight.w600,
+          fontSize: LeafletContent._fontEntryName,
+          height: 1.35,
+          letterSpacing: 0.2,
+          color: AppColors.textDark,
+          decoration: TextDecoration.none,
+        ),
       ),
     );
   }
@@ -210,25 +260,30 @@ class _FooterBand extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.gold, width: 1)),
+      padding: const EdgeInsets.symmetric(
+        horizontal: LeafletContent._insetH,
+        vertical: LeafletContent._footerInsetV,
       ),
+      color: AppColors.background,
       child: Column(
         children: [
           Text(
             labels.footerPeace,
             textAlign: TextAlign.center,
-            style: _goldHeaderStyle(fontSize: 16),
+            style: _leafletGoldStyle(
+              fontSize: LeafletContent._fontFooterPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             labels.footerGreeting,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: LeafletContent._garamond,
               fontWeight: FontWeight.w500,
-              fontSize: 13,
+              fontSize: LeafletContent._fontFooterSecondary,
+              height: 1.3,
               color: AppColors.placeholder.withValues(alpha: 0.95),
               decoration: TextDecoration.none,
             ),
@@ -239,13 +294,33 @@ class _FooterBand extends StatelessWidget {
   }
 }
 
-TextStyle _goldHeaderStyle({required double fontSize}) {
+TextStyle _leafletGoldStyle({
+  required double fontSize,
+  FontWeight fontWeight = FontWeight.w700,
+  double letterSpacing = 0.6,
+}) {
   return TextStyle(
     fontFamily: LeafletContent._garamond,
-    fontWeight: FontWeight.w700,
+    fontWeight: fontWeight,
     fontSize: fontSize,
-    letterSpacing: 0.8,
+    height: 1.2,
+    letterSpacing: letterSpacing,
     color: AppColors.gold,
     decoration: TextDecoration.none,
+  );
+}
+
+TextStyle _leafletColumnLabelStyle() {
+  return _leafletGoldStyle(
+    fontSize: LeafletContent._fontColumnLabel,
+    letterSpacing: 0.5,
+  );
+}
+
+TextStyle _leafletMetaStyle() {
+  return _leafletGoldStyle(
+    fontSize: LeafletContent._fontDate,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.4,
   );
 }

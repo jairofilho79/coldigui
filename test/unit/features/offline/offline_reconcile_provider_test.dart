@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
@@ -14,10 +16,17 @@ import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_inde
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'offline_test_helpers.dart';
+
 class _CountingMigrate extends MigrateOfflineStorage {
-  _CountingMigrate(super.prefs);
+  _CountingMigrate(
+    super.prefs,
+    super.local,
+    super.offlineAvailableStore,
+  );
 
   int callCount = 0;
 
@@ -84,6 +93,7 @@ class _StubRepo implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) async =>
       throw UnimplementedError();
 
@@ -106,13 +116,21 @@ class _StubRepo implements OfflinePdfRepository {
 
 void main() {
   late SharedPreferences prefs;
+  late Isar isar;
+  late Directory isarDir;
   late _CountingMigrate migrate;
   late _CountingReconcile reconcile;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    migrate = _CountingMigrate(prefs);
+    isarDir = await Directory.systemTemp.createTemp('reconcile_migrate_');
+    isar = await openOfflineTestIsar(isarDir);
+    migrate = _CountingMigrate(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      OfflineAvailableStore(prefs),
+    );
     reconcile = _CountingReconcile(
       _StubRepo(),
       PdfLocalStore(
@@ -120,6 +138,10 @@ void main() {
             Directory.systemTemp.createTempSync('reconcile_test_'),
       ),
     );
+  });
+
+  tearDown(() async {
+    await isar.close(deleteFromDisk: true);
   });
 
   ProviderContainer createContainer() {
@@ -152,7 +174,11 @@ void main() {
           .millisecondsSinceEpoch,
     });
     prefs = await SharedPreferences.getInstance();
-    migrate = _CountingMigrate(prefs);
+    migrate = _CountingMigrate(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      OfflineAvailableStore(prefs),
+    );
     reconcile = _CountingReconcile(
       _StubRepo(),
       PdfLocalStore(
@@ -177,7 +203,11 @@ void main() {
           .millisecondsSinceEpoch,
     });
     prefs = await SharedPreferences.getInstance();
-    migrate = _CountingMigrate(prefs);
+    migrate = _CountingMigrate(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      OfflineAvailableStore(prefs),
+    );
     reconcile = _CountingReconcile(
       _StubRepo(),
       PdfLocalStore(

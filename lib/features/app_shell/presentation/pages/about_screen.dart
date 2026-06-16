@@ -26,7 +26,7 @@ class AboutScreen extends StatelessWidget {
 
   static const _objetivoParagraph1 =
       'O objetivo da aplicação - chamada Pesquisador de Louvores em Partitura, '
-      'Cifra e Gestos em gravuras - é ajudar aos irmãos da equipe de louvor '
+      'Cifra em Geral - é ajudar aos irmãos da equipe de louvor '
       'com os materiais mais básicos pro louvor. Que seja fácil de pesquisar, '
       'consumir e que funcione offline, pois muita igrejas não tem internet ou '
       'é muito difícil o acesso em ESFs.';

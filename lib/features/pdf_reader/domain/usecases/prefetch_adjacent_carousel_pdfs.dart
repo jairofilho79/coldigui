@@ -29,7 +29,7 @@ class PrefetchAdjacentCarouselPdfs {
 
     for (final pdfId in [previousPdfId, nextPdfId]) {
       if (pdfId == null) continue;
-      if (await _validateAvailability(pdfId: pdfId)) continue;
+      if (await _validateAvailability.isCachedOnDisk(pdfId: pdfId)) continue;
 
       final louvor = findLouvorByPdfId(catalog, pdfId);
       if (louvor == null) continue;

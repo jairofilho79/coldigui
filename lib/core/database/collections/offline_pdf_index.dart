@@ -28,4 +28,7 @@ class OfflinePdfIndex {
   ///
   /// Registros legados sem valor usam [downloadedAt] na ordenação de eviction.
   DateTime? lastAccessedAt;
+
+  /// `true` = bulk ou "baixar faltantes"; `false` = cache on-demand (LRU).
+  bool isPersistent = false;
 }

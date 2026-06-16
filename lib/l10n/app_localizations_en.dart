@@ -84,31 +84,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get pageGoTo => 'Go to page';
-
-  @override
-  String get pageGoToTitle => 'Go to page';
-
-  @override
-  String pageGoToHint(int total) {
-    return 'Page number (1–$total)';
-  }
-
-  @override
-  String get pageGoToConfirm => 'Go';
-
-  @override
-  String get pageGoToCancel => 'Cancel';
-
-  @override
-  String pageNumberLabel(int number) {
-    return 'Page $number';
-  }
-
-  @override
-  String get pageEllipsis => 'More pages';
-
-  @override
   String get specialArrangementPadrao => 'Default';
 
   @override
@@ -325,6 +300,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineMissingError => 'Could not download missing PDFs';
+
+  @override
+  String get pdfOfflineUnavailableMessage =>
+      'This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.';
+
+  @override
+  String get pdfOfflineGoToSettings => 'Download';
+
+  @override
+  String get pdfOfflinePersistentTooltip =>
+      'Available offline (guaranteed download)';
+
+  @override
+  String get pdfOfflineCachedLruTooltip =>
+      'Temporary cache — may be removed to free space';
 
   @override
   String get carouselClear => 'Clear selection';
@@ -578,6 +568,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Saved playlists cannot be cleared from the bar. Use the playlist menu.';
+
+  @override
+  String get playlistOpenLouvorChoiceTitle => 'How to add to the playlist?';
+
+  @override
+  String get playlistOpenLouvorChoiceMessage =>
+      'This song is not in the current playlist. How would you like to continue?\n\nWhen creating a new playlist, the current one will not be lost — it will remain in Unsaved playlists.';
+
+  @override
+  String get playlistOpenLouvorChoiceAddToCurrent => 'Add to current playlist';
+
+  @override
+  String get playlistOpenLouvorChoiceCreateNew => 'Create new playlist';
 
   @override
   String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {

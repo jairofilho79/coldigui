@@ -599,38 +599,56 @@ class _ProgressSection extends StatelessWidget {
         progress.zipBytesReceived != null &&
         progress.zipBytesTotal != null &&
         progress.zipBytesTotal! > 0;
-    final fraction =
-        hasZipProgress ? progress.zipFraction : progress.pdfFraction;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LinearProgressIndicator(
-          value: fraction,
+          value: progress.pdfFraction,
           color: AppColors.gold,
           backgroundColor: AppColors.title.withValues(alpha: 0.12),
         ),
         const SizedBox(height: 8),
         Text(
-          hasZipProgress
-              ? l10n.offlineFetchProgress(
-                  progress.currentPart,
-                  progress.totalParts,
-                  formatCompactBytes(progress.zipBytesReceived!),
-                  formatCompactBytes(progress.zipBytesTotal!),
-                )
-              : l10n.offlineProgressDetail(
-                  progress.currentCategory,
-                  progress.currentPart,
-                  progress.totalParts,
-                  progress.donePdfs,
-                  progress.totalPdfs,
-                  phaseLabel,
-                ),
+          l10n.offlineProgressDetail(
+            progress.currentCategory,
+            progress.currentPart,
+            progress.totalParts,
+            progress.donePdfs,
+            progress.totalPdfs,
+            phaseLabel,
+          ),
           style: AppTypography.body.copyWith(
             color: AppColors.title.withValues(alpha: 0.75),
           ),
         ),
+        if (isFetching) ...[
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: hasZipProgress ? progress.zipFraction : null,
+            color: AppColors.gold,
+            backgroundColor: AppColors.title.withValues(alpha: 0.12),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasZipProgress
+                ? l10n.offlineFetchProgress(
+                    progress.currentPart,
+                    progress.totalParts,
+                    formatCompactBytes(progress.zipBytesReceived!),
+                    formatCompactBytes(progress.zipBytesTotal!),
+                  )
+                : l10n.offlineFetchProgress(
+                    progress.currentPart,
+                    progress.totalParts,
+                    '—',
+                    '—',
+                  ),
+            style: AppTypography.body.copyWith(
+              color: AppColors.title.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -12,6 +12,7 @@ import '../../domain/entities/louvor.dart';
 import '../providers/louvor_pdf_download_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
+import '../../../playlists/presentation/widgets/open_louvor_playlist_choice_dialog.dart';
 
 /// Abre [louvor] no leitor interno (`/leitor`) com resolve local-first.
 Future<void> openLouvorInReader({
@@ -19,6 +20,26 @@ Future<void> openLouvorInReader({
   required BuildContext context,
   required Louvor louvor,
 }) async {
+  final playlists = ref.read(playlistsProvider.notifier);
+
+  if (await playlists.activePlaylistNeedsChoiceForLouvor(louvor.pdfId)) {
+    if (!context.mounted) return;
+
+    final choice = await showOpenLouvorPlaylistChoiceDialog(context);
+    if (!context.mounted) return;
+
+    switch (choice) {
+      case OpenLouvorPlaylistChoice.addToCurrent:
+        await playlists.addLouvorToActivePlaylist(louvor.pdfId);
+      case OpenLouvorPlaylistChoice.createNew:
+        await playlists.ensurePlaylistForLouvor(louvor.pdfId);
+      case null:
+        return;
+    }
+  } else {
+    await playlists.ensurePlaylistForLouvor(louvor.pdfId);
+  }
+
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
   final source =
       await ref.read(louvorPdfDownloadProvider.notifier).resolveLouvorPdf(
@@ -34,10 +55,6 @@ Future<void> openLouvorInReader({
         titulo: louvor.nome,
       );
   unawaited(context.push(location));
-  ref
-      .read(playlistsProvider.notifier)
-      .ensurePlaylistForLouvor(louvor.pdfId)
-      .ignore();
 }
 
 /// Resolve PDF do louvor — expõe erros tipados para UI.

@@ -4,7 +4,6 @@ import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
@@ -13,11 +12,15 @@ import 'package:coldigui/features/offline/presentation/providers/offline_reconci
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
 import 'package:coldigui/features/offline/domain/usecases/get_offline_stats_by_category.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar/isar.dart';
 import 'dart:io';
+
+class _StubIsar implements Isar {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
 
 class _StatsRepo implements OfflinePdfRepository {
   _StatsRepo(this.byCategory);
@@ -65,6 +68,7 @@ class _StatsRepo implements OfflinePdfRepository {
     required String pdfId,
     required Uint8List bytes,
     required String category,
+    bool isPersistent = false,
   }) async =>
       throw UnimplementedError();
 
@@ -92,21 +96,11 @@ class _StubCatalogLocal extends CatalogLocalDatasource {
   Future<Map<String, String>> loadPdfIdToCategoriaMap() async => const {};
 }
 
-class _StubManifestDatasource extends OfflineManifestRemoteDatasource {
-  _StubManifestDatasource() : super(Dio());
-}
-
-class _StubIsar implements Isar {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
-}
-
 class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
   _FixedGetOfflineStatsByCategory(this.result)
       : super(
           _StatsRepo({}),
           _StubCatalogLocal(),
-          _StubManifestDatasource(),
           PdfLocalStore(
             getApplicationDocumentsDirectory: () async => Directory.systemTemp,
           ),

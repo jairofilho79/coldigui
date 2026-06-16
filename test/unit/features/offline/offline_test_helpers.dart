@@ -8,12 +8,16 @@ import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
+import 'package:dio/dio.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 String encodePdfId(String relPath) {
   return base64Url
@@ -97,4 +101,18 @@ FetchAndStorePdf createTestFetchAndStorePdf(
     favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
     cacheQuotaBytes: cacheQuotaBytes,
   );
+}
+
+/// Datasource de manifest com [fetchManifest] fixo para testes.
+class FakeOfflineManifestRemoteDatasource
+    extends OfflineManifestRemoteDatasource {
+  FakeOfflineManifestRemoteDatasource(
+    this._manifest,
+    SharedPreferences prefs,
+  ) : super(Dio(), prefs, networkOverride: () async => _manifest);
+
+  final OfflineManifest _manifest;
+
+  @override
+  Future<OfflineManifest> fetchManifest() async => _manifest;
 }

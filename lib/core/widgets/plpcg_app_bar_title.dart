@@ -8,20 +8,31 @@ import 'light_beam.dart';
 /// Usado em [PlpcgPrimaryAppBar] ([ShellScaffold]) e na barra 1 do leitor
 /// ([PdfReaderScreen]).
 class PlpcgAppBarTitle extends StatelessWidget {
-  const PlpcgAppBarTitle({super.key});
+  const PlpcgAppBarTitle({
+    this.showLightBeam = true,
+    super.key,
+  });
+
+  /// Exibe o feixe dourado sob a marca (AppBar). Desligado no folheto impresso.
+  final bool showLightBeam;
+
+  static const _lightBeamTop = 33.0;
+  static const _lightBeamWidth = 170.0;
+  static const _titleHeight = 48.0;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: _titleHeight,
       child: Stack(
         alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
         children: [
-          const Positioned(
-            top: 33,
-            child: LightBeam(width: 170, height: 16),
-          ),
+          if (showLightBeam)
+            const Positioned(
+              top: _lightBeamTop,
+              child: LightBeam(width: _lightBeamWidth, height: 16),
+            ),
           const Text('PLPCG', style: AppTypography.displayPlcpg),
         ],
       ),
