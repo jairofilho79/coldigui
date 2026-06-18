@@ -34,6 +34,7 @@ class GoldenTaggedContainer extends StatefulWidget {
     required this.child,
     super.key,
     this.glowEnabled = false,
+    this.glowActive = false,
     this.onTap,
     this.contentPadding = const EdgeInsets.fromLTRB(12, 20, 12, 12),
   });
@@ -44,8 +45,11 @@ class GoldenTaggedContainer extends StatefulWidget {
   /// Conteúdo interno do container (TextField, Dropdown, chips, etc.).
   final Widget child;
 
-  /// Quando `true`, aplica animação `goldenHeatWave` (pulso dourado) na busca.
+  /// Quando `true`, permite animação de glow ao focar ([glowActive]).
   final bool glowEnabled;
+
+  /// Quando `true` (e [glowEnabled]), exibe glow animado — transição única, sem repeat.
+  final bool glowActive;
 
   /// Callback opcional para painéis colapsáveis (ex.: expandir [FiltersPanel]).
   final VoidCallback? onTap;
@@ -67,7 +71,8 @@ class _GoldenTaggedContainerState extends State<GoldenTaggedContainer>
   @override
   void initState() {
     super.initState();
-    _setupGlowIfNeeded();
+    _setupGlowController();
+    _syncGlowAnimation();
   }
 
   @override
@@ -75,21 +80,44 @@ class _GoldenTaggedContainerState extends State<GoldenTaggedContainer>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.glowEnabled != widget.glowEnabled) {
       _disposeGlow();
-      _setupGlowIfNeeded();
+      _setupGlowController();
+    }
+    if (oldWidget.glowActive != widget.glowActive ||
+        oldWidget.glowEnabled != widget.glowEnabled) {
+      _syncGlowAnimation();
     }
   }
 
-  void _setupGlowIfNeeded() {
+  void _setupGlowController() {
     if (!widget.glowEnabled || _animationsDisabled) return;
 
     _glowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    )..repeat(reverse: true);
-
-    _glowAnimation = Tween<double>(begin: 0.25, end: 0.75).animate(
-      CurvedAnimation(parent: _glowController!, curve: Curves.easeInOut),
+      duration: const Duration(milliseconds: 400),
     );
+    _glowAnimation = Tween<double>(begin: 0.25, end: 0.75).animate(
+      CurvedAnimation(parent: _glowController!, curve: Curves.easeOut),
+    );
+  }
+
+  void _syncGlowAnimation() {
+    final controller = _glowController;
+    if (controller == null || _glowAnimation == null) return;
+
+    if (!widget.glowEnabled || !widget.glowActive) {
+      if (_animationsDisabled) {
+        controller.value = 0;
+      } else {
+        controller.reverse();
+      }
+      return;
+    }
+
+    if (_animationsDisabled) {
+      controller.value = 1;
+    } else {
+      controller.forward();
+    }
   }
 
   bool get _animationsDisabled {
@@ -142,25 +170,25 @@ class _GoldenTaggedContainerState extends State<GoldenTaggedContainer>
       box = AnimatedBuilder(
         animation: _glowAnimation!,
         builder: (context, child) {
+          final glowValue = widget.glowActive ? _glowAnimation!.value : 0.0;
           return Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.goldLight.withValues(
-                    alpha: _glowAnimation!.value,
-                  ),
-                  blurRadius: 16,
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: AppColors.gold.withValues(
-                    alpha: _glowAnimation!.value * 0.5,
-                  ),
-                  blurRadius: 24,
-                  spreadRadius: 0,
-                ),
-              ],
+              boxShadow: glowValue > 0
+                  ? [
+                      BoxShadow(
+                        color: AppColors.goldLight.withValues(alpha: glowValue),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                      BoxShadow(
+                        color:
+                            AppColors.gold.withValues(alpha: glowValue * 0.5),
+                        blurRadius: 12,
+                        spreadRadius: 0,
+                      ),
+                    ]
+                  : null,
             ),
             child: child,
           );

@@ -46,16 +46,26 @@ class SearchBar extends StatefulWidget {
 class _SearchBarState extends State<SearchBar> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  var _glowActive = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
     _focusNode = FocusNode();
+    _glowActive = _focusNode.hasFocus;
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    final active = _focusNode.hasFocus;
+    if (active == _glowActive) return;
+    setState(() => _glowActive = active);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -74,6 +84,7 @@ class _SearchBarState extends State<SearchBar> {
     return GoldenTaggedContainer(
       label: l10n.searchLabel,
       glowEnabled: true,
+      glowActive: _glowActive,
       contentPadding: GoldenTaggedContainer.compactContentPadding,
       child: SizedBox(
         height: GoldenTaggedContainer.compactRowHeightFor(context),
