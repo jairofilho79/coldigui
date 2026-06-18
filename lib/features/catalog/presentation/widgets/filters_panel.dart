@@ -15,8 +15,8 @@ import 'package:flutter/material.dart';
 /// Na Biblioteca, passe [SpecialArrangementFilters] em
 /// [additionalExpandedSections] (UC-03).
 ///
-/// Cabeçalho compacto: [GoldenTaggedContainer.compactContentPadding] +
-/// [GoldenTaggedContainer.compactRowHeight] alinham texto e chevron.
+/// Cabeçalho compacto: [GoldenTaggedContainer.compactContentPaddingFor] e
+/// altura intrínseca alinham texto e chevron.
 class FiltersPanel extends StatefulWidget {
   const FiltersPanel({
     super.key,
@@ -57,36 +57,33 @@ class _FiltersPanelState extends State<FiltersPanel> {
         label: l10n.filtersTitle,
         onTap: _expanded ? null : _toggle,
         contentPadding: _expanded
-            ? const EdgeInsets.fromLTRB(12, 14, 12, 12)
-            : GoldenTaggedContainer.compactContentPadding,
+            ? GoldenTaggedContainer.expandedSectionPaddingFor(context)
+            : GoldenTaggedContainer.compactContentPaddingFor(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             InkWell(
               onTap: _toggle,
-              child: SizedBox(
-                height: GoldenTaggedContainer.compactRowHeightFor(context),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _expanded ? l10n.filtersTitle : l10n.filtersTapToExpand,
-                        style: AppTypography.body.copyWith(
-                          fontWeight: FontWeight.w500,
-                          height: 1.2,
-                        ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      _expanded ? l10n.filtersTitle : l10n.filtersTapToExpand,
+                      style: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.w500,
+                        height: 1.1,
                       ),
                     ),
-                    Icon(
-                      _expanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: AppColors.title,
-                      size: 20,
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppColors.title,
+                    size: 20,
+                  ),
+                ],
               ),
             ),
             if (_expanded) ...[

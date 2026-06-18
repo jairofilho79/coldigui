@@ -14,8 +14,7 @@ import 'package:flutter/material.dart';
 ///
 /// Layout compacto: `Row` com ícone lupa + [TextField] + botão limpar opcional
 /// (sem `prefixIcon`/`suffixIcon` do Material — controles explícitos no `Row`).
-/// [GoldenTaggedContainer.compactContentPadding] e
-/// [GoldenTaggedContainer.compactRowHeight].
+/// Altura intrínseca via [GoldenTaggedContainer.compactContentPaddingFor].
 ///
 /// **Botão limpar:** exibido quando o texto não está vazio (`ValueListenableBuilder`
 /// no [TextEditingController]). Ao tocar: zera o controller, chama [onQueryChanged]
@@ -85,63 +84,61 @@ class _SearchBarState extends State<SearchBar> {
       label: l10n.searchLabel,
       glowEnabled: true,
       glowActive: _glowActive,
-      contentPadding: GoldenTaggedContainer.compactContentPadding,
-      child: SizedBox(
-        height: GoldenTaggedContainer.compactRowHeightFor(context),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(Icons.search, color: AppColors.title, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                style: AppTypography.body.copyWith(height: 1.2),
-                maxLines: 1,
-                textAlignVertical: TextAlignVertical.center,
-                decoration: InputDecoration(
-                  hintText: widget.hintText,
-                  hintStyle: AppTypography.hint(italic: true),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onChanged: widget.onQueryChanged,
+      contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(Icons.search, color: AppColors.title, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              style: AppTypography.body.copyWith(height: 1.1),
+              maxLines: 1,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                hintText: widget.hintText,
+                hintStyle:
+                    AppTypography.hint(italic: true).copyWith(height: 1.1),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
+              onChanged: widget.onQueryChanged,
             ),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _controller,
-              builder: (context, value, _) {
-                if (value.text.isEmpty) {
-                  return const SizedBox.shrink();
-                }
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _controller,
+            builder: (context, value, _) {
+              if (value.text.isEmpty) {
+                return const SizedBox.shrink();
+              }
 
-                return Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: IconButton(
-                    tooltip: l10n.searchClear,
-                    onPressed: _clearSearch,
-                    icon: const Icon(
-                      Icons.close,
-                      color: AppColors.title,
-                      size: 18,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
+              return Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: IconButton(
+                  tooltip: l10n.searchClear,
+                  onPressed: _clearSearch,
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppColors.title,
+                    size: 18,
                   ),
-                );
-              },
-            ),
-          ],
-        ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 24,
+                    minHeight: 24,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

@@ -10,23 +10,28 @@ import '../theme/color_extensions.dart';
 /// Usado em [SearchBar], [FiltersPanel] (Home compacto) e
 /// [OfflineSettingsScreen] (seções completas com `contentPadding` padrão).
 ///
-/// Campos de linha única na Home usam [compactContentPadding] e [compactRowHeight]
-/// para alinhar texto e ícone sem a altura mínima de 48px do Material.
+/// Campos de linha única na Home usam [compactContentPaddingFor] — altura
+/// intrínseca (sem [SizedBox] fixo), escalada pelo [MediaQuery.textScalerOf].
 class GoldenTaggedContainer extends StatefulWidget {
-  /// Padding interno reduzido para controles de linha única na Home.
+  /// Padding interno base para controles de linha única na Home.
   static const EdgeInsets compactContentPadding =
       EdgeInsets.fromLTRB(12, 14, 12, 8);
 
-  /// Altura base da linha de controle em [SearchBar] e [FiltersPanel].
-  static const double compactRowHeight = 24;
+  /// Padding compacto escalado pelo [MediaQuery.textScalerOf] do dispositivo.
+  static EdgeInsets compactContentPaddingFor(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return EdgeInsets.fromLTRB(
+      compactContentPadding.left,
+      scaler.scale(compactContentPadding.top),
+      compactContentPadding.right,
+      scaler.scale(compactContentPadding.bottom),
+    );
+  }
 
-  /// Altura mínima da linha compacta, respeitando [MediaQuery.textScalerOf].
-  static double compactRowHeightFor(BuildContext context) {
-    final scaledTextLine = MediaQuery.textScalerOf(context)
-        .scale(AppTypography.body.fontSize! * 1.2);
-    return scaledTextLine > compactRowHeight
-        ? scaledTextLine
-        : compactRowHeight;
+  /// Padding de seção expandida (ex.: [FiltersPanel] aberto).
+  static EdgeInsets expandedSectionPaddingFor(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return EdgeInsets.fromLTRB(12, scaler.scale(14), 12, scaler.scale(12));
   }
 
   const GoldenTaggedContainer({
@@ -143,6 +148,8 @@ class _GoldenTaggedContainerState extends State<GoldenTaggedContainer>
 
   @override
   Widget build(BuildContext context) {
+    final tagStackOffset = MediaQuery.textScalerOf(context).scale(10.0);
+
     final content = Padding(
       padding: widget.contentPadding,
       child: widget.child,
@@ -201,7 +208,7 @@ class _GoldenTaggedContainerState extends State<GoldenTaggedContainer>
       clipBehavior: Clip.none,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 10),
+          padding: EdgeInsets.only(top: tagStackOffset),
           child: box,
         ),
         Positioned(
