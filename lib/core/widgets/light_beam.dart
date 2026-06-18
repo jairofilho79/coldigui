@@ -19,15 +19,25 @@ class LightBeamPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
 
+    final haloCenter = Offset(cx, cy + 1);
+    final haloRadius = size.width * 0.55;
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx, cy + 1),
+        center: haloCenter,
         width: size.width * 1.1,
         height: size.height * 0.9,
       ),
       Paint()
-        ..color = AppColors.gold.withValues(alpha: 0.28)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+        ..shader = ui.Gradient.radial(
+          haloCenter,
+          haloRadius,
+          [
+            AppColors.gold.withValues(alpha: 0.22),
+            AppColors.gold.withValues(alpha: 0.10),
+            AppColors.gold.withValues(alpha: 0.0),
+          ],
+          [0.0, 0.55, 1.0],
+        ),
     );
 
     final radius = size.width / 2;
@@ -44,26 +54,35 @@ class LightBeamPainter extends CustomPainter {
           Offset.zero,
           radius,
           [
-            _warmWhite.withValues(alpha: 0.95),
-            _brightGold.withValues(alpha: 0.80),
-            AppColors.gold.withValues(alpha: 0.45),
+            _warmWhite.withValues(alpha: 0.98),
+            _brightGold.withValues(alpha: 0.85),
+            AppColors.gold.withValues(alpha: 0.55),
+            AppColors.gold.withValues(alpha: 0.22),
             AppColors.gold.withValues(alpha: 0.0),
           ],
-          [0.0, 0.40, 0.78, 1.0],
-        )
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+          [0.0, 0.35, 0.62, 0.82, 1.0],
+        ),
     );
     canvas.restore();
 
+    final bottomCenter = Offset(cx, cy + size.height * 0.45);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx, cy + size.height * 0.45),
+        center: bottomCenter,
         width: size.width * 0.7,
         height: size.height * 0.5,
       ),
       Paint()
-        ..color = _brightGold.withValues(alpha: 0.20)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..shader = ui.Gradient.radial(
+          bottomCenter,
+          size.width * 0.35,
+          [
+            _brightGold.withValues(alpha: 0.28),
+            _brightGold.withValues(alpha: 0.12),
+            _brightGold.withValues(alpha: 0.0),
+          ],
+          [0.0, 0.5, 1.0],
+        ),
     );
   }
 
@@ -93,9 +112,11 @@ class LightBeam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(width, height),
-      painter: const LightBeamPainter(),
+    return RepaintBoundary(
+      child: CustomPaint(
+        size: Size(width, height),
+        painter: const LightBeamPainter(),
+      ),
     );
   }
 }
