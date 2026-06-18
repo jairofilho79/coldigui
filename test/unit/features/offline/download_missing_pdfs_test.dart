@@ -152,6 +152,17 @@ void main() {
     }
   });
 
+  test('materialCategories vazio não baixa nada', () async {
+    await _seedCatalogLouvor(isar, pdfId: pdfId1);
+    await _seedCatalogLouvor(isar, pdfId: pdfId2);
+
+    final result = await useCase(materialCategories: {});
+
+    expect(result.downloadedCount, 0);
+    expect(result.failedCount, 0);
+    expect(bytesDatasource.fetchCount, 0);
+  });
+
   test('baixa apenas PDFs ausentes no índice', () async {
     await _seedCatalogLouvor(isar, pdfId: pdfId1);
     await _seedCatalogLouvor(isar, pdfId: pdfId2);

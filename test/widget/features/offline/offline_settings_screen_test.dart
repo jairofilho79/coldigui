@@ -1,8 +1,12 @@
+import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_category_selection_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_missing_louvores_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_missing_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_mode_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
@@ -67,9 +71,23 @@ class _FixedOfflineModeNotifier extends OfflineModeNotifier {
   bool build() => configured;
 }
 
+class _FixedCategorySelectionNotifier extends OfflineCategorySelectionNotifier {
+  _FixedCategorySelectionNotifier(this.fixed);
+
+  final OfflineCategorySelectionState fixed;
+
+  @override
+  OfflineCategorySelectionState build() => fixed;
+}
+
 Widget _offlineTestApp({
   required OfflineCacheStatus cacheStatus,
   bool maintenanceMode = true,
+  OfflineCategorySelectionState selectionState =
+      const OfflineCategorySelectionState(
+    selected: CatalogMaterials.defaultSelected,
+    bulkDownloaded: {CatalogMaterials.partitura},
+  ),
   List<Override> extraOverrides = const [],
 }) {
   return ProviderScope(
@@ -79,6 +97,9 @@ Widget _offlineTestApp({
       ),
       offlineModeProvider.overrideWith(
         () => _FixedOfflineModeNotifier(maintenanceMode),
+      ),
+      offlineCategorySelectionProvider.overrideWith(
+        () => _FixedCategorySelectionNotifier(selectionState),
       ),
       offlineReconcileProvider.overrideWith(_IdleReconcileNotifier.new),
       offlineBulkDownloadProvider.overrideWith(_IdleBulkNotifier.new),
@@ -110,6 +131,8 @@ void main() {
     expect(find.text('Atualizar'), findsWidgets);
     expect(find.text('Limpar cache offline'), findsOneWidget);
     expect(find.text('Baixar faltantes'), findsWidgets);
+    expect(find.text('Baixar selecionados'), findsOneWidget);
+    expect(find.byType(FilterChip), findsWidgets);
   });
 
   testWidgets('shows bulk setup when maintenance mode is off', (tester) async {
@@ -157,6 +180,10 @@ void main() {
             missingCountReliable: false,
           ),
         ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {CatalogMaterials.partitura},
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
       ),
     );
     await tester.pump();
@@ -169,6 +196,75 @@ void main() {
       find.text('Partitura: 2 (— faltantes, sem conexão)'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('enables Baixar selecionados for new category in maintenance',
+      (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {'Partitura': 3}),
+        ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {
+            CatalogMaterials.partitura,
+            CatalogMaterials.gestosEmGravura,
+          },
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final downloadSelected =
+        find.widgetWithText(FilledButton, 'Baixar selecionados');
+    expect(downloadSelected, findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(downloadSelected).onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('long press on bulk category chip opens missing louvores sheet',
+      (tester) async {
+    const missingLouvor = Louvor(
+      nome: 'Bondade de Deus',
+      numero: '002',
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+      pdf: 'bondade.pdf',
+      pdfId: 'missing-part',
+      groupId: 'missing-part',
+      searchTitleNorm: 'bondade de deus',
+      searchContentTokens: [],
+      searchCompactContent: '',
+    );
+
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(
+            byCategory: {'Partitura': 1},
+            missingByCategory: {'Partitura': 1},
+          ),
+        ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {CatalogMaterials.partitura},
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
+        extraOverrides: [
+          offlineMissingLouvoresProvider(CatalogMaterials.partitura)
+              .overrideWith((ref) async => [missingLouvor]),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    await tester.longPress(find.textContaining('Partitura: 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Partitura — faltantes'), findsOneWidget);
+    expect(find.text('#002 — Bondade de Deus'), findsOneWidget);
   });
 
   testWidgets('shows zip byte progress during fetching phase', (tester) async {

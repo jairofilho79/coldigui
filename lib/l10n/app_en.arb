@@ -168,6 +168,14 @@
     }
   },
   "offlineDownloadMissing": "Download missing",
+  "offlineMissingLouvoresSheetTitle": "{category} — missing",
+  "@offlineMissingLouvoresSheetTitle": {
+    "placeholders": {
+      "category": { "type": "String" }
+    }
+  },
+  "offlineMissingLouvoresEmpty": "No missing PDFs in this category",
+  "offlineMissingLouvoresLoadError": "Could not load missing PDFs",
   "offlineDismissRemoved": "Dismiss",
   "offlineClearCache": "Clear offline cache",
   "offlineClearCacheConfirmTitle": "Clear offline cache?",

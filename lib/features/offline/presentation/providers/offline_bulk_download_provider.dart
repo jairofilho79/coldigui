@@ -4,6 +4,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../data/providers/offline_providers.dart';
 import 'offline_cache_status_provider.dart';
+import 'offline_category_selection_provider.dart';
 import 'offline_mode_provider.dart';
 import '../../domain/entities/offline_bulk_checkpoint.dart';
 import '../../domain/entities/offline_download_progress.dart';
@@ -110,6 +111,7 @@ final offlineBulkDownloadProvider =
 class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   CancelToken? _cancelToken;
   var _wakelockHeld = false;
+  List<String> _lastStartedCategories = const [];
 
   BulkDownloadWakelock get _wakelock => ref.read(bulkDownloadWakelockProvider);
 
@@ -148,6 +150,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   Future<void> start(List<String> categories) async {
     if (state.isRunning) return;
 
+    _lastStartedCategories = List<String>.from(categories);
     _cancelToken = CancelToken();
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.running,
@@ -193,6 +196,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
         await ref.read(offlineBulkCheckpointStoreProvider).load();
     if (checkpoint == null) return;
 
+    _lastStartedCategories = List<String>.from(checkpoint.categories);
     _cancelToken = CancelToken();
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.running,
@@ -254,6 +258,12 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       clearCheckpoint: true,
       unmatchedZipEntries: result.unmatchedZipEntries,
     );
+    if (_lastStartedCategories.isNotEmpty) {
+      await ref
+          .read(offlineCategorySelectionProvider.notifier)
+          .registerBulkCompleted(_lastStartedCategories);
+    }
+    _lastStartedCategories = const [];
     await ref.read(offlineModeProvider.notifier).markConfigured();
     await ref.read(offlineCacheStatusProvider.notifier).refresh();
   }

@@ -267,6 +267,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineDownloadMissing => 'Download missing';
 
   @override
+  String offlineMissingLouvoresSheetTitle(String category) {
+    return '$category — missing';
+  }
+
+  @override
+  String get offlineMissingLouvoresEmpty => 'No missing PDFs in this category';
+
+  @override
+  String get offlineMissingLouvoresLoadError => 'Could not load missing PDFs';
+
+  @override
   String get offlineDismissRemoved => 'Dismiss';
 
   @override

@@ -15,6 +15,7 @@ import '../../domain/usecases/fetch_and_store_pdf.dart';
 import '../../domain/usecases/get_offline_stats_by_category.dart';
 import '../../domain/usecases/clear_offline_cache.dart';
 import '../../domain/usecases/download_missing_pdfs.dart';
+import '../../domain/usecases/list_missing_louvores_by_material.dart';
 import '../../domain/usecases/migrate_offline_storage.dart';
 import '../../domain/usecases/reconcile_offline_index.dart';
 import '../../domain/usecases/resolve_pdf_for_reader.dart';
@@ -22,7 +23,9 @@ import '../../../playlists/data/providers/playlist_providers.dart';
 import '../datasources/disk_space_checker.dart';
 import '../datasources/favorite_pdf_ids_resolver.dart';
 import '../datasources/offline_available_store.dart';
+import '../datasources/offline_bulk_categories_store.dart';
 import '../datasources/offline_bulk_checkpoint_store.dart';
+import '../datasources/offline_selected_categories_store.dart';
 import '../datasources/offline_manifest_remote_datasource.dart';
 import '../datasources/offline_pdf_local_datasource.dart';
 import '../datasources/pdf_local_store.dart';
@@ -116,6 +119,18 @@ final offlineBulkCheckpointStoreProvider =
   return OfflineBulkCheckpointStore(ref.watch(sharedPreferencesProvider));
 });
 
+/// DI — categorias de material com bulk ZIP concluído (UC-09/UC-10).
+final offlineBulkCategoriesStoreProvider =
+    Provider<OfflineBulkCategoriesStore>((ref) {
+  return OfflineBulkCategoriesStore(ref.watch(sharedPreferencesProvider));
+});
+
+/// DI — seleção de chips de material na tela offline (UC-09/UC-10).
+final offlineSelectedCategoriesStoreProvider =
+    Provider<OfflineSelectedCategoriesStore>((ref) {
+  return OfflineSelectedCategoriesStore(ref.watch(sharedPreferencesProvider));
+});
+
 /// DI — flag UC-09/UC-10 [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`).
 final offlineAvailableStoreProvider = Provider<OfflineAvailableStore>((ref) {
   return OfflineAvailableStore(ref.watch(sharedPreferencesProvider));
@@ -170,12 +185,23 @@ final downloadMissingPdfsProvider = Provider<DownloadMissingPdfs>((ref) {
   );
 });
 
+/// DI — [ListMissingLouvoresByMaterial] (Fase 3.7).
+final listMissingLouvoresByMaterialProvider =
+    Provider<ListMissingLouvoresByMaterial>((ref) {
+  return ListMissingLouvoresByMaterial(
+    ref.watch(catalogLocalDatasourceProvider),
+    ref.watch(offlinePdfRepositoryProvider),
+  );
+});
+
 /// DI — [ClearOfflineCache] (Fase 3.6).
 final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
   return ClearOfflineCache(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(pdfLocalStoreProvider),
     ref.watch(offlineBulkCheckpointStoreProvider),
+    ref.watch(offlineBulkCategoriesStoreProvider),
+    ref.watch(offlineSelectedCategoriesStoreProvider),
     ref.watch(offlineAvailableStoreProvider),
   );
 });

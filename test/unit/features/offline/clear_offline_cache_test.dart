@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_bulk_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_selected_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
@@ -44,11 +46,15 @@ void main() {
     );
     prefs = await SharedPreferences.getInstance();
     final checkpointStore = OfflineBulkCheckpointStore(prefs);
+    final bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
+    final selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
     final offlineAvailableStore = OfflineAvailableStore(prefs);
     useCase = ClearOfflineCache(
       repository,
       store,
       checkpointStore,
+      bulkCategoriesStore,
+      selectedCategoriesStore,
       offlineAvailableStore,
     );
   });
@@ -69,8 +75,12 @@ void main() {
     );
 
     final checkpointStore = OfflineBulkCheckpointStore(prefs);
+    final bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
+    final selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
     final offlineAvailableStore = OfflineAvailableStore(prefs);
     await offlineAvailableStore.markConfigured();
+    await bulkCategoriesStore.addCategories(['Partitura']);
+    await selectedCategoriesStore.save({'Partitura'});
     await checkpointStore.save(
       OfflineBulkCheckpoint(
         categories: const ['Partitura'],
@@ -90,6 +100,9 @@ void main() {
     final rootAfter = await store.rootDirectory;
     expect(await rootAfter.list().length, 0);
     expect(await checkpointStore.load(), isNull);
+    expect(bulkCategoriesStore.load(), isEmpty);
+    expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
+    expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
     expect(prefs.getString(StorageKeys.offlineAvailable),
         OfflineAvailableStore.disabledValue);
   });

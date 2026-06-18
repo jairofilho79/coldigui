@@ -9,6 +9,12 @@ abstract final class StorageKeys {
   /// Checkpoint JSON do bulk download UC-09 (Fase 3.5).
   static const String offlineBulkCheckpoint = 'offlineBulkCheckpoint';
 
+  /// Materiais de UI cujo bulk ZIP já foi concluído (UC-09/UC-10).
+  static const String offlineBulkCategories = 'offlineBulkCategories';
+
+  /// Chips de material selecionados na tela offline (UC-09/UC-10).
+  static const String offlineSelectedCategories = 'offlineSelectedCategories';
+
   /// Versão do layout offline nativo — [MigrateOfflineStorage] (Fase 3.6).
   static const String offlineStorageVersion = 'offlineStorageVersion';
 

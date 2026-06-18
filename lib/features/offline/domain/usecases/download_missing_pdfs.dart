@@ -122,6 +122,10 @@ class DownloadMissingPdfs {
       PdfIntegrityValidator.isValidPdfFile(entry.absolutePath);
 
   Future<List<String>> _collectPdfIds(Set<String>? materialCategories) async {
+    if (materialCategories != null && materialCategories.isEmpty) {
+      return const [];
+    }
+
     final pdfIdToCategoria = await _catalogLocal.loadPdfIdToCategoriaMap();
 
     if (materialCategories == null) {

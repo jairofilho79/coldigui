@@ -503,6 +503,24 @@ abstract class AppLocalizations {
   /// **'Baixar faltantes'**
   String get offlineDownloadMissing;
 
+  /// No description provided for @offlineMissingLouvoresSheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'{category} — faltantes'**
+  String offlineMissingLouvoresSheetTitle(String category);
+
+  /// No description provided for @offlineMissingLouvoresEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum PDF faltante nesta categoria'**
+  String get offlineMissingLouvoresEmpty;
+
+  /// No description provided for @offlineMissingLouvoresLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os faltantes'**
+  String get offlineMissingLouvoresLoadError;
+
   /// No description provided for @offlineDismissRemoved.
   ///
   /// In pt, this message translates to:

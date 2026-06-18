@@ -271,6 +271,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineDownloadMissing => 'Baixar faltantes';
 
   @override
+  String offlineMissingLouvoresSheetTitle(String category) {
+    return '$category — faltantes';
+  }
+
+  @override
+  String get offlineMissingLouvoresEmpty =>
+      'Nenhum PDF faltante nesta categoria';
+
+  @override
+  String get offlineMissingLouvoresLoadError =>
+      'Não foi possível carregar os faltantes';
+
+  @override
   String get offlineDismissRemoved => 'Dispensar';
 
   @override

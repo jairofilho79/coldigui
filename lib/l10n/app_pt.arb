@@ -168,6 +168,14 @@
     }
   },
   "offlineDownloadMissing": "Baixar faltantes",
+  "offlineMissingLouvoresSheetTitle": "{category} — faltantes",
+  "@offlineMissingLouvoresSheetTitle": {
+    "placeholders": {
+      "category": { "type": "String" }
+    }
+  },
+  "offlineMissingLouvoresEmpty": "Nenhum PDF faltante nesta categoria",
+  "offlineMissingLouvoresLoadError": "Não foi possível carregar os faltantes",
   "offlineDismissRemoved": "Dispensar",
   "offlineClearCache": "Limpar cache offline",
   "offlineClearCacheConfirmTitle": "Limpar cache offline?",

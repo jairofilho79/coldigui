@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/providers/offline_providers.dart';
 import '../../domain/usecases/download_missing_pdfs.dart';
 import 'offline_cache_status_provider.dart';
+import 'offline_category_selection_provider.dart';
 
 /// Estado do download de PDFs faltantes UC-10 na UI (Fase 3.7).
 enum OfflineMissingDownloadStatus {
@@ -64,11 +65,14 @@ class OfflineMissingDownloadNotifier
   @override
   OfflineMissingDownloadState build() => const OfflineMissingDownloadState();
 
-  /// Compara manifest remoto com índice Isar e baixa misses via [FetchAndStorePdf].
+  /// Compara catálogo Isar com índice e baixa misses via [FetchAndStorePdf].
   ///
-  /// [materialCategories] omitido → todas as categorias do manifest.
-  Future<void> start({Set<String>? materialCategories}) async {
+  /// Escopo: [OfflineCategorySelectionState.missingScope] (selecionadas ∩ bulk).
+  Future<void> start() async {
     if (state.isRunning) return;
+
+    final scope = ref.read(offlineCategorySelectionProvider).missingScope;
+    if (scope.isEmpty) return;
 
     state = const OfflineMissingDownloadState(
       status: OfflineMissingDownloadStatus.running,
@@ -76,7 +80,7 @@ class OfflineMissingDownloadNotifier
 
     try {
       final result = await ref.read(downloadMissingPdfsProvider).call(
-            materialCategories: materialCategories,
+            materialCategories: scope,
             onProgress: (done, total) {
               state = state.copyWith(
                 status: OfflineMissingDownloadStatus.running,
