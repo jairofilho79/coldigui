@@ -20,36 +20,12 @@ import 'widgets/plpcg_bottom_nav_bar.dart';
 /// feixe dourado; oculta em `/leitor`. Destino central: rótulo **Pesquisar**
 /// (logo PLPCG, rota [RoutePaths.home]).
 ///
-/// [child] é a rota ativa dentro do [ShellRoute] (home, biblioteca, leitor, etc.).
+/// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
 class ShellScaffold extends ConsumerWidget {
-  const ShellScaffold({required this.child, super.key});
+  const ShellScaffold({required this.navigationShell, super.key});
 
-  /// Conteúdo da rota selecionada, injetado pelo GoRouter.
-  final Widget child;
-
-  int _selectedIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.path;
-    return switch (location) {
-      RoutePaths.about => 0,
-      RoutePaths.library => 1,
-      RoutePaths.home => 2,
-      RoutePaths.offline => 3,
-      RoutePaths.playlists => 4,
-      _ => 2,
-    };
-  }
-
-  void _onTap(BuildContext context, int index) {
-    final path = switch (index) {
-      0 => RoutePaths.about,
-      1 => RoutePaths.library,
-      2 => RoutePaths.home,
-      3 => RoutePaths.offline,
-      4 => RoutePaths.playlists,
-      _ => RoutePaths.home,
-    };
-    context.go(path);
-  }
+  /// Pilha indexada das branches do shell — preserva estado ao trocar aba.
+  final StatefulNavigationShell navigationShell;
 
   bool _isReaderRoute(BuildContext context) {
     return GoRouterState.of(context).uri.path == RoutePaths.reader;
@@ -72,22 +48,22 @@ class ShellScaffold extends ConsumerWidget {
       child: Scaffold(
         appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
         body: hideChrome
-            ? child
+            ? navigationShell
             : SafeArea(
                 top: false,
                 bottom: false,
                 child: Column(
                   children: [
                     const CarouselChips(),
-                    Expanded(child: child),
+                    Expanded(child: navigationShell),
                   ],
                 ),
               ),
         bottomNavigationBar: isReader
             ? null
             : PlpcgBottomNavBar(
-                selectedIndex: _selectedIndex(context),
-                onDestinationSelected: (i) => _onTap(context, i),
+                selectedIndex: navigationShell.currentIndex,
+                onDestinationSelected: navigationShell.goBranch,
                 destinations: const [
                   PlpcgBottomNavDestination(
                     icon: Icons.info_outline,
