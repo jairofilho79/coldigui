@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -42,15 +44,15 @@ class PlpcgBottomNavBar extends StatelessWidget {
     super.key,
   });
 
-  /// Duração da animação scale/feixe/texto ao trocar aba (380ms, [Curves.easeInOut]).
-  static const Duration animationDuration = Duration(milliseconds: 380);
+  /// Duração da animação scale/feixe/texto ao trocar aba (200ms, [Curves.easeOut]).
+  static const Duration animationDuration = Duration(milliseconds: 200);
 
-  static const Curve _animationCurve = Curves.easeInOut;
+  static const Curve _animationCurve = Curves.easeOut;
 
   /// Índice da aba selecionada: 0 Sobre, 1 Biblioteca, 2 Pesquisar (`/`), 3 Offline, 4 Listas.
   final int selectedIndex;
 
-  /// Callback ao tocar uma aba; [ShellScaffold] mapeia para `context.go`.
+  /// Callback ao tocar uma aba; [ShellScaffold] mapeia para `navigationShell.goBranch`.
   final ValueChanged<int> onDestinationSelected;
 
   /// Lista fixa de destinos (tipicamente 5 itens UC-14).
@@ -83,10 +85,12 @@ class PlpcgBottomNavBar extends StatelessWidget {
               children: [
                 for (var i = 0; i < destinations.length; i++)
                   Expanded(
-                    child: _PlpcgBottomNavItem(
-                      destination: destinations[i],
-                      selected: i == selectedIndex,
-                      onTap: () => onDestinationSelected(i),
+                    child: RepaintBoundary(
+                      child: _PlpcgBottomNavItem(
+                        destination: destinations[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onDestinationSelected(i),
+                      ),
                     ),
                   ),
               ],
@@ -98,7 +102,7 @@ class PlpcgBottomNavBar extends StatelessWidget {
   }
 }
 
-class _PlpcgBottomNavItem extends StatelessWidget {
+class _PlpcgBottomNavItem extends StatefulWidget {
   const _PlpcgBottomNavItem({
     required this.destination,
     required this.selected,
@@ -109,61 +113,105 @@ class _PlpcgBottomNavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  @override
+  State<_PlpcgBottomNavItem> createState() => _PlpcgBottomNavItemState();
+}
+
+class _PlpcgBottomNavItemState extends State<_PlpcgBottomNavItem>
+    with SingleTickerProviderStateMixin {
   static const _activeScale = 1.14;
   static const _inactiveScale = 0.86;
 
-  Duration _duration(BuildContext context) {
-    return MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : PlpcgBottomNavBar.animationDuration;
+  late final AnimationController _controller;
+  late final Animation<double> _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: PlpcgBottomNavBar.animationDuration,
+    );
+    _progress = CurvedAnimation(
+      parent: _controller,
+      curve: PlpcgBottomNavBar._animationCurve,
+    );
+    if (widget.selected) {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlpcgBottomNavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected == widget.selected) return;
+
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = widget.selected ? 1 : 0;
+      return;
+    }
+
+    if (widget.selected) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final duration = _duration(context);
-
     return Semantics(
       button: true,
-      selected: selected,
-      label: destination.label,
+      selected: widget.selected,
+      label: widget.destination.label,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
           borderRadius: BorderRadius.circular(12),
           splashColor: AppColors.gold.withValues(alpha: 0.18),
           highlightColor: AppColors.gold.withValues(alpha: 0.08),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: AnimatedScale(
-              scale: selected ? _activeScale : _inactiveScale,
-              duration: duration,
-              curve: PlpcgBottomNavBar._animationCurve,
-              alignment: Alignment.bottomCenter,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: duration,
-                    curve: PlpcgBottomNavBar._animationCurve,
-                    width: selected ? 34 : 26,
-                    height: selected ? 34 : 26,
-                    alignment: Alignment.center,
-                    child: _NavIcon(
-                      destination: destination,
-                      selected: selected,
-                      duration: duration,
-                    ),
+          child: AnimatedBuilder(
+            animation: _progress,
+            builder: (context, _) {
+              final t = _progress.value;
+              final scale = lerpDouble(_inactiveScale, _activeScale, t)!;
+              final iconBoxSize = lerpDouble(26, 34, t)!;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Transform.scale(
+                  scale: scale,
+                  alignment: Alignment.bottomCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: iconBoxSize,
+                        height: iconBoxSize,
+                        child: Center(
+                          child: _NavIcon(
+                            destination: widget.destination,
+                            progress: t,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      _NavLabel(
+                        label: widget.destination.label,
+                        progress: t,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  _NavLabel(
-                    label: destination.label,
-                    selected: selected,
-                    duration: duration,
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -174,23 +222,20 @@ class _PlpcgBottomNavItem extends StatelessWidget {
 class _NavIcon extends StatelessWidget {
   const _NavIcon({
     required this.destination,
-    required this.selected,
-    required this.duration,
+    required this.progress,
   });
 
   final PlpcgBottomNavDestination destination;
-  final bool selected;
-  final Duration duration;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
     final svgAsset = destination.svgAsset;
     if (svgAsset != null) {
-      final size = selected ? 32.0 : 24.0;
-      return AnimatedOpacity(
-        opacity: selected ? 1 : 0.52,
-        duration: duration,
-        curve: PlpcgBottomNavBar._animationCurve,
+      final size = lerpDouble(24, 32, progress)!;
+      final opacity = lerpDouble(0.52, 1, progress)!;
+      return Opacity(
+        opacity: opacity,
         child: SvgPicture.asset(
           svgAsset,
           width: size,
@@ -201,32 +246,24 @@ class _NavIcon extends StatelessWidget {
       );
     }
 
-    return AnimatedTheme(
-      duration: duration,
-      curve: PlpcgBottomNavBar._animationCurve,
-      data: Theme.of(context).copyWith(
-        iconTheme: IconThemeData(
-          color: selected
-              ? AppColors.placeholder
-              : AppColors.textLight.withValues(alpha: 0.52),
-          size: selected ? 26 : 20,
-        ),
-      ),
-      child: Icon(destination.icon),
-    );
+    final color = Color.lerp(
+      AppColors.textLight.withValues(alpha: 0.52),
+      AppColors.placeholder,
+      progress,
+    )!;
+    final size = lerpDouble(20, 26, progress)!;
+    return Icon(destination.icon, color: color, size: size);
   }
 }
 
-class _NavLabel extends StatelessWidget {
+class _NavLabel extends StatefulWidget {
   const _NavLabel({
     required this.label,
-    required this.selected,
-    required this.duration,
+    required this.progress,
   });
 
   final String label;
-  final bool selected;
-  final Duration duration;
+  final double progress;
 
   static const _activeStyle = TextStyle(
     fontFamily: AppTypography.garamondFamily,
@@ -252,7 +289,20 @@ class _NavLabel extends StatelessWidget {
     color: Color(0x8CFFFFFF),
   );
 
-  double _beamWidth(TextStyle style) {
+  @override
+  State<_NavLabel> createState() => _NavLabelState();
+}
+
+class _NavLabelState extends State<_NavLabel> {
+  late final double _beamWidth;
+
+  @override
+  void initState() {
+    super.initState();
+    _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+  }
+
+  static double _computeBeamWidth(String label, TextStyle style) {
     final painter = TextPainter(
       text: TextSpan(text: label, style: style),
       textDirection: TextDirection.ltr,
@@ -263,7 +313,11 @@ class _NavLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final beamWidth = _beamWidth(_activeStyle);
+    final t = widget.progress;
+    final beamOpacity = t;
+    final beamScale = lerpDouble(0.6, 1, t)!;
+    final style =
+        TextStyle.lerp(_NavLabel._inactiveStyle, _NavLabel._activeStyle, t)!;
 
     return SizedBox(
       height: 20,
@@ -273,29 +327,21 @@ class _NavLabel extends StatelessWidget {
         children: [
           Positioned(
             top: 12,
-            child: AnimatedOpacity(
-              opacity: selected ? 1 : 0,
-              duration: duration,
-              curve: PlpcgBottomNavBar._animationCurve,
-              child: AnimatedScale(
-                scale: selected ? 1 : 0.6,
-                duration: duration,
-                curve: PlpcgBottomNavBar._animationCurve,
+            child: Opacity(
+              opacity: beamOpacity,
+              child: Transform.scale(
+                scale: beamScale,
                 alignment: Alignment.topCenter,
-                child: LightBeam(width: beamWidth, height: 9),
+                child: LightBeam(width: _beamWidth, height: 9),
               ),
             ),
           ),
-          AnimatedDefaultTextStyle(
-            duration: duration,
-            curve: PlpcgBottomNavBar._animationCurve,
-            style: selected ? _activeStyle : _inactiveStyle,
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
+          Text(
+            widget.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: style,
           ),
         ],
       ),
