@@ -17,8 +17,17 @@ class GoldenTaggedContainer extends StatefulWidget {
   static const EdgeInsets compactContentPadding =
       EdgeInsets.fromLTRB(12, 14, 12, 8);
 
-  /// Altura da linha de controle em [SearchBar] e [FiltersPanel] (cabeçalho).
+  /// Altura base da linha de controle em [SearchBar] e [FiltersPanel].
   static const double compactRowHeight = 24;
+
+  /// Altura mínima da linha compacta, respeitando [MediaQuery.textScalerOf].
+  static double compactRowHeightFor(BuildContext context) {
+    final scaledTextLine = MediaQuery.textScalerOf(context)
+        .scale(AppTypography.body.fontSize! * 1.2);
+    return scaledTextLine > compactRowHeight
+        ? scaledTextLine
+        : compactRowHeight;
+  }
 
   const GoldenTaggedContainer({
     required this.label,
@@ -195,8 +204,9 @@ class _TagLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final verticalPadding = MediaQuery.textScalerOf(context).scale(2.0);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: verticalPadding),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(4),

@@ -65,7 +65,7 @@ class _FiltersPanelState extends State<FiltersPanel> {
             InkWell(
               onTap: _toggle,
               child: SizedBox(
-                height: GoldenTaggedContainer.compactRowHeight,
+                height: GoldenTaggedContainer.compactRowHeightFor(context),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

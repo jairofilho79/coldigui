@@ -76,7 +76,7 @@ class _SearchBarState extends State<SearchBar> {
       glowEnabled: true,
       contentPadding: GoldenTaggedContainer.compactContentPadding,
       child: SizedBox(
-        height: GoldenTaggedContainer.compactRowHeight,
+        height: GoldenTaggedContainer.compactRowHeightFor(context),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

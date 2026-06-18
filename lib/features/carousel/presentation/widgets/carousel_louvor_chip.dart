@@ -180,6 +180,7 @@ class CarouselLouvorChip extends StatelessWidget {
                         _titleLine(item, _isTopBar),
                         style: AppTypography.headline.copyWith(
                           fontSize: width < _compactWidth ? 12 : 14,
+                          height: 1.1,
                           color: AppColors.textLight,
                           shadows: const [],
                         ),
@@ -269,6 +270,7 @@ class _MetadataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final metaStyle = AppTypography.body.copyWith(
       fontSize: width < _compactWidth ? 10 : 11,
+      height: 1.1,
       color: AppColors.textLight.withValues(alpha: 0.9),
       fontWeight: FontWeight.w500,
     );

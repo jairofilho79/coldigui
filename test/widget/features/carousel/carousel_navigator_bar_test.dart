@@ -1,4 +1,5 @@
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -110,5 +111,39 @@ void main() {
 
     await tester.tap(find.byTooltip('Ver seleção'));
     expect(listTapped, isTrue);
+  });
+
+  testWidgets('topBar não estoura com textScaler elevado', (tester) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: CarouselNavigatorBar(
+                item: const CarouselItem(
+                  pdfId: 'x',
+                  sortOrder: 0,
+                  numero: '203',
+                  nome: 'Alto Preço',
+                  categoria: 'Partitura',
+                  classificacao: 'PES',
+                ),
+                chipVariant: CarouselLouvorChipVariant.topBar,
+                canGoPrevious: true,
+                canGoNext: true,
+                onOpenList: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

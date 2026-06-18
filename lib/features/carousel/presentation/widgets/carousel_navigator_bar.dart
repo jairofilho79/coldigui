@@ -62,15 +62,10 @@ class CarouselNavigatorBar extends StatelessWidget {
             icon: const Icon(Icons.chevron_left),
           ),
         Flexible(
-          child: SizedBox(
-            height: chipVariant == CarouselLouvorChipVariant.topBar
-                ? carouselChipTopBarHeight
-                : carouselChipBarHeight,
-            child: CarouselLouvorChip(
-              item: item,
-              variant: chipVariant,
-              onTap: loading ? null : onChipTap,
-            ),
+          child: CarouselLouvorChip(
+            item: item,
+            variant: chipVariant,
+            onTap: loading ? null : onChipTap,
           ),
         ),
         if (canGoNext)
