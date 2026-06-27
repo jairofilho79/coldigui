@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../../../core/theme/color_extensions.dart';
+import '../utils/pdf_page_edge_tap_policy.dart';
+import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
 import 'pdf_reader_page_key_handler.dart';
 
@@ -22,6 +24,9 @@ typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 ///
 /// Teclado/page turner (UC-11): setas esquerda/cima voltam; direita/baixo avançam.
 /// Sempre troca de página (ignora borda de pan do swipe). Ver [PdfReaderPageKeyHandler].
+///
+/// Toque nas bordas (UC-11): 20% esquerda/direita do canvas, toque estrito (< 8px)
+/// volta/avança página com o mesmo fluxo das setas. Ver [PdfPageEdgeTapPolicy].
 class PdfxPdfView extends StatefulWidget {
   const PdfxPdfView({
     required this.controller,
@@ -46,6 +51,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   var _activePointers = 0;
   int? _trackingPointer;
   int? _pageAtPointerDown;
+  Offset? _pointerDownLocalPosition;
   Offset _accumulatedDelta = Offset.zero;
   var _pageTurnInProgress = false;
   PdfPageSwipeDirection? _swipeFeedbackDirection;
@@ -93,6 +99,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     final hadFeedback = _swipeFeedbackDirection != null;
     _trackingPointer = null;
     _pageAtPointerDown = null;
+    _pointerDownLocalPosition = null;
     _accumulatedDelta = Offset.zero;
     _swipeFeedbackDirection = null;
     _hapticTriggeredForSwipe = false;
@@ -141,6 +148,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     if (_activePointers == 1) {
       _trackingPointer = event.pointer;
       _pageAtPointerDown = widget.controller.page;
+      _pointerDownLocalPosition = event.localPosition;
       _accumulatedDelta = Offset.zero;
       _swipeFeedbackDirection = null;
       _hapticTriggeredForSwipe = false;
@@ -161,12 +169,18 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
 
     final trackingPointer = _trackingPointer;
     final pageAtDown = _pageAtPointerDown;
+    final pointerDownLocalPosition = _pointerDownLocalPosition;
     final totalDelta = _accumulatedDelta;
     _resetTracking();
 
     _handleSwipeEnd(
       trackingPointer: trackingPointer,
       pageAtPointerDown: pageAtDown,
+      totalDelta: totalDelta,
+    );
+
+    _handleEdgeTapEnd(
+      pointerDownLocalPosition: pointerDownLocalPosition,
       totalDelta: totalDelta,
     );
   }
@@ -212,6 +226,38 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     await _navigateToPageWithLock(targetPage);
   }
 
+  Future<void> _handleEdgeTapEnd({
+    required Offset? pointerDownLocalPosition,
+    required Offset totalDelta,
+  }) async {
+    if (pointerDownLocalPosition == null || _pageTurnInProgress) return;
+    if (widget.controller.loadingState.value != PdfLoadingState.success) return;
+    if (!PdfPageEdgeTapPolicy.isStrictTap(totalDelta)) return;
+
+    final canvasWidth = _canvasWidth;
+    if (canvasWidth == null || canvasWidth <= 0) return;
+
+    final direction = PdfPageEdgeTapPolicy.directionForDownPosition(
+      localX: pointerDownLocalPosition.dx,
+      canvasWidth: canvasWidth,
+    );
+    if (direction == null) return;
+
+    final pagesCount = widget.controller.pagesCount;
+    if (pagesCount == null || pagesCount < 1) return;
+
+    final targetPage = PdfPageKeyboardPolicy.targetPage(
+      currentPage: widget.controller.page,
+      pagesCount: pagesCount,
+      direction: direction,
+    );
+    if (targetPage == null) return;
+
+    await _navigateToPageWithLock(targetPage);
+  }
+
+  double? _canvasWidth;
+
   Future<void> _navigateToPageWithLock(int targetPage) async {
     if (_pageTurnInProgress) return;
     setState(() => _pageTurnInProgress = true);
@@ -225,48 +271,54 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   }
 
   Widget _buildPdfContent() {
-    return Listener(
-      onPointerDown: _onPointerDown,
-      onPointerMove: _onPointerMove,
-      onPointerUp: _onPointerUp,
-      onPointerCancel: _onPointerCancel,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PdfViewPinch(
-            key: ValueKey(widget.controller),
-            controller: widget.controller,
-            scrollDirection: Axis.vertical,
-            onPageChanged: widget.onPageChanged,
-            backgroundDecoration: const BoxDecoration(color: AppColors.pdfArea),
-            builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
-              options: const DefaultBuilderOptions(),
-              documentLoaderBuilder: (_) => const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
-              ),
-              pageLoaderBuilder: (_) => const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
-              ),
-              errorBuilder: (_, error) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    error.toString(),
-                    style: const TextStyle(color: AppColors.textLight),
-                    textAlign: TextAlign.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _canvasWidth = constraints.maxWidth;
+        return Listener(
+          onPointerDown: _onPointerDown,
+          onPointerMove: _onPointerMove,
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              PdfViewPinch(
+                key: ValueKey(widget.controller),
+                controller: widget.controller,
+                scrollDirection: Axis.vertical,
+                onPageChanged: widget.onPageChanged,
+                backgroundDecoration:
+                    const BoxDecoration(color: AppColors.pdfArea),
+                builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+                  options: const DefaultBuilderOptions(),
+                  documentLoaderBuilder: (_) => const Center(
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  ),
+                  pageLoaderBuilder: (_) => const Center(
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  ),
+                  errorBuilder: (_, error) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        error.toString(),
+                        style: const TextStyle(color: AppColors.textLight),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              if (_swipeFeedbackDirection != null)
+                IgnorePointer(
+                  child: PdfHorizontalSwipeIndicator(
+                    direction: _swipeFeedbackDirection!,
+                  ),
+                ),
+            ],
           ),
-          if (_swipeFeedbackDirection != null)
-            IgnorePointer(
-              child: PdfHorizontalSwipeIndicator(
-                direction: _swipeFeedbackDirection!,
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 
