@@ -111,6 +111,12 @@ class OfflineCategorySelectionNotifier
     return merged;
   }
 
+  /// Remove materiais de [bulkDownloaded] após limpar cache parcial.
+  Future<void> unregisterBulkCompleted(Set<String> materials) async {
+    final remaining = await _bulkStore.removeCategories(materials);
+    state = state.copyWith(bulkDownloaded: remaining);
+  }
+
   Future<void> clearAll() async {
     await _bulkStore.clear();
     await _selectedStore.clear();

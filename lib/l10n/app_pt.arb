@@ -179,10 +179,21 @@
   "offlineDismissRemoved": "Dispensar",
   "offlineClearCache": "Limpar cache offline",
   "offlineClearCacheConfirmTitle": "Limpar cache offline?",
-  "offlineClearCacheConfirmBody": "Todos os PDFs baixados serão removidos. Esta ação não pode ser desfeita.",
+  "offlineClearCacheConfirmBody": "Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.",
+  "@offlineClearCacheConfirmBody": {
+    "placeholders": {
+      "categories": { "type": "String" }
+    }
+  },
   "offlineClearCacheConfirm": "Limpar",
   "offlineClearCacheCancel": "Cancelar",
   "offlineClearCacheSuccess": "Cache offline limpo",
+  "offlineClearCacheSuccessPartial": "Cache de {categories} limpo",
+  "@offlineClearCacheSuccessPartial": {
+    "placeholders": {
+      "categories": { "type": "String" }
+    }
+  },
   "offlineMissingProgress": "Baixando faltantes: {done}/{total}",
   "@offlineMissingProgress": {
     "placeholders": {

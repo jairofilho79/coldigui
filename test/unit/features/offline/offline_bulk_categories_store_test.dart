@@ -32,6 +32,21 @@ void main() {
     expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
   });
 
+  test('removeCategories remove só os materiais informados', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = OfflineBulkCategoriesStore(prefs);
+
+    await store.addCategories(CatalogMaterials.uiMaterials);
+    final remaining =
+        await store.removeCategories([CatalogMaterials.partitura]);
+
+    expect(remaining, {
+      CatalogMaterials.cifra,
+      CatalogMaterials.gestosEmGravura,
+    });
+    expect(store.load(), remaining);
+  });
+
   test('loadOrMigrate infere categorias com PDFs baixados', () async {
     final prefs = await SharedPreferences.getInstance();
     final store = OfflineBulkCategoriesStore(prefs);

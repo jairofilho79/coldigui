@@ -45,6 +45,21 @@ class OfflineBulkCategoriesStore {
     return merged;
   }
 
+  /// Remove [categories] do registro de bulk concluído.
+  Future<Set<String>> removeCategories(Iterable<String> categories) async {
+    final toRemove =
+        categories.where(CatalogMaterials.uiMaterials.contains).toSet();
+    if (toRemove.isEmpty) return load();
+
+    final remaining = load().difference(toRemove);
+    if (remaining.isEmpty) {
+      await clear();
+      return {};
+    }
+    await save(remaining);
+    return remaining;
+  }
+
   /// Migração lazy: usuários em UC-10 sem registro explícito.
   Future<Set<String>> loadOrMigrate({
     required bool isConfigured,

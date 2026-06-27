@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
+import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
+import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
@@ -17,6 +19,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
 
+class _StubCatalogLocal extends CatalogLocalDatasource {
+  _StubCatalogLocal() : super(_FakeIsar());
+
+  @override
+  Future<Map<String, String>> loadPdfIdToCategoriaMap() async => const {};
+}
+
+// Isar não é usado pelo stub — apenas satisfaz o construtor.
+class _FakeIsar implements Isar {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
@@ -24,6 +39,10 @@ void main() {
   late PdfLocalStore store;
   late OfflinePdfRepositoryImpl repository;
   late SharedPreferences prefs;
+  late OfflineBulkCheckpointStore checkpointStore;
+  late OfflineBulkCategoriesStore bulkCategoriesStore;
+  late OfflineSelectedCategoriesStore selectedCategoriesStore;
+  late OfflineAvailableStore offlineAvailableStore;
   late ClearOfflineCache useCase;
 
   setUpAll(() async {
@@ -45,12 +64,13 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     prefs = await SharedPreferences.getInstance();
-    final checkpointStore = OfflineBulkCheckpointStore(prefs);
-    final bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
-    final selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
-    final offlineAvailableStore = OfflineAvailableStore(prefs);
+    checkpointStore = OfflineBulkCheckpointStore(prefs);
+    bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
+    selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
+    offlineAvailableStore = OfflineAvailableStore(prefs);
     useCase = ClearOfflineCache(
       repository,
+      _StubCatalogLocal(),
       store,
       checkpointStore,
       bulkCategoriesStore,
@@ -71,19 +91,15 @@ void main() {
     await repository.upsert(
       pdfId: encodePdfId('ColAdultos/a.pdf'),
       bytes: Uint8List.fromList([1]),
-      category: 'ColAdultos',
+      category: CatalogMaterials.partitura,
     );
 
-    final checkpointStore = OfflineBulkCheckpointStore(prefs);
-    final bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
-    final selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
-    final offlineAvailableStore = OfflineAvailableStore(prefs);
     await offlineAvailableStore.markConfigured();
-    await bulkCategoriesStore.addCategories(['Partitura']);
-    await selectedCategoriesStore.save({'Partitura'});
+    await bulkCategoriesStore.addCategories([CatalogMaterials.partitura]);
+    await selectedCategoriesStore.save({CatalogMaterials.partitura});
     await checkpointStore.save(
       OfflineBulkCheckpoint(
-        categories: const ['Partitura'],
+        categories: const [CatalogMaterials.partitura],
         categoryIndex: 0,
         partIndex: 0,
         extractedPdfCount: 0,
@@ -94,8 +110,11 @@ void main() {
     final rootBefore = await store.rootDirectory;
     expect(await rootBefore.list(recursive: true).length, greaterThan(0));
 
-    await useCase();
+    final wasFullClear = await useCase(
+      materials: {CatalogMaterials.partitura},
+    );
 
+    expect(wasFullClear, isTrue);
     expect((await repository.listAll()).length, 0);
     final rootAfter = await store.rootDirectory;
     expect(await rootAfter.list().length, 0);
@@ -105,5 +124,39 @@ void main() {
     expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
     expect(prefs.getString(StorageKeys.offlineAvailable),
         OfflineAvailableStore.disabledValue);
+  });
+
+  test('limpeza parcial remove só materiais selecionados', () async {
+    await repository.upsert(
+      pdfId: encodePdfId('partitura/a.pdf'),
+      bytes: Uint8List.fromList([1]),
+      category: CatalogMaterials.partitura,
+    );
+    await repository.upsert(
+      pdfId: encodePdfId('cifra/a.pdf'),
+      bytes: Uint8List.fromList([2]),
+      category: CatalogMaterials.cifraNivelI,
+    );
+
+    await offlineAvailableStore.markConfigured();
+    await bulkCategoriesStore.addCategories(CatalogMaterials.uiMaterials);
+
+    final wasFullClear = await useCase(
+      materials: {CatalogMaterials.partitura},
+    );
+
+    expect(wasFullClear, isFalse);
+    final remaining = await repository.listAll();
+    expect(remaining.length, 1);
+    expect(remaining.single.category, CatalogMaterials.cifraNivelI);
+    expect(bulkCategoriesStore.load(), {
+      CatalogMaterials.cifra,
+      CatalogMaterials.gestosEmGravura,
+    });
+    expect(
+      prefs.getString(StorageKeys.offlineAvailable),
+      isNot(OfflineAvailableStore.disabledValue),
+    );
+    expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
   });
 }

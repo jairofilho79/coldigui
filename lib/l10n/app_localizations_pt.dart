@@ -293,8 +293,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineClearCacheConfirmTitle => 'Limpar cache offline?';
 
   @override
-  String get offlineClearCacheConfirmBody =>
-      'Todos os PDFs baixados serão removidos. Esta ação não pode ser desfeita.';
+  String offlineClearCacheConfirmBody(String categories) {
+    return 'Os PDFs baixados de $categories serão removidos. Esta ação não pode ser desfeita.';
+  }
 
   @override
   String get offlineClearCacheConfirm => 'Limpar';
@@ -304,6 +305,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get offlineClearCacheSuccess => 'Cache offline limpo';
+
+  @override
+  String offlineClearCacheSuccessPartial(String categories) {
+    return 'Cache de $categories limpo';
+  }
 
   @override
   String offlineMissingProgress(int done, int total) {

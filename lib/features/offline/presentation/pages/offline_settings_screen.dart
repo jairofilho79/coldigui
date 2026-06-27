@@ -67,11 +67,14 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
 
   Future<void> _clearCache() async {
     final l10n = AppLocalizations.of(context)!;
+    final materials = ref.read(offlineCategorySelectionProvider).selected;
+    final categoriesLabel = _formatSelectedCategories(materials);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.offlineClearCacheConfirmTitle),
-        content: Text(l10n.offlineClearCacheConfirmBody),
+        content: Text(l10n.offlineClearCacheConfirmBody(categoriesLabel)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -87,15 +90,29 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    await ref.read(clearOfflineCacheProvider).call();
-    ref.read(offlineModeProvider.notifier).syncDisabled();
-    await ref.read(offlineCategorySelectionProvider.notifier).clearAll();
+    final wasFullClear =
+        await ref.read(clearOfflineCacheProvider).call(materials: materials);
+
+    if (wasFullClear) {
+      ref.read(offlineModeProvider.notifier).syncDisabled();
+      await ref.read(offlineCategorySelectionProvider.notifier).clearAll();
+    } else {
+      await ref
+          .read(offlineCategorySelectionProvider.notifier)
+          .unregisterBulkCompleted(materials);
+    }
     ref.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
     await ref.read(offlineCacheStatusProvider.notifier).refresh();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.offlineClearCacheSuccess)),
+      SnackBar(
+        content: Text(
+          wasFullClear
+              ? l10n.offlineClearCacheSuccess
+              : l10n.offlineClearCacheSuccessPartial(categoriesLabel),
+        ),
+      ),
     );
   }
 
@@ -167,22 +184,6 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.offlineTitle),
-        actions: [
-          IconButton(
-            onPressed: _maintenanceBusy ? null : _refreshStats,
-            tooltip: l10n.offlineRefreshStats,
-            icon: cacheStatus.isRefreshing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
@@ -318,6 +319,19 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
   }
 }
 
+bool _canClearCache(
+  OfflineCategorySelectionState selection,
+  OfflineStats stats,
+) {
+  if (selection.selected.isEmpty) return false;
+  return selection.selected
+      .any((material) => (stats.byCategory[material] ?? 0) > 0);
+}
+
+String _formatSelectedCategories(Set<String> selected) {
+  return CatalogMaterials.uiMaterials.where(selected.contains).join(', ');
+}
+
 int _scopedTotalMissing(OfflineStats stats, Set<String> bulkDownloaded) {
   if (!stats.missingCountReliable) return 0;
   var total = 0;
@@ -408,6 +422,7 @@ class _StatsSection extends StatelessWidget {
     final canDownloadMissing =
         _canDownloadMissing(selectionState, cacheStatus.stats);
     final canDownloadPackages = selectionState.packagesScope.isNotEmpty;
+    final canClearCache = _canClearCache(selectionState, cacheStatus.stats);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -536,7 +551,7 @@ class _StatsSection extends StatelessWidget {
         Align(
           alignment: Alignment.center,
           child: TextButton(
-            onPressed: maintenanceBusy ? null : onClearCache,
+            onPressed: maintenanceBusy || !canClearCache ? null : onClearCache,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.offlineMissing,
             ),

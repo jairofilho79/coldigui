@@ -267,6 +267,46 @@ void main() {
     expect(find.text('#002 — Bondade de Deus'), findsOneWidget);
   });
 
+  testWidgets('disables clear cache when selected categories have no PDFs',
+      (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {'Partitura': 3}),
+        ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {CatalogMaterials.gestosEmGravura},
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clearButton = find.widgetWithText(TextButton, 'Limpar cache offline');
+    expect(clearButton, findsOneWidget);
+    expect(tester.widget<TextButton>(clearButton).onPressed, isNull);
+  });
+
+  testWidgets('enables clear cache when selected category has PDFs',
+      (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {'Partitura': 3}),
+        ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {CatalogMaterials.partitura},
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clearButton = find.widgetWithText(TextButton, 'Limpar cache offline');
+    expect(clearButton, findsOneWidget);
+    expect(tester.widget<TextButton>(clearButton).onPressed, isNotNull);
+  });
+
   testWidgets('shows zip byte progress during fetching phase', (tester) async {
     await tester.pumpWidget(
       _offlineTestApp(

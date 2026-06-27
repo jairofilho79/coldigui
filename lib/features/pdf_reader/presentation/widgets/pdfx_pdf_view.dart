@@ -4,6 +4,7 @@ import 'package:pdfx/pdfx.dart';
 
 import '../../../../core/theme/color_extensions.dart';
 import '../utils/pdf_page_swipe_policy.dart';
+import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
@@ -18,6 +19,9 @@ typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 /// O gesto só é reconhecido ao soltar o dedo; no máximo ±1 página em relação
 /// à página no início do toque. Usa [Listener] para não competir com pan/pinch
 /// do [PdfViewPinch].
+///
+/// Teclado/page turner (UC-11): setas esquerda/cima voltam; direita/baixo avançam.
+/// Sempre troca de página (ignora borda de pan do swipe). Ver [PdfReaderPageKeyHandler].
 class PdfxPdfView extends StatefulWidget {
   const PdfxPdfView({
     required this.controller,
@@ -205,18 +209,22 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
 
     if (targetPage < 1 || targetPage > pagesCount) return;
 
-    _pageTurnInProgress = true;
+    await _navigateToPageWithLock(targetPage);
+  }
+
+  Future<void> _navigateToPageWithLock(int targetPage) async {
+    if (_pageTurnInProgress) return;
+    setState(() => _pageTurnInProgress = true);
     try {
       await widget.navigateToPage(targetPage);
     } finally {
       if (mounted) {
-        _pageTurnInProgress = false;
+        setState(() => _pageTurnInProgress = false);
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPdfContent() {
     return Listener(
       onPointerDown: _onPointerDown,
       onPointerMove: _onPointerMove,
@@ -259,6 +267,30 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
             ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+
+    return ValueListenableBuilder<PdfLoadingState>(
+      valueListenable: controller.loadingState,
+      builder: (context, loadingState, _) {
+        return ValueListenableBuilder<int>(
+          valueListenable: controller.pageListenable,
+          builder: (context, currentPage, _) {
+            return PdfReaderPageKeyHandler(
+              currentPage: currentPage,
+              pagesCount: controller.pagesCount ?? 0,
+              enabled: loadingState == PdfLoadingState.success,
+              pageTurnInProgress: _pageTurnInProgress,
+              onNavigateToPage: _navigateToPageWithLock,
+              child: _buildPdfContent(),
+            );
+          },
+        );
+      },
     );
   }
 }

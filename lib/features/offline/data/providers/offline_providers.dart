@@ -198,6 +198,7 @@ final listMissingLouvoresByMaterialProvider =
 final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
   return ClearOfflineCache(
     ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(catalogLocalDatasourceProvider),
     ref.watch(pdfLocalStoreProvider),
     ref.watch(offlineBulkCheckpointStoreProvider),
     ref.watch(offlineBulkCategoriesStoreProvider),

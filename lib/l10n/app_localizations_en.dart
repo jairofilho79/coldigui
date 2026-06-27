@@ -287,8 +287,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineClearCacheConfirmTitle => 'Clear offline cache?';
 
   @override
-  String get offlineClearCacheConfirmBody =>
-      'All downloaded PDFs will be removed. This action cannot be undone.';
+  String offlineClearCacheConfirmBody(String categories) {
+    return 'Downloaded PDFs for $categories will be removed. This action cannot be undone.';
+  }
 
   @override
   String get offlineClearCacheConfirm => 'Clear';
@@ -298,6 +299,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offlineClearCacheSuccess => 'Offline cache cleared';
+
+  @override
+  String offlineClearCacheSuccessPartial(String categories) {
+    return 'Cache cleared for $categories';
+  }
 
   @override
   String offlineMissingProgress(int done, int total) {

@@ -542,8 +542,8 @@ abstract class AppLocalizations {
   /// No description provided for @offlineClearCacheConfirmBody.
   ///
   /// In pt, this message translates to:
-  /// **'Todos os PDFs baixados serão removidos. Esta ação não pode ser desfeita.'**
-  String get offlineClearCacheConfirmBody;
+  /// **'Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.'**
+  String offlineClearCacheConfirmBody(String categories);
 
   /// No description provided for @offlineClearCacheConfirm.
   ///
@@ -562,6 +562,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Cache offline limpo'**
   String get offlineClearCacheSuccess;
+
+  /// No description provided for @offlineClearCacheSuccessPartial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cache de {categories} limpo'**
+  String offlineClearCacheSuccessPartial(String categories);
 
   /// No description provided for @offlineMissingProgress.
   ///
