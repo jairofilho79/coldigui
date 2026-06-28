@@ -2,14 +2,17 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/confirm_dialog.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
-import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_ui_provider.dart';
 import 'package:coldigui/features/playlists/presentation/utils/playlist_share_debug_log.dart';
+import 'package:coldigui/features/playlists/presentation/widgets/playlist_share_sheet.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/save_playlist_dialog.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -19,28 +22,15 @@ import 'package:go_router/go_router.dart';
 /// Largura mínima da tela (px) para layout expandido da barra do carousel.
 ///
 /// Em larguras menores, [CarouselBarTrailingActions] colapsa salvar/compartilhar/
-/// folheto/limpar em [PopupMenuButton] (`more_vert`). [CarouselNavigatorBar]
+/// limpar em [PopupMenuButton] (`more_vert`). [CarouselNavigatorBar]
 /// mantém setas e botão lista sempre visíveis.
 const kCarouselBarExpandedBreakpoint = 600.0;
 
-enum _CarouselOverflowAction {
-  savePlaylist,
-  sharePlaylist,
-  generateLeaflet,
-  clear
-}
+enum _CarouselOverflowAction { savePlaylist, share, clear }
 
-/// Ações à direita da barra de carousel: salvar, compartilhar, folheto e limpar.
+/// Ações à direita da barra de carousel: salvar, compartilhar e limpar.
 ///
-/// Layout responsivo em [kCarouselBarExpandedBreakpoint]:
-/// - **Compacto:** menu overflow (`more_vert`) com `iconColor: AppColors.title`.
-/// - **Expandido:** quatro [IconButton] com [carouselBarIconButtonStyle].
-///
-/// **Compartilhar** (UC-07): usa a playlist ativa ([activePlaylistIdProvider])
-/// e delega a [PlaylistsNotifier.sharePlaylist] — URL PWA-compatível
-/// (`/?sharepdfs=…&sharename=…`) via [share_plus].
-///
-/// Shell e leitor PDF ([CarouselChips] via [CarouselBarShell]).
+/// **Compartilhar** (UC-07/UC-08): bottom sheet com link, folheto ou ambos.
 class CarouselBarTrailingActions extends ConsumerStatefulWidget {
   const CarouselBarTrailingActions({super.key});
 
@@ -51,7 +41,7 @@ class CarouselBarTrailingActions extends ConsumerStatefulWidget {
 
 class _CarouselBarTrailingActionsState
     extends ConsumerState<CarouselBarTrailingActions> {
-  var _generatingLeaflet = false;
+  var _sharing = false;
 
   Future<bool> _canClear() async {
     final activeId = ref.read(activePlaylistIdProvider);
@@ -71,7 +61,7 @@ class _CarouselBarTrailingActionsState
       return PopupMenuButton<_CarouselOverflowAction>(
         tooltip: l10n.carouselOverflowMenu,
         iconColor: AppColors.title,
-        icon: _generatingLeaflet
+        icon: _sharing
             ? SizedBox(
                 width: 24,
                 height: 24,
@@ -89,13 +79,8 @@ class _CarouselBarTrailingActionsState
             child: Text(l10n.carouselSavePlaylist),
           ),
           PopupMenuItem(
-            value: _CarouselOverflowAction.sharePlaylist,
+            value: _CarouselOverflowAction.share,
             child: Text(l10n.carouselSharePlaylist),
-          ),
-          PopupMenuItem(
-            value: _CarouselOverflowAction.generateLeaflet,
-            enabled: !_generatingLeaflet,
-            child: Text(l10n.carouselGenerateLeaflet),
           ),
           PopupMenuItem(
             value: _CarouselOverflowAction.clear,
@@ -117,13 +102,7 @@ class _CarouselBarTrailingActionsState
         IconButton(
           style: carouselBarIconButtonStyle,
           tooltip: l10n.carouselSharePlaylist,
-          icon: const Icon(Icons.share_outlined),
-          onPressed: () => _sharePlaylist(context, ref, l10n),
-        ),
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n.carouselGenerateLeaflet,
-          icon: _generatingLeaflet
+          icon: _sharing
               ? SizedBox(
                   width: 20,
                   height: 20,
@@ -132,9 +111,9 @@ class _CarouselBarTrailingActionsState
                     color: AppColors.title,
                   ),
                 )
-              : const Icon(Icons.description_outlined),
+              : const Icon(Icons.share_outlined),
           onPressed:
-              _generatingLeaflet ? null : () => _generateLeaflet(context, ref),
+              _sharing ? null : () => _openShareSheet(context, ref, l10n),
         ),
         IconButton(
           style: carouselBarIconButtonStyle,
@@ -155,10 +134,8 @@ class _CarouselBarTrailingActionsState
     switch (action) {
       case _CarouselOverflowAction.savePlaylist:
         _savePlaylist(context, ref, l10n);
-      case _CarouselOverflowAction.sharePlaylist:
-        _sharePlaylist(context, ref, l10n);
-      case _CarouselOverflowAction.generateLeaflet:
-        _generateLeaflet(context, ref);
+      case _CarouselOverflowAction.share:
+        _openShareSheet(context, ref, l10n);
       case _CarouselOverflowAction.clear:
         _confirmClear(context, ref, l10n);
     }
@@ -210,12 +187,12 @@ class _CarouselBarTrailingActionsState
     );
   }
 
-  Future<void> _sharePlaylist(
+  Future<void> _openShareSheet(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
   ) async {
-    playlistShareDebugLog('CarouselBarTrailingActions._sharePlaylist: início');
+    playlistShareDebugLog('CarouselBarTrailingActions._openShareSheet: início');
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     final resolved = await ref
         .read(playlistsProvider.notifier)
@@ -223,37 +200,36 @@ class _CarouselBarTrailingActionsState
     if (!context.mounted) return;
 
     if (resolved == null) {
-      playlistShareDebugLog(
-        '_sharePlaylist: resolve retornou null — exibindo lista vazia',
-      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.playlistEmptyPdfList)),
       );
       return;
     }
 
-    playlistShareDebugLog(
-      '_sharePlaylist: compartilhando id=${resolved.playlistId} '
-      'nome="${resolved.nome}"',
-    );
-    final shared = await ref.read(playlistsProvider.notifier).sharePlaylist(
-          playlistId: resolved.playlistId,
-          subject: resolved.nome,
-          sharePositionOrigin: shareOrigin,
-        );
-    if (!shared && context.mounted) {
-      showPlaylistShareErrorSnackbar(context, l10n);
-    }
-  }
+    final pdfIds =
+        ref.read(carouselLouvoresProvider).map((e) => e.pdfId).toList();
+    final option = await showPlaylistShareSheet(context);
+    if (option == null || !context.mounted) return;
 
-  Future<void> _generateLeaflet(BuildContext context, WidgetRef ref) async {
-    setState(() => _generatingLeaflet = true);
+    setState(() => _sharing = true);
     try {
-      await ref.read(leafletActionsProvider.notifier).generateAndShare(context);
-    } finally {
-      if (mounted) {
-        setState(() => _generatingLeaflet = false);
+      final shared =
+          await ref.read(playlistShareActionsProvider.notifier).share(
+                context,
+                PlaylistShareContext(
+                  playlistId: resolved.playlistId,
+                  nome: resolved.nome,
+                  pdfIds: pdfIds,
+                  fromCarousel: true,
+                ),
+                option,
+                sharePositionOrigin: shareOrigin,
+              );
+      if (!shared && context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
       }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
     }
   }
 

@@ -50,6 +50,18 @@ void main() {
       );
     });
 
+    test('matchesText por prefixo de token', () {
+      expect(
+        LouvorSearchTokens.matchesText(
+          contentTokens: ['alto', 'preco'],
+          compactContent: 'altopreco',
+          query: 'Alto P',
+          queryTokens: ['alto', 'p'],
+        ),
+        isTrue,
+      );
+    });
+
     test('matchesText por hífens na query', () {
       expect(
         LouvorSearchTokens.matchesText(

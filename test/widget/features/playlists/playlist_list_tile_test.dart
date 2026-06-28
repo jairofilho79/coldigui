@@ -7,8 +7,12 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
+import 'package:coldigui/features/leaflet/presentation/utils/leaflet_capture.dart';
+import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_list_tile.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -23,7 +27,6 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
 
   final List<PlaylistViewItem> initial;
   String? lastLoadedPlaylistId;
-  String? lastSharedPlaylistId;
 
   @override
   List<PlaylistViewItem> build() => initial;
@@ -33,15 +36,27 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
     lastLoadedPlaylistId = playlistId;
     return true;
   }
+}
+
+class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
+  PlaylistShareOption? lastOption;
 
   @override
-  Future<bool> sharePlaylist({
-    required String playlistId,
-    required String subject,
-    Rect? sharePositionOrigin,
+  void build() {}
+
+  @override
+  Future<bool> share(
+    BuildContext context,
+    shareContext,
+    PlaylistShareOption option, {
+    required Rect? sharePositionOrigin,
     ShareFn? share,
+    ShareXFilesFn? shareXFiles,
+    CaptureWidgetToPngFn? capture,
+    GetTemporaryDirectoryFn? getTemporaryDirectory,
+    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
-    lastSharedPlaylistId = playlistId;
+    lastOption = option;
     return true;
   }
 }
@@ -110,11 +125,15 @@ void main() {
 
   Widget buildSubject({
     required PlaylistsNotifier playlistsNotifier,
+    PlaylistShareActionsNotifier? shareActionsNotifier,
     List<CarouselItem> carouselItems = const [],
   }) {
+    final shareNotifier =
+        shareActionsNotifier ?? _FakePlaylistShareActionsNotifier();
     return ProviderScope(
       overrides: [
         playlistsProvider.overrideWith(() => playlistsNotifier),
+        playlistShareActionsProvider.overrideWith(() => shareNotifier),
         carouselLouvoresProvider.overrideWith(
           () => _FakeCarouselNotifier(carouselItems),
         ),
@@ -244,16 +263,23 @@ void main() {
     expect(find.text(pdfIdB), findsOneWidget);
   });
 
-  testWidgets('Compartilhar dispara sharePlaylist', (tester) async {
-    final notifier = _FakePlaylistsNotifier([item]);
-    await tester.pumpWidget(buildSubject(playlistsNotifier: notifier));
+  testWidgets('Compartilhar abre sheet e dispara share', (tester) async {
+    final shareNotifier = _FakePlaylistShareActionsNotifier();
+    await tester.pumpWidget(
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        shareActionsNotifier: shareNotifier,
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Compartilhar'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Só o link'));
+    await tester.pumpAndSettle();
 
-    expect(notifier.lastSharedPlaylistId, 'p1');
+    expect(shareNotifier.lastOption, PlaylistShareOption.link);
   });
 }

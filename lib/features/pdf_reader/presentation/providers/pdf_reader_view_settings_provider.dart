@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers/pdf_reader_providers.dart';
 import '../../domain/entities/pdf_reader_preferences.dart';
+import 'reader_fullscreen_provider.dart';
 
 /// Estado de visualização do leitor — fit mode (UC-11 Fase 2.3).
 final pdfReaderViewSettingsProvider =
@@ -16,9 +17,14 @@ class PdfReaderViewSettingsNotifier extends Notifier<PdfReaderViewSettings> {
     return ref.watch(readerPreferencesDatasourceProvider).loadSettings();
   }
 
-  /// Aplica fit mode salvo no controller após o documento carregar.
+  /// Aplica fit no controller após o documento carregar ou mudar viewport.
+  ///
+  /// Fullscreen força [PdfFitMode.pageWidth]; fora dele usa a preferência salva.
   Future<void> applyInitialFit() async {
-    await ref.read(setZoomAndFitModeProvider).call(mode: state.fitMode);
+    final mode = ref.read(readerFullscreenProvider)
+        ? PdfFitMode.pageWidth
+        : state.fitMode;
+    await ref.read(setZoomAndFitModeProvider).call(mode: mode);
   }
 
   /// Alterna page-fit ↔ page-width, persiste e reaplica zoom.

@@ -365,7 +365,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselSavePlaylist => 'Salvar como lista';
 
   @override
-  String get carouselSharePlaylist => 'Compartilhar lista';
+  String get carouselSharePlaylist => 'Compartilhar';
 
   @override
   String get carouselGenerateLeaflet => 'Gerar folheto';
@@ -552,6 +552,55 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get playlistShareError => 'Não foi possível compartilhar a lista.';
+
+  @override
+  String get playlistShareSheetTitle => 'Compartilhar';
+
+  @override
+  String get playlistShareOptionLink => 'Só o link';
+
+  @override
+  String get playlistShareOptionLinkSubtitle =>
+      'Quem receber importa a lista no PLPCG';
+
+  @override
+  String get playlistShareOptionLeaflet => 'Só o folheto';
+
+  @override
+  String get playlistShareOptionLeafletSubtitle =>
+      'Imagem com a lista de louvores';
+
+  @override
+  String get playlistShareOptionLinkWithLeaflet => 'Link com folheto';
+
+  @override
+  String get playlistShareOptionLinkWithLeafletSubtitle =>
+      'Imagem e link na mesma mensagem';
+
+  @override
+  String get playlistShareOptionWhatsApp => 'Link + folheto';
+
+  @override
+  String get playlistShareOptionWhatsAppSubtitle =>
+      'Para WhatsApp — envia foto e depois o link';
+
+  @override
+  String get playlistShareWhatsAppStepTitle => 'Envie o link';
+
+  @override
+  String get playlistShareWhatsAppStepMessage =>
+      'Envie o link no mesmo chat em que você mandou o folheto.';
+
+  @override
+  String get playlistShareWhatsAppStepContinue => 'Enviar link';
+
+  @override
+  String get playlistShareWhatsAppStepCancel => 'Agora não';
+
+  @override
+  String playlistShareLinkWithLeafletMessage(String name, String url) {
+    return '$name\n\n$url';
+  }
 
   @override
   String get playlistTabUnsaved => 'Não Salvas';

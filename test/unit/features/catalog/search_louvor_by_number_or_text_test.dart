@@ -76,6 +76,17 @@ void main() {
     expect(search(catalog, 'inexistente xyz'), isEmpty);
   });
 
+  test('busca por prefixo de palavra na query', () {
+    final extended = [
+      ...catalog,
+      _louvor(nome: 'Alto Preço', numero: '100', pdfId: 'e'),
+    ];
+
+    expect(search(extended, 'Alto P'), hasLength(1));
+    expect(search(extended, 'Alto P').first.nome, 'Alto Preço');
+    expect(search(extended, 'Alt Pre'), hasLength(1));
+  });
+
   test('busca flexível com hífens, espaços ou texto compacto', () {
     for (final query in ['buscarmeeis', 'buscar me eis', 'buscar-me-eis']) {
       final result = search(catalog, query);

@@ -12,19 +12,24 @@ import 'fetch_and_store_pdf.dart';
 ///
 /// Quando [isFullOfflineMode] retorna `true` (`OFFLINE_AVAILABLE=TRUE`), o miss
 /// usa `persistentDownload` e omite eviction LRU — preserva acervo bulk ao abrir
-/// PDFs novos fora dos packages.
+/// PDFs novos fora dos packages. O fetch continua disponível com rede ativa.
 class ResolvePdfForReader {
   const ResolvePdfForReader(
     this._repository,
     this._fetchAndStore, {
     bool Function() isFullOfflineMode = _defaultIsFullOfflineMode,
-  }) : _isFullOfflineMode = isFullOfflineMode;
+    Future<bool> Function() hasNetworkConnection = _defaultHasNetworkConnection,
+  })  : _isFullOfflineMode = isFullOfflineMode,
+        _hasNetworkConnection = hasNetworkConnection;
 
   static bool _defaultIsFullOfflineMode() => false;
+
+  static Future<bool> _defaultHasNetworkConnection() async => true;
 
   final OfflinePdfRepository _repository;
   final FetchAndStorePdf _fetchAndStore;
   final bool Function() _isFullOfflineMode;
+  final Future<bool> Function() _hasNetworkConnection;
 
   /// Resolve [pdfId] para path absoluto local, baixando on-demand se necessário.
   Future<LocalPdfSource> call({
@@ -42,7 +47,8 @@ class ResolvePdfForReader {
       );
     }
 
-    if (_isFullOfflineMode()) {
+    final online = await _hasNetworkConnection();
+    if (_isFullOfflineMode() && !online) {
       if (hasIndexEntry) {
         throw PdfExternallyDeletedException(pdfId: pdfId);
       }

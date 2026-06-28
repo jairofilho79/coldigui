@@ -1,6 +1,5 @@
 import 'package:coldigui/features/pdf_reader/presentation/utils/pdf_page_edge_tap_policy.dart';
 import 'package:coldigui/features/pdf_reader/presentation/utils/pdf_page_swipe_policy.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

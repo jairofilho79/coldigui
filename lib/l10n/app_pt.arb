@@ -221,9 +221,9 @@
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
   "carouselSavePlaylist": "Salvar como lista",
-  "carouselSharePlaylist": "Compartilhar lista",
+  "carouselSharePlaylist": "Compartilhar",
   "@carouselSharePlaylist": {
-    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07)."
+    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Gerar folheto",
   "carouselOverflowMenu": "Mais ações",
@@ -293,6 +293,26 @@
   "playlistImported": "Lista importada",
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "playlistShareError": "Não foi possível compartilhar a lista.",
+  "playlistShareSheetTitle": "Compartilhar",
+  "playlistShareOptionLink": "Só o link",
+  "playlistShareOptionLinkSubtitle": "Quem receber importa a lista no PLPCG",
+  "playlistShareOptionLeaflet": "Só o folheto",
+  "playlistShareOptionLeafletSubtitle": "Imagem com a lista de louvores",
+  "playlistShareOptionLinkWithLeaflet": "Link com folheto",
+  "playlistShareOptionLinkWithLeafletSubtitle": "Imagem e link na mesma mensagem",
+  "playlistShareOptionWhatsApp": "Link + folheto",
+  "playlistShareOptionWhatsAppSubtitle": "Para WhatsApp — envia foto e depois o link",
+  "playlistShareWhatsAppStepTitle": "Envie o link",
+  "playlistShareWhatsAppStepMessage": "Envie o link no mesmo chat em que você mandou o folheto.",
+  "playlistShareWhatsAppStepContinue": "Enviar link",
+  "playlistShareWhatsAppStepCancel": "Agora não",
+  "playlistShareLinkWithLeafletMessage": "{name}\n\n{url}",
+  "@playlistShareLinkWithLeafletMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "url": { "type": "String" }
+    }
+  },
   "playlistTabUnsaved": "Não Salvas",
   "playlistTabSaved": "Salvas",
   "playlistTabFavorites": "Favoritas",

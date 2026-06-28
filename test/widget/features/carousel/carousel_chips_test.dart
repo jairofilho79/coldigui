@@ -7,7 +7,10 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carou
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/leaflet/presentation/utils/leaflet_capture.dart';
 import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +20,6 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier({this.resolvedPlaylist});
 
-  String? lastSharedPlaylistId;
   final ResolvedActivePlaylist? resolvedPlaylist;
 
   @override
@@ -26,33 +28,27 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async =>
       resolvedPlaylist;
-
-  @override
-  Future<bool> sharePlaylist({
-    required String playlistId,
-    required String subject,
-    Rect? sharePositionOrigin,
-    ShareFn? share,
-  }) async {
-    lastSharedPlaylistId = playlistId;
-    return true;
-  }
 }
 
-class _FakeLeafletActionsNotifier extends LeafletActionsNotifier {
-  var generateCalled = false;
+class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
+  PlaylistShareOption? lastOption;
 
   @override
   void build() {}
 
   @override
-  Future<bool> generateAndShare(
-    BuildContext context, {
+  Future<bool> share(
+    BuildContext context,
+    shareContext,
+    PlaylistShareOption option, {
+    required Rect? sharePositionOrigin,
+    ShareFn? share,
     ShareXFilesFn? shareXFiles,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     CaptureWidgetToPngFn? capture,
+    GetTemporaryDirectoryFn? getTemporaryDirectory,
+    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
-    generateCalled = true;
+    lastOption = option;
     return true;
   }
 }
@@ -233,11 +229,11 @@ void main() {
     expect(find.byIcon(Icons.save_outlined), findsOneWidget);
   });
 
-  testWidgets('exibe botão folheto quando há chips', (tester) async {
+  testWidgets('exibe botão compartilhar quando há chips', (tester) async {
     await tester.pumpWidget(buildSubject(items));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.description_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
   });
 
   testWidgets('em smartphone usa menu overflow em vez de ícones individuais',
@@ -252,14 +248,14 @@ void main() {
 
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
     expect(find.byIcon(Icons.save_outlined), findsNothing);
-    expect(find.byIcon(Icons.description_outlined), findsNothing);
+    expect(find.byIcon(Icons.share_outlined), findsNothing);
     expect(find.byIcon(Icons.clear_all), findsNothing);
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 
-  testWidgets('menu overflow em smartphone dispara compartilhar lista',
+  testWidgets('menu overflow em smartphone abre sheet de compartilhar',
       (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
@@ -272,12 +268,14 @@ void main() {
         nome: 'Ensaio',
       ),
     );
+    final shareNotifier = _FakePlaylistShareActionsNotifier();
     final carouselNotifier = _FakeCarouselNotifier(items);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
+          playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -291,10 +289,12 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Compartilhar lista'));
+    await tester.tap(find.text('Compartilhar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Só o link'));
     await tester.pumpAndSettle();
 
-    expect(playlistsNotifier.lastSharedPlaylistId, 'p1');
+    expect(shareNotifier.lastOption, PlaylistShareOption.link);
   });
 
   testWidgets(
@@ -311,12 +311,14 @@ void main() {
         nome: 'Ensaio',
       ),
     );
+    final shareNotifier = _FakePlaylistShareActionsNotifier();
     final carouselNotifier = _FakeCarouselNotifier(items);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
+          playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -330,27 +332,30 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Compartilhar lista'));
+    await tester.tap(find.text('Compartilhar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Só o link'));
     await tester.pumpAndSettle();
 
-    expect(playlistsNotifier.lastSharedPlaylistId, 'p1');
     expect(find.text('Esta lista não tem louvores.'), findsNothing);
   });
 
-  testWidgets('menu overflow em smartphone dispara gerar folheto',
+  testWidgets('tap compartilhar dispara opção folheto no sheet',
       (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final leafletNotifier = _FakeLeafletActionsNotifier();
+    final playlistsNotifier = _FakePlaylistsNotifier(
+      resolvedPlaylist: const ResolvedActivePlaylist(
+        playlistId: 'p1',
+        nome: 'Ensaio',
+      ),
+    );
+    final shareNotifier = _FakePlaylistShareActionsNotifier();
     final carouselNotifier = _FakeCarouselNotifier(items);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
-          leafletActionsProvider.overrideWith(() => leafletNotifier),
+          playlistsProvider.overrideWith(() => playlistsNotifier),
+          playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -362,37 +367,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(Icons.share_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gerar folheto'));
-    await tester.pumpAndSettle();
-
-    expect(leafletNotifier.generateCalled, isTrue);
-  });
-
-  testWidgets('tap folheto dispara generateAndShare', (tester) async {
-    final leafletNotifier = _FakeLeafletActionsNotifier();
-    final carouselNotifier = _FakeCarouselNotifier(items);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(() => carouselNotifier),
-          leafletActionsProvider.overrideWith(() => leafletNotifier),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: CarouselChips()),
-        ),
-      ),
-    );
+    await tester.tap(find.text('Só o folheto'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.description_outlined));
-    await tester.pumpAndSettle();
-
-    expect(leafletNotifier.generateCalled, isTrue);
+    expect(shareNotifier.lastOption, PlaylistShareOption.leaflet);
   });
 
   testWidgets('limpar seleção após confirmação', (tester) async {

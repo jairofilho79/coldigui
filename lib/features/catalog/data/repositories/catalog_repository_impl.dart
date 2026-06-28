@@ -1,4 +1,5 @@
 import '../../domain/entities/louvor.dart';
+import '../../domain/ports/catalog_manifest_sync_listener.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../datasources/catalog_local_datasource.dart';
 import '../datasources/catalog_remote_datasource.dart';
@@ -12,13 +13,16 @@ class CatalogRepositoryImpl implements CatalogRepository {
     required CatalogRemoteDatasource remote,
     required CatalogLocalDatasource local,
     required CatalogSyncMetadataStore syncMetadata,
+    CatalogManifestSyncListener? manifestSyncListener,
   })  : _remote = remote,
         _local = local,
-        _syncMetadata = syncMetadata;
+        _syncMetadata = syncMetadata,
+        _manifestSyncListener = manifestSyncListener;
 
   final CatalogRemoteDatasource _remote;
   final CatalogLocalDatasource _local;
   final CatalogSyncMetadataStore _syncMetadata;
+  final CatalogManifestSyncListener? _manifestSyncListener;
 
   @override
   Future<List<Louvor>> loadManifest() async {
@@ -31,8 +35,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
         return remoteLouvores;
       }
 
+      final previousLouvores = await _local.loadLouvores();
       await cacheManifest(remoteLouvores);
       await _syncMetadata.markSyncedNow();
+      await _notifyManifestReplaced(previousLouvores, remoteLouvores);
       return remoteLouvores;
     } on Object {
       final cached = await _local.loadLouvores();
@@ -49,9 +55,23 @@ class CatalogRepositoryImpl implements CatalogRepository {
       throw StateError('Manifest remoto vazio');
     }
 
+    final previousLouvores = await _local.loadLouvores();
     await cacheManifest(remoteLouvores);
     await _syncMetadata.markSyncedNow();
+    await _notifyManifestReplaced(previousLouvores, remoteLouvores);
     return remoteLouvores;
+  }
+
+  Future<void> _notifyManifestReplaced(
+    List<Louvor> previousLouvores,
+    List<Louvor> newLouvores,
+  ) async {
+    final listener = _manifestSyncListener;
+    if (listener == null || previousLouvores.isEmpty) return;
+    await listener.onManifestReplaced(
+      previousLouvores: previousLouvores,
+      newLouvores: newLouvores,
+    );
   }
 
   @override

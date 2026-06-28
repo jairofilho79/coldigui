@@ -44,6 +44,14 @@ abstract class OfflinePdfRepository {
   /// Remove arquivo no disco e entrada no índice (idempotente se ausente).
   Future<void> remove(String pdfId);
 
+  /// Reindexa [fromPdfId] como [toPdfId] sem mover o arquivo no disco.
+  ///
+  /// Idempotente se [fromPdfId] ausente ou [toPdfId] já indexado.
+  Future<void> remapPdfId({
+    required String fromPdfId,
+    required String toPdfId,
+  });
+
   /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
   Future<String?> findPdfIdByAbsolutePath(String absolutePath);
 

@@ -86,8 +86,8 @@ abstract final class LouvorSearchTokens {
 
   /// Verifica match textual UC-01.
   ///
-  /// 1. **Tokens** — todos os [queryTokens] presentes em [contentTokens]
-  ///    (ex.: `buscar me eis`, `buscar-me-eis`).
+  /// 1. **Tokens** — cada [queryTokens] é prefixo de algum [contentTokens]
+  ///    (ex.: `alto p` → `Alto Preço`, `buscar me eis`, `buscar-me-eis`).
   /// 2. **Compacto** — se [query] não tem separadores e tem ≥3 caracteres,
   ///    [compact](query) é substring de [compactContent]
   ///    (ex.: `buscarmeeis`).
@@ -97,8 +97,9 @@ abstract final class LouvorSearchTokens {
     required String query,
     required List<String> queryTokens,
   }) {
-    final tokenMatch =
-        queryTokens.every((token) => contentTokens.contains(token));
+    final tokenMatch = queryTokens.every(
+      (token) => contentTokens.any((content) => content.startsWith(token)),
+    );
     if (tokenMatch) return true;
 
     if (hasWordSeparators(query)) return false;

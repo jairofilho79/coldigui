@@ -221,9 +221,9 @@
   "carouselRemoveTooltip": "Remove",
   "carouselAddTooltip": "Add to selection",
   "carouselSavePlaylist": "Save as playlist",
-  "carouselSharePlaylist": "Share playlist",
+  "carouselSharePlaylist": "Share",
   "@carouselSharePlaylist": {
-    "description": "Carousel bar overflow menu item and share button tooltip (UC-07)."
+    "description": "Carousel bar overflow menu item and share button tooltip (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Generate leaflet",
   "carouselOverflowMenu": "More actions",
@@ -293,6 +293,26 @@
   "playlistImported": "Playlist imported",
   "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
   "playlistShareError": "Could not share the playlist.",
+  "playlistShareSheetTitle": "Share",
+  "playlistShareOptionLink": "Link only",
+  "playlistShareOptionLinkSubtitle": "Recipients can import the playlist in PLPCG",
+  "playlistShareOptionLeaflet": "Leaflet only",
+  "playlistShareOptionLeafletSubtitle": "Image with the hymn list",
+  "playlistShareOptionLinkWithLeaflet": "Link with leaflet",
+  "playlistShareOptionLinkWithLeafletSubtitle": "Image and link in one message",
+  "playlistShareOptionWhatsApp": "Link + leaflet",
+  "playlistShareOptionWhatsAppSubtitle": "For WhatsApp — sends photo then link",
+  "playlistShareWhatsAppStepTitle": "Send the link",
+  "playlistShareWhatsAppStepMessage": "Send the link in the same chat where you sent the leaflet.",
+  "playlistShareWhatsAppStepContinue": "Send link",
+  "playlistShareWhatsAppStepCancel": "Not now",
+  "playlistShareLinkWithLeafletMessage": "{name}\n\n{url}",
+  "@playlistShareLinkWithLeafletMessage": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "url": { "type": "String" }
+    }
+  },
   "playlistTabUnsaved": "Unsaved",
   "playlistTabSaved": "Saved",
   "playlistTabFavorites": "Favorites",

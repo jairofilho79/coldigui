@@ -28,8 +28,8 @@ dependencies:
   flutter_svg: ^2.2.0
 
 dependency_overrides:
-  # Workaround: objective_c 9.4.x fails to dlopen on iOS simulator (flutter/flutter#186794).
-  objective_c: 9.3.0
+  # Fix iOS simulator dlopen crash with path_provider_foundation 2.6.0 (flutter/flutter#186794).
+  objective_c: 9.4.1
 
 dev_dependencies:
   build_runner: ^2.4.13

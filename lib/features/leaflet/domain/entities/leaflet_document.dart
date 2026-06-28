@@ -36,4 +36,23 @@ class LeafletDocument {
       ],
     );
   }
+
+  /// Monta folheto a partir de [pdfIds] ordenados e metadados do manifest.
+  factory LeafletDocument.fromPdfIds(
+    List<String> pdfIds, {
+    required Map<String, CarouselItemMetadata> pdfIdToMetadata,
+    DateTime? generatedAt,
+  }) {
+    return LeafletDocument(
+      generatedAt: generatedAt ?? DateTime.now(),
+      entries: [
+        for (var i = 0; i < pdfIds.length; i++)
+          LeafletEntry(
+            index: i + 1,
+            numero: pdfIdToMetadata[pdfIds[i]]?.numero ?? '',
+            nome: pdfIdToMetadata[pdfIds[i]]?.nome ?? pdfIds[i],
+          ),
+      ],
+    );
+  }
 }

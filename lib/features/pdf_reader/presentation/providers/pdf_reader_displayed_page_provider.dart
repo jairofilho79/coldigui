@@ -35,6 +35,12 @@ class PdfReaderDisplayedPageNotifier
     ref.watch(pdfReaderSessionProvider(filePath)).whenData(_attachToSession);
 
     ref.onDispose(_detach);
+
+    final session = ref.watch(pdfReaderSessionProvider(filePath)).valueOrNull;
+    if (session != null &&
+        session.controller.loadingState.value == PdfLoadingState.success) {
+      return session.controller.page;
+    }
     return 1;
   }
 
@@ -96,11 +102,6 @@ class PdfReaderDisplayedPageNotifier
       }
     };
     _controller!.loadingState.addListener(_loadingStateListener!);
-
-    if (!_suppressLiveUpdates &&
-        session.controller.loadingState.value == PdfLoadingState.success) {
-      state = session.controller.page;
-    }
   }
 
   void _detach() {

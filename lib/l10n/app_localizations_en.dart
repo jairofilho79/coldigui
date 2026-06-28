@@ -359,7 +359,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carouselSavePlaylist => 'Save as playlist';
 
   @override
-  String get carouselSharePlaylist => 'Share playlist';
+  String get carouselSharePlaylist => 'Share';
 
   @override
   String get carouselGenerateLeaflet => 'Generate leaflet';
@@ -546,6 +546,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistShareError => 'Could not share the playlist.';
+
+  @override
+  String get playlistShareSheetTitle => 'Share';
+
+  @override
+  String get playlistShareOptionLink => 'Link only';
+
+  @override
+  String get playlistShareOptionLinkSubtitle =>
+      'Recipients can import the playlist in PLPCG';
+
+  @override
+  String get playlistShareOptionLeaflet => 'Leaflet only';
+
+  @override
+  String get playlistShareOptionLeafletSubtitle => 'Image with the hymn list';
+
+  @override
+  String get playlistShareOptionLinkWithLeaflet => 'Link with leaflet';
+
+  @override
+  String get playlistShareOptionLinkWithLeafletSubtitle =>
+      'Image and link in one message';
+
+  @override
+  String get playlistShareOptionWhatsApp => 'Link + leaflet';
+
+  @override
+  String get playlistShareOptionWhatsAppSubtitle =>
+      'For WhatsApp — sends photo then link';
+
+  @override
+  String get playlistShareWhatsAppStepTitle => 'Send the link';
+
+  @override
+  String get playlistShareWhatsAppStepMessage =>
+      'Send the link in the same chat where you sent the leaflet.';
+
+  @override
+  String get playlistShareWhatsAppStepContinue => 'Send link';
+
+  @override
+  String get playlistShareWhatsAppStepCancel => 'Not now';
+
+  @override
+  String playlistShareLinkWithLeafletMessage(String name, String url) {
+    return '$name\n\n$url';
+  }
 
   @override
   String get playlistTabUnsaved => 'Unsaved';

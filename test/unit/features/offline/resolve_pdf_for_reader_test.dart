@@ -110,6 +110,13 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
+  Future<void> remapPdfId({
+    required String fromPdfId,
+    required String toPdfId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
 
   @override
@@ -444,7 +451,7 @@ void main() {
     expect(fake.lastPersistentDownload, isFalse);
   });
 
-  test('miss com isFullOfflineMode true falha imediato sem fetch', () async {
+  test('miss com isFullOfflineMode true e offline falha sem fetch', () async {
     final fake = _FakeFetchAndStorePdf(({
       required String pdfId,
       required String remotePath,
@@ -457,6 +464,7 @@ void main() {
       repository,
       fake,
       isFullOfflineMode: () => true,
+      hasNetworkConnection: () async => false,
     );
 
     expect(
@@ -465,7 +473,36 @@ void main() {
     );
   });
 
-  test('fullOfflineMode com índice órfão lança PdfExternallyDeletedException',
+  test('miss com isFullOfflineMode true e online delega fetch persistente',
+      () async {
+    const fetchedPath = '/docs/plpcg_pdfs/ColAdultos/001.pdf';
+    final fake = _FakeFetchAndStorePdf(({
+      required String pdfId,
+      required String remotePath,
+      String? category,
+      ProgressCallback? onProgress,
+    }) async {
+      return LocalPdfSource(
+        pdfId: pdfId,
+        absolutePath: fetchedPath,
+        fromCache: false,
+      );
+    });
+    final resolver = ResolvePdfForReader(
+      repository,
+      fake,
+      isFullOfflineMode: () => true,
+      hasNetworkConnection: () async => true,
+    );
+
+    final source = await resolver(pdfId: pdfId, remotePath: remotePath);
+
+    expect(source.absolutePath, fetchedPath);
+    expect(fake.lastPersistentDownload, isTrue);
+  });
+
+  test(
+      'fullOfflineMode com índice órfão e offline lança PdfExternallyDeletedException',
       () async {
     final bytes = Uint8List.fromList([1]);
     final entry = await repository.upsert(
@@ -487,6 +524,7 @@ void main() {
       repository,
       fake,
       isFullOfflineMode: () => true,
+      hasNetworkConnection: () async => false,
     );
 
     expect(

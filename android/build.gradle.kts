@@ -17,16 +17,21 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
 
-// Plugins antigos (ex.: isar_flutter_libs) sem namespace no build.gradle — AGP 8+ exige.
+// Plugins antigos (ex.: isar_flutter_libs) sem namespace/compileSdk — AGP 8+ exige.
 subprojects {
     pluginManager.withPlugin("com.android.library") {
         extensions.configure<LibraryExtension> {
             if (namespace.isNullOrBlank()) {
                 namespace = project.group.toString()
+            }
+        }
+    }
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.library")) {
+            extensions.configure<LibraryExtension> {
+                // isar_flutter_libs fixa compileSdkVersion 30; lStar exige API 31+.
+                compileSdk = 35
             }
         }
     }

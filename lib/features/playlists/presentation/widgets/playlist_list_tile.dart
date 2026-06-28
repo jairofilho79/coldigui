@@ -19,9 +19,12 @@ import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
+import '../../domain/entities/playlist_share_option.dart';
+import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
+import 'playlist_share_sheet.dart';
 import 'save_playlist_dialog.dart';
 
 /// Tile de playlist com favorito, expansão e ações (UC-06).
@@ -302,16 +305,24 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         }
         if (_loading) return;
         final shareOrigin = sharePositionOriginFromContextOrFallback(context);
+        final option = await showPlaylistShareSheet(context);
+        if (option == null || !context.mounted) return;
+
         setState(() => _loading = true);
         try {
           playlistShareDebugLog(
             'PlaylistListTile.share: id=${playlist.playlistId} '
-            'pdfIds (${playlist.pdfIds.length})',
+            'option=$option pdfIds (${playlist.pdfIds.length})',
           );
           final shared =
-              await ref.read(playlistsProvider.notifier).sharePlaylist(
-                    playlistId: playlist.playlistId,
-                    subject: playlist.nome,
+              await ref.read(playlistShareActionsProvider.notifier).share(
+                    context,
+                    PlaylistShareContext(
+                      playlistId: playlist.playlistId,
+                      nome: playlist.nome,
+                      pdfIds: playlist.pdfIds,
+                    ),
+                    option,
                     sharePositionOrigin: shareOrigin,
                   );
           if (!shared && context.mounted) {

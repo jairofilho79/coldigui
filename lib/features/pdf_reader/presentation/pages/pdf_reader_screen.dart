@@ -277,6 +277,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           navigateToPage: (pageNumber) => ref
               .read(pdfReaderDisplayedPageProvider(filePath).notifier)
               .animateToPage(pageNumber: pageNumber),
+          refreshViewportAfterNavigation: isFullscreen
+              ? () => ref
+                  .read(pdfReaderViewSettingsProvider.notifier)
+                  .applyInitialFit()
+              : null,
         ),
       ),
     );

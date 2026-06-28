@@ -31,6 +31,7 @@ class PdfxPdfView extends StatefulWidget {
   const PdfxPdfView({
     required this.controller,
     required this.navigateToPage,
+    this.refreshViewportAfterNavigation,
     this.onPageChanged,
     super.key,
   });
@@ -39,6 +40,9 @@ class PdfxPdfView extends StatefulWidget {
 
   /// Navegação animada; deve passar por [PdfReaderDisplayedPageNotifier].
   final PdfReaderNavigateToPage navigateToPage;
+
+  /// Reaplica fit após troca por gesto — tipicamente só em fullscreen (tiles PDFx).
+  final Future<void> Function()? refreshViewportAfterNavigation;
 
   /// Callback opcional quando a página visível muda (scroll).
   final ValueChanged<int>? onPageChanged;
@@ -263,6 +267,13 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     setState(() => _pageTurnInProgress = true);
     try {
       await widget.navigateToPage(targetPage);
+      final refresh = widget.refreshViewportAfterNavigation;
+      if (refresh != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          await refresh();
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _pageTurnInProgress = false);

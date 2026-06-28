@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/database/isar_provider.dart';
+import '../../../../core/providers/device_connectivity_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
-import '../../../catalog/data/providers/catalog_providers.dart';
+import '../../../catalog/data/providers/catalog_local_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
-import '../../domain/repositories/offline_pdf_repository.dart';
 import '../../../pdf_opening/domain/usecases/validate_pdf_availability.dart';
 import '../../domain/usecases/download_offline_packages.dart';
 import '../../domain/usecases/extract_and_store_pdfs.dart';
@@ -27,29 +26,20 @@ import '../datasources/offline_bulk_categories_store.dart';
 import '../datasources/offline_bulk_checkpoint_store.dart';
 import '../datasources/offline_selected_categories_store.dart';
 import '../datasources/offline_manifest_remote_datasource.dart';
-import '../datasources/offline_pdf_local_datasource.dart';
 import '../datasources/pdf_local_store.dart';
 import '../datasources/zip_package_downloader.dart';
-import '../repositories/offline_pdf_repository_impl.dart';
+import 'offline_repository_providers.dart';
+
+export 'offline_repository_providers.dart';
 
 /// DI — [PdfLocalStore] em `ApplicationDocumentsDirectory/plpcg_pdfs/`.
-final pdfLocalStoreProvider = Provider<PdfLocalStore>((ref) {
-  return PdfLocalStore();
-});
+/// Ver [pdfLocalStoreProvider] em [offline_repository_providers.dart].
 
 /// DI — CRUD Isar [OfflinePdfIndex] via [isarProvider].
-final offlinePdfLocalDatasourceProvider =
-    Provider<OfflinePdfLocalDatasource>((ref) {
-  return OfflinePdfLocalDatasource(ref.watch(isarProvider));
-});
+/// Ver [offlinePdfLocalDatasourceProvider] em [offline_repository_providers.dart].
 
 /// DI — [OfflinePdfRepositoryImpl]; ponto de entrada para use cases 3.2+.
-final offlinePdfRepositoryProvider = Provider<OfflinePdfRepository>((ref) {
-  return OfflinePdfRepositoryImpl(
-    store: ref.watch(pdfLocalStoreProvider),
-    local: ref.watch(offlinePdfLocalDatasourceProvider),
-  );
-});
+/// Ver [offlinePdfRepositoryProvider] em [offline_repository_providers.dart].
 
 /// DI — [FetchAndStorePdf] (Fase 3.3).
 ///
@@ -69,10 +59,12 @@ final fetchAndStorePdfProvider = Provider<FetchAndStorePdf>((ref) {
 /// Consumido por [LouvorCard] antes de abrir/compartilhar/salvar PDF.
 final resolvePdfForReaderProvider = Provider<ResolvePdfForReader>((ref) {
   final offlineStore = ref.watch(offlineAvailableStoreProvider);
+  final connectivity = ref.watch(deviceConnectivityProvider);
   return ResolvePdfForReader(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(fetchAndStorePdfProvider),
     isFullOfflineMode: () => offlineStore.isConfigured,
+    hasNetworkConnection: connectivity.hasConnection,
   );
 });
 

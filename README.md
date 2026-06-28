@@ -26,3 +26,9 @@ open -a Simulator
 # 2. Rodar o app
 cd "/Volumes/SSD 2TB SD/dev/coldigui"
 flutter run --dart-define-from-file=dart_defines/plpcg.json -d "iPhone 17 Pro"
+
+./scripts/android_homolog_install.sh
+
+flutter emulators --launch coldigui_tablet
+source scripts/android_env.sh
+flutter run --dart-define-from-file=dart_defines/plpcg.json

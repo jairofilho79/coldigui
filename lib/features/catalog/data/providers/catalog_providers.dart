@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -11,11 +10,14 @@ import '../../domain/usecases/group_louvores_by_material.dart';
 import '../../domain/usecases/load_louvores_manifest.dart';
 import '../../domain/usecases/poll_manifest_checksum.dart';
 import '../../domain/usecases/search_louvor_by_number_or_text.dart';
-import '../datasources/catalog_local_datasource.dart';
 import '../datasources/catalog_remote_datasource.dart';
 import '../datasources/catalog_sync_metadata_store.dart';
 import '../datasources/manifest_checksum_store.dart';
 import '../repositories/catalog_repository_impl.dart';
+import 'catalog_local_providers.dart';
+import 'catalog_manifest_sync_providers.dart';
+
+export 'catalog_local_providers.dart';
 
 /// Cliente remoto do catálogo (manifest + checksum).
 final catalogRemoteDatasourceProvider =
@@ -23,12 +25,7 @@ final catalogRemoteDatasourceProvider =
   return CatalogRemoteDatasource(ref.watch(dioProvider));
 });
 
-/// Persistência local Isar do catálogo.
-final catalogLocalDatasourceProvider = Provider<CatalogLocalDatasource>((ref) {
-  return CatalogLocalDatasource(ref.watch(isarProvider));
-});
-
-/// Metadados de sync do catálogo (timestamp último fetch remoto).
+/// Persistência local Isar do catálogo — ver [catalogLocalDatasourceProvider].
 final catalogSyncMetadataStoreProvider =
     Provider<CatalogSyncMetadataStore>((ref) {
   return CatalogSyncMetadataStore(ref.watch(sharedPreferencesProvider));
@@ -45,6 +42,7 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
     remote: ref.watch(catalogRemoteDatasourceProvider),
     local: ref.watch(catalogLocalDatasourceProvider),
     syncMetadata: ref.watch(catalogSyncMetadataStoreProvider),
+    manifestSyncListener: ref.watch(catalogManifestSyncListenerProvider),
   );
 });
 

@@ -137,6 +137,37 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   @override
+  Future<void> remapPdfId({
+    required String fromPdfId,
+    required String toPdfId,
+  }) async {
+    if (fromPdfId == toPdfId) return;
+
+    final fromIndex = await _local.findByPdfId(fromPdfId);
+    if (fromIndex == null) return;
+
+    final toIndex = await _local.findByPdfId(toPdfId);
+    if (toIndex != null) {
+      await _local.deleteByPdfId(fromPdfId);
+      _pendingTouchAt.remove(fromPdfId);
+      return;
+    }
+
+    final remapped = OfflinePdfIndex()
+      ..pdfId = toPdfId
+      ..storagePath = fromIndex.storagePath
+      ..category = fromIndex.category
+      ..fileSize = fromIndex.fileSize
+      ..downloadedAt = fromIndex.downloadedAt
+      ..lastAccessedAt = fromIndex.lastAccessedAt
+      ..isPersistent = fromIndex.isPersistent;
+
+    await _local.put(remapped);
+    await _local.deleteByPdfId(fromPdfId);
+    _pendingTouchAt.remove(fromPdfId);
+  }
+
+  @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async {
     final index = await _local.findByStoragePath(absolutePath);
     return index?.pdfId;
