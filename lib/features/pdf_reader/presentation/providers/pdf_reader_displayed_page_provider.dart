@@ -15,8 +15,11 @@ final pdfReaderDisplayedPageProvider = NotifierProvider.autoDispose
     );
 
 /// Estado da página mostrada ao usuário no leitor PDF.
-class PdfReaderDisplayedPageNotifier
-    extends AutoDisposeFamilyNotifier<int, String> {
+class PdfReaderDisplayedPageNotifier extends Notifier<int> {
+  PdfReaderDisplayedPageNotifier(this.filePath);
+
+  final String filePath;
+
   PdfReaderViewerHandle? _handle;
   VoidCallback? _pageListener;
   VoidCallback? _loadingStateListener;
@@ -24,7 +27,7 @@ class PdfReaderDisplayedPageNotifier
   var _animating = false;
 
   @override
-  int build(String filePath) {
+  int build() {
     ref.listen(pdfReaderSessionProvider(filePath), (_, next) {
       next.whenData(_attachToSession);
     });
@@ -33,7 +36,7 @@ class PdfReaderDisplayedPageNotifier
 
     ref.onDispose(_detach);
 
-    final session = ref.watch(pdfReaderSessionProvider(filePath)).valueOrNull;
+    final session = ref.watch(pdfReaderSessionProvider(filePath)).value;
     if (session != null && session.handle.isViewerReady) {
       return session.handle.page;
     }

@@ -11,6 +11,7 @@ import 'package:coldigui/features/library/presentation/providers/library_group_w
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,15 +19,14 @@ Louvor _louvor({
   required String nome,
   required String numero,
   String classificacao = 'ColAdultos',
-}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: 'Partitura',
-      classificacao: classificacao,
-      pdf: '$numero.pdf',
-      pdfId: 'id-$numero',
-    );
+}) => Louvor.fromManifest(
+  nome: nome,
+  numero: numero,
+  categoria: 'Partitura',
+  classificacao: classificacao,
+  pdf: '$numero.pdf',
+  pdfId: 'id-$numero',
+);
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
@@ -47,7 +47,8 @@ Widget _libraryTestApp({
       ),
       carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       libraryGroupPipelineExecutorProvider.overrideWith(
-        (ref) => (input) async => runLibraryGroupPipeline(input),
+        (ref) =>
+            (input) async => runLibraryGroupPipeline(input),
       ),
       ...extraOverrides,
     ],
@@ -74,8 +75,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('LibraryScreen exibe LouvorCards e chips de filtro',
-      (tester) async {
+  testWidgets('LibraryScreen exibe LouvorCards e chips de filtro', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final catalog = List.generate(
       15,
@@ -86,10 +88,7 @@ void main() {
       ),
     );
 
-    await pumpLibrary(
-      tester,
-      _libraryTestApp(prefs: prefs, catalog: catalog),
-    );
+    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
 
     await tester.tap(find.text('Filtros'));
     await tester.pumpAndSettle();
@@ -101,21 +100,17 @@ void main() {
     expect(find.text('Especial'), findsOneWidget);
   });
 
-  testWidgets('LibraryScreen exibe resumo dentro do card Visualização',
-      (tester) async {
+  testWidgets('LibraryScreen exibe resumo dentro do card Visualização', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final catalog = List.generate(
       15,
-      (i) => _louvor(
-        nome: 'Louvor ${i + 1}',
-        numero: '${i + 1}'.padLeft(3, '0'),
-      ),
+      (i) =>
+          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
     );
 
-    await pumpLibrary(
-      tester,
-      _libraryTestApp(prefs: prefs, catalog: catalog),
-    );
+    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
 
     final summary = find.textContaining('Mostrando 1');
     expect(summary, findsOneWidget);
@@ -137,16 +132,11 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final catalog = List.generate(
       15,
-      (i) => _louvor(
-        nome: 'Louvor ${i + 1}',
-        numero: '${i + 1}'.padLeft(3, '0'),
-      ),
+      (i) =>
+          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
     );
 
-    await pumpLibrary(
-      tester,
-      _libraryTestApp(prefs: prefs, catalog: catalog),
-    );
+    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
 
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
     expect(find.text('#011 — Louvor 11'), findsNothing);
@@ -167,7 +157,9 @@ void main() {
 
     final louvor1Finder = find.text('#001 — Louvor 1');
     final louvor10Finder = find.text('#010 — Louvor 10');
-    expect(tester.getTopLeft(louvor1Finder).dy,
-        lessThan(tester.getTopLeft(louvor10Finder).dy));
+    expect(
+      tester.getTopLeft(louvor1Finder).dy,
+      lessThan(tester.getTopLeft(louvor10Finder).dy),
+    );
   });
 }

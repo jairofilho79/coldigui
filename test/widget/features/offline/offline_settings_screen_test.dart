@@ -13,6 +13,7 @@ import 'package:coldigui/features/offline/presentation/providers/offline_reconci
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FixedCacheStatusNotifier extends OfflineCacheStatusNotifier {
@@ -41,20 +42,20 @@ class _RunningBulkWithFetchProgressNotifier
     extends OfflineBulkDownloadNotifier {
   @override
   OfflineBulkDownloadState build() => OfflineBulkDownloadState(
-        status: OfflineBulkDownloadStatus.running,
-        progress: OfflineDownloadProgress(
-          phase: OfflineDownloadPhase.fetching,
-          currentCategory: 'Partitura',
-          categoryIndex: 0,
-          totalCategories: 1,
-          currentPart: 1,
-          totalParts: 3,
-          donePdfs: 0,
-          totalPdfs: 100,
-          zipBytesReceived: 45 * 1024 * 1024,
-          zipBytesTotal: 82 * 1024 * 1024,
-        ),
-      );
+    status: OfflineBulkDownloadStatus.running,
+    progress: OfflineDownloadProgress(
+      phase: OfflineDownloadPhase.fetching,
+      currentCategory: 'Partitura',
+      categoryIndex: 0,
+      totalCategories: 1,
+      currentPart: 1,
+      totalParts: 3,
+      donePdfs: 0,
+      totalPdfs: 100,
+      zipBytesReceived: 45 * 1024 * 1024,
+      zipBytesTotal: 82 * 1024 * 1024,
+    ),
+  );
 }
 
 class _IdleMissingNotifier extends OfflineMissingDownloadNotifier {
@@ -85,12 +86,14 @@ Widget _offlineTestApp({
   bool maintenanceMode = true,
   OfflineCategorySelectionState selectionState =
       const OfflineCategorySelectionState(
-    selected: CatalogMaterials.defaultSelected,
-    bulkDownloaded: {CatalogMaterials.partitura},
-  ),
+        selected: CatalogMaterials.defaultSelected,
+        bulkDownloaded: {CatalogMaterials.partitura},
+      ),
+  OfflineBulkDownloadNotifier Function()? bulkDownloadNotifier,
   List<Override> extraOverrides = const [],
 }) {
   return ProviderScope(
+    retry: (retryCount, error) => null,
     overrides: [
       offlineCacheStatusProvider.overrideWith(
         () => _FixedCacheStatusNotifier(cacheStatus),
@@ -102,7 +105,9 @@ Widget _offlineTestApp({
         () => _FixedCategorySelectionNotifier(selectionState),
       ),
       offlineReconcileProvider.overrideWith(_IdleReconcileNotifier.new),
-      offlineBulkDownloadProvider.overrideWith(_IdleBulkNotifier.new),
+      offlineBulkDownloadProvider.overrideWith(
+        bulkDownloadNotifier ?? _IdleBulkNotifier.new,
+      ),
       offlineMissingDownloadProvider.overrideWith(_IdleMissingNotifier.new),
       ...extraOverrides,
     ],
@@ -170,8 +175,9 @@ void main() {
     expect(find.text('Dispensar'), findsOneWidget);
   });
 
-  testWidgets('shows unreliable missing label when manifest unavailable',
-      (tester) async {
+  testWidgets('shows unreliable missing label when manifest unavailable', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _offlineTestApp(
         cacheStatus: const OfflineCacheStatus(
@@ -188,18 +194,16 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.text('Faltantes indisponíveis (sem conexão)'),
-      findsOneWidget,
-    );
+    expect(find.text('Faltantes indisponíveis (sem conexão)'), findsOneWidget);
     expect(
       find.text('Partitura: 2 (— faltantes, sem conexão)'),
       findsOneWidget,
     );
   });
 
-  testWidgets('enables Baixar selecionados for new category in maintenance',
-      (tester) async {
+  testWidgets('enables Baixar selecionados for new category in maintenance', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _offlineTestApp(
         cacheStatus: const OfflineCacheStatus(
@@ -216,17 +220,17 @@ void main() {
     );
     await tester.pump();
 
-    final downloadSelected =
-        find.widgetWithText(FilledButton, 'Baixar selecionados');
-    expect(downloadSelected, findsOneWidget);
-    expect(
-      tester.widget<FilledButton>(downloadSelected).onPressed,
-      isNotNull,
+    final downloadSelected = find.widgetWithText(
+      FilledButton,
+      'Baixar selecionados',
     );
+    expect(downloadSelected, findsOneWidget);
+    expect(tester.widget<FilledButton>(downloadSelected).onPressed, isNotNull);
   });
 
-  testWidgets('long press on bulk category chip opens missing louvores sheet',
-      (tester) async {
+  testWidgets('long press on bulk category chip opens missing louvores sheet', (
+    tester,
+  ) async {
     const missingLouvor = Louvor(
       nome: 'Bondade de Deus',
       numero: '002',
@@ -253,8 +257,9 @@ void main() {
           bulkDownloaded: {CatalogMaterials.partitura},
         ),
         extraOverrides: [
-          offlineMissingLouvoresProvider(CatalogMaterials.partitura)
-              .overrideWith((ref) async => [missingLouvor]),
+          offlineMissingLouvoresProvider(
+            CatalogMaterials.partitura,
+          ).overrideWith((ref) async => [missingLouvor]),
         ],
       ),
     );
@@ -267,8 +272,9 @@ void main() {
     expect(find.text('#002 — Bondade de Deus'), findsOneWidget);
   });
 
-  testWidgets('disables clear cache when selected categories have no PDFs',
-      (tester) async {
+  testWidgets('disables clear cache when selected categories have no PDFs', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _offlineTestApp(
         cacheStatus: const OfflineCacheStatus(
@@ -287,8 +293,9 @@ void main() {
     expect(tester.widget<TextButton>(clearButton).onPressed, isNull);
   });
 
-  testWidgets('enables clear cache when selected category has PDFs',
-      (tester) async {
+  testWidgets('enables clear cache when selected category has PDFs', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _offlineTestApp(
         cacheStatus: const OfflineCacheStatus(
@@ -314,11 +321,7 @@ void main() {
           stats: OfflineStats(byCategory: {}),
         ),
         maintenanceMode: false,
-        extraOverrides: [
-          offlineBulkDownloadProvider.overrideWith(
-            _RunningBulkWithFetchProgressNotifier.new,
-          ),
-        ],
+        bulkDownloadNotifier: _RunningBulkWithFetchProgressNotifier.new,
       ),
     );
     await tester.pump();

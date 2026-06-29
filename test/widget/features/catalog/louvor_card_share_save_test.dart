@@ -23,6 +23,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -234,11 +235,15 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
   }
 }
 
-List<Override> _commonOverrides() {
+List<Override> _commonOverrides({
+  PlaylistsNotifier Function()? playlistsNotifier,
+}) {
   return [
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-    playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+    playlistsProvider.overrideWith(
+      playlistsNotifier ?? _FakePlaylistsNotifier.new,
+    ),
   ];
 }
 
@@ -352,8 +357,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          ..._commonOverrides(),
-          playlistsProvider.overrideWith(() => playlists),
+          ..._commonOverrides(playlistsNotifier: () => playlists),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

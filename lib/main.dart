@@ -33,6 +33,7 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
+      retry: (retryCount, error) => null,
       overrides: [
         isarProvider.overrideWithValue(isar),
         sharedPreferencesProvider.overrideWithValue(prefs),

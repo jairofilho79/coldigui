@@ -85,7 +85,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
       final currentSession = ref
           .read(pdfReaderSessionProvider(currentFilePath))
-          .valueOrNull;
+          .value;
       if (currentSession == null ||
           !identical(currentSession.handle, sessionHandle)) {
         return;
@@ -230,7 +230,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
 
     ref.listen(readerFullscreenProvider, (previous, next) {
       if (previous == next) return;
-      final session = ref.read(pdfReaderSessionProvider(filePath)).valueOrNull;
+      final session = ref.read(pdfReaderSessionProvider(filePath)).value;
       if (session == null) return;
       _scheduleApplyInitialFit(session.handle);
     });
@@ -255,25 +255,26 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       body: sessionAsync.when(
         loading: () => const PdfPageSkeleton(),
         error: (error, _) {
-          if (error is PdfLocalCorruptedException) {
+          final unwrapped = unwrapProviderError(error);
+          if (unwrapped is PdfLocalCorruptedException) {
             return _ReaderMessage(
-              message: pdfReaderErrorMessage(error),
+              message: pdfReaderErrorMessage(unwrapped),
               retryLabel: _redownloadLoading ? null : 'Baixar novamente',
               onRetry: _redownloadLoading
                   ? null
-                  : () => _redownloadCorruptedPdf(error.pdfId),
+                  : () => _redownloadCorruptedPdf(unwrapped.pdfId),
             );
           }
-          if (error is PdfOfflineUnavailableException ||
-              error is PdfExternallyDeletedException) {
+          if (unwrapped is PdfOfflineUnavailableException ||
+              unwrapped is PdfExternallyDeletedException) {
             return _ReaderMessage(
-              message: pdfReaderErrorMessage(error),
+              message: pdfReaderErrorMessage(unwrapped),
               retryLabel: l10n?.pdfOfflineGoToSettings ?? 'Baixar',
               onRetry: () => goToShellDestination(context, RoutePaths.offline),
             );
           }
           return _ReaderMessage(
-            message: pdfReaderErrorMessage(error),
+            message: pdfReaderErrorMessage(unwrapped),
             onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
           );
         },

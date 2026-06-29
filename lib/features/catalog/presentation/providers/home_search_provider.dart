@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/louvores_manifest.dart';
@@ -27,8 +28,9 @@ final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
 /// Cache dos grupos exibidos — atualizado pelo pipeline assíncrono.
-final homeSearchGroupResultsDataProvider =
-    StateProvider<List<LouvorGroup>>((ref) => const []);
+final homeSearchGroupResultsDataProvider = StateProvider<List<LouvorGroup>>(
+  (ref) => const [],
+);
 
 /// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
 ///
@@ -40,16 +42,17 @@ final homeSearchGroupResultsProvider = Provider<List<LouvorGroup>>((ref) {
 });
 
 /// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
-final homeSearchPipelineExecutorProvider =
-    Provider<HomeSearchPipelineExecutor>((ref) {
-  return (input) => compute(runHomeSearchPipeline, input);
-});
+final homeSearchPipelineExecutorProvider = Provider<HomeSearchPipelineExecutor>(
+  (ref) {
+    return (input) => compute(runHomeSearchPipeline, input);
+  },
+);
 
 /// Dispara busca UC-01 + filtros UC-02 + agrupamento fora do main thread.
 final homeSearchPipelineDriverProvider =
     NotifierProvider<HomeSearchPipelineDriver, int>(
-  HomeSearchPipelineDriver.new,
-);
+      HomeSearchPipelineDriver.new,
+    );
 
 /// Debounce de 300ms entre [homeSearchRawQueryProvider] e filtragem.
 class HomeSearchDebouncer extends Notifier<String> {
@@ -57,18 +60,14 @@ class HomeSearchDebouncer extends Notifier<String> {
 
   @override
   String build() {
-    ref.listen<String>(
-      homeSearchRawQueryProvider,
-      (_, _) {
-        _debounceTimer?.cancel();
-        _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-          // Lê o valor atual no fim do debounce — evita aplicar `next` obsoleto
-          // se outro evento cancelou e reagendou o timer antes do disparo.
-          state = ref.read(homeSearchRawQueryProvider);
-        });
-      },
-      fireImmediately: true,
-    );
+    ref.listen<String>(homeSearchRawQueryProvider, (_, _) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        // Lê o valor atual no fim do debounce — evita aplicar `next` obsoleto
+        // se outro evento cancelou e reagendou o timer antes do disparo.
+        state = ref.read(homeSearchRawQueryProvider);
+      });
+    }, fireImmediately: true);
 
     ref.onDispose(() => _debounceTimer?.cancel());
     return ref.read(homeSearchRawQueryProvider);
@@ -142,8 +141,8 @@ class HomeSearchPipelineDriver extends Notifier<int> {
 /// Debounce de 500ms para sync de URL `pesquisa=` (MAPEAMENTO §4.2).
 final homeSearchUrlSyncQueryProvider =
     NotifierProvider<HomeSearchUrlDebouncer, String>(
-  HomeSearchUrlDebouncer.new,
-);
+      HomeSearchUrlDebouncer.new,
+    );
 
 /// Propaga [homeSearchDebouncedQueryProvider] após 500ms para `?pesquisa=`.
 class HomeSearchUrlDebouncer extends Notifier<String> {
@@ -151,16 +150,12 @@ class HomeSearchUrlDebouncer extends Notifier<String> {
 
   @override
   String build() {
-    ref.listen<String>(
-      homeSearchDebouncedQueryProvider,
-      (previous, next) {
-        _urlDebounceTimer?.cancel();
-        _urlDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-          state = next;
-        });
-      },
-      fireImmediately: true,
-    );
+    ref.listen<String>(homeSearchDebouncedQueryProvider, (previous, next) {
+      _urlDebounceTimer?.cancel();
+      _urlDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        state = next;
+      });
+    }, fireImmediately: true);
 
     ref.onDispose(() => _urlDebounceTimer?.cancel());
     return ref.read(homeSearchDebouncedQueryProvider);

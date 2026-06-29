@@ -137,9 +137,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final primary = widget.group.primaryLouvor;
     final isAdded = primary != null
         ? ref.watch(
-            carouselPdfIdsProvider.select(
-              (ids) => ids.contains(primary.pdfId),
-            ),
+            carouselPdfIdsProvider.select((ids) => ids.contains(primary.pdfId)),
           )
         : false;
     final isMultiMaterial = widget.group.totalMaterials > 1;
@@ -155,7 +153,8 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             classificacao: '',
           );
 
-    final metadataSummary = _downloadProgressLabel(activeDownload, l10n) ??
+    final metadataSummary =
+        _downloadProgressLabel(activeDownload, l10n) ??
         (isMultiMaterial
             ? l10n.louvorGroupMetadataSummary(
                 widget.group.totalMaterials,
@@ -164,8 +163,8 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             : null);
 
     final offlineAvailability = primary != null
-        ? ref.watch(_offlineAvailabilityProvider(primary.pdfId)).valueOrNull ??
-            PdfOfflineAvailability.notAvailable
+        ? ref.watch(_offlineAvailabilityProvider(primary.pdfId)).value ??
+              PdfOfflineAvailability.notAvailable
         : PdfOfflineAvailability.notAvailable;
 
     return Padding(
@@ -187,5 +186,5 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
 
 final _offlineAvailabilityProvider = FutureProvider.autoDispose
     .family<PdfOfflineAvailability, String>((ref, pdfId) {
-  return ref.watch(validatePdfAvailabilityProvider).call(pdfId: pdfId);
-});
+      return ref.watch(validatePdfAvailabilityProvider).call(pdfId: pdfId);
+    });

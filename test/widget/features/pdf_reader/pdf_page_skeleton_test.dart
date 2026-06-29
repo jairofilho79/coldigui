@@ -9,6 +9,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_d
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,10 +29,12 @@ ProviderScope _readerScope({
   List<Override> overrides = const [],
 }) {
   return ProviderScope(
+    retry: (retryCount, error) => null,
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      offlineCacheStatusProvider
-          .overrideWith(_FixedOfflineCacheStatusNotifier.new),
+      offlineCacheStatusProvider.overrideWith(
+        _FixedOfflineCacheStatusNotifier.new,
+      ),
       carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       ...overrides,
     ],
@@ -46,20 +49,19 @@ void main() {
 
   testWidgets('PdfPageSkeleton mantém proporção A4', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: PdfPageSkeleton(),
-        ),
-      ),
+      const MaterialApp(home: Scaffold(body: PdfPageSkeleton())),
     );
 
     final aspectRatio = tester.widget<AspectRatio>(find.byType(AspectRatio));
     expect(
-        aspectRatio.aspectRatio, closeTo(PdfPageSkeleton.a4AspectRatio, 0.001));
+      aspectRatio.aspectRatio,
+      closeTo(PdfPageSkeleton.a4AspectRatio, 0.001),
+    );
   });
 
-  testWidgets('PdfReaderScreen exibe skeleton e título durante loading',
-      (tester) async {
+  testWidgets('PdfReaderScreen exibe skeleton e título durante loading', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final sessionCompleter = Completer<PdfReaderSession>();
 
@@ -73,9 +75,9 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
-            (ref) => sessionCompleter.future,
-          ),
+          pdfReaderSessionProvider(
+            'asset:fixtures/sample.pdf',
+          ).overrideWith((ref) => sessionCompleter.future),
         ],
         child: const MaterialApp(
           home: Scaffold(

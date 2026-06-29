@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../offline/data/providers/offline_providers.dart';
@@ -96,8 +97,15 @@ Future<String?> _removeCorruptedLocalPdf(Ref ref, String absolutePath) async {
   return pdfId;
 }
 
+/// Desembrulha [ProviderException] (Riverpod 3) para mensagens e handlers de erro.
+Object unwrapProviderError(Object error) {
+  if (error is ProviderException) return error.exception;
+  return error;
+}
+
 /// Mensagem amigável para erros de abertura PDF na UI.
 String pdfReaderErrorMessage(Object error) {
+  error = unwrapProviderError(error);
   if (error is InvalidPdfPathException) {
     return error.message;
   }

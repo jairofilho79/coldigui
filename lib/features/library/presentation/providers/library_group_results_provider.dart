@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/louvores_manifest.dart';
@@ -14,20 +15,21 @@ import 'library_special_arrangement_provider.dart';
 import 'library_view_settings_provider.dart';
 
 /// Grupos ordenados após Browse → Group → Sort — atualizado pelo pipeline assíncrono.
-final libraryGroupSortedResultsDataProvider =
-    StateProvider<List<LouvorGroup>>((ref) => const []);
+final libraryGroupSortedResultsDataProvider = StateProvider<List<LouvorGroup>>(
+  (ref) => const [],
+);
 
 /// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
 final libraryGroupPipelineExecutorProvider =
     Provider<LibraryGroupPipelineExecutor>((ref) {
-  return (input) => compute(runLibraryGroupPipeline, input);
-});
+      return (input) => compute(runLibraryGroupPipeline, input);
+    });
 
 /// Dispara Browse → Group → Sort fora do main thread.
 final libraryGroupPipelineDriverProvider =
     NotifierProvider<LibraryGroupPipelineDriver, int>(
-  LibraryGroupPipelineDriver.new,
-);
+      LibraryGroupPipelineDriver.new,
+    );
 
 /// Pipeline UC-03 agrupado: manifest → Browse → Group → Sort (off-thread) → Paginate.
 ///
@@ -65,14 +67,14 @@ class LibraryGroupPipelineDriver extends Notifier<int> {
       librarySpecialArrangementProvider,
       (_, _) => _schedulePipeline(),
     );
-    ref.listen<LibraryViewSettings>(
-      libraryViewSettingsProvider,
-      (previous, next) {
-        if (previous?.sortBy != next.sortBy) {
-          _schedulePipeline();
-        }
-      },
-    );
+    ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
+      previous,
+      next,
+    ) {
+      if (previous?.sortBy != next.sortBy) {
+        _schedulePipeline();
+      }
+    });
     ref.listen<AsyncValue<LouvoresManifest>>(
       louvoresManifestProvider,
       (_, _) => _schedulePipeline(),

@@ -12,6 +12,7 @@ import 'package:coldigui/features/catalog/presentation/providers/louvores_manife
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,7 +43,8 @@ List<Override> _homeSearchTestOverrides({
     ),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     homeSearchPipelineExecutorProvider.overrideWith(
-      (ref) => (input) async => runHomeSearchPipeline(input),
+      (ref) =>
+          (input) async => runHomeSearchPipeline(input),
     ),
   ];
 }
@@ -52,8 +54,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('HomeScreen exibe LouvorCard após debounce de busca',
-      (tester) async {
+  testWidgets('HomeScreen exibe LouvorCard após debounce de busca', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final catalog = [
       _louvor(nome: 'Aleluia', numero: '001'),
@@ -125,8 +128,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Louvor duzentos e cinquenta e oito'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Louvor duzentos e cinquenta e oito'),
+        findsOneWidget,
+      );
       expect(find.textContaining('Louvor número dois'), findsNothing);
       expect(tester.widget<TextField>(field).controller!.text, '258');
     },

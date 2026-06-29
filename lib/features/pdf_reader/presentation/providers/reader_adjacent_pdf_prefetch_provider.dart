@@ -35,47 +35,50 @@ class ReaderAdjacentPdfPrefetchParams {
 /// (sem prefetch em dados móveis por padrão).
 final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
     .family<void, ReaderAdjacentPdfPrefetchParams>((ref, params) {
-  var prefetchGeneration = 0;
+      var prefetchGeneration = 0;
 
-  Future<void> schedulePrefetch() async {
-    final generation = ++prefetchGeneration;
+      Future<void> schedulePrefetch() async {
+        final generation = ++prefetchGeneration;
 
-    final session = ref.read(pdfReaderSessionProvider(params.filePath));
-    if (!session.hasValue) return;
+        final session = ref.read(pdfReaderSessionProvider(params.filePath));
+        if (!session.hasValue) return;
 
-    final position = ref.read(readerCarouselPositionProvider(params.pdfId));
-    if (position == null) return;
+        final position = ref.read(readerCarouselPositionProvider(params.pdfId));
+        if (position == null) return;
 
-    final catalog = ref.read(prefetchLouvorCatalogProvider);
-    final prefetch = ref.read(prefetchAdjacentCarouselPdfsProvider);
+        final catalog = ref.read(prefetchLouvorCatalogProvider);
+        final prefetch = ref.read(prefetchAdjacentCarouselPdfsProvider);
 
-    await Future<void>.delayed(Duration.zero);
-    if (generation != prefetchGeneration) return;
+        await Future<void>.delayed(Duration.zero);
+        if (generation != prefetchGeneration) return;
 
-    await prefetch.call(
-      catalog: catalog,
-      previousPdfId: position.previousPdfId,
-      nextPdfId: position.nextPdfId,
-    );
-  }
+        await prefetch.call(
+          catalog: catalog,
+          previousPdfId: position.previousPdfId,
+          nextPdfId: position.nextPdfId,
+        );
+      }
 
-  ref.listen(pdfReaderSessionProvider(params.filePath), (previous, next) {
-    next.whenData((_) {
-      schedulePrefetch();
+      ref.listen(pdfReaderSessionProvider(params.filePath), (previous, next) {
+        next.whenData((_) {
+          schedulePrefetch();
+        });
+      });
+
+      ref.listen(readerCarouselPositionProvider(params.pdfId), (
+        previous,
+        next,
+      ) {
+        if (next == null) return;
+        if (previous?.previousPdfId == next.previousPdfId &&
+            previous?.nextPdfId == next.nextPdfId) {
+          return;
+        }
+        final session = ref.read(pdfReaderSessionProvider(params.filePath));
+        if (session.hasValue) {
+          schedulePrefetch();
+        }
+      });
+
+      ref.watch(pdfReaderSessionProvider(params.filePath));
     });
-  });
-
-  ref.listen(readerCarouselPositionProvider(params.pdfId), (previous, next) {
-    if (next == null) return;
-    if (previous?.previousPdfId == next.previousPdfId &&
-        previous?.nextPdfId == next.nextPdfId) {
-      return;
-    }
-    final session = ref.read(pdfReaderSessionProvider(params.filePath));
-    if (session.hasValue) {
-      schedulePrefetch();
-    }
-  });
-
-  ref.watch(pdfReaderSessionProvider(params.filePath));
-});
