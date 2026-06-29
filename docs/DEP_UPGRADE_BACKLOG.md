@@ -1,6 +1,6 @@
 # Backlog de upgrades de dependências (Dart/Flutter)
 
-**Status:** inventário concluído (jun/2026) — Onda 1 ✅ — Ondas 2–4 pendentes  
+**Status:** inventário concluído (jun/2026) — Ondas 1–2 ✅ — Ondas 3–4 pendentes  
 **Data:** junho de 2026  
 **Contexto:** auditoria pós-migração SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) Fases A/B/C concluídas). Nenhuma dependência **direta** está marcada `isDiscontinued` no pub.dev; o backlog é de **modernização major**, não de substituição por abandono.
 
@@ -13,8 +13,8 @@
 | Situação | Detalhe |
 |----------|---------|
 | Deps descontinuadas (diretas) | **Nenhuma** |
-| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15) |
-| Backlog real | 4 upgrades major pendentes (plus_plugins, go_router, riverpod) |
+| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15), Onda 2 (`connectivity_plus` 7, `share_plus` 13) |
+| Backlog real | 2 upgrades major pendentes (`go_router`, `riverpod`) |
 | Ordem | lints → build_runner → plus_plugins → go_router → riverpod |
 
 ---
@@ -30,10 +30,10 @@
 | `isar_plus` | 1.3.7 | 1.3.7 | Não | Substituição do `isar` ✅ |
 | `isar_plus_flutter_libs` | 1.3.7 | 1.3.7 | Não | Idem |
 | `path_provider` | 2.1.6 | 2.1.6 | Não | Atual |
-| `share_plus` | 10.1.x | 13.2.0 | Não | Major pendente |
+| `share_plus` | 13.2.x | 13.2.0 | Não | Onda 2 ✅ |
 | `shared_preferences` | 2.3.x | 2.5.5 | Não | Bump minor futuro (fora deste backlog) |
 | `app_links` | 7.0.x | 7.2.0 | Não | Bump patch futuro |
-| `connectivity_plus` | 6.1.x | 7.2.0 | Não | Major pendente |
+| `connectivity_plus` | 7.2.x | 7.2.0 | Não | Onda 2 ✅ |
 | `wakelock_plus` | 1.5.x | 1.6.1 | Não | Bump minor futuro |
 | `flutter_svg` | 2.2.x | 2.3.0 | Não | Bump minor futuro |
 | `pdfrx` | 2.4.4 | 2.4.4 | Não | Fase C concluída ✅ |
@@ -88,11 +88,10 @@ Onda 1 — dev toolchain (~½ dia) ✅
   PR-A: flutter_lints 6          (commit 99894a7)
   PR-B: build_runner 2.15        (commit 3e659b3)
 
-Onda 2 — plus_plugins (~1 dia)   ← PRÓXIMA
-  PR-C: connectivity_plus 7 + share_plus 13
-        (mesmo PR/commit permitido — mesmo ecossistema, superfícies pequenas)
+Onda 2 — plus_plugins (~1 dia) ✅
+  PR-C: connectivity_plus 7 + share_plus 13  (commit d7053c0)
 
-Onda 3 — roteamento (~2–3 dias)
+Onda 3 — roteamento (~2–3 dias)   ← PRÓXIMA
   PR-D: go_router 17 (incremental 14→15→16→17 se necessário)
 
 Onda 4 — estado (~3–5 dias)
@@ -208,7 +207,7 @@ Codegen via `isar_plus` — **não** há `riverpod_generator` no projeto hoje.
 
 ## Onda 2 — `connectivity_plus` 6 → 7 + `share_plus` 10 → 13
 
-**Status:** pendente — **próxima onda para agentes**  
+**Status:** concluída (jun/2026)  
 **Prioridade:** 3ª  
 **Esforço:** baixo-médio | **Risco:** baixo-médio | **Benefício:** patches de plataforma, ecossistema `fluttercommunity/plus_plugins` atual
 
@@ -330,16 +329,25 @@ Um único commit na branch atual (sem criar branch). `git add` seletivo — só 
 
 ### Critérios de aceite
 
-- [ ] Share de PDF, playlist e leaflet funciona em dispositivo/simulador
-- [ ] Política de prefetch respeita conectividade (`prefetch_network_policy_test`)
-- [ ] `flutter analyze` sem issues
-- [ ] `flutter test -j 1` verde (suite completa)
-- [ ] Build iOS simulador sem erros de plugin
+- [ ] Share de PDF, playlist e leaflet funciona em dispositivo/simulador (smoke manual — recomendado antes de release)
+- [x] Política de prefetch respeita conectividade (`prefetch_network_policy_test`)
+- [x] `flutter analyze` sem issues
+- [x] `flutter test -j 1` verde (suite completa, 553 testes)
+- [x] Build iOS simulador sem erros de plugin
+
+### Notas pós-implementação
+
+- Commit `d7053c0` — AGP 8.11.1 → 8.12.1 em `android/settings.gradle.kts` (requisito Android dos plugins v7/v12+).
+- API Dart de `connectivity_plus` 7 **sem alterações** nas portas existentes.
+- Migração `Share.*` → `SharePlus.instance.share(ShareParams(...))` nos 4 defaults; typedefs injetáveis preservados.
+- `ios/Podfile.lock` não mudou após `pod install`.
+- Transitivas atualizadas pelo resolver: `wakelock_plus` 1.6.1, `package_info_plus` 10.2.0, `win32` 6.3.0 (efeito colateral do `share_plus` 13 — sem mudança de código).
 
 ---
 
 ## Onda 3 — `go_router` 14 → 17
 
+**Status:** pendente — **próxima onda para agentes**  
 **Prioridade:** 4ª  
 **Esforço:** médio | **Risco:** alto | **Benefício:** correções shell routing, API de redirect
 
