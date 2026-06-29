@@ -30,24 +30,18 @@ import 'playlists_ui_provider.dart';
 /// Usado por [CarouselBarTrailingActions._sharePlaylist] e
 /// [PlaylistsNotifier.sharePlaylist] antes de gerar URL PWA.
 class ResolvedActivePlaylist {
-  const ResolvedActivePlaylist({
-    required this.playlistId,
-    required this.nome,
-  });
+  const ResolvedActivePlaylist({required this.playlistId, required this.nome});
 
   /// ID estável da playlist ([SavedPlaylist.playlistId]).
   final String playlistId;
 
-  /// Nome exibido no share sheet (`subject` do [Share.share]).
+  /// Nome exibido no share sheet (`subject` do share nativo).
   final String nome;
 }
 
 /// Playlist enriquecida com labels do manifest para exibição na UI.
 class PlaylistViewItem {
-  const PlaylistViewItem({
-    required this.playlist,
-    required this.pdfLabels,
-  });
+  const PlaylistViewItem({required this.playlist, required this.pdfLabels});
 
   final SavedPlaylist playlist;
   final List<String> pdfLabels;
@@ -92,8 +86,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
-    final labelMap =
-        _buildLabelMap(ref.read(louvoresManifestProvider).value?.louvores);
+    final labelMap = _buildLabelMap(
+      ref.read(louvoresManifestProvider).value?.louvores,
+    );
     final playlists = await repository.getAll();
 
     state = playlists
@@ -108,16 +103,20 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   /// Playlists filtradas e ordenadas para a aba (pilha — mais recente no topo).
   List<PlaylistViewItem> itemsForTab(PlaylistTab tab) {
-    return state.where((item) {
-      final p = item.playlist;
-      return switch (tab) {
-        PlaylistTab.unsaved => !p.salva,
-        PlaylistTab.saved => p.salva && !p.favorita,
-        PlaylistTab.favorites => p.favorita,
-      };
-    }).toList(growable: false)
-      ..sort((a, b) =>
-          _sortKey(b.playlist, tab).compareTo(_sortKey(a.playlist, tab)));
+    return state
+        .where((item) {
+          final p = item.playlist;
+          return switch (tab) {
+            PlaylistTab.unsaved => !p.salva,
+            PlaylistTab.saved => p.salva && !p.favorita,
+            PlaylistTab.favorites => p.favorita,
+          };
+        })
+        .toList(growable: false)
+      ..sort(
+        (a, b) =>
+            _sortKey(b.playlist, tab).compareTo(_sortKey(a.playlist, tab)),
+      );
   }
 
   DateTime _sortKey(SavedPlaylist playlist, PlaylistTab tab) {
@@ -206,10 +205,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     if (active.salva) {
       await ref.read(updatePlaylistProvider)(playlistId: activeId, nome: nome);
     } else {
-      await ref.read(savePlaylistProvider)(
-        playlistId: activeId,
-        nome: nome,
-      );
+      await ref.read(savePlaylistProvider)(playlistId: activeId, nome: nome);
     }
     await _reload();
     ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.saved);
@@ -219,38 +215,32 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   Future<void> savePlaylist(String playlistId) async {
     await ref.read(savePlaylistProvider)(playlistId: playlistId);
     await _reload();
-    ref.read(playlistsUiProvider.notifier).selectTab(
-          PlaylistTab.saved,
-          scrollToPlaylistId: playlistId,
-        );
+    ref
+        .read(playlistsUiProvider.notifier)
+        .selectTab(PlaylistTab.saved, scrollToPlaylistId: playlistId);
   }
 
   Future<void> favoritePlaylist(String playlistId) async {
     await ref.read(favoritePlaylistProvider)(playlistId: playlistId);
     await _reload();
-    ref.read(playlistsUiProvider.notifier).selectTab(
-          PlaylistTab.favorites,
-          scrollToPlaylistId: playlistId,
-        );
+    ref
+        .read(playlistsUiProvider.notifier)
+        .selectTab(PlaylistTab.favorites, scrollToPlaylistId: playlistId);
   }
 
   Future<void> unfavoritePlaylist(String playlistId) async {
     await ref.read(unfavoritePlaylistProvider)(playlistId: playlistId);
     await _reload();
-    ref.read(playlistsUiProvider.notifier).selectTab(
-          PlaylistTab.saved,
-          scrollToPlaylistId: playlistId,
-        );
+    ref
+        .read(playlistsUiProvider.notifier)
+        .selectTab(PlaylistTab.saved, scrollToPlaylistId: playlistId);
   }
 
   Future<void> rename({
     required String playlistId,
     required String nome,
   }) async {
-    await ref.read(updatePlaylistProvider)(
-      playlistId: playlistId,
-      nome: nome,
-    );
+    await ref.read(updatePlaylistProvider)(playlistId: playlistId, nome: nome);
     await _reload();
   }
 
@@ -261,8 +251,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final current = state
         .firstWhere((item) => item.playlist.playlistId == playlistId)
         .playlist;
-    final nextIds =
-        current.pdfIds.where((id) => id != pdfId).toList(growable: false);
+    final nextIds = current.pdfIds
+        .where((id) => id != pdfId)
+        .toList(growable: false);
 
     await ref.read(updatePlaylistProvider)(
       playlistId: playlistId,
@@ -275,8 +266,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 
   Future<bool> toggleFavorite(String playlistId) async {
-    final next =
-        await ref.read(togglePlaylistFavoriteProvider)(playlistId: playlistId);
+    final next = await ref.read(togglePlaylistFavoriteProvider)(
+      playlistId: playlistId,
+    );
     await _reload();
     return next;
   }
@@ -329,14 +321,13 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   Future<bool> loadIntoCarousel(String playlistId) async {
     playlistOpenDebugLog('loadIntoCarousel: início playlistId=$playlistId');
     try {
-      await ref.read(loadPlaylistIntoCarouselProvider)(
-        playlistId: playlistId,
-      );
+      await ref.read(loadPlaylistIntoCarouselProvider)(playlistId: playlistId);
       ref.read(activePlaylistIdProvider.notifier).set(playlistId);
       await ref.read(carouselLouvoresProvider.notifier).reload();
       ref.read(carouselFocusedIndexProvider.notifier).reset();
-      final carouselIds =
-          await ref.read(carouselRepositoryProvider).getOrderedPdfIds();
+      final carouselIds = await ref
+          .read(carouselRepositoryProvider)
+          .getOrderedPdfIds();
       playlistOpenDebugLog(
         'loadIntoCarousel: ok — carousel pdfIds (${carouselIds.length}): '
         '${carouselIds.join(', ')}',
@@ -365,7 +356,13 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final catalog = manifestAsync.value?.louvores;
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
-      'manifest=${manifestAsync.isLoading ? 'loading' : manifestAsync.hasError ? 'error' : catalog == null ? 'null' : '${catalog.length} itens'}',
+      'manifest=${manifestAsync.isLoading
+          ? 'loading'
+          : manifestAsync.hasError
+          ? 'error'
+          : catalog == null
+          ? 'null'
+          : '${catalog.length} itens'}',
     );
     if (catalog == null) return null;
     for (final louvor in catalog) {
@@ -391,8 +388,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   /// Retorna `null` se a seleção estiver vazia.
   Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async {
     playlistShareDebugLog('resolveActivePlaylistFromCarousel: início');
-    final carouselPdfIds =
-        await ref.read(carouselRepositoryProvider).getOrderedPdfIds();
+    final carouselPdfIds = await ref
+        .read(carouselRepositoryProvider)
+        .getOrderedPdfIds();
     playlistShareDebugLog(
       'resolve: carousel Isar pdfIds (${carouselPdfIds.length}): '
       '${carouselPdfIds.join(', ')}',
@@ -466,7 +464,8 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref.read(activePlaylistIdProvider.notifier).set(playlistId);
     await _reload();
     playlistShareDebugLog(
-        'resolve: rascunho criado id=$playlistId nome="$nome"');
+      'resolve: rascunho criado id=$playlistId nome="$nome"',
+    );
     return ResolvedActivePlaylist(playlistId: playlistId, nome: nome);
   }
 
@@ -490,7 +489,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       playlistShareDebugLog('sharePlaylist: gerando URL…');
       final url = await generateUrl(playlistId: playlistId);
       playlistShareDebugLog('sharePlaylist: URL gerada ($url)');
-      final shareFn = share ?? Share.share;
+      final shareFn = share ?? _defaultSharePlaylistUrl;
       playlistShareDebugLog(
         'sharePlaylist: abrindo share sheet nativo '
         '(origin=$sharePositionOrigin)…',
@@ -567,14 +566,29 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 }
 
-/// Callback injetável para testes — espelha [Share.share] do [share_plus].
-typedef ShareFn = Future<void> Function(
+Future<void> _defaultSharePlaylistUrl(
   String text, {
   String? subject,
   Rect? sharePositionOrigin,
-});
+}) {
+  return SharePlus.instance.share(
+    ShareParams(
+      text: text,
+      subject: subject,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
+  );
+}
+
+/// Callback injetável para testes — espelha [SharePlus.instance.share] do [share_plus].
+typedef ShareFn =
+    Future<void> Function(
+      String text, {
+      String? subject,
+      Rect? sharePositionOrigin,
+    });
 
 final playlistsProvider =
     NotifierProvider<PlaylistsNotifier, List<PlaylistViewItem>>(
-  PlaylistsNotifier.new,
-);
+      PlaylistsNotifier.new,
+    );

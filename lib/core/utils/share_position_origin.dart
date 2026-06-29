@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Âncora do share sheet no iOS/iPadOS — obrigatória para [Share.share] e
-/// [Share.shareXFiles] (retângulo não nulo dentro da view de origem).
+/// Âncora do share sheet no iOS/iPadOS — obrigatória para [SharePlus.instance.share]
+/// (retângulo não nulo dentro da view de origem).
 ///
 /// Retorna `null` se o [RenderBox] ainda não tiver layout.
 Rect? sharePositionOriginFromContext(BuildContext context) {

@@ -50,11 +50,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     try {
       switch (option) {
         case PlaylistShareOption.link:
-          return _shareLinkOnly(
-            shareContext,
-            shareTextFn,
-            sharePositionOrigin,
-          );
+          return _shareLinkOnly(shareContext, shareTextFn, sharePositionOrigin);
         case PlaylistShareOption.leaflet:
           return _shareLeafletOnly(
             context,
@@ -91,9 +87,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     } on EmptyCarouselException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.playlistEmptyCarousel)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
       }
       return false;
     } on PlaylistNotFoundException catch (error, stackTrace) {
@@ -275,10 +271,12 @@ Future<void> _defaultShare(
   String? subject,
   Rect? sharePositionOrigin,
 }) {
-  return Share.share(
-    text,
-    subject: subject,
-    sharePositionOrigin: sharePositionOrigin,
+  return SharePlus.instance.share(
+    ShareParams(
+      text: text,
+      subject: subject,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
   );
 }
 
@@ -288,15 +286,17 @@ Future<void> _defaultShareXFiles(
   String? text,
   Rect? sharePositionOrigin,
 }) {
-  return Share.shareXFiles(
-    files,
-    subject: subject,
-    text: text,
-    sharePositionOrigin: sharePositionOrigin,
+  return SharePlus.instance.share(
+    ShareParams(
+      files: files,
+      subject: subject,
+      text: text,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
   );
 }
 
 final playlistShareActionsProvider =
     NotifierProvider<PlaylistShareActionsNotifier, void>(
-  PlaylistShareActionsNotifier.new,
-);
+      PlaylistShareActionsNotifier.new,
+    );

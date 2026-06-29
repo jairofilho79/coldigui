@@ -9,11 +9,12 @@ import '../../data/datasources/pdf_bytes_datasource.dart';
 import '../utils/is_local_pdf_path.dart';
 import '../utils/pdf_file_name_sanitizer.dart';
 
-typedef ShareXFilesFn = Future<void> Function(
-  List<XFile> files, {
-  String? subject,
-  Rect? sharePositionOrigin,
-});
+typedef ShareXFilesFn =
+    Future<void> Function(
+      List<XFile> files, {
+      String? subject,
+      Rect? sharePositionOrigin,
+    });
 
 typedef GetTemporaryDirectoryFn = Future<Directory> Function();
 
@@ -27,9 +28,9 @@ class SharePdf {
     this._openPdf, {
     GetTemporaryDirectoryFn? getTemporaryDirectory,
     ShareXFilesFn? shareXFiles,
-  })  : _getTemporaryDirectory =
-            getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
-        _shareXFiles = shareXFiles ?? Share.shareXFiles;
+  }) : _getTemporaryDirectory =
+           getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
+       _shareXFiles = shareXFiles ?? _defaultShareXFiles;
 
   final PdfBytesDatasource _bytesDatasource;
   final OpenPdfDocument _openPdf;
@@ -52,13 +53,7 @@ class SharePdf {
         displayName ?? _basename(filePath),
       );
       await _shareXFiles(
-        [
-          XFile(
-            filePath,
-            mimeType: 'application/pdf',
-            name: fileName,
-          ),
-        ],
+        [XFile(filePath, mimeType: 'application/pdf', name: fileName)],
         subject: displayName ?? fileName,
         sharePositionOrigin: sharePositionOrigin,
       );
@@ -86,4 +81,18 @@ class SharePdf {
     final index = normalized.lastIndexOf('/');
     return index == -1 ? normalized : normalized.substring(index + 1);
   }
+}
+
+Future<void> _defaultShareXFiles(
+  List<XFile> files, {
+  String? subject,
+  Rect? sharePositionOrigin,
+}) {
+  return SharePlus.instance.share(
+    ShareParams(
+      files: files,
+      subject: subject,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
+  );
 }

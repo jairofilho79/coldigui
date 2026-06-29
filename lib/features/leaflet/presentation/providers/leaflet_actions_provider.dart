@@ -19,12 +19,13 @@ import '../utils/leaflet_debug_log.dart';
 import '../widgets/leaflet_content_labels.dart';
 
 /// Callback injetável para testes — espelha `Share.shareXFiles` do [share_plus].
-typedef ShareXFilesFn = Future<void> Function(
-  List<XFile> files, {
-  String? subject,
-  String? text,
-  Rect? sharePositionOrigin,
-});
+typedef ShareXFilesFn =
+    Future<void> Function(
+      List<XFile> files, {
+      String? subject,
+      String? text,
+      Rect? sharePositionOrigin,
+    });
 
 /// Orquestra geração e compartilhamento do folheto na UI (UC-08, Fase 4.6).
 class LeafletActionsNotifier extends Notifier<void> {
@@ -50,7 +51,8 @@ class LeafletActionsNotifier extends Notifier<void> {
     try {
       leafletDebugLog('generateAndShare: início');
       final metadata = buildLouvorMetadataMap(
-          ref.read(louvoresManifestProvider).value?.louvores);
+        ref.read(louvoresManifestProvider).value?.louvores,
+      );
       final document = await ref.read(generateLeafletFromSelectionProvider)(
         pdfIdToMetadata: metadata,
       );
@@ -78,9 +80,9 @@ class LeafletActionsNotifier extends Notifier<void> {
     } on EmptyCarouselException catch (error, stackTrace) {
       leafletDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.playlistEmptyCarousel)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
       }
       return false;
     } on Object catch (error, stackTrace) {
@@ -109,17 +111,20 @@ Future<void> _defaultShareXFiles(
   String? text,
   Rect? sharePositionOrigin,
 }) {
-  return Share.shareXFiles(
-    files,
-    subject: subject,
-    text: text,
-    sharePositionOrigin: sharePositionOrigin,
+  return SharePlus.instance.share(
+    ShareParams(
+      files: files,
+      subject: subject,
+      text: text,
+      sharePositionOrigin: sharePositionOrigin,
+    ),
   );
 }
 
 /// Mapa pdfId → metadados a partir do manifest (folheto UC-08).
 Map<String, CarouselItemMetadata> buildLouvorMetadataMap(
-    List<Louvor>? catalog) {
+  List<Louvor>? catalog,
+) {
   if (catalog == null) return const {};
   return {
     for (final louvor in catalog)
@@ -173,5 +178,6 @@ Future<File> captureLeafletToTempFile(
 }
 
 /// Estado de ações do folheto — legado [generateAndShare] para testes diretos.
-final leafletActionsProvider =
-    NotifierProvider<LeafletActionsNotifier, void>(LeafletActionsNotifier.new);
+final leafletActionsProvider = NotifierProvider<LeafletActionsNotifier, void>(
+  LeafletActionsNotifier.new,
+);
