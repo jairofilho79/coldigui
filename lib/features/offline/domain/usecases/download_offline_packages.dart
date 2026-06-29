@@ -3,8 +3,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
-import '../../../../core/constants/offline_config.dart';
-import '../../data/datasources/disk_space_checker.dart';
 import '../../data/datasources/offline_bulk_checkpoint_store.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
 import '../../data/datasources/zip_package_downloader.dart';
@@ -40,20 +38,17 @@ class DownloadOfflinePackages {
     required ZipPackageDownloader zipDownloader,
     required ExtractAndStorePdfs extractAndStorePdfs,
     required ReconcileOfflineIndex reconcileOfflineIndex,
-    required DiskSpaceChecker diskSpaceChecker,
     required OfflineBulkCheckpointStore checkpointStore,
-  })  : _manifestDatasource = manifestDatasource,
-        _zipDownloader = zipDownloader,
-        _extractAndStorePdfs = extractAndStorePdfs,
-        _reconcileOfflineIndex = reconcileOfflineIndex,
-        _diskSpaceChecker = diskSpaceChecker,
-        _checkpointStore = checkpointStore;
+  }) : _manifestDatasource = manifestDatasource,
+       _zipDownloader = zipDownloader,
+       _extractAndStorePdfs = extractAndStorePdfs,
+       _reconcileOfflineIndex = reconcileOfflineIndex,
+       _checkpointStore = checkpointStore;
 
   final OfflineManifestRemoteDatasource _manifestDatasource;
   final ZipPackageDownloader _zipDownloader;
   final ExtractAndStorePdfs _extractAndStorePdfs;
   final ReconcileOfflineIndex _reconcileOfflineIndex;
-  final DiskSpaceChecker _diskSpaceChecker;
   final OfflineBulkCheckpointStore _checkpointStore;
 
   Future<DownloadOfflinePackagesResult> call({
@@ -69,9 +64,9 @@ class DownloadOfflinePackages {
     _ensureNotCancelled(cancelToken);
 
     final manifest = await _manifestDatasource.fetchManifest();
-    await _ensureDiskSpace(manifest, categories);
 
-    final checkpoint = resumeCheckpoint ??
+    final checkpoint =
+        resumeCheckpoint ??
         OfflineBulkCheckpoint(
           categories: List<String>.from(categories),
           categoryIndex: 0,
@@ -87,25 +82,31 @@ class DownloadOfflinePackages {
     final unmatchedAccumulator = <String>[];
     final failedPdfIdsAccumulator = <String>[];
 
-    for (var catIdx = checkpoint.categoryIndex;
-        catIdx < checkpoint.categories.length;
-        catIdx++) {
+    for (
+      var catIdx = checkpoint.categoryIndex;
+      catIdx < checkpoint.categories.length;
+      catIdx++
+    ) {
       _ensureNotCancelled(cancelToken);
 
       final materialCategory = checkpoint.categories[catIdx];
       final package = manifest.packageFor(materialCategory);
       if (package == null) continue;
 
-      final startPartIdx =
-          catIdx == checkpoint.categoryIndex ? checkpoint.partIndex : 0;
+      final startPartIdx = catIdx == checkpoint.categoryIndex
+          ? checkpoint.partIndex
+          : 0;
 
-      for (var partIdx = startPartIdx;
-          partIdx < package.parts.length;
-          partIdx++) {
+      for (
+        var partIdx = startPartIdx;
+        partIdx < package.parts.length;
+        partIdx++
+      ) {
         _ensureNotCancelled(cancelToken);
 
         final part = package.parts[partIdx];
-        final startPdfIdx = (catIdx == checkpoint.categoryIndex &&
+        final startPdfIdx =
+            (catIdx == checkpoint.categoryIndex &&
                 partIdx == checkpoint.partIndex)
             ? checkpoint.extractedPdfCount
             : 0;
@@ -291,30 +292,6 @@ class DownloadOfflinePackages {
     );
   }
 
-  Future<void> _ensureDiskSpace(
-    OfflineManifest manifest,
-    List<String> categories,
-  ) async {
-    final requiredBytes = (manifest.totalSizeForCategories(categories) *
-            OfflineConfig.diskSpaceSafetyMargin)
-        .round();
-
-    final freeBytes = await _diskSpaceChecker.getFreeBytes();
-    if (freeBytes != null && freeBytes < requiredBytes) {
-      throw InsufficientDiskSpaceException(
-        requiredBytes: requiredBytes,
-        availableBytes: freeBytes,
-      );
-    }
-    if (freeBytes == null) {
-      developer.log(
-        'DiskSpaceChecker retornou null — verificação de espaço ignorada',
-        name: 'DownloadOfflinePackages',
-        level: 900,
-      );
-    }
-  }
-
   Future<String> _downloadZip({
     required String url,
     required String filename,
@@ -392,12 +369,15 @@ class DownloadOfflinePackages {
     }
 
     if (checkpoint.categoryIndex < checkpoint.categories.length) {
-      final package =
-          manifest.packageFor(checkpoint.categories[checkpoint.categoryIndex]);
+      final package = manifest.packageFor(
+        checkpoint.categories[checkpoint.categoryIndex],
+      );
       if (package != null) {
-        for (var p = 0;
-            p < checkpoint.partIndex && p < package.parts.length;
-            p++) {
+        for (
+          var p = 0;
+          p < checkpoint.partIndex && p < package.parts.length;
+          p++
+        ) {
           done += package.parts[p].pdfs.length;
         }
         if (checkpoint.partIndex < package.parts.length) {

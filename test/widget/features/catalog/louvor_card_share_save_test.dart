@@ -5,7 +5,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -96,13 +95,12 @@ class _FakeBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
-  }) async =>
-      _bytes;
+  }) async => _bytes;
 }
 
 class _FakeResolvePdfForReader extends ResolvePdfForReader {
   _FakeResolvePdfForReader()
-      : super(_UnusedRepository(), _UnusedFetchAndStorePdf());
+    : super(_UnusedRepository(), _UnusedFetchAndStorePdf());
 
   @override
   Future<LocalPdfSource> call({
@@ -135,8 +133,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) =>
-      throw UnimplementedError();
+  ) => throw UnimplementedError();
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) =>
@@ -149,8 +146,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remapPdfId({
     required String fromPdfId,
     required String toPdfId,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
@@ -161,8 +157,7 @@ class _UnusedRepository implements OfflinePdfRepository {
     required Uint8List bytes,
     required String category,
     bool isPersistent = false,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
@@ -186,8 +181,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -195,17 +189,11 @@ class _UnusedRepository implements OfflinePdfRepository {
 
 class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
   _UnusedFetchAndStorePdf()
-      : super(
-          _FakeBytesDatasource(Uint8List(0)),
-          _UnusedRepository(),
-          diskSpaceChecker: _UnusedDiskSpaceChecker(),
-          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
-        );
-}
-
-class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
-  @override
-  Future<int?> getFreeBytes() async => 999999999;
+    : super(
+        _FakeBytesDatasource(Uint8List(0)),
+        _UnusedRepository(),
+        favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+      );
 }
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
@@ -259,8 +247,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('LouvorCard tap abre o leitor interno em /leitor',
-      (tester) async {
+  testWidgets('LouvorCard tap abre o leitor interno em /leitor', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final router = GoRouter(
       initialLocation: RoutePaths.home,
@@ -302,8 +291,9 @@ void main() {
     expect(router.state.uri.queryParameters['titulo'], 'Aleluia');
   });
 
-  testWidgets('LouvorCard com 1 material não exibe menu compartilhar no card',
-      (tester) async {
+  testWidgets('LouvorCard com 1 material não exibe menu compartilhar no card', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -327,8 +317,9 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
-  testWidgets('LouvorGroupCard com vários materiais não exibe + no card',
-      (tester) async {
+  testWidgets('LouvorGroupCard com vários materiais não exibe + no card', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -341,9 +332,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('pt'),
-          home: Scaffold(
-            body: LouvorGroupCard(group: _multiMaterialGroup()),
-          ),
+          home: Scaffold(body: LouvorGroupCard(group: _multiMaterialGroup())),
         ),
       ),
     );
@@ -352,8 +341,9 @@ void main() {
     expect(find.byIcon(Icons.add), findsNothing);
   });
 
-  testWidgets('LouvorGroupCard com vários materiais adiciona pelo sheet',
-      (tester) async {
+  testWidgets('LouvorGroupCard com vários materiais adiciona pelo sheet', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final playlists = _RecordingPlaylistsNotifier();
     final cifraPdfId = _pdfIdForPath('assets/ColAdultos/001-cifra.pdf');
@@ -369,9 +359,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('pt'),
-          home: Scaffold(
-            body: LouvorGroupCard(group: _multiMaterialGroup()),
-          ),
+          home: Scaffold(body: LouvorGroupCard(group: _multiMaterialGroup())),
         ),
       ),
     );

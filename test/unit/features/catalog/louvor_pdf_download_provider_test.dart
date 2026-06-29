@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
@@ -24,13 +23,14 @@ const _source = LocalPdfSource(
 
 class _ControllableResolvePdf extends ResolvePdfForReader {
   _ControllableResolvePdf(this._handler)
-      : super(_UnusedRepository(), _UnusedFetchAndStorePdf());
+    : super(_UnusedRepository(), _UnusedFetchAndStorePdf());
 
   final Future<LocalPdfSource> Function({
     required String pdfId,
     required String remotePath,
     ProgressCallback? onProgress,
-  }) _handler;
+  })
+  _handler;
 
   int callCount = 0;
 
@@ -63,17 +63,11 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
 
 class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
   _UnusedFetchAndStorePdf()
-      : super(
-          _UnusedPdfBytesDatasource(),
-          _UnusedRepository(),
-          diskSpaceChecker: _UnusedDiskSpaceChecker(),
-          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
-        );
-}
-
-class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
-  @override
-  Future<int?> getFreeBytes() async => 999999999;
+    : super(
+        _UnusedPdfBytesDatasource(),
+        _UnusedRepository(),
+        favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+      );
 }
 
 class _UnusedRepository implements OfflinePdfRepository {
@@ -93,8 +87,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) =>
-      throw UnimplementedError();
+  ) => throw UnimplementedError();
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) =>
@@ -107,8 +100,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remapPdfId({
     required String fromPdfId,
     required String toPdfId,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;
@@ -119,8 +111,7 @@ class _UnusedRepository implements OfflinePdfRepository {
     required Uint8List bytes,
     required String category,
     bool isPersistent = false,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
@@ -144,8 +135,7 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -164,9 +154,7 @@ void main() {
     });
 
     final container = ProviderContainer(
-      overrides: [
-        resolvePdfForReaderProvider.overrideWithValue(resolve),
-      ],
+      overrides: [resolvePdfForReaderProvider.overrideWithValue(resolve)],
     );
     addTearDown(container.dispose);
 
@@ -202,9 +190,7 @@ void main() {
     });
 
     final container = ProviderContainer(
-      overrides: [
-        resolvePdfForReaderProvider.overrideWithValue(resolve),
-      ],
+      overrides: [resolvePdfForReaderProvider.overrideWithValue(resolve)],
     );
     addTearDown(container.dispose);
 
@@ -234,9 +220,7 @@ void main() {
     });
 
     final container = ProviderContainer(
-      overrides: [
-        resolvePdfForReaderProvider.overrideWithValue(resolve),
-      ],
+      overrides: [resolvePdfForReaderProvider.overrideWithValue(resolve)],
     );
     addTearDown(container.dispose);
 

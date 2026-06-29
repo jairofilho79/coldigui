@@ -63,7 +63,7 @@ import 'app_localizations_pt.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,16 +86,16 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('pt')
+    Locale('pt'),
   ];
 
   /// No description provided for @appTitle.
@@ -408,15 +408,25 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{category} — parte {part}/{totalParts} — {done}/{total} PDFs ({phase})'**
-  String offlineProgressDetail(String category, int part, int totalParts,
-      int done, int total, String phase);
+  String offlineProgressDetail(
+    String category,
+    int part,
+    int totalParts,
+    int done,
+    int total,
+    String phase,
+  );
 
   /// No description provided for @offlineFetchProgress.
   ///
   /// In pt, this message translates to:
   /// **'Baixando pacote {part}/{totalParts} — {received} / {total}'**
   String offlineFetchProgress(
-      int part, int totalParts, String received, String total);
+    int part,
+    int totalParts,
+    String received,
+    String total,
+  );
 
   /// No description provided for @offlineStatsTitle.
   ///
@@ -441,7 +451,10 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{category}: {downloaded} ({missing} faltantes)'**
   String offlineStatsCategoryWithMissing(
-      String category, int downloaded, int missing);
+    String category,
+    int downloaded,
+    int missing,
+  );
 
   /// No description provided for @offlineStatsTotalMissing.
   ///
@@ -1221,8 +1234,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

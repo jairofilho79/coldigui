@@ -19,7 +19,6 @@ import '../../domain/usecases/migrate_offline_storage.dart';
 import '../../domain/usecases/reconcile_offline_index.dart';
 import '../../domain/usecases/resolve_pdf_for_reader.dart';
 import '../../../playlists/data/providers/playlist_providers.dart';
-import '../datasources/disk_space_checker.dart';
 import '../datasources/favorite_pdf_ids_resolver.dart';
 import '../datasources/offline_available_store.dart';
 import '../datasources/offline_bulk_categories_store.dart';
@@ -49,7 +48,6 @@ final fetchAndStorePdfProvider = Provider<FetchAndStorePdf>((ref) {
   return FetchAndStorePdf(
     ref.watch(pdfBytesDatasourceProvider),
     ref.watch(offlinePdfRepositoryProvider),
-    diskSpaceChecker: ref.watch(diskSpaceCheckerProvider),
     favoritePdfIdsResolver: ref.watch(favoritePdfIdsResolverProvider),
   );
 });
@@ -71,24 +69,20 @@ final resolvePdfForReaderProvider = Provider<ResolvePdfForReader>((ref) {
 /// DI — [ValidatePdfAvailability] (Fase 3.4).
 ///
 /// Provider aqui evita ciclo com [pdf_opening_providers].
-final validatePdfAvailabilityProvider =
-    Provider<ValidatePdfAvailability>((ref) {
+final validatePdfAvailabilityProvider = Provider<ValidatePdfAvailability>((
+  ref,
+) {
   return ValidatePdfAvailability(ref.watch(offlinePdfRepositoryProvider));
 });
 
 /// DI — manifest remoto de pacotes offline (UC-09).
 final offlineManifestRemoteDatasourceProvider =
     Provider<OfflineManifestRemoteDatasource>((ref) {
-  return OfflineManifestRemoteDatasource(
-    ref.watch(dioProvider),
-    ref.watch(sharedPreferencesProvider),
-  );
-});
-
-/// DI — checagem de espaço livre em disco.
-final diskSpaceCheckerProvider = Provider<DiskSpaceChecker>((ref) {
-  return DiskSpaceChecker();
-});
+      return OfflineManifestRemoteDatasource(
+        ref.watch(dioProvider),
+        ref.watch(sharedPreferencesProvider),
+      );
+    });
 
 /// DI — PDFs em playlists favoritas (protegidos da eviction LRU).
 final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
@@ -106,22 +100,26 @@ final zipPackageDownloaderProvider = Provider<ZipPackageDownloader>((ref) {
 });
 
 /// DI — checkpoint de resume bulk.
-final offlineBulkCheckpointStoreProvider =
-    Provider<OfflineBulkCheckpointStore>((ref) {
-  return OfflineBulkCheckpointStore(ref.watch(sharedPreferencesProvider));
-});
+final offlineBulkCheckpointStoreProvider = Provider<OfflineBulkCheckpointStore>(
+  (ref) {
+    return OfflineBulkCheckpointStore(ref.watch(sharedPreferencesProvider));
+  },
+);
 
 /// DI — categorias de material com bulk ZIP concluído (UC-09/UC-10).
-final offlineBulkCategoriesStoreProvider =
-    Provider<OfflineBulkCategoriesStore>((ref) {
-  return OfflineBulkCategoriesStore(ref.watch(sharedPreferencesProvider));
-});
+final offlineBulkCategoriesStoreProvider = Provider<OfflineBulkCategoriesStore>(
+  (ref) {
+    return OfflineBulkCategoriesStore(ref.watch(sharedPreferencesProvider));
+  },
+);
 
 /// DI — seleção de chips de material na tela offline (UC-09/UC-10).
 final offlineSelectedCategoriesStoreProvider =
     Provider<OfflineSelectedCategoriesStore>((ref) {
-  return OfflineSelectedCategoriesStore(ref.watch(sharedPreferencesProvider));
-});
+      return OfflineSelectedCategoriesStore(
+        ref.watch(sharedPreferencesProvider),
+      );
+    });
 
 /// DI — flag UC-09/UC-10 [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`).
 final offlineAvailableStoreProvider = Provider<OfflineAvailableStore>((ref) {
@@ -146,21 +144,22 @@ final reconcileOfflineIndexProvider = Provider<ReconcileOfflineIndex>((ref) {
 });
 
 /// DI — [DownloadOfflinePackages] (Fase 3.5).
-final downloadOfflinePackagesProvider =
-    Provider<DownloadOfflinePackages>((ref) {
+final downloadOfflinePackagesProvider = Provider<DownloadOfflinePackages>((
+  ref,
+) {
   return DownloadOfflinePackages(
     manifestDatasource: ref.watch(offlineManifestRemoteDatasourceProvider),
     zipDownloader: ref.watch(zipPackageDownloaderProvider),
     extractAndStorePdfs: ref.watch(extractAndStorePdfsProvider),
     reconcileOfflineIndex: ref.watch(reconcileOfflineIndexProvider),
-    diskSpaceChecker: ref.watch(diskSpaceCheckerProvider),
     checkpointStore: ref.watch(offlineBulkCheckpointStoreProvider),
   );
 });
 
 /// DI — [GetOfflineStatsByCategory] (Fase 3.6).
-final getOfflineStatsByCategoryProvider =
-    Provider<GetOfflineStatsByCategory>((ref) {
+final getOfflineStatsByCategoryProvider = Provider<GetOfflineStatsByCategory>((
+  ref,
+) {
   return GetOfflineStatsByCategory(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
@@ -180,11 +179,11 @@ final downloadMissingPdfsProvider = Provider<DownloadMissingPdfs>((ref) {
 /// DI — [ListMissingLouvoresByMaterial] (Fase 3.7).
 final listMissingLouvoresByMaterialProvider =
     Provider<ListMissingLouvoresByMaterial>((ref) {
-  return ListMissingLouvoresByMaterial(
-    ref.watch(catalogLocalDatasourceProvider),
-    ref.watch(offlinePdfRepositoryProvider),
-  );
-});
+      return ListMissingLouvoresByMaterial(
+        ref.watch(catalogLocalDatasourceProvider),
+        ref.watch(offlinePdfRepositoryProvider),
+      );
+    });
 
 /// DI — [ClearOfflineCache] (Fase 3.6).
 final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {

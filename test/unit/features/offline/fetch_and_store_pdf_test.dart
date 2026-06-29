@@ -7,13 +7,11 @@ import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
-import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
-import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/utils/download_retry.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
@@ -30,15 +28,14 @@ String _encodePdfId(String path) {
 }
 
 class _FakePdfBytesDatasource extends PdfBytesDatasource {
-  _FakePdfBytesDatasource({
-    required this.onFetch,
-    Dio? dio,
-  }) : super(dio ?? Dio());
+  _FakePdfBytesDatasource({required this.onFetch, Dio? dio})
+    : super(dio ?? Dio());
 
   final Future<Uint8List> Function(
     String filePath, {
     ProgressCallback? onReceiveProgress,
-  }) onFetch;
+  })
+  onFetch;
   int callCount = 0;
 
   @override
@@ -49,15 +46,6 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
     callCount++;
     return onFetch(filePath, onReceiveProgress: onReceiveProgress);
   }
-}
-
-class _FakeDiskSpaceChecker extends DiskSpaceChecker {
-  _FakeDiskSpaceChecker(this._freeBytes);
-
-  final int? _freeBytes;
-
-  @override
-  Future<int?> getFreeBytes() async => _freeBytes;
 }
 
 void main() {
@@ -84,10 +72,11 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await Isar.open(
-      [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
-      directory: tempDir.path,
-    );
+    isar = await Isar.open([
+      LouvorCacheSchema,
+      OfflinePdfIndexSchema,
+      PlaylistSchema,
+    ], directory: tempDir.path);
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
@@ -96,8 +85,9 @@ void main() {
       store: store,
       local: OfflinePdfLocalDatasource(isar),
     );
-    favoritePdfIdsResolver =
-        FavoritePdfIdsResolver(PlaylistLocalDatasource(isar));
+    favoritePdfIdsResolver = FavoritePdfIdsResolver(
+      PlaylistLocalDatasource(isar),
+    );
   });
 
   tearDown(() async {
@@ -109,14 +99,12 @@ void main() {
 
   FetchAndStorePdf createUseCase(
     _FakePdfBytesDatasource datasource, {
-    int? freeBytes = 999999999,
     FavoritePdfIdsResolver? favoritesResolver,
     int cacheQuotaBytes = OfflineConfig.defaultPdfCacheQuotaBytes,
   }) {
     return FetchAndStorePdf(
       datasource,
       repository,
-      diskSpaceChecker: _FakeDiskSpaceChecker(freeBytes),
       favoritePdfIdsResolver: favoritesResolver ?? favoritePdfIdsResolver,
       cacheQuotaBytes: cacheQuotaBytes,
     );
@@ -128,18 +116,17 @@ void main() {
     );
     final useCase = createUseCase(datasource);
 
-    final source = await useCase(
-      pdfId: pdfId,
-      remotePath: remotePath,
-    );
+    final source = await useCase(pdfId: pdfId, remotePath: remotePath);
 
     expect(source.fromCache, isFalse);
     expect(source.pdfId, pdfId);
     expect(await File(source.absolutePath).exists(), isTrue);
     expect(source.absolutePath, endsWith('ColAdultos/001.pdf'));
 
-    final index =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    final index = await isar.offlinePdfIndexs
+        .filter()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(index, isNotNull);
     expect(index!.fileSize, pdfBytes.length);
     expect(datasource.callCount, 1);
@@ -153,8 +140,10 @@ void main() {
 
     await useCase(pdfId: pdfId, remotePath: remotePath);
 
-    final index =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    final index = await isar.offlinePdfIndexs
+        .filter()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(index!.category, 'ColAdultos');
   });
 
@@ -171,8 +160,10 @@ void main() {
       category: explicitCategory,
     );
 
-    final index =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    final index = await isar.offlinePdfIndexs
+        .filter()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(index!.category, explicitCategory);
   });
 
@@ -293,27 +284,9 @@ void main() {
     );
     final useCase = createUseCase(datasource);
 
-    await useCase(
-      pdfId: pdfId,
-      remotePath: remotePath,
-      onProgress: (_, __) {},
-    );
+    await useCase(pdfId: pdfId, remotePath: remotePath, onProgress: (_, __) {});
 
     expect(captured, isNotNull);
-  });
-
-  test('espaço livre insuficiente lança InsufficientDiskSpaceException',
-      () async {
-    final datasource = _FakePdfBytesDatasource(
-      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
-    );
-    final useCase = createUseCase(datasource, freeBytes: 1024);
-
-    await expectLater(
-      useCase(pdfId: pdfId, remotePath: remotePath),
-      throwsA(isA<InsufficientDiskSpaceException>()),
-    );
-    expect(await repository.lookup(pdfId), isNull);
   });
 
   test('evict LRU quando quota seria excedida', () async {
@@ -331,15 +304,9 @@ void main() {
           Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 5, 6, 7]),
     );
 
-    final useCase = createUseCase(
-      datasource,
-      cacheQuotaBytes: 12,
-    );
+    final useCase = createUseCase(datasource, cacheQuotaBytes: 12);
 
-    await useCase(
-      pdfId: newId,
-      remotePath: '/assets/ColAdultos/new.pdf',
-    );
+    await useCase(pdfId: newId, remotePath: '/assets/ColAdultos/new.pdf');
 
     expect(await repository.lookup(oldId), isNull);
     expect(await repository.lookup(newId), isNotNull);

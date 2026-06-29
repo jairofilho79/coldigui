@@ -4,7 +4,6 @@ import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
@@ -48,8 +47,7 @@ class _StatsRepo implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) async =>
-      (null, false);
+  ) async => (null, false);
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) async => {};
@@ -75,8 +73,7 @@ class _StatsRepo implements OfflinePdfRepository {
     required Uint8List bytes,
     required String category,
     bool isPersistent = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
@@ -88,8 +85,7 @@ class _StatsRepo implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -104,13 +100,13 @@ class _StubCatalogLocal extends CatalogLocalDatasource {
 
 class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
   _FixedGetOfflineStatsByCategory(this.result)
-      : super(
-          _StatsRepo({}),
-          _StubCatalogLocal(),
-          PdfLocalStore(
-            getApplicationDocumentsDirectory: () async => Directory.systemTemp,
-          ),
-        );
+    : super(
+        _StatsRepo({}),
+        _StubCatalogLocal(),
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async => Directory.systemTemp,
+        ),
+      );
 
   final OfflineStats result;
 
@@ -118,25 +114,10 @@ class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
   Future<OfflineStats> call({bool includeMissing = true}) async => result;
 }
 
-class _FixedDiskSpaceChecker extends DiskSpaceChecker {
-  _FixedDiskSpaceChecker(this._freeBytes);
-
-  final int? _freeBytes;
-
-  @override
-  Future<int?> getFreeBytes() async => _freeBytes;
-}
-
-List<Override> _offlineCacheStatusTestOverrides({
-  required OfflineStats stats,
-  int? freeDiskBytes,
-}) {
+List<Override> _offlineCacheStatusTestOverrides({required OfflineStats stats}) {
   return [
     getOfflineStatsByCategoryProvider.overrideWith(
       (ref) => _FixedGetOfflineStatsByCategory(stats),
-    ),
-    diskSpaceCheckerProvider.overrideWith(
-      (ref) => _FixedDiskSpaceChecker(freeDiskBytes),
     ),
   ];
 }
@@ -166,12 +147,14 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await container.read(offlineCacheStatusProvider.notifier).refresh(
-          removedCount: 3,
-        );
+    await container
+        .read(offlineCacheStatusProvider.notifier)
+        .refresh(removedCount: 3);
 
     expect(
-        container.read(offlineCacheStatusProvider).showRemovedWarning, isTrue);
+      container.read(offlineCacheStatusProvider).showRemovedWarning,
+      isTrue,
+    );
     expect(container.read(offlineCacheStatusProvider).removedCount, 3);
   });
 
@@ -183,14 +166,16 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    await container.read(offlineCacheStatusProvider.notifier).refresh(
-          removedCount: 2,
-        );
+    await container
+        .read(offlineCacheStatusProvider.notifier)
+        .refresh(removedCount: 2);
     container.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
 
     expect(container.read(offlineCacheStatusProvider).removedCount, 0);
     expect(
-        container.read(offlineCacheStatusProvider).showRemovedWarning, isFalse);
+      container.read(offlineCacheStatusProvider).showRemovedWarning,
+      isFalse,
+    );
   });
 
   test('reconcile completion triggers refresh with removedFromIndex', () async {

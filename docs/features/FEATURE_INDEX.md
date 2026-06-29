@@ -857,7 +857,7 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `DownloadOfflinePackages` | `lib/features/offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | UC-09 — fila por categoria; `disk_space_plus`; checkpoint SharedPreferences; cancel Dio |
+| `DownloadOfflinePackages` | `lib/features/offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | UC-09 — fila por categoria; checkpoint SharedPreferences; cancel Dio; ENOSPC → `InsufficientDiskSpaceException` |
 | `ExtractAndStorePdfs` | `lib/features/offline/domain/usecases/extract_and_store_pdfs.dart` | **Implementado 3.5 + testes** | UC-09 — `compute(extractZipPdfs)`; chunks 75 Isar; skip cache hit; remove ZIP após extração |
 | `ReconcileOfflineIndex` | `lib/features/offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.6 + testes + benchmark** | Global isolate/chunked `< 20s/5000`; escopo pós-bulk preservado |
 | `OfflineMaterialResolver` | `lib/features/offline/domain/utils/offline_material_resolver.dart` | **Implementado jun/2026** | UC-10 — `toUiMaterial(categoria)` → chip UI (`Partitura`, `Cifra`, `Gestos em Gravura`); expande Cifra nível I/II |
@@ -882,10 +882,9 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `resolvePdfForReaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.2 + 3.3 + 3.4 + fix jun/2026** | DI [ResolvePdfForReader] — `isFullOfflineMode: () => offlineAvailableStore.isConfigured`; consumido por [LouvorCard] |
 | `fetchAndStorePdfProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.3** | DI [FetchAndStorePdf] + [PdfBytesDatasource] + [offlinePdfRepositoryProvider] |
 | `validatePdfAvailabilityProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.4** | DI [ValidatePdfAvailability] — provider em offline para evitar ciclo DI |
-| `offlineCacheStatusProvider` | `lib/features/offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | [OfflineCacheStatus]; `refresh` / `refreshAll`; stats por material + faltantes |
+| `offlineCacheStatusProvider` | `lib/features/offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | [OfflineCacheStatus]; `refresh` / `refreshAll`; stats por material + faltantes; UI disco: apenas bytes usados |
 | `offlineMissingDownloadProvider` | `lib/features/offline/presentation/providers/offline_missing_download_provider.dart` | **Implementado 3.7 + jun/2026** | Notifier [DownloadMissingPdfs]; progresso sobre faltantes |
 | `offlineManifestRemoteDatasourceProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI manifest `/offline-manifest.json` |
-| `diskSpaceCheckerProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI `disk_space_plus` |
 | `zipPackageDownloaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI ZIP transitório `_bulk_zips/` |
 | `offlineBulkCheckpointStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI checkpoint JSON [StorageKeys.offlineBulkCheckpoint] |
 | `offlineAvailableStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado jun/2026** | DI [OfflineAvailableStore] via [sharedPreferencesProvider] |
@@ -964,7 +963,7 @@ ResolvePdfForReader (3.2) ✅
 | Assinatura | Comportamento |
 |------------|---------------|
 | `FetchAndStorePdf({PdfBytesDatasource, OfflinePdfRepository})` | Construtor injetável — DI via [fetchAndStorePdfProvider] |
-| `FetchAndStorePdf.call({required pdfId, required remotePath, category?, persistentDownload?})` | `fetchBytes` com retry → `upsert` → [LocalPdfSource] `fromCache: false`. Se `persistentDownload: false` (default): `_ensureCacheQuota` + `_trimCacheToQuota` com [OfflineConfig.defaultPdfCacheQuotaBytes] (LRU via [OfflinePdfRepository.evictOldestPdfs]; protege favoritos). Se `persistentDownload: true`: só `_ensureDeviceDiskSpace` — sem eviction (UC-10) |
+| `FetchAndStorePdf.call({required pdfId, required remotePath, category?, persistentDownload?})` | `fetchBytes` com retry → `upsert` → [LocalPdfSource] `fromCache: false`. Se `persistentDownload: false` (default): `_ensureCacheQuota` + `_trimCacheToQuota` com [OfflineConfig.defaultPdfCacheQuotaBytes] (LRU via [OfflinePdfRepository.evictOldestPdfs]; protege favoritos). Se `persistentDownload: true`: sem eviction LRU (UC-10) |
 | `_resolveCategory(pdfId)` | Primeiro segmento de `getPdfRelPath` (strip `assets/`); fallback = path inteiro |
 | Retry | Até [OfflineConfig.maxRetryAttempts]; backoff linear [OfflineConfig.retryBackoffBase] × attempt; retentável: erros de rede + HTTP ≥ 500; 4xx falha imediata |
 | `fetchAndStorePdfProvider` | [PdfBytesDatasource] + [offlinePdfRepositoryProvider] |
@@ -987,7 +986,7 @@ ResolvePdfForReader (3.2) ✅
 
 | Assinatura | Comportamento |
 |------------|---------------|
-| `DownloadOfflinePackages.call({categories, onProgress, cancelToken})` | Check [DiskSpaceChecker]; fila por categoria; checkpoint [StorageKeys.offlineBulkCheckpoint]; cancel via Dio |
+| `DownloadOfflinePackages.call({categories, onProgress, cancelToken})` | Fila por categoria; checkpoint [StorageKeys.offlineBulkCheckpoint]; cancel via Dio; ENOSPC → `InsufficientDiskSpaceException` |
 | `ExtractAndStorePdfs.call({zipPath, materialCategory, resumeCheckpoint?, onProgress})` | `compute(extractZipPdfs)`; chunks [OfflineConfig.bulkIsarChunkSize] Isar; skip cache hit; remove ZIP após extração |
 | `ReconcileOfflineIndex.call({materialPackage?, materialCategory?})` | Escopo pós-categoria quando params presentes; global quando omitidos |
 | `offlineBulkDownloadProvider` | Notifier: start/cancel/resume; progresso [OfflineDownloadProgress]; ao concluir → [offlineModeProvider.markConfigured] (`OFFLINE_AVAILABLE=TRUE`); snackbars via [OfflineSettingsScreen] |
@@ -1070,7 +1069,6 @@ Share/Save (cache hit):
 
 ```text
 OfflineSettingsScreen → DownloadOfflinePackages(categories)
-  → checkFreeDiskSpace() — aborta com aviso se insuficiente
   → offline-manifest.json → ZIP por categoria (fila background / isolate)
   → ExtractAndStorePdfs(zipPath, resumeCheckpoint?)
       → descompacta → PdfLocalStore.writeAtomic (chunks 50–100)
@@ -1145,7 +1143,6 @@ OfflineSettingsScreen — "Baixar faltantes"
           → missingPdfIds = manifest − válidos
           → FetchAndStorePdf(persistentDownload: true) **somente** para missingPdfIds
               → SEM eviction LRU (quota 500 MB não aplica)
-              → guarda apenas espaço físico em disco (_ensureDeviceDiskSpace)
           → onProgress(done, missingPdfIds.length)
   → refresh cache status + dismiss banner removidos
 ```
@@ -1175,7 +1172,7 @@ OfflineSettingsScreen — "Baixar faltantes"
 | Abrir PDF on-demand / prefetch carousel | UC-04 | **Sim** se `OFFLINE_AVAILABLE` ausente/`FALSE` | 500 MB LRU + favoritos protegidos |
 | Abrir PDF on-demand / prefetch carousel | UC-04 | **Não** se `OFFLINE_AVAILABLE=TRUE` | Espaço físico do dispositivo |
 | Baixar faltantes | UC-10 | **Não** (`persistentDownload: true`) | Espaço físico do dispositivo |
-| Bulk ZIP por categoria | UC-09 | **Não** (não usa [FetchAndStorePdf]) | Espaço físico × [OfflineConfig.diskSpaceSafetyMargin] |
+| Bulk ZIP por categoria | UC-09 | **Não** (não usa [FetchAndStorePdf]) | Espaço físico do dispositivo; falha em ENOSPC durante download/extração |
 | Limpar cache → `FALSE` | UC-10 | Volta LRU no on-demand | 500 MB LRU |
 
 **Arquivos:** `fetch_and_store_pdf.dart`, `resolve_pdf_for_reader.dart`, `offline_providers.dart`, `download_missing_pdfs.dart`, `offline_config.dart` (`defaultPdfCacheQuotaBytes`).

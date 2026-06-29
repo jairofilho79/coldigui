@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
@@ -78,12 +77,11 @@ class _FakeOfflineRepository implements OfflinePdfRepository {
 
 class _TrackingFetchAndStore extends FetchAndStorePdf {
   _TrackingFetchAndStore(this.resolvedPdfIds)
-      : super(
-          _NoOpBytesDatasource(),
-          _FakeOfflineRepository(cachedPdfIds: {}),
-          diskSpaceChecker: _UnusedDiskSpaceChecker(),
-          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
-        );
+    : super(
+        _NoOpBytesDatasource(),
+        _FakeOfflineRepository(cachedPdfIds: {}),
+        favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+      );
 
   final List<String> resolvedPdfIds;
 
@@ -106,23 +104,18 @@ class _TrackingFetchAndStore extends FetchAndStorePdf {
 
 class _NoOpBytesDatasource extends PdfBytesDatasource {
   _NoOpBytesDatasource()
-      : super(
-          Dio(),
-          resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
-        );
-}
-
-class _UnusedDiskSpaceChecker extends DiskSpaceChecker {
-  @override
-  Future<int?> getFreeBytes() async => 999999999;
+    : super(
+        Dio(),
+        resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
+      );
 }
 
 class _SessionTestAdapter extends PdfxViewerAdapter {
   _SessionTestAdapter()
-      : super(
-          _NoOpBytesDatasource(),
-          resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
-        );
+    : super(
+        _NoOpBytesDatasource(),
+        resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
+      );
 
   @override
   Future<PdfControllerPinch> openDocument(String filePath) async {
@@ -187,11 +180,9 @@ void main() {
         pdfxViewerAdapterProvider.overrideWithValue(_SessionTestAdapter()),
         prefetchNetworkPolicyProvider.overrideWithValue(_AllowPolicy()),
         prefetchAdjacentCarouselPdfsProvider.overrideWithValue(prefetch),
-        prefetchLouvorCatalogProvider.overrideWith((ref) => [
-              _louvor(prevPath),
-              _louvor(currentPath),
-              _louvor(nextPath),
-            ]),
+        prefetchLouvorCatalogProvider.overrideWith(
+          (ref) => [_louvor(prevPath), _louvor(currentPath), _louvor(nextPath)],
+        ),
         carouselLouvoresProvider.overrideWith(
           () => _FixedCarouselNotifier([
             _carouselItem(prevPath, 0),

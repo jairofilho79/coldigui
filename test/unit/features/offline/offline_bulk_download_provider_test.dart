@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
@@ -47,8 +46,7 @@ class _StubRepo implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) async =>
-      (null, false);
+  ) async => (null, false);
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) async => {};
@@ -74,8 +72,7 @@ class _StubRepo implements OfflinePdfRepository {
     required Uint8List bytes,
     required String category,
     bool isPersistent = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
@@ -87,8 +84,7 @@ class _StubRepo implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -101,16 +97,15 @@ class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
     required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
-          manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-          zipDownloader: ZipPackageDownloader(Dio(), store),
-          extractAndStorePdfs: ExtractAndStorePdfs(
-            _StubRepo(),
-            store,
-            ZipPackageDownloader(Dio(), store),
-          ),
-          reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-          diskSpaceChecker: DiskSpaceChecker(),
-        );
+         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
+         zipDownloader: ZipPackageDownloader(Dio(), store),
+         extractAndStorePdfs: ExtractAndStorePdfs(
+           _StubRepo(),
+           store,
+           ZipPackageDownloader(Dio(), store),
+         ),
+         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
+       );
 
   final Object error;
 
@@ -142,16 +137,15 @@ class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
     required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
-          manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-          zipDownloader: ZipPackageDownloader(Dio(), store),
-          extractAndStorePdfs: ExtractAndStorePdfs(
-            _StubRepo(),
-            store,
-            ZipPackageDownloader(Dio(), store),
-          ),
-          reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-          diskSpaceChecker: DiskSpaceChecker(),
-        );
+         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
+         zipDownloader: ZipPackageDownloader(Dio(), store),
+         extractAndStorePdfs: ExtractAndStorePdfs(
+           _StubRepo(),
+           store,
+           ZipPackageDownloader(Dio(), store),
+         ),
+         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
+       );
 
   @override
   Future<DownloadOfflinePackagesResult> call({
@@ -159,8 +153,7 @@ class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
     void Function(OfflineDownloadProgress progress)? onProgress,
     CancelToken? cancelToken,
     OfflineBulkCheckpoint? resumeCheckpoint,
-  }) async =>
-      const DownloadOfflinePackagesResult();
+  }) async => const DownloadOfflinePackagesResult();
 }
 
 class _IdleOfflineModeNotifier extends OfflineModeNotifier {
@@ -258,9 +251,9 @@ void main() {
       );
       await pumpMicrotasks();
 
-      await container
-          .read(offlineBulkDownloadProvider.notifier)
-          .start(['Partitura']);
+      await container.read(offlineBulkDownloadProvider.notifier).start([
+        'Partitura',
+      ]);
 
       final state = container.read(offlineBulkDownloadProvider);
       expect(state.status, OfflineBulkDownloadStatus.failed);
@@ -279,9 +272,9 @@ void main() {
       );
       await pumpMicrotasks();
 
-      await container
-          .read(offlineBulkDownloadProvider.notifier)
-          .start(['Partitura']);
+      await container.read(offlineBulkDownloadProvider.notifier).start([
+        'Partitura',
+      ]);
 
       final state = container.read(offlineBulkDownloadProvider);
       expect(state.status, OfflineBulkDownloadStatus.failed);
@@ -300,9 +293,9 @@ void main() {
     );
     await pumpMicrotasks();
 
-    await container
-        .read(offlineBulkDownloadProvider.notifier)
-        .start(['Partitura']);
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
 
     expect(wakelock.enableCount, 1);
     expect(wakelock.disableCount, 1);
@@ -321,9 +314,9 @@ void main() {
     );
     await pumpMicrotasks();
 
-    await container
-        .read(offlineBulkDownloadProvider.notifier)
-        .start(['Partitura']);
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
 
     expect(wakelock.enableCount, 1);
     expect(wakelock.disableCount, 1);
@@ -341,9 +334,9 @@ void main() {
     );
     await pumpMicrotasks();
 
-    await container
-        .read(offlineBulkDownloadProvider.notifier)
-        .start(['Partitura']);
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
 
     expect(wakelock.enableCount, 1);
     expect(wakelock.disableCount, 1);

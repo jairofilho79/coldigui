@@ -178,14 +178,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlinePhaseSyncing => 'sincronizando';
 
   @override
-  String offlineProgressDetail(String category, int part, int totalParts,
-      int done, int total, String phase) {
+  String offlineProgressDetail(
+    String category,
+    int part,
+    int totalParts,
+    int done,
+    int total,
+    String phase,
+  ) {
     return '$category — parte $part/$totalParts — $done/$total PDFs ($phase)';
   }
 
   @override
   String offlineFetchProgress(
-      int part, int totalParts, String received, String total) {
+    int part,
+    int totalParts,
+    String received,
+    String total,
+  ) {
     return 'Baixando pacote $part/$totalParts — $received / $total';
   }
 
@@ -211,7 +221,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String offlineStatsCategoryWithMissing(
-      String category, int downloaded, int missing) {
+    String category,
+    int downloaded,
+    int missing,
+  ) {
     return '$category: $downloaded ($missing faltantes)';
   }
 
@@ -242,7 +255,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String offlineStatsCategoryUnreliableMissing(
-      String category, int downloaded) {
+    String category,
+    int downloaded,
+  ) {
     return '$category: $downloaded (— faltantes, sem conexão)';
   }
 

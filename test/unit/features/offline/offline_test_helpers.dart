@@ -6,7 +6,6 @@ import 'package:archive/archive.dart';
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
-import 'package:coldigui/features/offline/data/datasources/disk_space_checker.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
@@ -84,11 +83,6 @@ Future<void> seedOfflineEntries({
   }
 }
 
-class UnlimitedDiskSpaceChecker extends DiskSpaceChecker {
-  @override
-  Future<int?> getFreeBytes() async => 999999999;
-}
-
 FetchAndStorePdf createTestFetchAndStorePdf(
   PdfBytesDatasource bytesDatasource,
   OfflinePdfRepository repository, {
@@ -97,7 +91,6 @@ FetchAndStorePdf createTestFetchAndStorePdf(
   return FetchAndStorePdf(
     bytesDatasource,
     repository,
-    diskSpaceChecker: UnlimitedDiskSpaceChecker(),
     favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
     cacheQuotaBytes: cacheQuotaBytes,
   );
@@ -106,10 +99,8 @@ FetchAndStorePdf createTestFetchAndStorePdf(
 /// Datasource de manifest com [fetchManifest] fixo para testes.
 class FakeOfflineManifestRemoteDatasource
     extends OfflineManifestRemoteDatasource {
-  FakeOfflineManifestRemoteDatasource(
-    this._manifest,
-    SharedPreferences prefs,
-  ) : super(Dio(), prefs, networkOverride: () async => _manifest);
+  FakeOfflineManifestRemoteDatasource(this._manifest, SharedPreferences prefs)
+    : super(Dio(), prefs, networkOverride: () async => _manifest);
 
   final OfflineManifest _manifest;
 

@@ -50,14 +50,8 @@ abstract final class OfflineConfig {
   /// Subpasta transitória de ZIPs bulk sob `plpcg_pdfs/`.
   static const String zipTempSubdir = '_bulk_zips';
 
-  /// Margem de segurança sobre `totalSize` do manifest antes do download.
-  static const double diskSpaceSafetyMargin = 1.15;
-
   /// Quota padrão do cache on-demand de PDFs (LRU eviction — backlog #10).
   static const int defaultPdfCacheQuotaBytes = 500 * 1024 * 1024;
-
-  /// Espaço livre mínimo no dispositivo antes de baixar um PDF on-demand.
-  static const int minFreeDiskSpaceForPdfDownloadBytes = 5 * 1024 * 1024;
 
   /// Debounce antes de reconcile global ao retornar ao foreground (Fase 3.6).
   static const Duration reconcileForegroundDebounce = Duration(seconds: 3);

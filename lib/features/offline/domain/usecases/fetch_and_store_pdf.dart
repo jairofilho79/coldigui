@@ -1,14 +1,10 @@
-import 'dart:math';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../../pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import '../../data/datasources/disk_space_checker.dart';
 import '../../data/datasources/favorite_pdf_ids_resolver.dart';
 import '../entities/local_pdf_source.dart';
-import '../exceptions/offline_bulk_exceptions.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/download_retry.dart';
 import '../utils/offline_category_resolver.dart';
@@ -29,15 +25,12 @@ class FetchAndStorePdf {
   const FetchAndStorePdf(
     this._bytesDatasource,
     this._repository, {
-    required DiskSpaceChecker diskSpaceChecker,
     required FavoritePdfIdsResolver favoritePdfIdsResolver,
     this.cacheQuotaBytes = OfflineConfig.defaultPdfCacheQuotaBytes,
-  })  : _diskSpaceChecker = diskSpaceChecker,
-        _favoritePdfIdsResolver = favoritePdfIdsResolver;
+  }) : _favoritePdfIdsResolver = favoritePdfIdsResolver;
 
   final PdfBytesDatasource _bytesDatasource;
   final OfflinePdfRepository _repository;
-  final DiskSpaceChecker _diskSpaceChecker;
   final FavoritePdfIdsResolver _favoritePdfIdsResolver;
 
   /// Quota LRU do cache on-demand — override em testes.
@@ -50,9 +43,9 @@ class FetchAndStorePdf {
   /// (via [LouvorPdfPath.fromLouvor]).
   /// [category] — classificação Isar; se `null`, derivada do primeiro segmento de
   /// [PdfPathNormalizer.getPdfRelPath] (ex.: `ColAdultos`).
-  /// [persistentDownload] — quando `true`, omite a eviction LRU e mantém apenas a
-  /// guarda de espaço físico em disco. Use em downloads bulk (UC-10 "baixar faltantes")
-  /// para evitar que PDFs recém-persistidos sejam deletados para abrir espaço no cache.
+  /// [persistentDownload] — quando `true`, omite a eviction LRU. Use em downloads
+  /// bulk (UC-10 "baixar faltantes") para evitar que PDFs recém-persistidos sejam
+  /// deletados para abrir espaço no cache.
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
@@ -63,17 +56,17 @@ class FetchAndStorePdf {
     final protectedPdfIds = await _favoritePdfIdsResolver.resolve();
     final excludePdfIds = {...protectedPdfIds, pdfId};
 
-    await _ensureDeviceDiskSpace();
     if (!persistentDownload) {
       await _ensureCacheQuota(excludePdfIds: excludePdfIds);
     }
 
     final resolvedCategory =
         category ?? OfflineCategoryResolver.fromPdfId(pdfId);
-    final bytes =
-        await _fetchBytesWithRetry(remotePath, onProgress: onProgress);
+    final bytes = await _fetchBytesWithRetry(
+      remotePath,
+      onProgress: onProgress,
+    );
 
-    await _ensureDeviceDiskSpace(requiredBytes: bytes.length);
     if (!persistentDownload) {
       await _ensureCacheQuota(
         excludePdfIds: excludePdfIds,
@@ -97,23 +90,6 @@ class FetchAndStorePdf {
       absolutePath: entry.absolutePath,
       fromCache: false,
     );
-  }
-
-  Future<void> _ensureDeviceDiskSpace({int requiredBytes = 0}) async {
-    final freeBytes = await _diskSpaceChecker.getFreeBytes();
-    if (freeBytes == null) return;
-
-    final minimumRequired = max(
-      OfflineConfig.minFreeDiskSpaceForPdfDownloadBytes,
-      (requiredBytes * OfflineConfig.diskSpaceSafetyMargin).round(),
-    );
-
-    if (freeBytes < minimumRequired) {
-      throw InsufficientDiskSpaceException(
-        requiredBytes: minimumRequired,
-        availableBytes: freeBytes,
-      );
-    }
   }
 
   Future<void> _ensureCacheQuota({
@@ -151,9 +127,11 @@ class FetchAndStorePdf {
   }) async {
     Object? lastError;
 
-    for (var attempt = 1;
-        attempt <= OfflineConfig.maxRetryAttempts;
-        attempt++) {
+    for (
+      var attempt = 1;
+      attempt <= OfflineConfig.maxRetryAttempts;
+      attempt++
+    ) {
       try {
         return await _bytesDatasource.fetchBytes(
           remotePath,
