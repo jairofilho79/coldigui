@@ -166,14 +166,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final results = ref.watch(libraryGroupResultsProvider);
     final manifestAsync = ref.watch(louvoresManifestProvider);
 
-    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, __) {
+    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
       if (!_urlSyncEnabled) return;
       _syncUrlFromState();
     });
 
     ref.listen<LibrarySpecialArrangementState>(
       librarySpecialArrangementProvider,
-      (_, __) {
+      (_, _) {
         if (!_urlSyncEnabled) return;
         _syncUrlFromState();
       },

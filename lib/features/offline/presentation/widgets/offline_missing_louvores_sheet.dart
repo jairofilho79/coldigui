@@ -127,7 +127,7 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.gold),
                 ),
-                error: (_, __) => Center(
+                error: (_, _) => Center(
                   child: Text(
                     l10n.offlineMissingLouvoresLoadError,
                     style: AppTypography.body.copyWith(color: AppColors.title),

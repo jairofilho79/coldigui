@@ -61,7 +61,7 @@ class PlaylistViewItem {
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   @override
   List<PlaylistViewItem> build() {
-    ref.listen(louvoresManifestProvider, (_, __) {
+    ref.listen(louvoresManifestProvider, (_, _) {
       unawaited(_reload());
     });
     Future.microtask(_reload);

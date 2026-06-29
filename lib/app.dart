@@ -33,7 +33,7 @@ class ColdiguiApp extends ConsumerWidget {
     }
 
     // listen (não watch): inicia o fetch sem reconstruir MaterialApp.router ao concluir.
-    ref.listen(louvoresManifestProvider, (_, __) {});
+    ref.listen(louvoresManifestProvider, (_, _) {});
 
     final router = ref.watch(appRouterProvider);
 

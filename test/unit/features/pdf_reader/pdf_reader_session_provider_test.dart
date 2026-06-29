@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -81,7 +80,7 @@ void main() {
 
     final sub = container.listen(
       pdfReaderSessionProvider(filePath),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
 
@@ -110,7 +109,7 @@ void main() {
 
     final sub = container.listen(
       pdfReaderSessionProvider(filePath),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
 
@@ -135,7 +134,7 @@ void main() {
 
     final firstSub = container.listen(
       pdfReaderSessionProvider(filePath),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final firstSession = await container.read(
@@ -150,7 +149,7 @@ void main() {
 
     final secondSub = container.listen(
       pdfReaderSessionProvider(filePath),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final secondSession = await container.read(
@@ -183,7 +182,7 @@ void main() {
 
     final subA = container.listen(
       pdfReaderSessionProvider(pathA),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final sessionA = await container.read(
@@ -195,7 +194,7 @@ void main() {
 
     final subB = container.listen(
       pdfReaderSessionProvider(pathB),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     await container.read(pdfReaderSessionProvider(pathB).future);
@@ -205,7 +204,7 @@ void main() {
 
     final subA2 = container.listen(
       pdfReaderSessionProvider(pathA),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final sessionA2 = await container.read(

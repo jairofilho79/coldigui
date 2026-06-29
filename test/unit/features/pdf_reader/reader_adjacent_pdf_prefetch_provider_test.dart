@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -197,7 +196,7 @@ void main() {
 
     final sessionSub = container.listen(
       pdfReaderSessionProvider(filePath),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final prefetchSub = container.listen(
@@ -207,7 +206,7 @@ void main() {
           pdfId: currentPdfId,
         ),
       ),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
 

@@ -256,13 +256,13 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => Scaffold(
+          builder: (_, _) => Scaffold(
             body: LouvorCard(louvor: _singleLouvor(nome: 'Aleluia')),
           ),
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, __) => const Scaffold(body: Text('Leitor aberto')),
+          builder: (_, _) => const Scaffold(body: Text('Leitor aberto')),
         ),
       ],
     );

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:coldigui/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';

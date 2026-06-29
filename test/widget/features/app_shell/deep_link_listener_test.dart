@@ -75,11 +75,11 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: Text('Home Screen')),
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
         ),
         GoRoute(
           path: RoutePaths.playlists,
-          builder: (_, __) => const Scaffold(body: Text('Listas Screen')),
+          builder: (_, _) => const Scaffold(body: Text('Listas Screen')),
         ),
       ],
     );
@@ -130,7 +130,7 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: Text('Home Screen')),
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
         ),
       ],
     );

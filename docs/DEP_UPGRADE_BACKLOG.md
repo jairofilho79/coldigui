@@ -1,6 +1,6 @@
 # Backlog de upgrades de dependências (Dart/Flutter)
 
-**Status:** inventário concluído (jun/2026) — ondas 1–4 pendentes  
+**Status:** inventário concluído (jun/2026) — Onda 1-A ✅ — Ondas 1-B e 2–4 pendentes  
 **Data:** junho de 2026  
 **Contexto:** auditoria pós-migração SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) Fases A/B/C concluídas). Nenhuma dependência **direta** está marcada `isDiscontinued` no pub.dev; o backlog é de **modernização major**, não de substituição por abandono.
 
@@ -44,7 +44,7 @@
 |--------|-------------------|----------------|----------------|
 | `build_runner` | 2.4.x | 2.15.0 | Sim — Onda 1 |
 | `flutter_launcher_icons` | 0.14.x | 0.14.4 | Não (dev-only, estável) |
-| `flutter_lints` | 5.0.0 | 6.0.0 | Sim — Onda 1 |
+| `flutter_lints` | 6.0.0 | 6.0.0 | Sim — Onda 1 ✅ |
 
 ### Transitivas — atenção (não exigem ação imediata)
 
@@ -138,10 +138,18 @@ flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json   
 | Riverpod 3 + `riverpod_generator` no mesmo PR | Runtime + codegen = dois tipos de mudança |
 | Desabilitar lints em massa | Corrigir ou justificar regra a regra |
 
+### Git workflow (agentes)
+
+- **Não criar branches** para ondas de upgrade — trabalhar na branch atual.
+- **Commit local** ao concluir cada onda (ou sub-onda), com a mensagem conventional commit sugerida na matriz de prioridade.
+- **`git add` seletivo** — incluir só arquivos do escopo da onda; não misturar ondas nem migrações SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md)) no mesmo commit.
+- **Não fazer push** salvo pedido explícito do mantenedor.
+
 ---
 
-## Onda 1-A — `flutter_lints` 5 → 6
+## Onda 1-A — `flutter_lints` 5 → 6 ✅
 
+**Status:** concluída (jun/2026)  
 **Prioridade:** 1ª  
 **Esforço:** muito baixo | **Risco:** baixo | **Benefício:** alinhamento Dart 3.12+
 
@@ -155,8 +163,8 @@ flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json   
 
 ### Critérios de aceite
 
-- [ ] `flutter analyze` sem issues
-- [ ] Nenhuma regra desabilitada em massa sem comentário
+- [x] `flutter analyze` sem issues
+- [x] Nenhuma regra desabilitada em massa sem comentário
 
 ---
 

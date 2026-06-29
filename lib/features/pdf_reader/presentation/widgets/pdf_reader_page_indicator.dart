@@ -19,7 +19,7 @@ class PdfReaderPageIndicator extends ConsumerWidget {
 
     return sessionAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (session) => ValueListenableBuilder<PdfReaderLoadingState>(
         valueListenable: session.handle.loadingState,
         builder: (context, loadingState, _) {

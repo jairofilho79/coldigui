@@ -34,6 +34,6 @@ final libraryResultsProvider = Provider<PaginatedLouvores>((ref) {
       );
     },
     loading: () => PaginatedLouvores.empty,
-    error: (_, __) => PaginatedLouvores.empty,
+    error: (_, _) => PaginatedLouvores.empty,
   );
 });

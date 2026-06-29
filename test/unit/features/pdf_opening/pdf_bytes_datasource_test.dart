@@ -105,7 +105,7 @@ void main() {
 
       await datasource.fetchBytes(
         'https://example.com/assets/test.pdf',
-        onReceiveProgress: (_, __) => progressCalls++,
+        onReceiveProgress: (_, _) => progressCalls++,
       );
 
       expect(progressCalls, dio.progressInvocations);

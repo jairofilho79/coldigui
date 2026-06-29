@@ -59,7 +59,7 @@ class HomeSearchDebouncer extends Notifier<String> {
   String build() {
     ref.listen<String>(
       homeSearchRawQueryProvider,
-      (_, __) {
+      (_, _) {
         _debounceTimer?.cancel();
         _debounceTimer = Timer(const Duration(milliseconds: 300), () {
           // Lê o valor atual no fim do debounce — evita aplicar `next` obsoleto
@@ -90,16 +90,16 @@ class HomeSearchPipelineDriver extends Notifier<int> {
   int build() {
     ref.listen<String>(
       homeSearchDebouncedQueryProvider,
-      (_, __) => _scheduleSearch(),
+      (_, _) => _scheduleSearch(),
       fireImmediately: true,
     );
     ref.listen<CatalogFilterState>(
       catalogFiltersProvider,
-      (_, __) => _scheduleSearch(),
+      (_, _) => _scheduleSearch(),
     );
     ref.listen<AsyncValue<LouvoresManifest>>(
       louvoresManifestProvider,
-      (_, __) => _scheduleSearch(),
+      (_, _) => _scheduleSearch(),
       fireImmediately: true,
     );
 

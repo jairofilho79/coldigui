@@ -398,7 +398,7 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
         GoRoute(
           path: RoutePaths.reader,
@@ -440,7 +440,7 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
         GoRoute(
           path: RoutePaths.reader,
@@ -486,11 +486,11 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
       ],
     );
@@ -550,7 +550,7 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
         GoRoute(
           path: RoutePaths.reader,
@@ -613,11 +613,11 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.home,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, __) => const Scaffold(body: CarouselChips()),
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
         ),
       ],
     );

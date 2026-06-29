@@ -147,12 +147,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = AppLocalizations.of(context)!;
     final manifestAsync = ref.watch(louvoresManifestProvider);
 
-    ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, __) {
+    ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, _) {
       if (!_urlSyncEnabled) return;
       _syncUrlFromState();
     });
 
-    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, __) {
+    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
       if (!_urlSyncEnabled) return;
       _syncUrlFromState();
     });

@@ -28,7 +28,7 @@ void main() {
               routes: [
                 GoRoute(
                   path: RoutePaths.library,
-                  builder: (_, __) =>
+                  builder: (_, _) =>
                       const Scaffold(body: Text('Library Screen')),
                 ),
               ],
@@ -37,7 +37,7 @@ void main() {
               routes: [
                 GoRoute(
                   path: RoutePaths.offline,
-                  builder: (_, __) =>
+                  builder: (_, _) =>
                       const Scaffold(body: Text('Offline Screen')),
                 ),
               ],

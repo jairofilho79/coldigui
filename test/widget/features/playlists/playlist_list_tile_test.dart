@@ -220,7 +220,7 @@ void main() {
       routes: [
         GoRoute(
           path: RoutePaths.playlists,
-          builder: (_, __) => Scaffold(
+          builder: (_, _) => Scaffold(
             body: PlaylistListTile(item: item, tab: PlaylistTab.saved),
           ),
         ),

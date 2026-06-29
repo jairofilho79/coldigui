@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../data/datasources/connectivity_network_connection_checker.dart';
@@ -9,8 +10,9 @@ import '../../domain/ports/prefetch_network_policy.dart';
 import '../../domain/usecases/prefetch_adjacent_carousel_pdfs.dart';
 
 /// DI — [NetworkConnectionChecker] para política de prefetch.
-final networkConnectionCheckerProvider =
-    Provider<NetworkConnectionChecker>((ref) {
+final networkConnectionCheckerProvider = Provider<NetworkConnectionChecker>((
+  ref,
+) {
   return ConnectivityNetworkConnectionChecker();
 });
 
@@ -24,14 +26,14 @@ final prefetchNetworkPolicyProvider = Provider<PrefetchNetworkPolicy>((ref) {
 /// DI — [PrefetchAdjacentCarouselPdfs] (backlog #8).
 final prefetchAdjacentCarouselPdfsProvider =
     Provider<PrefetchAdjacentCarouselPdfs>((ref) {
-  return PrefetchAdjacentCarouselPdfs(
-    validateAvailability: ref.watch(validatePdfAvailabilityProvider),
-    resolvePdf: ref.watch(resolvePdfForReaderProvider),
-    networkPolicy: ref.watch(prefetchNetworkPolicyProvider),
-  );
-});
+      return PrefetchAdjacentCarouselPdfs(
+        validateAvailability: ref.watch(validatePdfAvailabilityProvider),
+        resolvePdf: ref.watch(resolvePdfForReaderProvider),
+        networkPolicy: ref.watch(prefetchNetworkPolicyProvider),
+      );
+    });
 
 /// Catálogo atual para lookup de vizinhos no prefetch.
-final prefetchLouvorCatalogProvider = Provider((ref) {
+final prefetchLouvorCatalogProvider = Provider<List<Louvor>?>((ref) {
   return ref.watch(louvoresManifestProvider).value?.louvores;
 });

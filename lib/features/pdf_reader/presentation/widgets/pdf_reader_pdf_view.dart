@@ -364,7 +364,7 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
                 controller: handle.viewerController,
                 params: PdfViewerParams(
                   backgroundColor: AppColors.pdfArea,
-                  onViewerReady: (_, __) => handle.markViewerReady(),
+                  onViewerReady: (_, _) => handle.markViewerReady(),
                   onPageChanged: _handleVisiblePageChanged,
                   loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
                     return const Center(

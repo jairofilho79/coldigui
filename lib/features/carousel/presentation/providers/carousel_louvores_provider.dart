@@ -22,7 +22,7 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
 
   @override
   List<CarouselItem> build() {
-    ref.listen(louvoresManifestProvider, (_, __) {
+    ref.listen(louvoresManifestProvider, (_, _) {
       unawaited(_reload());
     });
     ref.onDispose(() => _reorderPersistTimer?.cancel());

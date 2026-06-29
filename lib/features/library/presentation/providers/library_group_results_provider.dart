@@ -59,11 +59,11 @@ class LibraryGroupPipelineDriver extends Notifier<int> {
   int build() {
     ref.listen<CatalogFilterState>(
       catalogFiltersProvider,
-      (_, __) => _schedulePipeline(),
+      (_, _) => _schedulePipeline(),
     );
     ref.listen<LibrarySpecialArrangementState>(
       librarySpecialArrangementProvider,
-      (_, __) => _schedulePipeline(),
+      (_, _) => _schedulePipeline(),
     );
     ref.listen<LibraryViewSettings>(
       libraryViewSettingsProvider,
@@ -75,7 +75,7 @@ class LibraryGroupPipelineDriver extends Notifier<int> {
     );
     ref.listen<AsyncValue<LouvoresManifest>>(
       louvoresManifestProvider,
-      (_, __) => _schedulePipeline(),
+      (_, _) => _schedulePipeline(),
       fireImmediately: true,
     );
 

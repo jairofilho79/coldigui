@@ -273,7 +273,7 @@ void main() {
     );
     final useCase = createUseCase(datasource);
 
-    await useCase(pdfId: pdfId, remotePath: remotePath, onProgress: (_, __) {});
+    await useCase(pdfId: pdfId, remotePath: remotePath, onProgress: (_, _) {});
 
     expect(captured, isNotNull);
   });
