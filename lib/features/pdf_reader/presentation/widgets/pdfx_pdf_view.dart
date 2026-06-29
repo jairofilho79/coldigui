@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfx/pdfx.dart';
@@ -6,6 +7,7 @@ import '../../../../core/theme/color_extensions.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
+import '../utils/pdf_reader_viewport_policy.dart';
 import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
@@ -31,6 +33,7 @@ class PdfxPdfView extends StatefulWidget {
   const PdfxPdfView({
     required this.controller,
     required this.navigateToPage,
+    this.requiresReattach = false,
     this.refreshViewportAfterNavigation,
     this.onPageChanged,
     super.key,
@@ -38,10 +41,13 @@ class PdfxPdfView extends StatefulWidget {
 
   final PdfControllerPinch controller;
 
+  /// Reattach via `loadDocument` só para controllers do cache LRU.
+  final bool requiresReattach;
+
   /// Navegação animada; deve passar por [PdfReaderDisplayedPageNotifier].
   final PdfReaderNavigateToPage navigateToPage;
 
-  /// Reaplica fit após troca por gesto — tipicamente só em fullscreen (tiles PDFx).
+  /// Reaplica fit após troca de página — tiles PDFx precisam de refresh no viewport.
   final Future<void> Function()? refreshViewportAfterNavigation;
 
   /// Callback opcional quando a página visível muda (scroll).
@@ -60,30 +66,85 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   var _pageTurnInProgress = false;
   PdfPageSwipeDirection? _swipeFeedbackDirection;
   var _hapticTriggeredForSwipe = false;
+  PdfControllerPinch? _listeningController;
+  VoidCallback? _loadingStateListener;
+  final _reattachGuard = PdfReattachGuard();
+  late PdfReaderViewportPolicy _viewportPolicy;
 
   @override
   void initState() {
     super.initState();
-    _scheduleReattachIfCached();
+    _viewportPolicy = PdfReaderViewportPolicy(
+      initialPage: widget.controller.pageListenable.value,
+    );
+    if (widget.requiresReattach) {
+      _attachLoadingStateListener(widget.controller);
+      _scheduleReattachIfCached();
+    }
   }
 
   @override
   void didUpdateWidget(covariant PdfxPdfView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
-      _scheduleReattachIfCached();
+      _detachLoadingStateListener();
+      _viewportPolicy = PdfReaderViewportPolicy(
+        initialPage: widget.controller.pageListenable.value,
+      );
+      _reattachGuard.complete();
+      if (widget.requiresReattach) {
+        _attachLoadingStateListener(widget.controller);
+        _scheduleReattachIfCached();
+      }
+    } else if (oldWidget.requiresReattach != widget.requiresReattach) {
+      if (widget.requiresReattach) {
+        _attachLoadingStateListener(widget.controller);
+        _scheduleReattachIfCached();
+      } else {
+        _detachLoadingStateListener();
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _detachLoadingStateListener();
+    super.dispose();
+  }
+
+  void _attachLoadingStateListener(PdfControllerPinch controller) {
+    _listeningController = controller;
+    _loadingStateListener = () {
+      if (controller.loadingState.value == PdfLoadingState.success) {
+        _scheduleReattachIfCached();
+      }
+    };
+    controller.loadingState.addListener(_loadingStateListener!);
+  }
+
+  void _detachLoadingStateListener() {
+    final controller = _listeningController;
+    final listener = _loadingStateListener;
+    if (controller != null && listener != null) {
+      controller.loadingState.removeListener(listener);
+    }
+    _listeningController = null;
+    _loadingStateListener = null;
   }
 
   /// PDFx `_attach` não repopula `_pages` quando `_document != null` (cache LRU).
   /// Sem isso, voltar a um PDF cacheado deixa o canvas vazio.
   void _scheduleReattachIfCached() {
+    if (!widget.requiresReattach) return;
+
     final controller = widget.controller;
     if (controller.loadingState.value != PdfLoadingState.success) {
       return;
     }
+    if (!_reattachGuard.trySchedule()) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _reattachGuard.complete();
       if (!mounted) return;
       if (!identical(widget.controller, controller)) return;
       if (controller.loadingState.value != PdfLoadingState.success) return;
@@ -93,10 +154,30 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
           controller.document,
           initialPage: controller.pageListenable.value,
         );
-      } on Object {
-        // PDFx expõe falhas via loadingState / errorBuilder.
+      } on Object catch (error, stackTrace) {
+        if (kDebugMode) {
+          debugPrint(
+              '[PdfxPdfView._scheduleReattachIfCached] $error\n$stackTrace');
+        }
       }
     });
+  }
+
+  void _scheduleViewportRefresh({required int pageNumber}) {
+    if (!_viewportPolicy.shouldScheduleRefresh(pageNumber)) return;
+
+    final refresh = widget.refreshViewportAfterNavigation;
+    if (refresh == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await refresh();
+    });
+  }
+
+  void _handleVisiblePageChanged(int pageNumber) {
+    widget.onPageChanged?.call(pageNumber);
+    _scheduleViewportRefresh(pageNumber: pageNumber);
   }
 
   void _resetTracking() {
@@ -267,13 +348,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     setState(() => _pageTurnInProgress = true);
     try {
       await widget.navigateToPage(targetPage);
-      final refresh = widget.refreshViewportAfterNavigation;
-      if (refresh != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted) return;
-          await refresh();
-        });
-      }
+      _scheduleViewportRefresh(pageNumber: targetPage);
     } finally {
       if (mounted) {
         setState(() => _pageTurnInProgress = false);
@@ -297,7 +372,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
                 key: ValueKey(widget.controller),
                 controller: widget.controller,
                 scrollDirection: Axis.vertical,
-                onPageChanged: widget.onPageChanged,
+                onPageChanged: _handleVisiblePageChanged,
                 backgroundDecoration:
                     const BoxDecoration(color: AppColors.pdfArea),
                 builders: PdfViewPinchBuilders<DefaultBuilderOptions>(

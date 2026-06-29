@@ -19,6 +19,7 @@ class PdfReaderSession {
   const PdfReaderSession({
     required this.controller,
     required this.filePath,
+    this.fromCache = false,
   });
 
   /// Controller PDFx ativo para [PdfxPdfView].
@@ -26,6 +27,9 @@ class PdfReaderSession {
 
   /// Valor bruto do query param [UrlSyncParams.file].
   final String filePath;
+
+  /// `true` quando o controller veio do [PdfSessionCache] (LRU).
+  final bool fromCache;
 }
 
 /// Abre documento PDF para a rota `/leitor` (UC-11 Fase 2.2).
@@ -46,6 +50,7 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
   final source = resolver.resolve(filePath);
 
   var controller = cache.acquire(filePath);
+  final fromCache = controller != null;
   try {
     if (controller == null) {
       controller = await adapter.openDocument(filePath);
@@ -76,6 +81,7 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
   return PdfReaderSession(
     controller: sessionController,
     filePath: filePath,
+    fromCache: fromCache,
   );
 });
 

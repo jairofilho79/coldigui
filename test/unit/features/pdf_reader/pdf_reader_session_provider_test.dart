@@ -168,6 +168,7 @@ void main() {
     final firstSession =
         await container.read(pdfReaderSessionProvider(filePath).future);
     final firstController = firstSession.controller;
+    expect(firstSession.fromCache, isFalse);
     expect(adapter.openDocumentCallCount, 1);
     firstSub.close();
     await Future<void>.delayed(Duration.zero);
@@ -181,6 +182,7 @@ void main() {
     final secondSession =
         await container.read(pdfReaderSessionProvider(filePath).future);
     expect(secondSession.controller, same(firstController));
+    expect(secondSession.fromCache, isTrue);
     expect(adapter.openDocumentCallCount, 1);
     expect(adapter.created!.wasDisposed, isFalse);
 

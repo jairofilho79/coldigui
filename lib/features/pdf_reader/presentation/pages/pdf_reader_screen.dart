@@ -274,14 +274,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
         },
         data: (session) => PdfxPdfView(
           controller: session.controller,
+          requiresReattach: session.fromCache,
           navigateToPage: (pageNumber) => ref
               .read(pdfReaderDisplayedPageProvider(filePath).notifier)
               .animateToPage(pageNumber: pageNumber),
-          refreshViewportAfterNavigation: isFullscreen
-              ? () => ref
-                  .read(pdfReaderViewSettingsProvider.notifier)
-                  .applyInitialFit()
-              : null,
+          refreshViewportAfterNavigation: () => ref
+              .read(pdfReaderViewSettingsProvider.notifier)
+              .applyInitialFit(),
         ),
       ),
     );
