@@ -5,6 +5,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
+import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -14,6 +15,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
+
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
   List<CarouselItem> build() => const [];
@@ -22,15 +25,15 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
 class _FakeCarouselNotifierWithItems extends CarouselLouvoresNotifier {
   @override
   List<CarouselItem> build() => const [
-        CarouselItem(
-          pdfId: 'x',
-          sortOrder: 0,
-          numero: '1',
-          nome: 'Louvor',
-          categoria: 'c',
-          classificacao: 'Col',
-        ),
-      ];
+    CarouselItem(
+      pdfId: 'x',
+      sortOrder: 0,
+      numero: '1',
+      nome: 'Louvor',
+      categoria: 'c',
+      classificacao: 'Col',
+    ),
+  ];
 }
 
 class _FixedOfflineCacheStatusNotifier extends OfflineCacheStatusNotifier {
@@ -47,8 +50,9 @@ ProviderScope _readerScope({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      offlineCacheStatusProvider
-          .overrideWith(_FixedOfflineCacheStatusNotifier.new),
+      offlineCacheStatusProvider.overrideWith(
+        _FixedOfflineCacheStatusNotifier.new,
+      ),
       carouselLouvoresProvider.overrideWith(
         () => carouselNotifier ?? _FakeCarouselNotifier(),
       ),
@@ -111,9 +115,7 @@ void main() {
         prefs: prefs,
         overrides: [
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
-            (ref) => Future.error(
-              const InvalidPdfPathException('stub'),
-            ),
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
           ),
         ],
         child: const MaterialApp(
@@ -134,8 +136,9 @@ void main() {
     expect(find.byIcon(Icons.fullscreen), findsOneWidget);
   });
 
-  testWidgets('toggle fullscreen exibe FAB de saída e oculta toolbar',
-      (tester) async {
+  testWidgets('toggle fullscreen exibe FAB de saída e oculta toolbar', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -143,9 +146,7 @@ void main() {
         prefs: prefs,
         overrides: [
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
-            (ref) => Future.error(
-              const InvalidPdfPathException('stub'),
-            ),
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
           ),
         ],
         child: const MaterialApp(
@@ -189,8 +190,9 @@ void main() {
     expect(pdfReaderErrorMessage(fetchFailed), 'erro fetch');
   });
 
-  testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido',
-      (tester) async {
+  testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     const corrupted = PdfLocalCorruptedException(pdfId: 'pdf-1');
 
@@ -198,9 +200,9 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider('/tmp/corrupt.pdf').overrideWith(
-            (ref) => Future.error(corrupted),
-          ),
+          pdfReaderSessionProvider(
+            '/tmp/corrupt.pdf',
+          ).overrideWith((ref) => Future.error(corrupted)),
         ],
         child: const MaterialApp(
           home: Scaffold(
@@ -223,13 +225,27 @@ void main() {
     expect(find.text('Tentar novamente'), findsNothing);
   });
 
-  testWidgets('PdfReaderScreen exibe botão share com sessão carregada',
-      (tester) async {
+  testWidgets('PdfReaderScreen exibe botão share com sessão carregada', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
       _readerScope(
         prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith((
+            ref,
+          ) async {
+            final handle = createTrackableHandle();
+            handle.loadingState.value = PdfReaderLoadingState.success;
+            ref.onDispose(handle.dispose);
+            return PdfReaderSession(
+              handle: handle,
+              filePath: 'asset:fixtures/sample.pdf',
+            );
+          }),
+        ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -247,7 +263,7 @@ void main() {
     );
 
     await tester.pump();
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < 40; i++) {
       await tester.pump(const Duration(milliseconds: 100));
       if (find.byIcon(Icons.share).evaluate().isNotEmpty) break;
     }
@@ -256,8 +272,9 @@ void main() {
     expect(find.byIcon(Icons.download), findsNothing);
   });
 
-  testWidgets('PdfReaderScreen não duplica barra carousel (fica no shell)',
-      (tester) async {
+  testWidgets('PdfReaderScreen não duplica barra carousel (fica no shell)', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -273,9 +290,7 @@ void main() {
             ),
           ),
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
-            (ref) => Future.error(
-              const InvalidPdfPathException('stub'),
-            ),
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
           ),
         ],
         child: MaterialApp(
@@ -302,8 +317,9 @@ void main() {
     expect(find.byIcon(Icons.fullscreen), findsOneWidget);
   });
 
-  testWidgets('PdfReaderScreen oculta título quando carousel tem itens',
-      (tester) async {
+  testWidgets('PdfReaderScreen oculta título quando carousel tem itens', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
@@ -312,9 +328,7 @@ void main() {
         carouselNotifier: _FakeCarouselNotifierWithItems(),
         overrides: [
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
-            (ref) => Future.error(
-              const InvalidPdfPathException('stub'),
-            ),
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
           ),
         ],
         child: const MaterialApp(
@@ -335,23 +349,24 @@ void main() {
     expect(find.text('Fixture'), findsNothing);
   });
 
-  testWidgets('reabrir leitor após sair não reutiliza sessão anterior',
-      (tester) async {
+  testWidgets('reabrir leitor após sair não reutiliza sessão anterior', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
 
     Widget buildReader() => _readerScope(
-          prefs: prefs,
-          child: const MaterialApp(
-            home: Scaffold(
-              body: PdfReaderScreen(
-                queryParams: {
-                  'file': 'asset:fixtures/sample.pdf',
-                  'titulo': 'Fixture',
-                },
-              ),
-            ),
+      prefs: prefs,
+      child: const MaterialApp(
+        home: Scaffold(
+          body: PdfReaderScreen(
+            queryParams: {
+              'file': 'asset:fixtures/sample.pdf',
+              'titulo': 'Fixture',
+            },
           ),
-        );
+        ),
+      ),
+    );
 
     await tester.pumpWidget(buildReader());
     await tester.pump();

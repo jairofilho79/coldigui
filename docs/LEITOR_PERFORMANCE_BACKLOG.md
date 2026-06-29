@@ -194,12 +194,12 @@ Verificar se `ensurePlaylistForLouvor` é idempotente e não pode falhar de form
 **Categoria:** Performance / Jank  
 **Impacto:** Alto  
 **Esforço:** Médio  
-**Arquivo principal:** `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart`
+**Arquivo principal:** `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart`
 
 ### Problema
 
 ```dart
-// pdfx_viewer_adapter.dart — linhas 69–75
+// pdfrx_viewer_adapter.dart — linhas 69–75
 Future<PdfDocument> _openDocument(ResolvedPdfSource source) {
   return switch (source.kind) {
     PdfSourceKind.localFile => PdfDocument.openFile(source.value),
@@ -225,7 +225,7 @@ Adicionalmente, `pdfReaderSessionProvider` awaita o `openDocument` antes de reto
 
 ### Referências
 
-- `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart`
+- `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart`
 - `lib/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart`
 
 ---
@@ -316,7 +316,7 @@ Implementar um **cache LRU de sessões** com capacidade pequena (ex.: 2–3 entr
 final pdfSessionCacheProvider = Provider<PdfSessionCache>((ref) => PdfSessionCache(maxSize: 2));
 ```
 
-O cache retém `PdfControllerPinch` para os últimos N PDFs visitados, descartando o mais antigo quando a capacidade é excedida. O `pdfReaderSessionProvider` consulta o cache antes de `openDocument`.
+O cache retém `PdfReaderViewerHandle` para os últimos N PDFs visitados, descartando o mais antigo quando a capacidade é excedida. O `pdfReaderSessionProvider` consulta o cache antes de `openDocument`.
 
 **Nota:** O FEATURE_INDEX documenta que reutilizar controller causa canvas vazio — isso se aplica ao mesmo controller em duas instâncias do widget. Um cache de sessões por `filePath` (com controller dedicado por path) não tem esse problema.
 
@@ -562,16 +562,16 @@ Adicionar `OfflineConfig.maxRetryDelay` (ex.: 30 segundos) como teto.
 **Categoria:** Estabilidade  
 **Impacto:** Médio  
 **Esforço:** Baixo  
-**Arquivo principal:** `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart`
+**Arquivo principal:** `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart`
 
 ### Problema
 
 ```dart
-// pdfx_viewer_adapter.dart — linhas 117–133
+// pdfrx_viewer_adapter.dart — linhas 117–133
 try {
   // cálculo e aplicação do fit mode...
 } on Object {
-  // Controller ainda não anexado ao PdfViewPinch.
+  // Controller ainda não anexado ao PdfViewer (pdfrx).
 }
 ```
 
@@ -588,7 +588,7 @@ try {
   // Controller não anexado ainda — esperado, ignorar silenciosamente.
 } on Object catch (e, st) {
   // Logar para rastreabilidade sem propagar (melhor que suprimir completamente).
-  debugPrint('[PdfxViewerAdapter.applyFitMode] $e\n$st');
+  debugPrint('[PdfrxViewerAdapter.applyFitMode] $e\n$st');
 }
 ```
 
@@ -608,7 +608,7 @@ await controller.goTo(destination: matrix!);
 
 ### Referências
 
-- `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart` (linhas 110–133)
+- `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart` (linhas 110–133)
 
 ---
 
@@ -669,7 +669,7 @@ A UI diferencia `PdfLocalCorruptedException` (oferecer "Baixar novamente") de `P
 **Categoria:** UX  
 **Impacto:** Baixo  
 **Esforço:** Médio  
-**Arquivo principal:** `lib/features/pdf_reader/presentation/widgets/pdfx_pdf_view.dart`
+**Arquivo principal:** `lib/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart`
 
 ### Problema
 
@@ -689,7 +689,7 @@ Adicionar feedback visual sutil durante o arraste horizontal:
 
 ### Referências
 
-- `lib/features/pdf_reader/presentation/widgets/pdfx_pdf_view.dart`
+- `lib/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart`
 - `lib/features/pdf_reader/presentation/utils/pdf_page_swipe_policy.dart`
 
 ---
@@ -793,5 +793,5 @@ Os itens #9 (integridade do arquivo) e #13 (recovery de arquivo corrompido) são
 
 - A escrita atômica (`.tmp` → rename) em `PdfLocalStore.writeAtomic` é correta e não deve ser alterada.
 - O `autoDispose` do `pdfReaderSessionProvider` é necessário e não deve ser removido — apenas complementado com cache de sessão (#6).
-- O `ValueKey(controller)` em `PdfxPdfView` é intencional (evita canvas vazio) — manter.
-- Não reutilizar o mesmo `PdfControllerPinch` em duas instâncias de widget.
+- O `ValueKey(controller)` em `PdfReaderPdfView` é intencional (evita canvas vazio) — manter.
+- Não reutilizar o mesmo `PdfReaderViewerHandle` em duas instâncias de widget.

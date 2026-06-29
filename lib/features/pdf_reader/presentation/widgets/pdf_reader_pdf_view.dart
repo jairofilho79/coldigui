@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:pdfx/pdfx.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import '../../../../core/theme/color_extensions.dart';
+import '../../data/models/pdf_reader_viewer_handle.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
@@ -13,25 +14,14 @@ import 'pdf_reader_page_key_handler.dart';
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
-/// Widget PDFx encapsulado — único ponto de import `pdfx` na presentation (ADR-002).
+/// Widget pdfrx encapsulado — único ponto de import `pdfrx` na presentation (ADR-002).
 ///
-/// Scroll vertical contínuo fixo (`Axis.vertical`). `ValueKey(controller)` evita
-/// duas instâncias simultâneas do mesmo controller. Controllers reutilizados do
-/// cache LRU exigem `_scheduleReattachIfCached` — PDFx não repopula `_pages` sozinho.
-///
-/// Swipe horizontal (UC-11): direita→esquerda avança; esquerda→direita volta.
-/// O gesto só é reconhecido ao soltar o dedo; no máximo ±1 página em relação
-/// à página no início do toque. Usa [Listener] para não competir com pan/pinch
-/// do [PdfViewPinch].
-///
-/// Teclado/page turner (UC-11): setas esquerda/cima voltam; direita/baixo avançam.
-/// Sempre troca de página (ignora borda de pan do swipe). Ver [PdfReaderPageKeyHandler].
-///
-/// Toque nas bordas (UC-11): 20% esquerda/direita do canvas, toque estrito (< 8px)
-/// volta/avança página com o mesmo fluxo das setas. Ver [PdfPageEdgeTapPolicy].
-class PdfxPdfView extends StatefulWidget {
-  const PdfxPdfView({
-    required this.controller,
+/// Scroll vertical contínuo (layout padrão pdfrx). `ValueKey(handle)` evita
+/// duas instâncias simultâneas do mesmo handle. Handles reutilizados do
+/// cache LRU exigem `_scheduleReattachIfCached` via [PdfReaderViewerHandle.reattachIfNeeded].
+class PdfReaderPdfView extends StatefulWidget {
+  const PdfReaderPdfView({
+    required this.handle,
     required this.navigateToPage,
     this.requiresReattach = false,
     this.refreshViewportAfterNavigation,
@@ -39,25 +29,25 @@ class PdfxPdfView extends StatefulWidget {
     super.key,
   });
 
-  final PdfControllerPinch controller;
+  final PdfReaderViewerHandle handle;
 
-  /// Reattach via `loadDocument` só para controllers do cache LRU.
+  /// Reattach via `invalidate` só para handles do cache LRU.
   final bool requiresReattach;
 
   /// Navegação animada; deve passar por [PdfReaderDisplayedPageNotifier].
   final PdfReaderNavigateToPage navigateToPage;
 
-  /// Reaplica fit após troca de página — tiles PDFx precisam de refresh no viewport.
+  /// Reaplica fit após troca de página.
   final Future<void> Function()? refreshViewportAfterNavigation;
 
   /// Callback opcional quando a página visível muda (scroll).
   final ValueChanged<int>? onPageChanged;
 
   @override
-  State<PdfxPdfView> createState() => _PdfxPdfViewState();
+  State<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
 }
 
-class _PdfxPdfViewState extends State<PdfxPdfView> {
+class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
   var _activePointers = 0;
   int? _trackingPointer;
   int? _pageAtPointerDown;
@@ -66,7 +56,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   var _pageTurnInProgress = false;
   PdfPageSwipeDirection? _swipeFeedbackDirection;
   var _hapticTriggeredForSwipe = false;
-  PdfControllerPinch? _listeningController;
+  PdfReaderViewerHandle? _listeningHandle;
   VoidCallback? _loadingStateListener;
   final _reattachGuard = PdfReattachGuard();
   late PdfReaderViewportPolicy _viewportPolicy;
@@ -74,31 +64,29 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   @override
   void initState() {
     super.initState();
-    _viewportPolicy = PdfReaderViewportPolicy(
-      initialPage: widget.controller.pageListenable.value,
-    );
+    _viewportPolicy = PdfReaderViewportPolicy(initialPage: widget.handle.page);
     if (widget.requiresReattach) {
-      _attachLoadingStateListener(widget.controller);
+      _attachLoadingStateListener(widget.handle);
       _scheduleReattachIfCached();
     }
   }
 
   @override
-  void didUpdateWidget(covariant PdfxPdfView oldWidget) {
+  void didUpdateWidget(covariant PdfReaderPdfView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.controller, widget.controller)) {
+    if (!identical(oldWidget.handle, widget.handle)) {
       _detachLoadingStateListener();
       _viewportPolicy = PdfReaderViewportPolicy(
-        initialPage: widget.controller.pageListenable.value,
+        initialPage: widget.handle.page,
       );
       _reattachGuard.complete();
       if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.controller);
+        _attachLoadingStateListener(widget.handle);
         _scheduleReattachIfCached();
       }
     } else if (oldWidget.requiresReattach != widget.requiresReattach) {
       if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.controller);
+        _attachLoadingStateListener(widget.handle);
         _scheduleReattachIfCached();
       } else {
         _detachLoadingStateListener();
@@ -112,33 +100,31 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     super.dispose();
   }
 
-  void _attachLoadingStateListener(PdfControllerPinch controller) {
-    _listeningController = controller;
+  void _attachLoadingStateListener(PdfReaderViewerHandle handle) {
+    _listeningHandle = handle;
     _loadingStateListener = () {
-      if (controller.loadingState.value == PdfLoadingState.success) {
+      if (handle.loadingState.value == PdfReaderLoadingState.success) {
         _scheduleReattachIfCached();
       }
     };
-    controller.loadingState.addListener(_loadingStateListener!);
+    handle.loadingState.addListener(_loadingStateListener!);
   }
 
   void _detachLoadingStateListener() {
-    final controller = _listeningController;
+    final handle = _listeningHandle;
     final listener = _loadingStateListener;
-    if (controller != null && listener != null) {
-      controller.loadingState.removeListener(listener);
+    if (handle != null && listener != null) {
+      handle.loadingState.removeListener(listener);
     }
-    _listeningController = null;
+    _listeningHandle = null;
     _loadingStateListener = null;
   }
 
-  /// PDFx `_attach` não repopula `_pages` quando `_document != null` (cache LRU).
-  /// Sem isso, voltar a um PDF cacheado deixa o canvas vazio.
   void _scheduleReattachIfCached() {
     if (!widget.requiresReattach) return;
 
-    final controller = widget.controller;
-    if (controller.loadingState.value != PdfLoadingState.success) {
+    final handle = widget.handle;
+    if (handle.loadingState.value != PdfReaderLoadingState.success) {
       return;
     }
     if (!_reattachGuard.trySchedule()) return;
@@ -146,18 +132,16 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _reattachGuard.complete();
       if (!mounted) return;
-      if (!identical(widget.controller, controller)) return;
-      if (controller.loadingState.value != PdfLoadingState.success) return;
+      if (!identical(widget.handle, handle)) return;
+      if (handle.loadingState.value != PdfReaderLoadingState.success) return;
 
       try {
-        await controller.loadDocument(
-          controller.document,
-          initialPage: controller.pageListenable.value,
-        );
+        await handle.reattachIfNeeded();
       } on Object catch (error, stackTrace) {
         if (kDebugMode) {
           debugPrint(
-              '[PdfxPdfView._scheduleReattachIfCached] $error\n$stackTrace');
+            '[PdfReaderPdfView._scheduleReattachIfCached] $error\n$stackTrace',
+          );
         }
       }
     });
@@ -175,7 +159,9 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     });
   }
 
-  void _handleVisiblePageChanged(int pageNumber) {
+  void _handleVisiblePageChanged(int? pageNumber) {
+    if (pageNumber == null) return;
+    widget.handle.onPageChanged(pageNumber);
     widget.onPageChanged?.call(pageNumber);
     _scheduleViewportRefresh(pageNumber: pageNumber);
   }
@@ -196,16 +182,19 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   PdfPageSwipeDirection? _computeSwipeFeedback() {
     if (_trackingPointer == null || _pageTurnInProgress) return null;
 
-    final direction =
-        PdfPageSwipePolicy.activeHorizontalSwipe(_accumulatedDelta);
+    final direction = PdfPageSwipePolicy.activeHorizontalSwipe(
+      _accumulatedDelta,
+    );
     if (direction == null) return null;
 
-    final controller = widget.controller;
+    final snapshot = widget.handle.viewportSnapshot();
+    if (snapshot == null) return null;
+
     switch (direction) {
       case PdfPageSwipeDirection.next:
-        if (!PdfPageSwipePolicy.canGoToNextPage(controller)) return null;
+        if (!PdfPageSwipePolicy.canGoToNextPage(snapshot)) return null;
       case PdfPageSwipeDirection.previous:
-        if (!PdfPageSwipePolicy.canGoToPreviousPage(controller)) return null;
+        if (!PdfPageSwipePolicy.canGoToPreviousPage(snapshot)) return null;
     }
     return direction;
   }
@@ -232,7 +221,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     _activePointers++;
     if (_activePointers == 1) {
       _trackingPointer = event.pointer;
-      _pageAtPointerDown = widget.controller.page;
+      _pageAtPointerDown = widget.handle.page;
       _pointerDownLocalPosition = event.localPosition;
       _accumulatedDelta = Offset.zero;
       _swipeFeedbackDirection = null;
@@ -289,20 +278,20 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     }
     if (!PdfPageSwipePolicy.isHorizontalSwipe(totalDelta)) return;
 
-    final controller = widget.controller;
-    final pagesCount = controller.pagesCount;
+    final snapshot = widget.handle.viewportSnapshot();
+    if (snapshot == null) return;
+
+    final pagesCount = widget.handle.pagesCount;
     if (pagesCount == null || pagesCount < 1) return;
 
     final dx = totalDelta.dx;
     final int targetPage;
 
     if (dx < 0) {
-      // Direita→esquerda: próxima página.
-      if (!PdfPageSwipePolicy.canGoToNextPage(controller)) return;
+      if (!PdfPageSwipePolicy.canGoToNextPage(snapshot)) return;
       targetPage = pageAtPointerDown + 1;
     } else {
-      // Esquerda→direita: página anterior.
-      if (!PdfPageSwipePolicy.canGoToPreviousPage(controller)) return;
+      if (!PdfPageSwipePolicy.canGoToPreviousPage(snapshot)) return;
       targetPage = pageAtPointerDown - 1;
     }
 
@@ -316,7 +305,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     required Offset totalDelta,
   }) async {
     if (pointerDownLocalPosition == null || _pageTurnInProgress) return;
-    if (widget.controller.loadingState.value != PdfLoadingState.success) return;
+    if (!widget.handle.isViewerReady) return;
     if (!PdfPageEdgeTapPolicy.isStrictTap(totalDelta)) return;
 
     final canvasWidth = _canvasWidth;
@@ -328,11 +317,11 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
     );
     if (direction == null) return;
 
-    final pagesCount = widget.controller.pagesCount;
+    final pagesCount = widget.handle.pagesCount;
     if (pagesCount == null || pagesCount < 1) return;
 
     final targetPage = PdfPageKeyboardPolicy.targetPage(
-      currentPage: widget.controller.page,
+      currentPage: widget.handle.page,
       pagesCount: pagesCount,
       direction: direction,
     );
@@ -357,6 +346,7 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   }
 
   Widget _buildPdfContent() {
+    final handle = widget.handle;
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasWidth = constraints.maxWidth;
@@ -368,31 +358,31 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              PdfViewPinch(
-                key: ValueKey(widget.controller),
-                controller: widget.controller,
-                scrollDirection: Axis.vertical,
-                onPageChanged: _handleVisiblePageChanged,
-                backgroundDecoration:
-                    const BoxDecoration(color: AppColors.pdfArea),
-                builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
-                  options: const DefaultBuilderOptions(),
-                  documentLoaderBuilder: (_) => const Center(
-                    child: CircularProgressIndicator(color: AppColors.gold),
-                  ),
-                  pageLoaderBuilder: (_) => const Center(
-                    child: CircularProgressIndicator(color: AppColors.gold),
-                  ),
-                  errorBuilder: (_, error) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        error.toString(),
-                        style: const TextStyle(color: AppColors.textLight),
-                        textAlign: TextAlign.center,
+              PdfViewer(
+                handle.documentRef,
+                key: ValueKey(handle),
+                controller: handle.viewerController,
+                params: PdfViewerParams(
+                  backgroundColor: AppColors.pdfArea,
+                  onViewerReady: (_, __) => handle.markViewerReady(),
+                  onPageChanged: _handleVisiblePageChanged,
+                  loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: AppColors.gold),
+                    );
+                  },
+                  errorBannerBuilder: (context, error, stackTrace, reload) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          error.toString(),
+                          style: const TextStyle(color: AppColors.textLight),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
               if (_swipeFeedbackDirection != null)
@@ -410,18 +400,18 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
+    final handle = widget.handle;
 
-    return ValueListenableBuilder<PdfLoadingState>(
-      valueListenable: controller.loadingState,
+    return ValueListenableBuilder<PdfReaderLoadingState>(
+      valueListenable: handle.loadingState,
       builder: (context, loadingState, _) {
         return ValueListenableBuilder<int>(
-          valueListenable: controller.pageListenable,
+          valueListenable: handle.pageListenable,
           builder: (context, currentPage, _) {
             return PdfReaderPageKeyHandler(
               currentPage: currentPage,
-              pagesCount: controller.pagesCount ?? 0,
-              enabled: loadingState == PdfLoadingState.success,
+              pagesCount: handle.pagesCount ?? 0,
+              enabled: loadingState == PdfReaderLoadingState.success,
               pageTurnInProgress: _pageTurnInProgress,
               onNavigateToPage: _navigateToPageWithLock,
               child: _buildPdfContent(),
@@ -433,13 +423,24 @@ class _PdfxPdfViewState extends State<PdfxPdfView> {
   }
 }
 
+/// Evita agendar múltiplos reattach simultâneos.
+@visibleForTesting
+class PdfReattachGuard {
+  var _scheduled = false;
+
+  bool trySchedule() {
+    if (_scheduled) return false;
+    _scheduled = true;
+    return true;
+  }
+
+  void complete() => _scheduled = false;
+}
+
 /// Overlay de feedback durante swipe horizontal válido (UC-11 / backlog #14).
 @visibleForTesting
 class PdfHorizontalSwipeIndicator extends StatelessWidget {
-  const PdfHorizontalSwipeIndicator({
-    required this.direction,
-    super.key,
-  });
+  const PdfHorizontalSwipeIndicator({required this.direction, super.key});
 
   final PdfPageSwipeDirection direction;
 

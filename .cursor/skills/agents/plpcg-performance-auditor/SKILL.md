@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 - Tempo cold-open do documento
 - Pré-cache de páginas adjacentes
-- Dispose de controllers no `PdfxViewerAdapter`
+- Dispose de handles no `PdfrxViewerAdapter`
 - Rebuilds desnecessários no `PdfReaderScreen`
 - Comportamento Web vs mobile documentado
 

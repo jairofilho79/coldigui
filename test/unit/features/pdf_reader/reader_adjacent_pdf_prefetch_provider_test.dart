@@ -12,7 +12,8 @@ import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.da
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:coldigui/features/pdf_opening/domain/usecases/validate_pdf_availability.dart';
-import 'package:coldigui/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart';
+import 'package:coldigui/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart';
+import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/data/providers/pdf_reader_prefetch_providers.dart';
 import 'package:coldigui/features/pdf_reader/data/providers/pdf_reader_providers.dart';
 import 'package:coldigui/features/pdf_reader/data/utils/pdf_source_resolver.dart';
@@ -23,7 +24,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjac
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdfx/pdfx.dart';
+import 'pdf_reader_test_helpers.dart';
 
 class _AllowPolicy implements PrefetchNetworkPolicy {
   @override
@@ -110,7 +111,7 @@ class _NoOpBytesDatasource extends PdfBytesDatasource {
       );
 }
 
-class _SessionTestAdapter extends PdfxViewerAdapter {
+class _SessionTestAdapter extends PdfrxViewerAdapter {
   _SessionTestAdapter()
     : super(
         _NoOpBytesDatasource(),
@@ -118,8 +119,8 @@ class _SessionTestAdapter extends PdfxViewerAdapter {
       );
 
   @override
-  Future<PdfControllerPinch> openDocument(String filePath) async {
-    return PdfControllerPinch(document: Completer<PdfDocument>().future);
+  Future<PdfReaderViewerHandle> openDocument(String filePath) async {
+    return createTrackableHandle();
   }
 }
 
@@ -177,7 +178,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
-        pdfxViewerAdapterProvider.overrideWithValue(_SessionTestAdapter()),
+        pdfViewerAdapterProvider.overrideWithValue(_SessionTestAdapter()),
         prefetchNetworkPolicyProvider.overrideWithValue(_AllowPolicy()),
         prefetchAdjacentCarouselPdfsProvider.overrideWithValue(prefetch),
         prefetchLouvorCatalogProvider.overrideWith(

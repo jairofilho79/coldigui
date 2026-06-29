@@ -11,6 +11,7 @@ import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptio
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
+import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjacent_pdf_prefetch_provider.dart';
@@ -19,14 +20,13 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_displayed_page_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart';
-import 'package:coldigui/features/pdf_reader/presentation/widgets/pdfx_pdf_view.dart';
+import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pdfx/pdfx.dart';
 
-/// UC-11 — Leitor PDF (PDFx), rota filha do [ShellScaffold].
+/// UC-11 — Leitor PDF (pdfrx), rota filha do [ShellScaffold].
 ///
 /// Barras 1–2 (PLPCG + carousel) vêm do shell compartilhado. Esta tela renderiza
 /// apenas a barra 3 — toolbar PDF — e a área do documento.
@@ -79,7 +79,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     });
   }
 
-  void _scheduleApplyInitialFit(PdfControllerPinch sessionController) {
+  void _scheduleApplyInitialFit(PdfReaderViewerHandle sessionHandle) {
     void applyFit() {
       if (!mounted) return;
       final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
@@ -87,10 +87,10 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           .read(pdfReaderSessionProvider(currentFilePath))
           .valueOrNull;
       if (currentSession == null ||
-          !identical(currentSession.controller, sessionController)) {
+          !identical(currentSession.handle, sessionHandle)) {
         return;
       }
-      if (sessionController.loadingState.value != PdfLoadingState.success) {
+      if (!sessionHandle.isViewerReady) {
         return;
       }
       ref.read(pdfReaderViewSettingsProvider.notifier).applyInitialFit();
@@ -224,7 +224,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       next.whenData((session) {
         if (_appliedFitForPath == session.filePath) return;
         _appliedFitForPath = session.filePath;
-        _scheduleApplyInitialFit(session.controller);
+        _scheduleApplyInitialFit(session.handle);
       });
     });
 
@@ -232,7 +232,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       if (previous == next) return;
       final session = ref.read(pdfReaderSessionProvider(filePath)).valueOrNull;
       if (session == null) return;
-      _scheduleApplyInitialFit(session.controller);
+      _scheduleApplyInitialFit(session.handle);
     });
 
     final sessionLoaded = sessionAsync.maybeWhen(
@@ -277,8 +277,8 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
           );
         },
-        data: (session) => PdfxPdfView(
-          controller: session.controller,
+        data: (session) => PdfReaderPdfView(
+          handle: session.handle,
           requiresReattach: session.fromCache,
           navigateToPage: (pageNumber) => ref
               .read(pdfReaderDisplayedPageProvider(filePath).notifier)

@@ -1,89 +1,92 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pdfx/pdfx.dart';
 
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
-import '../../data/adapters/pdfx_viewer_adapter.dart';
+import '../../data/adapters/pdfrx_viewer_adapter.dart';
+import '../../data/models/pdf_reader_viewer_handle.dart';
 import '../../data/providers/pdf_reader_providers.dart';
 import '../../data/utils/pdf_source_resolver.dart';
 import '../../domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';
 import 'pdf_session_cache.dart';
 
-/// Sessão PDF aberta no leitor — controller PDFx + metadados (UC-11 Fase 2.2).
+/// Sessão PDF aberta no leitor — handle pdfrx + metadados (UC-11 Fase 2.2).
 ///
-/// O [PdfControllerPinch] pode ser reutilizado via [PdfSessionCache] ao trocar
+/// O [PdfReaderViewerHandle] pode ser reutilizado via [PdfSessionCache] ao trocar
 /// PDF no carousel; descartado ao sair de `/leitor` (cache limpo).
 class PdfReaderSession {
   const PdfReaderSession({
-    required this.controller,
+    required this.handle,
     required this.filePath,
     this.fromCache = false,
   });
 
-  /// Controller PDFx ativo para [PdfxPdfView].
-  final PdfControllerPinch controller;
+  /// Handle ativo para [PdfReaderPdfView].
+  final PdfReaderViewerHandle handle;
 
   /// Valor bruto do query param [UrlSyncParams.file].
   final String filePath;
 
-  /// `true` quando o controller veio do [PdfSessionCache] (LRU).
+  /// `true` quando o handle veio do [PdfSessionCache] (LRU).
   final bool fromCache;
 }
 
 /// Abre documento PDF para a rota `/leitor` (UC-11 Fase 2.2).
 ///
 /// `autoDispose.family` — sessão por [filePath]; ao trocar no carousel o
-/// controller vai para [PdfSessionCache] (LRU) em vez de ser descartado.
-/// Ao sair de `/leitor`, o cache é limpo e todos os controllers são liberados.
+/// handle vai para [PdfSessionCache] (LRU) em vez de ser descartado.
+/// Ao sair de `/leitor`, o cache é limpo e todos os handles são liberados.
 ///
-/// Valida via [OpenPdfDocument], delega renderização a [PdfxViewerAdapter].
+/// Valida via [OpenPdfDocument], delega renderização a [PdfrxViewerAdapter].
 final pdfReaderSessionProvider = FutureProvider.autoDispose
     .family<PdfReaderSession, String>((ref, filePath) async {
-  final openPdf = ref.watch(openPdfDocumentProvider);
-  final adapter = ref.watch(pdfxViewerAdapterProvider);
-  final cache = ref.watch(pdfSessionCacheProvider);
-  const resolver = PdfSourceResolver();
+      final openPdf = ref.watch(openPdfDocumentProvider);
+      final adapter = ref.watch(pdfViewerAdapterProvider);
+      final cache = ref.watch(pdfSessionCacheProvider);
+      const resolver = PdfSourceResolver();
 
-  openPdf.validateFilePath(filePath);
-  final source = resolver.resolve(filePath);
+      openPdf.validateFilePath(filePath);
+      final source = resolver.resolve(filePath);
 
-  var controller = cache.acquire(filePath);
-  final fromCache = controller != null;
-  try {
-    if (controller == null) {
-      controller = await adapter.openDocument(filePath);
-      if (source.kind == PdfSourceKind.localFile) {
-        await controller.document;
+      var handle = cache.acquire(filePath);
+      final fromCache = handle != null;
+      try {
+        if (handle == null) {
+          handle = await adapter.openDocument(filePath);
+          if (source.kind == PdfSourceKind.localFile) {
+            // Garante documento válido antes de exibir (detecta corrupção cedo).
+            if (handle.document.pages.isEmpty) {
+              throw StateError('PDF sem páginas');
+            }
+          }
+        }
+      } on Object catch (_) {
+        handle?.dispose();
+        cache.remove(filePath);
+        if (source.kind == PdfSourceKind.localFile) {
+          final pdfId = await _removeCorruptedLocalPdf(ref, source.value);
+          if (pdfId != null) {
+            throw PdfLocalCorruptedException(pdfId: pdfId);
+          }
+        }
+        rethrow;
       }
-    }
-  } on Object catch (_) {
-    controller?.dispose();
-    cache.remove(filePath);
-    if (source.kind == PdfSourceKind.localFile) {
-      final pdfId = await _removeCorruptedLocalPdf(ref, source.value);
-      if (pdfId != null) {
-        throw PdfLocalCorruptedException(pdfId: pdfId);
-      }
-    }
-    rethrow;
-  }
 
-  final sessionController = controller;
-  adapter.bindController(sessionController);
+      final sessionHandle = handle;
+      adapter.bindHandle(sessionHandle);
 
-  ref.onDispose(() {
-    adapter.unbindController(sessionController);
-    cache.release(filePath, sessionController);
-  });
+      ref.onDispose(() {
+        adapter.unbindHandle(sessionHandle);
+        cache.release(filePath, sessionHandle);
+      });
 
-  return PdfReaderSession(
-    controller: sessionController,
-    filePath: filePath,
-    fromCache: fromCache,
-  );
-});
+      return PdfReaderSession(
+        handle: sessionHandle,
+        filePath: filePath,
+        fromCache: fromCache,
+      );
+    });
 
 Future<String?> _removeCorruptedLocalPdf(Ref ref, String absolutePath) async {
   final repository = ref.read(offlinePdfRepositoryProvider);
@@ -94,10 +97,6 @@ Future<String?> _removeCorruptedLocalPdf(Ref ref, String absolutePath) async {
 }
 
 /// Mensagem amigável para erros de abertura PDF na UI.
-///
-/// Suporta [InvalidPdfPathException] e exceções offline ([PdfOfflineUnavailableException],
-/// [PdfExternallyDeletedException], [PdfFetchFailedException], [PdfLocalCorruptedException]);
-/// fallback genérico.
 String pdfReaderErrorMessage(Object error) {
   if (error is InvalidPdfPathException) {
     return error.message;

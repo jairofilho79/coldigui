@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pdfx/pdfx.dart';
 
+import '../../data/models/pdf_reader_viewer_handle.dart';
 import 'pdf_reader_document_provider.dart';
 
 /// Página exibida no indicador `page/total` da barra 3 (UC-11).
 ///
 /// Durante [PdfReaderDisplayedPageNotifier.animateToPage], ignora atualizações
-/// intermediárias de [PdfControllerPinch.pageListenable] e só reflete o destino
+/// intermediárias de [PdfReaderViewerHandle.pageListenable] e só reflete o destino
 /// ao concluir a animação. Scroll manual continua atualizando em tempo real.
-///
-/// Escuta também [PdfControllerPinch.loadingState] para sincronizar a página
-/// assim que o PDF termina de carregar no [PdfViewPinch].
 final pdfReaderDisplayedPageProvider = NotifierProvider.autoDispose
     .family<PdfReaderDisplayedPageNotifier, int, String>(
-  PdfReaderDisplayedPageNotifier.new,
-);
+      PdfReaderDisplayedPageNotifier.new,
+    );
 
 /// Estado da página mostrada ao usuário no leitor PDF.
 class PdfReaderDisplayedPageNotifier
     extends AutoDisposeFamilyNotifier<int, String> {
-  PdfControllerPinch? _controller;
+  PdfReaderViewerHandle? _handle;
   VoidCallback? _pageListener;
   VoidCallback? _loadingStateListener;
   var _suppressLiveUpdates = false;
@@ -37,17 +34,16 @@ class PdfReaderDisplayedPageNotifier
     ref.onDispose(_detach);
 
     final session = ref.watch(pdfReaderSessionProvider(filePath)).valueOrNull;
-    if (session != null &&
-        session.controller.loadingState.value == PdfLoadingState.success) {
-      return session.controller.page;
+    if (session != null && session.handle.isViewerReady) {
+      return session.handle.page;
     }
     return 1;
   }
 
-  PdfLoadingState get loadingState =>
-      _controller?.loadingState.value ?? PdfLoadingState.loading;
+  PdfReaderLoadingState get loadingState =>
+      _handle?.loadingState.value ?? PdfReaderLoadingState.loading;
 
-  int? get pagesCount => _controller?.pagesCount;
+  int? get pagesCount => _handle?.pagesCount;
 
   /// Navega com animação sem atualizar o indicador até o fim do movimento.
   Future<void> animateToPage({
@@ -55,11 +51,11 @@ class PdfReaderDisplayedPageNotifier
     Duration duration = const Duration(milliseconds: 500),
     Curve curve = Curves.easeInOut,
   }) async {
-    final controller = _controller;
-    if (controller == null) return;
-    if (controller.loadingState.value != PdfLoadingState.success) return;
+    final handle = _handle;
+    if (handle == null) return;
+    if (!handle.isViewerReady) return;
 
-    final pagesCount = controller.pagesCount;
+    final pagesCount = handle.pagesCount;
     if (pagesCount == null || pageNumber < 1 || pageNumber > pagesCount) {
       return;
     }
@@ -68,11 +64,7 @@ class PdfReaderDisplayedPageNotifier
     _animating = true;
     _suppressLiveUpdates = true;
     try {
-      await controller.animateToPage(
-        pageNumber: pageNumber,
-        duration: duration,
-        curve: curve,
-      );
+      await handle.animateToPage(pageNumber: pageNumber, duration: duration);
       state = pageNumber;
     } finally {
       _suppressLiveUpdates = false;
@@ -81,40 +73,40 @@ class PdfReaderDisplayedPageNotifier
   }
 
   void _attachToSession(PdfReaderSession session) {
-    if (identical(_controller, session.controller)) return;
+    if (identical(_handle, session.handle)) return;
     _detach();
 
-    _controller = session.controller;
+    _handle = session.handle;
     _pageListener = () {
-      if (_suppressLiveUpdates || _controller == null) return;
-      state = _controller!.page;
+      if (_suppressLiveUpdates || _handle == null) return;
+      state = _handle!.page;
     };
-    _controller!.pageListenable.addListener(_pageListener!);
+    _handle!.pageListenable.addListener(_pageListener!);
 
     _loadingStateListener = () {
-      final controller = _controller;
-      if (controller == null ||
-          controller.loadingState.value != PdfLoadingState.success) {
+      final handle = _handle;
+      if (handle == null ||
+          handle.loadingState.value != PdfReaderLoadingState.success) {
         return;
       }
       if (!_suppressLiveUpdates) {
-        state = controller.page;
+        state = handle.page;
       }
     };
-    _controller!.loadingState.addListener(_loadingStateListener!);
+    _handle!.loadingState.addListener(_loadingStateListener!);
   }
 
   void _detach() {
-    final controller = _controller;
+    final handle = _handle;
     final pageListener = _pageListener;
     final loadingStateListener = _loadingStateListener;
-    if (controller != null && pageListener != null) {
-      controller.pageListenable.removeListener(pageListener);
+    if (handle != null && pageListener != null) {
+      handle.pageListenable.removeListener(pageListener);
     }
-    if (controller != null && loadingStateListener != null) {
-      controller.loadingState.removeListener(loadingStateListener);
+    if (handle != null && loadingStateListener != null) {
+      handle.loadingState.removeListener(loadingStateListener);
     }
-    _controller = null;
+    _handle = null;
     _pageListener = null;
     _loadingStateListener = null;
   }

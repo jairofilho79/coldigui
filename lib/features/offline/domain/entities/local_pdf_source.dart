@@ -1,7 +1,7 @@
 /// Resultado do resolver local-first (Fase 3.2).
 ///
 /// Diferente de [OfflinePdfEntry], que representa metadados do índice Isar.
-/// Consumido por [OpenPdfInReader] e [PdfxViewerAdapter] na Fase 3.4.
+/// Consumido por [OpenPdfInReader] e [PdfrxViewerAdapter] na Fase 3.4.
 class LocalPdfSource {
   const LocalPdfSource({
     required this.pdfId,

@@ -1,6 +1,6 @@
 import '../entities/pdf_reader_preferences.dart';
 
-/// Porta de navegação e zoom do leitor — implementada por [PdfxViewerAdapter].
+/// Porta de navegação e zoom do leitor — implementada por [PdfrxViewerAdapter].
 ///
 /// Mantém o domínio livre de dependência em `pdfx` (ADR-002).
 abstract class PdfReaderControllerPort {

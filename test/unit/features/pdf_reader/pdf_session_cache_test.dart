@@ -1,40 +1,24 @@
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_session_cache.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pdfx/pdfx.dart';
 
-class _DisposableController extends PdfControllerPinch {
-  _DisposableController(this.label)
-      : super(document: Future<PdfDocument>.value(_FakeDocument()));
-
-  final String label;
-  var wasDisposed = false;
-
-  @override
-  void dispose() {
-    if (wasDisposed) return;
-    wasDisposed = true;
-    super.dispose();
-  }
-}
-
-class _FakeDocument extends Fake implements PdfDocument {}
+import 'pdf_reader_test_helpers.dart';
 
 void main() {
   group('PdfSessionCache', () {
-    test('acquire retorna controller previamente liberado', () {
+    test('acquire retorna handle previamente liberado', () {
       final cache = PdfSessionCache(maxSize: 2);
-      final controller = _DisposableController('a');
+      final handle = createTrackableHandle();
 
-      cache.release('/a.pdf', controller);
-      expect(cache.acquire('/a.pdf'), same(controller));
+      cache.release('/a.pdf', handle);
+      expect(cache.acquire('/a.pdf'), same(handle));
       expect(cache.acquire('/a.pdf'), isNull);
     });
 
     test('release evicta o mais antigo ao exceder maxSize', () {
       final cache = PdfSessionCache(maxSize: 2);
-      final first = _DisposableController('first');
-      final second = _DisposableController('second');
-      final third = _DisposableController('third');
+      final first = createTrackableHandle();
+      final second = createTrackableHandle();
+      final third = createTrackableHandle();
 
       cache.release('/1.pdf', first);
       cache.release('/2.pdf', second);
@@ -46,10 +30,10 @@ void main() {
       expect(cache.length, 2);
     });
 
-    test('clear descarta todos os controllers', () {
+    test('clear descarta todos os handles', () {
       final cache = PdfSessionCache(maxSize: 3);
-      final a = _DisposableController('a');
-      final b = _DisposableController('b');
+      final a = createTrackableHandle();
+      final b = createTrackableHandle();
 
       cache.release('/a.pdf', a);
       cache.release('/b.pdf', b);
@@ -60,14 +44,14 @@ void main() {
       expect(cache.length, 0);
     });
 
-    test('remove descarta controller da entrada', () {
+    test('remove descarta handle da entrada', () {
       final cache = PdfSessionCache(maxSize: 2);
-      final controller = _DisposableController('x');
+      final handle = createTrackableHandle();
 
-      cache.release('/x.pdf', controller);
+      cache.release('/x.pdf', handle);
       cache.remove('/x.pdf');
 
-      expect(controller.wasDisposed, isTrue);
+      expect(handle.wasDisposed, isTrue);
       expect(cache.length, 0);
     });
   });

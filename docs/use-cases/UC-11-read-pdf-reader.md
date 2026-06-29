@@ -21,7 +21,7 @@ Offline: validação → download → retry → buscar online
 
 ## Pós-condições
 
-PDF renderizado via PDFx
+PDF renderizado via pdfrx
 
 ## Regras de negócio
 
@@ -29,7 +29,7 @@ Preferências em SharedPreferences
 
 ## Componentes Flutter alvo
 
-PdfReaderScreen, PdfxViewerAdapter
+PdfReaderScreen, PdfrxViewerAdapter
 
 ## Dependências
 

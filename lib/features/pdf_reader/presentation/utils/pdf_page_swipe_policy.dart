@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pdfx/pdfx.dart';
+
+import '../../data/models/pdf_reader_viewer_handle.dart';
 
 /// Limiar de distância horizontal mínima para considerar um swipe de troca de página.
 const kPdfPageSwipeMinDistance = 48.0;
@@ -20,53 +21,38 @@ enum PdfPageSwipeDirection {
 }
 
 /// Política de quando um swipe horizontal pode trocar de página sem conflitar
-/// com pan horizontal ou pinch-to-zoom do [PdfViewPinch].
-///
-/// Consumida por [PdfxPdfView] no `onPointerUp`. Constantes públicas:
-/// [kPdfPageSwipeMinDistance], [kPdfPageSwipeHorizontalDominanceFactor],
-/// [kPdfPageSwipeEdgeTolerance].
+/// com pan horizontal ou pinch-to-zoom do viewer.
 abstract final class PdfPageSwipePolicy {
   /// Distância horizontal mínima para feedback e reconhecimento de swipe.
   static double get minHorizontalDx => kPdfPageSwipeMinDistance;
 
   /// Retorna `true` se um swipe direita→esquerda pode avançar para a próxima página.
-  ///
-  /// Exige documento carregado. Com pan horizontal disponível (zoom), só permite
-  /// na borda direita da página atual.
-  static bool canGoToNextPage(PdfControllerPinch controller) {
-    return _canTurnPage(controller, trailingEdge: true);
+  static bool canGoToNextPage(PdfViewportSnapshot snapshot) {
+    return _canTurnPage(snapshot, trailingEdge: true);
   }
 
   /// Retorna `true` se um swipe esquerda→direita pode voltar à página anterior.
-  ///
-  /// Exige documento carregado. Com pan horizontal disponível (zoom), só permite
-  /// na borda esquerda da página atual.
-  static bool canGoToPreviousPage(PdfControllerPinch controller) {
-    return _canTurnPage(controller, trailingEdge: false);
+  static bool canGoToPreviousPage(PdfViewportSnapshot snapshot) {
+    return _canTurnPage(snapshot, trailingEdge: false);
   }
 
   static bool _canTurnPage(
-    PdfControllerPinch controller, {
+    PdfViewportSnapshot snapshot, {
     required bool trailingEdge,
   }) {
-    if (controller.loadingState.value != PdfLoadingState.success) {
-      return false;
-    }
+    final pageRect = snapshot.pageRect;
 
-    final pageRect = controller.getPageRect(controller.page);
-    if (pageRect == null) return false;
-
-    final viewWidth = controller.viewRect.width;
+    final viewWidth = snapshot.viewWidth;
     if (!hasHorizontalPanRoom(
       pageRect: pageRect,
-      zoomRatio: controller.zoomRatio,
+      zoomRatio: snapshot.zoomRatio,
       viewWidth: viewWidth,
     )) {
       return true;
     }
 
     return isAtHorizontalEdge(
-      transform: controller.value,
+      transform: snapshot.transform,
       pageRect: pageRect,
       viewWidth: viewWidth,
       trailingEdge: trailingEdge,
@@ -105,9 +91,6 @@ abstract final class PdfPageSwipePolicy {
   }
 
   /// Retorna `true` se [totalDelta] configura um swipe horizontal válido.
-  ///
-  /// Exige \|dx\| ≥ [kPdfPageSwipeMinDistance] e dominância horizontal
-  /// ([kPdfPageSwipeHorizontalDominanceFactor] × \|dy\|).
   static bool isHorizontalSwipe(Offset totalDelta) {
     final dx = totalDelta.dx;
     final dy = totalDelta.dy;

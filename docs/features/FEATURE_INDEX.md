@@ -660,8 +660,8 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 | `PdfFileNameSanitizer` | `lib/features/pdf_opening/domain/utils/pdf_file_name_sanitizer.dart` | **Implementado** | `sanitize(rawName)` — basename, strip chars perigosos, sufixo `.pdf` |
 | `ValidatePdfAvailability` | `lib/features/pdf_opening/domain/usecases/validate_pdf_availability.dart` | **Implementado + testes** | UC-04 — `repository.lookup(pdfId) != null` sem fetch; DI via [validatePdfAvailabilityProvider] |
 | `PdfFitMode` | `lib/features/pdf_reader/domain/entities/pdf_reader_preferences.dart` | **Implementado + testes** | `pageFit` / `pageWidth`; `toStorageString` / `fromStorageString`; `toggle()` |
-| `PdfReaderViewSettings` | `lib/features/pdf_reader/domain/entities/pdf_reader_preferences.dart` | **Implementado** | `{fitMode}`; `defaults` = page-fit; scroll vertical fixo em [PdfxPdfView] |
-| `PdfReaderControllerPort` | `lib/features/pdf_reader/domain/ports/pdf_reader_controller_port.dart` | **Implementado** | Porta domínio — navegação/zoom sem import `pdfx`; implementada por [PdfxViewerAdapter] |
+| `PdfReaderViewSettings` | `lib/features/pdf_reader/domain/entities/pdf_reader_preferences.dart` | **Implementado** | `{fitMode}`; `defaults` = page-fit; scroll vertical fixo em [PdfReaderPdfView] |
+| `PdfReaderControllerPort` | `lib/features/pdf_reader/domain/ports/pdf_reader_controller_port.dart` | **Implementado** | Porta domínio — navegação/zoom sem import `pdfx`; implementada por [PdfrxViewerAdapter] |
 | `InvalidPdfPageException` | `lib/features/pdf_reader/domain/exceptions/invalid_pdf_page_exception.dart` | **Implementado** | Página fora do intervalo em [NavigatePdfPages] |
 | `NavigatePdfPages` | `lib/features/pdf_reader/domain/usecases/navigate_pdf_pages.dart` | **Implementado + testes** | UC-11 — `call(targetPage, pagesCount)`, `nextPage`, `previousPage` via [PdfReaderControllerPort] |
 | `SetZoomAndFitMode` | `lib/features/pdf_reader/domain/usecases/set_zoom_and_fit_mode.dart` | **Implementado + testes** | UC-11 — `call(PdfFitMode)`; delega `applyFitMode` à porta |
@@ -674,13 +674,13 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 | `readerCarouselActionsProvider` | `lib/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart` | **Implementado 4.7** | `navigateToPdfId` → resolve + `OpenPdfInReader`; `navigateAdjacent` para lookup via repositório |
 | `ReaderRouteParamsNotifier` | `lib/features/pdf_reader/presentation/providers/reader_route_params_provider.dart` | **Implementado 4.7 fix v2** | `update(queryParams)` / `clear()` — espelha visita a `/leitor` para o shell (post-frame) |
 | `readerRouteParamsProvider` | idem | **Implementado 4.7 fix v3** | `NotifierProvider<Map<String, String>>` — fallback de `pdfId`/`titulo` quando URL vazia; [CarouselChips] prioriza query params do GoRouter |
-| `PdfReaderScreen` | `lib/features/pdf_reader/presentation/pages/pdf_reader_screen.dart` | **Implementado 4.7 + 2.3 + 2.4** | Publica [readerRouteParamsProvider]; [PdfReaderPageIndicator] + [PdfxPdfView.navigateToPage]; `_scheduleApplyInitialFit`; botão fullscreen |
+| `PdfReaderScreen` | `lib/features/pdf_reader/presentation/pages/pdf_reader_screen.dart` | **Implementado 4.7 + 2.3 + 2.4** | Publica [readerRouteParamsProvider]; [PdfReaderPageIndicator] + [PdfReaderPdfView.navigateToPage]; `_scheduleApplyInitialFit`; botão fullscreen |
 | `_ReaderScaffold` | idem | **Implementado UI 3 barras + 2.4 + indicador estável** | Barra 3 condicional; [PdfReaderPageIndicator(filePath)]; FAB `fullscreen_exit` em `Opacity(0.25)` |
 | `pdfReaderDisplayedPageProvider` | `lib/features/pdf_reader/presentation/providers/pdf_reader_displayed_page_provider.dart` | **Implementado 2.3** | `NotifierProvider.autoDispose.family<int, String>` — página exibida no indicador; sync com scroll manual |
 | `PdfReaderDisplayedPageNotifier` | idem | **Implementado 2.3** | `animateToPage(pageNumber)` congela indicador (`_suppressLiveUpdates`, `_animating`); escuta `pageListenable` + `loadingState`; getters `loadingState`, `pagesCount` |
 | `PdfReaderPageIndicator` | `lib/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart` | **Implementado 2.3** | `ConsumerWidget(filePath)` — `ValueListenableBuilder` em `controller.loadingState`; texto `page/total` após `success`; long-press → `animateToPage(1)` |
-| `PdfReaderNavigateToPage` | `lib/features/pdf_reader/presentation/widgets/pdfx_pdf_view.dart` | **Implementado 2.3** | `Future<void> Function(int pageNumber)` — callback injetado em [PdfxPdfView] |
-| `PdfPageSwipePolicy` | `lib/features/pdf_reader/presentation/utils/pdf_page_swipe_policy.dart` | **Implementado 2.3 + testes** | UC-11 — regras de swipe horizontal sem conflitar pan/pinch do [PdfViewPinch] |
+| `PdfReaderNavigateToPage` | `lib/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart` | **Implementado 2.3** | `Future<void> Function(int pageNumber)` — callback injetado em [PdfReaderPdfView] |
+| `PdfPageSwipePolicy` | `lib/features/pdf_reader/presentation/utils/pdf_page_swipe_policy.dart` | **Implementado 2.3 + testes** | UC-11 — regras de swipe horizontal sem conflitar pan/pinch do [PdfViewer (pdfrx)] |
 | `PdfPageSwipePolicy.canGoToNextPage(controller)` | idem | **Implementado** | Swipe RTL (próxima): permitido sem pan horizontal ou com viewport na borda direita |
 | `PdfPageSwipePolicy.canGoToPreviousPage(controller)` | idem | **Implementado** | Swipe LTR (anterior): permitido sem pan horizontal ou com viewport na borda esquerda |
 | `PdfPageSwipePolicy.isHorizontalSwipe(totalDelta)` | idem | **Implementado** | `true` se ≥ [kPdfPageSwipeMinDistance] e horizontal domina vertical ([kPdfPageSwipeHorizontalDominanceFactor]) |
@@ -695,11 +695,11 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 |------------|---------------|
 | `OpenPdfDocument.validateFilePath(filePath)` | Rejeita vazio, `..`, esquemas `file:`/`javascript:`/`data:`; lança [InvalidPdfPathException] |
 | `PdfSourceResolver.resolve(filePath)` | `https://…` → URL; `/assets/…` → `${AppConfig.apiBaseUrl}` + path; `asset:fixtures/…` → asset Flutter; outro path absoluto → local |
-| `PdfxViewerAdapter.openDocument(filePath)` | Cria [PdfControllerPinch] novo; lifecycle na sessão (sem dispose interno do anterior) |
-| `PdfxViewerAdapter.bindController` / `unbindController` | Liga/desliga controller da sessão ativa para use cases de fit/navegação |
-| `PdfxViewerAdapter.dispose()` | Safety net no shutdown — libera referência residual |
+| `PdfrxViewerAdapter.openDocument(filePath)` | Cria [PdfReaderViewerHandle] novo; lifecycle na sessão (sem dispose interno do anterior) |
+| `PdfrxViewerAdapter.bindController` / `unbindController` | Liga/desliga controller da sessão ativa para use cases de fit/navegação |
+| `PdfrxViewerAdapter.dispose()` | Safety net no shutdown — libera referência residual |
 | `pdfReaderSessionProvider(filePath)` | `FutureProvider.autoDispose.family` — valida + abre sessão; `ref.onDispose` → `unbind` + `controller.dispose()` |
-| `PdfReaderScreen(queryParams)` | Lê `file`/`pdfId`/`titulo`; publica [readerRouteParamsProvider]; [_ReaderScaffold] + [PdfxPdfView]; carousel na barra 2 via [ShellScaffold] |
+| `PdfReaderScreen(queryParams)` | Lê `file`/`pdfId`/`titulo`; publica [readerRouteParamsProvider]; [_ReaderScaffold] + [PdfReaderPdfView]; carousel na barra 2 via [ShellScaffold] |
 
 **Rota:** [RoutePaths.reader] (`/leitor`) — filha do [ShellRoute]; barras 1–2 compartilhadas.
 
@@ -719,18 +719,18 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 |-----|-------------------|
 | `PdfSourceResolver` | `resolve(filePath)`, `assetPrefix` (`asset:`) |
 | `ResolvedPdfSource` | `kind` ([PdfSourceKind]), `value` (URL, asset path ou filesystem) |
-| `PdfxViewerAdapter` | `openDocument(filePath)` → [PdfControllerPinch] novo; `bindController`/`unbindController`; getter `controller`; `dispose()` residual |
+| `PdfrxViewerAdapter` | `openDocument(filePath)` → [PdfReaderViewerHandle] novo; `bindController`/`unbindController`; getter `controller`; `dispose()` residual |
 
 **Providers e UI (presentation)**
 
 | API | Tipo | Responsabilidade |
 |-----|------|------------------|
-| `pdfxViewerAdapterProvider` | `Provider` | DI factory [PdfxViewerAdapter]; dispose residual no shutdown |
+| `pdfViewerAdapterProvider` | `Provider` | DI factory [PdfrxViewerAdapter]; dispose residual no shutdown |
 | `openPdfDocumentProvider` | `Provider` | DI [OpenPdfDocument] |
 | `pdfReaderSessionProvider` | `FutureProvider.autoDispose.family` | Valida + abre sessão por `filePath`; dispose do controller ao sair do leitor |
 | `PdfReaderSession` | classe | `controller` + `filePath` |
 | `pdfReaderErrorMessage(error)` | função | Mensagem amigável na UI; exceções offline (3.4) + [InvalidPdfPathException] |
-| `PdfxPdfView` | widget | Encapsula `PdfViewPinch`; swipe via [Listener] + [PdfPageSwipePolicy]; exige [PdfReaderNavigateToPage]; `scrollDirection: Axis.vertical` fixo; `ValueKey(controller)` |
+| `PdfReaderPdfView` | widget | Encapsula `PdfViewer (pdfrx)`; swipe via [Listener] + [PdfPageSwipePolicy]; exige [PdfReaderNavigateToPage]; `scrollDirection: Axis.vertical` fixo; `ValueKey(controller)` |
 
 ### Contrato implementado — leitor (UC-11, Fase 2.3)
 
@@ -741,16 +741,16 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 | `SetZoomAndFitMode.call(PdfFitMode mode)` | `page-width` → `calculatePageFitMatrix`; `page-fit` → matrix por altura |
 | `ReaderPreferencesDatasource.loadSettings()` | Retorna [PdfReaderViewSettings] com defaults PWA (`fitMode` only) |
 | `ReaderPreferencesDatasource.saveFitMode` | Persiste [StorageKeys.pdfPreferredFitMode] via SharedPreferences |
-| `PdfxViewerAdapter` (implements [PdfReaderControllerPort]) | `goToPage`, `nextPage`, `previousPage`, `applyFitMode`, `currentPage`, `pagesCount` |
+| `PdfrxViewerAdapter` (implements [PdfReaderControllerPort]) | `goToPage`, `nextPage`, `previousPage`, `applyFitMode`, `currentPage`, `pagesCount` |
 | `PdfReaderViewSettingsNotifier.applyInitialFit()` | Reaplica fit salvo no adapter ativo (`SetZoomAndFitMode`) |
 | `PdfReaderViewSettingsNotifier.toggleFitMode()` | Persiste + reaplica fit no adapter ativo |
-| `PdfxPdfView(controller, navigateToPage)` | Swipe chama `navigateToPage(target)` — tipicamente [PdfReaderDisplayedPageNotifier.animateToPage] |
-| `PdfxPdfView` — swipe horizontal | Direita→esquerda: próxima; esquerda→direita: anterior; reconhecido **somente** em `onPointerUp`; alvo = `pageAtPointerDown ± 1`; `_pageTurnInProgress` bloqueia gestos durante animação; pinch (2+ pointers) cancela rastreamento |
-| `PdfReaderDisplayedPageNotifier.animateToPage` | `_suppressLiveUpdates` + `_animating` durante `PdfControllerPinch.animateToPage` (500ms default); `state` = destino só no `finally`; scroll manual fora de animação atualiza via `pageListenable`; sync inicial via listener em `loadingState` |
+| `PdfReaderPdfView(controller, navigateToPage)` | Swipe chama `navigateToPage(target)` — tipicamente [PdfReaderDisplayedPageNotifier.animateToPage] |
+| `PdfReaderPdfView` — swipe horizontal | Direita→esquerda: próxima; esquerda→direita: anterior; reconhecido **somente** em `onPointerUp`; alvo = `pageAtPointerDown ± 1`; `_pageTurnInProgress` bloqueia gestos durante animação; pinch (2+ pointers) cancela rastreamento |
+| `PdfReaderDisplayedPageNotifier.animateToPage` | `_suppressLiveUpdates` + `_animating` durante `PdfReaderViewerHandle.animateToPage` (500ms default); `state` = destino só no `finally`; scroll manual fora de animação atualiza via `pageListenable`; sync inicial via listener em `loadingState` |
 | `PdfReaderPageIndicator(filePath)` | `ValueListenableBuilder` em `session.controller.loadingState` → texto após `success`; `ref.watch(pdfReaderDisplayedPageProvider)`; long-press → `animateToPage(1)`; oculto enquanto sessão/ PDF carregam |
 | `PdfPageSwipePolicy.canGoToNextPage` | Swipe RTL permitido se documento carregado e (sem pan horizontal OU borda direita da página) |
 | `PdfPageSwipePolicy.canGoToPreviousPage` | Swipe LTR permitido se documento carregado e (sem pan horizontal OU borda esquerda da página) |
-| `PdfReaderScreen` (ConsumerStatefulWidget) | Barra 3: share/save/fullscreen; [PdfReaderPageIndicator]; [PdfxPdfView] com `navigateToPage`; `_scheduleApplyInitialFit` pós-frame; carousel na barra 2 via shell |
+| `PdfReaderScreen` (ConsumerStatefulWidget) | Barra 3: share/save/fullscreen; [PdfReaderPageIndicator]; [PdfReaderPdfView] com `navigateToPage`; `_scheduleApplyInitialFit` pós-frame; carousel na barra 2 via shell |
 | `_ReaderScaffold` — indicador de página | [PdfReaderPageIndicator] substitui [PdfPageNumber] do PDFx — evita flicker de páginas intermediárias na animação |
 
 **Gatilhos UI navegação:** swipe horizontal no PDF (RTL próxima / LTR anterior, ao soltar dedo); long-press no texto `page/total` → primeira página via [PdfReaderDisplayedPageNotifier]; indicador **não** pisca durante animação.
@@ -764,10 +764,10 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 | Assinatura | Comportamento |
 |------------|---------------|
 | `pdfReaderSessionProvider(filePath)` | `autoDispose.family` — nova sessão a cada `watch`; sem cache de controller entre visitas |
-| `PdfxViewerAdapter.openDocument(filePath)` | Retorna [PdfControllerPinch] novo; **não** dispose do controller anterior |
-| `PdfxViewerAdapter.bindController(controller)` | Registra controller ativo para use cases de fit/navegação |
-| `PdfxViewerAdapter.unbindController(controller)` | Limpa referência se `identical`; idempotente |
-| `PdfxPdfView(controller)` | `ValueKey(controller)` — `initState` limpo no PDFx por sessão |
+| `PdfrxViewerAdapter.openDocument(filePath)` | Retorna [PdfReaderViewerHandle] novo; **não** dispose do controller anterior |
+| `PdfrxViewerAdapter.bindController(controller)` | Registra controller ativo para use cases de fit/navegação |
+| `PdfrxViewerAdapter.unbindController(controller)` | Limpa referência se `identical`; idempotente |
+| `PdfReaderPdfView(controller)` | `ValueKey(controller)` — `initState` limpo no PDFx por sessão |
 | `PdfReaderScreen._scheduleApplyInitialFit` | Pós-frame: `mounted` + sessão ativa (`identical` controller) + `loadingState == success` → `applyInitialFit()` |
 | `PdfReaderScreen` `ref.listen(readerFullscreenProvider)` | Ao alternar fullscreen → `_scheduleApplyInitialFit` (viewport mudou de tamanho) |
 | `_ReaderScaffold` layout PDF | PDF **sempre** em `Column → Expanded → Stack → Positioned.fill` — nunca `Stack` solto no root |
@@ -803,7 +803,7 @@ CatalogRefreshBanner → catalogRefreshProvider.refresh()
 | `OpenPdfInReader.call({required pdfPath, pdfId?, titulo?, subtitulo?})` | Valida path; monta rota — **3.4:** `pdfPath` = path absoluto local pós-resolve; **4.7:** `pdfId` habilita navegação carousel |
 | `openPdfInReaderProvider` | DI [OpenPdfInReader] + [OpenPdfDocument] |
 | `LouvorCard` (modo `leitor`) | [ResolvePdfForReader] → `openPdfInReaderProvider.call(absolutePath, pdfId)` → `context.push` |
-| `pdfReaderSessionProvider(filePath)` | [PdfxViewerAdapter.openDocument] → `PdfDocument.openFile` quando path local |
+| `pdfReaderSessionProvider(filePath)` | [PdfrxViewerAdapter.openDocument] → `PdfDocument.openFile` quando path local |
 | `PdfViewerMode.leitor` | Modo padrão; persiste [StorageKeys.pdfViewerMode] |
 
 **Teste manual:** tap card → loading → `/leitor?file=/…/plpcg_pdfs/…` → PDFx `openFile` (sem Dio no adapter).
@@ -1056,7 +1056,7 @@ LouvorCard (modo leitor)
           → OfflinePdfRepository.upsert
   → OpenPdfInReader(pdfPath: localAbsolutePath, titulo)
   → PdfReaderScreen → pdfReaderSessionProvider(localPath)
-      → PdfxViewerAdapter.openDocument → PdfDocument.openFile
+      → PdfrxViewerAdapter.openDocument → PdfDocument.openFile
 
 Share/Save (cache hit):
   → SharePdf → Share.shareXFiles([XFile(localPath)])
@@ -1972,7 +1972,7 @@ Modal — tap outro louvor (leitor)
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `PdfBytesDatasource` | `lib/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart` | **Implementado + testes** | `fetchBytes(filePath)` — remoto/asset/local via [PdfSourceResolver]; compartilhado com [FetchAndStorePdf] (3.3) e [PdfxViewerAdapter] |
+| `PdfBytesDatasource` | `lib/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart` | **Implementado + testes** | `fetchBytes(filePath)` — remoto/asset/local via [PdfSourceResolver]; compartilhado com [FetchAndStorePdf] (3.3) e [PdfrxViewerAdapter] |
 
 ## APIs públicas — Data layer (pdf_reader, Fase 2.2–2.5)
 
@@ -1981,9 +1981,9 @@ Modal — tap outro louvor (leitor)
 | `PdfSourceKind` | `lib/features/pdf_reader/data/utils/pdf_source_resolver.dart` | **Implementado** | Enum: `remoteUrl`, `asset`, `localFile` |
 | `ResolvedPdfSource` | `lib/features/pdf_reader/data/utils/pdf_source_resolver.dart` | **Implementado** | Par `{kind, value}` resolvido a partir do query `file` |
 | `PdfSourceResolver` | `lib/features/pdf_reader/data/utils/pdf_source_resolver.dart` | **Implementado + testes** | Resolve `file` → URL remota, asset Flutter (`asset:`) ou path local |
-| `PdfxViewerAdapter` | `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart` | **Implementado + testes** | Adaptador PDFx (ADR-002); `openDocument` factory; navegação/fit via [PdfReaderControllerPort] |
-| `PdfxViewerAdapter.bindController` | `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart` | **Implementado + testes** | Liga controller da sessão ativa para [SetZoomAndFitMode] / [NavigatePdfPages] |
-| `PdfxViewerAdapter.unbindController` | `lib/features/pdf_reader/data/adapters/pdfx_viewer_adapter.dart` | **Implementado + testes** | Desliga se `identical`; chamado no `ref.onDispose` de [pdfReaderSessionProvider] |
+| `PdfrxViewerAdapter` | `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart` | **Implementado + testes** | Adaptador PDFx (ADR-002); `openDocument` factory; navegação/fit via [PdfReaderControllerPort] |
+| `PdfrxViewerAdapter.bindController` | `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart` | **Implementado + testes** | Liga controller da sessão ativa para [SetZoomAndFitMode] / [NavigatePdfPages] |
+| `PdfrxViewerAdapter.unbindController` | `lib/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.dart` | **Implementado + testes** | Desliga se `identical`; chamado no `ref.onDispose` de [pdfReaderSessionProvider] |
 | `ReaderPreferencesDatasource` | `lib/features/pdf_reader/data/datasources/reader_preferences_datasource.dart` | **Implementado + testes** | Lê/grava fit e nav via [sharedPreferencesProvider]; defaults PWA |
 
 **Asset de teste:** `assets/fixtures/sample.pdf` — registrado em `pubspec.yaml`; URL manual `asset:fixtures/sample.pdf`.
@@ -2195,7 +2195,7 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `openPdfInReaderProvider` | `lib/features/pdf_opening/data/providers/pdf_opening_providers.dart` | **Implementado** | DI [OpenPdfInReader] (Fase 2.1); consumido por [LouvorCard] modo leitor |
-| `pdfBytesDatasourceProvider` | `lib/features/pdf_opening/data/providers/pdf_opening_providers.dart` | **Implementado** | DI [PdfBytesDatasource] + [Dio]; compartilhado com [pdfxViewerAdapterProvider] |
+| `pdfBytesDatasourceProvider` | `lib/features/pdf_opening/data/providers/pdf_opening_providers.dart` | **Implementado** | DI [PdfBytesDatasource] + [Dio]; compartilhado com [pdfViewerAdapterProvider] |
 | `sharePdfProvider` | `lib/features/pdf_opening/data/providers/pdf_opening_providers.dart` | **Implementado** | DI [SharePdf] (bytes + [OpenPdfDocument]) |
 | `savePdfProvider` | `lib/features/pdf_opening/data/providers/pdf_opening_providers.dart` | **Implementado** | DI [SavePdf] (bytes + [OpenPdfDocument]) |
 | `PdfViewerMode` | `lib/features/pdf_opening/presentation/providers/pdf_viewer_mode_provider.dart` | **Implementado** | Enum UC-04; `fromStorage`, `storageValue` |
@@ -2206,7 +2206,7 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `pdfxViewerAdapterProvider` | `lib/features/pdf_reader/data/providers/pdf_reader_providers.dart` | **Implementado** | DI factory [PdfxViewerAdapter]; `ref.onDispose` → dispose residual (shutdown) |
+| `pdfViewerAdapterProvider` | `lib/features/pdf_reader/data/providers/pdf_reader_providers.dart` | **Implementado** | DI factory [PdfrxViewerAdapter]; `ref.onDispose` → dispose residual (shutdown) |
 | `openPdfDocumentProvider` | `lib/features/pdf_reader/data/providers/pdf_reader_providers.dart` | **Implementado** | DI use case UC-11 |
 | `readerPreferencesDatasourceProvider` | `lib/features/pdf_reader/data/providers/pdf_reader_providers.dart` | **Implementado** | DI [ReaderPreferencesDatasource] via SharedPreferences |
 | `navigatePdfPagesProvider` | `lib/features/pdf_reader/data/providers/pdf_reader_providers.dart` | **Implementado** | DI use case UC-11 navegação |
@@ -2229,9 +2229,9 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
 /leitor?file=…&titulo=…
   → PdfReaderScreen.watch(pdfReaderSessionProvider(file))  [autoDispose]
       → OpenPdfDocument.validateFilePath(file)
-      → PdfxViewerAdapter.openDocument(file) → novo PdfControllerPinch
+      → PdfrxViewerAdapter.openDocument(file) → novo PdfReaderViewerHandle
       → adapter.bindController(controller)
-      → PdfxPdfView(ValueKey(controller))
+      → PdfReaderPdfView(ValueKey(controller))
   → pop (sair do leitor)
       → pdfReaderSessionProvider.onDispose
           → adapter.unbindController(controller)
@@ -2249,11 +2249,11 @@ Regra Cifra: chip UI `"Cifra"` expande para categorias `"Cifra"`, `"Cifra nível
       → PdfReaderScreen._scheduleApplyInitialFit → SetZoomAndFitMode no adapter
   → pdfReaderDisplayedPageProvider(filePath) — escuta sessão + loadingState; sync scroll manual
   → PdfReaderPageIndicator — ValueListenableBuilder(loadingState); congelado durante animateToPage
-  → PdfxPdfView(scrollDirection: Axis.vertical, Key(controller), navigateToPage)
+  → PdfReaderPdfView(scrollDirection: Axis.vertical, Key(controller), navigateToPage)
       → Listener: acumula delta no drag; onPointerUp → PdfPageSwipePolicy
           → navigateToPage(pageAtPointerDown ± 1) → PdfReaderDisplayedPageNotifier.animateToPage
   → fit persistido aplicado em `_scheduleApplyInitialFit` (toggle fit removido da barra 3 em 2.4)
-  → scroll vertical nativo PdfViewPinch; [NavigatePdfPages] para navegação via adapter (use cases)
+  → scroll vertical nativo PdfViewer (pdfrx); [NavigatePdfPages] para navegação via adapter (use cases)
 ```
 
 ### Fluxo Fase 2.4 (ToggleReaderFullscreen / UC-11)
@@ -2357,9 +2357,9 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `LibrarySortSelector` | `library/presentation/widgets/library_sort_selector.dart` | UC-03 | **Implementado + polish jun/2026** | `SegmentedButton` número/nome estilizado gold/title via [libraryViewSettingsProvider] |
 | `LibraryPaginationControls` | `library/presentation/widgets/library_pagination_controls.dart` | UC-03 | **Implementado + refatoração jun/2026** | Resumo + chip dropdown `itemsPerPageValue`; nav anterior/próxima; layout responsivo |
 | `PdfViewerSelector` | `pdf_opening/presentation/widgets/pdf_viewer_selector.dart` | UC-04 | **Implementado + polish** | [GoldenTaggedContainer] compacto; Dropdown `isDense` 24px; label `pdfViewerSelectorLabel`; persiste via [pdfViewerModeProvider]; modos 2.6 → snackbar |
-| `PdfReaderScreen` | `pdf_reader/presentation/pages/pdf_reader_screen.dart` | UC-11/04 | **Implementado** (Fase 2.3 + 2.4 + 2.5 + 3.4 + lifecycle + UI 3 barras) | [_ReaderScaffold]: [PdfReaderPageIndicator] + PDF; `navigateToPage` no [PdfxPdfView]; fullscreen 2.4; sessão `autoDispose` |
+| `PdfReaderScreen` | `pdf_reader/presentation/pages/pdf_reader_screen.dart` | UC-11/04 | **Implementado** (Fase 2.3 + 2.4 + 2.5 + 3.4 + lifecycle + UI 3 barras) | [_ReaderScaffold]: [PdfReaderPageIndicator] + PDF; `navigateToPage` no [PdfReaderPdfView]; fullscreen 2.4; sessão `autoDispose` |
 | `PdfReaderPageIndicator` | `pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart` | UC-11 | **Implementado 2.3** | Indicador `page/total`; `ValueListenableBuilder(loadingState)`; long-press → página 1 |
-| `PdfxPdfView` | `pdf_reader/presentation/widgets/pdfx_pdf_view.dart` | UC-11 | **Implementado** (Fase 2.3 + lifecycle + swipe + indicador) | `PdfViewPinch`; swipe via [PdfPageSwipePolicy]; [PdfReaderNavigateToPage] obrigatório; pinch nativo |
+| `PdfReaderPdfView` | `pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart` | UC-11 | **Implementado** (Fase 2.3 + lifecycle + swipe + indicador) | `PdfViewer (pdfrx)`; swipe via [PdfPageSwipePolicy]; [PdfReaderNavigateToPage] obrigatório; pinch nativo |
 | `OfflineSettingsScreen` | `offline/presentation/pages/offline_settings_screen.dart` | UC-09/10 | **Completa 3.7 + jun/2026** | Stats + refresh; chips material/faltantes; manutenção; bulk UC-09 |
 | `PlaylistsScreen` | `playlists/presentation/pages/playlists_screen.dart` | UC-06/07 | **Implementado 4.2 + 4.4 + 4.8 + polish screen jun/2026** | Abas; FAB stack apagar (unsaved) + importar; empty state branco |
 | `PlaylistListTile` | `playlists/presentation/widgets/playlist_list_tile.dart` | UC-06/07 | **Implementado 4.2–4.4 + polish UI + debug abrir jun/2026** | Card temático; [CarouselLouvorChip] modal (`onTap`/`onRemove`); menu share/load/open/renomear/excluir; falha abrir → [showPlaylistOpenErrorSnackbar] |
@@ -2658,7 +2658,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 |---------|-----------|
 | `test/unit/features/pdf_reader/pdf_source_resolver_test.dart` | Resolução URL/asset/local |
 | `test/unit/features/pdf_reader/open_pdf_document_test.dart` | Validação path UC-11 |
-| `test/unit/features/pdf_reader/pdfx_viewer_adapter_test.dart` | Mock Dio + controller; fit modes e navegação (2.3); `bind`/`unbind`; `openDocument` sem dispose anterior |
+| `test/unit/features/pdf_reader/pdfrx_viewer_adapter_test.dart` | Mock Dio + controller; fit modes e navegação (2.3); `bind`/`unbind`; `openDocument` sem dispose anterior |
 | `test/unit/features/pdf_reader/pdf_reader_session_provider_test.dart` | `ref.onDispose` → `controller.dispose()`; reabertura cria controller novo |
 | `test/widget/features/pdf_reader/pdf_reader_screen_test.dart` | Erro file ausente/inválido; botão fullscreen + FAB saída (2.4); share/save AppBar (2.5); `pdfReaderErrorMessage` offline (3.4); ciclo sair/reabrir |
 | `test/integration/uc11_pdf_reader_test.dart` | Pipeline validação + resolução |
@@ -2696,7 +2696,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `test/integration/uc04_share_save_test.dart` | Pipeline LouvorPdfPath + bytes asset (sem rede) |
 | `integration_test/gherkin/uc04_share_save_pdf.feature` | Cenários Gherkin UC-04 share/save |
 
-**Nota:** `pdfx_viewer_adapter_test` injeta [PdfBytesDatasource] (refactor 2.5).
+**Nota:** `pdfrx_viewer_adapter_test` injeta [PdfBytesDatasource] (refactor 2.5).
 
 ## Testes — offline (Fase 3)
 
@@ -2825,7 +2825,7 @@ Conta Apple **pessoal/gratuita** não suporta Associated Domains — builds Debu
 | Script | Uso | Modo |
 |--------|-----|------|
 | `scripts/ios_resolve_device.py` | Resolve UDID de iPhone/iPad físico | stdout = ID; stderr = nome; erros acionáveis (unpaired, Developer Mode) |
-| `scripts/apply_pdfx_patch.sh` | Patch legado pdfx 2.9.2 (bug swipe horizontal) | **Opcional** — app usa só scroll vertical; ver [ADR-002](../adr/ADR-002-pdfx-reader.md) |
+| `scripts/REMOVIDO (Fase C)` | Patch legado pdfx 2.9.2 (bug swipe horizontal) | **Opcional** — app usa só scroll vertical; ver [ADR-002](../adr/ADR-002-pdfx-reader.md) |
 | `scripts/ios_dev_run.sh` | Dispositivo físico USB — hot reload | `flutter build ios --debug` + `flutter run`; [Runner-Homolog.entitlements] |
 | `scripts/ios_homolog_install.sh` | Dispositivo físico — teste como usuário final | `flutter build ios --profile` → `xcodebuild -allowProvisioningUpdates` (inclui UDID do dispositivo) → install (~7 dias) |
 
@@ -2858,7 +2858,7 @@ Scripts iOS usam [dart_defines/plpcg.json], desinstalam versão anterior (`com.e
 
 ```bash
 # Patch pdfx legado (opcional — só se reativar swipe horizontal)
-# ./scripts/apply_pdfx_patch.sh
+# ./scripts/REMOVIDO (Fase C)
 
 # iPhone ou iPad — desenvolvimento (hot reload)
 ./scripts/ios_dev_run.sh

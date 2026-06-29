@@ -8,16 +8,16 @@ enum PdfFitMode {
 
   /// Serializa para [StorageKeys.pdfPreferredFitMode].
   String toStorageString() => switch (this) {
-        PdfFitMode.pageFit => 'page-fit',
-        PdfFitMode.pageWidth => 'page-width',
-      };
+    PdfFitMode.pageFit => 'page-fit',
+    PdfFitMode.pageWidth => 'page-width',
+  };
 
   /// Restaura a partir de SharedPreferences; retorna `null` se inválido.
   static PdfFitMode? fromStorageString(String? value) => switch (value) {
-        'page-fit' => PdfFitMode.pageFit,
-        'page-width' => PdfFitMode.pageWidth,
-        _ => null,
-      };
+    'page-fit' => PdfFitMode.pageFit,
+    'page-width' => PdfFitMode.pageWidth,
+    _ => null,
+  };
 
   /// Alterna entre page-fit e page-width (toggle da AppBar).
   PdfFitMode toggle() =>
@@ -26,7 +26,7 @@ enum PdfFitMode {
 
 /// Preferências de visualização do leitor — fit mode persistido (UC-11 Fase 2.3).
 ///
-/// Navegação usa scroll vertical contínuo fixo em [PdfxPdfView]; sem toggle horizontal.
+/// Navegação usa scroll vertical contínuo fixo em [PdfReaderPdfView]; sem toggle horizontal.
 class PdfReaderViewSettings {
   const PdfReaderViewSettings({required this.fitMode});
 

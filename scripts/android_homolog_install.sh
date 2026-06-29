@@ -55,7 +55,7 @@ else
   echo "    App não estava instalado (ok)."
 fi
 
-echo "==> Dependências + patch pdfx (swipe horizontal)..."
+echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
 
 echo "==> Build Android (profile — standalone, homologação)..."

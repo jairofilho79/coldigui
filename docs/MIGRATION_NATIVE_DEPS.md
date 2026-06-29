@@ -1,6 +1,6 @@
 # Migração de dependências nativas (SPM)
 
-**Status:** Fase A concluída (jun/2026) — Fases B e C pendentes  
+**Status:** Fase A concluída (jun/2026) — Fase B concluída (jun/2026) — Fase C concluída (jun/2026)  
 **Data:** junho de 2026  
 **Contexto:** Flutter 3.44+ usa Swift Package Manager (SPM) por padrão no iOS/macOS. Plugins sem SPM geram aviso e dependem de fallback CocoaPods (registro read-only em 2/dez/2026).
 
@@ -9,17 +9,18 @@
 | # | Decisão | Motivação |
 |---|---------|-----------|
 | 1 | **Remover `disk_space_plus`** ✅ | Verificação prévia de espaço livre é opcional; o app já trata `ENOSPC` e converte em `InsufficientDiskSpaceException`. Reduz dependência nativa sem SPM. |
-| 2 | **Migrar `isar` → `isar_plus`** | Isar original (`3.1.0+1`, 2023) sem manutenção. `isar_plus` + `isar_plus_flutter_libs` ativos, com SPM desde 1.2.7. |
+| 2 | **Migrar `isar` → `isar_plus`** ✅ | Isar original (`3.1.0+1`, 2023) sem manutenção. `isar_plus` + `isar_plus_flutter_libs` ativos, com SPM desde 1.2.7. |
+| 3 | **Migrar `pdfx` → `pdfrx`** ✅ | pdfx sem SPM; pdfrx 2.4.4 + `pdfium_flutter` com SPM. Adapter + handle isolam API. |
 
 ## Ordem de execução recomendada
 
 ```text
 Fase A — disk_space_plus ✅
     ↓
-Fase B — isar → isar_plus (concluída jun/2026)
+Fase B — isar → isar_plus ✅
+    ↓
+Fase C — pdfx → pdfrx ✅
 ```
-
-Fase C (viewer PDF nativo / SPM) está documentada ao final deste arquivo — **fora do escopo da Fase A**.
 
 **Regra para agentes:** uma fase por PR, salvo combinação explícita do mantenedor. Não misturar migrações no mesmo diff.
 
@@ -60,7 +61,7 @@ flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json
 ### O que **não** fazer
 
 - Não desabilitar SPM (`enable-swift-package-manager: false`) como solução permanente.
-- Não atualizar Riverpod, go_router ou outras deps não relacionadas.
+- Não atualizar Riverpod, go_router ou outras deps não relacionadas **durante fases SPM** — ver [DEP_UPGRADE_BACKLOG.md](DEP_UPGRADE_BACKLOG.md) para upgrades major planejados.
 - Não reescrever features fora do escopo da migração.
 - Não commitar sem pedido explícito do usuário.
 
@@ -192,7 +193,9 @@ O binário do Isar original **não** é garantido como compatível com `isar_plu
 
 ---
 
-## Fase C — Migração `pdfx` → `pdfrx`
+## Fase C — Migração `pdfx` → `pdfrx` ✅
+
+**Status:** concluída (jun/2026).
 
 ### Escopo
 
@@ -273,15 +276,15 @@ Preservar comportamento documentado em [UC-11](use-cases/UC-11-read-pdf-reader.m
 
 ### Critérios de aceite
 
-- [ ] `pdfx` ausente de `pubspec.yaml`
-- [ ] Nenhum import `package:pdfx/` fora de histórico git
-- [ ] `scripts/apply_pdfx_patch.sh` removido
-- [ ] Leitor abre PDF local, asset e remoto
-- [ ] Navegação, zoom, indicador de página e carousel adjacente funcionam
-- [ ] Build iOS simulador sem aviso SPM para pdfx
-- [ ] `flutter test` verde nos testes do leitor
-- [ ] ADR-002 atualizado
-- [ ] Skill `plpcg-performance-auditor` e FEATURE_INDEX referenciam novo adapter
+- [x] `pdfx` ausente de `pubspec.yaml`
+- [x] Nenhum import `package:pdfx/` fora de histórico git
+- [x] `scripts/apply_pdfx_patch.sh` removido
+- [x] Leitor abre PDF local, asset e remoto
+- [x] Navegação, zoom, indicador de página e carousel adjacente funcionam
+- [x] Build iOS simulador sem aviso SPM para pdfx
+- [x] `flutter test` verde nos testes do leitor
+- [x] ADR-002 atualizado
+- [x] Skill `plpcg-performance-auditor` e FEATURE_INDEX referenciam novo adapter
 
 ---
 
@@ -304,3 +307,4 @@ Preservar comportamento documentado em [UC-11](use-cases/UC-11-read-pdf-reader.m
 - [pdfrx](https://pub.dev/packages/pdfrx) — PDFium + SPM via `pdfium_flutter`
 - [pdfx SPM PR (upstream, não mergeado)](https://github.com/ScerIO/packages.flutter/pull/609)
 - [AGENT_PIPELINE.md](AGENT_PIPELINE.md) — fluxo QA/OpSec/Perf após cada fase
+- [DEP_UPGRADE_BACKLOG.md](DEP_UPGRADE_BACKLOG.md) — upgrades major Dart/Flutter (pós-SPM)

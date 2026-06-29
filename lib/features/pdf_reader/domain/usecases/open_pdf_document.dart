@@ -4,7 +4,7 @@ import '../exceptions/invalid_pdf_path_exception.dart';
 ///
 /// [filePath] = URL HTTP remota, path relativo `/assets/...`, asset Flutter
 /// (`asset:fixtures/sample.pdf`) ou path local absoluto.
-/// A renderização é delegada a [PdfxViewerAdapter] na camada data (ADR-002).
+/// A renderização é delegada a [PdfrxViewerAdapter] na camada data (ADR-002).
 class OpenPdfDocument {
   const OpenPdfDocument();
 
@@ -15,7 +15,7 @@ class OpenPdfDocument {
 
   /// Valida [filePath]; lança [InvalidPdfPathException] se inválido.
   ///
-  /// Chamado antes de [PdfxViewerAdapter.openDocument].
+  /// Chamado antes de [PdfrxViewerAdapter.openDocument].
   void validateFilePath(String filePath) {
     final trimmed = filePath.trim();
     if (trimmed.isEmpty) {
