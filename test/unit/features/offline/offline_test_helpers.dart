@@ -14,7 +14,7 @@ import 'package:coldigui/features/offline/domain/repositories/offline_pdf_reposi
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,17 +26,17 @@ String encodePdfId(String relPath) {
       .replaceAll('=', '');
 }
 
-Future<Isar> openOfflineTestIsar(Directory dir) {
+Isar openOfflineTestIsar(Directory dir) {
   return Isar.open(
-    [OfflinePdfIndexSchema],
+    schemas: [OfflinePdfIndexSchema],
     directory: dir.path,
     name: 'offline_test_${DateTime.now().microsecondsSinceEpoch}',
   );
 }
 
-Future<Isar> openOfflineCatalogTestIsar(Directory dir) {
+Isar openOfflineCatalogTestIsar(Directory dir) {
   return Isar.open(
-    [OfflinePdfIndexSchema, LouvorCacheSchema],
+    schemas: [OfflinePdfIndexSchema, LouvorCacheSchema],
     directory: dir.path,
     name: 'offline_catalog_test_${DateTime.now().microsecondsSinceEpoch}',
   );

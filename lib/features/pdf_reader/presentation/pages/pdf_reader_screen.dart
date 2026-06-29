@@ -6,6 +6,7 @@ import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dar
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -82,8 +83,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     void applyFit() {
       if (!mounted) return;
       final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
-      final currentSession =
-          ref.read(pdfReaderSessionProvider(currentFilePath)).valueOrNull;
+      final currentSession = ref
+          .read(pdfReaderSessionProvider(currentFilePath))
+          .valueOrNull;
       if (currentSession == null ||
           !identical(currentSession.controller, sessionController)) {
         return;
@@ -106,19 +108,25 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _shareLoading = true);
     try {
-      await ref.read(sharePdfProvider).call(
+      await ref
+          .read(sharePdfProvider)
+          .call(
             filePath: filePath,
             displayName: displayName,
             sharePositionOrigin: sharePositionOrigin,
           );
       if (mounted) {
         showAppSnackbar(
-            context, l10n?.pdfShareSuccess ?? 'PDF pronto para compartilhar');
+          context,
+          l10n?.pdfShareSuccess ?? 'PDF pronto para compartilhar',
+        );
       }
     } on Object {
       if (mounted) {
-        showAppSnackbar(context,
-            l10n?.pdfActionError ?? 'Não foi possível concluir a ação');
+        showAppSnackbar(
+          context,
+          l10n?.pdfActionError ?? 'Não foi possível concluir a ação',
+        );
       }
     } finally {
       if (mounted) {
@@ -153,7 +161,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       );
       if (!mounted) return;
 
-      final location = ref.read(openPdfInReaderProvider).call(
+      final location = ref
+          .read(openPdfInReaderProvider)
+          .call(
             pdfPath: source.absolutePath,
             pdfId: louvor.pdfId,
             titulo: louvor.nome,
@@ -194,9 +204,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       return _ReaderScaffold(
         titulo: titulo,
         showTitle: true,
-        body: const _ReaderMessage(
-          message: 'Parâmetro file ausente na URL',
-        ),
+        body: const _ReaderMessage(message: 'Parâmetro file ausente na URL'),
       );
     }
 
@@ -205,10 +213,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     if (pdfId.isNotEmpty) {
       ref.watch(
         readerAdjacentPdfPrefetchProvider(
-          ReaderAdjacentPdfPrefetchParams(
-            filePath: filePath,
-            pdfId: pdfId,
-          ),
+          ReaderAdjacentPdfPrefetchParams(filePath: filePath, pdfId: pdfId),
         ),
       );
     }
@@ -264,7 +269,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             return _ReaderMessage(
               message: pdfReaderErrorMessage(error),
               retryLabel: l10n?.pdfOfflineGoToSettings ?? 'Baixar',
-              onRetry: () => context.push(RoutePaths.offline),
+              onRetry: () => goToShellDestination(context, RoutePaths.offline),
             );
           }
           return _ReaderMessage(
@@ -319,10 +324,7 @@ class _ReaderScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pdfArea = ColoredBox(
-      color: AppColors.pdfArea,
-      child: body,
-    );
+    final pdfArea = ColoredBox(color: AppColors.pdfArea, child: body);
 
     return Column(
       children: [
@@ -333,10 +335,7 @@ class _ReaderScaffold extends StatelessWidget {
               primary: false,
               toolbarHeight: kToolbarHeight,
               title: showTitle
-                  ? Text(
-                      titulo,
-                      overflow: TextOverflow.ellipsis,
-                    )
+                  ? Text(titulo, overflow: TextOverflow.ellipsis)
                   : null,
               actions: [
                 if (onShare != null)
@@ -347,8 +346,8 @@ class _ReaderScaffold extends StatelessWidget {
                         onPressed: shareLoading
                             ? null
                             : () => onShare!(
-                                  sharePositionOriginFromContext(buttonContext),
-                                ),
+                                sharePositionOriginFromContext(buttonContext),
+                              ),
                         icon: shareLoading
                             ? const SizedBox(
                                 width: 20,
@@ -428,10 +427,7 @@ class _ReaderMessage extends StatelessWidget {
             ),
             if (onRetry != null && retryLabel != null) ...[
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onRetry,
-                child: Text(retryLabel!),
-              ),
+              FilledButton(onPressed: onRetry, child: Text(retryLabel!)),
             ],
           ],
         ),

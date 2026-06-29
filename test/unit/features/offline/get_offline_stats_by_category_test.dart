@@ -9,7 +9,7 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/usecases/get_offline_stats_by_category.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
@@ -20,16 +20,12 @@ void main() {
   late PdfLocalStore store;
   late GetOfflineStatsByCategory useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
-
   setUp(() async {
     final tempDir = await Directory.systemTemp.createTemp('offline_stats_');
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineCatalogTestIsar(tempDir);
+    isar = openOfflineCatalogTestIsar(tempDir);
     final pdfStore = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -39,32 +35,29 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     catalogLocal = CatalogLocalDatasource(isar);
-    useCase = GetOfflineStatsByCategory(
-      repository,
-      catalogLocal,
-      store,
-    );
+    useCase = GetOfflineStatsByCategory(repository, catalogLocal, store);
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 
   Future<void> seedLouvor({
     required String pdfId,
     required String categoria,
   }) async {
-    await isar.writeTxn(() async {
-      await isar.louvorCaches.put(
-        LouvorCache()
-          ..pdfId = pdfId
-          ..nome = 'Teste'
-          ..numero = '001'
-          ..categoria = categoria
-          ..classificacao = 'ColAdultos'
-          ..pdf = '001.pdf'
-          ..groupId = '001:teste',
-      );
+    isar.write((isar) {
+      final coll = isar.louvorCaches;
+      final entry = LouvorCache()
+        ..pdfId = pdfId
+        ..nome = 'Teste'
+        ..numero = '001'
+        ..categoria = categoria
+        ..classificacao = 'ColAdultos'
+        ..pdf = '001.pdf'
+        ..groupId = '001:teste';
+      entry.id = coll.autoIncrement();
+      coll.put(entry);
     });
   }
 
@@ -72,14 +65,8 @@ void main() {
     final partituraId = encodePdfId('ColAdultos/a.pdf');
     final cifraId = encodePdfId('ColAdultos/b.pdf');
 
-    await seedLouvor(
-      pdfId: partituraId,
-      categoria: CatalogMaterials.partitura,
-    );
-    await seedLouvor(
-      pdfId: cifraId,
-      categoria: CatalogMaterials.cifraNivelI,
-    );
+    await seedLouvor(pdfId: partituraId, categoria: CatalogMaterials.partitura);
+    await seedLouvor(pdfId: cifraId, categoria: CatalogMaterials.cifraNivelI);
 
     await repository.upsert(
       pdfId: partituraId,
@@ -110,10 +97,7 @@ void main() {
       pdfId: downloadedId,
       categoria: CatalogMaterials.partitura,
     );
-    await seedLouvor(
-      pdfId: missingId,
-      categoria: CatalogMaterials.partitura,
-    );
+    await seedLouvor(pdfId: missingId, categoria: CatalogMaterials.partitura);
 
     await repository.upsert(
       pdfId: downloadedId,
@@ -129,10 +113,7 @@ void main() {
 
   test('totalDiskUsageBytes reflete bytes reais no filesystem', () async {
     final partituraId = encodePdfId('ColAdultos/a.pdf');
-    await seedLouvor(
-      pdfId: partituraId,
-      categoria: CatalogMaterials.partitura,
-    );
+    await seedLouvor(pdfId: partituraId, categoria: CatalogMaterials.partitura);
 
     await repository.upsert(
       pdfId: partituraId,

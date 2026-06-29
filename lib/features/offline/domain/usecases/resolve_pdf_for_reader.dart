@@ -17,10 +17,9 @@ class ResolvePdfForReader {
   const ResolvePdfForReader(
     this._repository,
     this._fetchAndStore, {
-    bool Function() isFullOfflineMode = _defaultIsFullOfflineMode,
-    Future<bool> Function() hasNetworkConnection = _defaultHasNetworkConnection,
-  })  : _isFullOfflineMode = isFullOfflineMode,
-        _hasNetworkConnection = hasNetworkConnection;
+    this._isFullOfflineMode = _defaultIsFullOfflineMode,
+    this._hasNetworkConnection = _defaultHasNetworkConnection,
+  });
 
   static bool _defaultIsFullOfflineMode() => false;
 
@@ -37,8 +36,9 @@ class ResolvePdfForReader {
     required String remotePath,
     ProgressCallback? onProgress,
   }) async {
-    final (entry, hasIndexEntry) =
-        await _repository.lookupWithIndexState(pdfId);
+    final (entry, hasIndexEntry) = await _repository.lookupWithIndexState(
+      pdfId,
+    );
     if (entry != null) {
       return LocalPdfSource(
         pdfId: pdfId,
@@ -69,10 +69,7 @@ class ResolvePdfForReader {
         }
         throw PdfOfflineUnavailableException(pdfId: pdfId);
       }
-      throw PdfFetchFailedException(
-        'Falha ao baixar o PDF',
-        cause: e,
-      );
+      throw PdfFetchFailedException('Falha ao baixar o PDF', cause: e);
     } on PdfExternallyDeletedException {
       rethrow;
     } on PdfOfflineUnavailableException {
@@ -80,10 +77,7 @@ class ResolvePdfForReader {
     } on PdfFetchFailedException {
       rethrow;
     } on Object catch (e) {
-      throw PdfFetchFailedException(
-        'Falha ao baixar o PDF',
-        cause: e,
-      );
+      throw PdfFetchFailedException('Falha ao baixar o PDF', cause: e);
     }
   }
 

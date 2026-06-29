@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/louvor_cache.dart';
 import '../../domain/entities/louvor.dart';
@@ -15,15 +15,21 @@ class CatalogLocalDatasource {
   /// Substitui todo o cache Isar pelos [louvores] (clear + putAll em uma txn).
   Future<void> saveLouvores(List<Louvor> louvores) async {
     final caches = louvores.map((l) => l.toCache()).toList();
-    await _isar.writeTxn(() async {
-      await _isar.louvorCaches.clear();
-      await _isar.louvorCaches.putAll(caches);
+    await _isar.write((isar) {
+      final coll = isar.louvorCaches;
+      coll.clear();
+      for (final cache in caches) {
+        if (cache.id == 0) {
+          cache.id = coll.autoIncrement();
+        }
+        coll.put(cache);
+      }
     });
   }
 
   /// Carrega todos os louvores do cache local para uso offline.
   Future<List<Louvor>> loadLouvores() async {
-    final caches = await _isar.louvorCaches.where().findAll();
+    final caches = _isar.louvorCaches.where().findAll();
     return caches.map((c) => c.toEntity()).toList();
   }
 
@@ -31,7 +37,7 @@ class CatalogLocalDatasource {
   ///
   /// Usado por [GetOfflineStatsByCategory] para mapear material de UI.
   Future<Map<String, String>> loadPdfIdToCategoriaMap() async {
-    final caches = await _isar.louvorCaches.where().findAll();
+    final caches = _isar.louvorCaches.where().findAll();
     return {for (final cache in caches) cache.pdfId: cache.categoria};
   }
 }

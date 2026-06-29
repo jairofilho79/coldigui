@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/confirm_dialog.dart';
@@ -17,7 +18,6 @@ import 'package:coldigui/features/playlists/presentation/widgets/save_playlist_d
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// Largura mínima da tela (px) para layout expandido da barra do carousel.
 ///
@@ -112,8 +112,9 @@ class _CarouselBarTrailingActionsState
                   ),
                 )
               : const Icon(Icons.share_outlined),
-          onPressed:
-              _sharing ? null : () => _openShareSheet(context, ref, l10n),
+          onPressed: _sharing
+              ? null
+              : () => _openShareSheet(context, ref, l10n),
         ),
         IconButton(
           style: carouselBarIconButtonStyle,
@@ -159,15 +160,15 @@ class _CarouselBarTrailingActionsState
     );
     if (nome == null || !context.mounted) return;
 
-    final saved = await ref.read(playlistsProvider.notifier).saveActivePlaylist(
-          nome: nome,
-        );
+    final saved = await ref
+        .read(playlistsProvider.notifier)
+        .saveActivePlaylist(nome: nome);
     if (!context.mounted) return;
 
     if (!saved) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.playlistEmptyCarousel)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
       return;
     }
 
@@ -180,7 +181,7 @@ class _CarouselBarTrailingActionsState
           label: l10n.playlistViewLists,
           onPressed: () {
             ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.saved);
-            context.go(RoutePaths.playlists);
+            goToShellDestination(context, RoutePaths.playlists);
           },
         ),
       ),
@@ -200,31 +201,34 @@ class _CarouselBarTrailingActionsState
     if (!context.mounted) return;
 
     if (resolved == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.playlistEmptyPdfList)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
       return;
     }
 
-    final pdfIds =
-        ref.read(carouselLouvoresProvider).map((e) => e.pdfId).toList();
+    final pdfIds = ref
+        .read(carouselLouvoresProvider)
+        .map((e) => e.pdfId)
+        .toList();
     final option = await showPlaylistShareSheet(context);
     if (option == null || !context.mounted) return;
 
     setState(() => _sharing = true);
     try {
-      final shared =
-          await ref.read(playlistShareActionsProvider.notifier).share(
-                context,
-                PlaylistShareContext(
-                  playlistId: resolved.playlistId,
-                  nome: resolved.nome,
-                  pdfIds: pdfIds,
-                  fromCarousel: true,
-                ),
-                option,
-                sharePositionOrigin: shareOrigin,
-              );
+      final shared = await ref
+          .read(playlistShareActionsProvider.notifier)
+          .share(
+            context,
+            PlaylistShareContext(
+              playlistId: resolved.playlistId,
+              nome: resolved.nome,
+              pdfIds: pdfIds,
+              fromCarousel: true,
+            ),
+            option,
+            sharePositionOrigin: shareOrigin,
+          );
       if (!shared && context.mounted) {
         showPlaylistShareErrorSnackbar(context, l10n);
       }
@@ -240,9 +244,9 @@ class _CarouselBarTrailingActionsState
   ) async {
     if (!await _canClear()) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.playlistClearSavedBlocked)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.playlistClearSavedBlocked)));
       }
       return;
     }

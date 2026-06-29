@@ -9,7 +9,7 @@ import 'package:coldigui/features/playlists/data/repositories/playlist_repositor
 import 'package:coldigui/features/playlists/domain/usecases/ensure_playlist_for_louvor.dart';
 import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
@@ -17,14 +17,10 @@ void main() {
   late PlaylistRepositoryImpl playlistRepo;
   late EnsurePlaylistForLouvor useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('ensure_pl_');
-    isar = await Isar.open(
-      [PlaylistSchema, CarouselEntrySchema],
+    isar = Isar.open(schemas: [PlaylistSchema, CarouselEntrySchema],
       directory: tempDir.path,
     );
     playlistRepo = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
@@ -36,7 +32,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

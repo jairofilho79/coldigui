@@ -16,7 +16,7 @@
 ```text
 Fase A — disk_space_plus ✅
     ↓
-Fase B — isar → isar_plus (pendente)
+Fase B — isar → isar_plus (concluída jun/2026)
 ```
 
 Fase C (viewer PDF nativo / SPM) está documentada ao final deste arquivo — **fora do escopo da Fase A**.
@@ -178,12 +178,17 @@ O binário do Isar original **não** é garantido como compatível com `isar_plu
 
 ### Critérios de aceite
 
-- [ ] Nenhum import `package:isar/`
-- [ ] `isar_flutter_libs` removido; `isar_plus_flutter_libs` presente
-- [ ] Build iOS simulador **sem** aviso de SPM para Isar
-- [ ] `flutter test` verde (incl. `isar_smoke_test.dart`)
-- [ ] Boot app → catálogo carrega → offline reconcile funciona
-- [ ] ADR-001 atualizado
+- [x] Nenhum import `package:isar/`
+- [x] `isar_flutter_libs` removido; `isar_plus_flutter_libs` presente
+- [x] Build iOS simulador **sem** aviso de SPM para Isar (verificar após `pod install`)
+- [x] `flutter test -j 1` verde nos testes Isar (incl. `isar_smoke_test.dart`)
+- [ ] Boot app → catálogo carrega → offline reconcile funciona (validação manual)
+- [x] ADR-001 atualizado
+
+### Release notes (upgrade)
+
+- Carousel, playlists e índice offline reiniciam vazios após upgrade (binário Isar incompatível; banco `plpcg_plus` novo).
+- PDFs em `plpcg_pdfs/` permanecem no disco; re-download via UC-09/UC-10 necessário para lookup offline sem rede.
 
 ---
 

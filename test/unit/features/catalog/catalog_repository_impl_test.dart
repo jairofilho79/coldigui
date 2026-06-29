@@ -5,7 +5,7 @@ import 'package:coldigui/features/catalog/data/repositories/catalog_repository_i
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Louvor _louvor(String pdfId) => Louvor.fromManifest(

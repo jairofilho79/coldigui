@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/routing/shell_navigation.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Snackbar com ação para a tela offline quando o PDF não está disponível.
@@ -19,7 +19,7 @@ void showPdfOfflineUnavailableSnackbar(
       ),
       action: SnackBarAction(
         label: l10n?.pdfOfflineGoToSettings ?? 'Baixar',
-        onPressed: () => context.push(RoutePaths.offline),
+        onPressed: () => goToShellDestination(context, RoutePaths.offline),
       ),
     ),
   );
@@ -29,6 +29,7 @@ void showPdfOfflineUnavailableSnackbar(
 class PdfOfflineUnavailableMessageFallback {
   const PdfOfflineUnavailableMessageFallback();
 
-  String get message => 'Este PDF não foi baixado para uso offline. '
+  String get message =>
+      'Este PDF não foi baixado para uso offline. '
       'Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
 }

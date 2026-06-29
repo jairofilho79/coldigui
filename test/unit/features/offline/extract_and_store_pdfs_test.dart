@@ -8,7 +8,7 @@ import 'package:coldigui/features/offline/data/repositories/offline_pdf_reposito
 import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
@@ -27,7 +27,6 @@ void main() {
   late String pdfId3;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     pdfId1 = encodePdfId('ColAdultos/001.pdf');
     pdfId2 = encodePdfId('ColAdultos/002.pdf');
     pdfId3 = encodePdfId('ColAdultos/003.pdf');
@@ -38,7 +37,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineTestIsar(tempDir);
+    isar = openOfflineTestIsar(tempDir);
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -54,7 +53,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

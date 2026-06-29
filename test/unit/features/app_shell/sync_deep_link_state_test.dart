@@ -10,21 +10,17 @@ import 'package:coldigui/features/playlists/data/repositories/playlist_repositor
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
 import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
   late Isar isar;
   late SyncDeepLinkState useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('sync_deep_link_');
-    isar = await Isar.open(
-      [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     final carouselRepository =
@@ -40,7 +36,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -59,7 +55,7 @@ void main() {
     expect(result.outcome, SyncDeepLinkOutcome.success);
     expect(result.playlistId, isNotEmpty);
 
-    final playlists = await isar.playlists.where().findAll();
+    final playlists = isar.playlists.where().findAll();
     expect(playlists.single.nome, 'Ensaio');
   });
 

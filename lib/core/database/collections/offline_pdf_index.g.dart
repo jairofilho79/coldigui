@@ -3,1007 +3,988 @@
 part of 'offline_pdf_index.dart';
 
 // **************************************************************************
-// IsarCollectionGenerator
+// _IsarCollectionGenerator
 // **************************************************************************
 
 // coverage:ignore-file
-// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+// ignore_for_file: duplicate_ignore, invalid_use_of_protected_member, lines_longer_than_80_chars, constant_identifier_names, avoid_js_rounded_ints, no_leading_underscores_for_local_identifiers, require_trailing_commas, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_in_if_null_operators, library_private_types_in_public_api, prefer_const_constructors
+// ignore_for_file: type=lint
 
 extension GetOfflinePdfIndexCollection on Isar {
-  IsarCollection<OfflinePdfIndex> get offlinePdfIndexs => this.collection();
+  IsarCollection<int, OfflinePdfIndex> get offlinePdfIndexs =>
+      this.collection();
 }
 
-const OfflinePdfIndexSchema = CollectionSchema(
-  name: r'OfflinePdfIndex',
-  id: 6651082287672867876,
-  properties: {
-    r'category': PropertySchema(
-      id: 0,
-      name: r'category',
-      type: IsarType.string,
-    ),
-    r'downloadedAt': PropertySchema(
-      id: 1,
-      name: r'downloadedAt',
-      type: IsarType.dateTime,
-    ),
-    r'fileSize': PropertySchema(
-      id: 2,
-      name: r'fileSize',
-      type: IsarType.long,
-    ),
-    r'isPersistent': PropertySchema(
-      id: 3,
-      name: r'isPersistent',
-      type: IsarType.bool,
-    ),
-    r'lastAccessedAt': PropertySchema(
-      id: 4,
-      name: r'lastAccessedAt',
-      type: IsarType.dateTime,
-    ),
-    r'pdfId': PropertySchema(
-      id: 5,
-      name: r'pdfId',
-      type: IsarType.string,
-    ),
-    r'storagePath': PropertySchema(
-      id: 6,
-      name: r'storagePath',
-      type: IsarType.string,
-    )
-  },
-  estimateSize: _offlinePdfIndexEstimateSize,
-  serialize: _offlinePdfIndexSerialize,
-  deserialize: _offlinePdfIndexDeserialize,
-  deserializeProp: _offlinePdfIndexDeserializeProp,
-  idName: r'id',
-  indexes: {
-    r'pdfId': IndexSchema(
-      id: 5397193447447963901,
-      name: r'pdfId',
-      unique: true,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'pdfId',
-          type: IndexType.hash,
-          caseSensitive: true,
-        )
-      ],
-    )
-  },
-  links: {},
-  embeddedSchemas: {},
-  getId: _offlinePdfIndexGetId,
-  getLinks: _offlinePdfIndexGetLinks,
-  attach: _offlinePdfIndexAttach,
-  version: '3.1.0+1',
+final OfflinePdfIndexSchema = IsarGeneratedSchema(
+  schema: IsarSchema(
+    name: 'OfflinePdfIndex',
+    idName: 'id',
+    embedded: false,
+    properties: [
+      IsarPropertySchema(name: 'pdfId', type: IsarType.string),
+      IsarPropertySchema(name: 'storagePath', type: IsarType.string),
+      IsarPropertySchema(name: 'category', type: IsarType.string),
+      IsarPropertySchema(name: 'fileSize', type: IsarType.long),
+      IsarPropertySchema(name: 'downloadedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'lastAccessedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'isPersistent', type: IsarType.bool),
+    ],
+    indexes: [
+      IsarIndexSchema(
+        name: 'pdfId',
+        properties: ["pdfId"],
+        unique: true,
+        hash: false,
+      ),
+    ],
+  ),
+  converter: IsarObjectConverter<int, OfflinePdfIndex>(
+    serialize: serializeOfflinePdfIndex,
+    deserialize: deserializeOfflinePdfIndex,
+    deserializeProperty: deserializeOfflinePdfIndexProp,
+  ),
+  getEmbeddedSchemas: () => [],
 );
 
-int _offlinePdfIndexEstimateSize(
-  OfflinePdfIndex object,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  var bytesCount = offsets.last;
-  bytesCount += 3 + object.category.length * 3;
-  bytesCount += 3 + object.pdfId.length * 3;
-  bytesCount += 3 + object.storagePath.length * 3;
-  return bytesCount;
-}
-
-void _offlinePdfIndexSerialize(
-  OfflinePdfIndex object,
-  IsarWriter writer,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  writer.writeString(offsets[0], object.category);
-  writer.writeDateTime(offsets[1], object.downloadedAt);
-  writer.writeLong(offsets[2], object.fileSize);
-  writer.writeBool(offsets[3], object.isPersistent);
-  writer.writeDateTime(offsets[4], object.lastAccessedAt);
-  writer.writeString(offsets[5], object.pdfId);
-  writer.writeString(offsets[6], object.storagePath);
-}
-
-OfflinePdfIndex _offlinePdfIndexDeserialize(
-  Id id,
-  IsarReader reader,
-  List<int> offsets,
-  Map<Type, List<int>> allOffsets,
-) {
-  final object = OfflinePdfIndex();
-  object.category = reader.readString(offsets[0]);
-  object.downloadedAt = reader.readDateTime(offsets[1]);
-  object.fileSize = reader.readLong(offsets[2]);
-  object.id = id;
-  object.isPersistent = reader.readBool(offsets[3]);
-  object.lastAccessedAt = reader.readDateTimeOrNull(offsets[4]);
-  object.pdfId = reader.readString(offsets[5]);
-  object.storagePath = reader.readString(offsets[6]);
-  return object;
-}
-
-P _offlinePdfIndexDeserializeProp<P>(
-  IsarReader reader,
-  int propertyId,
-  int offset,
-  Map<Type, List<int>> allOffsets,
-) {
-  switch (propertyId) {
-    case 0:
-      return (reader.readString(offset)) as P;
-    case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
-      return (reader.readLong(offset)) as P;
-    case 3:
-      return (reader.readBool(offset)) as P;
-    case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readString(offset)) as P;
-    default:
-      throw IsarError('Unknown property with id $propertyId');
-  }
-}
-
-Id _offlinePdfIndexGetId(OfflinePdfIndex object) {
+@isarProtected
+int serializeOfflinePdfIndex(IsarWriter writer, OfflinePdfIndex object) {
+  IsarCore.writeString(writer, 1, object.pdfId);
+  IsarCore.writeString(writer, 2, object.storagePath);
+  IsarCore.writeString(writer, 3, object.category);
+  IsarCore.writeLong(writer, 4, object.fileSize);
+  IsarCore.writeLong(
+    writer,
+    5,
+    object.downloadedAt.toUtc().microsecondsSinceEpoch,
+  );
+  IsarCore.writeLong(
+    writer,
+    6,
+    object.lastAccessedAt?.toUtc().microsecondsSinceEpoch ??
+        -9223372036854775808,
+  );
+  IsarCore.writeBool(writer, 7, value: object.isPersistent);
   return object.id;
 }
 
-List<IsarLinkBase<dynamic>> _offlinePdfIndexGetLinks(OfflinePdfIndex object) {
-  return [];
+@isarProtected
+OfflinePdfIndex deserializeOfflinePdfIndex(IsarReader reader) {
+  final object = OfflinePdfIndex();
+  object.id = IsarCore.readId(reader);
+  object.pdfId = IsarCore.readString(reader, 1) ?? '';
+  object.storagePath = IsarCore.readString(reader, 2) ?? '';
+  object.category = IsarCore.readString(reader, 3) ?? '';
+  object.fileSize = IsarCore.readLong(reader, 4);
+  {
+    final value = IsarCore.readLong(reader, 5);
+    if (value == -9223372036854775808) {
+      object.downloadedAt = DateTime.fromMillisecondsSinceEpoch(
+        0,
+        isUtc: true,
+      ).toLocal();
+    } else {
+      object.downloadedAt = DateTime.fromMicrosecondsSinceEpoch(
+        value,
+        isUtc: true,
+      ).toLocal();
+    }
+  }
+  {
+    final value = IsarCore.readLong(reader, 6);
+    if (value == -9223372036854775808) {
+      object.lastAccessedAt = null;
+    } else {
+      object.lastAccessedAt = DateTime.fromMicrosecondsSinceEpoch(
+        value,
+        isUtc: true,
+      ).toLocal();
+    }
+  }
+  object.isPersistent = IsarCore.readBool(reader, 7);
+  return object;
 }
 
-void _offlinePdfIndexAttach(
-    IsarCollection<dynamic> col, Id id, OfflinePdfIndex object) {
-  object.id = id;
-}
-
-extension OfflinePdfIndexByIndex on IsarCollection<OfflinePdfIndex> {
-  Future<OfflinePdfIndex?> getByPdfId(String pdfId) {
-    return getByIndex(r'pdfId', [pdfId]);
-  }
-
-  OfflinePdfIndex? getByPdfIdSync(String pdfId) {
-    return getByIndexSync(r'pdfId', [pdfId]);
-  }
-
-  Future<bool> deleteByPdfId(String pdfId) {
-    return deleteByIndex(r'pdfId', [pdfId]);
-  }
-
-  bool deleteByPdfIdSync(String pdfId) {
-    return deleteByIndexSync(r'pdfId', [pdfId]);
-  }
-
-  Future<List<OfflinePdfIndex?>> getAllByPdfId(List<String> pdfIdValues) {
-    final values = pdfIdValues.map((e) => [e]).toList();
-    return getAllByIndex(r'pdfId', values);
-  }
-
-  List<OfflinePdfIndex?> getAllByPdfIdSync(List<String> pdfIdValues) {
-    final values = pdfIdValues.map((e) => [e]).toList();
-    return getAllByIndexSync(r'pdfId', values);
-  }
-
-  Future<int> deleteAllByPdfId(List<String> pdfIdValues) {
-    final values = pdfIdValues.map((e) => [e]).toList();
-    return deleteAllByIndex(r'pdfId', values);
-  }
-
-  int deleteAllByPdfIdSync(List<String> pdfIdValues) {
-    final values = pdfIdValues.map((e) => [e]).toList();
-    return deleteAllByIndexSync(r'pdfId', values);
-  }
-
-  Future<Id> putByPdfId(OfflinePdfIndex object) {
-    return putByIndex(r'pdfId', object);
-  }
-
-  Id putByPdfIdSync(OfflinePdfIndex object, {bool saveLinks = true}) {
-    return putByIndexSync(r'pdfId', object, saveLinks: saveLinks);
-  }
-
-  Future<List<Id>> putAllByPdfId(List<OfflinePdfIndex> objects) {
-    return putAllByIndex(r'pdfId', objects);
-  }
-
-  List<Id> putAllByPdfIdSync(List<OfflinePdfIndex> objects,
-      {bool saveLinks = true}) {
-    return putAllByIndexSync(r'pdfId', objects, saveLinks: saveLinks);
-  }
-}
-
-extension OfflinePdfIndexQueryWhereSort
-    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QWhere> {
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhere> anyId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(const IdWhereClause.any());
-    });
-  }
-}
-
-extension OfflinePdfIndexQueryWhere
-    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QWhereClause> {
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause> idEqualTo(
-      Id id) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause>
-      idNotEqualTo(Id id) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IdWhereClause.lessThan(upper: id, includeUpper: false),
-            )
-            .addWhereClause(
-              IdWhereClause.greaterThan(lower: id, includeLower: false),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IdWhereClause.greaterThan(lower: id, includeLower: false),
-            )
-            .addWhereClause(
-              IdWhereClause.lessThan(upper: id, includeUpper: false),
-            );
+@isarProtected
+dynamic deserializeOfflinePdfIndexProp(IsarReader reader, int property) {
+  switch (property) {
+    case 0:
+      return IsarCore.readId(reader);
+    case 1:
+      return IsarCore.readString(reader, 1) ?? '';
+    case 2:
+      return IsarCore.readString(reader, 2) ?? '';
+    case 3:
+      return IsarCore.readString(reader, 3) ?? '';
+    case 4:
+      return IsarCore.readLong(reader, 4);
+    case 5:
+      {
+        final value = IsarCore.readLong(reader, 5);
+        if (value == -9223372036854775808) {
+          return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true).toLocal();
+        } else {
+          return DateTime.fromMicrosecondsSinceEpoch(
+            value,
+            isUtc: true,
+          ).toLocal();
+        }
       }
-    });
+    case 6:
+      {
+        final value = IsarCore.readLong(reader, 6);
+        if (value == -9223372036854775808) {
+          return null;
+        } else {
+          return DateTime.fromMicrosecondsSinceEpoch(
+            value,
+            isUtc: true,
+          ).toLocal();
+        }
+      }
+    case 7:
+      return IsarCore.readBool(reader, 7);
+    default:
+      throw ArgumentError('Unknown property: $property');
   }
+}
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause>
-      idGreaterThan(Id id, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IdWhereClause.greaterThan(lower: id, includeLower: include),
-      );
-    });
-  }
+sealed class _OfflinePdfIndexUpdate {
+  bool call({
+    required int id,
+    String? pdfId,
+    String? storagePath,
+    String? category,
+    int? fileSize,
+    DateTime? downloadedAt,
+    DateTime? lastAccessedAt,
+    bool? isPersistent,
+  });
+}
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause> idLessThan(
-      Id id,
-      {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IdWhereClause.lessThan(upper: id, includeUpper: include),
-      );
-    });
-  }
+class _OfflinePdfIndexUpdateImpl implements _OfflinePdfIndexUpdate {
+  const _OfflinePdfIndexUpdateImpl(this.collection);
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause> idBetween(
-    Id lowerId,
-    Id upperId, {
-    bool includeLower = true,
-    bool includeUpper = true,
+  final IsarCollection<int, OfflinePdfIndex> collection;
+
+  @override
+  bool call({
+    required int id,
+    Object? pdfId = ignore,
+    Object? storagePath = ignore,
+    Object? category = ignore,
+    Object? fileSize = ignore,
+    Object? downloadedAt = ignore,
+    Object? lastAccessedAt = ignore,
+    Object? isPersistent = ignore,
   }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
-    });
+    return collection.updateProperties(
+          [id],
+          {
+            if (pdfId != ignore) 1: pdfId as String?,
+            if (storagePath != ignore) 2: storagePath as String?,
+            if (category != ignore) 3: category as String?,
+            if (fileSize != ignore) 4: fileSize as int?,
+            if (downloadedAt != ignore) 5: downloadedAt as DateTime?,
+            if (lastAccessedAt != ignore) 6: lastAccessedAt as DateTime?,
+            if (isPersistent != ignore) 7: isPersistent as bool?,
+          },
+        ) >
+        0;
   }
+}
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause>
-      pdfIdEqualTo(String pdfId) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'pdfId',
-        value: [pdfId],
-      ));
-    });
-  }
+sealed class _OfflinePdfIndexUpdateAll {
+  int call({
+    required List<int> id,
+    String? pdfId,
+    String? storagePath,
+    String? category,
+    int? fileSize,
+    DateTime? downloadedAt,
+    DateTime? lastAccessedAt,
+    bool? isPersistent,
+  });
+}
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterWhereClause>
-      pdfIdNotEqualTo(String pdfId) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pdfId',
-              lower: [],
-              upper: [pdfId],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pdfId',
-              lower: [pdfId],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pdfId',
-              lower: [pdfId],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'pdfId',
-              lower: [],
-              upper: [pdfId],
-              includeUpper: false,
-            ));
-      }
+class _OfflinePdfIndexUpdateAllImpl implements _OfflinePdfIndexUpdateAll {
+  const _OfflinePdfIndexUpdateAllImpl(this.collection);
+
+  final IsarCollection<int, OfflinePdfIndex> collection;
+
+  @override
+  int call({
+    required List<int> id,
+    Object? pdfId = ignore,
+    Object? storagePath = ignore,
+    Object? category = ignore,
+    Object? fileSize = ignore,
+    Object? downloadedAt = ignore,
+    Object? lastAccessedAt = ignore,
+    Object? isPersistent = ignore,
+  }) {
+    return collection.updateProperties(id, {
+      if (pdfId != ignore) 1: pdfId as String?,
+      if (storagePath != ignore) 2: storagePath as String?,
+      if (category != ignore) 3: category as String?,
+      if (fileSize != ignore) 4: fileSize as int?,
+      if (downloadedAt != ignore) 5: downloadedAt as DateTime?,
+      if (lastAccessedAt != ignore) 6: lastAccessedAt as DateTime?,
+      if (isPersistent != ignore) 7: isPersistent as bool?,
     });
   }
+}
+
+extension OfflinePdfIndexUpdate on IsarCollection<int, OfflinePdfIndex> {
+  _OfflinePdfIndexUpdate get update => _OfflinePdfIndexUpdateImpl(this);
+
+  _OfflinePdfIndexUpdateAll get updateAll =>
+      _OfflinePdfIndexUpdateAllImpl(this);
+}
+
+sealed class _OfflinePdfIndexQueryUpdate {
+  int call({
+    String? pdfId,
+    String? storagePath,
+    String? category,
+    int? fileSize,
+    DateTime? downloadedAt,
+    DateTime? lastAccessedAt,
+    bool? isPersistent,
+  });
+}
+
+class _OfflinePdfIndexQueryUpdateImpl implements _OfflinePdfIndexQueryUpdate {
+  const _OfflinePdfIndexQueryUpdateImpl(this.query, {this.limit});
+
+  final IsarQuery<OfflinePdfIndex> query;
+  final int? limit;
+
+  @override
+  int call({
+    Object? pdfId = ignore,
+    Object? storagePath = ignore,
+    Object? category = ignore,
+    Object? fileSize = ignore,
+    Object? downloadedAt = ignore,
+    Object? lastAccessedAt = ignore,
+    Object? isPersistent = ignore,
+  }) {
+    return query.updateProperties(limit: limit, {
+      if (pdfId != ignore) 1: pdfId as String?,
+      if (storagePath != ignore) 2: storagePath as String?,
+      if (category != ignore) 3: category as String?,
+      if (fileSize != ignore) 4: fileSize as int?,
+      if (downloadedAt != ignore) 5: downloadedAt as DateTime?,
+      if (lastAccessedAt != ignore) 6: lastAccessedAt as DateTime?,
+      if (isPersistent != ignore) 7: isPersistent as bool?,
+    });
+  }
+}
+
+extension OfflinePdfIndexQueryUpdate on IsarQuery<OfflinePdfIndex> {
+  _OfflinePdfIndexQueryUpdate get updateFirst =>
+      _OfflinePdfIndexQueryUpdateImpl(this, limit: 1);
+
+  _OfflinePdfIndexQueryUpdate get updateAll =>
+      _OfflinePdfIndexQueryUpdateImpl(this);
+}
+
+class _OfflinePdfIndexQueryBuilderUpdateImpl
+    implements _OfflinePdfIndexQueryUpdate {
+  const _OfflinePdfIndexQueryBuilderUpdateImpl(this.query, {this.limit});
+
+  final QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QOperations> query;
+  final int? limit;
+
+  @override
+  int call({
+    Object? pdfId = ignore,
+    Object? storagePath = ignore,
+    Object? category = ignore,
+    Object? fileSize = ignore,
+    Object? downloadedAt = ignore,
+    Object? lastAccessedAt = ignore,
+    Object? isPersistent = ignore,
+  }) {
+    final q = query.build();
+    try {
+      return q.updateProperties(limit: limit, {
+        if (pdfId != ignore) 1: pdfId as String?,
+        if (storagePath != ignore) 2: storagePath as String?,
+        if (category != ignore) 3: category as String?,
+        if (fileSize != ignore) 4: fileSize as int?,
+        if (downloadedAt != ignore) 5: downloadedAt as DateTime?,
+        if (lastAccessedAt != ignore) 6: lastAccessedAt as DateTime?,
+        if (isPersistent != ignore) 7: isPersistent as bool?,
+      });
+    } finally {
+      q.close();
+    }
+  }
+}
+
+extension OfflinePdfIndexQueryBuilderUpdate
+    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QOperations> {
+  _OfflinePdfIndexQueryUpdate get updateFirst =>
+      _OfflinePdfIndexQueryBuilderUpdateImpl(this, limit: 1);
+
+  _OfflinePdfIndexQueryUpdate get updateAll =>
+      _OfflinePdfIndexQueryBuilderUpdateImpl(this);
 }
 
 extension OfflinePdfIndexQueryFilter
     on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QFilterCondition> {
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 0, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  idGreaterThan(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterCondition(property: 0, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  idGreaterThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 0, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
+  idLessThan(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'category',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(LessCondition(property: 0, value: value));
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idLessThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 0, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  idBetween(int lower, int upper) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        BetweenCondition(property: 0, lower: lower, upper: upper),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryContains(String value, {bool caseSensitive = true}) {
+  pdfIdEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'category',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 1, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryMatches(String pattern, {bool caseSensitive = true}) {
+  pdfIdGreaterThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'category',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryIsEmpty() {
+  pdfIdGreaterThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'category',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      categoryIsNotEmpty() {
+  pdfIdLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'category',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        LessCondition(property: 1, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      downloadedAtEqualTo(DateTime value) {
+  pdfIdLessThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'downloadedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      downloadedAtGreaterThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  pdfIdBetween(String lower, String upper, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'downloadedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 1,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      downloadedAtLessThan(
-    DateTime value, {
-    bool include = false,
-  }) {
+  pdfIdStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'downloadedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      downloadedAtBetween(
-    DateTime lower,
-    DateTime upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
+  pdfIdEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'downloadedAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      fileSizeEqualTo(int value) {
+  pdfIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'fileSize',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 1,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      fileSizeGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  pdfIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'fileSize',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 1,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      fileSizeLessThan(
-    int value, {
-    bool include = false,
-  }) {
+  pdfIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'fileSize',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        const EqualCondition(property: 1, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      fileSizeBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
+  pdfIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'fileSize',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        const GreaterCondition(property: 1, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      idEqualTo(Id value) {
+  storagePathEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 2, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      idGreaterThan(
-    Id value, {
-    bool include = false,
-  }) {
+  storagePathGreaterThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      idLessThan(
-    Id value, {
-    bool include = false,
-  }) {
+  storagePathGreaterThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      idBetween(
-    Id lower,
-    Id upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
+  storagePathLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        LessCondition(property: 2, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      isPersistentEqualTo(bool value) {
+  storagePathLessThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isPersistent',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtIsNull() {
+  storagePathBetween(String lower, String upper, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'lastAccessedAt',
-      ));
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 2,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtIsNotNull() {
+  storagePathStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'lastAccessedAt',
-      ));
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtEqualTo(DateTime? value) {
+  storagePathEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'lastAccessedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtGreaterThan(
-    DateTime? value, {
-    bool include = false,
-  }) {
+  storagePathContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'lastAccessedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 2,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtLessThan(
-    DateTime? value, {
-    bool include = false,
-  }) {
+  storagePathMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'lastAccessedAt',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 2,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      lastAccessedAtBetween(
-    DateTime? lower,
-    DateTime? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
+  storagePathIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'lastAccessedAt',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        const EqualCondition(property: 2, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  storagePathIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        const GreaterCondition(property: 2, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  categoryEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 3, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  categoryGreaterThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
+  categoryGreaterThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'pdfId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  categoryLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        LessCondition(property: 3, value: value, caseSensitive: caseSensitive),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  categoryLessThanOrEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdContains(String value, {bool caseSensitive = true}) {
+  categoryBetween(String lower, String upper, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'pdfId',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 3,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdMatches(String pattern, {bool caseSensitive = true}) {
+  categoryStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'pdfId',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdIsEmpty() {
+  categoryEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'pdfId',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      pdfIdIsNotEmpty() {
+  categoryContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'pdfId',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 3,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  categoryMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 3,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  categoryIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        const EqualCondition(property: 3, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  categoryIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        const GreaterCondition(property: 3, value: ''),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
+  fileSizeEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'storagePath',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 4, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  fileSizeGreaterThan(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterCondition(property: 4, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  fileSizeGreaterThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 4, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathContains(String value, {bool caseSensitive = true}) {
+  fileSizeLessThan(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'storagePath',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(LessCondition(property: 4, value: value));
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathMatches(String pattern, {bool caseSensitive = true}) {
+  fileSizeLessThanOrEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'storagePath',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 4, value: value),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathIsEmpty() {
+  fileSizeBetween(int lower, int upper) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'storagePath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        BetweenCondition(property: 4, lower: lower, upper: upper),
+      );
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
-      storagePathIsNotEmpty() {
+  downloadedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'storagePath',
-        value: '',
-      ));
+      return query.addFilterCondition(
+        EqualCondition(property: 5, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  downloadedAtGreaterThan(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(property: 5, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  downloadedAtGreaterThanOrEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 5, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  downloadedAtLessThan(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(LessCondition(property: 5, value: value));
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  downloadedAtLessThanOrEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 5, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  downloadedAtBetween(DateTime lower, DateTime upper) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(property: 5, lower: lower, upper: upper),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 6));
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 6));
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 6, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtGreaterThan(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(property: 6, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtGreaterThanOrEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(property: 6, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtLessThan(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(LessCondition(property: 6, value: value));
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtLessThanOrEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(property: 6, value: value),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  lastAccessedAtBetween(DateTime? lower, DateTime? upper) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(property: 6, lower: lower, upper: upper),
+      );
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterFilterCondition>
+  isPersistentEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(property: 7, value: value),
+      );
     });
   }
 }
@@ -1011,323 +992,451 @@ extension OfflinePdfIndexQueryFilter
 extension OfflinePdfIndexQueryObject
     on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QFilterCondition> {}
 
-extension OfflinePdfIndexQueryLinks
-    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QFilterCondition> {}
-
 extension OfflinePdfIndexQuerySortBy
     on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QSortBy> {
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByCategory() {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortById() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'category', Sort.asc);
+      return query.addSortBy(0);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(0, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortByPdfId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(1, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortByPdfIdDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(1, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByCategoryDesc() {
+  sortByStoragePath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'category', Sort.desc);
+      return query.addSortBy(2, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByDownloadedAt() {
+  sortByStoragePathDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'downloadedAt', Sort.asc);
+      return query.addSortBy(2, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortByCategory({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByDownloadedAtDesc() {
+  sortByCategoryDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'downloadedAt', Sort.desc);
+      return query.addSortBy(3, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByFileSize() {
+  sortByFileSize() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'fileSize', Sort.asc);
+      return query.addSortBy(4);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByFileSizeDesc() {
+  sortByFileSizeDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'fileSize', Sort.desc);
+      return query.addSortBy(4, sort: Sort.desc);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByIsPersistent() {
+  sortByDownloadedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isPersistent', Sort.asc);
+      return query.addSortBy(5);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByIsPersistentDesc() {
+  sortByDownloadedAtDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isPersistent', Sort.desc);
+      return query.addSortBy(5, sort: Sort.desc);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByLastAccessedAt() {
+  sortByLastAccessedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastAccessedAt', Sort.asc);
+      return query.addSortBy(6);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByLastAccessedAtDesc() {
+  sortByLastAccessedAtDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastAccessedAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> sortByPdfId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'pdfId', Sort.asc);
+      return query.addSortBy(6, sort: Sort.desc);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByPdfIdDesc() {
+  sortByIsPersistent() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'pdfId', Sort.desc);
+      return query.addSortBy(7);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByStoragePath() {
+  sortByIsPersistentDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'storagePath', Sort.asc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      sortByStoragePathDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'storagePath', Sort.desc);
+      return query.addSortBy(7, sort: Sort.desc);
     });
   }
 }
 
 extension OfflinePdfIndexQuerySortThenBy
     on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QSortThenBy> {
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByCategory() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'category', Sort.asc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByCategoryDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'category', Sort.desc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByDownloadedAt() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'downloadedAt', Sort.asc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByDownloadedAtDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'downloadedAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByFileSize() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'fileSize', Sort.asc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByFileSizeDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'fileSize', Sort.desc);
-    });
-  }
-
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'id', Sort.asc);
+      return query.addSortBy(0);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenByIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'id', Sort.desc);
+      return query.addSortBy(0, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenByPdfId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(1, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenByPdfIdDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(1, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByIsPersistent() {
+  thenByStoragePath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isPersistent', Sort.asc);
+      return query.addSortBy(2, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByIsPersistentDesc() {
+  thenByStoragePathDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isPersistent', Sort.desc);
+      return query.addSortBy(2, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenByCategory({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(3, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByLastAccessedAt() {
+  thenByCategoryDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastAccessedAt', Sort.asc);
+      return query.addSortBy(3, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByLastAccessedAtDesc() {
+  thenByFileSize() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastAccessedAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy> thenByPdfId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'pdfId', Sort.asc);
+      return query.addSortBy(4);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByPdfIdDesc() {
+  thenByFileSizeDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'pdfId', Sort.desc);
+      return query.addSortBy(4, sort: Sort.desc);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByStoragePath() {
+  thenByDownloadedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'storagePath', Sort.asc);
+      return query.addSortBy(5);
     });
   }
 
   QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
-      thenByStoragePathDesc() {
+  thenByDownloadedAtDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'storagePath', Sort.desc);
+      return query.addSortBy(5, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+  thenByLastAccessedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+  thenByLastAccessedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(6, sort: Sort.desc);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+  thenByIsPersistent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterSortBy>
+  thenByIsPersistentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(7, sort: Sort.desc);
     });
   }
 }
 
 extension OfflinePdfIndexQueryWhereDistinct
     on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct> {
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct> distinctByCategory(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByPdfId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'category', caseSensitive: caseSensitive);
+      return query.addDistinctBy(1, caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
-      distinctByDownloadedAt() {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByStoragePath({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'downloadedAt');
+      return query.addDistinctBy(2, caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
-      distinctByFileSize() {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByCategory({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'fileSize');
+      return query.addDistinctBy(3, caseSensitive: caseSensitive);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
-      distinctByIsPersistent() {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByFileSize() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isPersistent');
+      return query.addDistinctBy(4);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
-      distinctByLastAccessedAt() {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByDownloadedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'lastAccessedAt');
+      return query.addDistinctBy(5);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct> distinctByPdfId(
-      {bool caseSensitive = true}) {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByLastAccessedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'pdfId', caseSensitive: caseSensitive);
+      return query.addDistinctBy(6);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QDistinct>
-      distinctByStoragePath({bool caseSensitive = true}) {
+  QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QAfterDistinct>
+  distinctByIsPersistent() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'storagePath', caseSensitive: caseSensitive);
+      return query.addDistinctBy(7);
     });
   }
 }
 
-extension OfflinePdfIndexQueryProperty
-    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QQueryProperty> {
-  QueryBuilder<OfflinePdfIndex, int, QQueryOperations> idProperty() {
+extension OfflinePdfIndexQueryProperty1
+    on QueryBuilder<OfflinePdfIndex, OfflinePdfIndex, QProperty> {
+  QueryBuilder<OfflinePdfIndex, int, QAfterProperty> idProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'id');
+      return query.addProperty(0);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, String, QQueryOperations> categoryProperty() {
+  QueryBuilder<OfflinePdfIndex, String, QAfterProperty> pdfIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'category');
+      return query.addProperty(1);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, DateTime, QQueryOperations>
-      downloadedAtProperty() {
+  QueryBuilder<OfflinePdfIndex, String, QAfterProperty> storagePathProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'downloadedAt');
+      return query.addProperty(2);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, int, QQueryOperations> fileSizeProperty() {
+  QueryBuilder<OfflinePdfIndex, String, QAfterProperty> categoryProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'fileSize');
+      return query.addProperty(3);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, bool, QQueryOperations> isPersistentProperty() {
+  QueryBuilder<OfflinePdfIndex, int, QAfterProperty> fileSizeProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isPersistent');
+      return query.addProperty(4);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, DateTime?, QQueryOperations>
-      lastAccessedAtProperty() {
+  QueryBuilder<OfflinePdfIndex, DateTime, QAfterProperty>
+  downloadedAtProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'lastAccessedAt');
+      return query.addProperty(5);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, String, QQueryOperations> pdfIdProperty() {
+  QueryBuilder<OfflinePdfIndex, DateTime?, QAfterProperty>
+  lastAccessedAtProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'pdfId');
+      return query.addProperty(6);
     });
   }
 
-  QueryBuilder<OfflinePdfIndex, String, QQueryOperations>
-      storagePathProperty() {
+  QueryBuilder<OfflinePdfIndex, bool, QAfterProperty> isPersistentProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'storagePath');
+      return query.addProperty(7);
+    });
+  }
+}
+
+extension OfflinePdfIndexQueryProperty2<R>
+    on QueryBuilder<OfflinePdfIndex, R, QAfterProperty> {
+  QueryBuilder<OfflinePdfIndex, (R, int), QAfterProperty> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(0);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, String), QAfterProperty> pdfIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(1);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, String), QAfterProperty>
+  storagePathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(2);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, String), QAfterProperty>
+  categoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(3);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, int), QAfterProperty> fileSizeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(4);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, DateTime), QAfterProperty>
+  downloadedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(5);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, DateTime?), QAfterProperty>
+  lastAccessedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(6);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R, bool), QAfterProperty>
+  isPersistentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(7);
+    });
+  }
+}
+
+extension OfflinePdfIndexQueryProperty3<R1, R2>
+    on QueryBuilder<OfflinePdfIndex, (R1, R2), QAfterProperty> {
+  QueryBuilder<OfflinePdfIndex, (R1, R2, int), QOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(0);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, String), QOperations> pdfIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(1);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, String), QOperations>
+  storagePathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(2);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, String), QOperations>
+  categoryProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(3);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, int), QOperations> fileSizeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(4);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, DateTime), QOperations>
+  downloadedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(5);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, DateTime?), QOperations>
+  lastAccessedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(6);
+    });
+  }
+
+  QueryBuilder<OfflinePdfIndex, (R1, R2, bool), QOperations>
+  isPersistentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(7);
     });
   }
 }

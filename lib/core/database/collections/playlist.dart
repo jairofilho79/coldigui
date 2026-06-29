@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 part 'playlist.g.dart';
 
@@ -8,7 +8,7 @@ part 'playlist.g.dart';
 /// [salva] default `true` migra registros existentes como salvas.
 @Collection()
 class Playlist {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
   @Index(unique: true)
   late String playlistId;

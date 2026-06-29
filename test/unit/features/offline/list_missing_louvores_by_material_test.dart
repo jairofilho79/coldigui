@@ -9,7 +9,7 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/usecases/list_missing_louvores_by_material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
@@ -39,16 +39,12 @@ void main() {
   late CatalogLocalDatasource catalogLocal;
   late ListMissingLouvoresByMaterial useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
-
   setUp(() async {
     final tempDir = await Directory.systemTemp.createTemp('missing_louvores_');
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineCatalogTestIsar(tempDir);
+    isar = openOfflineCatalogTestIsar(tempDir);
     final pdfStore = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -61,7 +57,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 
   test('retorna louvores sem PDF offline válido para o material', () async {
@@ -108,24 +104,9 @@ void main() {
 
   test('ordena por número e depois por nome', () async {
     await catalogLocal.saveLouvores([
-      _louvor(
-        pdfId: 'b',
-        nome: 'Zebra',
-        numero: '010',
-        categoria: 'Partitura',
-      ),
-      _louvor(
-        pdfId: 'a',
-        nome: 'Alpha',
-        numero: '002',
-        categoria: 'Partitura',
-      ),
-      _louvor(
-        pdfId: 'c',
-        nome: 'Beta',
-        numero: '002',
-        categoria: 'Partitura',
-      ),
+      _louvor(pdfId: 'b', nome: 'Zebra', numero: '010', categoria: 'Partitura'),
+      _louvor(pdfId: 'a', nome: 'Alpha', numero: '002', categoria: 'Partitura'),
+      _louvor(pdfId: 'c', nome: 'Beta', numero: '002', categoria: 'Partitura'),
     ]);
 
     final missing = await useCase(CatalogMaterials.partitura);

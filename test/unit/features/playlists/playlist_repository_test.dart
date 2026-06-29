@@ -5,28 +5,24 @@ import 'package:coldigui/features/playlists/data/datasources/playlist_local_data
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
   late Isar isar;
   late PlaylistRepositoryImpl repository;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('playlist_repo_');
-    isar = await Isar.open(
-      [PlaylistSchema],
+    isar = Isar.open(schemas: [PlaylistSchema],
       directory: tempDir.path,
     );
     repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

@@ -9,7 +9,7 @@
 
 | Feature | UCs | Prioridade | Status | Use cases |
 |---------|-----|------------|--------|-----------|
-| `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar + codegen, `isarProvider`, `AppConfig` |
+| `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026; isar_plus jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar Plus + codegen, `isarProvider`, `AppConfig` |
 | `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + agrupamento + **D1 jun/2026**) | Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorGroupCard]; ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md) |
 | `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL |
 | `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorGroupCard] / [LouvorCard], [openLouvorInReader], [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
@@ -207,7 +207,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | `appRouterProvider` | `lib/core/routing/app_router.dart` | **Implementado** | GoRouter + [rootNavigatorKey]; `ShellRoute` (5 destinos) + `/leitor` com `parentNavigatorKey` (fullscreen fora do shell); Home lê `pesquisa=`, `materiais=`, `arranjo=`; Biblioteca lê `materiais=`, `arranjo=`, `arranjoEspecial=`, `ordenar=`, `itensPorPagina=`, `pagina=` |
 | `dioProvider` | `lib/core/providers/dio_provider.dart` | **Implementado** | Cliente HTTP Dio com `baseUrl` de [AppConfig] |
 | `sharedPreferencesProvider` | `lib/core/providers/shared_prefs_provider.dart` | **Implementado** | Override em `main()` via `SharedPreferences.getInstance()` |
-| `isarProvider` | `lib/core/database/isar_provider.dart` | **Implementado** | `Provider<Isar>`; override em `main()` após `Isar.open` |
+| `isarProvider` | `lib/core/database/isar_provider.dart` | **Implementado** | `Provider<Isar>` (isar_plus); override em `main()` com `name: plpcg_plus` |
 
 ### `FiltersPanel` — API pública (UC-02 / UC-03)
 

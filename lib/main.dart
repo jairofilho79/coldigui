@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,14 +16,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open(
-    [
+  final isar = Isar.open(
+    schemas: [
       LouvorCacheSchema,
       CarouselEntrySchema,
       PlaylistSchema,
       OfflinePdfIndexSchema,
     ],
     directory: dir.path,
+    name: 'plpcg_plus',
   );
 
   final prefs = await SharedPreferences.getInstance();

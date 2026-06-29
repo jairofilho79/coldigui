@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/offline_pdf_index.dart';
 
@@ -9,22 +9,27 @@ class OfflinePdfLocalDatasource {
   final Isar _isar;
 
   /// Lookup O(1) por [pdfId] — sem validação de disco.
-  Future<OfflinePdfIndex?> findByPdfId(String pdfId) =>
-      _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+  Future<OfflinePdfIndex?> findByPdfId(String pdfId) async {
+    return _isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+  }
 
   /// Lookup por [storagePath] absoluto — sem validação de disco.
-  Future<OfflinePdfIndex?> findByStoragePath(String storagePath) =>
-      _isar.offlinePdfIndexs
-          .filter()
-          .storagePathEqualTo(storagePath)
-          .findFirst();
+  Future<OfflinePdfIndex?> findByStoragePath(String storagePath) async {
+    return _isar.offlinePdfIndexs
+        .where()
+        .storagePathEqualTo(storagePath)
+        .findFirst();
+  }
 
   /// Busca entradas do índice para [pdfIds] — sem validação de disco.
   Future<List<OfflinePdfIndex>> findByPdfIds(Set<String> pdfIds) async {
     if (pdfIds.isEmpty) return const [];
 
-    final indexes = await _isar.offlinePdfIndexs.getAllByPdfId(pdfIds.toList());
-    return indexes.whereType<OfflinePdfIndex>().toList();
+    final indexes = _isar.offlinePdfIndexs
+        .where()
+        .anyOf(pdfIds, (q, pdfId) => q.pdfIdEqualTo(pdfId))
+        .findAll();
+    return indexes;
   }
 
   /// Candidatos LRU para eviction — ordenados do mais antigo ao mais novo.
@@ -33,37 +38,36 @@ class OfflinePdfLocalDatasource {
   Future<List<OfflinePdfIndex>> findOldestForEviction({
     required int limit,
     int offset = 0,
-  }) =>
-      _isar.offlinePdfIndexs
-          .filter()
-          .isPersistentEqualTo(false)
-          .sortByLastAccessedAt()
-          .thenByDownloadedAt()
-          .offset(offset)
-          .limit(limit)
-          .findAll();
+  }) async {
+    return _isar.offlinePdfIndexs
+        .where()
+        .isPersistentEqualTo(false)
+        .sortByLastAccessedAt()
+        .thenByDownloadedAt()
+        .findAll(offset: offset, limit: limit);
+  }
 
   /// Upsert por `pdfId` único em transação Isar.
   Future<void> put(OfflinePdfIndex index) async {
-    await _isar.writeTxn(() async {
-      await _isar.offlinePdfIndexs.putByPdfId(index);
+    await _isar.write((isar) {
+      _putByPdfId(isar.offlinePdfIndexs, index);
     });
   }
 
   /// Remove entrada por [pdfId] — idempotente se ausente.
   Future<void> deleteByPdfId(String pdfId) async {
-    await _isar.writeTxn(() async {
-      final existing =
-          await _isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+    await _isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      final existing = coll.where().pdfIdEqualTo(pdfId).findFirst();
       if (existing != null) {
-        await _isar.offlinePdfIndexs.delete(existing.id);
+        coll.delete(existing.id);
       }
     });
   }
 
   /// Contagem por [OfflinePdfIndex.category] — agregação em memória.
   Future<Map<String, int>> countByCategory() async {
-    final all = await _isar.offlinePdfIndexs.where().findAll();
+    final all = await findAll();
     final counts = <String, int>{};
     for (final index in all) {
       counts.update(index.category, (v) => v + 1, ifAbsent: () => 1);
@@ -72,8 +76,9 @@ class OfflinePdfLocalDatasource {
   }
 
   /// Lista completa do índice — sem validar arquivos no disco.
-  Future<List<OfflinePdfIndex>> findAll() =>
-      _isar.offlinePdfIndexs.where().findAll();
+  Future<List<OfflinePdfIndex>> findAll() async {
+    return _isar.offlinePdfIndexs.where().findAll();
+  }
 
   /// Soma [OfflinePdfIndex.fileSize] — quota LRU sem scan filesystem.
   Future<int> sumFileSizes() async {
@@ -90,14 +95,16 @@ class OfflinePdfLocalDatasource {
   Future<void> touchLastAccessedBatch(Map<String, DateTime> touches) async {
     if (touches.isEmpty) return;
 
-    await _isar.writeTxn(() async {
+    await _isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
       final pdfIds = touches.keys.toList();
-      final indexes = await _isar.offlinePdfIndexs.getAllByPdfId(pdfIds);
-      for (var i = 0; i < pdfIds.length; i++) {
-        final index = indexes[i];
-        if (index == null) continue;
-        index.lastAccessedAt = touches[pdfIds[i]];
-        await _isar.offlinePdfIndexs.put(index);
+      final indexes = coll
+          .where()
+          .anyOf(pdfIds, (q, pdfId) => q.pdfIdEqualTo(pdfId))
+          .findAll();
+      for (final index in indexes) {
+        index.lastAccessedAt = touches[index.pdfId];
+        coll.put(index);
       }
     });
   }
@@ -105,27 +112,31 @@ class OfflinePdfLocalDatasource {
   /// Upsert em lote por `pdfId` em uma única transação (bulk UC-09).
   Future<void> putAllByPdfId(List<OfflinePdfIndex> indexes) async {
     if (indexes.isEmpty) return;
-    await _isar.writeTxn(() async {
-      await _isar.offlinePdfIndexs.putAllByPdfId(indexes);
+    await _isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      for (final index in indexes) {
+        _putByPdfId(coll, index);
+      }
     });
   }
 
   /// Marca todas as entradas como persistentes — migração v2 (bulk legado).
   Future<void> markAllPersistent() async {
-    await _isar.writeTxn(() async {
-      final all = await _isar.offlinePdfIndexs.where().findAll();
+    await _isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      final all = coll.where().findAll();
       for (final index in all) {
         if (index.isPersistent) continue;
         index.isPersistent = true;
-        await _isar.offlinePdfIndexs.put(index);
+        coll.put(index);
       }
     });
   }
 
   /// Remove todas as entradas do índice offline (UC-10 clear cache).
   Future<void> clearAll() async {
-    await _isar.writeTxn(() async {
-      await _isar.offlinePdfIndexs.clear();
+    await _isar.write((isar) {
+      isar.offlinePdfIndexs.clear();
     });
   }
 
@@ -134,18 +145,31 @@ class OfflinePdfLocalDatasource {
     if (pdfIds.isEmpty) return 0;
 
     var removed = 0;
-    await _isar.writeTxn(() async {
-      for (final pdfId in pdfIds) {
-        final existing = await _isar.offlinePdfIndexs
-            .filter()
-            .pdfIdEqualTo(pdfId)
-            .findFirst();
-        if (existing != null) {
-          await _isar.offlinePdfIndexs.delete(existing.id);
+    await _isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      final existing = coll
+          .where()
+          .anyOf(pdfIds, (q, pdfId) => q.pdfIdEqualTo(pdfId))
+          .findAll();
+      for (final index in existing) {
+        if (coll.delete(index.id)) {
           removed++;
         }
       }
     });
     return removed;
+  }
+
+  void _putByPdfId(
+    IsarCollection<int, OfflinePdfIndex> coll,
+    OfflinePdfIndex index,
+  ) {
+    final existing = coll.where().pdfIdEqualTo(index.pdfId).findFirst();
+    if (existing != null) {
+      index.id = existing.id;
+    } else if (index.id == 0) {
+      index.id = coll.autoIncrement();
+    }
+    coll.put(index);
   }
 }

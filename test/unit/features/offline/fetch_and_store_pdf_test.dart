@@ -17,7 +17,7 @@ import 'package:coldigui/features/offline/domain/utils/download_retry.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 String _encodePdfId(String path) {
   return base64Url
@@ -63,7 +63,6 @@ void main() {
   final pdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     pdfId = _encodePdfId(relPath);
   });
 
@@ -72,11 +71,10 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await Isar.open([
-      LouvorCacheSchema,
-      OfflinePdfIndexSchema,
-      PlaylistSchema,
-    ], directory: tempDir.path);
+    isar = Isar.open(
+      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
+      directory: tempDir.path,
+    );
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
@@ -91,7 +89,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -123,10 +121,7 @@ void main() {
     expect(await File(source.absolutePath).exists(), isTrue);
     expect(source.absolutePath, endsWith('ColAdultos/001.pdf'));
 
-    final index = await isar.offlinePdfIndexs
-        .filter()
-        .pdfIdEqualTo(pdfId)
-        .findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
     expect(index!.fileSize, pdfBytes.length);
     expect(datasource.callCount, 1);
@@ -140,10 +135,7 @@ void main() {
 
     await useCase(pdfId: pdfId, remotePath: remotePath);
 
-    final index = await isar.offlinePdfIndexs
-        .filter()
-        .pdfIdEqualTo(pdfId)
-        .findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index!.category, 'ColAdultos');
   });
 
@@ -160,10 +152,7 @@ void main() {
       category: explicitCategory,
     );
 
-    final index = await isar.offlinePdfIndexs
-        .filter()
-        .pdfIdEqualTo(pdfId)
-        .findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index!.category, explicitCategory);
   });
 

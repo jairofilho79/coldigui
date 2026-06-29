@@ -13,21 +13,17 @@ import 'package:coldigui/features/playlists/presentation/providers/active_playli
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
   late Isar isar;
   late ProviderContainer container;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('resolve_active_playlist_');
-    isar = await Isar.open(
-      [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     container = ProviderContainer(
@@ -42,7 +38,7 @@ void main() {
 
   tearDown(() async {
     container.dispose();
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

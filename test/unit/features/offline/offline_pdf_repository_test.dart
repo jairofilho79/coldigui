@@ -9,7 +9,7 @@ import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_dat
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 String _encodePdfId(String path) {
   return base64Url
@@ -35,7 +35,6 @@ void main() {
   late String pdfId;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     pdfId = _encodePdfId(relPath);
   });
 
@@ -44,8 +43,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await Isar.open(
-      [LouvorCacheSchema, OfflinePdfIndexSchema],
+    isar = Isar.open(schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
       directory: tempDir.path,
     );
 
@@ -59,7 +57,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -88,7 +86,7 @@ void main() {
     );
 
     final index =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
     expect(index!.fileSize, bytes.length);
     expect(index.storagePath, entry.absolutePath);
@@ -109,18 +107,18 @@ void main() {
     await repository.upsert(pdfId: pdfId, bytes: bytes, category: category);
 
     final staleAccess = DateTime.now().subtract(const Duration(hours: 1));
-    await isar.writeTxn(() async {
+    await isar.write((isar) {
       final index =
-          await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+          isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
       index!.lastAccessedAt = staleAccess;
-      await isar.offlinePdfIndexs.put(index);
+      isar.offlinePdfIndexs.put(index);
     });
 
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
     final indexAfter =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(indexAfter!.lastAccessedAt, isNotNull);
     expect(indexAfter.lastAccessedAt!.isAfter(staleAccess), isTrue);
   });
@@ -133,14 +131,14 @@ void main() {
     await repository.flushPendingTouchLastAccessed();
 
     final indexAfterFirst =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     final firstTouch = indexAfterFirst!.lastAccessedAt!;
 
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
     final indexAfterSecond =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(indexAfterSecond!.lastAccessedAt, firstTouch);
   });
 
@@ -180,7 +178,7 @@ void main() {
 
     // Índice órfão permanece (reconcile 3.6).
     final index =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).findFirst();
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
   });
 
@@ -233,7 +231,7 @@ void main() {
 
     expect(await File(entry.absolutePath).exists(), isFalse);
     expect(
-      await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+      isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
       0,
     );
   });
@@ -431,7 +429,7 @@ void main() {
     await repository.clearAll();
 
     expect(
-      await isar.offlinePdfIndexs.where().count(),
+      isar.offlinePdfIndexs.where().count(),
       0,
     );
   });
@@ -448,7 +446,7 @@ void main() {
 
       expect(await File(entry.absolutePath).exists(), isFalse);
       expect(
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
         0,
       );
     });
@@ -464,7 +462,7 @@ void main() {
 
       expect(await File(entry.absolutePath).exists(), isFalse);
       expect(
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
         0,
       );
     });
@@ -481,7 +479,7 @@ void main() {
       expect(found, isNotNull);
       expect(found!.absolutePath, entry.absolutePath);
       expect(
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(pdfId).count(),
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
         1,
       );
     });
@@ -518,7 +516,7 @@ void main() {
       expect(found, {validId});
       expect(await File(corruptEntry.absolutePath).exists(), isFalse);
       expect(
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo(corruptId).count(),
+        isar.offlinePdfIndexs.where().pdfIdEqualTo(corruptId).count(),
         0,
       );
     });

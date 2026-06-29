@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/playlist.dart';
 
@@ -10,37 +10,46 @@ class PlaylistLocalDatasource {
 
   final Isar _isar;
 
-  Future<List<Playlist>> findAll() => _isar.playlists.where().findAll();
+  Future<List<Playlist>> findAll() async {
+    return _isar.playlists.where().findAll();
+  }
 
   /// Não salvas — `createdAt` desc.
-  Future<List<Playlist>> findUnsaved() => _isar.playlists
-      .filter()
-      .salvaEqualTo(false)
-      .sortByCreatedAtDesc()
-      .findAll();
+  Future<List<Playlist>> findUnsaved() async {
+    return _isar.playlists
+        .where()
+        .salvaEqualTo(false)
+        .sortByCreatedAtDesc()
+        .findAll();
+  }
 
   /// Salvas (não favoritas) — `savedAt` desc.
-  Future<List<Playlist>> findSaved() => _isar.playlists
-      .filter()
-      .salvaEqualTo(true)
-      .and()
-      .favoritaEqualTo(false)
-      .sortBySavedAtDesc()
-      .findAll();
+  Future<List<Playlist>> findSaved() async {
+    return _isar.playlists
+        .where()
+        .salvaEqualTo(true)
+        .and()
+        .favoritaEqualTo(false)
+        .sortBySavedAtDesc()
+        .findAll();
+  }
 
   /// Favoritas — `favoritedAt` desc.
-  Future<List<Playlist>> findFavorites() => _isar.playlists
-      .filter()
-      .favoritaEqualTo(true)
-      .sortByFavoritedAtDesc()
-      .findAll();
+  Future<List<Playlist>> findFavorites() async {
+    return _isar.playlists
+        .where()
+        .favoritaEqualTo(true)
+        .sortByFavoritedAtDesc()
+        .findAll();
+  }
 
-  Future<Playlist?> findByPlaylistId(String playlistId) =>
-      _isar.playlists.getByPlaylistId(playlistId);
+  Future<Playlist?> findByPlaylistId(String playlistId) async {
+    return _isar.playlists.where().playlistIdEqualTo(playlistId).findFirst();
+  }
 
   Future<void> insert(Playlist playlist) async {
-    await _isar.writeTxn(() async {
-      await _isar.playlists.putByPlaylistId(playlist);
+    await _isar.write((isar) {
+      _putByPlaylistId(isar.playlists, playlist);
     });
   }
 
@@ -54,8 +63,9 @@ class PlaylistLocalDatasource {
     bool? favorita,
     bool clearFavoritedAt = false,
   }) async {
-    await _isar.writeTxn(() async {
-      final existing = await _isar.playlists.getByPlaylistId(playlistId);
+    await _isar.write((isar) {
+      final coll = isar.playlists;
+      final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
       if (existing == null) {
         throw StateError('Playlist not found: $playlistId');
       }
@@ -68,23 +78,41 @@ class PlaylistLocalDatasource {
       if (clearFavoritedAt) existing.favoritedAt = null;
       if (favorita != null) existing.favorita = favorita;
 
-      await _isar.playlists.put(existing);
+      coll.put(existing);
     });
   }
 
   /// Idempotente se [playlistId] ausente.
   Future<void> deleteByPlaylistId(String playlistId) async {
-    await _isar.writeTxn(() async {
-      await _isar.playlists.deleteByPlaylistId(playlistId);
+    await _isar.write((isar) {
+      final coll = isar.playlists;
+      final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
+      if (existing != null) {
+        coll.delete(existing.id);
+      }
     });
   }
 
   Future<void> deleteAllUnsaved() async {
-    await _isar.writeTxn(() async {
-      final rows = await _isar.playlists.filter().salvaEqualTo(false).findAll();
+    await _isar.write((isar) {
+      final coll = isar.playlists;
+      final rows = coll.where().salvaEqualTo(false).findAll();
       for (final row in rows) {
-        await _isar.playlists.delete(row.id);
+        coll.delete(row.id);
       }
     });
+  }
+
+  void _putByPlaylistId(IsarCollection<int, Playlist> coll, Playlist playlist) {
+    final existing = coll
+        .where()
+        .playlistIdEqualTo(playlist.playlistId)
+        .findFirst();
+    if (existing != null) {
+      playlist.id = existing.id;
+    } else if (playlist.id == 0) {
+      playlist.id = coll.autoIncrement();
+    }
+    coll.put(playlist);
   }
 }

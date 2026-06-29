@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 part 'offline_pdf_index.g.dart';
 
@@ -7,7 +7,7 @@ part 'offline_pdf_index.g.dart';
 /// Fonte de verdade do cache local (Fase 3). Lookup O(1) via [ResolvePdfForReader].
 @Collection()
 class OfflinePdfIndex {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
   @Index(unique: true)
   late String pdfId;

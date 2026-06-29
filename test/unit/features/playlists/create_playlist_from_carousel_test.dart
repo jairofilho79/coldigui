@@ -9,7 +9,7 @@ import 'package:coldigui/features/playlists/data/repositories/playlist_repositor
 import 'package:coldigui/features/playlists/domain/exceptions/empty_carousel_exception.dart';
 import 'package:coldigui/features/playlists/domain/usecases/create_playlist_from_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
@@ -18,14 +18,10 @@ void main() {
   late PlaylistRepositoryImpl playlistRepository;
   late CreatePlaylistFromCarousel useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('create_playlist_');
-    isar = await Isar.open(
-      [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
@@ -37,7 +33,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

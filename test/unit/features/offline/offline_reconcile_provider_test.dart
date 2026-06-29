@@ -16,17 +16,13 @@ import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_inde
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
 
 class _CountingMigrate extends MigrateOfflineStorage {
-  _CountingMigrate(
-    super.prefs,
-    super.local,
-    super.offlineAvailableStore,
-  );
+  _CountingMigrate(super.prefs, super.local, super.offlineAvailableStore);
 
   int callCount = 0;
 
@@ -42,10 +38,7 @@ class _CountingReconcile extends ReconcileOfflineIndex {
   int callCount = 0;
 
   @override
-  Future<ReconcileResult> call({
-    materialPackage,
-    materialCategory,
-  }) async {
+  Future<ReconcileResult> call({materialPackage, materialCategory}) async {
     callCount++;
     return const ReconcileResult(removedFromIndex: 0, orphanFiles: 0);
   }
@@ -73,8 +66,7 @@ class _StubRepo implements OfflinePdfRepository {
   @override
   Future<(OfflinePdfEntry? entry, bool hasIndexEntry)> lookupWithIndexState(
     String pdfId,
-  ) async =>
-      (null, false);
+  ) async => (null, false);
 
   @override
   Future<Set<String>> lookupBatch(Set<String> pdfIds) async => {};
@@ -100,8 +92,7 @@ class _StubRepo implements OfflinePdfRepository {
     required Uint8List bytes,
     required String category,
     bool isPersistent = false,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
@@ -113,8 +104,7 @@ class _StubRepo implements OfflinePdfRepository {
   Future<int> evictOldestPdfs({
     required int targetBytes,
     Set<String> excludePdfIds = const {},
-  }) async =>
-      0;
+  }) async => 0;
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {}
@@ -131,7 +121,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
     isarDir = await Directory.systemTemp.createTemp('reconcile_migrate_');
-    isar = await openOfflineTestIsar(isarDir);
+    isar = openOfflineTestIsar(isarDir);
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
@@ -147,7 +137,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 
   ProviderContainer createContainer() {

@@ -16,7 +16,7 @@ import 'package:coldigui/features/offline/domain/usecases/remap_pdf_ids_after_ca
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 String _encodePdfId(String path) {
   return base64Url
@@ -56,7 +56,6 @@ void main() {
   late String newPdfId;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     oldPdfId = _encodePdfId(oldRelPath);
     newPdfId = _encodePdfId(newRelPath);
   });
@@ -66,8 +65,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await Isar.open(
-      [
+    isar = Isar.open(schemas: [
         LouvorCacheSchema,
         OfflinePdfIndexSchema,
         PlaylistSchema,
@@ -88,7 +86,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

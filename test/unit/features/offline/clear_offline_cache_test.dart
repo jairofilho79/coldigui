@@ -14,7 +14,7 @@ import 'package:coldigui/features/offline/data/repositories/offline_pdf_reposito
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
 import 'package:coldigui/features/offline/domain/usecases/clear_offline_cache.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
@@ -46,7 +46,6 @@ void main() {
   late ClearOfflineCache useCase;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     SharedPreferences.setMockInitialValues({});
   });
 
@@ -55,7 +54,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineTestIsar(tempDir);
+    isar = openOfflineTestIsar(tempDir);
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -80,51 +79,55 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
   });
 
-  test('limpa índice, diretório PDFs, checkpoint bulk e flag offline',
-      () async {
-    await repository.upsert(
-      pdfId: encodePdfId('ColAdultos/a.pdf'),
-      bytes: Uint8List.fromList([1]),
-      category: CatalogMaterials.partitura,
-    );
+  test(
+    'limpa índice, diretório PDFs, checkpoint bulk e flag offline',
+    () async {
+      await repository.upsert(
+        pdfId: encodePdfId('ColAdultos/a.pdf'),
+        bytes: Uint8List.fromList([1]),
+        category: CatalogMaterials.partitura,
+      );
 
-    await offlineAvailableStore.markConfigured();
-    await bulkCategoriesStore.addCategories([CatalogMaterials.partitura]);
-    await selectedCategoriesStore.save({CatalogMaterials.partitura});
-    await checkpointStore.save(
-      OfflineBulkCheckpoint(
-        categories: const [CatalogMaterials.partitura],
-        categoryIndex: 0,
-        partIndex: 0,
-        extractedPdfCount: 0,
-        startedAt: DateTime.utc(2026, 1, 1),
-      ),
-    );
+      await offlineAvailableStore.markConfigured();
+      await bulkCategoriesStore.addCategories([CatalogMaterials.partitura]);
+      await selectedCategoriesStore.save({CatalogMaterials.partitura});
+      await checkpointStore.save(
+        OfflineBulkCheckpoint(
+          categories: const [CatalogMaterials.partitura],
+          categoryIndex: 0,
+          partIndex: 0,
+          extractedPdfCount: 0,
+          startedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
 
-    final rootBefore = await store.rootDirectory;
-    expect(await rootBefore.list(recursive: true).length, greaterThan(0));
+      final rootBefore = await store.rootDirectory;
+      expect(await rootBefore.list(recursive: true).length, greaterThan(0));
 
-    final wasFullClear = await useCase(
-      materials: {CatalogMaterials.partitura},
-    );
+      final wasFullClear = await useCase(
+        materials: {CatalogMaterials.partitura},
+      );
 
-    expect(wasFullClear, isTrue);
-    expect((await repository.listAll()).length, 0);
-    final rootAfter = await store.rootDirectory;
-    expect(await rootAfter.list().length, 0);
-    expect(await checkpointStore.load(), isNull);
-    expect(bulkCategoriesStore.load(), isEmpty);
-    expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
-    expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
-    expect(prefs.getString(StorageKeys.offlineAvailable),
-        OfflineAvailableStore.disabledValue);
-  });
+      expect(wasFullClear, isTrue);
+      expect((await repository.listAll()).length, 0);
+      final rootAfter = await store.rootDirectory;
+      expect(await rootAfter.list().length, 0);
+      expect(await checkpointStore.load(), isNull);
+      expect(bulkCategoriesStore.load(), isEmpty);
+      expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
+      expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
+      expect(
+        prefs.getString(StorageKeys.offlineAvailable),
+        OfflineAvailableStore.disabledValue,
+      );
+    },
+  );
 
   test('limpeza parcial remove só materiais selecionados', () async {
     await repository.upsert(
@@ -141,9 +144,7 @@ void main() {
     await offlineAvailableStore.markConfigured();
     await bulkCategoriesStore.addCategories(CatalogMaterials.uiMaterials);
 
-    final wasFullClear = await useCase(
-      materials: {CatalogMaterials.partitura},
-    );
+    final wasFullClear = await useCase(materials: {CatalogMaterials.partitura});
 
     expect(wasFullClear, isFalse);
     final remaining = await repository.listAll();

@@ -10,14 +10,11 @@ import '../datasources/catalog_sync_metadata_store.dart';
 /// Fluxo: tenta rede → persiste em Isar; em falha ou resposta vazia usa cache local.
 class CatalogRepositoryImpl implements CatalogRepository {
   const CatalogRepositoryImpl({
-    required CatalogRemoteDatasource remote,
-    required CatalogLocalDatasource local,
-    required CatalogSyncMetadataStore syncMetadata,
-    CatalogManifestSyncListener? manifestSyncListener,
-  })  : _remote = remote,
-        _local = local,
-        _syncMetadata = syncMetadata,
-        _manifestSyncListener = manifestSyncListener;
+    required this._remote,
+    required this._local,
+    required this._syncMetadata,
+    this._manifestSyncListener,
+  });
 
   final CatalogRemoteDatasource _remote;
   final CatalogLocalDatasource _local;

@@ -10,7 +10,7 @@ import 'package:coldigui/features/playlists/domain/exceptions/invalid_share_play
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
 import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
@@ -19,14 +19,10 @@ void main() {
   late PlaylistRepositoryImpl playlistRepository;
   late ImportSharedPlaylistFromUrl useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('import_playlist_');
-    isar = await Isar.open(
-      [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
@@ -38,7 +34,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

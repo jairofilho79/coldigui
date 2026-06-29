@@ -8,12 +8,10 @@ import '../ports/prefetch_network_policy.dart';
 /// Prefetch fire-and-forget dos PDFs adjacentes no carousel in-reader (#8).
 class PrefetchAdjacentCarouselPdfs {
   const PrefetchAdjacentCarouselPdfs({
-    required ValidatePdfAvailability validateAvailability,
-    required ResolvePdfForReader resolvePdf,
-    required PrefetchNetworkPolicy networkPolicy,
-  })  : _validateAvailability = validateAvailability,
-        _resolvePdf = resolvePdf,
-        _networkPolicy = networkPolicy;
+    required this._validateAvailability,
+    required this._resolvePdf,
+    required this._networkPolicy,
+  });
 
   final ValidatePdfAvailability _validateAvailability;
   final ResolvePdfForReader _resolvePdf;

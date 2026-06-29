@@ -25,7 +25,7 @@ void main() {
 
   test('v0 migra para versão atual', () async {
     final prefs = await SharedPreferences.getInstance();
-    final isar = await openOfflineTestIsar(
+    final isar = openOfflineTestIsar(
       await Directory.systemTemp.createTemp('migrate_'),
     );
     final useCase = MigrateOfflineStorage(
@@ -40,7 +40,7 @@ void main() {
       prefs.getInt(StorageKeys.offlineStorageVersion),
       OfflineConfig.offlineStorageVersion,
     );
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 
   test('segunda execução é no-op', () async {
@@ -50,7 +50,7 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
 
-    final isar = await openOfflineTestIsar(
+    final isar = openOfflineTestIsar(
       await Directory.systemTemp.createTemp('migrate_'),
     );
     final useCase = MigrateOfflineStorage(
@@ -64,7 +64,7 @@ void main() {
       prefs.getInt(StorageKeys.offlineStorageVersion),
       OfflineConfig.offlineStorageVersion,
     );
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 
   test('fetchManifest usa manifest persistido quando rede falha', () async {
@@ -115,7 +115,7 @@ void main() {
     final tempDir = await Directory.systemTemp.createTemp('migrate_v2_');
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
-    final isar = await openOfflineTestIsar(tempDir);
+    final isar = openOfflineTestIsar(tempDir);
     final repository = OfflinePdfRepositoryImpl(
       store: PdfLocalStore(
         getApplicationDocumentsDirectory: () async => docsDir,
@@ -141,6 +141,6 @@ void main() {
     );
     expect(entry?.isPersistent, isTrue);
 
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
   });
 }

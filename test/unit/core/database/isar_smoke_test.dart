@@ -3,26 +3,22 @@ import 'dart:io';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
   late Isar isar;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('isar_smoke_');
-    isar = await Isar.open(
-      [LouvorCacheSchema, OfflinePdfIndexSchema],
+    isar = Isar.open(
+      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
       directory: tempDir.path,
     );
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -38,27 +34,31 @@ void main() {
       ..pdf = 'assets/ColAdultos/001.pdf'
       ..groupId = '001:louvor-teste';
 
-    await isar.writeTxn(() async {
-      await isar.louvorCaches.put(entry);
+    isar.write((isar) {
+      final coll = isar.louvorCaches;
+      entry.id = coll.autoIncrement();
+      coll.put(entry);
     });
 
-    final byPdfId =
-        await isar.louvorCaches.filter().pdfIdEqualTo('abc123').findFirst();
+    final byPdfId = isar.louvorCaches
+        .where()
+        .pdfIdEqualTo('abc123')
+        .findFirst();
     expect(byPdfId, isNotNull);
     expect(byPdfId!.nome, 'Louvor Teste');
 
     byPdfId.nome = 'Louvor Atualizado';
-    await isar.writeTxn(() async {
-      await isar.louvorCaches.put(byPdfId);
+    await isar.write((isar) {
+      isar.louvorCaches.put(byPdfId);
     });
 
-    final updated = await isar.louvorCaches.get(byPdfId.id);
+    final updated = isar.louvorCaches.get(byPdfId.id);
     expect(updated?.nome, 'Louvor Atualizado');
 
-    await isar.writeTxn(() async {
-      await isar.louvorCaches.delete(byPdfId.id);
+    await isar.write((isar) {
+      isar.louvorCaches.delete(byPdfId.id);
     });
-    expect(await isar.louvorCaches.count(), 0);
+    expect(isar.louvorCaches.count(), 0);
   });
 
   test('CRUD OfflinePdfIndex com lookup por pdfId indexado', () async {
@@ -70,20 +70,24 @@ void main() {
       ..fileSize = 4096
       ..downloadedAt = downloadedAt;
 
-    await isar.writeTxn(() async {
-      await isar.offlinePdfIndexs.put(index);
+    isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      index.id = coll.autoIncrement();
+      coll.put(index);
     });
 
-    final byPdfId =
-        await isar.offlinePdfIndexs.filter().pdfIdEqualTo('xyz789').findFirst();
+    final byPdfId = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo('xyz789')
+        .findFirst();
     expect(byPdfId, isNotNull);
     expect(byPdfId!.storagePath, '/data/offline/ColAdultos/001.pdf');
     expect(byPdfId.fileSize, 4096);
     expect(byPdfId.downloadedAt, downloadedAt);
 
-    await isar.writeTxn(() async {
-      await isar.offlinePdfIndexs.delete(byPdfId.id);
+    await isar.write((isar) {
+      isar.offlinePdfIndexs.delete(byPdfId.id);
     });
-    expect(await isar.offlinePdfIndexs.count(), 0);
+    expect(isar.offlinePdfIndexs.count(), 0);
   });
 }

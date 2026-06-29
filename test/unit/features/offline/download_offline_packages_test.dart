@@ -17,7 +17,7 @@ import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart'
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
@@ -179,7 +179,6 @@ void main() {
   final pdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     pdfId1 = encodePdfId('ColAdultos/010.pdf');
     pdfId2 = encodePdfId('ColAdultos/011.pdf');
   });
@@ -190,7 +189,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineTestIsar(tempDir);
+    isar = openOfflineTestIsar(tempDir);
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -209,7 +208,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

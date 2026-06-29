@@ -4,14 +4,13 @@ import '../../../playlists/data/datasources/playlist_local_datasource.dart';
 
 /// PDFs referenciados em playlists favoritas — protegidos da eviction LRU.
 class FavoritePdfIdsResolver {
-  FavoritePdfIdsResolver(this._playlistLocal, {Set<String>? testingPdfIds})
-      : _testingPdfIds = testingPdfIds;
+  FavoritePdfIdsResolver(this._playlistLocal, {this._testingPdfIds});
 
   /// Retorna [testingPdfIds] fixo — útil em testes unitários sem Isar de playlists.
   @visibleForTesting
   FavoritePdfIdsResolver.testing([Set<String> testingPdfIds = const {}])
-      : _playlistLocal = null,
-        _testingPdfIds = testingPdfIds;
+    : _playlistLocal = null,
+      _testingPdfIds = testingPdfIds;
 
   final PlaylistLocalDatasource? _playlistLocal;
   final Set<String>? _testingPdfIds;

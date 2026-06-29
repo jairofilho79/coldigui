@@ -25,9 +25,9 @@ class FetchAndStorePdf {
   const FetchAndStorePdf(
     this._bytesDatasource,
     this._repository, {
-    required FavoritePdfIdsResolver favoritePdfIdsResolver,
+    required this._favoritePdfIdsResolver,
     this.cacheQuotaBytes = OfflineConfig.defaultPdfCacheQuotaBytes,
-  }) : _favoritePdfIdsResolver = favoritePdfIdsResolver;
+  });
 
   final PdfBytesDatasource _bytesDatasource;
   final OfflinePdfRepository _repository;

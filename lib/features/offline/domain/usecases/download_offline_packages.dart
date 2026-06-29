@@ -34,16 +34,12 @@ class DownloadOfflinePackagesResult {
 /// [ExtractAndStorePdfs]. Complementa cache on-demand [FetchAndStorePdf].
 class DownloadOfflinePackages {
   DownloadOfflinePackages({
-    required OfflineManifestRemoteDatasource manifestDatasource,
-    required ZipPackageDownloader zipDownloader,
-    required ExtractAndStorePdfs extractAndStorePdfs,
-    required ReconcileOfflineIndex reconcileOfflineIndex,
-    required OfflineBulkCheckpointStore checkpointStore,
-  }) : _manifestDatasource = manifestDatasource,
-       _zipDownloader = zipDownloader,
-       _extractAndStorePdfs = extractAndStorePdfs,
-       _reconcileOfflineIndex = reconcileOfflineIndex,
-       _checkpointStore = checkpointStore;
+    required this._manifestDatasource,
+    required this._zipDownloader,
+    required this._extractAndStorePdfs,
+    required this._reconcileOfflineIndex,
+    required this._checkpointStore,
+  });
 
   final OfflineManifestRemoteDatasource _manifestDatasource;
   final ZipPackageDownloader _zipDownloader;

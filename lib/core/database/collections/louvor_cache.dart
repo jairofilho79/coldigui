@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 part 'louvor_cache.g.dart';
 
@@ -8,7 +8,7 @@ part 'louvor_cache.g.dart';
 /// [groupId] vem do D1 remoto e preserva agrupamentos fuzzy do script Python.
 @Collection()
 class LouvorCache {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
   @Index(unique: true)
   late String pdfId;

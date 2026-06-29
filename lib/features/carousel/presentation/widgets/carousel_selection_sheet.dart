@@ -60,10 +60,7 @@ Future<void> showCarouselSelectionSheet(
 }
 
 class _CarouselSelectionDialog extends ConsumerStatefulWidget {
-  const _CarouselSelectionDialog({
-    this.onItemRemoved,
-    this.onItemTap,
-  });
+  const _CarouselSelectionDialog({this.onItemRemoved, this.onItemTap});
 
   final Future<void> Function(String removedPdfId)? onItemRemoved;
   final Future<void> Function(CarouselItem item)? onItemTap;
@@ -76,16 +73,14 @@ class _CarouselSelectionDialog extends ConsumerStatefulWidget {
 class _CarouselSelectionDialogState
     extends ConsumerState<_CarouselSelectionDialog> {
   void _handleReorder(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex -= 1;
-
     final items = ref.read(carouselLouvoresProvider);
     final reordered = List<CarouselItem>.from(items);
     final moved = reordered.removeAt(oldIndex);
     reordered.insert(newIndex, moved);
 
-    ref.read(carouselLouvoresProvider.notifier).reorder(
-          reordered.map((item) => item.pdfId).toList(growable: false),
-        );
+    ref
+        .read(carouselLouvoresProvider.notifier)
+        .reorder(reordered.map((item) => item.pdfId).toList(growable: false));
   }
 
   Future<void> _handleRemove(String pdfId) async {
@@ -115,7 +110,7 @@ class _CarouselSelectionDialogState
           buildDefaultDragHandles: false,
           proxyDecorator: carouselSelectionReorderProxyDecorator,
           itemCount: items.length,
-          onReorder: _handleReorder,
+          onReorderItem: _handleReorder,
           itemBuilder: (context, index) {
             final item = items[index];
             return ReorderableDragStartListener(

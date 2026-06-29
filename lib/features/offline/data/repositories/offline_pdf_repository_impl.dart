@@ -13,11 +13,7 @@ import '../datasources/pdf_local_store.dart';
 
 /// Orquestra [PdfLocalStore] + [OfflinePdfLocalDatasource] (Fase 3.1).
 class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
-  OfflinePdfRepositoryImpl({
-    required PdfLocalStore store,
-    required OfflinePdfLocalDatasource local,
-  })  : _store = store,
-        _local = local;
+  OfflinePdfRepositoryImpl({required this._store, required this._local});
 
   static const _touchDebounce = Duration(minutes: 5);
   static const _touchFlushThreshold = 20;
@@ -283,7 +279,10 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   void _recordTouch(
-      String pdfId, DateTime now, DateTime? existingLastAccessed) {
+    String pdfId,
+    DateTime now,
+    DateTime? existingLastAccessed,
+  ) {
     final lastKnown = _pendingTouchAt[pdfId] ?? existingLastAccessed;
     if (lastKnown != null && now.difference(lastKnown) < _touchDebounce) {
       return;
@@ -316,7 +315,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     final raf = await File(index.storagePath).open();
     try {
       final header = await raf.read(4);
-      final validHeader = header.length == 4 &&
+      final validHeader =
+          header.length == 4 &&
           header[0] == 0x25 &&
           header[1] == 0x50 &&
           header[2] == 0x44 &&
@@ -330,14 +330,14 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   static OfflinePdfEntry _toEntry(OfflinePdfIndex index) => OfflinePdfEntry(
-        pdfId: index.pdfId,
-        absolutePath: index.storagePath,
-        category: index.category,
-        fileSize: index.fileSize,
-        downloadedAt: index.downloadedAt,
-        lastAccessedAt: index.lastAccessedAt,
-        isPersistent: index.isPersistent,
-      );
+    pdfId: index.pdfId,
+    absolutePath: index.storagePath,
+    category: index.category,
+    fileSize: index.fileSize,
+    downloadedAt: index.downloadedAt,
+    lastAccessedAt: index.lastAccessedAt,
+    isPersistent: index.isPersistent,
+  );
 }
 
 enum _IndexFileValidation { valid, missing, corrupt }

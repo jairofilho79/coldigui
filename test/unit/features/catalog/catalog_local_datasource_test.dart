@@ -5,7 +5,7 @@ import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 Louvor _sampleLouvor({
   required String pdfId,
@@ -27,21 +27,17 @@ void main() {
   late Isar isar;
   late CatalogLocalDatasource datasource;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('catalog_local_');
-    isar = await Isar.open(
-      [LouvorCacheSchema, OfflinePdfIndexSchema],
+    isar = Isar.open(schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
       directory: tempDir.path,
     );
     datasource = CatalogLocalDatasource(isar);
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -51,13 +47,13 @@ void main() {
     await datasource.saveLouvores([
       _sampleLouvor(pdfId: 'id-1', numero: '001'),
     ]);
-    expect(await isar.louvorCaches.count(), 1);
+    expect(isar.louvorCaches.count(), 1);
 
     await datasource.saveLouvores([
       _sampleLouvor(pdfId: 'id-2', numero: '002'),
       _sampleLouvor(pdfId: 'id-3', numero: '003'),
     ]);
-    expect(await isar.louvorCaches.count(), 2);
+    expect(isar.louvorCaches.count(), 2);
   });
 
   test('loadLouvores retorna entidades de domínio', () async {

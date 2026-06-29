@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 part 'carousel_entry.g.dart';
 
@@ -7,7 +7,7 @@ part 'carousel_entry.g.dart';
 /// [sortOrder] define a posição na seleção; [pdfId] referencia o louvor.
 @Collection()
 class CarouselEntry {
-  Id id = Isar.autoIncrement;
+  int id = 0;
 
   @Index(unique: true)
   late String pdfId;

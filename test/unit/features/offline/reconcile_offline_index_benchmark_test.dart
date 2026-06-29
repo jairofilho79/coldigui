@@ -5,7 +5,7 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
@@ -17,16 +17,12 @@ void main() {
   late OfflinePdfRepositoryImpl repository;
   late ReconcileOfflineIndex useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('reconcile_bench_');
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineTestIsar(tempDir);
+    isar = openOfflineTestIsar(tempDir);
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -38,7 +34,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

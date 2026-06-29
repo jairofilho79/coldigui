@@ -7,7 +7,7 @@ import 'package:coldigui/features/carousel/data/repositories/carousel_repository
 import 'package:coldigui/features/leaflet/domain/usecases/generate_leaflet_from_selection.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_carousel_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
@@ -15,14 +15,10 @@ void main() {
   late CarouselRepositoryImpl carouselRepository;
   late GenerateLeafletFromSelection useCase;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('leaflet_uc08_');
-    isar = await Isar.open(
-      [CarouselEntrySchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema],
       directory: tempDir.path,
     );
     carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
@@ -30,7 +26,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }

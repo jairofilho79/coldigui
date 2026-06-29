@@ -14,8 +14,8 @@ class OfflineManifestRemoteDatasource {
   OfflineManifestRemoteDatasource(
     this._dio,
     this._prefs, {
-    Future<OfflineManifest> Function()? networkOverride,
-  }) : _networkOverride = networkOverride;
+    this._networkOverride,
+  });
 
   static const _cacheTtl = Duration(hours: 24);
 

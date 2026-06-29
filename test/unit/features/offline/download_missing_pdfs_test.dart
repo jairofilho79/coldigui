@@ -12,7 +12,7 @@ import 'package:coldigui/features/offline/domain/usecases/download_missing_pdfs.
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
@@ -23,17 +23,18 @@ Future<void> _seedCatalogLouvor(
   required String pdfId,
   String categoria = CatalogMaterials.partitura,
 }) async {
-  await isar.writeTxn(() async {
-    await isar.louvorCaches.put(
-      LouvorCache()
-        ..pdfId = pdfId
-        ..nome = 'Teste'
-        ..numero = '001'
-        ..categoria = categoria
-        ..classificacao = 'ColAdultos'
-        ..pdf = '001.pdf'
-        ..groupId = '001:teste',
-    );
+  isar.write((isar) {
+    final coll = isar.louvorCaches;
+    final entry = LouvorCache()
+      ..pdfId = pdfId
+      ..nome = 'Teste'
+      ..numero = '001'
+      ..categoria = categoria
+      ..classificacao = 'ColAdultos'
+      ..pdf = '001.pdf'
+      ..groupId = '001:teste';
+    entry.id = coll.autoIncrement();
+    coll.put(entry);
   });
 }
 
@@ -109,14 +110,11 @@ void main() {
   late String pdfId2;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     pdfId1 = encodePdfId('ColAdultos/a.pdf');
     pdfId2 = encodePdfId('ColAdultos/b.pdf');
   });
 
-  Future<DownloadMissingPdfs> buildUseCase(
-    PdfBytesDatasource bytesDatasource,
-  ) {
+  Future<DownloadMissingPdfs> buildUseCase(PdfBytesDatasource bytesDatasource) {
     return Future.value(
       DownloadMissingPdfs(
         catalogLocal,
@@ -131,7 +129,7 @@ void main() {
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = await openOfflineCatalogTestIsar(tempDir);
+    isar = openOfflineCatalogTestIsar(tempDir);
     final store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
@@ -146,7 +144,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -172,8 +170,9 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result =
-        await useCase(materialCategories: {CatalogMaterials.partitura});
+    final result = await useCase(
+      materialCategories: {CatalogMaterials.partitura},
+    );
 
     expect(result.skippedCount, 1);
     expect(result.downloadedCount, 1);
@@ -186,8 +185,9 @@ void main() {
     final catalogOnlyId = encodePdfId('ColAdultos/only-catalog.pdf');
     await _seedCatalogLouvor(isar, pdfId: catalogOnlyId);
 
-    final result =
-        await useCase(materialCategories: {CatalogMaterials.partitura});
+    final result = await useCase(
+      materialCategories: {CatalogMaterials.partitura},
+    );
 
     expect(result.downloadedCount, 1);
     expect(result.failedCount, 0);
@@ -227,8 +227,9 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result =
-        await useCase(materialCategories: {CatalogMaterials.partitura});
+    final result = await useCase(
+      materialCategories: {CatalogMaterials.partitura},
+    );
 
     expect(result.skippedCount, 2);
     expect(result.downloadedCount, 0);
@@ -244,8 +245,9 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result =
-        await useCase(materialCategories: {CatalogMaterials.partitura});
+    final result = await useCase(
+      materialCategories: {CatalogMaterials.partitura},
+    );
 
     expect(result.skippedCount, 0);
     expect(result.downloadedCount, 2);

@@ -13,7 +13,7 @@ import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart'
 import 'package:coldigui/features/offline/domain/usecases/get_offline_stats_by_category.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'dart:io';
 
 class _StubIsar implements Isar {

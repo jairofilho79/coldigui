@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 class _StubSyncDeepLinkState extends SyncDeepLinkState {
   _StubSyncDeepLinkState(this._result, ImportSharedPlaylistFromUrl import)
@@ -51,10 +51,8 @@ void main() {
   late ImportSharedPlaylistFromUrl importUseCase;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
     final dir = await Directory.systemTemp.createTemp('deep_link_widget_');
-    final isar = await Isar.open(
-      [CarouselEntrySchema, PlaylistSchema],
+    final isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: dir.path,
     );
     final carouselRepository =

@@ -6,7 +6,7 @@ import 'package:coldigui/features/carousel/data/repositories/carousel_repository
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/domain/usecases/add_louvor_to_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
@@ -14,14 +14,10 @@ void main() {
   late CarouselRepositoryImpl repository;
   late CarouselLocalDatasource datasource;
 
-  setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
-  });
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('carousel_repo_');
-    isar = await Isar.open(
-      [CarouselEntrySchema],
+    isar = Isar.open(schemas: [CarouselEntrySchema],
       directory: tempDir.path,
     );
     datasource = CarouselLocalDatasource(isar);
@@ -29,7 +25,7 @@ void main() {
   });
 
   tearDown(() async {
-    await isar.close(deleteFromDisk: true);
+    isar.close(deleteFromDisk: true);
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
