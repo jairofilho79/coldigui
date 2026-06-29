@@ -13,8 +13,8 @@
 | Situação | Detalhe |
 |----------|---------|
 | Deps descontinuadas (diretas) | **Nenhuma** |
-| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx` |
-| Backlog real | 6 upgrades major/dev listados abaixo |
+| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15) |
+| Backlog real | 4 upgrades major pendentes (plus_plugins, go_router, riverpod) |
 | Ordem | lints → build_runner → plus_plugins → go_router → riverpod |
 
 ---
@@ -84,13 +84,13 @@
 ## Ordem de execução recomendada
 
 ```text
-Onda 1 — dev toolchain (~½ dia)
-  PR-A: flutter_lints 6
-  PR-B: build_runner 2.15 + regen isar .g.dart
+Onda 1 — dev toolchain (~½ dia) ✅
+  PR-A: flutter_lints 6          (commit 99894a7)
+  PR-B: build_runner 2.15        (commit 3e659b3)
 
-Onda 2 — plus_plugins (~1 dia)
+Onda 2 — plus_plugins (~1 dia)   ← PRÓXIMA
   PR-C: connectivity_plus 7 + share_plus 13
-        (mesmo PR permitido — mesmo ecossistema, superfícies pequenas)
+        (mesmo PR/commit permitido — mesmo ecossistema, superfícies pequenas)
 
 Onda 3 — roteamento (~2–3 dias)
   PR-D: go_router 17 (incremental 14→15→16→17 se necessário)
@@ -123,11 +123,13 @@ Onda 4 — estado (~3–5 dias)
 ### Antes de entregar
 
 ```bash
-dart run build_runner build --delete-conflicting-outputs   # Onda 1-B e quando houver .g.dart
+dart run build_runner build                    # quando houver .g.dart (ver nota Onda 1-B)
 flutter analyze
-flutter test
+flutter test -j 1                              # Isar — ver ADR-001
 flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json   # se tocar plugin nativo
 ```
+
+**Onda 2:** `connectivity_plus` e `share_plus` são plugins nativos — incluir build iOS simulador na verificação.
 
 ### O que **não** fazer
 
@@ -193,15 +195,50 @@ Codegen via `isar_plus` — **não** há `riverpod_generator` no projeto hoje.
 ### Critérios de aceite
 
 - [x] Diff dos `.g.dart` vazio ou trivial (sem mudança de schema)
-- [x] `flutter test` verde
+- [x] `flutter test` verde (553 testes, jun/2026)
 - [x] `isar_plus` smoke test passa (`test/unit/core/database/isar_smoke_test.dart`)
+
+### Notas pós-implementação
+
+- `build_runner` 2.15 **removeu** a flag `--delete-conflicting-outputs` (ignorada com warning). Usar apenas `dart run build_runner build`.
+- Regen com `isar_plus` 1.3.7 produziu **diff vazio** nos 4 `.g.dart` — schemas já estavam alinhados.
+- Correção colateral em `carousel_selection_sheet_test.dart` (drag pelo `Icons.drag_indicator`) — incluída no commit 1-B.
 
 ---
 
 ## Onda 2 — `connectivity_plus` 6 → 7 + `share_plus` 10 → 13
 
+**Status:** pendente — **próxima onda para agentes**  
 **Prioridade:** 3ª  
 **Esforço:** baixo-médio | **Risco:** baixo-médio | **Benefício:** patches de plataforma, ecossistema `fluttercommunity/plus_plugins` atual
+
+### Baseline (jun/2026, pós-Onda 1)
+
+| Item | Valor |
+|------|-------|
+| Flutter / Dart | 3.44.4 / 3.12.2 |
+| `connectivity_plus` | `^6.1.4` (lock ~6.1.5) |
+| `share_plus` | `^10.1.4` |
+| Suite de testes | 553 testes, `flutter test -j 1` verde |
+| Android toolchain | Gradle 8.14, Kotlin 2.2.20 — compatível com requisitos do connectivity_plus 7 |
+
+### Escopo `pubspec.yaml`
+
+```yaml
+connectivity_plus: ^7.2.0   # ou última 7.x estável
+share_plus: ^13.2.0         # ou última 13.x estável
+```
+
+Bump **apenas** estes dois pacotes. Não tocar `go_router`, `flutter_riverpod`, nem outras deps.
+
+### Ordem sugerida de implementação
+
+1. `flutter pub get` — resolver conflitos antes de codar.
+2. **`connectivity_plus` 7** — conferir API Dart (`checkConnectivity`, `ConnectivityResult`); ajustar portas se o analyzer acusar breaks.
+3. **`share_plus` 13** — migrar chamadas estáticas `Share.*` → `SharePlus.instance.share(ShareParams(...))`.
+4. Atualizar testes e typedefs injetáveis.
+5. `cd ios && pod install` após `flutter pub get` (plugins nativos).
+6. Verificação completa (abaixo) + commit local.
 
 ### `connectivity_plus` — arquivos principais
 
@@ -212,9 +249,13 @@ Codegen via `isar_plus` — **não** há `riverpod_generator` no projeto hoje.
 | `lib/features/pdf_reader/data/datasources/connectivity_network_connection_checker.dart` | `NetworkConnectionChecker` — prefetch |
 | `test/unit/features/pdf_reader/prefetch_network_policy_test.dart` | Testes |
 
-**Favorável:** portas de domínio (`DeviceConnectivity`, `NetworkConnectionChecker`) já isolam o pacote. `ConnectivityResult` usa `switch` exaustivo (incl. `satellite`).
+**Favorável:** portas de domínio (`DeviceConnectivity`, `NetworkConnectionChecker`) já isolam o pacote. `ConnectivityResult` usa `switch` exaustivo (incl. `satellite`) em `lib/features/pdf_reader/data/datasources/connectivity_network_connection_checker.dart`.
 
-**Conferir no changelog v7:** assinaturas de `checkConnectivity`, enum `ConnectivityResult`, listeners/stream se forem adotados depois.
+**Conferir no changelog v7:**
+
+- API Dart de `checkConnectivity` e enum `ConnectivityResult` (pode não mudar — validar com `flutter analyze`).
+- **Android (breaking v7):** AGP ≥ 8.12.1, Gradle ≥ 8.13, Kotlin ≥ 2.2.0 — projeto já atende (Gradle 8.14, Kotlin 2.2.20).
+- Não é necessário alterar Gradle/Kotlin salvo falha de build Android.
 
 ### `share_plus` — arquivos principais
 
@@ -228,13 +269,72 @@ Codegen via `isar_plus` — **não** há `riverpod_generator` no projeto hoje.
 | `test/unit/features/pdf_opening/share_pdf_test.dart` | Testes |
 | `test/unit/features/playlists/playlist_share_actions_test.dart` | Testes |
 
-**Breaking provável (v11+):** migração de `Share.share` / `Share.shareXFiles` estáticos para instância `SharePlus`. `SharePdf` já aceita `ShareXFilesFn` injetável — usar para facilitar testes.
+**Breaking (v11+):** API estática `Share.share` / `Share.shareXFiles` deprecada em favor de `SharePlus.instance.share(ShareParams(...))`.
+
+**Pontos de chamada direta a `Share.*` (migrar todos):**
+
+| Arquivo | Uso atual |
+|---------|-----------|
+| `lib/features/pdf_opening/domain/usecases/share_pdf.dart` | default `Share.shareXFiles` no construtor |
+| `lib/features/playlists/presentation/providers/playlist_share_actions_provider.dart` | `_defaultShare`, `_defaultShareXFiles` |
+| `lib/features/playlists/presentation/providers/playlists_provider.dart` | default `Share.share` em `sharePlaylist` |
+| `lib/features/leaflet/presentation/providers/leaflet_actions_provider.dart` | `_defaultShareXFiles` |
+
+**Padrão de migração:**
+
+```dart
+// Antes
+Share.share(url, subject: subject, sharePositionOrigin: origin);
+Share.shareXFiles(files, subject: subject, text: text, sharePositionOrigin: origin);
+
+// Depois
+SharePlus.instance.share(ShareParams(
+  text: url,
+  subject: subject,
+  sharePositionOrigin: origin,
+));
+SharePlus.instance.share(ShareParams(
+  files: files,
+  subject: subject,
+  text: text,
+  sharePositionOrigin: origin,
+));
+```
+
+**Testes:** manter typedefs injetáveis (`ShareXFilesFn`, `ShareFn` em playlists) — defaults passam a usar `SharePlus.instance.share`. Não remover `sharePositionOrigin`; obrigatório no iOS/iPadOS (`lib/core/utils/share_position_origin.dart`).
+
+**iOS 26+:** `sharePositionOrigin` não pode ser `Rect.zero` — o projeto já usa `sharePositionOriginFromContext*`. Conferir smoke em simulador após o bump.
+
+### Verificação (Onda 2)
+
+```bash
+flutter pub get
+cd ios && pod install && cd ..
+flutter analyze
+flutter test -j 1 test/unit/features/pdf_reader/prefetch_network_policy_test.dart
+flutter test -j 1 test/unit/features/pdf_opening/share_pdf_test.dart
+flutter test -j 1 test/unit/features/playlists/playlist_share_actions_test.dart
+flutter test -j 1
+flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json
+```
+
+Smoke manual (simulador/dispositivo): share de PDF (UC-04), link de playlist (UC-07), folheto PNG (UC-08).
+
+### Commit sugerido
+
+```text
+chore(deps): connectivity_plus 7 and share_plus 13
+```
+
+Um único commit na branch atual (sem criar branch). `git add` seletivo — só arquivos desta onda + `pubspec.lock` + `ios/Podfile.lock` se mudar.
 
 ### Critérios de aceite
 
 - [ ] Share de PDF, playlist e leaflet funciona em dispositivo/simulador
 - [ ] Política de prefetch respeita conectividade (`prefetch_network_policy_test`)
-- [ ] `flutter test` verde nos arquivos listados
+- [ ] `flutter analyze` sem issues
+- [ ] `flutter test -j 1` verde (suite completa)
+- [ ] Build iOS simulador sem erros de plugin
 
 ---
 
@@ -354,8 +454,11 @@ flutter --version
 # Análise estática
 flutter analyze
 
-# Suite de testes
-flutter test
+# Suite de testes (Isar exige -j 1)
+flutter test -j 1
+
+# Regenerar codegen Isar (pós-Onda 1-B)
+dart run build_runner build
 ```
 
 ---

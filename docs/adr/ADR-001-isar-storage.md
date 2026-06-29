@@ -41,7 +41,7 @@ Usar **isar_plus** (fork mantido do Isar) para metadados estruturados e índice 
 
 ## Consequências
 
-- Passo de CI: `dart run build_runner build`
+- Passo de CI: `dart run build_runner build` (sem `--delete-conflicting-outputs` — removido no build_runner 2.15)
 - `core/database/isar_provider.dart` inicializa Isar no boot
 - Testes: `test/flutter_test_config.dart` baixa/compila binário nativo em `.dart_tool/isar_plus_test/`; rodar `flutter test -j 1`
 - SharedPreferences apenas para flags leves (`OFFLINE_AVAILABLE`, prefs do leitor)

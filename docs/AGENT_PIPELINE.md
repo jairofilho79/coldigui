@@ -50,4 +50,4 @@ Fora do MVP. OpSec varre secrets em todo o projeto; revisão JWT só quando `Fea
 | [docs/use-cases/](use-cases/) | UCs 01–14 |
 | [MAPEAMENTO_PLPCG_FLUTTER.md](../MAPEAMENTO_PLPCG_FLUTTER.md) | Mapeamento PWA → Flutter |
 | [MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) | Migrações de deps nativas (SPM) — Fases A/B/C concluídas |
-| [DEP_UPGRADE_BACKLOG.md](DEP_UPGRADE_BACKLOG.md) | Upgrades major Dart/Flutter (lints, build_runner, plus_plugins, go_router, riverpod) |
+| [DEP_UPGRADE_BACKLOG.md](DEP_UPGRADE_BACKLOG.md) | Upgrades major Dart/Flutter — **Onda 2 pendente** (plus_plugins) |
