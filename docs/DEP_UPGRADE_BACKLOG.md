@@ -1,6 +1,6 @@
 # Backlog de upgrades de dependências (Dart/Flutter)
 
-**Status:** inventário concluído (jun/2026) — Ondas 1–2 ✅ — Ondas 3–4 pendentes  
+**Status:** inventário concluído (jun/2026) — Ondas 1–3 ✅ — Onda 4 pendente  
 **Data:** junho de 2026  
 **Contexto:** auditoria pós-migração SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) Fases A/B/C concluídas). Nenhuma dependência **direta** está marcada `isDiscontinued` no pub.dev; o backlog é de **modernização major**, não de substituição por abandono.
 
@@ -13,8 +13,8 @@
 | Situação | Detalhe |
 |----------|---------|
 | Deps descontinuadas (diretas) | **Nenhuma** |
-| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15), Onda 2 (`connectivity_plus` 7, `share_plus` 13) |
-| Backlog real | 2 upgrades major pendentes (`go_router`, `riverpod`) |
+| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15), Onda 2 (`connectivity_plus` 7, `share_plus` 13), Onda 3 (`go_router` 17) |
+| Backlog real | 1 upgrade major pendente (`riverpod`) |
 | Ordem | lints → build_runner → plus_plugins → go_router → riverpod |
 
 ---
@@ -26,7 +26,7 @@
 | `archive` | 4.0.x | 4.0.9 | Não | Ativa |
 | `dio` | 5.9.x | 5.10.0 | Não | Ativa |
 | `flutter_riverpod` | 2.6.1 | 3.3.2 | Não | Major 3 pendente |
-| `go_router` | 14.8.x | 17.3.0 | Não | 3 majors atrás |
+| `go_router` | 17.3.x | 17.3.0 | Não | Onda 3 ✅ |
 | `isar_plus` | 1.3.7 | 1.3.7 | Não | Substituição do `isar` ✅ |
 | `isar_plus_flutter_libs` | 1.3.7 | 1.3.7 | Não | Idem |
 | `path_provider` | 2.1.6 | 2.1.6 | Não | Atual |
@@ -91,10 +91,10 @@ Onda 1 — dev toolchain (~½ dia) ✅
 Onda 2 — plus_plugins (~1 dia) ✅
   PR-C: connectivity_plus 7 + share_plus 13  (commit d7053c0)
 
-Onda 3 — roteamento (~2–3 dias)   ← PRÓXIMA
-  PR-D: go_router 17 (incremental 14→15→16→17 se necessário)
+Onda 3 — roteamento (~2–3 dias) ✅
+  PR-D: go_router 17 (salto direto 14→17)  (commit ccc93d0)
 
-Onda 4 — estado (~3–5 dias)
+Onda 4 — estado (~3–5 dias)   ← PRÓXIMA
   PR-E: flutter_riverpod 3
         riverpod_generator: PR separado, opcional depois
 ```
@@ -347,9 +347,25 @@ Um único commit na branch atual (sem criar branch). `git add` seletivo — só 
 
 ## Onda 3 — `go_router` 14 → 17
 
-**Status:** pendente — **próxima onda para agentes**  
+**Status:** concluída (jun/2026)  
 **Prioridade:** 4ª  
 **Esforço:** médio | **Risco:** alto | **Benefício:** correções shell routing, API de redirect
+
+### Baseline (jun/2026, pós-Onda 2)
+
+| Item | Valor |
+|------|-------|
+| Flutter / Dart | 3.44.4 / 3.12.2 |
+| `go_router` | `^14.6.2` (lock ~14.8.1) |
+| Suite de testes | 553 testes, `flutter test -j 1` verde |
+
+### Escopo `pubspec.yaml`
+
+```yaml
+go_router: ^17.3.0
+```
+
+Bump **apenas** este pacote. Não tocar `flutter_riverpod`, plugins nativos, nem outras deps.
 
 ### Arquivos principais
 
@@ -377,11 +393,19 @@ DeepLinkListener → GoRouter → StatefulShellRoute
 
 ### Critérios de aceite
 
-- [ ] Deep links UC-14 funcionam
-- [ ] Troca de abas na bottom bar (`goToShellDestination`)
-- [ ] Abrir/fechar leitor via carousel e busca
-- [ ] Query params da biblioteca (`materiais`, `arranjo`, paginação) preservados
-- [ ] `flutter test` verde nos testes de routing listados
+- [ ] Deep links UC-14 funcionam em dispositivo/simulador (smoke manual — recomendado antes de release)
+- [x] Troca de abas na bottom bar (`goToShellDestination`) — coberto por `pdf_offline_error_ui_test`
+- [x] Abrir/fechar leitor via carousel e busca — coberto por `carousel_chips_test`, `louvor_card_share_save_test`, `playlist_list_tile_test`
+- [x] Query params da biblioteca (`materiais`, `arranjo`, paginação) preservados — sem alteração de código; sync URL inalterado
+- [x] `flutter analyze` sem issues
+- [x] `flutter test` verde nos testes de routing listados (33 widget + suite 553)
+- [x] Nenhuma alteração de código em `lib/` — API Dart compatível no salto 14→17
+
+### Notas pós-implementação
+
+- Salto direto **14.8.1 → 17.3.0** — sem passos intermediários nem mudanças em `app_router.dart` ou navegação (commit `ccc93d0`).
+- Breaking changes 15 (case-sensitive URLs), 16 (`GoRouteData`), 17 (`notifyRootObserver`) sem impacto: rotas minúsculas, sem codegen, sem `NavigatorObserver` customizado.
+- Smoke manual em dispositivo (deep link playlist, fullscreen leitor) pendente de validação humana antes de release.
 
 ---
 
