@@ -1,6 +1,6 @@
 # Backlog de upgrades de dependências (Dart/Flutter)
 
-**Status:** inventário concluído (jun/2026) — Onda 1-A ✅ — Ondas 1-B e 2–4 pendentes  
+**Status:** inventário concluído (jun/2026) — Onda 1 ✅ — Ondas 2–4 pendentes  
 **Data:** junho de 2026  
 **Contexto:** auditoria pós-migração SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) Fases A/B/C concluídas). Nenhuma dependência **direta** está marcada `isDiscontinued` no pub.dev; o backlog é de **modernização major**, não de substituição por abandono.
 
@@ -42,7 +42,7 @@
 
 | Pacote | Versão no projeto | Última pub.dev | Neste backlog? |
 |--------|-------------------|----------------|----------------|
-| `build_runner` | 2.4.x | 2.15.0 | Sim — Onda 1 |
+| `build_runner` | 2.15.0 | 2.15.0 | Sim — Onda 1 ✅ |
 | `flutter_launcher_icons` | 0.14.x | 0.14.4 | Não (dev-only, estável) |
 | `flutter_lints` | 6.0.0 | 6.0.0 | Sim — Onda 1 ✅ |
 
@@ -168,8 +168,9 @@ flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json   
 
 ---
 
-## Onda 1-B — `build_runner` 2.4 → 2.15
+## Onda 1-B — `build_runner` 2.4 → 2.15 ✅
 
+**Status:** concluída (jun/2026)  
 **Prioridade:** 2ª  
 **Esforço:** muito baixo | **Risco:** médio-baixo | **Benefício:** toolchain dev atual
 
@@ -191,9 +192,9 @@ Codegen via `isar_plus` — **não** há `riverpod_generator` no projeto hoje.
 
 ### Critérios de aceite
 
-- [ ] Diff dos `.g.dart` vazio ou trivial (sem mudança de schema)
-- [ ] `flutter test` verde
-- [ ] `isar_plus` smoke test passa (`test/unit/core/database/isar_smoke_test.dart`)
+- [x] Diff dos `.g.dart` vazio ou trivial (sem mudança de schema)
+- [x] `flutter test` verde
+- [x] `isar_plus` smoke test passa (`test/unit/core/database/isar_smoke_test.dart`)
 
 ---
 

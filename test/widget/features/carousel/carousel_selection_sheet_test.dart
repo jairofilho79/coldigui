@@ -68,9 +68,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(() => notifier),
-        ],
+        overrides: [carouselLouvoresProvider.overrideWith(() => notifier)],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -83,12 +81,14 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find
-        .descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byIcon(Icons.close),
-        )
-        .first);
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byIcon(Icons.close),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
 
     expect(notifier.removed, ['a']);
@@ -99,9 +99,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(() => notifier),
-        ],
+        overrides: [carouselLouvoresProvider.overrideWith(() => notifier)],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -114,7 +112,14 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.textContaining('Louvor A'), const Offset(0, 80));
+    final dragHandle = find.descendant(
+      of: find.ancestor(
+        of: find.textContaining('Louvor A'),
+        matching: find.byType(ReorderableDragStartListener),
+      ),
+      matching: find.byIcon(Icons.drag_indicator),
+    );
+    await tester.drag(dragHandle, const Offset(0, 120));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -127,8 +132,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(_items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(_items),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -163,8 +169,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(_items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(_items),
+          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
