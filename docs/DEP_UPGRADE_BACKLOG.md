@@ -92,7 +92,7 @@ Onda 2 — plus_plugins (~1 dia) ✅
   PR-C: connectivity_plus 7 + share_plus 13  (commit d7053c0)
 
 Onda 3 — roteamento (~2–3 dias) ✅
-  PR-D: go_router 17 (salto direto 14→17)  (commit ccc93d0)
+  PR-D: go_router 17 (salto direto 14→17)  (commit 7bb929b)
 
 Onda 4 — estado (~3–5 dias)   ← PRÓXIMA
   PR-E: flutter_riverpod 3
@@ -403,7 +403,7 @@ DeepLinkListener → GoRouter → StatefulShellRoute
 
 ### Notas pós-implementação
 
-- Salto direto **14.8.1 → 17.3.0** — sem passos intermediários nem mudanças em `app_router.dart` ou navegação (commit `ccc93d0`).
+- Salto direto **14.8.1 → 17.3.0** — sem passos intermediários nem mudanças em `app_router.dart` ou navegação (commit `7bb929b`).
 - Breaking changes 15 (case-sensitive URLs), 16 (`GoRouteData`), 17 (`notifyRootObserver`) sem impacto: rotas minúsculas, sem codegen, sem `NavigatorObserver` customizado.
 - Smoke manual em dispositivo (deep link playlist, fullscreen leitor) pendente de validação humana antes de release.
 
