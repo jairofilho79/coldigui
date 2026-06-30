@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,19 +30,24 @@ class PdfReaderDisplayedPageNotifier extends Notifier<int> {
 
   @override
   int build() {
-    ref.listen(pdfReaderSessionProvider(filePath), (_, next) {
-      next.whenData(_attachToSession);
-    });
-
-    ref.watch(pdfReaderSessionProvider(filePath)).whenData(_attachToSession);
-
     ref.onDispose(_detach);
 
-    final session = ref.watch(pdfReaderSessionProvider(filePath)).value;
-    if (session != null && session.handle.isViewerReady) {
-      return session.handle.page;
-    }
-    return 1;
+    ref.listen(pdfReaderSessionProvider(filePath), (_, next) {
+      next.whenData(_attachToSession);
+    }, fireImmediately: true);
+
+    final sessionAsync = ref.read(pdfReaderSessionProvider(filePath));
+    return sessionAsync.when(
+      data: (session) {
+        _attachToSession(session);
+        if (session.handle.isViewerReady) {
+          return session.handle.page;
+        }
+        return 1;
+      },
+      loading: () => 1,
+      error: (_, _) => 1,
+    );
   }
 
   PdfReaderLoadingState get loadingState =>
@@ -67,16 +74,27 @@ class PdfReaderDisplayedPageNotifier extends Notifier<int> {
     _animating = true;
     _suppressLiveUpdates = true;
     try {
-      await handle.animateToPage(pageNumber: pageNumber, duration: duration);
+      await handle
+          .animateToPage(pageNumber: pageNumber, duration: duration)
+          .timeout(duration + const Duration(seconds: 2));
       state = pageNumber;
+    } on TimeoutException {
+      _syncStateFromHandle();
     } finally {
       _suppressLiveUpdates = false;
       _animating = false;
+      _syncStateFromHandle();
     }
   }
 
+  void _syncStateFromHandle() {
+    final handle = _handle;
+    if (handle == null || !handle.isViewerReady) return;
+    state = handle.page;
+  }
+
   void _attachToSession(PdfReaderSession session) {
-    if (identical(_handle, session.handle)) return;
+    if (identical(_handle, session.handle) && _pageListener != null) return;
     _detach();
 
     _handle = session.handle;
@@ -97,6 +115,10 @@ class PdfReaderDisplayedPageNotifier extends Notifier<int> {
       }
     };
     _handle!.loadingState.addListener(_loadingStateListener!);
+
+    if (!_suppressLiveUpdates && !_animating && session.handle.isViewerReady) {
+      state = session.handle.page;
+    }
   }
 
   void _detach() {
