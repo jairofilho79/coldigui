@@ -2,6 +2,7 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
@@ -199,10 +200,12 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final pdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
     final l10n = AppLocalizations.of(context);
 
+    final carouselEmpty = ref.watch(carouselLouvoresProvider).isEmpty;
+
     if (filePath.trim().isEmpty) {
       return _ReaderScaffold(
         titulo: titulo,
-        showTitle: true,
+        showTitle: carouselEmpty,
         body: const _ReaderMessage(message: 'Parâmetro file ausente na URL'),
       );
     }
@@ -242,7 +245,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
 
     return _ReaderScaffold(
       titulo: titulo,
-      showTitle: sessionLoading,
+      showTitle: sessionLoading && carouselEmpty,
       isFullscreen: isFullscreen,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
