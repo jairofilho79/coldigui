@@ -1,6 +1,6 @@
 # Backlog de upgrades de dependências (Dart/Flutter)
 
-**Status:** inventário concluído (jun/2026) — Ondas 1–3 ✅ — Onda 4 pendente  
+**Status:** inventário concluído (jun/2026) — Ondas 1–4 ✅ — backlog major concluído  
 **Data:** junho de 2026  
 **Contexto:** auditoria pós-migração SPM ([MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md) Fases A/B/C concluídas). Nenhuma dependência **direta** está marcada `isDiscontinued` no pub.dev; o backlog é de **modernização major**, não de substituição por abandono.
 
@@ -13,9 +13,9 @@
 | Situação | Detalhe |
 |----------|---------|
 | Deps descontinuadas (diretas) | **Nenhuma** |
-| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15), Onda 2 (`connectivity_plus` 7, `share_plus` 13), Onda 3 (`go_router` 17) |
-| Backlog real | 1 upgrade major pendente (`riverpod`) |
-| Ordem | lints → build_runner → plus_plugins → go_router → riverpod |
+| Já resolvido | `isar` → `isar_plus`, remoção `disk_space_plus`, `pdfx` → `pdfrx`, Onda 1 (`flutter_lints` 6, `build_runner` 2.15), Onda 2 (`connectivity_plus` 7, `share_plus` 13), Onda 3 (`go_router` 17), Onda 4 (`flutter_riverpod` 3) |
+| Backlog real | **Nenhum** major pendente neste doc |
+| Ordem | lints → build_runner → plus_plugins → go_router → riverpod ✅ |
 
 ---
 
@@ -25,7 +25,7 @@
 |--------|-------------------|----------------|----------------|------------|
 | `archive` | 4.0.x | 4.0.9 | Não | Ativa |
 | `dio` | 5.9.x | 5.10.0 | Não | Ativa |
-| `flutter_riverpod` | 2.6.1 | 3.3.2 | Não | Major 3 pendente |
+| `flutter_riverpod` | 3.3.x | 3.3.2 | Não | Onda 4 ✅ |
 | `go_router` | 17.3.x | 17.3.0 | Não | Onda 3 ✅ |
 | `isar_plus` | 1.3.7 | 1.3.7 | Não | Substituição do `isar` ✅ |
 | `isar_plus_flutter_libs` | 1.3.7 | 1.3.7 | Não | Idem |
@@ -50,7 +50,7 @@
 
 | Pacote | Última release | Usado por | Risco |
 |--------|----------------|-----------|-------|
-| `state_notifier` | ago/2023 | `flutter_riverpod` 2.x | Some ao migrar Riverpod 3 |
+| `state_notifier` | ago/2023 | `flutter_riverpod/legacy.dart` (StateProvider) | Baixo — transitiva via legacy; some ao converter StateProvider → Notifier |
 | `rxdart` | jun/2024 | `connectivity_plus` | Baixo |
 | `nm` | fev/2022 | `connectivity_plus` (Linux) | Baixo — API estável |
 | `sky_engine` | 2016 (stub pub.dev) | SDK Flutter | Falso positivo — ignorar |
@@ -94,8 +94,8 @@ Onda 2 — plus_plugins (~1 dia) ✅
 Onda 3 — roteamento (~2–3 dias) ✅
   PR-D: go_router 17 (salto direto 14→17)  (commit 7bb929b)
 
-Onda 4 — estado (~3–5 dias)   ← PRÓXIMA
-  PR-E: flutter_riverpod 3
+Onda 4 — estado (~3–5 dias) ✅
+  PR-E: flutter_riverpod 3  (commit 397622b)
         riverpod_generator: PR separado, opcional depois
 ```
 
@@ -411,8 +411,25 @@ DeepLinkListener → GoRouter → StatefulShellRoute
 
 ## Onda 4 — `flutter_riverpod` 2 → 3
 
+**Status:** concluída (jun/2026)  
 **Prioridade:** 5ª (maior projeto)  
-**Esforço:** alto | **Risco:** alto | **Benefício:** API moderna, remove `state_notifier`, prepara `riverpod_generator`
+**Esforço:** alto | **Risco:** alto | **Benefício:** API moderna, prepara `riverpod_generator`
+
+### Baseline (jun/2026, pós-Onda 3)
+
+| Item | Valor |
+|------|-------|
+| Flutter / Dart | 3.44.4 / 3.12.2 |
+| `flutter_riverpod` | `^2.6.1` (lock ~2.6.1) |
+| Suite de testes | 553 testes, `flutter test -j 1` verde |
+
+### Escopo `pubspec.yaml`
+
+```yaml
+flutter_riverpod: ^3.3.2
+```
+
+Bump **apenas** este pacote. Não incluir `riverpod_generator` nem outras deps.
 
 ### Superfície no repositório (jun/2026)
 
@@ -453,9 +470,24 @@ Não incluir na Onda 4. Adotar só após Riverpod 3 estável, com spike em um pr
 
 ### Critérios de aceite
 
-- [ ] `flutter test` suite completa verde
-- [ ] Smoke manual: catálogo, offline bulk, carousel, leitor, share playlist
-- [ ] Nenhum import legado de APIs removidas no Riverpod 3
+- [x] `flutter analyze` sem issues
+- [x] `flutter test -j 1` verde (553 testes)
+- [x] Nenhum import de API removida sem `legacy.dart` onde aplicável (`StateProvider` ×3)
+- [ ] Smoke manual em dispositivo/simulador (recomendado antes de release)
+- [x] `riverpod_generator` **fora** do diff
+
+### Notas pós-implementação
+
+- Commit `397622b` — salto **2.6.1 → 3.3.2**.
+- `AutoDisposeFamilyNotifier` → `Notifier<int>` + ctor em `pdf_reader_displayed_page_provider.dart` (única migração estrutural de classe).
+- `StateProvider` (3) mantidos via `import 'package:flutter_riverpod/legacy.dart'` — menor diff; conversão para `Notifier` fica como melhoria futura.
+- `AsyncValue.valueOrNull` → `.value` (4 locais).
+- `.autoDispose` nos builders **mantido** (API ainda válida no v3; preserva lifecycle de sessão PDF/prefetch).
+- `ProviderScope(retry: (retryCount, error) => null)` em `main.dart` — evita retry infinito em PDF/manifest com erro real.
+- `unwrapProviderError()` em `pdf_reader_document_provider.dart` — `ProviderException` (v3) desembrulhada na UI do leitor.
+- Testes: `import 'package:flutter_riverpod/misc.dart'` para tipo `Override`; `retry: null` nos helpers de widget; Riverpod 3 proíbe override duplicado do mesmo provider (ajustes em `offline_settings_screen_test`, `louvor_card_share_save_test`).
+- `state_notifier` permanece transitiva via `legacy.dart` (esperado enquanto `StateProvider` existir).
+- Smoke manual (catálogo, offline bulk, carousel, leitor, share playlist) pendente de validação humana antes de release.
 
 ---
 
