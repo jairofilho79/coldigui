@@ -82,8 +82,37 @@ class PdfReaderViewerHandle {
     Curve curve = Curves.easeInOut,
   }) async {
     if (_disposed || !isViewerReady) return;
-    await viewerController.goToPage(pageNumber: pageNumber, duration: duration);
-    pageListenable.value = pageNumber;
+    try {
+      await viewerController
+          .goToPage(pageNumber: pageNumber, duration: duration)
+          .timeout(duration + const Duration(seconds: 2));
+    } on TimeoutException {
+      // Animação interrompida — sincroniza com a página visível abaixo.
+    }
+    _syncPageFromController();
+  }
+
+  /// Navega animado para a primeira página — long-press no indicador `page/total`.
+  ///
+  /// Duração escala com a distância percorrida; pdfrx anima o tween completo até
+  /// a página 1 (não é “uma página por animação”).
+  Future<void> goToFirstPage() async {
+    if (_disposed || !isViewerReady) return;
+    final fromPage = pageListenable.value;
+    if (fromPage <= 1) return;
+
+    final distance = fromPage - 1;
+    final duration = Duration(
+      milliseconds: (400 + distance * 60).clamp(500, 1800),
+    );
+    await animateToPage(pageNumber: 1, duration: duration);
+  }
+
+  void _syncPageFromController() {
+    final page = viewerController.pageNumber;
+    if (page != null && pageListenable.value != page) {
+      pageListenable.value = page;
+    }
   }
 
   /// Reanexa viewer após reutilização do cache LRU (equivalente ao `loadDocument` do pdfx).

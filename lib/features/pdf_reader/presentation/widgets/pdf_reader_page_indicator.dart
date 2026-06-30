@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/pdf_reader_viewer_handle.dart';
-import '../providers/pdf_reader_displayed_page_provider.dart';
 import '../providers/pdf_reader_document_provider.dart';
+import '../providers/pdf_reader_view_settings_provider.dart';
 
-/// Indicador `page/total` da barra 3 — usa [pdfReaderDisplayedPageProvider]
-/// para não piscar páginas intermediárias durante `animateToPage`.
+/// Indicador `page/total` da barra 3 — escuta [PdfReaderViewerHandle.pageListenable]
+/// diretamente para ficar sempre sincronizado com scroll e navegação programática.
 class PdfReaderPageIndicator extends ConsumerWidget {
   /// Query param [UrlSyncParams.file] da rota `/leitor` — chave do provider family.
   const PdfReaderPageIndicator({required this.filePath, super.key});
@@ -20,38 +20,44 @@ class PdfReaderPageIndicator extends ConsumerWidget {
     return sessionAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
-      data: (session) => ValueListenableBuilder<PdfReaderLoadingState>(
-        valueListenable: session.handle.loadingState,
-        builder: (context, loadingState, _) {
-          if (loadingState != PdfReaderLoadingState.success) {
-            return const SizedBox.shrink();
-          }
+      data: (session) {
+        final handle = session.handle;
+        return ValueListenableBuilder<PdfReaderLoadingState>(
+          valueListenable: handle.loadingState,
+          builder: (context, loadingState, _) {
+            if (loadingState != PdfReaderLoadingState.success) {
+              return const SizedBox.shrink();
+            }
 
-          final displayedPage = ref.watch(
-            pdfReaderDisplayedPageProvider(filePath),
-          );
-          final notifier = ref.read(
-            pdfReaderDisplayedPageProvider(filePath).notifier,
-          );
-          final pagesCount =
-              notifier.pagesCount ?? session.handle.pagesCount ?? 0;
+            return ValueListenableBuilder<int>(
+              valueListenable: handle.pageListenable,
+              builder: (context, displayedPage, _) {
+                final pagesCount = handle.pagesCount ?? 0;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Center(
-              child: GestureDetector(
-                onLongPress: displayedPage > 1
-                    ? () => notifier.animateToPage(pageNumber: 1)
-                    : null,
-                child: Text(
-                  '$displayedPage/$pagesCount',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: GestureDetector(
+                      onLongPress: displayedPage > 1
+                          ? () async {
+                              await handle.goToFirstPage();
+                              await ref
+                                  .read(pdfReaderViewSettingsProvider.notifier)
+                                  .applyInitialFit();
+                            }
+                          : null,
+                      child: Text(
+                        '$displayedPage/$pagesCount',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

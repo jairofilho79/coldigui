@@ -17,7 +17,6 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_v
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjacent_pdf_prefetch_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
-import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_displayed_page_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart';
@@ -35,7 +34,7 @@ import 'package:go_router/go_router.dart';
 /// fullscreen ([readerFullscreenProvider]).
 ///
 /// Long-press no indicador `page/total` da barra 3 navega para a primeira página
-/// via [PdfReaderDisplayedPageNotifier.animateToPage]; no-op se `page == 1`.
+/// via [PdfReaderViewerHandle.goToFirstPage]; no-op se `page == 1`.
 ///
 /// Recebe query params da rota `/leitor` — chaves em [UrlSyncParams]:
 /// [UrlSyncParams.file], [UrlSyncParams.pdfId], [UrlSyncParams.titulo],
@@ -281,9 +280,8 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
         data: (session) => PdfReaderPdfView(
           handle: session.handle,
           requiresReattach: session.fromCache,
-          navigateToPage: (pageNumber) => ref
-              .read(pdfReaderDisplayedPageProvider(filePath).notifier)
-              .animateToPage(pageNumber: pageNumber),
+          navigateToPage: (pageNumber) =>
+              session.handle.animateToPage(pageNumber: pageNumber),
           refreshViewportAfterNavigation: () => ref
               .read(pdfReaderViewSettingsProvider.notifier)
               .applyInitialFit(),
@@ -299,7 +297,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
 /// com `Opacity(0.25)` no widget inteiro (fundo preto + ícone branco).
 ///
 /// Indicador de página ([PdfReaderPageIndicator] na barra 3): long-press no texto
-/// `page/total` navega para a primeira página; valor congelado durante animação.
+/// `page/total` navega para a primeira página; valor segue [PdfReaderViewerHandle.pageListenable].
 class _ReaderScaffold extends StatelessWidget {
   const _ReaderScaffold({
     required this.titulo,

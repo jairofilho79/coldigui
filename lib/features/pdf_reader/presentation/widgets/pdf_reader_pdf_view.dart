@@ -34,7 +34,7 @@ class PdfReaderPdfView extends StatefulWidget {
   /// Reattach via `invalidate` só para handles do cache LRU.
   final bool requiresReattach;
 
-  /// Navegação animada; deve passar por [PdfReaderDisplayedPageNotifier].
+  /// Navegação animada via [PdfReaderViewerHandle.animateToPage].
   final PdfReaderNavigateToPage navigateToPage;
 
   /// Reaplica fit após troca de página.
@@ -163,7 +163,6 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
     if (pageNumber == null) return;
     widget.handle.onPageChanged(pageNumber);
     widget.onPageChanged?.call(pageNumber);
-    _scheduleViewportRefresh(pageNumber: pageNumber);
   }
 
   void _resetTracking() {
