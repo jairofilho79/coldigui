@@ -56,3 +56,8 @@ jobs:
 
       - name: Verify COOP/COEP headers artifact
         run: ./scripts/verify_web_headers_artifact.sh
+
+      - name: Web boot performance gate
+        env:
+          CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: ./scripts/measure_web_boot.sh --check

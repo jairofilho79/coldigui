@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-05",
+  "environment": "ubuntu-latest CI + COOP/COEP local server (scripts/web_frontend_server.py)",
+  "metrics": {
+    "loaderVisibleMs": {
+      "value": 50,
+      "maxRegression": 100
+    },
+    "firstFrameMs": {
+      "value": 3500,
+      "maxRegression": 1500
+    },
+    "transferBytes": {
+      "value": null,
+      "notes": "Medir manualmente via DevTools Network (Disable cache)"
+    }
+  },
+  "notes": "Valores iniciais pós Fases A–E. Calibrar firstFrameMs.value após primeira execução no CI se necessário. Gate: measured <= value + maxRegression."
+}

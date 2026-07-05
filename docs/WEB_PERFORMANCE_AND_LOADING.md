@@ -1,6 +1,6 @@
 # Performance e loading na Web — diagnóstico e plano de trabalho
 
-**Status:** em progresso — Fases A, B, C, D e **G** concluídas (jul/2026); ver [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
+**Status:** em progresso — Fases A, B, C, D, E, G e **H** concluídas (jul/2026); ver [web_phase_h_measurement.md](web_phase_h_measurement.md)
 **Data:** julho/2026  
 **Contexto:** Após conclusão do [WEB_BUILD_REFACTOR_PLAN.md](WEB_BUILD_REFACTOR_PLAN.md) (Fases 0–8), o app compila e roda na web (`flutter build web --wasm`), mas a **primeira visita** exibe tela branca por **3–5 segundos** antes de qualquer UI. Este documento consolida o diagnóstico, comparação com nativo, e um plano faseado para o próximo agente/sessão trabalhar de forma aprofundada.
 
@@ -404,9 +404,9 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 **Ações:**
 
-- [ ] Script ou doc com passos reproduzíveis de medição.
-- [ ] Opcional: teste Chrome (`test/web/`) que asserta presença do loader HTML antes do Flutter.
-- [ ] Registrar baseline antes da Fase A e comparar após cada fase.
+- [x] Script ou doc com passos reproduzíveis de medição — [web_phase_h_measurement.md](web_phase_h_measurement.md), `scripts/measure_web_boot.sh`.
+- [x] Teste estático (`test/web/web_index_perf_test.dart`) asserta splash + `__plpcgPerf` + preload em `index.html`.
+- [x] Baseline versionado em [web_perf_baseline.json](web_perf_baseline.json); gate CI `--check` compara mediana de 2 runs.
 
 ---
 
@@ -495,4 +495,5 @@ Regras:
 | jul/2026 | **Fase G:** cache-first manifest (`LouvoresManifestNotifier`); skeleton Home/Biblioteca; `loadCachedLouvores()` |
 | jul/2026 | **Fase E:** preload WASM em `index.html` + `canvasKitBaseUrl` local em `flutter_bootstrap.js`; 1º frame ~1678 ms → ~676 ms (dev local, Chrome) |
 | jul/2026 | **Fase F (baseline pré-split):** `main.dart.wasm` 3,6 MB, `main.dart.js` 4,1 MB, 0 chunks deferred |
+| jul/2026 | **Fase H:** `window.__plpcgPerf` em `index.html`; `measure_web_boot.sh` + baseline JSON; gate CI; doc [web_phase_h_measurement.md](web_phase_h_measurement.md) |
 | jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |

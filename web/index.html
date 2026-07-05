@@ -107,10 +107,58 @@
       if (!loader) return;
 
       var removed = false;
+      var navigationStart = 0;
+      var navEntry = performance.getEntriesByType('navigation')[0];
+      if (navEntry) {
+        navigationStart = navEntry.startTime;
+      }
+
+      function msSinceNav() {
+        return Math.round(performance.now() - navigationStart);
+      }
+
+      function markLoaderVisible() {
+        performance.mark('plpcg-loader-visible');
+        window.__plpcgPerf = window.__plpcgPerf || {};
+        window.__plpcgPerf.loaderVisibleMs = msSinceNav();
+      }
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(markLoaderVisible);
+      });
+
+      function capturePerf() {
+        performance.mark('plpcg-first-frame');
+        try {
+          performance.measure('plpcg-loader', {
+            start: navigationStart,
+            end: 'plpcg-loader-visible',
+          });
+          performance.measure('plpcg-first-frame', {
+            start: navigationStart,
+            end: 'plpcg-first-frame',
+          });
+        } catch (e) {}
+
+        var loaderMs =
+          window.__plpcgPerf && window.__plpcgPerf.loaderVisibleMs;
+        var perf = {
+          loaderVisibleMs: loaderMs != null ? loaderMs : null,
+          firstFrameMs: msSinceNav(),
+          crossOriginIsolated: window.crossOriginIsolated,
+          sab: typeof SharedArrayBuffer,
+          capturedAt: new Date().toISOString(),
+        };
+        window.__plpcgPerf = perf;
+        window.dispatchEvent(
+          new CustomEvent('plpcg-perf-ready', { detail: perf }),
+        );
+      }
 
       function hideLoader() {
         if (removed) return;
         removed = true;
+        capturePerf();
         loader.classList.add('hidden');
         loader.setAttribute('aria-busy', 'false');
         window.setTimeout(function () {

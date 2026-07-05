@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import http.server
 import os
-import socketserver
 import sys
 import threading
 import time
@@ -19,8 +18,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from web_frontend_server import DEFAULT_WEB_DIR, ReusableTCPServer, make_frontend_handler
+
 ROOT = Path(__file__).resolve().parent.parent
-WEB_DIR = ROOT / "build" / "web"
+WEB_DIR = DEFAULT_WEB_DIR
 UPSTREAM = "https://plpcg.com"
 FRONTEND_PORT = 8080
 PROXY_PORT = 8081
@@ -31,10 +36,6 @@ FORWARD_REQUEST_HEADERS = frozenset(
 SKIP_RESPONSE_HEADERS = frozenset(
     {"transfer-encoding", "connection", "access-control-allow-origin"}
 )
-
-
-class ReusableTCPServer(socketserver.ThreadingTCPServer):
-    allow_reuse_address = True
 
 
 class ApiProxyHandler(http.server.BaseHTTPRequestHandler):
@@ -80,22 +81,7 @@ class ApiProxyHandler(http.server.BaseHTTPRequestHandler):
         print(f"[api-proxy] {args[0]}")
 
 
-class FrontendHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(WEB_DIR), **kwargs)
-
-    def end_headers(self) -> None:
-        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
-        path = self.path.split("?", 1)[0]
-        if path.endswith("flutter_service_worker.js"):
-            self.send_header("Cache-Control", "no-cache")
-        elif path.endswith((".wasm", ".js")):
-            self.send_header(
-                "Cache-Control", "public, max-age=31536000, immutable"
-            )
-        super().end_headers()
-
+class FrontendHandler(make_frontend_handler(WEB_DIR)):
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"[frontend] {args[0]}")
 
@@ -108,7 +94,10 @@ def run_proxy() -> None:
 
 def main() -> int:
     if not WEB_DIR.is_dir():
-        print(f"Erro: {WEB_DIR} não existe. Rode scripts/web_build.sh com plpcjf.local-dev.json", file=sys.stderr)
+        print(
+            f"Erro: {WEB_DIR} não existe. Rode scripts/web_build.sh com plpcjf.local-dev.json",
+            file=sys.stderr,
+        )
         return 1
 
     threading.Thread(target=run_proxy, daemon=True).start()
