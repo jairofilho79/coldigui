@@ -6,6 +6,7 @@ import 'package:pdfrx/pdfrx.dart';
 import '../../../pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import '../../domain/entities/pdf_reader_preferences.dart';
 import '../../domain/ports/pdf_reader_controller_port.dart';
+import '../pdfrx_bootstrap.dart';
 import '../models/pdf_reader_viewer_handle.dart';
 import '../utils/pdf_source_resolver.dart';
 
@@ -49,6 +50,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
   /// Retorna um [PdfReaderViewerHandle] novo; o lifecycle pertence à sessão
   /// ([pdfReaderSessionProvider]), não ao adapter.
   Future<PdfReaderViewerHandle> openDocument(String filePath) async {
+    await ensurePdfrxInitialized();
     final source = _resolver.resolve(filePath);
     final document = await _openDocument(source);
     final documentRef = PdfDocumentRefDirect(document, autoDispose: false);
