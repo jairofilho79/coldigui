@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 import '../../data/providers/app_shell_providers.dart';
 import '../../domain/usecases/sync_deep_link_state.dart';
+import '../utils/deep_link_initial_uri.dart';
 
 /// UC-14 — Observa deep links e importa playlist compartilhada (Fase 4.5).
 ///
@@ -40,13 +42,19 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
     if (!ref.read(deepLinkHandlingEnabledProvider)) return;
 
     final appLinks = ref.read(appLinksProvider);
+    Uri? initial;
     try {
-      final initial = await appLinks.getInitialLink();
-      if (initial != null) {
-        await _handleUri(initial);
-      }
+      initial = await appLinks.getInitialLink();
     } on Object {
       // Plataforma sem suporte ou simulador — ignorar.
+    }
+
+    if (kIsWeb) {
+      initial = resolveWebInitialDeepLinkUri(initial);
+    }
+
+    if (initial != null) {
+      await _handleUri(initial);
     }
 
     _linkSubscription = appLinks.uriLinkStream.listen(
@@ -70,9 +78,7 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
 
     _handling = true;
     try {
-      final result = await ref.read(syncDeepLinkStateProvider)(
-        uri: uri,
-      );
+      final result = await ref.read(syncDeepLinkStateProvider)(uri: uri);
       if (!mounted) return;
 
       switch (result.outcome) {
