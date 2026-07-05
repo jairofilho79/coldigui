@@ -45,7 +45,8 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
+    isar = Isar.open(
+      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
       directory: tempDir.path,
     );
 
@@ -79,16 +80,16 @@ void main() {
     expect(entry.category, category);
     expect(entry.fileSize, bytes.length);
     expect(
-        entry.downloadedAt.isAfter(before.subtract(const Duration(seconds: 1))),
-        isTrue);
+      entry.downloadedAt.isAfter(before.subtract(const Duration(seconds: 1))),
+      isTrue,
+    );
     expect(await File(entry.absolutePath).exists(), isTrue);
     expect(
       entry.absolutePath,
       endsWith(PdfPathNormalizer.getPdfRelPath(pdfId)),
     );
 
-    final index =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
     expect(index!.fileSize, bytes.length);
     expect(index.storagePath, entry.absolutePath);
@@ -110,8 +111,10 @@ void main() {
 
     final staleAccess = DateTime.now().subtract(const Duration(hours: 1));
     await isar.write((isar) {
-      final index =
-          isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+      final index = isar.offlinePdfIndexs
+          .where()
+          .pdfIdEqualTo(pdfId)
+          .findFirst();
       index!.lastAccessedAt = staleAccess;
       isar.offlinePdfIndexs.put(index);
     });
@@ -119,8 +122,10 @@ void main() {
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfter =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfter = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(indexAfter!.lastAccessedAt, isNotNull);
     expect(indexAfter.lastAccessedAt!.isAfter(staleAccess), isTrue);
   });
@@ -132,15 +137,19 @@ void main() {
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfterFirst =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfterFirst = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     final firstTouch = indexAfterFirst!.lastAccessedAt!;
 
     await repository.lookup(pdfId);
     await repository.flushPendingTouchLastAccessed();
 
-    final indexAfterSecond =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final indexAfterSecond = isar.offlinePdfIndexs
+        .where()
+        .pdfIdEqualTo(pdfId)
+        .findFirst();
     expect(indexAfterSecond!.lastAccessedAt, firstTouch);
   });
 
@@ -152,10 +161,7 @@ void main() {
       category: category,
     );
 
-    expect(
-      await repository.findPdfIdByAbsolutePath(entry.absolutePath),
-      pdfId,
-    );
+    expect(await repository.findPdfIdByAbsolutePath(entry.absolutePath), pdfId);
     expect(
       await repository.findPdfIdByAbsolutePath('/inexistente/foo.pdf'),
       isNull,
@@ -179,8 +185,7 @@ void main() {
     expect(await repository.lookup(pdfId), isNull);
 
     // Índice órfão permanece (reconcile 3.6).
-    final index =
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
+    final index = isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).findFirst();
     expect(index, isNotNull);
   });
 
@@ -232,10 +237,7 @@ void main() {
     await repository.remove(pdfId);
 
     expect(await File(entry.absolutePath).exists(), isFalse);
-    expect(
-      isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-      0,
-    );
+    expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
   });
 
   test('lookupBatch retorna pdfIds com índice e arquivo válido', () async {
@@ -318,7 +320,7 @@ void main() {
     expect(entry.absolutePath, endsWith('ColAdultos/001.pdf'));
   });
 
-  test('totalCachedBytes soma fileSize do índice', () async {
+  test('totalCachedBytes soma bytes no store', () async {
     final id1 = _encodePdfId('ColAdultos/a.pdf');
     final id2 = _encodePdfId('ColAdultos/b.pdf');
 
@@ -430,10 +432,7 @@ void main() {
 
     await repository.clearAll();
 
-    expect(
-      isar.offlinePdfIndexs.where().count(),
-      0,
-    );
+    expect(isar.offlinePdfIndexs.where().count(), 0);
   });
 
   group('validação magic bytes %PDF', () {
@@ -447,10 +446,7 @@ void main() {
       expect(await repository.lookup(pdfId), isNull);
 
       expect(await File(entry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        0,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
     });
 
     test('lookup miss e purge para bytes aleatórios', () async {
@@ -463,10 +459,7 @@ void main() {
       expect(await repository.lookup(pdfId), isNull);
 
       expect(await File(entry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        0,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
     });
 
     test('lookup hit para PDF válido com header %PDF', () async {
@@ -480,10 +473,7 @@ void main() {
       final found = await repository.lookup(pdfId);
       expect(found, isNotNull);
       expect(found!.absolutePath, entry.absolutePath);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(),
-        1,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 1);
     });
 
     test('lookup hit para PDF truncado com header válido', () async {
@@ -517,23 +507,22 @@ void main() {
       final found = await repository.lookupBatch({validId, corruptId});
       expect(found, {validId});
       expect(await File(corruptEntry.absolutePath).exists(), isFalse);
-      expect(
-        isar.offlinePdfIndexs.where().pdfIdEqualTo(corruptId).count(),
-        0,
-      );
+      expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(corruptId).count(), 0);
     });
 
-    test('lookupWithIndexState purge corrupto retorna hasIndexEntry false',
-        () async {
-      await repository.upsert(
-        pdfId: pdfId,
-        bytes: Uint8List.fromList([0xCA, 0xFE, 0xBA, 0xBE]),
-        category: category,
-      );
+    test(
+      'lookupWithIndexState purge corrupto retorna hasIndexEntry false',
+      () async {
+        await repository.upsert(
+          pdfId: pdfId,
+          bytes: Uint8List.fromList([0xCA, 0xFE, 0xBA, 0xBE]),
+          category: category,
+        );
 
-      final result = await repository.lookupWithIndexState(pdfId);
-      expect(result.$1, isNull);
-      expect(result.$2, isFalse);
-    });
+        final result = await repository.lookupWithIndexState(pdfId);
+        expect(result.$1, isNull);
+        expect(result.$2, isFalse);
+      },
+    );
   });
 }

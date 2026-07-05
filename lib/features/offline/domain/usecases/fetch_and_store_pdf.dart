@@ -9,10 +9,8 @@ import '../repositories/offline_pdf_repository.dart';
 import '../utils/download_retry.dart';
 import '../utils/offline_category_resolver.dart';
 
-/// Cache on-demand: baixa PDF remoto, persiste em disco e indexa no Isar (Fase 3.3).
-///
-/// Fluxo: [PdfBytesDatasource.fetchBytes] → [OfflinePdfRepository.upsert]
-/// (escrita atômica em `documents/plpcg_pdfs/`) → [LocalPdfSource] `fromCache: false`.
+/// Cache on-demand: baixa PDF remoto, persiste via [OfflinePdfRepository.upsert]
+/// ([PdfStoragePort.writeAtomic] — disco nativo ou OPFS na web) e indexa no Isar.
 ///
 /// Chamado por [ResolvePdfForReader] em miss com rede. Falhas transitórias de rede
 /// e HTTP ≥ 500 são retentadas até [OfflineConfig.maxRetryAttempts]; 4xx falham

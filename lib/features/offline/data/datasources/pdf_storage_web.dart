@@ -26,12 +26,17 @@ class PdfStorageWeb implements PdfStoragePort {
   @override
   Future<String> writeAtomic(Uint8List bytes, String relPath) async {
     final storageKey = _storageKey(relPath);
-    final (parentDir, fileName) = await _resolveParentAndFileName(storageKey);
-    final handle = await parentDir
-        .getFileHandle(fileName, FileSystemGetFileOptions(create: true))
-        .toDart;
-    await _writeHandle(handle, bytes);
-    return storageKey;
+    final tmpKey = '$storageKey$_tmpSuffix';
+    try {
+      await _writeFileAtKey(tmpKey, bytes);
+      await delete(storageKey);
+      await _writeFileAtKey(storageKey, bytes);
+      await delete(tmpKey);
+      return storageKey;
+    } on Object {
+      await delete(tmpKey);
+      rethrow;
+    }
   }
 
   @override
@@ -159,6 +164,14 @@ class PdfStorageWeb implements PdfStoragePort {
           .toDart;
     }
     return (dir, fileName);
+  }
+
+  Future<void> _writeFileAtKey(String storageKey, Uint8List bytes) async {
+    final (parentDir, fileName) = await _resolveParentAndFileName(storageKey);
+    final handle = await parentDir
+        .getFileHandle(fileName, FileSystemGetFileOptions(create: true))
+        .toDart;
+    await _writeHandle(handle, bytes);
   }
 
   Future<void> _writeHandle(

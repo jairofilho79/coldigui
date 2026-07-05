@@ -231,8 +231,9 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   @override
   Future<void> clearAll() => _local.clearAll();
 
+  /// Bytes reais no store (OPFS na web; filesystem no nativo) — quota LRU on-demand.
   @override
-  Future<int> totalCachedBytes() => _local.sumFileSizes();
+  Future<int> totalCachedBytes() => _store.getTotalOfflineBytes();
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {
