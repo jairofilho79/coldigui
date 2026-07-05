@@ -4,7 +4,8 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_worker.dart';
@@ -42,9 +43,7 @@ Widget _libraryTestApp({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      louvoresManifestProvider.overrideWith(
-        (ref) async => LouvoresManifest.fromLouvores(catalog),
-      ),
+      louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
       carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       libraryGroupPipelineExecutorProvider.overrideWith(
         (ref) =>
@@ -161,5 +160,41 @@ void main() {
       tester.getTopLeft(louvor1Finder).dy,
       lessThan(tester.getTopLeft(louvor10Finder).dy),
     );
+  });
+
+  testWidgets('LibraryScreen exibe skeleton enquanto manifest carrega', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresManifestLoadingOverride(),
+          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+          libraryGroupPipelineExecutorProvider.overrideWith(
+            (ref) =>
+                (input) async => runLibraryGroupPipeline(input),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(body: LibraryScreen()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 600));
   });
 }

@@ -5,7 +5,8 @@ import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,19 +23,19 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('HomeScreen exibe hint de busca localizado em pt',
-      (tester) async {
+  testWidgets('HomeScreen exibe hint de busca localizado em pt', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestProvider.overrideWith(
-            (ref) async => LouvoresManifest.fromLouvores(const []),
-          ),
+          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
           homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) => (input) async => runHomeSearchPipeline(input),
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
           ),
         ],
         child: MaterialApp(
@@ -52,20 +53,21 @@ void main() {
     expect(find.text('Toque para ver mais'), findsOneWidget);
   });
 
-  testWidgets('HomeScreen exibe banner quando catálogo está obsoleto',
-      (tester) async {
+  testWidgets('HomeScreen exibe banner quando catálogo está obsoleto', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestProvider.overrideWith(
-            (ref) async =>
-                LouvoresManifest.fromLouvores(const [], isStale: true),
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores(const [], isStale: true),
           ),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
           homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) => (input) async => runHomeSearchPipeline(input),
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
           ),
         ],
         child: MaterialApp(
@@ -84,5 +86,36 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('HomeScreen exibe skeleton enquanto manifest carrega', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresManifestLoadingOverride(),
+          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+          homeSearchPipelineExecutorProvider.overrideWith(
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 600));
   });
 }

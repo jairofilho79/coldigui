@@ -5,6 +5,9 @@ abstract class CatalogRepository {
   /// Carrega manifest da rede ou cache Isar local.
   Future<List<Louvor>> loadManifest();
 
+  /// Retorna louvores do cache Isar local (pode ser vazio).
+  Future<List<Louvor>> loadCachedLouvores();
+
   /// Baixa manifest da rede e persiste em Isar — sem fallback ao cache (UC-12 manual).
   Future<List<Louvor>> forceRefreshManifest();
 

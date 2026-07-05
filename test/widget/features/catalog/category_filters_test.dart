@@ -5,7 +5,7 @@ import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -19,15 +19,14 @@ Louvor _louvor({
   required String categoria,
   String classificacao = 'ColAdultos',
   String numero = '1',
-}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: categoria,
-      classificacao: classificacao,
-      pdf: '$numero.pdf',
-      pdfId: 'id-$numero',
-    );
+}) => Louvor.fromManifest(
+  nome: nome,
+  numero: numero,
+  categoria: categoria,
+  classificacao: classificacao,
+  pdf: '$numero.pdf',
+  pdfId: 'id-$numero',
+);
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
@@ -39,8 +38,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('CategoryFilters oculta louvor ao desmarcar material',
-      (tester) async {
+  testWidgets('CategoryFilters oculta louvor ao desmarcar material', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final catalog = [
       _louvor(
@@ -59,12 +59,11 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestProvider.overrideWith(
-            (ref) async => LouvoresManifest.fromLouvores(catalog),
-          ),
+          louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
           homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) => (input) async => runHomeSearchPipeline(input),
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
           ),
         ],
         child: MaterialApp(

@@ -6,7 +6,7 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
@@ -20,18 +20,16 @@ void main() {
   late Isar isar;
   late ProviderContainer container;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('resolve_active_playlist_');
-    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(
+      schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     container = ProviderContainer(
       overrides: [
         isarProvider.overrideWithValue(isar),
-        louvoresManifestProvider.overrideWith(
-          (ref) async => LouvoresManifest.fromLouvores(const []),
-        ),
+        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
   });
@@ -45,30 +43,33 @@ void main() {
   });
 
   test(
-      'recupera rascunho existente quando playlist ativa foi perdida em memória',
-      () async {
-    final carouselRepository =
-        CarouselRepositoryImpl(CarouselLocalDatasource(isar));
-    final playlistRepository =
-        PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+    'recupera rascunho existente quando playlist ativa foi perdida em memória',
+    () async {
+      final carouselRepository = CarouselRepositoryImpl(
+        CarouselLocalDatasource(isar),
+      );
+      final playlistRepository = PlaylistRepositoryImpl(
+        PlaylistLocalDatasource(isar),
+      );
 
-    await carouselRepository.add('pdf-a');
-    final playlistId = await playlistRepository.create(
-      nome: 'Ensaio',
-      pdfIds: const ['pdf-a'],
-      salva: false,
-    );
+      await carouselRepository.add('pdf-a');
+      final playlistId = await playlistRepository.create(
+        nome: 'Ensaio',
+        pdfIds: const ['pdf-a'],
+        salva: false,
+      );
 
-    container.read(playlistsProvider);
-    await Future<void>.delayed(Duration.zero);
-    final resolved = await container
-        .read(playlistsProvider.notifier)
-        .resolveActivePlaylistFromCarousel();
+      container.read(playlistsProvider);
+      await Future<void>.delayed(Duration.zero);
+      final resolved = await container
+          .read(playlistsProvider.notifier)
+          .resolveActivePlaylistFromCarousel();
 
-    expect(resolved?.playlistId, playlistId);
-    expect(resolved?.nome, 'Ensaio');
-    expect(container.read(activePlaylistIdProvider), playlistId);
-  });
+      expect(resolved?.playlistId, playlistId);
+      expect(resolved?.nome, 'Ensaio');
+      expect(container.read(activePlaylistIdProvider), playlistId);
+    },
+  );
 
   test('retorna null quando carousel está vazio', () async {
     container.read(playlistsProvider);

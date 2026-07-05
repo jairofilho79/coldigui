@@ -12,6 +12,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeCatalogRepository implements CatalogRepository {
   @override
+  Future<List<Louvor>> loadCachedLouvores() async => [];
+
+  @override
   Future<List<Louvor>> loadManifest() async => [];
 
   @override

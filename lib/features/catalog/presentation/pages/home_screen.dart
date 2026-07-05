@@ -6,6 +6,7 @@ import 'package:coldigui/features/catalog/presentation/providers/home_search_pro
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
@@ -72,7 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref
         .read(homeSearchDebouncedQueryProvider.notifier)
         .setImmediate(widget.initialSearchQuery);
-    ref.read(catalogFiltersProvider.notifier).hydrateFromUrl(
+    ref
+        .read(catalogFiltersProvider.notifier)
+        .hydrateFromUrl(
           materiais: widget.initialMateriais,
           arranjo: widget.initialArranjo,
         );
@@ -88,7 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         oldWidget.initialSearchQuery != widget.initialSearchQuery;
     final filtersChanged =
         oldWidget.initialMateriais != widget.initialMateriais ||
-            oldWidget.initialArranjo != widget.initialArranjo;
+        oldWidget.initialArranjo != widget.initialArranjo;
     if (!searchChanged && !filtersChanged) return;
 
     // Riverpod proíbe modificar providers durante o ciclo de build/update.
@@ -108,7 +111,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
       }
       if (filtersChanged) {
-        ref.read(catalogFiltersProvider.notifier).hydrateFromUrl(
+        ref
+            .read(catalogFiltersProvider.notifier)
+            .hydrateFromUrl(
               materiais: widget.initialMateriais,
               arranjo: widget.initialArranjo,
             );
@@ -157,8 +162,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _syncUrlFromState();
     });
 
-    final horizontalPadding =
-        MediaQuery.sizeOf(context).width > 600 ? 24.0 : 16.0;
+    final horizontalPadding = MediaQuery.sizeOf(context).width > 600
+        ? 24.0
+        : 16.0;
 
     return Scaffold(
       body: Center(
@@ -173,7 +179,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: FiltersPanel(
-                    initiallyExpanded: widget.initialMateriais != null ||
+                    initiallyExpanded:
+                        widget.initialMateriais != null ||
                         widget.initialArranjo != null,
                   ),
                 ),
@@ -191,11 +198,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 if (manifestAsync.isLoading) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                  const SliverToBoxAdapter(
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.gold),
-                    ),
-                  ),
+                  const CatalogLoadingSliver(),
                 ],
                 if (manifestAsync.hasError) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),

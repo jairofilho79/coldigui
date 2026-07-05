@@ -10,6 +10,9 @@ class _FakeCatalogRepository implements CatalogRepository {
   var forceRefreshManifestCalls = 0;
 
   @override
+  Future<List<Louvor>> loadCachedLouvores() async => _louvores;
+
+  @override
   Future<List<Louvor>> loadManifest() async => _louvores;
 
   @override

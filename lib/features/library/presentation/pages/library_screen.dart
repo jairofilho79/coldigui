@@ -5,6 +5,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_filters
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_special_arrangement_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
@@ -77,14 +78,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _hydrateFromUrl() {
     if (_initialized) return;
     _initialized = true;
-    ref.read(catalogFiltersProvider.notifier).hydrateFromUrl(
+    ref
+        .read(catalogFiltersProvider.notifier)
+        .hydrateFromUrl(
           materiais: widget.initialMateriais,
           arranjo: widget.initialArranjo,
         );
-    ref.read(librarySpecialArrangementProvider.notifier).hydrateFromUrl(
-          arranjoEspecial: widget.initialArranjoEspecial,
-        );
-    ref.read(libraryViewSettingsProvider.notifier).hydrateFromUrl(
+    ref
+        .read(librarySpecialArrangementProvider.notifier)
+        .hydrateFromUrl(arranjoEspecial: widget.initialArranjoEspecial);
+    ref
+        .read(libraryViewSettingsProvider.notifier)
+        .hydrateFromUrl(
           ordenar: widget.initialOrdenar,
           itensPorPagina: widget.initialItensPorPagina,
           pagina: widget.initialPagina,
@@ -99,10 +104,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     super.didUpdateWidget(oldWidget);
     final filtersChanged =
         oldWidget.initialMateriais != widget.initialMateriais ||
-            oldWidget.initialArranjo != widget.initialArranjo;
+        oldWidget.initialArranjo != widget.initialArranjo;
     final specialChanged =
         oldWidget.initialArranjoEspecial != widget.initialArranjoEspecial;
-    final viewChanged = oldWidget.initialOrdenar != widget.initialOrdenar ||
+    final viewChanged =
+        oldWidget.initialOrdenar != widget.initialOrdenar ||
         oldWidget.initialItensPorPagina != widget.initialItensPorPagina ||
         oldWidget.initialPagina != widget.initialPagina;
     if (!filtersChanged && !specialChanged && !viewChanged) return;
@@ -110,18 +116,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (filtersChanged) {
-        ref.read(catalogFiltersProvider.notifier).hydrateFromUrl(
+        ref
+            .read(catalogFiltersProvider.notifier)
+            .hydrateFromUrl(
               materiais: widget.initialMateriais,
               arranjo: widget.initialArranjo,
             );
       }
       if (specialChanged) {
-        ref.read(librarySpecialArrangementProvider.notifier).hydrateFromUrl(
-              arranjoEspecial: widget.initialArranjoEspecial,
-            );
+        ref
+            .read(librarySpecialArrangementProvider.notifier)
+            .hydrateFromUrl(arranjoEspecial: widget.initialArranjoEspecial);
       }
       if (viewChanged) {
-        ref.read(libraryViewSettingsProvider.notifier).hydrateFromUrl(
+        ref
+            .read(libraryViewSettingsProvider.notifier)
+            .hydrateFromUrl(
               ordenar: widget.initialOrdenar,
               itensPorPagina: widget.initialItensPorPagina,
               pagina: widget.initialPagina,
@@ -179,8 +189,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       },
     );
 
-    ref.listen<LibraryViewSettings>(libraryViewSettingsProvider,
-        (previous, next) {
+    ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
+      previous,
+      next,
+    ) {
       if (previous?.page != next.page ||
           previous?.sortBy != next.sortBy ||
           previous?.itemsPerPage != next.itemsPerPage) {
@@ -192,12 +204,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
-    final hasInitialFilters = widget.initialMateriais != null ||
+    final hasInitialFilters =
+        widget.initialMateriais != null ||
         widget.initialArranjo != null ||
         widget.initialArranjoEspecial != null;
 
-    final horizontalPadding =
-        MediaQuery.sizeOf(context).width > 600 ? 24.0 : 16.0;
+    final horizontalPadding = MediaQuery.sizeOf(context).width > 600
+        ? 24.0
+        : 16.0;
 
     return Scaffold(
       body: Center(
@@ -225,14 +239,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                       const SizedBox(height: 12),
                       const LibraryViewControls(),
-                      if (manifestAsync.isLoading) ...[
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.gold,
-                          ),
-                        ),
-                      ],
                       if (manifestAsync.hasError) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -247,17 +253,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => Padding(
-                      padding: EdgeInsets.only(
-                        bottom: index < results.items.length - 1 ? 8 : 0,
+                if (manifestAsync.isLoading)
+                  const CatalogLoadingSliver()
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index < results.items.length - 1 ? 8 : 0,
+                        ),
+                        child: LouvorGroupCard(group: results.items[index]),
                       ),
-                      child: LouvorGroupCard(group: results.items[index]),
+                      childCount: results.items.length,
                     ),
-                    childCount: results.items.length,
                   ),
-                ),
               ],
             ),
           ),

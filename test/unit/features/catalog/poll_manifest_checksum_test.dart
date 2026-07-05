@@ -5,10 +5,7 @@ import 'package:coldigui/features/catalog/domain/usecases/poll_manifest_checksum
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCatalogRepository implements CatalogRepository {
-  _FakeCatalogRepository({
-    this.checksum,
-    this.louvores = const [],
-  });
+  _FakeCatalogRepository({this.checksum, this.louvores = const []});
 
   final String? checksum;
   final List<Louvor> louvores;
@@ -16,6 +13,9 @@ class _FakeCatalogRepository implements CatalogRepository {
 
   var fetchChecksumCalls = 0;
   var forceRefreshCalls = 0;
+
+  @override
+  Future<List<Louvor>> loadCachedLouvores() async => louvores;
 
   @override
   Future<List<Louvor>> loadManifest() async => louvores;
@@ -56,13 +56,13 @@ class _FakeChecksumStore implements ManifestChecksumReader {
 }
 
 Louvor _louvor() => Louvor.fromManifest(
-      nome: 'Aleluia',
-      numero: '001',
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: '001.pdf',
-      pdfId: 'abc',
-    );
+  nome: 'Aleluia',
+  numero: '001',
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  pdf: '001.pdf',
+  pdfId: 'abc',
+);
 
 void main() {
   test('checksum igual não dispara sync', () async {

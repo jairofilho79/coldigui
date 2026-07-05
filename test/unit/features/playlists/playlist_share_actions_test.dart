@@ -1,6 +1,6 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -31,8 +31,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
     DateTime? createdAt,
     bool salva = true,
     DateTime? savedAt,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<void> delete(String playlistId) => throw UnimplementedError();
@@ -56,8 +55,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
     DateTime? favoritedAt,
     bool? favorita,
     bool clearFavoritedAt = false,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 }
 
 void main() {
@@ -73,16 +71,17 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          playlistRepositoryProvider
-              .overrideWithValue(_FakePlaylistRepository()),
+          playlistRepositoryProvider.overrideWithValue(
+            _FakePlaylistRepository(),
+          ),
           generatePlaylistShareUrlProvider.overrideWithValue(
             GeneratePlaylistShareUrl(
               _FakePlaylistRepository(),
               shareOrigin: 'https://plpcg.com',
             ),
           ),
-          louvoresManifestProvider.overrideWith(
-            (ref) async => LouvoresManifest.fromLouvores([
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores([
               Louvor.fromManifest(
                 nome: 'Louvor A',
                 numero: '001',
@@ -118,9 +117,6 @@ void main() {
     );
 
     expect(ok, isTrue);
-    expect(
-      sharedText,
-      'https://plpcg.com/?sharepdfs=pdf-a&sharename=Ensaio',
-    );
+    expect(sharedText, 'https://plpcg.com/?sharepdfs=pdf-a&sharename=Ensaio');
   });
 }

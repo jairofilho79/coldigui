@@ -9,13 +9,13 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Louvor _louvor(String pdfId) => Louvor.fromManifest(
-      nome: 'Louvor',
-      numero: '001',
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: '001.pdf',
-      pdfId: pdfId,
-    );
+  nome: 'Louvor',
+  numero: '001',
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  pdf: '001.pdf',
+  pdfId: pdfId,
+);
 
 class _TestRemote extends CatalogRemoteDatasource {
   _TestRemote({this.louvores, this.error}) : super(Dio());
@@ -60,9 +60,7 @@ CatalogRepositoryImpl _repo({
   return CatalogRepositoryImpl(
     remote: remote,
     local: local,
-    syncMetadata: CatalogSyncMetadataStore(
-      prefs ?? _throwingPrefs(),
-    ),
+    syncMetadata: CatalogSyncMetadataStore(prefs ?? _throwingPrefs()),
   );
 }
 
@@ -73,6 +71,19 @@ SharedPreferences _throwingPrefs() {
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+  });
+
+  test('loadCachedLouvores retorna cache local sem rede', () async {
+    final remote = _TestRemote(error: Exception('offline'));
+    final local = _TestLocal()..store.add(_louvor('cached-only'));
+    final prefs = await SharedPreferences.getInstance();
+
+    final repo = _repo(remote: remote, local: local, prefs: prefs);
+
+    final cached = await repo.loadCachedLouvores();
+
+    expect(cached, hasLength(1));
+    expect(cached.first.pdfId, 'cached-only');
   });
 
   test('sucesso remoto persiste e retorna louvores', () async {
@@ -151,10 +162,7 @@ void main() {
 
     final repo = _repo(remote: remote, local: local, prefs: prefs);
 
-    await expectLater(
-      repo.forceRefreshManifest(),
-      throwsA(isA<Exception>()),
-    );
+    await expectLater(repo.forceRefreshManifest(), throwsA(isA<Exception>()));
     expect(local.store.first.pdfId, 'cached-1');
   });
 
@@ -165,21 +173,17 @@ void main() {
 
     final repo = _repo(remote: remote, local: local, prefs: prefs);
 
-    await expectLater(
-      repo.forceRefreshManifest(),
-      throwsA(isA<StateError>()),
-    );
+    await expectLater(repo.forceRefreshManifest(), throwsA(isA<StateError>()));
     expect(local.store.first.pdfId, 'cached-1');
   });
 
   test('isCatalogStale true quando sync antigo', () async {
     final remote = _TestRemote(error: Exception('offline'));
     final local = _TestLocal()..store.add(_louvor('cached-1'));
-    final staleDate =
-        DateTime.now().subtract(const Duration(days: 8)).toIso8601String();
-    SharedPreferences.setMockInitialValues({
-      'catalogLastSyncAt': staleDate,
-    });
+    final staleDate = DateTime.now()
+        .subtract(const Duration(days: 8))
+        .toIso8601String();
+    SharedPreferences.setMockInitialValues({'catalogLastSyncAt': staleDate});
     final prefs = await SharedPreferences.getInstance();
 
     final repo = _repo(remote: remote, local: local, prefs: prefs);
@@ -192,11 +196,10 @@ void main() {
   test('isCatalogStale false após sync recente em prefs', () async {
     final remote = _TestRemote(error: Exception('offline'));
     final local = _TestLocal()..store.add(_louvor('cached-1'));
-    final recentDate =
-        DateTime.now().subtract(const Duration(days: 2)).toIso8601String();
-    SharedPreferences.setMockInitialValues({
-      'catalogLastSyncAt': recentDate,
-    });
+    final recentDate = DateTime.now()
+        .subtract(const Duration(days: 2))
+        .toIso8601String();
+    SharedPreferences.setMockInitialValues({'catalogLastSyncAt': recentDate});
     final prefs = await SharedPreferences.getInstance();
 
     final repo = _repo(remote: remote, local: local, prefs: prefs);

@@ -8,7 +8,7 @@ import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,9 +38,7 @@ List<Override> _homeSearchTestOverrides({
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    louvoresManifestProvider.overrideWith(
-      (ref) async => LouvoresManifest.fromLouvores(catalog),
-    ),
+    louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     homeSearchPipelineExecutorProvider.overrideWith(
       (ref) =>

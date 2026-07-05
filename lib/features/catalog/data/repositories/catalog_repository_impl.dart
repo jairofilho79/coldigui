@@ -22,6 +22,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
   final CatalogManifestSyncListener? _manifestSyncListener;
 
   @override
+  Future<List<Louvor>> loadCachedLouvores() => _local.loadLouvores();
+
+  @override
   Future<List<Louvor>> loadManifest() async {
     try {
       final remoteLouvores = await _remote.fetchManifest();

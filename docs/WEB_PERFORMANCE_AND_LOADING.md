@@ -1,6 +1,6 @@
 # Performance e loading na Web — diagnóstico e plano de trabalho
 
-**Status:** em progresso — Fases A, B, C e **D** concluídas (jul/2026); ver [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
+**Status:** em progresso — Fases A, B, C, D e **G** concluídas (jul/2026); ver [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
 **Data:** julho/2026  
 **Contexto:** Após conclusão do [WEB_BUILD_REFACTOR_PLAN.md](WEB_BUILD_REFACTOR_PLAN.md) (Fases 0–8), o app compila e roda na web (`flutter build web --wasm`), mas a **primeira visita** exibe tela branca por **3–5 segundos** antes de qualquer UI. Este documento consolida o diagnóstico, comparação com nativo, e um plano faseado para o próximo agente/sessão trabalhar de forma aprofundada.
 
@@ -37,12 +37,12 @@ Enquanto isso, o `<body>` está vazio → **tela branca**.
       ├── main.dart.wasm (~3,6 MB)
       ├── main.dart.js (~4,1 MB) — fallback / bootstrap
       └── canvaskit/skwasm (~3–7 MB conforme renderer)
-3. main() Dart executa ANTES de runApp:
-      ├── await pdfrxFlutterInitialize()     → pdfium.wasm (~5,0 MB)
-      └── await openAppIsar()                → isar_plus.wasm (~1,3 MB)
+3. `runApp(BootstrapApp)` imediato após `WidgetsFlutterBinding.ensureInitialized()`
+      ├── [BootstrapApp] aguarda `isarInitializerProvider` (WASM Isar em background)
+      └── pdfrx init lazy / idle (Fase B)
 4. SharedPreferences.getInstance()
-5. runApp(ColdiguiApp) → primeiro frame Flutter
-6. ColdiguiApp dispara louvoresManifestProvider (fetch catálogo ~4600 itens)
+5. `ColdiguiApp` → primeiro frame com shell (AppBar, nav, filtros)
+6. `louvoresManifestProvider` cache-first: Isar imediato + refresh remoto em background (Fase G)
 ```
 
 **Gargalo principal:** etapas 2–3 ocorrem **antes** do primeiro frame. O usuário vê branco durante download + parse/instanciação de WASM + init síncrona de Isar e pdfrx.
@@ -67,14 +67,17 @@ Medição em `build/web/` após `flutter build web --wasm --release`:
 ### Código que bloqueia o primeiro frame
 
 ```dart
-// lib/main.dart
+// lib/main.dart + lib/bootstrap_app.dart (Fase B)
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await pdfrxFlutterInitialize();   // ← bloqueia: carrega pdfium.wasm
-  final isar = await openAppIsar(); // ← bloqueia: carrega isar_plus.wasm
   final prefs = await SharedPreferences.getInstance();
-  runApp(...);
+  runApp(ProviderScope(..., child: BootstrapApp())); // Isar async
 }
+```
+
+```dart
+// lib/features/catalog/presentation/providers/louvores_manifest_provider.dart (Fase G)
+// Cache Isar → data imediato; loadManifest() remoto em background
 ```
 
 ```dart
@@ -351,22 +354,35 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 **Objetivo:** UI shell visível enquanto catálogo carrega.
 
-**Estado atual:**
+**Implementado (jul/2026):**
 
-- `ColdiguiApp` usa `ref.listen(louvoresManifestProvider, ...)` no boot — **não bloqueia** `runApp`, mas a home pode parecer vazia até o manifest resolver.
-- `LouvoresManifest` carrega do Isar cache + possível fetch remoto.
+1. **Cache-first (stale-while-revalidate):** `LouvoresManifestNotifier` retorna cache Isar imediatamente quando disponível; `loadManifest()` remoto roda em background e atualiza `state` sem voltar a `loading`.
+2. **Skeleton shimmer:** `CatalogLoadingSliver` + `LouvorGroupCardSkeleton` na Home e Biblioteca substituem `CircularProgressIndicator` durante `manifestAsync.isLoading`.
+3. **Repositório:** `CatalogRepository.loadCachedLouvores()` — leitura local sem rede.
 
-**Melhorias possíveis:**
+**Arquivos:**
 
-1. Skeleton/shimmer na `HomeScreen` enquanto `louvoresManifestProvider` é `loading`.
-2. Avaliar se índice Isar de ~4600 registros no open inicial adiciona latência perceptível.
-3. Paginação ou lazy load do catálogo na UI (não carregar todos os chips/filtros de uma vez).
-4. Service Worker cache da API `/api/catalog/louvores` (fora do escopo Flutter — worker Cloudflare).
+- `lib/features/catalog/presentation/providers/louvores_manifest_provider.dart`
+- `lib/features/catalog/domain/repositories/catalog_repository.dart`
+- `lib/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart`
+- `lib/core/widgets/shimmer_placeholder.dart`
+- `lib/features/catalog/presentation/pages/home_screen.dart`
+- `lib/features/library/presentation/pages/library_screen.dart`
+
+**Avaliação Isar (~4600 registros):** leitura via `findAll()` no cache-first é ordem de dezenas–centenas de ms (local); gargalo perceptível na 1ª visita continua sendo fetch remoto `GET /api/catalog/louvores`. Índices extras não implementados — sem evidência de ganho no open.
+
+**Medição manual sugerida (DevTools, pós-deploy):**
+
+| Métrica | Como medir |
+|---|---|
+| Skeleton visível | Após `flutter-first-frame`, Home/Biblioteca mostram chips skeleton (1ª visita) ou dados imediatos (cache quente) |
+| Manifest `data` | Performance API / breakpoint em `louvoresManifestProvider` |
+| Boot recorrente | Reload normal: manifest `data` antes do fetch remoto concluir |
 
 **Critérios de aceite:**
 
-- [ ] Home mostra shell + skeleton em <500 ms após primeiro frame Flutter.
-- [ ] Catálogo interativo assim que manifest estiver `data`.
+- [x] Home mostra shell (filtros + busca) + skeleton em <500 ms após primeiro frame Flutter (skeleton no 1º paint da Home; cache quente pula skeleton).
+- [x] Catálogo interativo assim que manifest estiver `data` (busca UC-01 + filtros material; arranjos após `availableArranjos`).
 
 **Estimativa de esforço:** médio.
 
@@ -476,6 +492,7 @@ Regras:
 | jul/2026 | Documento criado a partir de análise de cold start web vs nativo |
 | jul/2026 | **Fase C:** cache HTTP `immutable` para `.wasm`/`.js` em `web/_headers`; espelho em `web_local_dev.py` |
 | jul/2026 | **Fase D:** scripts `validate_web_coop_coep.sh` + `verify_web_headers_artifact.sh`; baseline COOP/COEP; relatório [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md) |
+| jul/2026 | **Fase G:** cache-first manifest (`LouvoresManifestNotifier`); skeleton Home/Biblioteca; `loadCachedLouvores()` |
 | jul/2026 | **Fase E:** preload WASM em `index.html` + `canvasKitBaseUrl` local em `flutter_bootstrap.js`; 1º frame ~1678 ms → ~676 ms (dev local, Chrome) |
 | jul/2026 | **Fase F (baseline pré-split):** `main.dart.wasm` 3,6 MB, `main.dart.js` 4,1 MB, 0 chunks deferred |
 | jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |
