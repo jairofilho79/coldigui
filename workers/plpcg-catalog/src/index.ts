@@ -23,6 +23,33 @@ interface LouvorJson {
 }
 
 const CACHE_CONTROL = 'public, max-age=300';
+const PLPCJF_ORIGIN = 'https://plpcjf.org';
+
+function corsHeaders(origin: string | null): Headers {
+  const headers = new Headers();
+  if (origin === PLPCJF_ORIGIN) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
+    headers.set('Vary', 'Origin');
+  }
+  return headers;
+}
+
+function withCors(response: Response, request: Request): Response {
+  const origin = request.headers.get('Origin');
+  const cors = corsHeaders(origin);
+  if (cors.get('Access-Control-Allow-Origin') === null) {
+    return response;
+  }
+  const headers = new Headers(response.headers);
+  cors.forEach((value, key) => headers.set(key, value));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
@@ -97,18 +124,30 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    if (request.method === 'OPTIONS') {
+      const cors = corsHeaders(request.headers.get('Origin'));
+      if (cors.get('Access-Control-Allow-Origin') === null) {
+        return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+      }
+      cors.set('Access-Control-Max-Age', '86400');
+      return new Response(null, { status: 204, headers: cors });
+    }
+
     if (request.method !== 'GET') {
-      return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+      return withCors(
+        jsonResponse({ error: 'method not allowed' }, { status: 405 }),
+        request,
+      );
     }
 
     if (url.pathname === '/api/catalog/louvores') {
-      return fetchLouvores(env.DB);
+      return withCors(await fetchLouvores(env.DB), request);
     }
 
     if (url.pathname === '/api/catalog/checksum') {
-      return fetchChecksum(env.DB, request);
+      return withCors(await fetchChecksum(env.DB, request), request);
     }
 
-    return jsonResponse({ error: 'not found' }, { status: 404 });
+    return withCors(jsonResponse({ error: 'not found' }, { status: 404 }), request);
   },
 };

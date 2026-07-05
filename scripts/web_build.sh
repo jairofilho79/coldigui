@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Build release do app Flutter Web (WASM) para deploy em plpcjf.org.
+#
+# Usa dart_defines/plpcjf.json (API em plpcg.com, frontend em plpcjf.org — D7).
+# Requer cabeçalhos COOP/COEP no hosting — ver web/_headers (D6).
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+DART_DEFINES_FILE="dart_defines/plpcjf.json"
+
+echo "==> Dependências Flutter..."
+"$ROOT_DIR/scripts/setup_deps.sh"
+
+echo "==> Build Web (WASM, release)..."
+flutter build web \
+  --wasm \
+  --release \
+  --dart-define-from-file="$DART_DEFINES_FILE"
+
+echo "==> Artefato em build/web/"

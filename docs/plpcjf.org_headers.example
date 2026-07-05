@@ -1,0 +1,27 @@
+# Cabeçalhos HTTP — plpcjf.org (Cloudflare Pages)
+
+Copie para `_headers` na raiz do artefato de deploy (`build/web/` inclui `web/_headers`).
+
+## COOP / COEP (D6)
+
+Necessários para `SharedArrayBuffer` e performance WASM do pdfrx:
+
+```
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+```
+
+Alternativa se recursos third-party quebrarem: `Cross-Origin-Embedder-Policy: credentialless`.
+
+## Service worker
+
+```
+/flutter_service_worker.js
+  Cache-Control: no-cache
+```
+
+## CORS (API)
+
+O frontend em `https://plpcjf.org` consome a API em `https://plpcg.com`.
+CORS está configurado no worker `workers/plpcg-catalog` (`Access-Control-Allow-Origin: https://plpcjf.org`).
