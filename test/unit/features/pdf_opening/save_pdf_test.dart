@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
+import 'package:coldigui/features/pdf_opening/data/datasources/save_pdf_platform.dart';
 import 'package:coldigui/features/pdf_opening/domain/usecases/save_pdf.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:coldigui/features/pdf_reader/domain/usecases/open_pdf_document.dart';
@@ -29,6 +30,26 @@ class _FakeBytesDatasource extends PdfBytesDatasource {
   }
 }
 
+class _FakeSavePlatform implements SavePdfPlatform {
+  _FakeSavePlatform(this._docsDir);
+
+  final Directory _docsDir;
+
+  @override
+  Future<String> savePdf({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final targetDir = Directory('${_docsDir.path}/${SavePdf.savedPdfsSubdir}');
+    if (!await targetDir.exists()) {
+      await targetDir.create(recursive: true);
+    }
+    final targetFile = File('${targetDir.path}/$fileName');
+    await targetFile.writeAsBytes(bytes, flush: true);
+    return targetFile.path;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -49,7 +70,7 @@ void main() {
       return SavePdf(
         _FakeBytesDatasource(bytes),
         const OpenPdfDocument(),
-        getApplicationDocumentsDirectory: () async => docsDir,
+        _FakeSavePlatform(docsDir),
       );
     }
 
@@ -76,7 +97,7 @@ void main() {
       expect(await File(savedPath).readAsBytes(), bytes);
     });
 
-    test('path local copia arquivo sem fetchBytes', () async {
+    test('path local usa fetchBytes e grava via platform', () async {
       final bytes = Uint8List.fromList([37, 80, 68, 70]);
       final cacheDir = await Directory.systemTemp.createTemp('save_local');
       final cacheFile = File('${cacheDir.path}/cached.pdf');
@@ -86,7 +107,7 @@ void main() {
       final useCase = SavePdf(
         datasource,
         const OpenPdfDocument(),
-        getApplicationDocumentsDirectory: () async => docsDir,
+        _FakeSavePlatform(docsDir),
       );
 
       final savedPath = await useCase.call(
@@ -94,7 +115,7 @@ void main() {
         fileName: '001.pdf',
       );
 
-      expect(datasource.fetchCalled, isFalse);
+      expect(datasource.fetchCalled, isTrue);
       expect(savedPath, contains('saved_pdfs'));
       expect(await File(savedPath).readAsBytes(), bytes);
 

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -35,27 +34,18 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SharePdf', () {
-    late Directory tempDir;
     XFile? sharedFile;
     String? sharedSubject;
 
-    setUp(() async {
-      tempDir = await Directory.systemTemp.createTemp('share_pdf_test');
+    setUp(() {
       sharedFile = null;
       sharedSubject = null;
-    });
-
-    tearDown(() async {
-      if (await tempDir.exists()) {
-        await tempDir.delete(recursive: true);
-      }
     });
 
     SharePdf buildUseCase({required Uint8List bytes}) {
       return SharePdf(
         _FakeBytesDatasource(bytes),
         const OpenPdfDocument(),
-        getTemporaryDirectory: () async => tempDir,
         shareXFiles: (files, {subject, sharePositionOrigin}) async {
           sharedFile = files.first;
           sharedSubject = subject;
@@ -73,7 +63,7 @@ void main() {
       expect(sharedFile, isNull);
     });
 
-    test('grava bytes em temp e compartilha via shareXFiles', () async {
+    test('compartilha bytes via XFile.fromData', () async {
       final bytes = Uint8List.fromList([37, 80, 68, 70]);
       final useCase = buildUseCase(bytes: bytes);
 
@@ -84,7 +74,8 @@ void main() {
 
       expect(sharedFile, isNotNull);
       expect(sharedSubject, 'Louvor Teste');
-      expect(await File(sharedFile!.path).readAsBytes(), bytes);
+      expect(await sharedFile!.readAsBytes(), bytes);
+      expect(sharedFile!.mimeType, 'application/pdf');
     });
 
     test('repassa sharePositionOrigin para shareXFiles', () async {
@@ -93,7 +84,6 @@ void main() {
       final useCase = SharePdf(
         _FakeBytesDatasource(bytes),
         const OpenPdfDocument(),
-        getTemporaryDirectory: () async => tempDir,
         shareXFiles: (files, {subject, sharePositionOrigin}) async {
           capturedOrigin = sharePositionOrigin;
         },
@@ -108,34 +98,26 @@ void main() {
       expect(capturedOrigin, origin);
     });
 
-    test('path local compartilha direto sem fetchBytes', () async {
+    test('path local usa fetchBytes e XFile.fromData', () async {
       final bytes = Uint8List.fromList([37, 80, 68, 70]);
-      final localDir = await Directory.systemTemp.createTemp('share_local');
-      final localFile = File('${localDir.path}/cached.pdf');
-      await localFile.writeAsBytes(bytes);
+      const localPath = '/var/mobile/plpcg_pdfs/cached.pdf';
 
       final datasource = _FakeBytesDatasource(bytes);
       final useCase = SharePdf(
         datasource,
         const OpenPdfDocument(),
-        getTemporaryDirectory: () async => tempDir,
         shareXFiles: (files, {subject, sharePositionOrigin}) async {
           sharedFile = files.first;
           sharedSubject = subject;
         },
       );
 
-      await useCase.call(
-        filePath: localFile.path,
-        displayName: 'Louvor Cache',
-      );
+      await useCase.call(filePath: localPath, displayName: 'Louvor Cache');
 
-      expect(datasource.fetchCalled, isFalse);
+      expect(datasource.fetchCalled, isTrue);
       expect(sharedFile, isNotNull);
-      expect(sharedFile!.path, localFile.path);
+      expect(await sharedFile!.readAsBytes(), bytes);
       expect(sharedSubject, 'Louvor Cache');
-
-      await localDir.delete(recursive: true);
     });
   });
 }

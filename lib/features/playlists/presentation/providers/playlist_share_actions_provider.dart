@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,7 +8,6 @@ import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/exceptions/empty_carousel_exception.dart';
@@ -37,7 +34,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     playlistShareDebugClearLastFailure();
@@ -59,7 +55,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             shareFilesFn,
             sharePositionOrigin,
             capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
           );
         case PlaylistShareOption.linkWithLeaflet:
           return _shareLinkWithLeaflet(
@@ -69,7 +64,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             shareFilesFn,
             sharePositionOrigin,
             capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
           );
         case PlaylistShareOption.linkAndLeafletWhatsApp:
           return _shareWhatsAppTwoStep(
@@ -81,7 +75,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             sharePositionOrigin,
             whatsAppDialogFn,
             capture: capture,
-            getTemporaryDirectory: getTemporaryDirectory,
           );
       }
     } on EmptyCarouselException catch (error, stackTrace) {
@@ -128,21 +121,19 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareXFilesFn shareFilesFn,
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
-    final file = await _captureLeafletFile(
+    final xFile = await _captureLeafletXFile(
       overlay,
       shareContext,
       l10n,
       capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
     );
     if (!context.mounted) return false;
 
     await shareFilesFn(
-      [leafletXFileFromFile(file)],
+      [xFile],
       subject: l10n.leafletShareSubject,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -156,18 +147,16 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareXFilesFn shareFilesFn,
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
     final url = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
 
-    final file = await _captureLeafletFile(
+    final xFile = await _captureLeafletXFile(
       overlay,
       shareContext,
       l10n,
       capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
     );
     if (!context.mounted) return false;
 
@@ -176,7 +165,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       url,
     );
     await shareFilesFn(
-      [leafletXFileFromFile(file)],
+      [xFile],
       subject: shareContext.nome,
       text: message,
       sharePositionOrigin: sharePositionOrigin,
@@ -193,21 +182,19 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin,
     Future<bool> Function(BuildContext context) whatsAppDialogFn, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
-    final file = await _captureLeafletFile(
+    final xFile = await _captureLeafletXFile(
       overlay,
       shareContext,
       l10n,
       capture: capture,
-      getTemporaryDirectory: getTemporaryDirectory,
     );
     if (!context.mounted) return false;
 
     await shareFilesFn(
-      [leafletXFileFromFile(file)],
+      [xFile],
       subject: l10n.leafletShareSubject,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -231,12 +218,11 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
   }
 
-  Future<File> _captureLeafletFile(
+  Future<XFile> _captureLeafletXFile(
     OverlayState overlay,
     PlaylistShareContext shareContext,
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
   }) async {
     final metadata = buildLouvorMetadataMap(
       ref.read(louvoresManifestProvider).value?.louvores,
@@ -258,11 +244,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       labels,
       capture: capture,
     );
-    return writeLeafletPngToTempFile(
-      pngBytes,
-      getTemporaryDirectory:
-          getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
-    );
+    return leafletXFileFromBytes(pngBytes);
   }
 }
 

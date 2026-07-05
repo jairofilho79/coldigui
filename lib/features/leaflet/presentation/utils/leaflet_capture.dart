@@ -1,7 +1,6 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/entities/leaflet_document.dart';
@@ -10,12 +9,8 @@ import '../widgets/leaflet_content_labels.dart';
 import 'leaflet_image_capture.dart';
 
 /// Callback injetável para testes — espelha [captureWidgetToPng].
-typedef CaptureWidgetToPngFn = Future<List<int>> Function(
-  GlobalKey boundaryKey,
-);
-
-/// Callback injetável para testes — espelha [path_provider.getTemporaryDirectory].
-typedef GetTemporaryDirectoryFn = Future<Directory> Function();
+typedef CaptureWidgetToPngFn =
+    Future<List<int>> Function(GlobalKey boundaryKey);
 
 const kLeafletPngFileName = 'folheto-plpcg.png';
 
@@ -60,22 +55,10 @@ Future<List<int>> captureLeafletPngBytes(
   }
 }
 
-/// Grava [pngBytes] em arquivo temporário do folheto.
-Future<File> writeLeafletPngToTempFile(
-  List<int> pngBytes, {
-  GetTemporaryDirectoryFn getTemporaryDirectory =
-      path_provider.getTemporaryDirectory,
-}) async {
-  final tempDir = await getTemporaryDirectory();
-  final file = File('${tempDir.path}/$kLeafletPngFileName');
-  await file.writeAsBytes(pngBytes, flush: true);
-  return file;
-}
-
-/// [XFile] do folheto a partir de [file] em disco.
-XFile leafletXFileFromFile(File file) {
-  return XFile(
-    file.path,
+/// [XFile] do folheto a partir de bytes PNG (D4 OA — sem temp file).
+XFile leafletXFileFromBytes(List<int> pngBytes) {
+  return XFile.fromData(
+    Uint8List.fromList(pngBytes),
     mimeType: 'image/png',
     name: kLeafletPngFileName,
   );

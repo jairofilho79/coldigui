@@ -68,7 +68,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
     final documentFuture = switch (source.kind) {
       PdfSourceKind.remoteUrl => _openRemote(source.value),
       PdfSourceKind.asset => PdfDocument.openAsset(source.value),
-      PdfSourceKind.localFile => PdfDocument.openFile(source.value),
+      PdfSourceKind.localFile => _openLocal(source.value),
     };
     return documentFuture.whenComplete(Timeline.finishSync);
   }
@@ -76,6 +76,12 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
   Future<PdfDocument> _openRemote(String url) async {
     final bytes = await _bytesDatasource.fetchBytes(url);
     return PdfDocument.openData(bytes, sourceName: url);
+  }
+
+  /// D2 OA — local sempre via bytes; web não usa [PdfDocument.openFile].
+  Future<PdfDocument> _openLocal(String path) async {
+    final bytes = await _bytesDatasource.fetchBytes(path);
+    return PdfDocument.openData(bytes, sourceName: path);
   }
 
   @override

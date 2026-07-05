@@ -45,7 +45,6 @@ class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     lastOption = option;
@@ -158,8 +157,9 @@ void main() {
     expect(find.textContaining('Louvor C'), findsNothing);
   });
 
-  testWidgets('setas navegam índice focado e somem nas extremidades',
-      (tester) async {
+  testWidgets('setas navegam índice focado e somem nas extremidades', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSubject(items));
     await tester.pumpAndSettle();
 
@@ -207,12 +207,9 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find
-        .descendant(
-          of: dialog,
-          matching: find.byIcon(Icons.close),
-        )
-        .first);
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.byIcon(Icons.close)).first,
+    );
     await tester.pumpAndSettle();
 
     expect(notifier.removed, ['a']);
@@ -236,8 +233,9 @@ void main() {
     expect(find.byIcon(Icons.share_outlined), findsOneWidget);
   });
 
-  testWidgets('em smartphone usa menu overflow em vez de ícones individuais',
-      (tester) async {
+  testWidgets('em smartphone usa menu overflow em vez de ícones individuais', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -255,8 +253,9 @@ void main() {
     expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 
-  testWidgets('menu overflow em smartphone abre sheet de compartilhar',
-      (tester) async {
+  testWidgets('menu overflow em smartphone abre sheet de compartilhar', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -298,50 +297,52 @@ void main() {
   });
 
   testWidgets(
-      'compartilhar lista com carousel preenchido sem playlist ativa em memória',
-      (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    'compartilhar lista com carousel preenchido sem playlist ativa em memória',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    final playlistsNotifier = _FakePlaylistsNotifier(
-      resolvedPlaylist: const ResolvedActivePlaylist(
-        playlistId: 'p1',
-        nome: 'Ensaio',
-      ),
-    );
-    final shareNotifier = _FakePlaylistShareActionsNotifier();
-    final carouselNotifier = _FakeCarouselNotifier(items);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(() => carouselNotifier),
-          playlistsProvider.overrideWith(() => playlistsNotifier),
-          playlistShareActionsProvider.overrideWith(() => shareNotifier),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: CarouselChips()),
+      final playlistsNotifier = _FakePlaylistsNotifier(
+        resolvedPlaylist: const ResolvedActivePlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      final shareNotifier = _FakePlaylistShareActionsNotifier();
+      final carouselNotifier = _FakeCarouselNotifier(items);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            carouselLouvoresProvider.overrideWith(() => carouselNotifier),
+            playlistsProvider.overrideWith(() => playlistsNotifier),
+            playlistShareActionsProvider.overrideWith(() => shareNotifier),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(body: CarouselChips()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Compartilhar'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Só o link'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Compartilhar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Só o link'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Esta lista não tem louvores.'), findsNothing);
-  });
+      expect(find.text('Esta lista não tem louvores.'), findsNothing);
+    },
+  );
 
-  testWidgets('tap compartilhar dispara opção folheto no sheet',
-      (tester) async {
+  testWidgets('tap compartilhar dispara opção folheto no sheet', (
+    tester,
+  ) async {
     final playlistsNotifier = _FakePlaylistsNotifier(
       resolvedPlaylist: const ResolvedActivePlaylist(
         playlistId: 'p1',
@@ -402,9 +403,8 @@ void main() {
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, state) => Scaffold(
-            body: Text(state.uri.queryParameters['pdfId'] ?? ''),
-          ),
+          builder: (_, state) =>
+              Scaffold(body: Text(state.uri.queryParameters['pdfId'] ?? '')),
         ),
       ],
     );
@@ -412,8 +412,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(items),
+          ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
         child: MaterialApp.router(
@@ -444,9 +445,8 @@ void main() {
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, state) => Scaffold(
-            body: Text(state.uri.queryParameters['pdfId'] ?? ''),
-          ),
+          builder: (_, state) =>
+              Scaffold(body: Text(state.uri.queryParameters['pdfId'] ?? '')),
         ),
       ],
     );
@@ -454,8 +454,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(items),
+          ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
         child: MaterialApp.router(
@@ -478,8 +479,9 @@ void main() {
     expect(find.text('b'), findsOneWidget);
   });
 
-  testWidgets('segundo toque no chip do modal no leitor troca o PDF',
-      (tester) async {
+  testWidgets('segundo toque no chip do modal no leitor troca o PDF', (
+    tester,
+  ) async {
     final readerActions = _FakeReaderCarouselActions();
     final router = GoRouter(
       initialLocation: RoutePaths.home,
@@ -498,8 +500,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(items),
+          ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
           readerCarouselPositionProvider('b').overrideWith(
             (ref) => const CarouselReaderPosition(
@@ -542,8 +545,9 @@ void main() {
     expect(router.state.uri.queryParameters['pdfId'], 'a');
   });
 
-  testWidgets('segundo toque no chip do modal no shell abre outro PDF',
-      (tester) async {
+  testWidgets('segundo toque no chip do modal no shell abre outro PDF', (
+    tester,
+  ) async {
     final readerActions = _FakeReaderCarouselActions();
     final router = GoRouter(
       initialLocation: RoutePaths.home,
@@ -554,9 +558,8 @@ void main() {
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, state) => Scaffold(
-            body: Text(state.uri.queryParameters['pdfId'] ?? ''),
-          ),
+          builder: (_, state) =>
+              Scaffold(body: Text(state.uri.queryParameters['pdfId'] ?? '')),
         ),
       ],
     );
@@ -564,8 +567,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(items),
+          ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
         child: MaterialApp.router(
@@ -606,8 +610,9 @@ void main() {
     expect(find.textContaining('Louvor A'), findsOneWidget);
   });
 
-  testWidgets('modo leitor exibe setas com posição no carousel',
-      (tester) async {
+  testWidgets('modo leitor exibe setas com posição no carousel', (
+    tester,
+  ) async {
     final router = GoRouter(
       initialLocation: RoutePaths.home,
       routes: [
@@ -625,8 +630,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier(items)),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(items),
+          ),
           readerCarouselPositionProvider('b').overrideWith(
             (ref) => const CarouselReaderPosition(
               currentIndex: 2,

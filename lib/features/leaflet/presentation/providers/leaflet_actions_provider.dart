@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_position_origin.dart';
@@ -39,14 +36,11 @@ class LeafletActionsNotifier extends Notifier<void> {
   Future<bool> generateAndShare(
     BuildContext context, {
     ShareXFilesFn? shareXFiles,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     CaptureWidgetToPngFn? capture,
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     final shareFn = shareXFiles ?? _defaultShareXFiles;
-    final tempDirFn =
-        getTemporaryDirectory ?? path_provider.getTemporaryDirectory;
 
     try {
       leafletDebugLog('generateAndShare: início');
@@ -66,13 +60,9 @@ class LeafletActionsNotifier extends Notifier<void> {
         labels,
         capture: capture,
       );
-      final file = await writeLeafletPngToTempFile(
-        pngBytes,
-        getTemporaryDirectory: tempDirFn,
-      );
 
       await shareFn(
-        [leafletXFileFromFile(file)],
+        [leafletXFileFromBytes(pngBytes)],
         subject: l10n.leafletShareSubject,
         sharePositionOrigin: shareOrigin,
       );
@@ -155,13 +145,12 @@ Future<LeafletDocument> resolveLeafletDocument(
   );
 }
 
-/// Captura folheto em arquivo temporário PNG.
-Future<File> captureLeafletToTempFile(
+/// Captura folheto como [XFile] PNG (D4 OA).
+Future<XFile> captureLeafletXFile(
   BuildContext context,
   LeafletDocument document,
   LeafletContentLabels labels, {
   CaptureWidgetToPngFn? capture,
-  GetTemporaryDirectoryFn? getTemporaryDirectory,
 }) async {
   final overlay = Overlay.of(context);
   final pngBytes = await captureLeafletPngBytes(
@@ -170,11 +159,7 @@ Future<File> captureLeafletToTempFile(
     labels,
     capture: capture,
   );
-  return writeLeafletPngToTempFile(
-    pngBytes,
-    getTemporaryDirectory:
-        getTemporaryDirectory ?? path_provider.getTemporaryDirectory,
-  );
+  return leafletXFileFromBytes(pngBytes);
 }
 
 /// Estado de ações do folheto — legado [generateAndShare] para testes diretos.

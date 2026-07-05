@@ -53,7 +53,6 @@ class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    GetTemporaryDirectoryFn? getTemporaryDirectory,
     Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     lastOption = option;
@@ -149,8 +148,9 @@ void main() {
     );
   }
 
-  testWidgets('menu exibe Carregar no carousel e Abrir no leitor',
-      (tester) async {
+  testWidgets('menu exibe Carregar no carousel e Abrir no leitor', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       buildSubject(playlistsNotifier: _FakePlaylistsNotifier([item])),
     );
@@ -178,8 +178,9 @@ void main() {
     expect(find.text('Lista carregada no carousel'), findsOneWidget);
   });
 
-  testWidgets('confirma substituição quando carousel não vazio',
-      (tester) async {
+  testWidgets('confirma substituição quando carousel não vazio', (
+    tester,
+  ) async {
     final notifier = _FakePlaylistsNotifier([item]);
     await tester.pumpWidget(
       buildSubject(
@@ -226,9 +227,8 @@ void main() {
         ),
         GoRoute(
           path: RoutePaths.reader,
-          builder: (_, state) => Scaffold(
-            body: Text(state.uri.queryParameters['pdfId'] ?? ''),
-          ),
+          builder: (_, state) =>
+              Scaffold(body: Text(state.uri.queryParameters['pdfId'] ?? '')),
         ),
       ],
     );
@@ -237,8 +237,9 @@ void main() {
       ProviderScope(
         overrides: [
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider
-              .overrideWith(() => _FakeCarouselNotifier([])),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([]),
+          ),
           resolvePdfForReaderProvider.overrideWithValue(
             _FakeResolvePdfForReader(),
           ),

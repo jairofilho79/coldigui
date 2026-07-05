@@ -1,10 +1,11 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../../pdf_reader/data/utils/pdf_source_resolver.dart';
+import 'pdf_bytes_local_reader_stub.dart'
+    if (dart.library.io) 'pdf_bytes_local_reader_native.dart'
+    if (dart.library.js_interop) 'pdf_bytes_local_reader_web.dart';
 
 /// Obtém bytes PDF de origem remota, asset ou arquivo local (UC-04 Fase 2.5).
 class PdfBytesDatasource {
@@ -12,8 +13,8 @@ class PdfBytesDatasource {
     this._dio, {
     PdfSourceResolver? resolver,
     AssetBundle? bundle,
-  })  : _resolver = resolver ?? const PdfSourceResolver(),
-        _bundle = bundle ?? rootBundle;
+  }) : _resolver = resolver ?? const PdfSourceResolver(),
+       _bundle = bundle ?? rootBundle;
 
   final Dio _dio;
   final PdfSourceResolver _resolver;
@@ -26,10 +27,12 @@ class PdfBytesDatasource {
   }) async {
     final source = _resolver.resolve(filePath);
     return switch (source.kind) {
-      PdfSourceKind.remoteUrl =>
-        _fetchRemote(source.value, onReceiveProgress: onReceiveProgress),
+      PdfSourceKind.remoteUrl => _fetchRemote(
+        source.value,
+        onReceiveProgress: onReceiveProgress,
+      ),
       PdfSourceKind.asset => _fetchAsset(source.value),
-      PdfSourceKind.localFile => _fetchLocal(source.value),
+      PdfSourceKind.localFile => readLocalPdfBytes(source.value),
     };
   }
 
@@ -57,13 +60,5 @@ class PdfBytesDatasource {
   Future<Uint8List> _fetchAsset(String assetPath) async {
     final data = await _bundle.load(assetPath);
     return data.buffer.asUint8List();
-  }
-
-  Future<Uint8List> _fetchLocal(String path) async {
-    final file = File(path);
-    if (!await file.exists()) {
-      throw Exception('Arquivo PDF não encontrado');
-    }
-    return file.readAsBytes();
   }
 }

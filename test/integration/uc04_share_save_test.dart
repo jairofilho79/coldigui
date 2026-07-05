@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
+import 'package:coldigui/features/pdf_opening/data/datasources/save_pdf_platform.dart';
 import 'package:coldigui/features/pdf_opening/domain/usecases/save_pdf.dart';
 import 'package:coldigui/features/pdf_opening/domain/usecases/share_pdf.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -90,7 +91,6 @@ void main() {
     final sharePdf = SharePdf(
       datasource,
       openPdf,
-      getTemporaryDirectory: () async => Directory.systemTemp,
       shareXFiles: (_, {subject, sharePositionOrigin}) async {
         shared = true;
       },
@@ -100,11 +100,7 @@ void main() {
     expect(shared, isTrue);
 
     final docsDir = await Directory.systemTemp.createTemp('uc04_save');
-    final savePdf = SavePdf(
-      datasource,
-      openPdf,
-      getApplicationDocumentsDirectory: () async => docsDir,
-    );
+    final savePdf = SavePdf(datasource, openPdf, _FakeSavePlatform(docsDir));
 
     final savedPath = await savePdf.call(
       filePath: 'asset:fixtures/sample.pdf',
@@ -114,4 +110,24 @@ void main() {
     expect(savedPath, contains('saved_pdfs'));
     await docsDir.delete(recursive: true);
   });
+}
+
+class _FakeSavePlatform implements SavePdfPlatform {
+  _FakeSavePlatform(this._docsDir);
+
+  final Directory _docsDir;
+
+  @override
+  Future<String> savePdf({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final targetDir = Directory('${_docsDir.path}/${SavePdf.savedPdfsSubdir}');
+    if (!await targetDir.exists()) {
+      await targetDir.create(recursive: true);
+    }
+    final targetFile = File('${targetDir.path}/$fileName');
+    await targetFile.writeAsBytes(bytes, flush: true);
+    return targetFile.path;
+  }
 }
