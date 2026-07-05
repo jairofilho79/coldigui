@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/providers/pdf_reader_providers.dart';
+import '../../data/providers/pdf_reader_viewer_providers.dart';
 import '../../domain/entities/pdf_reader_preferences.dart';
 import 'reader_fullscreen_provider.dart';
 
 /// Estado de visualização do leitor — fit mode (UC-11 Fase 2.3).
 final pdfReaderViewSettingsProvider =
     NotifierProvider<PdfReaderViewSettingsNotifier, PdfReaderViewSettings>(
-  PdfReaderViewSettingsNotifier.new,
-);
+      PdfReaderViewSettingsNotifier.new,
+    );
 
 /// Carrega, persiste e aplica preferências de fit no adapter ativo.
 class PdfReaderViewSettingsNotifier extends Notifier<PdfReaderViewSettings> {

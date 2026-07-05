@@ -9,7 +9,7 @@ import 'package:coldigui/features/offline/data/datasources/offline_manifest_remo
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
-import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/data/providers/offline_bulk_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';

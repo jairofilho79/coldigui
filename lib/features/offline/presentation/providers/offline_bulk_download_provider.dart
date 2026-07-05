@@ -2,7 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../../data/providers/offline_providers.dart';
+import '../../data/providers/offline_bulk_providers.dart';
+import '../../data/providers/offline_core_providers.dart';
 import 'offline_cache_status_provider.dart';
 import 'offline_category_selection_provider.dart';
 import 'offline_mode_provider.dart';

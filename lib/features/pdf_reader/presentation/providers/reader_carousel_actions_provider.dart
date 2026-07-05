@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../offline/data/providers/offline_providers.dart';
+import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
-import '../../data/providers/pdf_reader_providers.dart';
+import '../../data/providers/carousel_reader_providers.dart';
 import '../../domain/entities/carousel_reader_position.dart';
 
 /// Orquestra navegação carousel no leitor (UC-11, Fase 4.7).
@@ -23,11 +23,9 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     required String currentPdfId,
     required CarouselReaderDirection direction,
   }) async {
-    final targetPdfId =
-        await ref.read(navigateCarouselInReaderProvider).resolveTarget(
-              currentPdfId: currentPdfId,
-              direction: direction,
-            );
+    final targetPdfId = await ref
+        .read(navigateCarouselInReaderProvider)
+        .resolveTarget(currentPdfId: currentPdfId, direction: direction);
     if (targetPdfId == null) return null;
 
     return navigateToPdfId(targetPdfId: targetPdfId);
@@ -50,7 +48,9 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
       remotePath: remotePath,
     );
 
-    return ref.read(openPdfInReaderProvider).call(
+    return ref
+        .read(openPdfInReaderProvider)
+        .call(
           pdfPath: source.absolutePath,
           pdfId: louvor.pdfId,
           titulo: louvor.nome,
@@ -61,5 +61,5 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
 /// Ações de navegação carousel dentro do leitor PDF (Fase 4.7).
 final readerCarouselActionsProvider =
     NotifierProvider<ReaderCarouselActionsNotifier, void>(
-  ReaderCarouselActionsNotifier.new,
-);
+      ReaderCarouselActionsNotifier.new,
+    );

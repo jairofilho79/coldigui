@@ -5,7 +5,6 @@ import '../datasources/zip_package_downloader.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import 'zip_pdf_extractor.dart';
-import 'zip_pdf_extractor_types.dart';
 
 Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,

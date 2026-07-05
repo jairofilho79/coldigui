@@ -7,8 +7,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
-import 'package:coldigui/features/leaflet/presentation/utils/leaflet_capture.dart';
-import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';

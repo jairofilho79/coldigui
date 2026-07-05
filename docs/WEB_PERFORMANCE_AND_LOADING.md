@@ -284,13 +284,15 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 **Objetivo:** paralelizar download de WASM enquanto JS bootstrap parseia.
 
-**Implementação sugerida em `web/index.html`:**
+**Implementação em `web/index.html`:**
 
 ```html
-<link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
 <link rel="preload" href="main.dart.wasm" as="fetch" crossorigin="anonymous">
-<!-- pdfrx: só se mantiver init no boot; caso Fase B adie, remover preload de pdfium -->
+<link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="canvaskit/skwasm.wasm" as="fetch" crossorigin="anonymous">
 ```
+
+**Complemento:** [`web/flutter_bootstrap.js`](web/flutter_bootstrap.js) com `canvasKitBaseUrl: "canvaskit"` — sem isso o loader padrão baixa `skwasm.wasm` do CDN (`gstatic.com`) e o preload local vira download duplicado (~3,5 MB desperdiçados).
 
 **Cuidados:**
 
@@ -299,8 +301,15 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 **Critérios de aceite:**
 
-- [ ] Waterfall Network mostra downloads paralelos.
-- [ ] Tempo total de boot medido (Performance API) igual ou menor.
+- [x] Waterfall Network mostra downloads paralelos (`main.dart.wasm`, `isar_plus.wasm`, `skwasm.wasm` no parse do HTML).
+- [x] Tempo total de boot medido (Performance API) igual ou menor.
+
+**Métricas (local, Chrome, `scripts/web_local_dev.py`, service worker bloqueado, jul/2026):**
+
+| Cenário | `flutter-first-frame` | Observação |
+|---|---|---|
+| Antes (sem preload, skwasm via CDN) | ~1678 ms | `skwasm.wasm` do gstatic após bootstrap |
+| Após Fase E (preload + skwasm local) | ~676 ms | 1 request por WASM; paralelo no `<head>` |
 
 **Estimativa de esforço:** baixo.
 
@@ -404,7 +413,8 @@ H (medição)      →  contínuo em todas as fases
 
 | Arquivo | Relevância |
 |---|---|
-| `web/index.html` | Ponto de entrada; splash loader |
+| `web/index.html` | Ponto de entrada; splash loader; preload WASM |
+| `web/flutter_bootstrap.js` | Boot customizado; `canvasKitBaseUrl` local para skwasm |
 | `web/_headers` | COOP/COEP + cache (Cloudflare Pages) |
 | `web/manifest.json` | Cores PWA (`#4B2D2B`, `#D4AF37`) |
 | `web/isar_plus.wasm`, `web/isar_plus.js` | Assets Isar web (OPFS) |
@@ -466,3 +476,6 @@ Regras:
 | jul/2026 | Documento criado a partir de análise de cold start web vs nativo |
 | jul/2026 | **Fase C:** cache HTTP `immutable` para `.wasm`/`.js` em `web/_headers`; espelho em `web_local_dev.py` |
 | jul/2026 | **Fase D:** scripts `validate_web_coop_coep.sh` + `verify_web_headers_artifact.sh`; baseline COOP/COEP; relatório [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md) |
+| jul/2026 | **Fase E:** preload WASM em `index.html` + `canvasKitBaseUrl` local em `flutter_bootstrap.js`; 1º frame ~1678 ms → ~676 ms (dev local, Chrome) |
+| jul/2026 | **Fase F (baseline pré-split):** `main.dart.wasm` 3,6 MB, `main.dart.js` 4,1 MB, 0 chunks deferred |
+| jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |

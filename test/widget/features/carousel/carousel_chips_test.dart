@@ -7,8 +7,6 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carou
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
-import 'package:coldigui/features/leaflet/presentation/utils/leaflet_capture.dart';
-import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';

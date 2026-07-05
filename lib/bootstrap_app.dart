@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'features/pdf_reader/data/pdfrx_bootstrap.dart';
 import 'app.dart';
 import 'core/database/isar_provider.dart';
 import 'core/theme/app_typography.dart';
@@ -60,7 +59,7 @@ class BootstrapApp extends ConsumerWidget {
       ),
       data: (isar) => ProviderScope(
         overrides: [isarProvider.overrideWithValue(isar)],
-        child: const PdfrxIdlePreloader(child: ColdiguiApp()),
+        child: const ColdiguiApp(),
       ),
     );
   }

@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/utils/url_sync_params.dart';
+import '../../core/widgets/deferred_route_loader.dart';
+import '../../deferred/offline_bulk_deferred.dart' deferred as offline_bulk;
+import '../../deferred/pdf_reader_deferred.dart' deferred as pdf_reader;
 import '../../features/app_shell/presentation/pages/about_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
-import '../../features/offline/presentation/pages/offline_settings_screen.dart';
-import '../../features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import '../../features/playlists/presentation/pages/playlists_screen.dart';
 import 'route_paths.dart';
 
@@ -20,9 +21,7 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// Rotas em [RoutePaths]. `/leitor` é sub-rota da branch Home para reutilizar o
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
 ///
-/// A Home hidrata busca e filtros a partir de [UrlSyncParams.pesquisa],
-/// [UrlSyncParams.materiais] e [UrlSyncParams.arranjo]; a escrita é feita
-/// pela tela via [buildHomeLocation] + GoRouter.
+/// `/leitor` e `/offline` carregam chunks deferred (Fase F — code splitting).
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -76,8 +75,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'leitor',
-                    builder: (context, state) => PdfReaderScreen(
-                      queryParams: state.uri.queryParameters,
+                    pageBuilder: (context, state) => MaterialPage<void>(
+                      child: DeferredRouteLoader(
+                        loadingMessage: 'Carregando leitor…',
+                        load: () => pdf_reader.preparePdfReaderModule(
+                          pdf_reader.loadLibrary,
+                        ),
+                        builder: () => pdf_reader.PdfReaderScreen(
+                          queryParams: state.uri.queryParameters,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -88,7 +95,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.offline,
-                builder: (context, state) => const OfflineSettingsScreen(),
+                pageBuilder: (context, state) => MaterialPage<void>(
+                  child: DeferredRouteLoader(
+                    loadingMessage: 'Carregando offline…',
+                    load: offline_bulk.loadLibrary,
+                    builder: () => offline_bulk.OfflineSettingsScreen(),
+                  ),
+                ),
               ),
             ],
           ),

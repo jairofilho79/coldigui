@@ -6,7 +6,7 @@ import '../../../offline/data/providers/offline_providers.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../data/adapters/pdfrx_viewer_adapter.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
-import '../../data/providers/pdf_reader_providers.dart';
+import '../../data/providers/pdf_reader_viewer_providers.dart';
 import '../../data/utils/pdf_source_resolver.dart';
 import '../../domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';

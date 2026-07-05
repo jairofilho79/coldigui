@@ -27,14 +27,29 @@ class OfflineSettingsScreen extends ConsumerStatefulWidget {
       _OfflineSettingsScreenState();
 }
 
-class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
+class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(offlineReconcileProvider.notifier).requestReconcile();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      ref.read(offlineBulkDownloadProvider.notifier).pauseForBackground();
+    }
   }
 
   bool get _maintenanceBusy {
@@ -54,14 +69,14 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
     try {
       await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.offlineRefreshSuccess)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.offlineRefreshError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
     }
   }
 
@@ -90,8 +105,9 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final wasFullClear =
-        await ref.read(clearOfflineCacheProvider).call(materials: materials);
+    final wasFullClear = await ref
+        .read(clearOfflineCacheProvider)
+        .call(materials: materials);
 
     if (wasFullClear) {
       ref.read(offlineModeProvider.notifier).syncDisabled();
@@ -148,16 +164,16 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
           'offlineDownloadNetworkError' => l10n.offlineDownloadNetworkError,
           _ => l10n.offlineDownloadError,
         };
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
       if ((next.status == OfflineBulkDownloadStatus.completed ||
               next.status == OfflineBulkDownloadStatus.completedWithWarnings) &&
           previous?.status != next.status) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.offlineDownloadCompleted)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.offlineDownloadCompleted)));
       }
     });
 
@@ -168,18 +184,20 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
         final result = next.lastResult!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.offlineMissingCompleted(
-              result.downloadedCount,
-              result.failedCount,
-            )),
+            content: Text(
+              l10n.offlineMissingCompleted(
+                result.downloadedCount,
+                result.failedCount,
+              ),
+            ),
           ),
         );
       }
       if (next.status == OfflineMissingDownloadStatus.failed &&
           previous?.status != OfflineMissingDownloadStatus.failed) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.offlineMissingError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.offlineMissingError)));
       }
     });
 
@@ -199,9 +217,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
                 maintenanceBusy: _maintenanceBusy,
                 onDownloadMissing: () =>
                     ref.read(offlineMissingDownloadProvider.notifier).start(),
-                onDownloadPackages: () => _startBulkDownload(
-                  selectionState.packagesScope.toList(),
-                ),
+                onDownloadPackages: () =>
+                    _startBulkDownload(selectionState.packagesScope.toList()),
                 onToggleCategory: (material) => ref
                     .read(offlineCategorySelectionProvider.notifier)
                     .toggle(material),
@@ -227,16 +244,16 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
                     onPressed: _maintenanceBusy
                         ? null
                         : () => ref
-                            .read(offlineCacheStatusProvider.notifier)
-                            .dismissRemovedWarning(),
+                              .read(offlineCacheStatusProvider.notifier)
+                              .dismissRemovedWarning(),
                     child: Text(l10n.offlineDismissRemoved),
                   ),
                   TextButton(
                     onPressed: _maintenanceBusy
                         ? null
                         : () => ref
-                            .read(offlineMissingDownloadProvider.notifier)
-                            .start(),
+                              .read(offlineMissingDownloadProvider.notifier)
+                              .start(),
                     child: Text(l10n.offlineDownloadMissing),
                   ),
                 ],
@@ -289,12 +306,13 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen> {
                     children: [
                       Expanded(
                         child: FilledButton(
-                          onPressed: bulkState.isRunning ||
+                          onPressed:
+                              bulkState.isRunning ||
                                   selectionState.selected.isEmpty
                               ? null
                               : () => _startBulkDownload(
-                                    selectionState.selected.toList(),
-                                  ),
+                                  selectionState.selected.toList(),
+                                ),
                           child: Text(l10n.offlineDownloadSelected),
                         ),
                       ),
@@ -324,8 +342,9 @@ bool _canClearCache(
   OfflineStats stats,
 ) {
   if (selection.selected.isEmpty) return false;
-  return selection.selected
-      .any((material) => (stats.byCategory[material] ?? 0) > 0);
+  return selection.selected.any(
+    (material) => (stats.byCategory[material] ?? 0) > 0,
+  );
 }
 
 String _formatSelectedCategories(Set<String> selected) {
@@ -347,8 +366,9 @@ bool _canDownloadMissing(
 ) {
   if (selection.missingScope.isEmpty) return false;
   if (!stats.missingCountReliable) return true;
-  return selection.missingScope
-      .any((material) => (stats.missingByCategory[material] ?? 0) > 0);
+  return selection.missingScope.any(
+    (material) => (stats.missingByCategory[material] ?? 0) > 0,
+  );
 }
 
 class _StatsSection extends StatelessWidget {
@@ -419,8 +439,10 @@ class _StatsSection extends StatelessWidget {
       cacheStatus.stats,
       selectionState.bulkDownloaded,
     );
-    final canDownloadMissing =
-        _canDownloadMissing(selectionState, cacheStatus.stats);
+    final canDownloadMissing = _canDownloadMissing(
+      selectionState,
+      cacheStatus.stats,
+    );
     final canDownloadPackages = selectionState.packagesScope.isNotEmpty;
     final canClearCache = _canClearCache(selectionState, cacheStatus.stats);
 
@@ -514,10 +536,7 @@ class _StatsSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.offlineMissingProgress(
-              missingState.done,
-              missingState.total,
-            ),
+            l10n.offlineMissingProgress(missingState.done, missingState.total),
             style: AppTypography.body.copyWith(
               color: AppColors.title.withValues(alpha: 0.75),
             ),
@@ -525,8 +544,9 @@ class _StatsSection extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         OutlinedButton(
-          onPressed:
-              maintenanceBusy || !canDownloadMissing ? null : onDownloadMissing,
+          onPressed: maintenanceBusy || !canDownloadMissing
+              ? null
+              : onDownloadMissing,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.title,
             side: const BorderSide(color: AppColors.title, width: 1.5),
@@ -587,8 +607,9 @@ class _CategoryFilterChip extends StatelessWidget {
       selectedColor: AppColors.gold.withValues(alpha: 0.3),
       backgroundColor: AppColors.card,
       side: BorderSide(
-        color:
-            selected ? AppColors.gold : AppColors.title.withValues(alpha: 0.4),
+        color: selected
+            ? AppColors.gold
+            : AppColors.title.withValues(alpha: 0.4),
         width: selected ? 2 : 1.5,
       ),
       onSelected: enabled ? onSelected : null,
@@ -596,10 +617,7 @@ class _CategoryFilterChip extends StatelessWidget {
 
     if (onLongPress == null || !enabled) return chip;
 
-    return GestureDetector(
-      onLongPress: onLongPress,
-      child: chip,
-    );
+    return GestureDetector(onLongPress: onLongPress, child: chip);
   }
 }
 
@@ -669,10 +687,13 @@ class _CheckpointBanner extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                  onPressed: onDismiss,
-                  child: Text(l10n.offlineDismissCheckpoint)),
+                onPressed: onDismiss,
+                child: Text(l10n.offlineDismissCheckpoint),
+              ),
               TextButton(
-                  onPressed: onResume, child: Text(l10n.offlineResumeDownload)),
+                onPressed: onResume,
+                child: Text(l10n.offlineResumeDownload),
+              ),
             ],
           ),
         ],
@@ -697,7 +718,8 @@ class _ProgressSection extends StatelessWidget {
     };
 
     final isFetching = progress.phase == OfflineDownloadPhase.fetching;
-    final hasZipProgress = isFetching &&
+    final hasZipProgress =
+        isFetching &&
         progress.zipBytesReceived != null &&
         progress.zipBytesTotal != null &&
         progress.zipBytesTotal! > 0;

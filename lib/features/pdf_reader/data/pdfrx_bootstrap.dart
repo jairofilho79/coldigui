@@ -22,7 +22,7 @@ void schedulePdfrxIdlePreload() {
   SchedulerBinding.instance.scheduleFrameCallback((_) {
     SchedulerBinding.instance.scheduleTask(() {
       unawaited(
-        ensurePdfrxInitialized().catchError((Object _, StackTrace __) {}),
+        ensurePdfrxInitialized().catchError((_) {}),
       );
     }, Priority.idle);
   });

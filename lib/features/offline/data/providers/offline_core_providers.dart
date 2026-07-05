@@ -1,0 +1,154 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/providers/device_connectivity_provider.dart';
+import '../../../../core/providers/dio_provider.dart';
+import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../catalog/data/providers/catalog_local_providers.dart';
+import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
+import '../../../pdf_opening/domain/usecases/validate_pdf_availability.dart';
+import '../../../playlists/data/providers/playlist_providers.dart';
+import '../../domain/usecases/clear_offline_cache.dart';
+import '../../domain/usecases/download_missing_pdfs.dart';
+import '../../domain/usecases/fetch_and_store_pdf.dart';
+import '../../domain/usecases/get_offline_stats_by_category.dart';
+import '../../domain/usecases/list_missing_louvores_by_material.dart';
+import '../../domain/usecases/migrate_offline_storage.dart';
+import '../../domain/usecases/reconcile_offline_index.dart';
+import '../../domain/usecases/resolve_pdf_for_reader.dart';
+import '../datasources/favorite_pdf_ids_resolver.dart';
+import '../datasources/offline_available_store.dart';
+import '../datasources/offline_bulk_categories_store.dart';
+import '../datasources/offline_bulk_checkpoint_store.dart';
+import '../datasources/offline_manifest_remote_datasource.dart';
+import '../datasources/offline_selected_categories_store.dart';
+import 'offline_repository_providers.dart';
+
+export 'offline_repository_providers.dart';
+
+/// DI — [FetchAndStorePdf] (Fase 3.3).
+final fetchAndStorePdfProvider = Provider<FetchAndStorePdf>((ref) {
+  return FetchAndStorePdf(
+    ref.watch(pdfBytesDatasourceProvider),
+    ref.watch(offlinePdfRepositoryProvider),
+    favoritePdfIdsResolver: ref.watch(favoritePdfIdsResolverProvider),
+  );
+});
+
+/// DI — [ResolvePdfForReader] (Fase 3.2 + 3.3 + 3.4).
+final resolvePdfForReaderProvider = Provider<ResolvePdfForReader>((ref) {
+  final offlineStore = ref.watch(offlineAvailableStoreProvider);
+  final connectivity = ref.watch(deviceConnectivityProvider);
+  return ResolvePdfForReader(
+    ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(fetchAndStorePdfProvider),
+    isFullOfflineMode: () => offlineStore.isConfigured,
+    hasNetworkConnection: connectivity.hasConnection,
+  );
+});
+
+/// DI — [ValidatePdfAvailability] (Fase 3.4).
+final validatePdfAvailabilityProvider = Provider<ValidatePdfAvailability>((
+  ref,
+) {
+  return ValidatePdfAvailability(ref.watch(offlinePdfRepositoryProvider));
+});
+
+/// DI — manifest remoto de pacotes offline (UC-09).
+final offlineManifestRemoteDatasourceProvider =
+    Provider<OfflineManifestRemoteDatasource>((ref) {
+      return OfflineManifestRemoteDatasource(
+        ref.watch(dioProvider),
+        ref.watch(sharedPreferencesProvider),
+      );
+    });
+
+/// DI — PDFs em playlists favoritas (protegidos da eviction LRU).
+final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
+  return FavoritePdfIdsResolver(ref.watch(playlistLocalDatasourceProvider));
+});
+
+/// DI — categorias de material com bulk ZIP concluído (UC-09/UC-10).
+final offlineBulkCategoriesStoreProvider = Provider<OfflineBulkCategoriesStore>(
+  (ref) {
+    return OfflineBulkCategoriesStore(ref.watch(sharedPreferencesProvider));
+  },
+);
+
+/// DI — seleção de chips de material na tela offline (UC-09/UC-10).
+final offlineSelectedCategoriesStoreProvider =
+    Provider<OfflineSelectedCategoriesStore>((ref) {
+      return OfflineSelectedCategoriesStore(
+        ref.watch(sharedPreferencesProvider),
+      );
+    });
+
+/// DI — flag UC-09/UC-10 [StorageKeys.offlineAvailable] (`TRUE`/`FALSE`).
+final offlineAvailableStoreProvider = Provider<OfflineAvailableStore>((ref) {
+  return OfflineAvailableStore(ref.watch(sharedPreferencesProvider));
+});
+
+/// DI — [ReconcileOfflineIndex] mínimo (Fase 3.5).
+final reconcileOfflineIndexProvider = Provider<ReconcileOfflineIndex>((ref) {
+  return ReconcileOfflineIndex(
+    ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(pdfStoragePortProvider),
+  );
+});
+
+/// DI — [GetOfflineStatsByCategory] (Fase 3.6).
+final getOfflineStatsByCategoryProvider = Provider<GetOfflineStatsByCategory>((
+  ref,
+) {
+  return GetOfflineStatsByCategory(
+    ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(catalogLocalDatasourceProvider),
+    ref.watch(pdfStoragePortProvider),
+  );
+});
+
+/// DI — [DownloadMissingPdfs] (Fase 3.6).
+final downloadMissingPdfsProvider = Provider<DownloadMissingPdfs>((ref) {
+  return DownloadMissingPdfs(
+    ref.watch(catalogLocalDatasourceProvider),
+    ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(fetchAndStorePdfProvider),
+  );
+});
+
+/// DI — [ListMissingLouvoresByMaterial] (Fase 3.7).
+final listMissingLouvoresByMaterialProvider =
+    Provider<ListMissingLouvoresByMaterial>((ref) {
+      return ListMissingLouvoresByMaterial(
+        ref.watch(catalogLocalDatasourceProvider),
+        ref.watch(offlinePdfRepositoryProvider),
+      );
+    });
+
+/// DI — checkpoint de resume bulk (SharedPreferences — sem archive).
+final offlineBulkCheckpointStoreProvider = Provider<OfflineBulkCheckpointStore>(
+  (ref) {
+    return OfflineBulkCheckpointStore(ref.watch(sharedPreferencesProvider));
+  },
+);
+
+/// DI — [ClearOfflineCache] (Fase 3.6).
+final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
+  return ClearOfflineCache(
+    ref.watch(offlinePdfRepositoryProvider),
+    ref.watch(catalogLocalDatasourceProvider),
+    ref.watch(pdfStoragePortProvider),
+    ref.watch(offlineBulkCheckpointStoreProvider),
+    ref.watch(offlineBulkCategoriesStoreProvider),
+    ref.watch(offlineSelectedCategoriesStoreProvider),
+    ref.watch(offlineAvailableStoreProvider),
+  );
+});
+
+/// DI — [MigrateOfflineStorage] (Fase 3.6).
+final migrateOfflineStorageProvider = Provider<MigrateOfflineStorage>((ref) {
+  return MigrateOfflineStorage(
+    ref.watch(sharedPreferencesProvider),
+    ref.watch(offlinePdfLocalDatasourceProvider),
+    ref.watch(offlineAvailableStoreProvider),
+  );
+});
