@@ -1,3 +1,4 @@
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -79,6 +80,15 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final louvor = widget.group.primaryLouvor;
     if (louvor == null) return;
 
+    if (!ref.read(isarAvailableProvider)) {
+      if (!mounted) return;
+      showAppSnackbar(
+        context,
+        'Armazenamento local indisponível. Listas não podem ser salvas.',
+      );
+      return;
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final added = await ref
         .read(playlistsProvider.notifier)
@@ -92,6 +102,15 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   }
 
   Future<void> _handleAddMaterialToCarousel(Louvor louvor) async {
+    if (!ref.read(isarAvailableProvider)) {
+      if (!mounted) return;
+      showAppSnackbar(
+        context,
+        'Armazenamento local indisponível. Listas não podem ser salvas.',
+      );
+      return;
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final added = await ref
         .read(playlistsProvider.notifier)
@@ -104,17 +123,10 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
   }
 
-  LouvorPdfDownloadState? _activeDownloadState(
-    Map<String, LouvorPdfDownloadState> states,
-  ) {
-    for (final section in widget.group.sections) {
-      for (final material in section.materials) {
-        final state = states[material.pdfId];
-        if (state?.isLoading == true) return state;
-      }
-    }
-    return null;
-  }
+  Set<String> get _groupPdfIds => {
+    for (final section in widget.group.sections)
+      for (final material in section.materials) material.pdfId,
+  };
 
   String? _downloadProgressLabel(
     LouvorPdfDownloadState? state,
@@ -131,8 +143,16 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final downloadStates = ref.watch(louvorPdfDownloadProvider);
-    final activeDownload = _activeDownloadState(downloadStates);
+    final pdfIds = _groupPdfIds;
+    final activeDownload = ref.watch(
+      louvorPdfDownloadProvider.select((states) {
+        for (final pdfId in pdfIds) {
+          final state = states[pdfId];
+          if (state?.isLoading == true) return state;
+        }
+        return null;
+      }),
+    );
     final isLoading = activeDownload?.isLoading ?? false;
     final primary = widget.group.primaryLouvor;
     final isAdded = primary != null

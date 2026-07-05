@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers/catalog_providers.dart';
 import '../../domain/entities/louvores_manifest.dart';
+import '../../../../core/database/isar_provider.dart';
 
 /// Estado async do manifest carregado no boot da aplicação (UC-12).
 ///
@@ -23,12 +24,16 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
   @override
   Future<LouvoresManifest> build() async {
     final repository = ref.watch(catalogRepositoryProvider);
-    final cached = await repository.loadCachedLouvores();
+    final isarAvailable = ref.watch(isarAvailableProvider);
 
-    if (cached.isNotEmpty) {
-      unawaited(_refreshFromRemote());
-      final isStale = await repository.isCatalogStale();
-      return LouvoresManifest.fromLouvores(cached, isStale: isStale);
+    if (isarAvailable) {
+      final cached = await repository.loadCachedLouvores();
+
+      if (cached.isNotEmpty) {
+        unawaited(_refreshFromRemote());
+        final isStale = await repository.isCatalogStale();
+        return LouvoresManifest.fromLouvores(cached, isStale: isStale);
+      }
     }
 
     return _loadFromRemote();

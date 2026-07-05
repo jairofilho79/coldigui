@@ -10,9 +10,12 @@ import '../datasources/carousel_local_datasource.dart';
 import '../repositories/carousel_repository_impl.dart';
 
 /// DI — CRUD Isar [CarouselEntry] via [isarProvider].
-final carouselLocalDatasourceProvider =
-    Provider<CarouselLocalDatasource>((ref) {
-  return CarouselLocalDatasource(ref.watch(isarProvider));
+final carouselLocalDatasourceProvider = Provider<CarouselLocalDatasource>((
+  ref,
+) {
+  final isar = ref.watch(optionalIsarProvider);
+  if (isar == null) return const CarouselLocalDatasource.unavailable();
+  return CarouselLocalDatasource(isar);
 });
 
 /// DI — [CarouselRepositoryImpl]; ponto de entrada para use cases UC-05.
@@ -26,8 +29,9 @@ final addLouvorToCarouselProvider = Provider<AddLouvorToCarousel>((ref) {
 });
 
 /// UC-05 — remover louvor do carousel.
-final removeLouvorFromCarouselProvider =
-    Provider<RemoveLouvorFromCarousel>((ref) {
+final removeLouvorFromCarouselProvider = Provider<RemoveLouvorFromCarousel>((
+  ref,
+) {
   return RemoveLouvorFromCarousel(ref.watch(carouselRepositoryProvider));
 });
 

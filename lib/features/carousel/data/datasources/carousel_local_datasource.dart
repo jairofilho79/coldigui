@@ -8,20 +8,28 @@ import '../../../../core/database/collections/carousel_entry.dart';
 class CarouselLocalDatasource {
   const CarouselLocalDatasource(this._isar);
 
-  final Isar _isar;
+  const CarouselLocalDatasource.unavailable() : _isar = null;
+
+  final Isar? _isar;
 
   /// Entradas ordenadas por [CarouselEntry.sortOrder] ascendente.
   Future<List<CarouselEntry>> findAllOrdered() async {
-    return _isar.carouselEntrys.where().sortBySortOrder().findAll();
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.carouselEntrys.where().sortBySortOrder().findAll();
   }
 
   /// Lookup O(1) por [pdfId] — sem validação de manifest.
   Future<CarouselEntry?> findByPdfId(String pdfId) async {
-    return _isar.carouselEntrys.where().pdfIdEqualTo(pdfId).findFirst();
+    final isar = _isar;
+    if (isar == null) return null;
+    return isar.carouselEntrys.where().pdfIdEqualTo(pdfId).findFirst();
   }
 
   /// Append ao final; no-op se [pdfId] já existe.
   Future<void> add(String pdfId) async {
+    final isar = _isar;
+    if (isar == null) return;
     final existing = await findByPdfId(pdfId);
     if (existing != null) return;
 
@@ -34,14 +42,16 @@ class CarouselLocalDatasource {
       ..pdfId = pdfId
       ..sortOrder = nextOrder;
 
-    await _isar.write((isar) {
+    await isar.write((isar) {
       _putByPdfId(isar.carouselEntrys, entry);
     });
   }
 
   /// Remove por [pdfId] e compacta [CarouselEntry.sortOrder] para 0..n-1.
   Future<void> remove(String pdfId) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.carouselEntrys;
       final existing = coll.where().pdfIdEqualTo(pdfId).findFirst();
       if (existing == null) return;
@@ -61,7 +71,9 @@ class CarouselLocalDatasource {
 
   /// Reescreve ordem; lança [ArgumentError] se o conjunto de IDs divergir.
   Future<void> reorder(List<String> orderedPdfIds) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.carouselEntrys;
       final current = coll.where().findAll();
       final currentIds = current.map((e) => e.pdfId).toSet();
@@ -88,6 +100,8 @@ class CarouselLocalDatasource {
   ///
   /// Retorna `false` se ids iguais ou [oldPdfId] ausente.
   Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
+    final isar = _isar;
+    if (isar == null) return false;
     if (oldPdfId == newPdfId) return false;
 
     final oldEntry = await findByPdfId(oldPdfId);
@@ -99,7 +113,7 @@ class CarouselLocalDatasource {
       return true;
     }
 
-    await _isar.write((isar) {
+    await isar.write((isar) {
       final coll = isar.carouselEntrys;
       coll.delete(oldEntry.id);
       final entry = CarouselEntry()
@@ -112,7 +126,9 @@ class CarouselLocalDatasource {
 
   /// Substitui toda a seleção — usado por Fase 4.3 [LoadPlaylistIntoCarousel].
   Future<void> replaceAll(List<String> orderedPdfIds) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.carouselEntrys;
       coll.clear();
       for (var i = 0; i < orderedPdfIds.length; i++) {
@@ -126,7 +142,9 @@ class CarouselLocalDatasource {
 
   /// Remove todas as entradas — idempotente.
   Future<void> clear() async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       isar.carouselEntrys.clear();
     });
   }

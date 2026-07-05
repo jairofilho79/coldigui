@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_typography.dart';
@@ -40,8 +41,9 @@ class _DeferredRouteLoaderState extends State<DeferredRouteLoader> {
       await widget.load();
       if (!mounted) return;
       setState(() => _ready = true);
-    } on Object catch (error, _) {
+    } on Object catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('DeferredRouteLoader: $error\n$stackTrace');
       setState(() => _error = error);
     }
   }

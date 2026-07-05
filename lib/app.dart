@@ -6,6 +6,7 @@ import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/app_shell/presentation/widgets/deep_link_listener.dart';
 import 'features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'features/pdf_reader/data/pdfrx_bootstrap.dart';
 import 'l10n/app_localizations.dart';
 
 /// Widget raiz — MaterialApp com tema Coletânea Digital, l10n e GoRouter.
@@ -37,14 +38,16 @@ class ColdiguiApp extends ConsumerWidget {
 
     final router = ref.watch(appRouterProvider);
 
-    return DeepLinkListener(
-      child: MaterialApp.router(
-        title: 'PLPCG',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: router,
+    return PdfrxIdlePreloader(
+      child: DeepLinkListener(
+        child: MaterialApp.router(
+          title: 'PLPCG',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          routerConfig: router,
+        ),
       ),
     );
   }

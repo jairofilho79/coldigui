@@ -3,11 +3,11 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/library_results_provider.dart';
+import '../providers/library_group_results_provider.dart';
 
 /// UC-03 — Indicador textual de resultados filtrados e paginados.
 ///
-/// Observa [libraryResultsProvider] e exibe [AppLocalizations.libraryResultsSummary]
+/// Observa [libraryGroupResultsProvider] e exibe [AppLocalizations.libraryResultsSummary]
 /// com intervalo `{from}–{to}` da página atual, ou [AppLocalizations.libraryResultsEmpty]
 /// quando nenhum louvor corresponde aos filtros.
 ///
@@ -19,7 +19,7 @@ class LibraryResultsSummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final results = ref.watch(libraryResultsProvider);
+    final results = ref.watch(libraryGroupResultsProvider);
 
     if (results.totalItems == 0) {
       return Text(

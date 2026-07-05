@@ -8,15 +8,21 @@ import '../../../../core/database/collections/playlist.dart';
 class PlaylistLocalDatasource {
   const PlaylistLocalDatasource(this._isar);
 
-  final Isar _isar;
+  const PlaylistLocalDatasource.unavailable() : _isar = null;
+
+  final Isar? _isar;
 
   Future<List<Playlist>> findAll() async {
-    return _isar.playlists.where().findAll();
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists.where().findAll();
   }
 
   /// Não salvas — `createdAt` desc.
   Future<List<Playlist>> findUnsaved() async {
-    return _isar.playlists
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists
         .where()
         .salvaEqualTo(false)
         .sortByCreatedAtDesc()
@@ -25,7 +31,9 @@ class PlaylistLocalDatasource {
 
   /// Salvas (não favoritas) — `savedAt` desc.
   Future<List<Playlist>> findSaved() async {
-    return _isar.playlists
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists
         .where()
         .salvaEqualTo(true)
         .and()
@@ -36,7 +44,9 @@ class PlaylistLocalDatasource {
 
   /// Favoritas — `favoritedAt` desc.
   Future<List<Playlist>> findFavorites() async {
-    return _isar.playlists
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists
         .where()
         .favoritaEqualTo(true)
         .sortByFavoritedAtDesc()
@@ -44,11 +54,15 @@ class PlaylistLocalDatasource {
   }
 
   Future<Playlist?> findByPlaylistId(String playlistId) async {
-    return _isar.playlists.where().playlistIdEqualTo(playlistId).findFirst();
+    final isar = _isar;
+    if (isar == null) return null;
+    return isar.playlists.where().playlistIdEqualTo(playlistId).findFirst();
   }
 
   Future<void> insert(Playlist playlist) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       _putByPlaylistId(isar.playlists, playlist);
     });
   }
@@ -63,7 +77,9 @@ class PlaylistLocalDatasource {
     bool? favorita,
     bool clearFavoritedAt = false,
   }) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.playlists;
       final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
       if (existing == null) {
@@ -84,7 +100,9 @@ class PlaylistLocalDatasource {
 
   /// Idempotente se [playlistId] ausente.
   Future<void> deleteByPlaylistId(String playlistId) async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.playlists;
       final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
       if (existing != null) {
@@ -94,7 +112,9 @@ class PlaylistLocalDatasource {
   }
 
   Future<void> deleteAllUnsaved() async {
-    await _isar.write((isar) {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
       final coll = isar.playlists;
       final rows = coll.where().salvaEqualTo(false).findAll();
       for (final row in rows) {

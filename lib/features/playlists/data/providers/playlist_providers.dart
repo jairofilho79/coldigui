@@ -19,9 +19,12 @@ import '../datasources/playlist_local_datasource.dart';
 import '../repositories/playlist_repository_impl.dart';
 
 /// DI — CRUD Isar [Playlist] via [isarProvider].
-final playlistLocalDatasourceProvider =
-    Provider<PlaylistLocalDatasource>((ref) {
-  return PlaylistLocalDatasource(ref.watch(isarProvider));
+final playlistLocalDatasourceProvider = Provider<PlaylistLocalDatasource>((
+  ref,
+) {
+  final isar = ref.watch(optionalIsarProvider);
+  if (isar == null) return const PlaylistLocalDatasource.unavailable();
+  return PlaylistLocalDatasource(isar);
 });
 
 /// DI — [PlaylistRepositoryImpl]; ponto de entrada para use cases UC-06.
@@ -30,13 +33,14 @@ final playlistRepositoryProvider = Provider<PlaylistRepository>((ref) {
 });
 
 /// UC-06 — criar playlist a partir do carousel.
-final createPlaylistFromCarouselProvider =
-    Provider<CreatePlaylistFromCarousel>((ref) {
-  return CreatePlaylistFromCarousel(
-    ref.watch(carouselRepositoryProvider),
-    ref.watch(playlistRepositoryProvider),
-  );
-});
+final createPlaylistFromCarouselProvider = Provider<CreatePlaylistFromCarousel>(
+  (ref) {
+    return CreatePlaylistFromCarousel(
+      ref.watch(carouselRepositoryProvider),
+      ref.watch(playlistRepositoryProvider),
+    );
+  },
+);
 
 /// UC-06 — atualizar playlist.
 final updatePlaylistProvider = Provider<UpdatePlaylist>((ref) {
@@ -69,14 +73,16 @@ final unfavoritePlaylistProvider = Provider<UnfavoritePlaylist>((ref) {
 });
 
 /// UC-06 — apagar todas as listas não salvas.
-final deleteAllUnsavedPlaylistsProvider =
-    Provider<DeleteAllUnsavedPlaylists>((ref) {
+final deleteAllUnsavedPlaylistsProvider = Provider<DeleteAllUnsavedPlaylists>((
+  ref,
+) {
   return DeleteAllUnsavedPlaylists(ref.watch(playlistRepositoryProvider));
 });
 
 /// UC-06 — garantir playlist ativa ao abrir louvor no leitor (Fase 4.8).
-final ensurePlaylistForLouvorProvider =
-    Provider<EnsurePlaylistForLouvor>((ref) {
+final ensurePlaylistForLouvorProvider = Provider<EnsurePlaylistForLouvor>((
+  ref,
+) {
   return EnsurePlaylistForLouvor(
     ref.watch(playlistRepositoryProvider),
     ref.watch(loadPlaylistIntoCarouselProvider),
@@ -84,8 +90,9 @@ final ensurePlaylistForLouvorProvider =
 });
 
 /// UC-06 — carregar playlist no carousel (Fase 4.3).
-final loadPlaylistIntoCarouselProvider =
-    Provider<LoadPlaylistIntoCarousel>((ref) {
+final loadPlaylistIntoCarouselProvider = Provider<LoadPlaylistIntoCarousel>((
+  ref,
+) {
   return LoadPlaylistIntoCarousel(
     ref.watch(playlistRepositoryProvider),
     ref.watch(carouselRepositoryProvider),
@@ -93,16 +100,17 @@ final loadPlaylistIntoCarouselProvider =
 });
 
 /// UC-07 — gerar URL de compartilhamento (Fase 4.4).
-final generatePlaylistShareUrlProvider =
-    Provider<GeneratePlaylistShareUrl>((ref) {
+final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
+  ref,
+) {
   return GeneratePlaylistShareUrl(ref.watch(playlistRepositoryProvider));
 });
 
 /// UC-07 — importar playlist compartilhada (Fase 4.4).
 final importSharedPlaylistFromUrlProvider =
     Provider<ImportSharedPlaylistFromUrl>((ref) {
-  return ImportSharedPlaylistFromUrl(
-    ref.watch(playlistRepositoryProvider),
-    ref.watch(loadPlaylistIntoCarouselProvider),
-  );
-});
+      return ImportSharedPlaylistFromUrl(
+        ref.watch(playlistRepositoryProvider),
+        ref.watch(loadPlaylistIntoCarouselProvider),
+      );
+    });

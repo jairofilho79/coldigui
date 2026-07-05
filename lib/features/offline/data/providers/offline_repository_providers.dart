@@ -16,7 +16,9 @@ final pdfStoragePortProvider = Provider<PdfStoragePort>((ref) {
 final offlinePdfLocalDatasourceProvider = Provider<OfflinePdfLocalDatasource>((
   ref,
 ) {
-  return OfflinePdfLocalDatasource(ref.watch(isarProvider));
+  final isar = ref.watch(optionalIsarProvider);
+  if (isar == null) return const OfflinePdfLocalDatasource.unavailable();
+  return OfflinePdfLocalDatasource(isar);
 });
 
 /// DI — [OfflinePdfRepositoryImpl].

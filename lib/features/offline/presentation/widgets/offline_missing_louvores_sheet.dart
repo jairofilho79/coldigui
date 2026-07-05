@@ -50,10 +50,7 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
       }
     } on Object catch (e) {
       if (context.mounted) {
-        showAppSnackbar(
-          context,
-          louvorPdfErrorMessage(e, l10n.pdfActionError),
-        );
+        showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
       }
     }
   }
@@ -151,8 +148,11 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
                     itemCount: louvores.length,
                     itemBuilder: (context, index) {
                       final louvor = louvores[index];
-                      final downloadState =
-                          ref.watch(louvorPdfDownloadProvider)[louvor.pdfId];
+                      final downloadState = ref.watch(
+                        louvorPdfDownloadProvider.select(
+                          (states) => states[louvor.pdfId],
+                        ),
+                      );
                       final isLoading = downloadState?.isLoading ?? false;
 
                       return CarouselLouvorChip(

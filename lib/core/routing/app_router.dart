@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/utils/url_sync_params.dart';
 import '../../core/widgets/deferred_route_loader.dart';
+import '../../core/widgets/storage_required_gate.dart';
 import '../../deferred/offline_bulk_deferred.dart' deferred as offline_bulk;
 import '../../deferred/pdf_reader_deferred.dart' deferred as pdf_reader;
 import '../../features/app_shell/presentation/pages/about_screen.dart';
@@ -75,15 +76,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'leitor',
-                    pageBuilder: (context, state) => MaterialPage<void>(
-                      child: DeferredRouteLoader(
-                        loadingMessage: 'Carregando leitor…',
-                        load: () => pdf_reader.preparePdfReaderModule(
-                          pdf_reader.loadLibrary,
-                        ),
-                        builder: () => pdf_reader.PdfReaderScreen(
-                          queryParams: state.uri.queryParameters,
-                        ),
+                    builder: (context, state) => DeferredRouteLoader(
+                      loadingMessage: 'Carregando leitor…',
+                      load: () async {
+                        await pdf_reader.loadLibrary();
+                        await pdf_reader.ensurePdfrxInitialized();
+                      },
+                      builder: () => pdf_reader.PdfReaderScreen(
+                        queryParams: state.uri.queryParameters,
                       ),
                     ),
                   ),
@@ -95,11 +95,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.offline,
-                pageBuilder: (context, state) => MaterialPage<void>(
-                  child: DeferredRouteLoader(
-                    loadingMessage: 'Carregando offline…',
-                    load: offline_bulk.loadLibrary,
-                    builder: () => offline_bulk.OfflineSettingsScreen(),
+                builder: (context, state) => DeferredRouteLoader(
+                  loadingMessage: 'Carregando offline…',
+                  load: offline_bulk.loadLibrary,
+                  builder: () => StorageRequiredGate(
+                    child: offline_bulk.OfflineSettingsScreen(),
                   ),
                 ),
               ),
@@ -109,7 +109,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.playlists,
-                builder: (context, state) => const PlaylistsScreen(),
+                builder: (context, state) =>
+                    const StorageRequiredGate(child: PlaylistsScreen()),
               ),
             ],
           ),

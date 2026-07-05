@@ -18,7 +18,35 @@
 
   <link rel="preload" href="main.dart.wasm" as="fetch" crossorigin="anonymous">
   <link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
-  <link rel="preload" href="canvaskit/skwasm.wasm" as="fetch" crossorigin="anonymous">
+
+  <script>
+    (function () {
+      function supportsSkwasmPreload() {
+        try {
+          return (
+            typeof WebAssembly !== 'undefined' &&
+            typeof SharedArrayBuffer !== 'undefined' &&
+            window.crossOriginIsolated === true
+          );
+        } catch (e) {
+          return false;
+        }
+      }
+
+      window.__plpcgPerf = window.__plpcgPerf || {};
+      var rendererPreload = supportsSkwasmPreload() ? 'skwasm' : 'fallback';
+      window.__plpcgPerf.rendererPreload = rendererPreload;
+
+      if (rendererPreload === 'skwasm') {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.href = 'canvaskit/skwasm.wasm';
+        link.as = 'fetch';
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+      }
+    })();
+  </script>
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -142,11 +170,14 @@
 
         var loaderMs =
           window.__plpcgPerf && window.__plpcgPerf.loaderVisibleMs;
+        var rendererPreload =
+          window.__plpcgPerf && window.__plpcgPerf.rendererPreload;
         var perf = {
           loaderVisibleMs: loaderMs != null ? loaderMs : null,
           firstFrameMs: msSinceNav(),
           crossOriginIsolated: window.crossOriginIsolated,
           sab: typeof SharedArrayBuffer,
+          rendererPreload: rendererPreload || null,
           capturedAt: new Date().toISOString(),
         };
         window.__plpcgPerf = perf;

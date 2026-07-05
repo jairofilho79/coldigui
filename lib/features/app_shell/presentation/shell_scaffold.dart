@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/route_paths.dart';
+import '../../../core/widgets/degraded_storage_banner.dart';
 import '../../../core/widgets/plpcg_primary_app_bar.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
@@ -54,6 +55,7 @@ class ShellScaffold extends ConsumerWidget {
                 bottom: false,
                 child: Column(
                   children: [
+                    const DegradedStorageBanner(),
                     const CarouselChips(),
                     Expanded(child: navigationShell),
                   ],

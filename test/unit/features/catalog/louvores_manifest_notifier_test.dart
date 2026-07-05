@@ -1,3 +1,4 @@
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_providers.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/repositories/catalog_repository.dart';
@@ -62,6 +63,7 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
+          isarAvailableProvider.overrideWithValue(true),
           catalogRepositoryProvider.overrideWithValue(repository),
           loadLouvoresManifestProvider.overrideWith(
             (ref) => LoadLouvoresManifest(repository),
@@ -89,6 +91,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        isarAvailableProvider.overrideWithValue(true),
         catalogRepositoryProvider.overrideWithValue(repository),
         loadLouvoresManifestProvider.overrideWith(
           (ref) => LoadLouvoresManifest(repository),
@@ -103,6 +106,29 @@ void main() {
     expect(repository.loadManifestCalls, 1);
   });
 
+  test('sem Isar disponível ignora cache e busca remoto', () async {
+    final repository = _FakeCatalogRepository(
+      cached: [_louvor('cached-1')],
+      remote: [_louvor('remote-1')],
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        isarAvailableProvider.overrideWithValue(false),
+        catalogRepositoryProvider.overrideWithValue(repository),
+        loadLouvoresManifestProvider.overrideWith(
+          (ref) => LoadLouvoresManifest(repository),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final manifest = await container.read(louvoresManifestProvider.future);
+
+    expect(manifest.louvores.first.pdfId, 'remote-1');
+    expect(repository.loadManifestCalls, 1);
+  });
+
   test('mantém cache quando refresh remoto falha', () async {
     final repository = _FakeCatalogRepository(
       cached: [_louvor('cached-1')],
@@ -111,6 +137,7 @@ void main() {
 
     final container = ProviderContainer(
       overrides: [
+        isarAvailableProvider.overrideWithValue(true),
         catalogRepositoryProvider.overrideWithValue(repository),
         loadLouvoresManifestProvider.overrideWith(
           (ref) => LoadLouvoresManifest(repository),

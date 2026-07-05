@@ -5,5 +5,7 @@ import '../datasources/catalog_local_datasource.dart';
 
 /// Persistência local Isar do catálogo.
 final catalogLocalDatasourceProvider = Provider<CatalogLocalDatasource>((ref) {
-  return CatalogLocalDatasource(ref.watch(isarProvider));
+  final isar = ref.watch(optionalIsarProvider);
+  if (isar == null) return const CatalogLocalDatasource.unavailable();
+  return CatalogLocalDatasource(isar);
 });

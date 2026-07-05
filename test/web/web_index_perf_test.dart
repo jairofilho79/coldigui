@@ -34,4 +34,11 @@ void main() {
     expect(html, contains('rel="preload" href="main.dart.wasm"'));
     expect(html, contains('rel="preload" href="isar_plus.wasm"'));
   });
+
+  test('preload adaptativo de skwasm (C1)', () {
+    expect(html, isNot(contains('rel="preload" href="canvaskit/skwasm.wasm"')));
+    expect(html, contains('supportsSkwasmPreload'));
+    expect(html, contains('rendererPreload'));
+    expect(html, contains('canvaskit/skwasm.wasm'));
+  });
 }
