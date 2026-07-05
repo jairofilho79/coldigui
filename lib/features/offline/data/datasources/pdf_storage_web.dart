@@ -215,12 +215,13 @@ class PdfStorageWeb implements PdfStoragePort {
     final dirObj = dir as JSObject;
     final entriesFn = _reflectGet(dirObj, 'entries'.toJS);
     if (entriesFn == null) return;
-    final iterable = (entriesFn as JSFunction).callAsFunction() as JSObject;
+    final iterable =
+        (entriesFn as JSFunction).callAsFunction(dirObj) as JSObject;
     final symbolCtor = globalContext['Symbol'] as JSObject;
     final asyncIteratorSymbol = _reflectGet(symbolCtor, 'asyncIterator'.toJS)!;
     final iteratorFn =
         _reflectGet(iterable, asyncIteratorSymbol)! as JSFunction;
-    final iterator = iteratorFn.callAsFunction() as JSObject;
+    final iterator = iteratorFn.callAsFunction(iterable) as JSObject;
 
     while (true) {
       final result =

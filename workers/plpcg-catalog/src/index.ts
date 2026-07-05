@@ -23,11 +23,29 @@ interface LouvorJson {
 }
 
 const CACHE_CONTROL = 'public, max-age=300';
-const PLPCJF_ORIGIN = 'https://plpcjf.org';
+const ALLOWED_ORIGINS = new Set([
+  'https://v2.plpcg.com',
+  'https://plpcg-v2.pages.dev',
+]);
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Previews do Pages: https://<hash>.plpcg-v2.pages.dev
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return (
+      protocol === 'https:' &&
+      (hostname === 'plpcg-v2.pages.dev' ||
+        hostname.endsWith('.plpcg-v2.pages.dev'))
+    );
+  } catch {
+    return false;
+  }
+}
 
 function corsHeaders(origin: string | null): Headers {
   const headers = new Headers();
-  if (origin === PLPCJF_ORIGIN) {
+  if (origin !== null && isAllowedOrigin(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
     headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
