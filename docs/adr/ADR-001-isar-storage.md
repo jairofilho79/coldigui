@@ -27,7 +27,9 @@ Usar **isar_plus** (fork mantido do Isar) para metadados estruturados e índice 
 
 ## Boot e migração
 
-- `Isar.open(schemas: [...], directory: ..., name: 'plpcg_plus')` em `main.dart` — nome distinto evita crash com binário legado `default.isar`
+- `main.dart` chama `openAppIsar()` (`core/database/isar_bootstrap.dart` — imports condicionais nativo vs web)
+- Nativo: `Isar.open(..., directory: documents path, name: 'plpcg_plus')` — nome distinto evita crash com binário legado `default.isar`
+- Web: `await Isar.initialize()` + `Isar.open` com `directory: ''` (IndexedDB); PDFs binários ainda não persistidos na web (ver plano web Fase 4)
 - Upgrade de app: carousel, playlists e índice offline **reiniciam vazios**; catálogo repopula com rede (UC-12); PDFs em `plpcg_pdfs/` permanecem no disco mas exigem re-download para lookup offline
 
 ## API (breaking vs isar 3.1)
