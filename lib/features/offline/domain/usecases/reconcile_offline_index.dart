@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../../core/constants/offline_config.dart';
 import '../ports/pdf_storage_port.dart';
+import '../../data/utils/reconcile_chunk_validation.dart';
 import '../../data/utils/reconcile_path_validator.dart';
 import '../entities/offline_manifest.dart';
 import '../entities/reconcile_result.dart';
@@ -47,7 +46,7 @@ class ReconcileOfflineIndex {
           )
           .toList();
 
-      final validation = await compute(validatePdfPathsChunk, pathEntries);
+      final validation = await validateReconcilePathChunk(pathEntries, _store);
       orphanPdfIds.addAll(validation.invalidPdfIds);
       indexedPaths.addAll(validation.validAbsolutePaths);
     }

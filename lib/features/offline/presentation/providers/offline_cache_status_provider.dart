@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers/offline_providers.dart';
+import '../../data/utils/storage_quota_estimator.dart';
 import '../../domain/entities/offline_stats.dart';
 import 'offline_reconcile_provider.dart';
 
@@ -91,9 +92,11 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
 
     try {
       final stats = await ref.read(getOfflineStatsByCategoryProvider).call();
+      final freeDiskBytes = await estimateFreeStorageBytes();
       state = OfflineCacheStatus(
         stats: stats,
         removedCount: preservedRemovedCount,
+        freeDiskBytes: freeDiskBytes,
       );
     } finally {
       if (state.isRefreshing) {
@@ -111,7 +114,12 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
       final removed =
           ref.read(offlineReconcileProvider).lastResult?.removedFromIndex ?? 0;
       final stats = await ref.read(getOfflineStatsByCategoryProvider).call();
-      state = OfflineCacheStatus(stats: stats, removedCount: removed);
+      final freeDiskBytes = await estimateFreeStorageBytes();
+      state = OfflineCacheStatus(
+        stats: stats,
+        removedCount: removed,
+        freeDiskBytes: freeDiskBytes,
+      );
     } finally {
       if (state.isRefreshing) {
         state = state.copyWith(isRefreshing: false);

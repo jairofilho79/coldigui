@@ -2,8 +2,6 @@ import 'dart:math' show min;
 
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
-import '../../data/utils/pdf_integrity_validator.dart';
-import '../entities/offline_pdf_entry.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_category_resolver.dart';
 import '../utils/offline_material_resolver.dart';
@@ -101,25 +99,20 @@ class DownloadMissingPdfs {
     );
   }
 
-  /// PDFs com índice Isar e arquivo válido no disco — uma passagem no índice.
+  /// PDFs com índice Isar e arquivo válido no store — via [lookupBatch].
   Future<Set<String>> _collectValidPdfIds() async {
     final entries = await _repository.listAll();
-    final validPdfIds = <String>{};
+    if (entries.isEmpty) return {};
 
     const batchSize = 50;
+    final validPdfIds = <String>{};
     for (var i = 0; i < entries.length; i += batchSize) {
       final batch = entries.sublist(i, min(i + batchSize, entries.length));
-      final results = await Future.wait(batch.map(_hasValidFile));
-      for (var j = 0; j < batch.length; j++) {
-        if (results[j]) validPdfIds.add(batch[j].pdfId);
-      }
+      final pdfIds = batch.map((e) => e.pdfId).toSet();
+      validPdfIds.addAll(await _repository.lookupBatch(pdfIds));
     }
-
     return validPdfIds;
   }
-
-  Future<bool> _hasValidFile(OfflinePdfEntry entry) =>
-      PdfIntegrityValidator.isValidPdfFile(entry.absolutePath);
 
   Future<List<String>> _collectPdfIds(Set<String>? materialCategories) async {
     if (materialCategories != null && materialCategories.isEmpty) {
