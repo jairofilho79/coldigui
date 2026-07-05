@@ -19,8 +19,7 @@ String offlineBulkDownloadErrorKey(Object error) {
   if (error is DioException) {
     return switch (error.type) {
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionTimeout =>
-        'offlineDownloadTimeout',
+      DioExceptionType.connectionTimeout => 'offlineDownloadTimeout',
       DioExceptionType.connectionError => 'offlineDownloadNetworkError',
       _ => 'offlineDownloadError',
     };
@@ -102,8 +101,8 @@ class OfflineBulkDownloadState {
 
 final offlineBulkDownloadProvider =
     NotifierProvider<OfflineBulkDownloadNotifier, OfflineBulkDownloadState>(
-  OfflineBulkDownloadNotifier.new,
-);
+      OfflineBulkDownloadNotifier.new,
+    );
 
 /// Orquestra [DownloadOfflinePackages] com progresso, cancelamento,
 /// [offlineModeProvider.markConfigured] (`OFFLINE_AVAILABLE=TRUE`) e refresh
@@ -140,8 +139,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   }
 
   Future<void> _loadCheckpoint() async {
-    final checkpoint =
-        await ref.read(offlineBulkCheckpointStoreProvider).load();
+    final checkpoint = await ref
+        .read(offlineBulkCheckpointStoreProvider)
+        .load();
     if (checkpoint != null) {
       state = state.copyWith(checkpoint: checkpoint);
     }
@@ -161,7 +161,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     await _acquireWakelock();
 
     try {
-      final result = await ref.read(downloadOfflinePackagesProvider).call(
+      final result = await ref
+          .read(downloadOfflinePackagesProvider)
+          .call(
             categories: categories,
             cancelToken: _cancelToken,
             onProgress: (progress) {
@@ -175,13 +177,15 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
       await _releaseWakelock();
-      final checkpoint =
-          await ref.read(offlineBulkCheckpointStoreProvider).load();
+      final checkpoint = await ref
+          .read(offlineBulkCheckpointStoreProvider)
+          .load();
       state = state.copyWith(
         status: OfflineBulkDownloadStatus.cancelled,
         checkpoint: checkpoint,
         progress: null,
       );
+      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
     } on InsufficientDiskSpaceException catch (e) {
       await _failBulkDownload(e);
     } on DioException catch (e) {
@@ -192,7 +196,8 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   }
 
   Future<void> resumeFromCheckpoint() async {
-    final checkpoint = state.checkpoint ??
+    final checkpoint =
+        state.checkpoint ??
         await ref.read(offlineBulkCheckpointStoreProvider).load();
     if (checkpoint == null) return;
 
@@ -205,7 +210,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     await _acquireWakelock();
 
     try {
-      final result = await ref.read(downloadOfflinePackagesProvider).call(
+      final result = await ref
+          .read(downloadOfflinePackagesProvider)
+          .call(
             categories: checkpoint.categories,
             cancelToken: _cancelToken,
             resumeCheckpoint: checkpoint,
@@ -226,6 +233,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
         checkpoint: saved,
         progress: null,
       );
+      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
     } on InsufficientDiskSpaceException catch (e) {
       await _failBulkDownload(e);
     } on DioException catch (e) {
@@ -237,18 +245,21 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
   Future<void> _failBulkDownload(Object error) async {
     await _releaseWakelock();
-    final checkpoint =
-        await ref.read(offlineBulkCheckpointStoreProvider).load();
+    final checkpoint = await ref
+        .read(offlineBulkCheckpointStoreProvider)
+        .load();
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.failed,
       errorMessage: offlineBulkDownloadErrorKey(error),
       checkpoint: checkpoint,
       progress: null,
     );
+    await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
   }
 
   Future<void> _completeBulkDownload(
-      DownloadOfflinePackagesResult result) async {
+    DownloadOfflinePackagesResult result,
+  ) async {
     await _releaseWakelock();
     state = state.copyWith(
       status: result.hasWarnings
@@ -265,7 +276,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     }
     _lastStartedCategories = const [];
     await ref.read(offlineModeProvider.notifier).markConfigured();
-    await ref.read(offlineCacheStatusProvider.notifier).refresh();
+    await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
   }
 
   void cancel() {

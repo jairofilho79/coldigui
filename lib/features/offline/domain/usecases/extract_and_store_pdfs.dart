@@ -28,10 +28,21 @@ class ExtractAndStorePdfs {
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
   }) async {
-    final pendingIds = expectedPdfIds.skip(startFromPdfIndex).toList();
-    final total = pendingIds.length;
+    final prefixIds = expectedPdfIds.take(startFromPdfIndex).toList();
+    final suffixIds = expectedPdfIds.skip(startFromPdfIndex).toList();
 
-    if (total == 0) {
+    // Revalida prefixo do checkpoint — ids indexados sem OPFS voltam à fila.
+    final validPrefixIds = prefixIds.isEmpty
+        ? <String>{}
+        : await _repository.lookupBatch(prefixIds.toSet());
+
+    final idsNeedingWork = [
+      for (final pdfId in prefixIds)
+        if (!validPrefixIds.contains(pdfId)) pdfId,
+      ...suffixIds,
+    ];
+
+    if (idsNeedingWork.isEmpty) {
       await _zipDownloader.deleteZip(zipPath);
       return ExtractResult(
         storedCount: 0,
@@ -43,34 +54,42 @@ class ExtractAndStorePdfs {
     }
 
     final skipPdfIds = (await _repository.lookupBatch(
-      pendingIds.toSet(),
+      idsNeedingWork.toSet(),
     )).toList();
+
+    final baselineDone =
+        expectedPdfIds.length - (idsNeedingWork.length - skipPdfIds.length);
 
     final rootPath = await _store.rootPath;
     final extractResult = await runZipExtraction(
       params: ZipExtractParams(
         zipPath: zipPath,
         rootPath: rootPath,
-        expectedPdfIds: pendingIds,
+        expectedPdfIds: idsNeedingWork,
         skipPdfIds: skipPdfIds,
       ),
       zipDownloader: _zipDownloader,
       onExtractProgress: onExtractProgress,
     );
 
-    final items = await persistExtractedItems(extractResult.items, _store);
+    final persistOutcome = await persistExtractedItems(
+      extractResult.items,
+      _store,
+    );
 
     var storedCount = 0;
     final chunkSize = OfflineConfig.bulkIsarChunkSize;
 
-    for (var i = 0; i < items.length; i += chunkSize) {
-      final end = (i + chunkSize < items.length) ? i + chunkSize : items.length;
-      final chunk = items.sublist(i, end);
+    for (var i = 0; i < persistOutcome.items.length; i += chunkSize) {
+      final end = (i + chunkSize < persistOutcome.items.length)
+          ? i + chunkSize
+          : persistOutcome.items.length;
+      final chunk = persistOutcome.items.sublist(i, end);
       await _repository.indexExtractedBatch(chunk);
 
-      final prevProcessed = startFromPdfIndex + skipPdfIds.length + storedCount;
+      final prevProcessed = baselineDone + storedCount;
       storedCount += chunk.length;
-      final newProcessed = startFromPdfIndex + skipPdfIds.length + storedCount;
+      final newProcessed = baselineDone + storedCount;
 
       onProgress?.call(newProcessed, expectedPdfIds.length);
 
@@ -87,10 +106,13 @@ class ExtractAndStorePdfs {
 
     return ExtractResult(
       storedCount: storedCount,
-      skippedCount: skipPdfIds.length,
+      skippedCount: baselineDone,
       totalInZip: expectedPdfIds.length,
       unmatchedPdfIds: extractResult.unmatchedEntries,
-      failedPdfIds: extractResult.failedPdfIds,
+      failedPdfIds: [
+        ...extractResult.failedPdfIds,
+        ...persistOutcome.failedPdfIds,
+      ],
     );
   }
 

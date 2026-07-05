@@ -29,7 +29,8 @@ class PdfStorageWeb implements PdfStoragePort {
     final tmpKey = '$storageKey$_tmpSuffix';
     try {
       await _writeFileAtKey(tmpKey, bytes);
-      await delete(storageKey);
+      // Grava o destino antes de remover tmp — nunca apagar o arquivo final
+      // antes de confirmar a nova gravação (evita órfãos no índice Isar).
       await _writeFileAtKey(storageKey, bytes);
       await delete(tmpKey);
       return storageKey;

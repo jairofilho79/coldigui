@@ -182,8 +182,14 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {
     if (items.isEmpty) return;
 
+    final validItems = [
+      for (final item in items)
+        if (item.absolutePath.isNotEmpty) item,
+    ];
+    if (validItems.isEmpty) return;
+
     final now = DateTime.now();
-    final indexes = items
+    final indexes = validItems
         .map(
           (item) => OfflinePdfIndex()
             ..pdfId = item.pdfId

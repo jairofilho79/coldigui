@@ -173,6 +173,9 @@ class _IdleCacheStatusNotifier extends OfflineCacheStatusNotifier {
 
   @override
   Future<void> refresh({int? removedCount}) async {}
+
+  @override
+  Future<void> refreshAll() async {}
 }
 
 void main() {

@@ -6,6 +6,7 @@ import '../datasources/zip_package_downloader.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import '../utils/zip_pdf_extractor.dart';
+import '../utils/zip_pdf_extractor_types.dart';
 
 Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,
@@ -38,7 +39,7 @@ Future<ZipExtractResult> runZipExtraction({
   return result!;
 }
 
-Future<List<ExtractedPdfItem>> persistExtractedItems(
+Future<PersistExtractedOutcome> persistExtractedItems(
   List<ExtractedPdfItem> items,
   PdfStoragePort store,
-) async => items;
+) async => PersistExtractedOutcome(items: items);

@@ -46,8 +46,8 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     useCase = ExtractAndStorePdfs(
-        repository,
-        pdfStoragePortFor(store),
+      repository,
+      pdfStoragePortFor(store),
       ZipPackageDownloader(Dio(), pdfStoragePortFor(store)),
     );
   });
@@ -197,5 +197,44 @@ void main() {
     final entry3 = await repository.lookup(pdfId3);
     expect(entry3, isNotNull);
     expect(await File(entry3!.absolutePath).readAsBytes(), marker3);
+  });
+
+  test('resume reprocessa prefixo do checkpoint sem arquivo válido', () async {
+    final marker1 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x01]);
+    final marker2 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x02]);
+    final marker3 = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x03]);
+
+    await repository.upsert(
+      pdfId: pdfId1,
+      bytes: marker1,
+      category: 'ColAdultos',
+    );
+
+    final entry1 = await repository.findIndexEntry(pdfId1);
+    expect(entry1, isNotNull);
+    await File(entry1!.absolutePath).delete();
+
+    final zipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/001.pdf': marker3,
+        'ColAdultos/002.pdf': marker2,
+        'ColAdultos/003.pdf': marker3,
+      },
+    );
+
+    final result = await useCase(
+      zipPath: zipPath,
+      expectedPdfIds: [pdfId1, pdfId2, pdfId3],
+      materialCategory: 'Partitura',
+      startFromPdfIndex: 1,
+    );
+
+    expect(result.storedCount, 3);
+    expect(result.skippedCount, 0);
+
+    final restored1 = await repository.lookup(pdfId1);
+    expect(restored1, isNotNull);
+    expect(await File(restored1!.absolutePath).readAsBytes(), marker3);
   });
 }

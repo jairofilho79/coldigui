@@ -51,3 +51,14 @@ class ZipExtractResult {
   /// pdfIds esperados cujo conteúdo não pôde ser gravado ou validado.
   final List<String> failedPdfIds;
 }
+
+/// Resultado de [persistExtractedItems] — itens prontos para indexação Isar.
+class PersistExtractedOutcome {
+  const PersistExtractedOutcome({
+    required this.items,
+    this.failedPdfIds = const [],
+  });
+
+  final List<ExtractedPdfItem> items;
+  final List<String> failedPdfIds;
+}

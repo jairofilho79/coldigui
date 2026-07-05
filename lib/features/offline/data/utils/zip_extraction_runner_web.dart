@@ -5,6 +5,7 @@ import '../datasources/zip_package_downloader.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import 'zip_pdf_extractor.dart';
+import 'zip_pdf_extractor_types.dart';
 
 Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,
@@ -29,16 +30,17 @@ Future<ZipExtractResult> runZipExtraction({
   return result;
 }
 
-Future<List<ExtractedPdfItem>> persistExtractedItems(
+Future<PersistExtractedOutcome> persistExtractedItems(
   List<ExtractedPdfItem> items,
   PdfStoragePort store,
 ) async {
   final persisted = <ExtractedPdfItem>[];
+  final failedPdfIds = <String>[];
 
   for (final item in items) {
     final bytes = item.contentBytes;
     if (bytes == null) {
-      persisted.add(item);
+      failedPdfIds.add(item.pdfId);
       continue;
     }
 
@@ -47,15 +49,19 @@ Future<List<ExtractedPdfItem>> persistExtractedItems(
       relPath = relPath.substring('assets/'.length);
     }
 
-    final storageKey = await store.writeAtomic(bytes, relPath);
-    persisted.add(
-      ExtractedPdfItem(
-        pdfId: item.pdfId,
-        absolutePath: storageKey,
-        fileSize: bytes.length,
-      ),
-    );
+    try {
+      final storageKey = await store.writeAtomic(bytes, relPath);
+      persisted.add(
+        ExtractedPdfItem(
+          pdfId: item.pdfId,
+          absolutePath: storageKey,
+          fileSize: bytes.length,
+        ),
+      );
+    } on Object {
+      failedPdfIds.add(item.pdfId);
+    }
   }
 
-  return persisted;
+  return PersistExtractedOutcome(items: persisted, failedPdfIds: failedPdfIds);
 }
