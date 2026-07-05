@@ -38,8 +38,18 @@ class PdfStorageNative implements PdfStoragePort {
       _store.listOrphans(indexedStorageKeys);
 
   @override
-  Future<Uint8List?> readBytes(String storageKey) async {
+  Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) async {
     if (!await _store.exists(storageKey)) return null;
-    return File(storageKey).readAsBytes();
+    final file = File(storageKey);
+    if (maxBytes != null) {
+      final raf = await file.open();
+      try {
+        final length = await file.length();
+        return await raf.read(maxBytes > length ? length : maxBytes);
+      } finally {
+        await raf.close();
+      }
+    }
+    return file.readAsBytes();
   }
 }

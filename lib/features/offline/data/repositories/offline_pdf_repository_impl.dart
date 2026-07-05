@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' show min;
 import 'dart:typed_data';
 
@@ -10,6 +9,7 @@ import '../../domain/repositories/offline_pdf_repository.dart';
 import '../../domain/utils/offline_category_resolver.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import '../datasources/offline_pdf_local_datasource.dart';
+import '../utils/pdf_integrity_validator.dart';
 
 /// Orquestra [PdfStoragePort] + [OfflinePdfLocalDatasource] (Fase 3.1 / 4a).
 class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
@@ -303,30 +303,20 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
     await _local.deleteByPdfId(index.pdfId);
   }
 
-  static Future<_IndexFileValidation> _validateIndexFile(
-    OfflinePdfIndex index,
-  ) async {
-    final stat = await FileStat.stat(index.storagePath);
-    if (stat.type != FileSystemEntityType.file) {
+  Future<_IndexFileValidation> _validateIndexFile(OfflinePdfIndex index) async {
+    if (!await _store.exists(index.storagePath)) {
       return _IndexFileValidation.missing;
     }
-    if (stat.size < 4) return _IndexFileValidation.corrupt;
-
-    final raf = await File(index.storagePath).open();
-    try {
-      final header = await raf.read(4);
-      final validHeader =
-          header.length == 4 &&
-          header[0] == 0x25 &&
-          header[1] == 0x50 &&
-          header[2] == 0x44 &&
-          header[3] == 0x46;
-      return validHeader
-          ? _IndexFileValidation.valid
-          : _IndexFileValidation.corrupt;
-    } finally {
-      await raf.close();
+    if (index.fileSize < 4) {
+      return _IndexFileValidation.corrupt;
     }
+    final header = await _store.readBytes(index.storagePath, maxBytes: 4);
+    if (header == null || header.length < 4) {
+      return _IndexFileValidation.missing;
+    }
+    return PdfIntegrityValidator.hasValidPdfMagicBytes(header)
+        ? _IndexFileValidation.valid
+        : _IndexFileValidation.corrupt;
   }
 
   static OfflinePdfEntry _toEntry(OfflinePdfIndex index) => OfflinePdfEntry(

@@ -1,10 +1,13 @@
 import 'dart:typed_data';
 
-/// Web — sem filesystem por path (Fase 4 trará store persistente).
-///
-/// Falha até [PdfWebStore] existir; remote/asset continuam via outros ramos.
+import 'package:coldigui/features/offline/data/datasources/pdf_storage_impl.dart';
+
+/// Web — lê bytes do PDF persistido via [PdfStoragePort] (OPFS).
 Future<Uint8List> readLocalPdfBytes(String path) async {
-  throw Exception(
-    'PDF local indisponível na web sem cache offline (path: $path)',
-  );
+  final store = createPdfStoragePort();
+  final bytes = await store.readBytes(path);
+  if (bytes == null) {
+    throw Exception('Arquivo PDF não encontrado');
+  }
+  return bytes;
 }

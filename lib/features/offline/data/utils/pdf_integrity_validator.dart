@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'pdf_integrity_validator_path_io.dart'
+    if (dart.library.js_interop) 'pdf_integrity_validator_path_web.dart';
 
-/// Validação compartilhada de integridade de arquivos PDF locais (magic bytes `%PDF`).
+/// Validação compartilhada de integridade de PDFs locais (magic bytes `%PDF`).
 abstract final class PdfIntegrityValidator {
   static const _pdfMagic = [0x25, 0x50, 0x44, 0x46]; // %PDF
 
@@ -11,35 +12,10 @@ abstract final class PdfIntegrityValidator {
       bytes[2] == _pdfMagic[2] &&
       bytes[3] == _pdfMagic[3];
 
-  static Future<bool> isValidPdfFile(String path) async {
-    try {
-      final stat = await FileStat.stat(path);
-      if (stat.type != FileSystemEntityType.file || stat.size < 4) {
-        return false;
-      }
-      final bytes = await File(path).openRead(0, 4).first;
-      return hasValidPdfMagicBytes(bytes);
-    } on FileSystemException {
-      return false;
-    }
-  }
+  static Future<bool> isValidPdfFile(String path) =>
+      validatePdfStoragePath(path);
 
   /// Variante síncrona para isolates (`compute`) e extração ZIP.
-  static bool isValidPdfFileSync(String path) {
-    try {
-      final stat = FileStat.statSync(path);
-      if (stat.type != FileSystemEntityType.file || stat.size < 4) {
-        return false;
-      }
-      final raf = File(path).openSync();
-      try {
-        final bytes = raf.readSync(4);
-        return hasValidPdfMagicBytes(bytes);
-      } finally {
-        raf.closeSync();
-      }
-    } on FileSystemException {
-      return false;
-    }
-  }
+  static bool isValidPdfFileSync(String path) =>
+      validatePdfStoragePathSync(path);
 }

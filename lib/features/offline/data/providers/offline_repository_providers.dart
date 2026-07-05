@@ -7,7 +7,7 @@ import '../datasources/offline_pdf_local_datasource.dart';
 import '../datasources/pdf_storage_impl.dart';
 import '../repositories/offline_pdf_repository_impl.dart';
 
-/// DI — [PdfStoragePort] (nativo: wrapper de [PdfLocalStore]; web: stub Fase 4b).
+/// DI — [PdfStoragePort] (nativo: wrapper de [PdfLocalStore]; web: OPFS).
 final pdfStoragePortProvider = Provider<PdfStoragePort>((ref) {
   return createPdfStoragePort();
 });
