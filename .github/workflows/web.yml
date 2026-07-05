@@ -53,3 +53,6 @@ jobs:
           flutter build web \
             --wasm \
             --dart-define-from-file=dart_defines/plpcjf.json
+
+      - name: Verify COOP/COEP headers artifact
+        run: ./scripts/verify_web_headers_artifact.sh

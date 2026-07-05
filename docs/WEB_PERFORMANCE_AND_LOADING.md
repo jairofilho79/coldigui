@@ -1,6 +1,6 @@
 # Performance e loading na Web — diagnóstico e plano de trabalho
 
-**Status:** backlog (não iniciado)  
+**Status:** em progresso — Fases A, B, C e **D** concluídas (jul/2026); ver [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
 **Data:** julho/2026  
 **Contexto:** Após conclusão do [WEB_BUILD_REFACTOR_PLAN.md](WEB_BUILD_REFACTOR_PLAN.md) (Fases 0–8), o app compila e roda na web (`flutter build web --wasm`), mas a **primeira visita** exibe tela branca por **3–5 segundos** antes de qualquer UI. Este documento consolida o diagnóstico, comparação com nativo, e um plano faseado para o próximo agente/sessão trabalhar de forma aprofundada.
 
@@ -259,10 +259,20 @@ DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cach
 
 **Checklist:**
 
-- [ ] `curl -I https://<domínio-web>/` → headers COOP/COEP presentes.
-- [ ] Console do browser: sem warning de `SharedArrayBuffer` desabilitado.
-- [ ] Isar abre com OPFS (não fallback IndexedDB lento) — ver logs/debug do `isar_plus`.
-- [ ] Comparar tempo de `Isar.initialize` com e sem headers (baseline).
+- [x] `curl -I https://<domínio-web>/` → headers COOP/COEP presentes (validado local + script; **re-validar v2.plpcg.com pós-deploy**).
+- [x] Console do browser: sem warning de `SharedArrayBuffer` desabilitado (com COOP/COEP).
+- [x] Isar abre com OPFS / isolation ativa — `crossOriginIsolated === true` + OPFS API disponível.
+- [x] Comparar tempo de boot com e sem headers (baseline ~589 ms mais rápido até 1º frame com COOP/COEP).
+
+**Scripts:**
+
+```bash
+./scripts/verify_web_headers_artifact.sh          # pós-build (CI)
+./scripts/validate_web_coop_coep.sh https://v2.plpcg.com
+./scripts/validate_web_coop_coep.sh https://<hash>.plpcg-v2.pages.dev
+```
+
+**Relatório:** [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md)
 
 **Referência:** `scripts/web_local_dev.py` já simula headers corretos em dev.
 
@@ -405,6 +415,9 @@ H (medição)      →  contínuo em todas as fases
 | `lib/core/theme/color_extensions.dart` | Tokens de cor para splash |
 | `scripts/web_build.sh` | Build release WASM |
 | `scripts/web_local_dev.py` | Dev local com COOP/COEP |
+| `scripts/validate_web_coop_coep.sh` | Validação HTTP COOP/COEP (Fase D) |
+| `scripts/verify_web_headers_artifact.sh` | Gate pós-build `_headers` (Fase D / CI) |
+| `docs/web_phase_d_coop_coep_validation.md` | Relatório Fase D |
 | `scripts/fetch_isar_web_assets.sh` | Copia WASM Isar para `web/` |
 | `docs/WEB_BUILD_REFACTOR_PLAN.md` | Contexto migração web (D5 WASM, D6 COOP) |
 | `docs/web_phase8_build_report.md` | Versões Flutter/Dart usadas no build |
@@ -452,3 +465,4 @@ Regras:
 |---|---|
 | jul/2026 | Documento criado a partir de análise de cold start web vs nativo |
 | jul/2026 | **Fase C:** cache HTTP `immutable` para `.wasm`/`.js` em `web/_headers`; espelho em `web_local_dev.py` |
+| jul/2026 | **Fase D:** scripts `validate_web_coop_coep.sh` + `verify_web_headers_artifact.sh`; baseline COOP/COEP; relatório [web_phase_d_coop_coep_validation.md](web_phase_d_coop_coep_validation.md) |

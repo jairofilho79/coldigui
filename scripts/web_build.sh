@@ -23,3 +23,4 @@ flutter build web \
   --dart-define-from-file="$DART_DEFINES_FILE"
 
 echo "==> Artefato em build/web/"
+"$ROOT_DIR/scripts/verify_web_headers_artifact.sh"
