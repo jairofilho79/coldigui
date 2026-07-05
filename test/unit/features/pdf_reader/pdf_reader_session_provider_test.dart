@@ -242,8 +242,8 @@ void main() {
       });
 
       final repository = OfflinePdfRepositoryImpl(
-        store: PdfLocalStore(
-          getApplicationDocumentsDirectory: () async => docsDir,
+        store: pdfStoragePortFor(
+          PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
         ),
         local: OfflinePdfLocalDatasource(isar),
       );

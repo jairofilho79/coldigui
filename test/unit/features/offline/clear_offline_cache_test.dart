@@ -59,7 +59,7 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
     prefs = await SharedPreferences.getInstance();
@@ -70,7 +70,7 @@ void main() {
     useCase = ClearOfflineCache(
       repository,
       _StubCatalogLocal(),
-      store,
+      pdfStoragePortFor(store),
       checkpointStore,
       bulkCategoriesStore,
       selectedCategoriesStore,

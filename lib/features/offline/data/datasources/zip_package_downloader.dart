@@ -6,14 +6,14 @@ import '../../../../core/constants/app_config.dart';
 import '../../../../core/constants/offline_config.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/utils/download_retry.dart';
-import 'pdf_local_store.dart';
+import '../../domain/ports/pdf_storage_port.dart';
 
 /// Baixa pacotes ZIP para diretório transitório sob `plpcg_pdfs/_bulk_zips/`.
 class ZipPackageDownloader {
   ZipPackageDownloader(this._dio, this._store);
 
   final Dio _dio;
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
 
   /// Baixa [url] (ex.: `/packages/Partitura-1.zip`) e retorna path absoluto local.
   ///
@@ -42,13 +42,16 @@ class ZipPackageDownloader {
       await target.delete();
     }
 
-    final absoluteUrl =
-        url.startsWith('http') ? url : '${AppConfig.apiBaseUrl}$url';
+    final absoluteUrl = url.startsWith('http')
+        ? url
+        : '${AppConfig.apiBaseUrl}$url';
 
     Object? lastError;
-    for (var attempt = 1;
-        attempt <= OfflineConfig.maxRetryAttempts;
-        attempt++) {
+    for (
+      var attempt = 1;
+      attempt <= OfflineConfig.maxRetryAttempts;
+      attempt++
+    ) {
       try {
         return await _downloadOnce(
           absoluteUrl: absoluteUrl,
@@ -93,8 +96,10 @@ class ZipPackageDownloader {
         partialSize > 0 && expectedSize != null && partialSize < expectedSize;
 
     if (canResume) {
-      final supportsRange =
-          await _serverSupportsRange(absoluteUrl, cancelToken: cancelToken);
+      final supportsRange = await _serverSupportsRange(
+        absoluteUrl,
+        cancelToken: cancelToken,
+      );
       if (supportsRange) {
         await _appendRangeDownload(
           absoluteUrl: absoluteUrl,
@@ -139,10 +144,7 @@ class ZipPackageDownloader {
     CancelToken? cancelToken,
   }) async {
     try {
-      final response = await _dio.head(
-        url,
-        cancelToken: cancelToken,
-      );
+      final response = await _dio.head(url, cancelToken: cancelToken);
       final acceptRanges = response.headers.value('accept-ranges');
       return acceptRanges != null && acceptRanges.toLowerCase() == 'bytes';
     } on DioException {
@@ -258,10 +260,8 @@ class ZipPackageDownloader {
   }
 
   Future<Directory> _zipDirectory() async {
-    final root = await _store.rootDirectory;
-    final zipDir = Directory(
-      '${root.path}/${OfflineConfig.zipTempSubdir}',
-    );
+    final rootPath = await _store.rootPath;
+    final zipDir = Directory('$rootPath/${OfflineConfig.zipTempSubdir}');
     if (!await zipDir.exists()) {
       await zipDir.create(recursive: true);
     }

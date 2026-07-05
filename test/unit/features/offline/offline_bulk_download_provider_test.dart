@@ -2,9 +2,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+
+import 'offline_test_helpers.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
@@ -93,7 +96,7 @@ class _StubRepo implements OfflinePdfRepository {
 class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
   _ThrowingDownloadOfflinePackages({
     required this.error,
-    required PdfLocalStore store,
+    required PdfStoragePort store,
     required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
@@ -133,7 +136,7 @@ class _FakeWakelock implements BulkDownloadWakelock {
 
 class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
   _SuccessDownloadOfflinePackages({
-    required PdfLocalStore store,
+    required PdfStoragePort store,
     required SharedPreferences prefs,
     required super.checkpointStore,
   }) : super(
@@ -202,7 +205,7 @@ void main() {
               useCase ??
               _ThrowingDownloadOfflinePackages(
                 error: error,
-                store: store,
+                store: pdfStoragePortFor(store),
                 prefs: prefs,
                 checkpointStore: checkpointStore,
               ),
@@ -307,7 +310,7 @@ void main() {
       StateError('unused'),
       wakelock: wakelock,
       useCase: _SuccessDownloadOfflinePackages(
-        store: store,
+        store: pdfStoragePortFor(store),
         prefs: prefs,
         checkpointStore: checkpointStore,
       ),

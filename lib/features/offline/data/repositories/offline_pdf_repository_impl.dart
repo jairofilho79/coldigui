@@ -8,10 +8,10 @@ import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/entities/offline_pdf_entry.dart';
 import '../../domain/repositories/offline_pdf_repository.dart';
 import '../../domain/utils/offline_category_resolver.dart';
+import '../../domain/ports/pdf_storage_port.dart';
 import '../datasources/offline_pdf_local_datasource.dart';
-import '../datasources/pdf_local_store.dart';
 
-/// Orquestra [PdfLocalStore] + [OfflinePdfLocalDatasource] (Fase 3.1).
+/// Orquestra [PdfStoragePort] + [OfflinePdfLocalDatasource] (Fase 3.1 / 4a).
 class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   OfflinePdfRepositoryImpl({required this._store, required this._local});
 
@@ -19,7 +19,7 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   static const _touchFlushThreshold = 20;
   static const _evictionBatchSize = 100;
 
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
   final OfflinePdfLocalDatasource _local;
   final Map<String, DateTime> _pendingTouchAt = {};
 

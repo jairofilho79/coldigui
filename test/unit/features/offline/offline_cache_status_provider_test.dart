@@ -17,6 +17,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'dart:io';
 
+import 'offline_test_helpers.dart';
+
 class _StubIsar implements Isar {
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
@@ -104,8 +106,10 @@ class _FixedGetOfflineStatsByCategory extends GetOfflineStatsByCategory {
     : super(
         _StatsRepo({}),
         _StubCatalogLocal(),
-        PdfLocalStore(
-          getApplicationDocumentsDirectory: () async => Directory.systemTemp,
+        pdfStoragePortFor(
+          PdfLocalStore(
+            getApplicationDocumentsDirectory: () async => Directory.systemTemp,
+          ),
         ),
       );
 

@@ -117,8 +117,8 @@ void main() {
     await docsDir.create(recursive: true);
     final isar = openOfflineTestIsar(tempDir);
     final repository = OfflinePdfRepositoryImpl(
-      store: PdfLocalStore(
-        getApplicationDocumentsDirectory: () async => docsDir,
+      store: pdfStoragePortFor(
+        PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
       ),
       local: OfflinePdfLocalDatasource(isar),
     );

@@ -1,6 +1,6 @@
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
-import '../../data/datasources/pdf_local_store.dart';
+import '../ports/pdf_storage_port.dart';
 import '../entities/offline_stats.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_material_resolver.dart';
@@ -19,7 +19,7 @@ class GetOfflineStatsByCategory {
 
   final OfflinePdfRepository _repository;
   final CatalogLocalDatasource _catalogLocal;
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
 
   Future<OfflineStats> call({bool includeMissing = true}) async {
     final entries = await _repository.listAll();
@@ -40,9 +40,7 @@ class GetOfflineStatsByCategory {
         ? await _countMissing(
             indexedPdfIds: entries.map((entry) => entry.pdfId).toSet(),
           )
-        : {
-            for (final material in CatalogMaterials.uiMaterials) material: 0,
-          };
+        : {for (final material in CatalogMaterials.uiMaterials) material: 0};
 
     final totalDiskUsageBytes = await _store.getTotalOfflineBytes();
 

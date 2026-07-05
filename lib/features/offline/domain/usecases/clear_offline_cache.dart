@@ -4,7 +4,7 @@ import '../../data/datasources/offline_available_store.dart';
 import '../../data/datasources/offline_bulk_categories_store.dart';
 import '../../data/datasources/offline_bulk_checkpoint_store.dart';
 import '../../data/datasources/offline_selected_categories_store.dart';
-import '../../data/datasources/pdf_local_store.dart';
+import '../ports/pdf_storage_port.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_material_resolver.dart';
 
@@ -26,7 +26,7 @@ class ClearOfflineCache {
 
   final OfflinePdfRepository _repository;
   final CatalogLocalDatasource _catalogLocal;
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
   final OfflineBulkCheckpointStore _checkpointStore;
   final OfflineBulkCategoriesStore _bulkCategoriesStore;
   final OfflineSelectedCategoriesStore _selectedCategoriesStore;
@@ -34,8 +34,9 @@ class ClearOfflineCache {
 
   /// Retorna `true` quando o índice ficou vazio (wipe total).
   Future<bool> call({required Set<String> materials}) async {
-    final scope =
-        materials.where(CatalogMaterials.uiMaterials.contains).toSet();
+    final scope = materials
+        .where(CatalogMaterials.uiMaterials.contains)
+        .toSet();
     if (scope.isEmpty) return false;
 
     final entries = await _repository.listAll();

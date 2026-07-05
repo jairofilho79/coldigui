@@ -42,13 +42,13 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
     useCase = ExtractAndStorePdfs(
-      repository,
-      store,
-      ZipPackageDownloader(Dio(), store),
+        repository,
+        pdfStoragePortFor(store),
+      ZipPackageDownloader(Dio(), pdfStoragePortFor(store)),
     );
   });
 

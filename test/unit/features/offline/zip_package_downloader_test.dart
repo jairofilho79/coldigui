@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:coldigui/core/constants/offline_config.dart';
+
+import 'offline_test_helpers.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
 import 'package:coldigui/features/offline/data/utils/zip_pdf_extractor.dart';
@@ -23,7 +25,7 @@ void main() {
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
-    downloader = ZipPackageDownloader(Dio(), store);
+    downloader = ZipPackageDownloader(Dio(), pdfStoragePortFor(store));
   });
 
   tearDown(() async {
@@ -84,7 +86,7 @@ void main() {
     final dio = Dio();
     dio.httpClientAdapter = _FakeDownloadAdapter(zipBytes);
 
-    final redownloader = ZipPackageDownloader(dio, store);
+    final redownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
     final path = await redownloader.download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',
@@ -112,7 +114,7 @@ void main() {
     );
     dio.httpClientAdapter = adapter;
 
-    final path = await ZipPackageDownloader(dio, store).download(
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',
       expectedSize: zipBytes.length,
@@ -152,7 +154,7 @@ void main() {
     );
     dio.httpClientAdapter = adapter;
 
-    final path = await ZipPackageDownloader(dio, store).download(
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',
       expectedSize: zipBytes.length,
@@ -169,7 +171,7 @@ void main() {
     );
 
     await expectLater(
-      ZipPackageDownloader(dio, store).download(
+      ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
         url: 'http://example.invalid/packages/Partitura-1.zip',
         filename: 'Partitura-1.zip',
         expectedSize: zipBytes.length,
@@ -193,7 +195,7 @@ void main() {
       onFetch: (options) => captured = options,
     );
 
-    final capturingDownloader = ZipPackageDownloader(dio, store);
+    final capturingDownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
     await capturingDownloader.download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',
@@ -221,7 +223,7 @@ void main() {
       zipBytes.sublist(0, zipBytes.length ~/ 2),
     );
 
-    final mismatchDownloader = ZipPackageDownloader(dio, store);
+    final mismatchDownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
 
     await expectLater(
       mismatchDownloader.download(
@@ -247,7 +249,7 @@ void main() {
     final dio = Dio();
     dio.httpClientAdapter = _RetryOnFirstTimeoutAdapter(zipBytes);
 
-    final retryDownloader = ZipPackageDownloader(dio, store);
+    final retryDownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
     final path = await retryDownloader.download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',

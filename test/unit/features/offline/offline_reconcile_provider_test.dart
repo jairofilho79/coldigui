@@ -129,9 +129,11 @@ void main() {
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
   });
@@ -177,9 +179,11 @@ void main() {
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
 
@@ -206,9 +210,11 @@ void main() {
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
-      PdfLocalStore(
-        getApplicationDocumentsDirectory: () async =>
-            Directory.systemTemp.createTempSync('reconcile_test_'),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_test_'),
+        ),
       ),
     );
 

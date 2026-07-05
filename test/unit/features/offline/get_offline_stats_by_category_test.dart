@@ -31,11 +31,11 @@ void main() {
     );
     store = pdfStore;
     repository = OfflinePdfRepositoryImpl(
-      store: pdfStore,
+      store: pdfStoragePortFor(pdfStore),
       local: OfflinePdfLocalDatasource(isar),
     );
     catalogLocal = CatalogLocalDatasource(isar);
-    useCase = GetOfflineStatsByCategory(repository, catalogLocal, store);
+    useCase = GetOfflineStatsByCategory(repository, catalogLocal, pdfStoragePortFor(store));
   });
 
   tearDown(() async {

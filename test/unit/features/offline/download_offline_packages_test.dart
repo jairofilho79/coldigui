@@ -27,7 +27,8 @@ class _FakeManifestDatasource extends FakeOfflineManifestRemoteDatasource {
 }
 
 class _FakeZipDownloader extends ZipPackageDownloader {
-  _FakeZipDownloader(PdfLocalStore store, this._zipPath) : super(Dio(), store);
+  _FakeZipDownloader(PdfLocalStore store, this._zipPath)
+    : super(Dio(), pdfStoragePortFor(store));
 
   final String _zipPath;
 
@@ -48,7 +49,7 @@ class _FakeZipDownloader extends ZipPackageDownloader {
 
 class _ProgressZipDownloader extends ZipPackageDownloader {
   _ProgressZipDownloader(PdfLocalStore store, this._zipPath)
-    : super(Dio(), store);
+    : super(Dio(), pdfStoragePortFor(store));
 
   final String _zipPath;
 
@@ -68,7 +69,7 @@ class _ProgressZipDownloader extends ZipPackageDownloader {
 
 class _RetainedZipDownloader extends ZipPackageDownloader {
   _RetainedZipDownloader(PdfLocalStore store, this._sourceZipPath)
-    : super(Dio(), store);
+    : super(Dio(), pdfStoragePortFor(store));
 
   final String _sourceZipPath;
 
@@ -91,7 +92,8 @@ class _RetainedZipDownloader extends ZipPackageDownloader {
 }
 
 class _EnospcZipDownloader extends ZipPackageDownloader {
-  _EnospcZipDownloader(PdfLocalStore store) : super(Dio(), store);
+  _EnospcZipDownloader(PdfLocalStore store)
+    : super(Dio(), pdfStoragePortFor(store));
 
   @override
   Future<String> download({
@@ -194,7 +196,7 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
 
@@ -257,10 +259,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, corruptedZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, corruptedZipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -290,10 +295,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, extraZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, extraZipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -312,10 +320,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, zipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -346,10 +357,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, zipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: checkpointStore,
     );
 
@@ -370,10 +384,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, zipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -392,10 +409,13 @@ void main() {
       zipDownloader: _EnospcZipDownloader(store),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, zipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -421,10 +441,13 @@ void main() {
       zipDownloader: fakeZip,
       extractAndStorePdfs: _EnospcExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         fakeZip,
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -450,10 +473,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, zipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, zipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -506,10 +532,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, largeZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, largeZipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: checkpointStore,
     );
 
@@ -592,10 +621,13 @@ void main() {
         zipDownloader: _FakeZipDownloader(store, largeZipPath),
         extractAndStorePdfs: ExtractAndStorePdfs(
           repository,
-          store,
+          pdfStoragePortFor(store),
           _FakeZipDownloader(store, largeZipPath),
         ),
-        reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+        reconcileOfflineIndex: ReconcileOfflineIndex(
+          repository,
+          pdfStoragePortFor(store),
+        ),
         checkpointStore: checkpointStore,
       );
 
@@ -630,8 +662,15 @@ void main() {
     final useCase = DownloadOfflinePackages(
       manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
       zipDownloader: progressZip,
-      extractAndStorePdfs: ExtractAndStorePdfs(repository, store, progressZip),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        pdfStoragePortFor(store),
+        progressZip,
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -703,10 +742,13 @@ void main() {
       zipDownloader: _FakeZipDownloader(store, largeZipPath),
       extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
-        store,
+        pdfStoragePortFor(store),
         _FakeZipDownloader(store, largeZipPath),
       ),
-      reconcileOfflineIndex: ReconcileOfflineIndex(repository, store),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
@@ -769,7 +811,10 @@ void main() {
         },
       );
 
-      final reconcile = _CountingReconcile(repository, store);
+      final reconcile = _CountingReconcile(
+        repository,
+        pdfStoragePortFor(store),
+      );
       final retainedZipDownloader = _RetainedZipDownloader(
         store,
         multiCategoryZipPath,
@@ -779,7 +824,7 @@ void main() {
         zipDownloader: retainedZipDownloader,
         extractAndStorePdfs: ExtractAndStorePdfs(
           repository,
-          store,
+          pdfStoragePortFor(store),
           retainedZipDownloader,
         ),
         reconcileOfflineIndex: reconcile,

@@ -25,14 +25,13 @@ import '../datasources/offline_bulk_categories_store.dart';
 import '../datasources/offline_bulk_checkpoint_store.dart';
 import '../datasources/offline_selected_categories_store.dart';
 import '../datasources/offline_manifest_remote_datasource.dart';
-import '../datasources/pdf_local_store.dart';
 import '../datasources/zip_package_downloader.dart';
 import 'offline_repository_providers.dart';
 
 export 'offline_repository_providers.dart';
 
-/// DI — [PdfLocalStore] em `ApplicationDocumentsDirectory/plpcg_pdfs/`.
-/// Ver [pdfLocalStoreProvider] em [offline_repository_providers.dart].
+/// DI — [PdfStoragePort] em `ApplicationDocumentsDirectory/plpcg_pdfs/`.
+/// Ver [pdfStoragePortProvider] em [offline_repository_providers.dart].
 
 /// DI — CRUD Isar [OfflinePdfIndex] via [isarProvider].
 /// Ver [offlinePdfLocalDatasourceProvider] em [offline_repository_providers.dart].
@@ -93,7 +92,7 @@ final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
 final zipPackageDownloaderProvider = Provider<ZipPackageDownloader>((ref) {
   final downloader = ZipPackageDownloader(
     ref.watch(dioProvider),
-    ref.watch(pdfLocalStoreProvider),
+    ref.watch(pdfStoragePortProvider),
   );
   unawaited(downloader.cleanOrphanedTempFiles());
   return downloader;
@@ -130,7 +129,7 @@ final offlineAvailableStoreProvider = Provider<OfflineAvailableStore>((ref) {
 final extractAndStorePdfsProvider = Provider<ExtractAndStorePdfs>((ref) {
   return ExtractAndStorePdfs(
     ref.watch(offlinePdfRepositoryProvider),
-    ref.watch(pdfLocalStoreProvider),
+    ref.watch(pdfStoragePortProvider),
     ref.watch(zipPackageDownloaderProvider),
   );
 });
@@ -139,7 +138,7 @@ final extractAndStorePdfsProvider = Provider<ExtractAndStorePdfs>((ref) {
 final reconcileOfflineIndexProvider = Provider<ReconcileOfflineIndex>((ref) {
   return ReconcileOfflineIndex(
     ref.watch(offlinePdfRepositoryProvider),
-    ref.watch(pdfLocalStoreProvider),
+    ref.watch(pdfStoragePortProvider),
   );
 });
 
@@ -163,7 +162,7 @@ final getOfflineStatsByCategoryProvider = Provider<GetOfflineStatsByCategory>((
   return GetOfflineStatsByCategory(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
-    ref.watch(pdfLocalStoreProvider),
+    ref.watch(pdfStoragePortProvider),
   );
 });
 
@@ -190,7 +189,7 @@ final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
   return ClearOfflineCache(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
-    ref.watch(pdfLocalStoreProvider),
+    ref.watch(pdfStoragePortProvider),
     ref.watch(offlineBulkCheckpointStoreProvider),
     ref.watch(offlineBulkCategoriesStoreProvider),
     ref.watch(offlineSelectedCategoriesStoreProvider),

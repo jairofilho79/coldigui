@@ -49,7 +49,7 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: pdfStore,
+      store: pdfStoragePortFor(pdfStore),
       local: OfflinePdfLocalDatasource(isar),
     );
     catalogLocal = CatalogLocalDatasource(isar);

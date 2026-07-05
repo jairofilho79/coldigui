@@ -3,7 +3,7 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/offline_config.dart';
-import '../../data/datasources/pdf_local_store.dart';
+import '../ports/pdf_storage_port.dart';
 import '../../data/datasources/zip_package_downloader.dart';
 import '../../data/utils/zip_pdf_extractor.dart';
 import '../entities/offline_pdf_batch_item.dart';
@@ -16,14 +16,10 @@ const _checkpointInterval = 50;
 ///
 /// Descompacta [zipPath] em isolate → indexa em chunks Isar no isolate principal.
 class ExtractAndStorePdfs {
-  ExtractAndStorePdfs(
-    this._repository,
-    this._store,
-    this._zipDownloader,
-  );
+  ExtractAndStorePdfs(this._repository, this._store, this._zipDownloader);
 
   final OfflinePdfRepository _repository;
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
   final ZipPackageDownloader _zipDownloader;
 
   Future<ExtractResult> call({
@@ -49,14 +45,15 @@ class ExtractAndStorePdfs {
       );
     }
 
-    final skipPdfIds =
-        (await _repository.lookupBatch(pendingIds.toSet())).toList();
+    final skipPdfIds = (await _repository.lookupBatch(
+      pendingIds.toSet(),
+    )).toList();
 
-    final root = await _store.rootDirectory;
+    final rootPath = await _store.rootPath;
     final extractResult = await _runExtractionIsolate(
       ZipExtractParams(
         zipPath: zipPath,
-        rootPath: root.path,
+        rootPath: rootPath,
         expectedPdfIds: pendingIds,
         skipPdfIds: skipPdfIds,
       ),
@@ -107,10 +104,10 @@ class ExtractAndStorePdfs {
     }
 
     final receivePort = ReceivePort();
-    await Isolate.spawn(
-      extractZipPdfsIsolateEntry,
-      [params, receivePort.sendPort],
-    );
+    await Isolate.spawn(extractZipPdfsIsolateEntry, [
+      params,
+      receivePort.sendPort,
+    ]);
 
     ZipExtractResult? result;
     await for (final message in receivePort) {

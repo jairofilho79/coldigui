@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/offline_config.dart';
-import '../../data/datasources/pdf_local_store.dart';
+import '../ports/pdf_storage_port.dart';
 import '../../data/utils/reconcile_path_validator.dart';
 import '../entities/offline_manifest.dart';
 import '../entities/reconcile_result.dart';
@@ -16,7 +16,7 @@ class ReconcileOfflineIndex {
   ReconcileOfflineIndex(this._repository, this._store);
 
   final OfflinePdfRepository _repository;
-  final PdfLocalStore _store;
+  final PdfStoragePort _store;
 
   Future<ReconcileResult> call({
     OfflineMaterialPackage? materialPackage,
@@ -33,8 +33,9 @@ class ReconcileOfflineIndex {
     final chunkSize = OfflineConfig.bulkIsarChunkSize;
 
     for (var i = 0; i < entries.length; i += chunkSize) {
-      final end =
-          (i + chunkSize < entries.length) ? i + chunkSize : entries.length;
+      final end = (i + chunkSize < entries.length)
+          ? i + chunkSize
+          : entries.length;
       final chunk = entries.sublist(i, end);
 
       final pathEntries = chunk
@@ -63,7 +64,8 @@ class ReconcileOfflineIndex {
     }
 
     var orphanFiles = 0;
-    final isScopedBulk = materialCategory != null &&
+    final isScopedBulk =
+        materialCategory != null &&
         scopedPdfIds != null &&
         materialPackage != null;
 

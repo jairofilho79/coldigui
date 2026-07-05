@@ -27,10 +27,10 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     repository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
-    useCase = ReconcileOfflineIndex(repository, store);
+    useCase = ReconcileOfflineIndex(repository, pdfStoragePortFor(store));
   });
 
   tearDown(() async {

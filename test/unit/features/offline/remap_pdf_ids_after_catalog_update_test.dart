@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/database/collections/carousel_entry.dart';
+
+import 'offline_test_helpers.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
@@ -78,7 +80,7 @@ void main() {
       getApplicationDocumentsDirectory: () async => docsDir,
     );
     offlineRepository = OfflinePdfRepositoryImpl(
-      store: store,
+      store: pdfStoragePortFor(store),
       local: OfflinePdfLocalDatasource(isar),
     );
     playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));

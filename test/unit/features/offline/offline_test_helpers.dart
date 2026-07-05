@@ -7,6 +7,9 @@ import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
+import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
+import 'package:coldigui/features/offline/data/datasources/pdf_storage_native.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
@@ -65,6 +68,10 @@ Future<Directory> createTempDocsDir() async {
   await docs.create(recursive: true);
   return docs;
 }
+
+/// Adapta [PdfLocalStore] de teste para [PdfStoragePort] (wrapper nativo Fase 4a).
+PdfStoragePort pdfStoragePortFor(PdfLocalStore store) =>
+    PdfStorageNative(store: store);
 
 /// Seed [count] entradas válidas no índice + disco (benchmark reconcile 3.6).
 Future<void> seedOfflineEntries({
