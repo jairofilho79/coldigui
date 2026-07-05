@@ -14,12 +14,51 @@ Necessários para `SharedArrayBuffer` e performance WASM do pdfrx:
 
 Alternativa se recursos third-party quebrarem: `Cross-Origin-Embedder-Policy: credentialless`.
 
-## Service worker
+## Cache de assets (Fase C — WEB_PERFORMANCE_AND_LOADING.md)
+
+Assets `.wasm`/`.js` versionados pelo Flutter service worker: cache HTTP longo (1 ano, `immutable`).
+O service worker **sempre** revalida (`no-cache`) para detectar novos deploys.
+
+Regras em `web/_headers` (espelhadas em `scripts/web_local_dev.py` para dev local):
 
 ```
+/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/canvaskit/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/canvaskit/chromium/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/canvaskit/experimental_webparagraph/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/packages/pdfrx/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/packages/wakelock_plus/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /flutter_service_worker.js
   Cache-Control: no-cache
 ```
+
+`/flutter_service_worker.js` fica **por último** para prevalecer sobre `/*.js`.
+
+Validação pós-deploy:
+
+```bash
+curl -sI https://plpcjf.org/main.dart.wasm | grep -i cache-control
+curl -sI https://plpcjf.org/flutter_service_worker.js | grep -i cache-control
+```
+
+## Service worker
+
+Ver bloco acima — `flutter_service_worker.js` com `Cache-Control: no-cache`.
 
 ## CORS (API)
 

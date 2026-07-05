@@ -87,8 +87,13 @@ class FrontendHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self) -> None:
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
-        if self.path.endswith("flutter_service_worker.js"):
+        path = self.path.split("?", 1)[0]
+        if path.endswith("flutter_service_worker.js"):
             self.send_header("Cache-Control", "no-cache")
+        elif path.endswith((".wasm", ".js")):
+            self.send_header(
+                "Cache-Control", "public, max-age=31536000, immutable"
+            )
         super().end_headers()
 
     def log_message(self, fmt: str, *args: object) -> None:

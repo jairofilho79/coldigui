@@ -202,7 +202,8 @@ Cada fase = PR pequeno e escopado. Seguir regra anti-overengineering: alterar s�
 **Estado atual:**
 
 - `web/_headers` define COOP/COEP global e `Cache-Control: no-cache` só para `flutter_service_worker.js`.
-- Assets versionados (`.wasm`, `.js` com hash) **não** têm `Cache-Control: immutable` explícito.
+- Assets versionados (`.wasm`, `.js` com hash) recebem `Cache-Control: public, max-age=31536000, immutable` (implementado jul/2026).
+- `scripts/web_local_dev.py` espelha as mesmas regras de cache para validação local.
 
 **Implementação sugerida:**
 
@@ -214,16 +215,39 @@ Cada fase = PR pequeno e escopado. Seguir regra anti-overengineering: alterar s�
    /*.js
      Cache-Control: public, max-age=31536000, immutable
    ```
-   (ajustar paths conforme estrutura real do build)
-2. Validar que `flutter_service_worker.js` continua com `no-cache`.
+   (ajustar paths conforme estrutura real do build — ver também `/canvaskit/*`, `/assets/packages/*/assets/*`)
+2. Validar que `flutter_service_worker.js` continua com `no-cache` (**regra por último**, após `/*.js`).
 3. Confirmar que deploy em `plpcjf.org` / `v2.plpcg.com` aplica `_headers`.
 4. Documentar comportamento esperado: 1ª visita lenta, 2ª visita rápida.
 
+**Comportamento esperado (hard refresh vs reload):**
+
+| Ação | O que acontece |
+|---|---|
+| **1ª visita** (sem cache) | Download completo de WASM/JS; lento (~3–5 s antes do Flutter). |
+| **Reload normal** (F5) | Browser usa cache HTTP (`immutable`); SW revalida `flutter_service_worker.js`; rápido. |
+| **Hard refresh** (Ctrl+Shift+R) | Ignora cache HTTP; re-download de assets; similar à 1ª visita. |
+| **Novo deploy** | SW busca `flutter_service_worker.js` (`no-cache`), detecta hash novo, precacheia assets atualizados; visita seguinte usa versão nova. |
+
+**Validação pós-deploy:**
+
+```bash
+# Cache longo em assets WASM/JS
+curl -sI https://plpcjf.org/main.dart.wasm | grep -i cache-control
+curl -sI https://plpcjf.org/canvaskit/canvaskit.wasm | grep -i cache-control
+
+# Service worker sempre revalidado
+curl -sI https://plpcjf.org/flutter_service_worker.js | grep -i cache-control
+```
+
+DevTools → Network: reload normal deve mostrar `(disk cache)` ou `(memory cache)` em `.wasm`/`.js`; hard refresh deve mostrar transfer size completo.
+
 **Critérios de aceite:**
 
-- [ ] DevTools Network: assets `.wasm`/`.js` servidos com cache longo em produção.
-- [ ] Hard refresh vs normal reload medidos e documentados.
-- [ ] Service worker atualiza corretamente após novo deploy.
+- [x] Regras `immutable` em `web/_headers` + espelho em `web_local_dev.py`.
+- [ ] DevTools Network: assets `.wasm`/`.js` servidos com cache longo em produção (validar após deploy).
+- [x] Hard refresh vs normal reload documentados (tabela acima).
+- [ ] Service worker atualiza corretamente após novo deploy (validar após deploy).
 
 **Estimativa de esforço:** baixo (1 PR infra).
 
@@ -427,3 +451,4 @@ Regras:
 | Data | Evento |
 |---|---|
 | jul/2026 | Documento criado a partir de análise de cold start web vs nativo |
+| jul/2026 | **Fase C:** cache HTTP `immutable` para `.wasm`/`.js` em `web/_headers`; espelho em `web_local_dev.py` |
