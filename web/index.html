@@ -115,14 +115,6 @@
       }
 
       window.addEventListener('flutter-first-frame', hideLoader, { once: true });
-
-      var observer = new MutationObserver(function () {
-        if (document.querySelector('flt-glass-pane, flutter-view')) {
-          observer.disconnect();
-          hideLoader();
-        }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
     })();
   </script>
 
