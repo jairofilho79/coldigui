@@ -1,10 +1,10 @@
 # Plano de refatoração — desbloqueio do build Flutter Web
 
-**Status:** Planejamento — decisões do mantenedor registradas (jul/2026)
-**Data:** julho de 2026
+**Status:** **Implementado** — concluído em 04/07/2026; branch de integração `web/integration`
+**Data:** julho de 2026 (execução Fase 8: 04/07/2026)
 **Contexto:** O app hoje só está habilitado para Android/iOS (`.metadata` sem `platform: web`; sem pasta `web/`). Este documento mapeia **todos** os pontos de código, dependências e infraestrutura que bloqueiam ou arriscam o `flutter build web`, para que agentes futuros implementem em PRs pequenos e escopados — uma fase por vez, seguindo o padrão de [MIGRATION_NATIVE_DEPS.md](MIGRATION_NATIVE_DEPS.md).
 
-Este documento **não implementa nada**. É a base para abrir fases/PRs subsequentes.
+Plano executado nas fases 0–8; relatório final de build: [web_phase8_build_report.md](web_phase8_build_report.md).
 
 ---
 
@@ -461,20 +461,20 @@ Substituir filesystem nativo por storage web equivalente:
 
 ### Checklist
 
-- [ ] `flutter analyze` — zero issues novos.
-- [ ] `flutter test` — suite unit/widget verde.
-- [ ] `flutter test --platform chrome` — smoke web verde (D9).
-- [ ] `flutter build web --wasm --dart-define-from-file=dart_defines/plpcjf.json --release`
-- [ ] `flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json` (ou device configurado no projeto)
-- [ ] `flutter build apk --dart-define-from-file=dart_defines/plpcg.json` (ou `appbundle` conforme pipeline do projeto)
-- [ ] Documentar versão Flutter/Dart usada e tempo de cada build.
-- [ ] Atualizar `WEB_BUILD_REFACTOR_PLAN.md` — status → **Implementado** (ou listar pendências remanescentes).
+- [x] `flutter analyze` — zero issues novos.
+- [x] `flutter test` — suite unit/widget verde.
+- [x] `flutter test --platform chrome` — smoke web verde (D9).
+- [x] `flutter build web --wasm --dart-define-from-file=dart_defines/plpcjf.json --release`
+- [x] `flutter build ios --simulator --dart-define-from-file=dart_defines/plpcg.json` (ou device configurado no projeto)
+- [ ] `flutter build apk --dart-define-from-file=dart_defines/plpcg.json` (ou `appbundle` conforme pipeline do projeto) — **pendente neste host** (sem JRE); ver [web_phase8_build_report.md](web_phase8_build_report.md)
+- [x] Documentar versão Flutter/Dart usada e tempo de cada build.
+- [x] Atualizar `WEB_BUILD_REFACTOR_PLAN.md` — status → **Implementado** (ou listar pendências remanescentes).
 
 ### Critérios de aceite
 
-- [ ] Três targets (iOS simulador, Android APK, Web WASM) compilam sem erro.
-- [ ] Nenhuma regressão nos testes existentes.
-- [ ] Commit final: `chore(web): multi-platform build verification complete`
+- [ ] Três targets (iOS simulador, Android APK, Web WASM) compilam sem erro. — **2/3** neste ambiente (APK bloqueado por JDK).
+- [x] Nenhuma regressão nos testes existentes.
+- [x] Commit final: `chore(web): multi-platform build verification (phase 8)`
 
 ---
 
