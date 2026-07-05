@@ -19,11 +19,15 @@ class ExtractedPdfItem {
     required this.pdfId,
     required this.absolutePath,
     required this.fileSize,
+    this.contentBytes,
   });
 
   final String pdfId;
   final String absolutePath;
   final int fileSize;
+
+  /// Bytes pendentes de persistência (web — gravados na main thread após `compute`).
+  final Uint8List? contentBytes;
 }
 
 /// Resultado da extração de um pacote ZIP.

@@ -1,10 +1,7 @@
-import 'dart:isolate';
-
-import 'package:flutter/foundation.dart';
-
 import '../../../../core/constants/offline_config.dart';
 import '../ports/pdf_storage_port.dart';
 import '../../data/datasources/zip_package_downloader.dart';
+import '../../data/utils/zip_extraction_runner.dart';
 import '../../data/utils/zip_pdf_extractor.dart';
 import '../entities/offline_pdf_batch_item.dart';
 import '../repositories/offline_pdf_repository.dart';
@@ -14,7 +11,7 @@ const _checkpointInterval = 50;
 
 /// UC-09 — Extrair ZIP e gravar PDFs no store local (Fase 3.5).
 ///
-/// Descompacta [zipPath] em isolate → indexa em chunks Isar no isolate principal.
+/// Descompacta [zipPath] em isolate/compute → indexa em chunks Isar na main thread.
 class ExtractAndStorePdfs {
   ExtractAndStorePdfs(this._repository, this._store, this._zipDownloader);
 
@@ -50,19 +47,21 @@ class ExtractAndStorePdfs {
     )).toList();
 
     final rootPath = await _store.rootPath;
-    final extractResult = await _runExtractionIsolate(
-      ZipExtractParams(
+    final extractResult = await runZipExtraction(
+      params: ZipExtractParams(
         zipPath: zipPath,
         rootPath: rootPath,
         expectedPdfIds: pendingIds,
         skipPdfIds: skipPdfIds,
       ),
+      zipDownloader: _zipDownloader,
       onExtractProgress: onExtractProgress,
     );
 
+    final items = await persistExtractedItems(extractResult.items, _store);
+
     var storedCount = 0;
     final chunkSize = OfflineConfig.bulkIsarChunkSize;
-    final items = extractResult.items;
 
     for (var i = 0; i < items.length; i += chunkSize) {
       final end = (i + chunkSize < items.length) ? i + chunkSize : items.length;
@@ -93,39 +92,6 @@ class ExtractAndStorePdfs {
       unmatchedPdfIds: extractResult.unmatchedEntries,
       failedPdfIds: extractResult.failedPdfIds,
     );
-  }
-
-  Future<ZipExtractResult> _runExtractionIsolate(
-    ZipExtractParams params, {
-    void Function(int extracted, int total)? onExtractProgress,
-  }) async {
-    if (onExtractProgress == null) {
-      return compute(extractZipPdfs, params);
-    }
-
-    final receivePort = ReceivePort();
-    await Isolate.spawn(extractZipPdfsIsolateEntry, [
-      params,
-      receivePort.sendPort,
-    ]);
-
-    ZipExtractResult? result;
-    await for (final message in receivePort) {
-      if (message is ZipExtractProgressReport) {
-        onExtractProgress(message.extracted, message.total);
-      } else if (message is ZipExtractResult) {
-        result = message;
-        break;
-      } else if (message is List<Object?>) {
-        receivePort.close();
-        Error.throwWithStackTrace(
-          message[0] as Object,
-          message[1] as StackTrace,
-        );
-      }
-    }
-    receivePort.close();
-    return result!;
   }
 
   Future<void> _emitProgressCheckpoints({
