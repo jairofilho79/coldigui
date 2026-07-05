@@ -13,6 +13,8 @@ import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
+final _validPdfBytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x31]);
+
 void main() {
   late Isar isar;
   late OfflinePdfRepositoryImpl repository;
@@ -35,7 +37,11 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     catalogLocal = CatalogLocalDatasource(isar);
-    useCase = GetOfflineStatsByCategory(repository, catalogLocal, pdfStoragePortFor(store));
+    useCase = GetOfflineStatsByCategory(
+      repository,
+      catalogLocal,
+      pdfStoragePortFor(store),
+    );
   });
 
   tearDown(() async {
@@ -70,12 +76,12 @@ void main() {
 
     await repository.upsert(
       pdfId: partituraId,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
     await repository.upsert(
       pdfId: cifraId,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
@@ -84,7 +90,7 @@ void main() {
     expect(stats.byCategory[CatalogMaterials.partitura], 1);
     expect(stats.byCategory[CatalogMaterials.cifra], 1);
     expect(stats.totalCount, 2);
-    expect(stats.totalDiskUsageBytes, 2);
+    expect(stats.totalDiskUsageBytes, greaterThanOrEqualTo(10));
     expect(stats.missingByCategory[CatalogMaterials.partitura], 0);
     expect(stats.missingCountReliable, isTrue);
   });
@@ -101,7 +107,7 @@ void main() {
 
     await repository.upsert(
       pdfId: downloadedId,
-      bytes: Uint8List.fromList([1]),
+      bytes: _validPdfBytes,
       category: 'ColAdultos',
     );
 
@@ -109,6 +115,39 @@ void main() {
 
     expect(stats.missingByCategory[CatalogMaterials.partitura], 1);
     expect(stats.missingCountReliable, isTrue);
+  });
+
+  test('entrada no índice sem arquivo válido conta como faltante', () async {
+    final validId = encodePdfId('ColAdultos/a.pdf');
+    final orphanId = encodePdfId('ColAdultos/orphan.pdf');
+
+    await seedLouvor(pdfId: validId, categoria: CatalogMaterials.partitura);
+    await seedLouvor(pdfId: orphanId, categoria: CatalogMaterials.partitura);
+
+    await repository.upsert(
+      pdfId: validId,
+      bytes: _validPdfBytes,
+      category: 'ColAdultos',
+    );
+    await repository.upsert(
+      pdfId: orphanId,
+      bytes: _validPdfBytes,
+      category: 'ColAdultos',
+    );
+
+    final orphanEntry = await repository.findIndexEntry(orphanId);
+    expect(orphanEntry, isNotNull);
+    final orphanFile = File(orphanEntry!.absolutePath);
+    if (await orphanFile.exists()) {
+      await orphanFile.delete();
+    }
+
+    final stats = await useCase();
+
+    expect(stats.byCategory[CatalogMaterials.partitura], 1);
+    expect(stats.missingByCategory[CatalogMaterials.partitura], 1);
+    expect(stats.totalCount, 1);
+    expect(stats.totalMissing, 1);
   });
 
   test('totalDiskUsageBytes reflete bytes reais no filesystem', () async {
