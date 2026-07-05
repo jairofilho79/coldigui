@@ -1,5 +1,7 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -17,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
@@ -35,6 +38,49 @@ class _FakeCarouselNotifierWithItems extends CarouselLouvoresNotifier {
       classificacao: 'Col',
     ),
   ];
+}
+
+const _groupId = '001:aleluia';
+const _partituraPdfId = 'id-part';
+const _cifraPdfId = 'id-cifra';
+
+Louvor _catalogLouvor({required String categoria, required String pdfId}) {
+  return Louvor.fromManifest(
+    nome: 'Aleluia',
+    numero: '001',
+    categoria: categoria,
+    classificacao: 'ColAdultos',
+    pdf: '$pdfId.pdf',
+    pdfId: pdfId,
+    groupId: _groupId,
+  );
+}
+
+List<Louvor> _multiMaterialCatalog() => [
+  _catalogLouvor(categoria: 'Partitura', pdfId: _partituraPdfId),
+  _catalogLouvor(categoria: 'Cifra', pdfId: _cifraPdfId),
+];
+
+class _TrackingCarouselNotifier extends CarouselLouvoresNotifier {
+  var replaceCallCount = 0;
+
+  @override
+  List<CarouselItem> build() => [
+    CarouselItem(
+      pdfId: _partituraPdfId,
+      sortOrder: 0,
+      numero: '001',
+      nome: 'Aleluia',
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+    ),
+  ];
+
+  @override
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
+    replaceCallCount++;
+    return true;
+  }
 }
 
 class _FixedOfflineCacheStatusNotifier extends OfflineCacheStatusNotifier {
@@ -380,5 +426,123 @@ void main() {
     await tester.pump();
 
     expect(find.byType(PdfReaderScreen), findsOneWidget);
+  });
+
+  testWidgets(
+    'PdfReaderScreen exibe ícone de troca de material com grupo multi',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            louvoresManifestOverride(
+              LouvoresManifest.fromLouvores(_multiMaterialCatalog()),
+            ),
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) => Future.error(const InvalidPdfPathException('stub')),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'pdfId': _partituraPdfId,
+                  'titulo': 'Aleluia',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.byIcon(Icons.layers_outlined), findsOneWidget);
+    },
+  );
+
+  testWidgets('PdfReaderScreen oculta ícone de troca com material único', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores([
+              _catalogLouvor(categoria: 'Partitura', pdfId: _partituraPdfId),
+            ]),
+          ),
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'pdfId': _partituraPdfId,
+                'titulo': 'Aleluia',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.byIcon(Icons.layers_outlined), findsNothing);
+  });
+
+  testWidgets('selecionar mesmo material no sheet não chama replacePdfId', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final carousel = _TrackingCarouselNotifier();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        carouselNotifier: carousel,
+        overrides: [
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores(_multiMaterialCatalog()),
+          ),
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'pdfId': _partituraPdfId,
+                'titulo': 'Aleluia',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.layers_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Partitura'));
+    await tester.pumpAndSettle();
+
+    expect(carousel.replaceCallCount, 0);
   });
 }

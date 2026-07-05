@@ -720,6 +720,12 @@ abstract class AppLocalizations {
   /// **'Próximo louvor'**
   String get readerCarouselNext;
 
+  /// Tooltip do ícone de troca de material na barra do leitor PDF
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar material'**
+  String get readerSwitchMaterial;
+
   /// No description provided for @readerCarouselPosition.
   ///
   /// In pt, this message translates to:

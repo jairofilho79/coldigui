@@ -2,9 +2,15 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
+import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
@@ -135,6 +141,36 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     }
   }
 
+  Future<void> _openMaterialSheet(LouvorGroup group) {
+    return showLouvorMaterialSheet(
+      context: context,
+      group: group,
+      onMaterialSelected: _onMaterialSelected,
+    );
+  }
+
+  Future<void> _onMaterialSelected(Louvor selected) async {
+    final currentPdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
+    if (currentPdfId.isEmpty || selected.pdfId == currentPdfId) return;
+
+    await ref
+        .read(carouselLouvoresProvider.notifier)
+        .replacePdfId(currentPdfId, selected.pdfId);
+    if (!mounted) return;
+
+    await openCarouselPdfInReader(
+      ref: ref,
+      context: context,
+      pdfId: selected.pdfId,
+      navigate: (location) async {
+        context.replace(location);
+      },
+    );
+    if (!mounted) return;
+
+    ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(selected.pdfId);
+  }
+
   Future<void> _redownloadCorruptedPdf(String pdfId) async {
     if (_redownloadLoading) return;
     final l10n = AppLocalizations.of(context);
@@ -243,12 +279,23 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     );
     final sessionLoading = sessionAsync.isLoading;
 
+    final materialGroup = pdfId.isNotEmpty
+        ? findLouvorGroupByPdfId(
+            ref.watch(louvoresManifestProvider).value?.louvores,
+            pdfId,
+          )
+        : null;
+
     return _ReaderScaffold(
       titulo: titulo,
       showTitle: sessionLoading && carouselEmpty,
       isFullscreen: isFullscreen,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
+      onSwapMaterial: materialGroup != null
+          ? () => _openMaterialSheet(materialGroup)
+          : null,
+      swapMaterialTooltip: l10n?.readerSwitchMaterial ?? 'Trocar material',
       onShare: sessionLoaded
           ? (origin) => _sharePdf(filePath, titulo, sharePositionOrigin: origin)
           : null,
@@ -309,6 +356,8 @@ class _ReaderScaffold extends StatelessWidget {
     this.isFullscreen = false,
     this.filePath,
     this.onToggleFullscreen,
+    this.onSwapMaterial,
+    this.swapMaterialTooltip,
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
@@ -320,6 +369,8 @@ class _ReaderScaffold extends StatelessWidget {
   final Widget body;
   final String? filePath;
   final VoidCallback? onToggleFullscreen;
+  final VoidCallback? onSwapMaterial;
+  final String? swapMaterialTooltip;
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
@@ -340,6 +391,12 @@ class _ReaderScaffold extends StatelessWidget {
                   ? Text(titulo, overflow: TextOverflow.ellipsis)
                   : null,
               actions: [
+                if (onSwapMaterial != null)
+                  IconButton(
+                    tooltip: swapMaterialTooltip,
+                    icon: const Icon(Icons.layers_outlined),
+                    onPressed: onSwapMaterial,
+                  ),
                 if (onShare != null)
                   Builder(
                     builder: (buttonContext) {

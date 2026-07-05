@@ -49,6 +49,22 @@ class _FakeCarouselRepository implements CarouselRepository {
   }
 
   @override
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
+    if (oldPdfId == newPdfId) return false;
+    final index = _orderedPdfIds.indexOf(oldPdfId);
+    if (index < 0) return false;
+    if (_orderedPdfIds.contains(newPdfId)) {
+      _orderedPdfIds = _orderedPdfIds.where((id) => id != oldPdfId).toList();
+      return true;
+    }
+    _orderedPdfIds = [
+      for (var i = 0; i < _orderedPdfIds.length; i++)
+        if (i == index) newPdfId else _orderedPdfIds[i],
+    ];
+    return true;
+  }
+
+  @override
   Future<void> reorder(List<String> orderedPdfIds) async {
     _orderedPdfIds = List.of(orderedPdfIds);
   }
@@ -79,8 +95,9 @@ void main() {
   });
 
   test('getPosition retorna índice central com prev/next', () async {
-    useCase =
-        NavigateCarouselInReader(_FakeCarouselRepository(['A', 'B', 'C']));
+    useCase = NavigateCarouselInReader(
+      _FakeCarouselRepository(['A', 'B', 'C']),
+    );
 
     final position = await useCase.getPosition(currentPdfId: 'B');
 
@@ -91,8 +108,9 @@ void main() {
   });
 
   test('getPosition sem wrap no primeiro item', () async {
-    useCase =
-        NavigateCarouselInReader(_FakeCarouselRepository(['A', 'B', 'C']));
+    useCase = NavigateCarouselInReader(
+      _FakeCarouselRepository(['A', 'B', 'C']),
+    );
 
     final position = await useCase.getPosition(currentPdfId: 'A');
 
@@ -103,8 +121,9 @@ void main() {
   });
 
   test('getPosition sem wrap no último item', () async {
-    useCase =
-        NavigateCarouselInReader(_FakeCarouselRepository(['A', 'B', 'C']));
+    useCase = NavigateCarouselInReader(
+      _FakeCarouselRepository(['A', 'B', 'C']),
+    );
 
     final position = await useCase.getPosition(currentPdfId: 'C');
 
@@ -128,8 +147,9 @@ void main() {
   });
 
   test('resolveTarget retorna pdfId anterior e próximo', () async {
-    useCase =
-        NavigateCarouselInReader(_FakeCarouselRepository(['A', 'B', 'C']));
+    useCase = NavigateCarouselInReader(
+      _FakeCarouselRepository(['A', 'B', 'C']),
+    );
 
     expect(
       await useCase.resolveTarget(

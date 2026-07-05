@@ -404,6 +404,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerCarouselNext => 'Próximo louvor';
 
   @override
+  String get readerSwitchMaterial => 'Trocar material';
+
+  @override
   String readerCarouselPosition(int current, int total) {
     return '$current de $total';
   }

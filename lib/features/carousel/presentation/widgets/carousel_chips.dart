@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -17,6 +18,11 @@ import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlists_ui_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,7 +42,7 @@ import 'package:go_router/go_router.dart';
 /// [ReaderCarouselActionsNotifier.navigateToPdfId] + `context.replace`.
 /// [carouselFocusedIndexProvider.focusPdfId] só após navegação bem-sucedida.
 /// `_openingReader` cobre apenas resolve + disparo do `push` (não aguarda `pop`).
-/// Botão lista permanece habilitado durante `_carouselNavLoading`.
+/// Botão olho/lista permanecem habilitados durante `_carouselNavLoading`.
 ///
 /// Composição: [CarouselBarShell] → [CarouselNavigatorBar] +
 /// [CarouselBarTrailingActions] (salvar playlist UC-06, folheto UC-08, limpar).
@@ -72,8 +78,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _onReaderRouteChanged());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _onReaderRouteChanged(),
+    );
   }
 
   @override
@@ -131,10 +138,11 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     if (pdfId != null && pdfId.isNotEmpty) return pdfId;
 
     if (!_isReaderRoute || items.isEmpty) return null;
-    final focusedIndex = (readOnly
-            ? ref.read(carouselFocusedIndexProvider)
-            : ref.watch(carouselFocusedIndexProvider))
-        .clamp(0, items.length - 1);
+    final focusedIndex =
+        (readOnly
+                ? ref.read(carouselFocusedIndexProvider)
+                : ref.watch(carouselFocusedIndexProvider))
+            .clamp(0, items.length - 1);
     return items[focusedIndex].pdfId;
   }
 
@@ -212,9 +220,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     return showCarouselSelectionSheet(
       context,
       onItemRemoved: _handleCarouselItemRemoved,
-      onItemTap: (selected) => _replaceReaderWithCarouselItem(
-        selectedPdfId: selected.pdfId,
-      ),
+      onItemTap: (selected) =>
+          _replaceReaderWithCarouselItem(selectedPdfId: selected.pdfId),
     );
   }
 
@@ -300,6 +307,36 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     }
   }
 
+  Future<void> _goToActivePlaylistInLists() async {
+    final repository = ref.read(playlistRepositoryProvider);
+    final activeId = ref.read(activePlaylistIdProvider);
+    var playlist = activeId == null ? null : await repository.getById(activeId);
+
+    if (playlist == null) {
+      final resolved = await ref
+          .read(playlistsProvider.notifier)
+          .resolveActivePlaylistFromCarousel();
+      if (resolved != null) {
+        playlist = await repository.getById(resolved.playlistId);
+      }
+    }
+
+    if (!mounted) return;
+
+    if (playlist != null) {
+      ref
+          .read(playlistsUiProvider.notifier)
+          .focusPlaylist(
+            PlaylistTabForPlaylist.forPlaylist(playlist),
+            playlist.playlistId,
+          );
+    } else {
+      ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.unsaved);
+    }
+
+    goToShellDestination(context, RoutePaths.playlists);
+  }
+
   Widget _buildNavigatorBar({
     required CarouselItem item,
     required bool canGoPrevious,
@@ -308,7 +345,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     VoidCallback? onPrevious,
     VoidCallback? onNext,
     VoidCallback? onChipTap,
-    required VoidCallback onOpenList,
+    required VoidCallback onOpenSelection,
+    required VoidCallback onGoToPlaylists,
   }) {
     return CarouselBarShell(
       applySafeArea: false,
@@ -321,7 +359,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         onPrevious: onPrevious,
         onNext: onNext,
         onChipTap: onChipTap,
-        onOpenList: onOpenList,
+        onOpenSelection: onOpenSelection,
+        onGoToPlaylists: onGoToPlaylists,
         trailingActions: const [CarouselBarTrailingActions()],
       ),
     );
@@ -333,9 +372,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final safeSourceIndex = focusedIndex.clamp(0, sourceItems.length - 1);
     final focusedPdfId = sourceItems[safeSourceIndex].pdfId;
     final displayIndex = items.indexWhere((item) => item.pdfId == focusedPdfId);
-    final focusedItem = items[displayIndex >= 0
-        ? displayIndex
-        : safeSourceIndex.clamp(0, items.length - 1)];
+    final focusedItem =
+        items[displayIndex >= 0
+            ? displayIndex
+            : safeSourceIndex.clamp(0, items.length - 1)];
     final onReaderWithoutPdfId = _isReaderRoute;
 
     return _buildNavigatorBar(
@@ -345,31 +385,30 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       loading: _openingReader || _carouselNavLoading,
       onPrevious: onReaderWithoutPdfId
           ? (safeSourceIndex > 0
-              ? () => _replaceReaderWithCarouselItem(
+                ? () => _replaceReaderWithCarouselItem(
                     selectedPdfId: sourceItems[safeSourceIndex - 1].pdfId,
                   )
-              : null)
+                : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goPrevious(),
       onNext: onReaderWithoutPdfId
           ? (safeSourceIndex < sourceItems.length - 1
-              ? () => _replaceReaderWithCarouselItem(
+                ? () => _replaceReaderWithCarouselItem(
                     selectedPdfId: sourceItems[safeSourceIndex + 1].pdfId,
                   )
-              : null)
+                : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
       onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
-      onOpenList: () => showCarouselSelectionSheet(
+      onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
           if (onReaderWithoutPdfId) {
-            await _replaceReaderWithCarouselItem(
-              selectedPdfId: item.pdfId,
-            );
+            await _replaceReaderWithCarouselItem(selectedPdfId: item.pdfId);
           } else {
             await _openInReader(item);
           }
         },
       ),
+      onGoToPlaylists: _goToActivePlaylistInLists,
     );
   }
 
@@ -384,7 +423,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoPrevious: false,
         canGoNext: false,
         loading: loading,
-        onOpenList: _openReaderSelectionSheet,
+        onOpenSelection: _openReaderSelectionSheet,
+        onGoToPlaylists: _goToActivePlaylistInLists,
       );
     }
 
@@ -395,17 +435,18 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       loading: loading,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
-                direction: CarouselReaderDirection.previous,
-                position: position,
-              )
+              direction: CarouselReaderDirection.previous,
+              position: position,
+            )
           : null,
       onNext: position.canGoNext
           ? () => _navigateCarouselInReader(
-                direction: CarouselReaderDirection.next,
-                position: position,
-              )
+              direction: CarouselReaderDirection.next,
+              position: position,
+            )
           : null,
-      onOpenList: _openReaderSelectionSheet,
+      onOpenSelection: _openReaderSelectionSheet,
+      onGoToPlaylists: _goToActivePlaylistInLists,
     );
   }
 

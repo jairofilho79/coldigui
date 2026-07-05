@@ -22,6 +22,7 @@ import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
+import '../providers/playlists_ui_provider.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'playlist_share_sheet.dart';
@@ -46,11 +47,7 @@ import 'save_playlist_dialog.dart';
 /// Metadados dos chips enriquecidos via [louvoresManifestProvider] quando
 /// disponível; fallback parse do label `"numero — nome"` em [PlaylistViewItem.pdfLabels].
 class PlaylistListTile extends ConsumerStatefulWidget {
-  const PlaylistListTile({
-    required this.item,
-    required this.tab,
-    super.key,
-  });
+  const PlaylistListTile({required this.item, required this.tab, super.key});
 
   /// Playlist enriquecida com labels do manifest para exibição e chips.
   final PlaylistViewItem item;
@@ -67,7 +64,28 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
   var _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncExpandFromUi());
+  }
+
+  void _syncExpandFromUi() {
+    if (!mounted) return;
+    final expandId = ref.read(playlistsUiProvider).expandPlaylistId;
+    if (expandId == widget.item.playlist.playlistId && !_expanded) {
+      setState(() => _expanded = true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.listen(playlistsUiProvider, (_, next) {
+      if (next.expandPlaylistId == widget.item.playlist.playlistId &&
+          !_expanded) {
+        setState(() => _expanded = true);
+      }
+    });
+
     final l10n = AppLocalizations.of(context)!;
     final playlist = widget.item.playlist;
     final count = playlist.pdfIds.length;
@@ -191,8 +209,9 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       final loaded = await _loadPlaylist(l10n);
       if (!loaded || !mounted) return;
 
-      final louvor =
-          ref.read(playlistsProvider.notifier).findLouvorByPdfId(pdfId);
+      final louvor = ref
+          .read(playlistsProvider.notifier)
+          .findLouvorByPdfId(pdfId);
       if (louvor == null) {
         if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
         return;
@@ -213,7 +232,9 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       );
       if (!mounted) return;
 
-      final location = ref.read(openPdfInReaderProvider).call(
+      final location = ref
+          .read(openPdfInReaderProvider)
+          .call(
             pdfPath: source.absolutePath,
             pdfId: louvor.pdfId,
             titulo: louvor.nome,
@@ -249,10 +270,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       'pdfIds (${playlist.pdfIds.length})',
     );
     if (playlist.pdfIds.isEmpty) {
-      playlistOpenDebugLogFailure(
-        '_loadPlaylist',
-        'playlist sem pdfIds',
-      );
+      playlistOpenDebugLogFailure('_loadPlaylist', 'playlist sem pdfIds');
       _showError(l10n.playlistEmptyPdfList);
       return false;
     }
@@ -314,17 +332,18 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
             'PlaylistListTile.share: id=${playlist.playlistId} '
             'option=$option pdfIds (${playlist.pdfIds.length})',
           );
-          final shared =
-              await ref.read(playlistShareActionsProvider.notifier).share(
-                    context,
-                    PlaylistShareContext(
-                      playlistId: playlist.playlistId,
-                      nome: playlist.nome,
-                      pdfIds: playlist.pdfIds,
-                    ),
-                    option,
-                    sharePositionOrigin: shareOrigin,
-                  );
+          final shared = await ref
+              .read(playlistShareActionsProvider.notifier)
+              .share(
+                context,
+                PlaylistShareContext(
+                  playlistId: playlist.playlistId,
+                  nome: playlist.nome,
+                  pdfIds: playlist.pdfIds,
+                ),
+                option,
+                sharePositionOrigin: shareOrigin,
+              );
           if (!shared && context.mounted) {
             showPlaylistShareErrorSnackbar(context, l10n);
           }
@@ -339,10 +358,9 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
           confirmLabel: l10n.playlistRenameConfirm,
         );
         if (nome == null || !context.mounted) return;
-        await ref.read(playlistsProvider.notifier).rename(
-              playlistId: playlist.playlistId,
-              nome: nome,
-            );
+        await ref
+            .read(playlistsProvider.notifier)
+            .rename(playlistId: playlist.playlistId, nome: nome);
       case 'delete':
         final confirmed = await showConfirmDialog(
           context: context,
@@ -559,7 +577,9 @@ class _PlaylistDetailChips extends ConsumerWidget {
                         if (confirmed != true || !context.mounted) return;
                       }
 
-                      await ref.read(playlistsProvider.notifier).removePdf(
+                      await ref
+                          .read(playlistsProvider.notifier)
+                          .removePdf(
                             playlistId: item.playlist.playlistId,
                             pdfId: item.playlist.pdfIds[i],
                           );

@@ -191,7 +191,7 @@ void main() {
     await tester.pumpWidget(buildSubject(items, notifier: notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
 
     final dialog = find.byType(AlertDialog);
@@ -248,6 +248,7 @@ void main() {
     expect(find.byIcon(Icons.clear_all), findsNothing);
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 
@@ -467,7 +468,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('Louvor B'));
@@ -526,7 +527,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor C'));
     await tester.pumpAndSettle();
@@ -534,7 +535,7 @@ void main() {
     expect(readerActions.navigatedPdfIds, ['c']);
     expect(router.state.uri.queryParameters['pdfId'], 'c');
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor A'));
     await tester.pumpAndSettle();
@@ -580,7 +581,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor B'));
     await tester.pumpAndSettle();
@@ -590,7 +591,7 @@ void main() {
     router.pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_list));
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor C'));
     await tester.pumpAndSettle();
@@ -659,6 +660,7 @@ void main() {
     expect(find.textContaining('#002'), findsOneWidget);
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 }

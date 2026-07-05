@@ -84,6 +84,32 @@ class CarouselLocalDatasource {
     });
   }
 
+  /// Troca [oldPdfId] por [newPdfId] na mesma posição; dedupe se [newPdfId] já existe.
+  ///
+  /// Retorna `false` se ids iguais ou [oldPdfId] ausente.
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
+    if (oldPdfId == newPdfId) return false;
+
+    final oldEntry = await findByPdfId(oldPdfId);
+    if (oldEntry == null) return false;
+
+    final newExisting = await findByPdfId(newPdfId);
+    if (newExisting != null) {
+      await remove(oldPdfId);
+      return true;
+    }
+
+    await _isar.write((isar) {
+      final coll = isar.carouselEntrys;
+      coll.delete(oldEntry.id);
+      final entry = CarouselEntry()
+        ..pdfId = newPdfId
+        ..sortOrder = oldEntry.sortOrder;
+      _putByPdfId(coll, entry);
+    });
+    return true;
+  }
+
   /// Substitui toda a seleção — usado por Fase 4.3 [LoadPlaylistIntoCarousel].
   Future<void> replaceAll(List<String> orderedPdfIds) async {
     await _isar.write((isar) {

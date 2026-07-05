@@ -398,6 +398,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerCarouselNext => 'Next hymn';
 
   @override
+  String get readerSwitchMaterial => 'Switch material';
+
+  @override
   String readerCarouselPosition(int current, int total) {
     return '$current of $total';
   }

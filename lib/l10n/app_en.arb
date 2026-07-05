@@ -232,6 +232,10 @@
   "carouselListClose": "Close",
   "readerCarouselPrevious": "Previous hymn",
   "readerCarouselNext": "Next hymn",
+  "readerSwitchMaterial": "Switch material",
+  "@readerSwitchMaterial": {
+    "description": "Tooltip for switching PDF material variant in the reader toolbar"
+  },
   "readerCarouselPosition": "{current} of {total}",
   "@readerCarouselPosition": {
     "placeholders": {

@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
-/// Barra compartilhada: chip único, setas condicionais, lista e ações extras.
+/// Barra compartilhada: chip único, setas condicionais, olho/lista e ações extras.
 ///
 /// Embutida em [CarouselBarShell] no shell ([CarouselChips]) e na barra 2 do
 /// leitor PDF ([PdfReaderScreen]).
 ///
-/// Ícones (setas, lista) usam [carouselBarIconButtonStyle] — vinho PLPCG
+/// Ícones (setas, olho, lista) usam [carouselBarIconButtonStyle] — vinho PLPCG
 /// ([AppColors.title]), inclusive no estado desabilitado durante [loading].
 ///
 /// [onChipTap] — no shell, abre o louvor focado em `/leitor`; omitido no
@@ -23,7 +23,8 @@ class CarouselNavigatorBar extends StatelessWidget {
     required this.item,
     required this.canGoPrevious,
     required this.canGoNext,
-    required this.onOpenList,
+    required this.onOpenSelection,
+    required this.onGoToPlaylists,
     this.chipVariant = CarouselLouvorChipVariant.modal,
     this.onPrevious,
     this.onNext,
@@ -42,9 +43,14 @@ class CarouselNavigatorBar extends StatelessWidget {
 
   /// Propagado para [CarouselLouvorChip.onTap] quando não [loading].
   final VoidCallback? onChipTap;
-  final VoidCallback onOpenList;
 
-  /// Desabilita setas/chip; o botão de lista permanece habilitado.
+  /// Abre modal com louvores da seleção atual.
+  final VoidCallback onOpenSelection;
+
+  /// Navega para a aba Listas com a playlist ativa em foco.
+  final VoidCallback onGoToPlaylists;
+
+  /// Desabilita setas/chip; olho e lista permanecem habilitados.
   final bool loading;
   final List<Widget> trailingActions;
 
@@ -78,7 +84,13 @@ class CarouselNavigatorBar extends StatelessWidget {
         IconButton(
           style: carouselBarIconButtonStyle,
           tooltip: l10n?.carouselOpenList ?? 'Ver seleção',
-          onPressed: onOpenList,
+          onPressed: onOpenSelection,
+          icon: const Icon(Icons.visibility_outlined),
+        ),
+        IconButton(
+          style: carouselBarIconButtonStyle,
+          tooltip: l10n?.playlistViewLists ?? 'Ver listas',
+          onPressed: onGoToPlaylists,
           icon: const Icon(Icons.view_list),
         ),
         ...trailingActions,

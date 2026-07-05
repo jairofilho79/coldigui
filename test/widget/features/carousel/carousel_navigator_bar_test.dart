@@ -15,11 +15,11 @@ const _testItem = CarouselItem(
 );
 
 void main() {
-  testWidgets('exibe chip, setas condicionais e botão de lista',
-      (tester) async {
+  testWidgets('exibe chip, setas condicionais, olho e lista', (tester) async {
     var previousTapped = false;
     var nextTapped = false;
-    var listTapped = false;
+    var selectionTapped = false;
+    var playlistsTapped = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -33,7 +33,8 @@ void main() {
             canGoNext: true,
             onPrevious: () => previousTapped = true,
             onNext: () => nextTapped = true,
-            onOpenList: () => listTapped = true,
+            onOpenSelection: () => selectionTapped = true,
+            onGoToPlaylists: () => playlistsTapped = true,
           ),
         ),
       ),
@@ -43,14 +44,17 @@ void main() {
     expect(find.byTooltip('Louvor anterior'), findsOneWidget);
     expect(find.byTooltip('Próximo louvor'), findsOneWidget);
     expect(find.byTooltip('Ver seleção'), findsOneWidget);
+    expect(find.byTooltip('Ver listas'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Louvor anterior'));
     await tester.tap(find.byTooltip('Próximo louvor'));
     await tester.tap(find.byTooltip('Ver seleção'));
+    await tester.tap(find.byTooltip('Ver listas'));
 
     expect(previousTapped, isTrue);
     expect(nextTapped, isTrue);
-    expect(listTapped, isTrue);
+    expect(selectionTapped, isTrue);
+    expect(playlistsTapped, isTrue);
   });
 
   testWidgets('oculta setas quando navegação indisponível', (tester) async {
@@ -71,7 +75,8 @@ void main() {
             ),
             canGoPrevious: false,
             canGoNext: false,
-            onOpenList: () {},
+            onOpenSelection: () {},
+            onGoToPlaylists: () {},
           ),
         ),
       ),
@@ -79,12 +84,15 @@ void main() {
 
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsNothing);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 
-  testWidgets('desabilita setas durante loading mas mantém lista',
-      (tester) async {
-    var listTapped = false;
+  testWidgets('desabilita setas durante loading mas mantém olho e lista', (
+    tester,
+  ) async {
+    var selectionTapped = false;
+    var playlistsTapped = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -99,7 +107,8 @@ void main() {
             loading: true,
             onPrevious: () {},
             onNext: () {},
-            onOpenList: () => listTapped = true,
+            onOpenSelection: () => selectionTapped = true,
+            onGoToPlaylists: () => playlistsTapped = true,
           ),
         ),
       ),
@@ -110,7 +119,9 @@ void main() {
     expect(arrowButtons.every((button) => button.onPressed == null), isTrue);
 
     await tester.tap(find.byTooltip('Ver seleção'));
-    expect(listTapped, isTrue);
+    await tester.tap(find.byTooltip('Ver listas'));
+    expect(selectionTapped, isTrue);
+    expect(playlistsTapped, isTrue);
   });
 
   testWidgets('topBar não estoura com textScaler elevado', (tester) async {
@@ -136,7 +147,8 @@ void main() {
                 chipVariant: CarouselLouvorChipVariant.topBar,
                 canGoPrevious: true,
                 canGoNext: true,
-                onOpenList: () {},
+                onOpenSelection: () {},
+                onGoToPlaylists: () {},
               ),
             ),
           ),

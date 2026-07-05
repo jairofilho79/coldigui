@@ -13,17 +13,19 @@ class CarouselRepositoryImpl implements CarouselRepository {
     required Map<String, CarouselItemMetadata> pdfIdToMetadata,
   }) async {
     final entries = await _local.findAllOrdered();
-    return entries.map((e) {
-      final meta = pdfIdToMetadata[e.pdfId];
-      return CarouselItem(
-        pdfId: e.pdfId,
-        sortOrder: e.sortOrder,
-        numero: meta?.numero ?? '',
-        nome: meta?.nome ?? _fallbackNome(e.pdfId),
-        categoria: meta?.categoria ?? '',
-        classificacao: meta?.classificacao ?? '',
-      );
-    }).toList(growable: false);
+    return entries
+        .map((e) {
+          final meta = pdfIdToMetadata[e.pdfId];
+          return CarouselItem(
+            pdfId: e.pdfId,
+            sortOrder: e.sortOrder,
+            numero: meta?.numero ?? '',
+            nome: meta?.nome ?? _fallbackNome(e.pdfId),
+            categoria: meta?.categoria ?? '',
+            classificacao: meta?.classificacao ?? '',
+          );
+        })
+        .toList(growable: false);
   }
 
   @override
@@ -37,6 +39,10 @@ class CarouselRepositoryImpl implements CarouselRepository {
 
   @override
   Future<void> remove(String pdfId) => _local.remove(pdfId);
+
+  @override
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) =>
+      _local.replacePdfId(oldPdfId, newPdfId);
 
   @override
   Future<void> reorder(List<String> orderedPdfIds) =>

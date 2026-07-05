@@ -14,12 +14,9 @@ void main() {
   late CarouselRepositoryImpl repository;
   late CarouselLocalDatasource datasource;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('carousel_repo_');
-    isar = Isar.open(schemas: [CarouselEntrySchema],
-      directory: tempDir.path,
-    );
+    isar = Isar.open(schemas: [CarouselEntrySchema], directory: tempDir.path);
     datasource = CarouselLocalDatasource(isar);
     repository = CarouselRepositoryImpl(datasource);
   });
@@ -66,10 +63,7 @@ void main() {
     await repository.add('pdf-a');
     await repository.add('pdf-b');
 
-    expect(
-      () => repository.reorder(['pdf-a']),
-      throwsArgumentError,
-    );
+    expect(() => repository.reorder(['pdf-a']), throwsArgumentError);
   });
 
   test('replaceAll substitui seleção', () async {
@@ -77,6 +71,38 @@ void main() {
     await repository.replaceAll(['pdf-x', 'pdf-y']);
 
     expect(await repository.getOrderedPdfIds(), ['pdf-x', 'pdf-y']);
+  });
+
+  test('replacePdfId troca na mesma posição', () async {
+    await repository.add('pdf-a');
+    await repository.add('pdf-b');
+    await repository.add('pdf-c');
+
+    final replaced = await repository.replacePdfId('pdf-b', 'pdf-z');
+
+    expect(replaced, isTrue);
+    expect(await repository.getOrderedPdfIds(), ['pdf-a', 'pdf-z', 'pdf-c']);
+    final entries = await datasource.findAllOrdered();
+    expect(entries[1].sortOrder, 1);
+  });
+
+  test('replacePdfId retorna false para mesmo id ou ausente', () async {
+    await repository.add('pdf-a');
+
+    expect(await repository.replacePdfId('pdf-a', 'pdf-a'), isFalse);
+    expect(await repository.replacePdfId('missing', 'pdf-b'), isFalse);
+    expect(await repository.getOrderedPdfIds(), ['pdf-a']);
+  });
+
+  test('replacePdfId dedupe quando new já existe', () async {
+    await repository.add('pdf-a');
+    await repository.add('pdf-b');
+    await repository.add('pdf-c');
+
+    final replaced = await repository.replacePdfId('pdf-a', 'pdf-c');
+
+    expect(replaced, isTrue);
+    expect(await repository.getOrderedPdfIds(), ['pdf-b', 'pdf-c']);
   });
 
   test('clear remove tudo', () async {

@@ -232,6 +232,10 @@
   "carouselListClose": "Fechar",
   "readerCarouselPrevious": "Louvor anterior",
   "readerCarouselNext": "Próximo louvor",
+  "readerSwitchMaterial": "Trocar material",
+  "@readerSwitchMaterial": {
+    "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
+  },
   "readerCarouselPosition": "{current} de {total}",
   "@readerCarouselPosition": {
     "placeholders": {

@@ -19,6 +19,9 @@ abstract class CarouselRepository {
   /// Remove por [pdfId] e compacta ordem — idempotente se ausente.
   Future<void> remove(String pdfId);
 
+  /// Troca [oldPdfId] por [newPdfId] na mesma posição; dedupe se [newPdfId] já existe.
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId);
+
   /// Reordena validando que o conjunto de IDs é idêntico ao atual.
   Future<void> reorder(List<String> orderedPdfIds);
 

@@ -33,8 +33,9 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
   Future<void> _reload() async {
     final generation = ++_reloadGeneration;
     final repository = ref.read(carouselRepositoryProvider);
-    final metadata =
-        _buildMetadataMap(ref.read(louvoresManifestProvider).value?.louvores);
+    final metadata = _buildMetadataMap(
+      ref.read(louvoresManifestProvider).value?.louvores,
+    );
     final items = await repository.getOrderedItems(pdfIdToMetadata: metadata);
     if (generation != _reloadGeneration) return;
     state = items;
@@ -100,6 +101,18 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
     await syncActivePlaylistFromCarousel(ref);
   }
 
+  /// Troca material na mesma posição do carousel (leitor PDF).
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
+    final replaced = await ref
+        .read(carouselRepositoryProvider)
+        .replacePdfId(oldPdfId, newPdfId);
+    if (replaced) {
+      await _reload();
+      await syncActivePlaylistFromCarousel(ref);
+    }
+    return replaced;
+  }
+
   /// Persiste nova ordem após drag-and-drop na UI.
   ///
   /// Atualiza [state] de forma otimista (sem `_reload`) e agrupa persistências
@@ -134,8 +147,8 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
 /// [carouselReorderPersistDebounce].
 final carouselLouvoresProvider =
     NotifierProvider<CarouselLouvoresNotifier, List<CarouselItem>>(
-  CarouselLouvoresNotifier.new,
-);
+      CarouselLouvoresNotifier.new,
+    );
 
 /// Conjunto de [CarouselItem.pdfId] no carousel — membership O(1).
 ///
