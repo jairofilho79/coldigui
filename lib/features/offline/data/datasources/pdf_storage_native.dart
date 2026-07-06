@@ -38,6 +38,9 @@ class PdfStorageNative implements PdfStoragePort {
       _store.listOrphans(indexedStorageKeys);
 
   @override
+  Future<void> purgeLegacyStorage() async {}
+
+  @override
   Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) async {
     if (!await _store.exists(storageKey)) return null;
     final file = File(storageKey);

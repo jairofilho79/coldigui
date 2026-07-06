@@ -22,7 +22,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'offline_test_helpers.dart';
 
 class _CountingMigrate extends MigrateOfflineStorage {
-  _CountingMigrate(super.prefs, super.local, super.offlineAvailableStore);
+  _CountingMigrate(
+    super.prefs,
+    super.local,
+    super.offlineAvailableStore,
+    super.store,
+  );
 
   int callCount = 0;
 
@@ -126,6 +131,12 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
@@ -176,6 +187,12 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),
@@ -207,6 +224,12 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(
+          getApplicationDocumentsDirectory: () async =>
+              Directory.systemTemp.createTempSync('reconcile_migrate_store_'),
+        ),
+      ),
     );
     reconcile = _CountingReconcile(
       _StubRepo(),

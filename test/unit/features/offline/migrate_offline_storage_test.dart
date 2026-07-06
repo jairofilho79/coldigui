@@ -11,12 +11,49 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/models/offline_manifest_dto.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
+
+class _TrackingPdfStoragePort implements PdfStoragePort {
+  int purgeLegacyCalls = 0;
+
+  @override
+  Future<String> get rootPath async => OfflineConfig.pdfStorageSubdir;
+
+  @override
+  Future<String> writeAtomic(Uint8List bytes, String relPath) async =>
+      '${OfflineConfig.pdfStorageSubdir}/$relPath';
+
+  @override
+  Future<bool> exists(String storageKey) async => false;
+
+  @override
+  Future<void> delete(String storageKey) async {}
+
+  @override
+  Future<void> deleteTree() async {}
+
+  @override
+  Future<int> getTotalOfflineBytes() async => 0;
+
+  @override
+  Future<List<String>> listOrphans(Set<String> indexedStorageKeys) async =>
+      const [];
+
+  @override
+  Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) async =>
+      null;
+
+  @override
+  Future<void> purgeLegacyStorage() async {
+    purgeLegacyCalls++;
+  }
+}
 
 void main() {
   setUp(() {
@@ -25,6 +62,7 @@ void main() {
 
   test('v0 migra para versão atual', () async {
     final prefs = await SharedPreferences.getInstance();
+    final store = _TrackingPdfStoragePort();
     final isar = openOfflineTestIsar(
       await Directory.systemTemp.createTemp('migrate_'),
     );
@@ -32,6 +70,7 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      store,
     );
 
     await useCase();
@@ -40,6 +79,7 @@ void main() {
       prefs.getInt(StorageKeys.offlineStorageVersion),
       OfflineConfig.offlineStorageVersion,
     );
+    expect(store.purgeLegacyCalls, 1);
     isar.close(deleteFromDisk: true);
   });
 
@@ -50,6 +90,7 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
 
+    final store = _TrackingPdfStoragePort();
     final isar = openOfflineTestIsar(
       await Directory.systemTemp.createTemp('migrate_'),
     );
@@ -57,6 +98,7 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      store,
     );
     await useCase();
 
@@ -64,6 +106,7 @@ void main() {
       prefs.getInt(StorageKeys.offlineStorageVersion),
       OfflineConfig.offlineStorageVersion,
     );
+    expect(store.purgeLegacyCalls, 0);
     isar.close(deleteFromDisk: true);
   });
 
@@ -133,6 +176,9 @@ void main() {
       prefs,
       OfflinePdfLocalDatasource(isar),
       OfflineAvailableStore(prefs),
+      pdfStoragePortFor(
+        PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
+      ),
     );
     await useCase();
 
@@ -141,6 +187,31 @@ void main() {
     );
     expect(entry?.isPersistent, isTrue);
 
+    isar.close(deleteFromDisk: true);
+  });
+
+  test('v3 chama purgeLegacyStorage ao migrar de v2', () async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.offlineStorageVersion, 2);
+
+    final store = _TrackingPdfStoragePort();
+    final isar = openOfflineTestIsar(
+      await Directory.systemTemp.createTemp('migrate_v3_'),
+    );
+    final useCase = MigrateOfflineStorage(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      OfflineAvailableStore(prefs),
+      store,
+    );
+
+    await useCase();
+
+    expect(
+      prefs.getInt(StorageKeys.offlineStorageVersion),
+      OfflineConfig.offlineStorageVersion,
+    );
+    expect(store.purgeLegacyCalls, 1);
     isar.close(deleteFromDisk: true);
   });
 }

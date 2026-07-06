@@ -4,7 +4,10 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../../deferred/leaflet_deferred.dart' deferred as leaflet;
+import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
+import '../../../leaflet/presentation/utils/leaflet_capture.dart';
+import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
+import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/exceptions/empty_carousel_exception.dart';
@@ -14,7 +17,7 @@ import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
 import '../widgets/playlist_share_whatsapp_step_dialog.dart';
 
-/// Callback injetável para testes — espelha [leaflet.captureLeafletPngBytes].
+/// Callback injetável para testes — espelha [captureLeafletPngBytes].
 typedef CaptureWidgetToPngFn =
     Future<List<int>> Function(GlobalKey boundaryKey);
 
@@ -234,31 +237,27 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    await leaflet.loadLibrary();
-    final metadata = leaflet.buildLouvorMetadataMap(
+    final metadata = buildLouvorMetadataMap(
       ref.read(louvoresManifestProvider).value?.louvores,
     );
-    final document = await leaflet.resolveLeafletDocument(
+    final document = await resolveLeafletDocument(
       ref,
       pdfIds: shareContext.pdfIds,
       fromCarousel: shareContext.fromCarousel,
       metadata: metadata,
     );
-    final labels = leaflet.LeafletContentLabels.fromL10n(
-      l10n,
-      document.generatedAt,
-    );
-    leaflet.leafletDebugLog(
+    final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
+    leafletDebugLog(
       'captureLeaflet: ${document.entries.length} entradas '
       '(fromCarousel=${shareContext.fromCarousel})',
     );
-    final pngBytes = await leaflet.captureLeafletPngBytes(
+    final pngBytes = await captureLeafletPngBytes(
       overlay,
       document,
       labels,
       capture: capture,
     );
-    return leaflet.leafletXFileFromBytes(pngBytes);
+    return leafletXFileFromBytes(pngBytes);
   }
 }
 

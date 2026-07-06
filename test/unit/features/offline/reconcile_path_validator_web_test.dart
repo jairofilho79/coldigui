@@ -44,6 +44,9 @@ class _MemoryPdfStoragePort implements PdfStoragePort {
     if (maxBytes == null || bytes.length <= maxBytes) return bytes;
     return Uint8List.fromList(bytes.sublist(0, maxBytes));
   }
+
+  @override
+  Future<void> purgeLegacyStorage() async {}
 }
 
 void main() {

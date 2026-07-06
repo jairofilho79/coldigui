@@ -24,3 +24,4 @@ flutter build web \
 
 echo "==> Artefato em build/web/"
 "$ROOT_DIR/scripts/verify_web_headers_artifact.sh"
+"$ROOT_DIR/scripts/cache_bust_web_entrypoints.sh"

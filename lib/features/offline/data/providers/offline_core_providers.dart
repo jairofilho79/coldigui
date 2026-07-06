@@ -150,5 +150,6 @@ final migrateOfflineStorageProvider = Provider<MigrateOfflineStorage>((ref) {
     ref.watch(sharedPreferencesProvider),
     ref.watch(offlinePdfLocalDatasourceProvider),
     ref.watch(offlineAvailableStoreProvider),
+    ref.watch(pdfStoragePortProvider),
   );
 });

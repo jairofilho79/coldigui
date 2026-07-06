@@ -3,7 +3,7 @@ import 'dart:typed_data';
 /// Porta de persistência de PDFs offline (Fase 4a).
 ///
 /// Nativo: paths absolutos no filesystem via [PdfLocalStore].
-/// Web: chaves lógicas — implementação OPFS (Fase 4b).
+/// Web: chaves lógicas — implementação Cache API (Solução C).
 abstract interface class PdfStoragePort {
   /// Path ou chave raiz do store (`plpcg_pdfs/`).
   Future<String> get rootPath;
@@ -30,4 +30,9 @@ abstract interface class PdfStoragePort {
   ///
   /// Com [maxBytes], lê só o prefixo (validação de magic bytes).
   Future<Uint8List?> readBytes(String storageKey, {int? maxBytes});
+
+  /// Remove storage legado após migração de layout (ex.: OPFS → Cache API na web).
+  ///
+  /// No-op no nativo.
+  Future<void> purgeLegacyStorage();
 }

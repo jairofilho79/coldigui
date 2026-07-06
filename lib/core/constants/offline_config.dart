@@ -50,6 +50,14 @@ abstract final class OfflineConfig {
   /// Subpasta transitória de ZIPs bulk sob `plpcg_pdfs/`.
   static const String zipTempSubdir = '_bulk_zips';
 
+  /// Nome do bucket Cache API para PDFs offline na web (Solução C).
+  ///
+  /// Distinto de [pdfCacheName] (legado Service Worker — não alterar).
+  static const String pdfCacheStoreName = 'plpcg-pdfs-store-v1';
+
+  /// Downloads simultâneos de PDF individual no bulk web (UC-09).
+  static const int bulkWebFetchConcurrency = 4;
+
   /// Quota padrão do cache on-demand de PDFs (LRU eviction — backlog #10).
   static const int defaultPdfCacheQuotaBytes = 500 * 1024 * 1024;
 
@@ -63,5 +71,5 @@ abstract final class OfflineConfig {
   static const Duration reconcileMinInterval = Duration(minutes: 30);
 
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
-  static const int offlineStorageVersion = 2;
+  static const int offlineStorageVersion = 3;
 }

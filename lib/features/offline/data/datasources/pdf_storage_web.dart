@@ -1,5 +1,4 @@
 import 'dart:js_interop';
-import 'dart:js_interop_unsafe';
 import 'dart:typed_data';
 
 import 'package:web/web.dart';
@@ -7,18 +6,16 @@ import 'package:web/web.dart';
 import '../../../../core/constants/offline_config.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 
-@JS('Reflect.get')
-external JSAny? _reflectGet(JSObject target, JSAny propertyKey);
-
 PdfStoragePort createPdfStoragePortImpl() => PdfStorageWeb();
 
-/// Persistência de PDFs offline via OPFS (Origin Private File System).
+/// Persistência de PDFs offline via Cache API (web — Solução C).
 ///
 /// Chaves lógicas: `plpcg_pdfs/<relPath>` — compatíveis com [OfflinePdfIndex.storagePath].
 class PdfStorageWeb implements PdfStoragePort {
-  FileSystemDirectoryHandle? _pdfRoot;
-
+  static const _offlineOrigin = 'https://plpcg-offline.local';
   static const _tmpSuffix = '.tmp';
+
+  Cache? _cache;
 
   @override
   Future<String> get rootPath async => OfflineConfig.pdfStorageSubdir;
@@ -28,10 +25,8 @@ class PdfStorageWeb implements PdfStoragePort {
     final storageKey = _storageKey(relPath);
     final tmpKey = '$storageKey$_tmpSuffix';
     try {
-      await _writeFileAtKey(tmpKey, bytes);
-      // Grava o destino antes de remover tmp — nunca apagar o arquivo final
-      // antes de confirmar a nova gravação (evita órfãos no índice Isar).
-      await _writeFileAtKey(storageKey, bytes);
+      await _putBytes(tmpKey, bytes);
+      await _putBytes(storageKey, bytes);
       await delete(tmpKey);
       return storageKey;
     } on Object {
@@ -43,8 +38,9 @@ class PdfStorageWeb implements PdfStoragePort {
   @override
   Future<bool> exists(String storageKey) async {
     try {
-      await _resolveFileHandle(storageKey);
-      return true;
+      final cache = await _openCache();
+      final response = await cache.match(_requestForKey(storageKey)).toDart;
+      return response != null;
     } on Object {
       return false;
     }
@@ -52,10 +48,14 @@ class PdfStorageWeb implements PdfStoragePort {
 
   @override
   Future<void> delete(String storageKey) async {
-    if (!await exists(storageKey)) return;
-    final (parentDir, fileName) = await _resolveParentAndFileName(storageKey);
+    final cache = await _openCache();
     try {
-      await parentDir.removeEntry(fileName).toDart;
+      await cache.delete(_requestForKey(storageKey)).toDart;
+    } on Object {
+      // Idempotente.
+    }
+    try {
+      await cache.delete(_requestForKey('$storageKey$_tmpSuffix')).toDart;
     } on Object {
       // Idempotente.
     }
@@ -63,8 +63,14 @@ class PdfStorageWeb implements PdfStoragePort {
 
   @override
   Future<void> deleteTree() async {
-    final opfsRoot = await _opfsRoot();
+    await window.caches.delete(OfflineConfig.pdfCacheStoreName).toDart;
+    _cache = null;
+  }
+
+  @override
+  Future<void> purgeLegacyStorage() async {
     try {
+      final opfsRoot = await window.navigator.storage.getDirectory().toDart;
       await opfsRoot
           .removeEntry(
             OfflineConfig.pdfStorageSubdir,
@@ -72,182 +78,86 @@ class PdfStorageWeb implements PdfStoragePort {
           )
           .toDart;
     } on Object {
-      // Diretório ausente — recria abaixo.
+      // OPFS legado ausente ou inacessível.
     }
-    _pdfRoot = null;
-    await _pdfRootDir();
   }
 
   @override
   Future<int> getTotalOfflineBytes() async {
-    final root = await _pdfRootDir();
+    final cache = await _openCache();
+    final keys = await _listStorageKeys(cache);
     var total = 0;
-    await _walkFiles(root, OfflineConfig.pdfStorageSubdir, (
-      storageKey,
-      handle,
-    ) async {
-      if (!storageKey.endsWith('.pdf') || storageKey.endsWith(_tmpSuffix)) {
-        return;
-      }
-      final fileHandle = handle as FileSystemFileHandle;
-      final file = await fileHandle.getFile().toDart;
-      total += file.size;
-    });
+    for (final key in keys) {
+      if (!key.endsWith('.pdf') || key.endsWith(_tmpSuffix)) continue;
+      final response = await cache.match(_requestForKey(key)).toDart;
+      if (response == null) continue;
+      final blob = await response.blob().toDart;
+      total += blob.size;
+    }
     return total;
   }
 
   @override
   Future<List<String>> listOrphans(Set<String> indexedStorageKeys) async {
-    final root = await _pdfRootDir();
-    final orphans = <String>[];
-    await _walkFiles(root, OfflineConfig.pdfStorageSubdir, (
-      storageKey,
-      handle,
-    ) async {
-      if (!storageKey.endsWith('.pdf') || storageKey.endsWith(_tmpSuffix)) {
-        return;
-      }
-      if (!indexedStorageKeys.contains(storageKey)) {
-        orphans.add(storageKey);
-      }
-    });
-    return orphans;
+    final cache = await _openCache();
+    final keys = await _listStorageKeys(cache);
+    return [
+      for (final key in keys)
+        if (key.endsWith('.pdf') &&
+            !key.endsWith(_tmpSuffix) &&
+            !indexedStorageKeys.contains(key))
+          key,
+    ];
   }
 
   @override
   Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) async {
     try {
-      final fileHandle = await _resolveFileHandle(storageKey);
-      final file = await fileHandle.getFile().toDart;
-      final blob = maxBytes == null ? file : file.slice(0, maxBytes);
-      final buffer = await blob.arrayBuffer().toDart;
+      final cache = await _openCache();
+      final response = await cache.match(_requestForKey(storageKey)).toDart;
+      if (response == null) return null;
+      final blob = await response.blob().toDart;
+      final sliced = maxBytes == null ? blob : blob.slice(0, maxBytes);
+      final buffer = await sliced.arrayBuffer().toDart;
       return buffer.toUint8List();
     } on Object {
       return null;
     }
   }
 
-  Future<FileSystemDirectoryHandle> _opfsRoot() =>
-      window.navigator.storage.getDirectory().toDart;
-
-  Future<FileSystemDirectoryHandle> _pdfRootDir() async {
-    if (_pdfRoot != null) return _pdfRoot!;
-    final opfsRoot = await _opfsRoot();
-    _pdfRoot = await opfsRoot
-        .getDirectoryHandle(
-          OfflineConfig.pdfStorageSubdir,
-          FileSystemGetDirectoryOptions(create: true),
-        )
-        .toDart;
-    return _pdfRoot!;
+  Future<Cache> _openCache() async {
+    _cache ??= await window.caches.open(OfflineConfig.pdfCacheStoreName).toDart;
+    return _cache!;
   }
 
-  Future<FileSystemFileHandle> _resolveFileHandle(String storageKey) async {
-    final (parentDir, fileName) = await _resolveParentAndFileName(storageKey);
-    return parentDir
-        .getFileHandle(fileName, FileSystemGetFileOptions(create: false))
-        .toDart;
+  Future<void> _putBytes(String storageKey, Uint8List bytes) async {
+    final cache = await _openCache();
+    final request = Request(_urlForKey(storageKey).toJS);
+    final response = Response(bytes.toJS);
+    await cache.put(request, response).toDart;
   }
 
-  Future<(FileSystemDirectoryHandle, String)> _resolveParentAndFileName(
-    String storageKey,
-  ) async {
-    final relPath = _relPathFromStorageKey(storageKey);
-    final segments = relPath.split('/');
-    final fileName = segments.removeLast();
-    var dir = await _pdfRootDir();
-    for (final segment in segments) {
-      dir = await dir
-          .getDirectoryHandle(
-            segment,
-            FileSystemGetDirectoryOptions(create: true),
-          )
-          .toDart;
-    }
-    return (dir, fileName);
-  }
-
-  Future<void> _writeFileAtKey(String storageKey, Uint8List bytes) async {
-    final (parentDir, fileName) = await _resolveParentAndFileName(storageKey);
-    final handle = await parentDir
-        .getFileHandle(fileName, FileSystemGetFileOptions(create: true))
-        .toDart;
-    await _writeHandle(handle, bytes);
-  }
-
-  Future<void> _writeHandle(
-    FileSystemFileHandle handle,
-    Uint8List bytes,
-  ) async {
-    final writable = await handle.createWritable().toDart;
-    try {
-      await writable.write(bytes.toJS).toDart;
-      await writable.close().toDart;
-    } on Object {
-      try {
-        await (writable as WritableStream).abort().toDart;
-      } on Object {
-        // Best-effort.
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> _walkFiles(
-    FileSystemDirectoryHandle dir,
-    String prefix,
-    Future<void> Function(String storageKey, FileSystemHandle handle) onFile,
-  ) async {
-    await for (final entry in _directoryEntries(dir)) {
-      final name = entry.$1;
-      final handle = entry.$2;
-      final childKey = prefix.isEmpty ? name : '$prefix/$name';
-      if (handle.kind == 'file') {
-        await onFile(childKey, handle);
-      } else if (handle.kind == 'directory') {
-        await _walkFiles(handle as FileSystemDirectoryHandle, childKey, onFile);
+  Future<List<String>> _listStorageKeys(Cache cache) async {
+    final requests = await cache.keys().toDart;
+    final keys = <String>[];
+    final prefix = '$_offlineOrigin/';
+    for (var i = 0; i < requests.length; i++) {
+      final url = requests[i].url;
+      if (url.startsWith(prefix)) {
+        keys.add(url.substring(prefix.length));
       }
     }
+    return keys;
   }
 
-  Stream<(String, FileSystemHandle)> _directoryEntries(
-    FileSystemDirectoryHandle dir,
-  ) async* {
-    final dirObj = dir as JSObject;
-    final entriesFn = _reflectGet(dirObj, 'entries'.toJS);
-    if (entriesFn == null) return;
-    final iterable =
-        (entriesFn as JSFunction).callAsFunction(dirObj) as JSObject;
-    final symbolCtor = globalContext['Symbol'] as JSObject;
-    final asyncIteratorSymbol = _reflectGet(symbolCtor, 'asyncIterator'.toJS)!;
-    final iteratorFn =
-        _reflectGet(iterable, asyncIteratorSymbol)! as JSFunction;
-    final iterator = iteratorFn.callAsFunction(iterable) as JSObject;
+  Request _requestForKey(String storageKey) =>
+      Request(_urlForKey(storageKey).toJS);
 
-    while (true) {
-      final result =
-          await (iterator.callMethod('next'.toJS) as JSPromise).toDart
-              as JSObject;
-      final done = (result['done'] as JSBoolean).toDart;
-      if (done) break;
-      final value = result['value'] as JSArray;
-      final name = (value[0] as JSString).toDart;
-      final handle = value[1] as FileSystemHandle;
-      yield (name, handle);
-    }
-  }
+  static String _urlForKey(String storageKey) => '$_offlineOrigin/$storageKey';
 
   static String _storageKey(String relPath) {
     final normalized = relPath.replaceAll(r'\', '/');
     return '${OfflineConfig.pdfStorageSubdir}/$normalized';
-  }
-
-  static String _relPathFromStorageKey(String storageKey) {
-    final prefix = '${OfflineConfig.pdfStorageSubdir}/';
-    if (!storageKey.startsWith(prefix)) {
-      throw ArgumentError.value(storageKey, 'storageKey', 'prefixo inválido');
-    }
-    return storageKey.substring(prefix.length);
   }
 }
 

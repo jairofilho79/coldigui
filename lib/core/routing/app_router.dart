@@ -5,12 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/url_sync_params.dart';
 import '../../core/widgets/deferred_route_loader.dart';
 import '../../core/widgets/storage_required_gate.dart';
-import '../../deferred/offline_bulk_deferred.dart' deferred as offline_bulk;
-import '../../deferred/pdf_reader_deferred.dart' deferred as pdf_reader;
 import '../../features/app_shell/presentation/pages/about_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
+import '../../features/offline/presentation/pages/offline_settings_screen.dart';
+import '../../features/pdf_reader/data/pdfrx_bootstrap.dart';
+import '../../features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import '../../features/playlists/presentation/pages/playlists_screen.dart';
 import 'route_paths.dart';
 
@@ -22,7 +23,8 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// Rotas em [RoutePaths]. `/leitor` é sub-rota da branch Home para reutilizar o
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
 ///
-/// `/leitor` e `/offline` carregam chunks deferred (Fase F — code splitting).
+/// `/leitor` adia só a init do pdfrx; offline/leitor no bundle principal (WebKit
+/// dart2js não registra `.part.js` via `<script>` — ver flutter_bootstrap webkit).
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -78,11 +80,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'leitor',
                     builder: (context, state) => DeferredRouteLoader(
                       loadingMessage: 'Carregando leitor…',
-                      load: () async {
-                        await pdf_reader.loadLibrary();
-                        await pdf_reader.ensurePdfrxInitialized();
-                      },
-                      builder: () => pdf_reader.PdfReaderScreen(
+                      load: ensurePdfrxInitialized,
+                      builder: () => PdfReaderScreen(
                         queryParams: state.uri.queryParameters,
                       ),
                     ),
@@ -95,13 +94,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.offline,
-                builder: (context, state) => DeferredRouteLoader(
-                  loadingMessage: 'Carregando offline…',
-                  load: offline_bulk.loadLibrary,
-                  builder: () => StorageRequiredGate(
-                    child: offline_bulk.OfflineSettingsScreen(),
-                  ),
-                ),
+                builder: (context, state) =>
+                    const StorageRequiredGate(child: OfflineSettingsScreen()),
               ),
             ],
           ),

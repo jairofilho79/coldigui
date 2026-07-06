@@ -27,9 +27,22 @@ def make_frontend_handler(web_dir: Path) -> type[http.server.SimpleHTTPRequestHa
             self.send_header("Cross-Origin-Opener-Policy", "same-origin")
             self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
             path = self.path.split("?", 1)[0]
-            if path.endswith("flutter_service_worker.js"):
+            entry_points = (
+                "index.html",
+                "main.dart.js",
+                "main.dart.mjs",
+                "main.dart.wasm",
+                "flutter_bootstrap.js",
+                "flutter.js",
+                "isar_plus.js",
+                "isar_plus.wasm",
+                "version.json",
+                "manifest.json",
+                "flutter_service_worker.js",
+            )
+            if path.rsplit("/", 1)[-1] in entry_points or path.endswith(".part.js"):
                 self.send_header("Cache-Control", "no-cache")
-            elif path.endswith((".wasm", ".js")):
+            elif path.startswith("/assets/") or path.startswith("/canvaskit/"):
                 self.send_header(
                     "Cache-Control", "public, max-age=31536000, immutable"
                 )
