@@ -75,6 +75,7 @@
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Select categories",
   "offlineDownloadSelected": "Download selected",
+  "offlineStopDownload": "Stop",
   "offlineCancelDownload": "Cancel",
   "offlineResumeBanner": "An offline download was interrupted.",
   "offlineResumeDownload": "Resume",
@@ -185,6 +186,7 @@
       "categories": { "type": "String" }
     }
   },
+  "offlineClearCacheConfirmBodyAll": "All offline PDFs will be removed. This action cannot be undone.",
   "offlineClearCacheConfirm": "Clear",
   "offlineClearCacheCancel": "Cancel",
   "offlineClearCacheSuccess": "Offline cache cleared",

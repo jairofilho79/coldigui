@@ -75,6 +75,7 @@
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Selecione as categorias",
   "offlineDownloadSelected": "Baixar selecionados",
+  "offlineStopDownload": "Parar",
   "offlineCancelDownload": "Cancelar",
   "offlineResumeBanner": "Há um download offline interrompido.",
   "offlineResumeDownload": "Retomar",
@@ -185,6 +186,7 @@
       "categories": { "type": "String" }
     }
   },
+  "offlineClearCacheConfirmBodyAll": "Todos os PDFs offline serão removidos. Esta ação não pode ser desfeita.",
   "offlineClearCacheConfirm": "Limpar",
   "offlineClearCacheCancel": "Cancelar",
   "offlineClearCacheSuccess": "Cache offline limpo",

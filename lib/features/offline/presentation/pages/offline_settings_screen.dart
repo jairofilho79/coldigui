@@ -13,7 +13,6 @@ import '../../domain/entities/offline_stats.dart';
 import '../providers/offline_bulk_download_provider.dart';
 import '../providers/offline_cache_status_provider.dart';
 import '../providers/offline_category_selection_provider.dart';
-import '../providers/offline_missing_download_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
@@ -54,13 +53,9 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
 
   bool get _maintenanceBusy {
     final bulk = ref.watch(offlineBulkDownloadProvider);
-    final missing = ref.watch(offlineMissingDownloadProvider);
     final reconcile = ref.watch(offlineReconcileProvider);
     final cacheStatus = ref.watch(offlineCacheStatusProvider);
-    return bulk.isRunning ||
-        missing.isRunning ||
-        reconcile.isRunning ||
-        cacheStatus.isRefreshing;
+    return bulk.isRunning || reconcile.isRunning || cacheStatus.isRefreshing;
   }
 
   Future<void> _refreshStats() async {
@@ -83,13 +78,20 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
   Future<void> _clearCache() async {
     final l10n = AppLocalizations.of(context)!;
     final materials = ref.read(offlineCategorySelectionProvider).selected;
+    final isFullSelection = CatalogMaterials.uiMaterials.every(
+      materials.contains,
+    );
     final categoriesLabel = _formatSelectedCategories(materials);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.offlineClearCacheConfirmTitle),
-        content: Text(l10n.offlineClearCacheConfirmBody(categoriesLabel)),
+        content: Text(
+          isFullSelection
+              ? l10n.offlineClearCacheConfirmBodyAll
+              : l10n.offlineClearCacheConfirmBody(categoriesLabel),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -118,7 +120,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
           .unregisterBulkCompleted(materials);
     }
     ref.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
-    await ref.read(offlineCacheStatusProvider.notifier).refresh();
+    await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +134,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     );
   }
 
-  void _startBulkDownload(List<String> categories) {
+  void _startDownload(List<String> categories) {
     ref.read(offlineBulkDownloadProvider.notifier).start(categories);
   }
 
@@ -149,11 +151,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     final l10n = AppLocalizations.of(context)!;
     final bulkState = ref.watch(offlineBulkDownloadProvider);
     final cacheStatus = ref.watch(offlineCacheStatusProvider);
-    final missingState = ref.watch(offlineMissingDownloadProvider);
     final selectionState = ref.watch(offlineCategorySelectionProvider);
-    final isMaintenanceMode = ref.watch(offlineModeProvider);
-    final showMaintenance = isMaintenanceMode;
-    final showBulkSetup = !isMaintenanceMode;
 
     ref.listen(offlineBulkDownloadProvider, (previous, next) {
       if (next.errorMessage != null &&
@@ -177,158 +175,60 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
       }
     });
 
-    ref.listen(offlineMissingDownloadProvider, (previous, next) {
-      if (next.status == OfflineMissingDownloadStatus.completed &&
-          previous?.status != OfflineMissingDownloadStatus.completed &&
-          next.lastResult != null) {
-        final result = next.lastResult!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n.offlineMissingCompleted(
-                result.downloadedCount,
-                result.failedCount,
-              ),
-            ),
-          ),
-        );
-      }
-      if (next.status == OfflineMissingDownloadStatus.failed &&
-          previous?.status != OfflineMissingDownloadStatus.failed) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.offlineMissingError)));
-      }
-    });
-
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          if (showMaintenance) ...[
-            GoldenTaggedContainer(
-              label: l10n.offlineStatsTitle,
-              child: _StatsSection(
-                cacheStatus: cacheStatus,
-                l10n: l10n,
-                missingState: missingState,
-                bulkState: bulkState,
-                selectionState: selectionState,
-                maintenanceBusy: _maintenanceBusy,
-                onDownloadMissing: () =>
-                    ref.read(offlineMissingDownloadProvider.notifier).start(),
-                onDownloadPackages: () =>
-                    _startBulkDownload(selectionState.packagesScope.toList()),
-                onToggleCategory: (material) => ref
-                    .read(offlineCategorySelectionProvider.notifier)
-                    .toggle(material),
-                onCategoryLongPress: selectionState.bulkDownloaded.isNotEmpty
-                    ? _showMissingLouvoresForCategory
-                    : null,
-                onClearCache: _clearCache,
-                onRefresh: _refreshStats,
-                onCancelBulk: () =>
-                    ref.read(offlineBulkDownloadProvider.notifier).cancel(),
-              ),
+          GoldenTaggedContainer(
+            label: l10n.offlineStatsTitle,
+            child: _OfflineContent(
+              cacheStatus: cacheStatus,
+              l10n: l10n,
+              bulkState: bulkState,
+              selectionState: selectionState,
+              maintenanceBusy: _maintenanceBusy,
+              onDownload: () =>
+                  _startDownload(selectionState.selected.toList()),
+              onToggleCategory: (material) => ref
+                  .read(offlineCategorySelectionProvider.notifier)
+                  .toggle(material),
+              onCategoryLongPress: _showMissingLouvoresForCategory,
+              onClearCache: _clearCache,
+              onRefresh: _refreshStats,
+              onStopDownload: () =>
+                  ref.read(offlineBulkDownloadProvider.notifier).cancel(),
+              onDismissCheckpoint: () => ref
+                  .read(offlineBulkDownloadProvider.notifier)
+                  .dismissCheckpoint(),
+              onResumeCheckpoint: () => ref
+                  .read(offlineBulkDownloadProvider.notifier)
+                  .resumeFromCheckpoint(),
             ),
-            if (cacheStatus.showRemovedWarning) ...[
-              const SizedBox(height: 12),
-              MaterialBanner(
-                backgroundColor: AppColors.card,
-                content: Text(
-                  l10n.offlineRemovedBanner(cacheStatus.removedCount),
-                  style: AppTypography.body,
+          ),
+          if (cacheStatus.showRemovedWarning) ...[
+            const SizedBox(height: 12),
+            MaterialBanner(
+              backgroundColor: AppColors.card,
+              content: Text(
+                l10n.offlineRemovedBanner(cacheStatus.removedCount),
+                style: AppTypography.body,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _maintenanceBusy
+                      ? null
+                      : () => ref
+                            .read(offlineCacheStatusProvider.notifier)
+                            .dismissRemovedWarning(),
+                  child: Text(l10n.offlineDismissRemoved),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: _maintenanceBusy
-                        ? null
-                        : () => ref
-                              .read(offlineCacheStatusProvider.notifier)
-                              .dismissRemovedWarning(),
-                    child: Text(l10n.offlineDismissRemoved),
-                  ),
-                  TextButton(
-                    onPressed: _maintenanceBusy
-                        ? null
-                        : () => ref
-                              .read(offlineMissingDownloadProvider.notifier)
-                              .start(),
-                    child: Text(l10n.offlineDownloadMissing),
-                  ),
-                ],
-              ),
-            ],
-          ],
-          if (showBulkSetup) ...[
-            GoldenTaggedContainer(
-              label: l10n.offlineSelectCategories,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (bulkState.hasCheckpoint && !bulkState.isRunning) ...[
-                    _CheckpointBanner(
-                      l10n: l10n,
-                      onDismiss: () => ref
-                          .read(offlineBulkDownloadProvider.notifier)
-                          .dismissCheckpoint(),
-                      onResume: () => ref
-                          .read(offlineBulkDownloadProvider.notifier)
-                          .resumeFromCheckpoint(),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final material in CatalogMaterials.uiMaterials)
-                        _CategoryFilterChip(
-                          label: material,
-                          selected: selectionState.selected.contains(material),
-                          enabled: !bulkState.isRunning,
-                          onSelected: (_) => ref
-                              .read(offlineCategorySelectionProvider.notifier)
-                              .toggle(material),
-                        ),
-                    ],
-                  ),
-                  if (bulkState.isRunning) ...[
-                    const SizedBox(height: 16),
-                    _KeepAppOpenBanner(l10n: l10n),
-                  ],
-                  if (bulkState.isRunning && bulkState.progress != null) ...[
-                    const SizedBox(height: 12),
-                    _ProgressSection(progress: bulkState.progress!),
-                  ],
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed:
-                              bulkState.isRunning ||
-                                  selectionState.selected.isEmpty
-                              ? null
-                              : () => _startBulkDownload(
-                                  selectionState.selected.toList(),
-                                ),
-                          child: Text(l10n.offlineDownloadSelected),
-                        ),
-                      ),
-                      if (bulkState.isRunning) ...[
-                        const SizedBox(width: 12),
-                        OutlinedButton(
-                          onPressed: () => ref
-                              .read(offlineBulkDownloadProvider.notifier)
-                              .cancel(),
-                          child: Text(l10n.offlineCancelDownload),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
+                TextButton(
+                  onPressed: _maintenanceBusy || selectionState.selected.isEmpty
+                      ? null
+                      : () => _startDownload(selectionState.selected.toList()),
+                  child: Text(l10n.offlineDownloadSelected),
+                ),
+              ],
             ),
           ],
         ],
@@ -347,71 +247,71 @@ bool _canClearCache(
   );
 }
 
+bool _canDownload(OfflineCategorySelectionState selection) {
+  return selection.selected.isNotEmpty;
+}
+
 String _formatSelectedCategories(Set<String> selected) {
   return CatalogMaterials.uiMaterials.where(selected.contains).join(', ');
 }
 
-int _scopedTotalMissing(OfflineStats stats, Set<String> bulkDownloaded) {
+int _scopedTotalMissing(OfflineStats stats, Set<String> selected) {
   if (!stats.missingCountReliable) return 0;
   var total = 0;
-  for (final material in bulkDownloaded) {
+  for (final material in selected) {
     total += stats.missingByCategory[material] ?? 0;
   }
   return total;
 }
 
-bool _canDownloadMissing(
-  OfflineCategorySelectionState selection,
-  OfflineStats stats,
-) {
-  if (selection.missingScope.isEmpty) return false;
-  if (!stats.missingCountReliable) return true;
-  return selection.missingScope.any(
-    (material) => (stats.missingByCategory[material] ?? 0) > 0,
-  );
+bool _categorySupportsLongPress(OfflineStats stats, String material) {
+  final downloaded = stats.byCategory[material] ?? 0;
+  if (downloaded > 0) return true;
+  if (!stats.missingCountReliable) return false;
+  return (stats.missingByCategory[material] ?? 0) > 0;
 }
 
-class _StatsSection extends StatelessWidget {
-  const _StatsSection({
+class _OfflineContent extends StatelessWidget {
+  const _OfflineContent({
     required this.cacheStatus,
     required this.l10n,
-    required this.missingState,
     required this.bulkState,
     required this.selectionState,
     required this.maintenanceBusy,
-    required this.onDownloadMissing,
-    required this.onDownloadPackages,
+    required this.onDownload,
     required this.onToggleCategory,
-    this.onCategoryLongPress,
+    required this.onCategoryLongPress,
     required this.onClearCache,
     required this.onRefresh,
-    required this.onCancelBulk,
+    required this.onStopDownload,
+    required this.onDismissCheckpoint,
+    required this.onResumeCheckpoint,
   });
 
   final OfflineCacheStatus cacheStatus;
   final AppLocalizations l10n;
-  final OfflineMissingDownloadState missingState;
   final OfflineBulkDownloadState bulkState;
   final OfflineCategorySelectionState selectionState;
   final bool maintenanceBusy;
-  final VoidCallback onDownloadMissing;
-  final VoidCallback onDownloadPackages;
+  final VoidCallback onDownload;
   final ValueChanged<String> onToggleCategory;
-  final ValueChanged<String>? onCategoryLongPress;
+  final ValueChanged<String> onCategoryLongPress;
   final VoidCallback onClearCache;
   final VoidCallback onRefresh;
-  final VoidCallback onCancelBulk;
+  final VoidCallback onStopDownload;
+  final VoidCallback onDismissCheckpoint;
+  final VoidCallback onResumeCheckpoint;
 
   String _categoryLabel(String material) {
     final downloaded = cacheStatus.stats.byCategory[material] ?? 0;
-    final hasPackages = selectionState.bulkDownloaded.contains(material);
 
-    if (!hasPackages) {
+    if (!cacheStatus.stats.missingCountReliable) {
+      if (downloaded > 0) {
+        return l10n.offlineStatsCategoryUnreliableMissing(material, downloaded);
+      }
       return l10n.offlineStatsCategory(material, downloaded);
     }
-    if (!cacheStatus.stats.missingCountReliable) {
-      return l10n.offlineStatsCategoryUnreliableMissing(material, downloaded);
-    }
+
     final missing = cacheStatus.stats.missingByCategory[material] ?? 0;
     if (missing > 0) {
       return l10n.offlineStatsCategoryWithMissing(
@@ -437,13 +337,9 @@ class _StatsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scopedMissing = _scopedTotalMissing(
       cacheStatus.stats,
-      selectionState.bulkDownloaded,
+      selectionState.selected,
     );
-    final canDownloadMissing = _canDownloadMissing(
-      selectionState,
-      cacheStatus.stats,
-    );
-    final canDownloadPackages = selectionState.packagesScope.isNotEmpty;
+    final canDownload = _canDownload(selectionState);
     final canClearCache = _canClearCache(selectionState, cacheStatus.stats);
 
     return Column(
@@ -460,7 +356,8 @@ class _StatsSection extends StatelessWidget {
                     l10n.offlineStatsTotal(cacheStatus.validCount),
                     style: AppTypography.headline.copyWith(fontSize: 18),
                   ),
-                  if (scopedMissing > 0) ...[
+                  if (selectionState.selected.isNotEmpty &&
+                      scopedMissing > 0) ...[
                     const SizedBox(height: 4),
                     Text(
                       l10n.offlineStatsTotalMissing(scopedMissing),
@@ -469,7 +366,8 @@ class _StatsSection extends StatelessWidget {
                       ),
                     ),
                   ] else if (!cacheStatus.stats.missingCountReliable &&
-                      selectionState.bulkDownloaded.isNotEmpty) ...[
+                      selectionState.selected.isNotEmpty &&
+                      cacheStatus.validCount > 0) ...[
                     const SizedBox(height: 4),
                     Text(
                       l10n.offlineStatsMissingUnreliable,
@@ -502,6 +400,14 @@ class _StatsSection extends StatelessWidget {
               ),
           ],
         ),
+        if (bulkState.hasCheckpoint && !bulkState.isRunning) ...[
+          const SizedBox(height: 14),
+          _CheckpointBanner(
+            l10n: l10n,
+            onDismiss: onDismissCheckpoint,
+            onResume: onResumeCheckpoint,
+          ),
+        ],
         const SizedBox(height: 14),
         Wrap(
           spacing: 8,
@@ -513,8 +419,9 @@ class _StatsSection extends StatelessWidget {
                 selected: selectionState.selected.contains(material),
                 enabled: !maintenanceBusy,
                 onSelected: (_) => onToggleCategory(material),
-                onLongPress: selectionState.bulkDownloaded.contains(material)
-                    ? () => onCategoryLongPress?.call(material)
+                onLongPress:
+                    _categorySupportsLongPress(cacheStatus.stats, material)
+                    ? () => onCategoryLongPress(material)
                     : null,
               ),
           ],
@@ -527,46 +434,27 @@ class _StatsSection extends StatelessWidget {
           const SizedBox(height: 12),
           _ProgressSection(progress: bulkState.progress!),
         ],
-        if (missingState.isRunning && missingState.total > 0) ...[
-          const SizedBox(height: 16),
-          LinearProgressIndicator(
-            value: missingState.done / missingState.total,
-            color: AppColors.gold,
-            backgroundColor: AppColors.title.withValues(alpha: 0.12),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.offlineMissingProgress(missingState.done, missingState.total),
-            style: AppTypography.body.copyWith(
-              color: AppColors.title.withValues(alpha: 0.75),
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: maintenanceBusy || !canDownloadMissing
-              ? null
-              : onDownloadMissing,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.title,
-            side: const BorderSide(color: AppColors.title, width: 1.5),
-          ),
-          child: Text(l10n.offlineDownloadMissing),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton(
+                onPressed:
+                    maintenanceBusy || !canDownload || bulkState.isRunning
+                    ? null
+                    : onDownload,
+                child: Text(l10n.offlineDownloadSelected),
+              ),
+            ),
+            if (bulkState.isRunning) ...[
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: onStopDownload,
+                child: Text(l10n.offlineStopDownload),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: maintenanceBusy || !canDownloadPackages
-              ? null
-              : onDownloadPackages,
-          child: Text(l10n.offlineDownloadSelected),
-        ),
-        if (bulkState.isRunning) ...[
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: onCancelBulk,
-            child: Text(l10n.offlineCancelDownload),
-          ),
-        ],
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.center,
@@ -717,9 +605,7 @@ class _ProgressSection extends StatelessWidget {
       OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
     };
 
-    final isFetching = progress.phase == OfflineDownloadPhase.fetching;
     final hasZipProgress =
-        isFetching &&
         progress.zipBytesReceived != null &&
         progress.zipBytesTotal != null &&
         progress.zipBytesTotal! > 0;
@@ -746,28 +632,21 @@ class _ProgressSection extends StatelessWidget {
             color: AppColors.title.withValues(alpha: 0.75),
           ),
         ),
-        if (isFetching) ...[
+        if (hasZipProgress) ...[
           const SizedBox(height: 12),
           LinearProgressIndicator(
-            value: hasZipProgress ? progress.zipFraction : null,
+            value: progress.zipFraction,
             color: AppColors.gold,
             backgroundColor: AppColors.title.withValues(alpha: 0.12),
           ),
           const SizedBox(height: 8),
           Text(
-            hasZipProgress
-                ? l10n.offlineFetchProgress(
-                    progress.currentPart,
-                    progress.totalParts,
-                    formatCompactBytes(progress.zipBytesReceived!),
-                    formatCompactBytes(progress.zipBytesTotal!),
-                  )
-                : l10n.offlineFetchProgress(
-                    progress.currentPart,
-                    progress.totalParts,
-                    '—',
-                    '—',
-                  ),
+            l10n.offlineFetchProgress(
+              progress.currentPart,
+              progress.totalParts,
+              formatCompactBytes(progress.zipBytesReceived!),
+              formatCompactBytes(progress.zipBytesTotal!),
+            ),
             style: AppTypography.body.copyWith(
               color: AppColors.title.withValues(alpha: 0.75),
             ),

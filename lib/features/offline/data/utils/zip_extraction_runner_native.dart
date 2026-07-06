@@ -10,6 +10,7 @@ import '../utils/zip_pdf_extractor.dart';
 Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,
   required ZipPackageDownloader zipDownloader,
+  required PdfStoragePort store,
   void Function(int extracted, int total)? onExtractProgress,
 }) async {
   if (onExtractProgress == null) {

@@ -69,6 +69,7 @@ class ExtractAndStorePdfs {
         skipPdfIds: skipPdfIds,
       ),
       zipDownloader: _zipDownloader,
+      store: _store,
       onExtractProgress: onExtractProgress,
     );
 

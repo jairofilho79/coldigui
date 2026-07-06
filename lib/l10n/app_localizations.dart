@@ -320,6 +320,12 @@ abstract class AppLocalizations {
   /// **'Baixar selecionados'**
   String get offlineDownloadSelected;
 
+  /// No description provided for @offlineStopDownload.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parar'**
+  String get offlineStopDownload;
+
   /// No description provided for @offlineCancelDownload.
   ///
   /// In pt, this message translates to:
@@ -557,6 +563,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.'**
   String offlineClearCacheConfirmBody(String categories);
+
+  /// No description provided for @offlineClearCacheConfirmBodyAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos os PDFs offline serão removidos. Esta ação não pode ser desfeita.'**
+  String get offlineClearCacheConfirmBodyAll;
 
   /// No description provided for @offlineClearCacheConfirm.
   ///

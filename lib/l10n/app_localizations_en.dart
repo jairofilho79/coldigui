@@ -129,6 +129,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineDownloadSelected => 'Download selected';
 
   @override
+  String get offlineStopDownload => 'Stop';
+
+  @override
   String get offlineCancelDownload => 'Cancel';
 
   @override
@@ -305,6 +308,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String offlineClearCacheConfirmBody(String categories) {
     return 'Downloaded PDFs for $categories will be removed. This action cannot be undone.';
   }
+
+  @override
+  String get offlineClearCacheConfirmBodyAll =>
+      'All offline PDFs will be removed. This action cannot be undone.';
 
   @override
   String get offlineClearCacheConfirm => 'Clear';

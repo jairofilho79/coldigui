@@ -56,7 +56,7 @@ abstract final class OfflineConfig {
   static const String pdfCacheStoreName = 'plpcg-pdfs-store-v1';
 
   /// Downloads simultâneos de PDF individual no bulk web (UC-09).
-  static const int bulkWebFetchConcurrency = 4;
+  static const int bulkWebFetchConcurrency = 8;
 
   /// Quota padrão do cache on-demand de PDFs (LRU eviction — backlog #10).
   static const int defaultPdfCacheQuotaBytes = 500 * 1024 * 1024;

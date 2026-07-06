@@ -11,6 +11,7 @@ import 'zip_pdf_extractor_types.dart';
 Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,
   required ZipPackageDownloader zipDownloader,
+  required PdfStoragePort store,
   void Function(int extracted, int total)? onExtractProgress,
 }) async {
   final skipSet = params.skipPdfIds.toSet();
@@ -38,14 +39,23 @@ Future<ZipExtractResult> runZipExtraction({
             )) {
           failedPdfIds.add(pdfId);
         } else {
-          items.add(
-            ExtractedPdfItem(
-              pdfId: pdfId,
-              absolutePath: '',
-              fileSize: bytes.length,
-              contentBytes: bytes,
-            ),
-          );
+          var relPath = PdfPathNormalizer.getPdfRelPath(pdfId);
+          if (relPath.startsWith('assets/')) {
+            relPath = relPath.substring('assets/'.length);
+          }
+
+          try {
+            final storageKey = await store.writeAtomic(bytes, relPath);
+            items.add(
+              ExtractedPdfItem(
+                pdfId: pdfId,
+                absolutePath: storageKey,
+                fileSize: bytes.length,
+              ),
+            );
+          } on Object {
+            failedPdfIds.add(pdfId);
+          }
         }
       } on Object {
         failedPdfIds.add(pdfId);
@@ -74,35 +84,4 @@ Future<ZipExtractResult> runZipExtraction({
 Future<PersistExtractedOutcome> persistExtractedItems(
   List<ExtractedPdfItem> items,
   PdfStoragePort store,
-) async {
-  final persisted = <ExtractedPdfItem>[];
-  final failedPdfIds = <String>[];
-
-  for (final item in items) {
-    final bytes = item.contentBytes;
-    if (bytes == null) {
-      failedPdfIds.add(item.pdfId);
-      continue;
-    }
-
-    var relPath = PdfPathNormalizer.getPdfRelPath(item.pdfId);
-    if (relPath.startsWith('assets/')) {
-      relPath = relPath.substring('assets/'.length);
-    }
-
-    try {
-      final storageKey = await store.writeAtomic(bytes, relPath);
-      persisted.add(
-        ExtractedPdfItem(
-          pdfId: item.pdfId,
-          absolutePath: storageKey,
-          fileSize: bytes.length,
-        ),
-      );
-    } on Object {
-      failedPdfIds.add(item.pdfId);
-    }
-  }
-
-  return PersistExtractedOutcome(items: persisted, failedPdfIds: failedPdfIds);
-}
+) async => PersistExtractedOutcome(items: items);

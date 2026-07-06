@@ -23,16 +23,8 @@ class PdfStorageWeb implements PdfStoragePort {
   @override
   Future<String> writeAtomic(Uint8List bytes, String relPath) async {
     final storageKey = _storageKey(relPath);
-    final tmpKey = '$storageKey$_tmpSuffix';
-    try {
-      await _putBytes(tmpKey, bytes);
-      await _putBytes(storageKey, bytes);
-      await delete(tmpKey);
-      return storageKey;
-    } on Object {
-      await delete(tmpKey);
-      rethrow;
-    }
+    await _putBytes(storageKey, bytes);
+    return storageKey;
   }
 
   @override
