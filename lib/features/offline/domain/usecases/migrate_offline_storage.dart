@@ -51,6 +51,7 @@ class MigrateOfflineStorage {
         if (offlineAvailableStore.isConfigured) {
           await local.markAllPersistent();
         }
+        break;
       case 3:
         await store.purgeLegacyStorage();
         if (kIsWeb) {

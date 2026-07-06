@@ -124,19 +124,20 @@ class PdfStorageWeb implements PdfStoragePort {
 
   Future<void> _putBytes(String storageKey, Uint8List bytes) async {
     final cache = await _openCache();
-    final request = Request(_urlForKey(storageKey).toJS);
-    final response = Response(bytes.toJS);
+    final request = _requestForKey(storageKey);
+    final blobParts = [bytes.toJS].toJS;
+    final blob = Blob(blobParts, BlobPropertyBag(type: 'application/pdf'));
+    final response = Response(blob, ResponseInit(status: 200));
     await cache.put(request, response).toDart;
   }
 
   Future<List<String>> _listStorageKeys(Cache cache) async {
     final requests = await cache.keys().toDart;
     final keys = <String>[];
-    final prefix = '$_offlineOrigin/';
     for (var i = 0; i < requests.length; i++) {
-      final url = requests[i].url;
-      if (url.startsWith(prefix)) {
-        keys.add(url.substring(prefix.length));
+      final key = _storageKeyFromUrl(requests[i].url);
+      if (key != null) {
+        keys.add(key);
       }
     }
     return keys;
@@ -145,7 +146,24 @@ class PdfStorageWeb implements PdfStoragePort {
   Request _requestForKey(String storageKey) =>
       Request(_urlForKey(storageKey).toJS);
 
-  static String _urlForKey(String storageKey) => '$_offlineOrigin/$storageKey';
+  /// URL canônica com encoding por segmento — paths PLPCG têm acentos e espaços.
+  static String _urlForKey(String storageKey) {
+    return Uri(
+      scheme: 'https',
+      host: Uri.parse(_offlineOrigin).host,
+      pathSegments: storageKey.split('/'),
+    ).toString();
+  }
+
+  /// Decodifica a chave lógica a partir da URL gravada no Cache Storage.
+  static String? _storageKeyFromUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host != Uri.parse(_offlineOrigin).host) {
+      return null;
+    }
+    if (uri.pathSegments.isEmpty) return null;
+    return uri.pathSegments.join('/');
+  }
 
   static String _storageKey(String relPath) {
     final normalized = relPath.replaceAll(r'\', '/');
