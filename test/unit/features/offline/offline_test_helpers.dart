@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:coldigui/core/constants/offline_config.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
@@ -21,13 +21,7 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-String encodePdfId(String relPath) {
-  return base64Url
-      .encode(utf8.encode(relPath))
-      .replaceAll('+', '-')
-      .replaceAll('/', '_')
-      .replaceAll('=', '');
-}
+export 'package:coldigui/core/utils/pdf_id_codec.dart';
 
 Isar openOfflineTestIsar(Directory dir) {
   return Isar.open(

@@ -1,3 +1,5 @@
+import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -40,16 +42,17 @@ Widget _wrapChip(
 
 void main() {
   testWidgets(
-      'exibe título com número e classificação amigável em largura ampla',
-      (tester) async {
-    await tester.pumpWidget(_wrapChip(360));
-    await tester.pumpAndSettle();
+    'exibe título com número e classificação amigável em largura ampla',
+    (tester) async {
+      await tester.pumpWidget(_wrapChip(360));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('#203'), findsOneWidget);
-    expect(find.textContaining('escarlata'), findsOneWidget);
-    expect(find.text('Coletânea CIAs'), findsOneWidget);
-    expect(find.text('Partitura'), findsOneWidget);
-  });
+      expect(find.textContaining('#203'), findsOneWidget);
+      expect(find.textContaining('escarlata'), findsOneWidget);
+      expect(find.text('Coletânea CIAs'), findsOneWidget);
+      expect(find.text('Partitura'), findsOneWidget);
+    },
+  );
 
   testWidgets('modo compacto oculta textos de metadados', (tester) async {
     await tester.pumpWidget(_wrapChip(160));
@@ -61,18 +64,21 @@ void main() {
     expect(find.byIcon(Icons.piano), findsOneWidget);
   });
 
-  testWidgets('modo médio exibe classificação e categoria com texto truncável',
-      (tester) async {
-    await tester.pumpWidget(_wrapChip(240));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'modo médio exibe classificação e categoria com texto truncável',
+    (tester) async {
+      await tester.pumpWidget(_wrapChip(240));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Coletânea CIAs'), findsOneWidget);
-    expect(find.text('Partitura'), findsOneWidget);
-    expect(find.byIcon(Icons.piano), findsOneWidget);
-  });
+      expect(find.text('Coletânea CIAs'), findsOneWidget);
+      expect(find.text('Partitura'), findsOneWidget);
+      expect(find.byIcon(Icons.piano), findsOneWidget);
+    },
+  );
 
-  testWidgets('topBar coloca número na linha inferior e título sem prefixo',
-      (tester) async {
+  testWidgets('topBar coloca número na linha inferior e título sem prefixo', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapChip(160, variant: CarouselLouvorChipVariant.topBar),
     );
@@ -85,9 +91,7 @@ void main() {
 
   testWidgets('onTap dispara ao tocar no corpo do chip', (tester) async {
     var tapped = false;
-    await tester.pumpWidget(
-      _wrapChip(320, onTap: () => tapped = true),
-    );
+    await tester.pumpWidget(_wrapChip(320, onTap: () => tapped = true));
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('escarlata'));
@@ -106,8 +110,9 @@ void main() {
     expect(find.byIcon(Icons.close), findsOneWidget);
   });
 
-  testWidgets('exibe menu compartilhar quando onShare está definido',
-      (tester) async {
+  testWidgets('exibe menu compartilhar quando onShare está definido', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -133,8 +138,9 @@ void main() {
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
-  testWidgets('exibe botão adicionar e indicador de já adicionado',
-      (tester) async {
+  testWidgets('exibe botão adicionar e indicador de já adicionado', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -144,15 +150,9 @@ void main() {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CarouselLouvorChip(
-                    item: _item,
-                    onAdd: () {},
-                  ),
+                  CarouselLouvorChip(item: _item, onAdd: () {}),
                   const SizedBox(height: 8),
-                  const CarouselLouvorChip(
-                    item: _item,
-                    isAdded: true,
-                  ),
+                  const CarouselLouvorChip(item: _item, isAdded: true),
                 ],
               ),
             ),
@@ -164,5 +164,40 @@ void main() {
 
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('chip coldigom usa fundo preto', (tester) async {
+    const coldigomItem = CarouselItem(
+      pdfId: 'coldigom-id',
+      sortOrder: 0,
+      numero: '031',
+      nome: 'Sal da terra',
+      categoria: 'Partitura',
+      classificacao: 'Country',
+      source: LouvorDataSource.coldigom,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 360,
+              child: CarouselLouvorChip(item: coldigomItem),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = tester.widget<Container>(
+      find.descendant(
+        of: find.byType(CarouselLouvorChip),
+        matching: find.byType(Container).first,
+      ),
+    );
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.color, AppColors.chipColdigom);
   });
 }

@@ -3,6 +3,9 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -594,14 +597,14 @@ class _PlaylistDetailChips extends ConsumerWidget {
   static Louvor? _findLouvorFromManifest(WidgetRef ref, String pdfId) {
     try {
       final catalog = ref.read(louvoresManifestProvider).asData?.value.louvores;
-      if (catalog == null) return null;
-      for (final louvor in catalog) {
-        if (louvor.pdfId == pdfId) return louvor;
-      }
+      return findLouvorByPdfIdWithColdigom(
+        catalog,
+        pdfId,
+        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
+      );
     } on Object {
       return null;
     }
-    return null;
   }
 
   static CarouselItem _carouselItemFor({
@@ -619,9 +622,11 @@ class _PlaylistDetailChips extends ConsumerWidget {
         nome: louvor.nome,
         categoria: louvor.categoria,
         classificacao: louvor.classificacao,
+        source: louvor.source,
       );
     }
 
+    final inferredSource = louvorDataSourceFromPdfId(pdfId);
     final dashIndex = label.indexOf(' — ');
     if (dashIndex > 0) {
       return CarouselItem(
@@ -631,6 +636,7 @@ class _PlaylistDetailChips extends ConsumerWidget {
         nome: label.substring(dashIndex + 3).trim(),
         categoria: '',
         classificacao: '',
+        source: inferredSource,
       );
     }
 
@@ -641,6 +647,7 @@ class _PlaylistDetailChips extends ConsumerWidget {
       nome: label,
       categoria: '',
       classificacao: '',
+      source: inferredSource,
     );
   }
 }

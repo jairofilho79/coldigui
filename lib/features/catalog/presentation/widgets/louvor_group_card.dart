@@ -44,6 +44,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       nome: widget.group.nome,
       categoria: louvor.categoria,
       classificacao: louvor.classificacao,
+      source: louvor.source,
     );
   }
 

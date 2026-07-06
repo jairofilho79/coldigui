@@ -1,3 +1,4 @@
+import '../../../../core/utils/pdf_id_codec.dart';
 import '../../domain/entities/carousel_item.dart';
 import '../../domain/repositories/carousel_repository.dart';
 import '../datasources/carousel_local_datasource.dart';
@@ -23,6 +24,7 @@ class CarouselRepositoryImpl implements CarouselRepository {
             nome: meta?.nome ?? _fallbackNome(e.pdfId),
             categoria: meta?.categoria ?? '',
             classificacao: meta?.classificacao ?? '',
+            source: meta?.source ?? louvorDataSourceFromPdfId(e.pdfId),
           );
         })
         .toList(growable: false);

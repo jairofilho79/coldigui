@@ -6,7 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/domain/entities/carousel_item.dart';
-import '../../../catalog/domain/entities/louvor.dart';
+import '../../../carousel/presentation/utils/build_carousel_metadata_map.dart';
+import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../playlists/domain/exceptions/empty_carousel_exception.dart';
 import '../../data/providers/leaflet_providers.dart';
@@ -44,8 +45,9 @@ class LeafletActionsNotifier extends Notifier<void> {
 
     try {
       leafletDebugLog('generateAndShare: início');
-      final metadata = buildLouvorMetadataMap(
-        ref.read(louvoresManifestProvider).value?.louvores,
+      final metadata = buildCarouselMetadataMap(
+        plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
+        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
       );
       final document = await ref.read(generateLeafletFromSelectionProvider)(
         pdfIdToMetadata: metadata,
@@ -109,22 +111,6 @@ Future<void> _defaultShareXFiles(
       sharePositionOrigin: sharePositionOrigin,
     ),
   );
-}
-
-/// Mapa pdfId → metadados a partir do manifest (folheto UC-08).
-Map<String, CarouselItemMetadata> buildLouvorMetadataMap(
-  List<Louvor>? catalog,
-) {
-  if (catalog == null) return const {};
-  return {
-    for (final louvor in catalog)
-      louvor.pdfId: CarouselItemMetadata(
-        numero: louvor.numero,
-        nome: louvor.nome,
-        categoria: louvor.categoria,
-        classificacao: louvor.classificacao,
-      ),
-  };
 }
 
 /// Resolve [LeafletDocument] para carousel ou playlist salva.

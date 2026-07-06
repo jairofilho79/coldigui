@@ -9,6 +9,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
@@ -176,9 +177,10 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _redownloadLoading = true);
     try {
-      final louvor = findLouvorByPdfId(
+      final louvor = findLouvorByPdfIdWithColdigom(
         ref.read(louvoresManifestProvider).value?.louvores,
         pdfId,
+        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
       );
       if (louvor == null) {
         if (mounted) {

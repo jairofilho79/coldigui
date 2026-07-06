@@ -63,6 +63,7 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
       nome: louvor.nome,
       categoria: louvor.categoria,
       classificacao: louvor.classificacao,
+      source: louvor.source,
     );
   }
 

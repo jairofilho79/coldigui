@@ -1,4 +1,5 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
+import 'louvor_data_source.dart';
 import '../utils/louvor_group_id.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
@@ -20,6 +21,7 @@ class Louvor {
     required this.searchTitleNorm,
     required this.searchContentTokens,
     required this.searchCompactContent,
+    this.source = LouvorDataSource.plpcg,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -52,12 +54,12 @@ class Louvor {
   /// Título compacto (sem separadores) para match de queries como "buscarmeeis".
   final String searchCompactContent;
 
+  /// Origem dos metadados — PLPCG ou coldigom.
+  final LouvorDataSource source;
+
   /// `groupId` efetivo (manifest ou calculado).
-  String get effectiveGroupId => LouvorGroupId.effective(
-        groupId: groupId,
-        numero: numero,
-        nome: nome,
-      );
+  String get effectiveGroupId =>
+      LouvorGroupId.effective(groupId: groupId, numero: numero, nome: nome);
 
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
   ///
@@ -70,6 +72,7 @@ class Louvor {
     required String pdf,
     required String pdfId,
     String groupId = '',
+    LouvorDataSource source = LouvorDataSource.plpcg,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -92,6 +95,7 @@ class Louvor {
       searchTitleNorm: searchTitleNorm,
       searchContentTokens: tokens.toList(),
       searchCompactContent: searchCompactContent,
+      source: source,
     );
   }
 }

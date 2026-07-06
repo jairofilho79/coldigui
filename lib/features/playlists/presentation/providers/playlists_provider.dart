@@ -9,7 +9,9 @@ import '../../../carousel/data/providers/carousel_providers.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../../catalog/domain/entities/louvor.dart';
+import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
@@ -354,6 +356,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   Louvor? findLouvorByPdfId(String pdfId) {
     final manifestAsync = ref.read(louvoresManifestProvider);
     final catalog = manifestAsync.value?.louvores;
+    final coldigomCache = ref.read(coldigomLouvoresCacheProvider);
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
       'manifest=${manifestAsync.isLoading
@@ -362,21 +365,24 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
           ? 'error'
           : catalog == null
           ? 'null'
-          : '${catalog.length} itens'}',
+          : '${catalog.length} itens'} '
+      'coldigomCache=${coldigomCache.length}',
     );
-    if (catalog == null) return null;
-    for (final louvor in catalog) {
-      if (louvor.pdfId == pdfId) {
-        playlistOpenDebugLog(
-          'findLouvorByPdfId: encontrado numero=${louvor.numero} '
-          'nome="${louvor.nome}"',
-        );
-        return louvor;
-      }
+    final louvor = findLouvorByPdfIdWithColdigom(
+      catalog,
+      pdfId,
+      coldigomCache: coldigomCache,
+    );
+    if (louvor != null) {
+      playlistOpenDebugLog(
+        'findLouvorByPdfId: encontrado numero=${louvor.numero} '
+        'nome="${louvor.nome}" source=${louvor.source.name}',
+      );
+      return louvor;
     }
     playlistOpenDebugLogFailure(
       'findLouvorByPdfId',
-      'pdfId=$pdfId ausente no manifest (${catalog.length} itens)',
+      'pdfId=$pdfId ausente no manifest e cache coldigom',
     );
     return null;
   }

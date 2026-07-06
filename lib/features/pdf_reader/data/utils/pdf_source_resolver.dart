@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/asset_base_url_resolver.dart';
 import '../../../../core/constants/app_config.dart';
 
 /// Tipo de origem resolvida para abertura via PDFx (UC-11 Fase 2.2).
@@ -14,10 +15,7 @@ enum PdfSourceKind {
 
 /// Origem PDF resolvida a partir do query param `file`.
 class ResolvedPdfSource {
-  const ResolvedPdfSource({
-    required this.kind,
-    required this.value,
-  });
+  const ResolvedPdfSource({required this.kind, required this.value});
 
   final PdfSourceKind kind;
 
@@ -51,18 +49,12 @@ class PdfSourceResolver {
       if (assetPath.isEmpty) {
         throw ArgumentError('asset path vazio');
       }
-      return ResolvedPdfSource(
-        kind: PdfSourceKind.asset,
-        value: assetPath,
-      );
+      return ResolvedPdfSource(kind: PdfSourceKind.asset, value: assetPath);
     }
 
     final lower = trimmed.toLowerCase();
     if (lower.startsWith('http://') || lower.startsWith('https://')) {
-      return ResolvedPdfSource(
-        kind: PdfSourceKind.remoteUrl,
-        value: trimmed,
-      );
+      return ResolvedPdfSource(kind: PdfSourceKind.remoteUrl, value: trimmed);
     }
 
     if (trimmed.startsWith('/') || trimmed.startsWith('assets/')) {
@@ -72,16 +64,10 @@ class PdfSourceResolver {
           value: _joinApiUrl(trimmed),
         );
       }
-      return ResolvedPdfSource(
-        kind: PdfSourceKind.localFile,
-        value: trimmed,
-      );
+      return ResolvedPdfSource(kind: PdfSourceKind.localFile, value: trimmed);
     }
 
-    return ResolvedPdfSource(
-      kind: PdfSourceKind.localFile,
-      value: trimmed,
-    );
+    return ResolvedPdfSource(kind: PdfSourceKind.localFile, value: trimmed);
   }
 
   bool _isAssetPath(String path) {
@@ -91,12 +77,6 @@ class PdfSourceResolver {
 
   String _joinApiUrl(String path) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
-    if (apiBaseUrl.isEmpty) {
-      return normalizedPath;
-    }
-    final base = apiBaseUrl.endsWith('/')
-        ? apiBaseUrl.substring(0, apiBaseUrl.length - 1)
-        : apiBaseUrl;
-    return '$base$normalizedPath';
+    return AssetBaseUrlResolver.joinAssetUrl(normalizedPath);
   }
 }

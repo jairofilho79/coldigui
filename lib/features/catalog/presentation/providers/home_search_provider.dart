@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/louvores_manifest.dart';
 import 'catalog_filters_provider.dart';
@@ -26,6 +28,9 @@ final homeSearchRawQueryProvider = StateProvider<String>((ref) => '');
 /// Query debounced 300ms — dispara filtragem UC-01.
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
+
+/// `true` enquanto a busca coldigom está em andamento (após resultados PLPCG).
+final homeSearchColdigomLoadingProvider = StateProvider<bool>((ref) => false);
 
 /// Cache dos grupos exibidos — atualizado pelo pipeline assíncrono.
 final homeSearchGroupResultsDataProvider = StateProvider<List<LouvorGroup>>(
@@ -114,27 +119,57 @@ class HomeSearchPipelineDriver extends Notifier<int> {
     final filters = ref.read(catalogFiltersProvider);
     final catalog = ref.read(louvoresManifestProvider).value?.louvores;
 
-    if (catalog == null || query.trim().isEmpty) {
+    if (query.trim().isEmpty) {
       _generation++;
       ref.read(homeSearchGroupResultsDataProvider.notifier).state = const [];
+      ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
       return;
     }
 
     final generation = ++_generation;
 
-    final input = HomeSearchPipelineInput(
-      catalog: List.of(catalog),
-      query: query,
-      selectedMaterials: filters.selectedMaterials,
-      selectedArranjos: filters.selectedArranjos,
-    );
+    List<LouvorGroup> groupsPlpcg = const [];
+    if (catalog != null) {
+      final input = HomeSearchPipelineInput(
+        catalog: List.of(catalog),
+        query: query,
+        selectedMaterials: filters.selectedMaterials,
+        selectedArranjos: filters.selectedArranjos,
+      );
 
-    final execute = ref.read(homeSearchPipelineExecutorProvider);
-    final groups = await execute(input);
+      final execute = ref.read(homeSearchPipelineExecutorProvider);
+      groupsPlpcg = await execute(input);
 
-    if (generation != _generation) return;
+      if (generation != _generation) return;
 
-    ref.read(homeSearchGroupResultsDataProvider.notifier).state = groups;
+      ref.read(homeSearchGroupResultsDataProvider.notifier).state = groupsPlpcg;
+    }
+
+    ref.read(homeSearchColdigomLoadingProvider.notifier).state = true;
+
+    try {
+      final coldigomResult = await ref
+          .read(coldigomSearchRepositoryProvider)
+          .search(query);
+
+      if (generation != _generation) return;
+
+      ref
+          .read(coldigomLouvoresCacheProvider.notifier)
+          .mergeLouvores(coldigomResult.louvores);
+
+      ref.read(homeSearchGroupResultsDataProvider.notifier).state = [
+        ...groupsPlpcg,
+        ...coldigomResult.groups,
+      ];
+    } on Object {
+      if (generation != _generation) return;
+      // Mantém resultados PLPCG já exibidos em caso de falha coldigom.
+    } finally {
+      if (generation == _generation) {
+        ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
+      }
+    }
   }
 }
 

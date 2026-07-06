@@ -1,3 +1,4 @@
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
@@ -124,10 +125,7 @@ class CarouselLouvorChip extends StatelessWidget {
       return const SizedBox(
         width: 24,
         height: 24,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: AppColors.gold,
-        ),
+        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
       );
     }
     if (onRemove != null) return _RemoveButton(onPressed: onRemove!);
@@ -138,17 +136,21 @@ class CarouselLouvorChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final classificationLabel =
-        LouvorClassification.displayLabel(item.classificacao);
+    final classificationLabel = LouvorClassification.displayLabel(
+      item.classificacao,
+    );
     final categoryIcon = LouvorMaterialIcons.forCategory(item.categoria);
     final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)
         : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+    final backgroundColor = item.source == LouvorDataSource.coldigom
+        ? AppColors.chipColdigom
+        : AppColors.title;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.title,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(chipRadius),
         border: Border.all(color: AppColors.gold, width: 2),
         boxShadow: AppColors.shadowMd,
@@ -279,10 +281,7 @@ class _MetadataRow extends StatelessWidget {
     if (summary != null) {
       return Row(
         children: [
-          if (numeroWidget != null) ...[
-            numeroWidget,
-            const SizedBox(width: 6),
-          ],
+          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
           Flexible(
             child: Text(
               summary!,
@@ -300,10 +299,7 @@ class _MetadataRow extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (numeroWidget != null) ...[
-            numeroWidget,
-            const SizedBox(width: 6),
-          ],
+          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
           if (classificationLabel.isNotEmpty)
             Tooltip(
               message: classificationLabel,
@@ -332,10 +328,7 @@ class _MetadataRow extends StatelessWidget {
     if (width < _mediumWidth) {
       return Row(
         children: [
-          if (numeroWidget != null) ...[
-            numeroWidget,
-            const SizedBox(width: 6),
-          ],
+          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
           if (classificationLabel.isNotEmpty) ...[
             Tooltip(
               message: classificationLabel,
@@ -386,10 +379,7 @@ class _MetadataRow extends StatelessWidget {
 
     return Row(
       children: [
-        if (numeroWidget != null) ...[
-          numeroWidget,
-          const SizedBox(width: 6),
-        ],
+        if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
         if (classificationLabel.isNotEmpty)
           Flexible(
             child: Text(
@@ -443,11 +433,7 @@ class _ChipBody extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: borderRadius,
-        child: child,
-      ),
+      child: InkWell(onTap: onTap, borderRadius: borderRadius, child: child),
     );
   }
 }
@@ -459,10 +445,7 @@ class _RemoveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _CircleActionButton(
-      icon: Icons.close,
-      onPressed: onPressed,
-    );
+    return _CircleActionButton(icon: Icons.close, onPressed: onPressed);
   }
 }
 
@@ -485,10 +468,7 @@ class CarouselLouvorAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _CircleActionButton(
-      icon: Icons.add,
-      onPressed: onPressed,
-    );
+    return _CircleActionButton(icon: Icons.add, onPressed: onPressed);
   }
 }
 
@@ -508,11 +488,7 @@ class _AddedIndicator extends StatelessWidget {
       child: const SizedBox(
         width: 24,
         height: 24,
-        child: Icon(
-          Icons.check,
-          size: 16,
-          color: AppColors.textLight,
-        ),
+        child: Icon(Icons.check, size: 16, color: AppColors.textLight),
       ),
     );
   }
@@ -572,10 +548,7 @@ class _ShareOverflowButton extends StatelessWidget {
 }
 
 class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({
-    required this.icon,
-    required this.onPressed,
-  });
+  const _CircleActionButton({required this.icon, required this.onPressed});
 
   final IconData icon;
   final VoidCallback onPressed;
@@ -600,11 +573,7 @@ class _CircleActionButton extends StatelessWidget {
           child: SizedBox(
             width: 24,
             height: 24,
-            child: Icon(
-              icon,
-              size: 16,
-              color: AppColors.title,
-            ),
+            child: Icon(icon, size: 16, color: AppColors.title),
           ),
         ),
       ),

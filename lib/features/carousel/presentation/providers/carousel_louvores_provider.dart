@@ -2,11 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../catalog/domain/entities/louvor.dart';
+import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../playlists/presentation/providers/active_playlist_sync.dart';
 import '../../data/providers/carousel_providers.dart';
 import '../../domain/entities/carousel_item.dart';
+import '../utils/build_carousel_metadata_map.dart';
 
 /// Debounce entre reordenações consecutivas antes de persistir no Isar.
 const carouselReorderPersistDebounce = Duration(milliseconds: 100);
@@ -25,6 +26,9 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
     ref.listen(louvoresManifestProvider, (_, _) {
       unawaited(_reload());
     });
+    ref.listen(coldigomLouvoresCacheProvider, (_, _) {
+      unawaited(_reload());
+    });
     ref.onDispose(() => _reorderPersistTimer?.cancel());
     Future.microtask(_reload);
     return const [];
@@ -33,8 +37,9 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
   Future<void> _reload() async {
     final generation = ++_reloadGeneration;
     final repository = ref.read(carouselRepositoryProvider);
-    final metadata = _buildMetadataMap(
-      ref.read(louvoresManifestProvider).value?.louvores,
+    final metadata = buildCarouselMetadataMap(
+      plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
+      coldigomCache: ref.read(coldigomLouvoresCacheProvider),
     );
     final items = await repository.getOrderedItems(pdfIdToMetadata: metadata);
     if (generation != _reloadGeneration) return;
@@ -55,6 +60,7 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
           nome: byId[orderedPdfIds[i]]!.nome,
           categoria: byId[orderedPdfIds[i]]!.categoria,
           classificacao: byId[orderedPdfIds[i]]!.classificacao,
+          source: byId[orderedPdfIds[i]]!.source,
         ),
     ];
   }
@@ -70,19 +76,6 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
 
   /// Recarrega estado após mutação externa (ex.: [LoadPlaylistIntoCarousel]).
   Future<void> reload() => _reload();
-
-  Map<String, CarouselItemMetadata> _buildMetadataMap(List<Louvor>? catalog) {
-    if (catalog == null) return const {};
-    return {
-      for (final louvor in catalog)
-        louvor.pdfId: CarouselItemMetadata(
-          numero: louvor.numero,
-          nome: louvor.nome,
-          categoria: louvor.categoria,
-          classificacao: louvor.classificacao,
-        ),
-    };
-  }
 
   /// Adiciona [pdfId] ao carousel. Retorna `false` se já existia.
   Future<bool> add(String pdfId) async {
