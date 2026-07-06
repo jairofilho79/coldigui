@@ -124,6 +124,7 @@ class _EnospcExtractAndStorePdfs extends ExtractAndStorePdfs {
     required List<String> expectedPdfIds,
     required String materialCategory,
     int startFromPdfIndex = 0,
+    CancelToken? cancelToken,
     void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,

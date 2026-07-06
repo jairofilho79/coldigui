@@ -87,7 +87,7 @@ class ZipPackageDownloader {
   Future<Uint8List> readZipBytes(String zipPath) => File(zipPath).readAsBytes();
 
   /// Não usado no nativo — bulk web baixa PDFs individualmente.
-  Future<Uint8List> fetchPdfBytes(String pdfId) {
+  Future<Uint8List> fetchPdfBytes(String pdfId, {CancelToken? cancelToken}) {
     throw UnsupportedError('fetchPdfBytes é exclusivo da web (Solução C)');
   }
 

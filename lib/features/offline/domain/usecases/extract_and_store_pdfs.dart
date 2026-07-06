@@ -1,4 +1,6 @@
 import '../../../../core/constants/offline_config.dart';
+import 'package:dio/dio.dart';
+
 import '../ports/pdf_storage_port.dart';
 import '../../data/datasources/zip_package_downloader.dart';
 import '../../data/utils/zip_extraction_runner.dart';
@@ -24,6 +26,7 @@ class ExtractAndStorePdfs {
     required List<String> expectedPdfIds,
     required String materialCategory,
     int startFromPdfIndex = 0,
+    CancelToken? cancelToken,
     void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
@@ -70,6 +73,7 @@ class ExtractAndStorePdfs {
       ),
       zipDownloader: _zipDownloader,
       store: _store,
+      cancelToken: cancelToken,
       onExtractProgress: onExtractProgress,
     );
 

@@ -47,6 +47,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     fetchCount++;
     return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
@@ -65,6 +66,7 @@ class _ConcurrentTrackingPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     fetchCount++;
     activeDownloads++;
@@ -83,6 +85,7 @@ class _FailingPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     fetchCount++;
     if (filePath.contains('fail.pdf')) {

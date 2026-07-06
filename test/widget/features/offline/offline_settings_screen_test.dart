@@ -65,8 +65,25 @@ class _RunningBulkPdfOnlyProgressNotifier extends OfflineBulkDownloadNotifier {
       currentCategory: 'Partitura',
       categoryIndex: 0,
       totalCategories: 1,
-      currentPart: 1,
-      totalParts: 3,
+      currentPart: 0,
+      totalParts: 0,
+      donePdfs: 12,
+      totalPdfs: 100,
+    ),
+  );
+}
+
+class _CancellingBulkNotifier extends OfflineBulkDownloadNotifier {
+  @override
+  OfflineBulkDownloadState build() => const OfflineBulkDownloadState(
+    status: OfflineBulkDownloadStatus.cancelling,
+    progress: OfflineDownloadProgress(
+      phase: OfflineDownloadPhase.fetching,
+      currentCategory: 'Partitura',
+      categoryIndex: 0,
+      totalCategories: 1,
+      currentPart: 0,
+      totalParts: 0,
       donePdfs: 12,
       totalPdfs: 100,
     ),
@@ -329,7 +346,23 @@ void main() {
 
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.textContaining('12/100 PDFs'), findsOneWidget);
+    expect(find.textContaining('parte'), findsNothing);
     expect(find.textContaining('Baixando pacote'), findsNothing);
     expect(find.text('Parar'), findsOneWidget);
+  });
+
+  testWidgets('shows stopping label while cancelling download', (tester) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {}),
+        ),
+        bulkDownloadNotifier: _CancellingBulkNotifier.new,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Parando...'), findsOneWidget);
+    expect(find.text('Parar'), findsNothing);
   });
 }

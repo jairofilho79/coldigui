@@ -55,7 +55,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     final bulk = ref.watch(offlineBulkDownloadProvider);
     final reconcile = ref.watch(offlineReconcileProvider);
     final cacheStatus = ref.watch(offlineCacheStatusProvider);
-    return bulk.isRunning || reconcile.isRunning || cacheStatus.isRefreshing;
+    return bulk.isActive || reconcile.isRunning || cacheStatus.isRefreshing;
   }
 
   Future<void> _refreshStats() async {
@@ -400,7 +400,7 @@ class _OfflineContent extends StatelessWidget {
               ),
           ],
         ),
-        if (bulkState.hasCheckpoint && !bulkState.isRunning) ...[
+        if (bulkState.hasCheckpoint && !bulkState.isActive) ...[
           const SizedBox(height: 14),
           _CheckpointBanner(
             l10n: l10n,
@@ -426,11 +426,11 @@ class _OfflineContent extends StatelessWidget {
               ),
           ],
         ),
-        if (bulkState.isRunning) ...[
+        if (bulkState.isActive) ...[
           const SizedBox(height: 16),
           _KeepAppOpenBanner(l10n: l10n),
         ],
-        if (bulkState.isRunning && bulkState.progress != null) ...[
+        if (bulkState.isActive && bulkState.progress != null) ...[
           const SizedBox(height: 12),
           _ProgressSection(progress: bulkState.progress!),
         ],
@@ -439,8 +439,7 @@ class _OfflineContent extends StatelessWidget {
           children: [
             Expanded(
               child: FilledButton(
-                onPressed:
-                    maintenanceBusy || !canDownload || bulkState.isRunning
+                onPressed: maintenanceBusy || !canDownload || bulkState.isActive
                     ? null
                     : onDownload,
                 child: Text(l10n.offlineDownloadSelected),
@@ -451,6 +450,12 @@ class _OfflineContent extends StatelessWidget {
               OutlinedButton(
                 onPressed: onStopDownload,
                 child: Text(l10n.offlineStopDownload),
+              ),
+            ] else if (bulkState.isCancelling) ...[
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: null,
+                child: Text(l10n.offlineStoppingDownload),
               ),
             ],
           ],
@@ -598,14 +603,21 @@ class _ProgressSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final phaseLabel = switch (progress.phase) {
-      OfflineDownloadPhase.fetching => l10n.offlinePhaseFetching,
-      OfflineDownloadPhase.extracting => l10n.offlinePhaseExtracting,
-      OfflineDownloadPhase.storing => l10n.offlinePhaseStoring,
-      OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
-    };
+    final isPdfOnlyProgress = progress.totalParts == 0;
+    final phaseLabel = isPdfOnlyProgress
+        ? switch (progress.phase) {
+            OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
+            _ => l10n.offlinePhaseFetching,
+          }
+        : switch (progress.phase) {
+            OfflineDownloadPhase.fetching => l10n.offlinePhaseFetching,
+            OfflineDownloadPhase.extracting => l10n.offlinePhaseExtracting,
+            OfflineDownloadPhase.storing => l10n.offlinePhaseStoring,
+            OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
+          };
 
     final hasZipProgress =
+        !isPdfOnlyProgress &&
         progress.zipBytesReceived != null &&
         progress.zipBytesTotal != null &&
         progress.zipBytesTotal! > 0;
@@ -620,14 +632,21 @@ class _ProgressSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          l10n.offlineProgressDetail(
-            progress.currentCategory,
-            progress.currentPart,
-            progress.totalParts,
-            progress.donePdfs,
-            progress.totalPdfs,
-            phaseLabel,
-          ),
+          isPdfOnlyProgress
+              ? l10n.offlineProgressDetailWeb(
+                  progress.currentCategory,
+                  progress.donePdfs,
+                  progress.totalPdfs,
+                  phaseLabel,
+                )
+              : l10n.offlineProgressDetail(
+                  progress.currentCategory,
+                  progress.currentPart,
+                  progress.totalParts,
+                  progress.donePdfs,
+                  progress.totalPdfs,
+                  phaseLabel,
+                ),
           style: AppTypography.body.copyWith(
             color: AppColors.title.withValues(alpha: 0.75),
           ),

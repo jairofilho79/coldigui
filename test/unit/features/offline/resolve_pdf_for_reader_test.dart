@@ -73,6 +73,7 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) {
     throw StateError('_FakeFetchAndStorePdf não deve chamar fetchBytes');
   }
@@ -158,6 +159,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async => _bytes;
 }
 
@@ -182,10 +184,10 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(schemas: [
-      LouvorCacheSchema,
-      OfflinePdfIndexSchema,
-    ], directory: tempDir.path);
+    isar = Isar.open(
+      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
+      directory: tempDir.path,
+    );
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,

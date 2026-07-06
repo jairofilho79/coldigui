@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../data/datasources/offline_bulk_checkpoint_store.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
@@ -107,68 +108,75 @@ class DownloadOfflinePackages {
             ? checkpoint.extractedPdfCount
             : 0;
 
-        onProgress?.call(
-          OfflineDownloadProgress(
-            phase: OfflineDownloadPhase.fetching,
-            currentCategory: materialCategory,
-            categoryIndex: catIdx,
-            totalCategories: categories.length,
-            currentPart: partIdx + 1,
-            totalParts: package.totalParts,
-            donePdfs: donePdfsGlobal,
-            totalPdfs: totalPdfsGlobal,
-          ),
-        );
+        if (!kIsWeb) {
+          onProgress?.call(
+            _buildProgress(
+              phase: OfflineDownloadPhase.fetching,
+              materialCategory: materialCategory,
+              catIdx: catIdx,
+              categoriesLength: categories.length,
+              partIdx: partIdx + 1,
+              totalParts: package.totalParts,
+              donePdfs: donePdfsGlobal,
+              totalPdfs: totalPdfsGlobal,
+            ),
+          );
+        }
 
         final zipPath = await _downloadZip(
           url: part.url,
           filename: part.filename,
           expectedSize: part.size,
           cancelToken: cancelToken,
-          onReceiveProgress: (received, total) {
-            onProgress?.call(
-              OfflineDownloadProgress(
-                phase: OfflineDownloadPhase.fetching,
-                currentCategory: materialCategory,
-                categoryIndex: catIdx,
-                totalCategories: categories.length,
-                currentPart: partIdx + 1,
-                totalParts: package.totalParts,
-                donePdfs: donePdfsGlobal,
-                totalPdfs: totalPdfsGlobal,
-                zipBytesReceived: received,
-                zipBytesTotal: total > 0 ? total : part.size,
-              ),
-            );
-          },
+          onReceiveProgress: kIsWeb
+              ? null
+              : (received, total) {
+                  onProgress?.call(
+                    _buildProgress(
+                      phase: OfflineDownloadPhase.fetching,
+                      materialCategory: materialCategory,
+                      catIdx: catIdx,
+                      categoriesLength: categories.length,
+                      partIdx: partIdx + 1,
+                      totalParts: package.totalParts,
+                      donePdfs: donePdfsGlobal,
+                      totalPdfs: totalPdfsGlobal,
+                      zipBytesReceived: received,
+                      zipBytesTotal: total > 0 ? total : part.size,
+                    ),
+                  );
+                },
         );
 
-        onProgress?.call(
-          OfflineDownloadProgress(
-            phase: OfflineDownloadPhase.extracting,
-            currentCategory: materialCategory,
-            categoryIndex: catIdx,
-            totalCategories: categories.length,
-            currentPart: partIdx + 1,
-            totalParts: package.totalParts,
-            donePdfs: donePdfsGlobal,
-            totalPdfs: totalPdfsGlobal,
-          ),
-        );
+        if (!kIsWeb) {
+          onProgress?.call(
+            _buildProgress(
+              phase: OfflineDownloadPhase.extracting,
+              materialCategory: materialCategory,
+              catIdx: catIdx,
+              categoriesLength: categories.length,
+              partIdx: partIdx + 1,
+              totalParts: package.totalParts,
+              donePdfs: donePdfsGlobal,
+              totalPdfs: totalPdfsGlobal,
+            ),
+          );
+        }
 
         final extractResult = await _extractPdfs(
           zipPath: zipPath,
           expectedPdfIds: part.pdfs,
           materialCategory: materialCategory,
           startFromPdfIndex: startPdfIdx,
+          cancelToken: cancelToken,
           onExtractProgress: (extracted, total) {
             onProgress?.call(
-              OfflineDownloadProgress(
+              _buildProgress(
                 phase: OfflineDownloadPhase.extracting,
-                currentCategory: materialCategory,
-                categoryIndex: catIdx,
-                totalCategories: categories.length,
-                currentPart: partIdx + 1,
+                materialCategory: materialCategory,
+                catIdx: catIdx,
+                categoriesLength: categories.length,
+                partIdx: partIdx + 1,
                 totalParts: package.totalParts,
                 donePdfs: donePdfsGlobal + startPdfIdx + extracted,
                 totalPdfs: totalPdfsGlobal,
@@ -177,12 +185,12 @@ class DownloadOfflinePackages {
           },
           onProgress: (done, total) {
             onProgress?.call(
-              OfflineDownloadProgress(
+              _buildProgress(
                 phase: OfflineDownloadPhase.storing,
-                currentCategory: materialCategory,
-                categoryIndex: catIdx,
-                totalCategories: categories.length,
-                currentPart: partIdx + 1,
+                materialCategory: materialCategory,
+                catIdx: catIdx,
+                categoriesLength: categories.length,
+                partIdx: partIdx + 1,
                 totalParts: package.totalParts,
                 donePdfs: donePdfsGlobal + done,
                 totalPdfs: totalPdfsGlobal,
@@ -265,12 +273,12 @@ class DownloadOfflinePackages {
       final lastPackage = manifest.packageFor(lastCategory);
 
       onProgress?.call(
-        OfflineDownloadProgress(
+        _buildProgress(
           phase: OfflineDownloadPhase.syncing,
-          currentCategory: lastCategory,
-          categoryIndex: checkpoint.categories.length - 1,
-          totalCategories: categories.length,
-          currentPart: lastPackage?.totalParts ?? 0,
+          materialCategory: lastCategory,
+          catIdx: checkpoint.categories.length - 1,
+          categoriesLength: categories.length,
+          partIdx: lastPackage?.totalParts ?? 0,
           totalParts: lastPackage?.totalParts ?? 0,
           donePdfs: donePdfsGlobal,
           totalPdfs: totalPdfsGlobal,
@@ -319,6 +327,7 @@ class DownloadOfflinePackages {
     required List<String> expectedPdfIds,
     required String materialCategory,
     required int startFromPdfIndex,
+    CancelToken? cancelToken,
     void Function(int extracted, int total)? onExtractProgress,
     void Function(int done, int total)? onProgress,
     Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
@@ -329,6 +338,7 @@ class DownloadOfflinePackages {
         expectedPdfIds: expectedPdfIds,
         materialCategory: materialCategory,
         startFromPdfIndex: startFromPdfIndex,
+        cancelToken: cancelToken,
         onExtractProgress: onExtractProgress,
         onProgress: onProgress,
         onProgressCheckpoint: onProgressCheckpoint,
@@ -389,5 +399,47 @@ class DownloadOfflinePackages {
     if (cancelToken?.isCancelled == true) {
       throw const OfflineBulkCancelledException();
     }
+  }
+
+  OfflineDownloadProgress _buildProgress({
+    required OfflineDownloadPhase phase,
+    required String materialCategory,
+    required int catIdx,
+    required int categoriesLength,
+    required int partIdx,
+    required int totalParts,
+    required int donePdfs,
+    required int totalPdfs,
+    int? zipBytesReceived,
+    int? zipBytesTotal,
+  }) {
+    if (kIsWeb) {
+      final webPhase = phase == OfflineDownloadPhase.syncing
+          ? OfflineDownloadPhase.syncing
+          : OfflineDownloadPhase.fetching;
+      return OfflineDownloadProgress(
+        phase: webPhase,
+        currentCategory: materialCategory,
+        categoryIndex: catIdx,
+        totalCategories: categoriesLength,
+        currentPart: 0,
+        totalParts: 0,
+        donePdfs: donePdfs,
+        totalPdfs: totalPdfs,
+      );
+    }
+
+    return OfflineDownloadProgress(
+      phase: phase,
+      currentCategory: materialCategory,
+      categoryIndex: catIdx,
+      totalCategories: categoriesLength,
+      currentPart: partIdx,
+      totalParts: totalParts,
+      donePdfs: donePdfs,
+      totalPdfs: totalPdfs,
+      zipBytesReceived: zipBytesReceived,
+      zipBytesTotal: zipBytesTotal,
+    );
   }
 }

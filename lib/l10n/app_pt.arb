@@ -76,6 +76,7 @@
   "offlineSelectCategories": "Selecione as categorias",
   "offlineDownloadSelected": "Baixar selecionados",
   "offlineStopDownload": "Parar",
+  "offlineStoppingDownload": "Parando...",
   "offlineCancelDownload": "Cancelar",
   "offlineResumeBanner": "Há um download offline interrompido.",
   "offlineResumeDownload": "Retomar",
@@ -96,6 +97,15 @@
       "category": { "type": "String" },
       "part": { "type": "int" },
       "totalParts": { "type": "int" },
+      "done": { "type": "int" },
+      "total": { "type": "int" },
+      "phase": { "type": "String" }
+    }
+  },
+  "offlineProgressDetailWeb": "{category} — {done}/{total} PDFs ({phase})",
+  "@offlineProgressDetailWeb": {
+    "placeholders": {
+      "category": { "type": "String" },
       "done": { "type": "int" },
       "total": { "type": "int" },
       "phase": { "type": "String" }

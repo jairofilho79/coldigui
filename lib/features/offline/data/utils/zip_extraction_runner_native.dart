@@ -1,5 +1,6 @@
 import 'dart:isolate';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../datasources/zip_package_downloader.dart';
@@ -11,6 +12,7 @@ Future<ZipExtractResult> runZipExtraction({
   required ZipExtractParams params,
   required ZipPackageDownloader zipDownloader,
   required PdfStoragePort store,
+  CancelToken? cancelToken,
   void Function(int extracted, int total)? onExtractProgress,
 }) async {
   if (onExtractProgress == null) {

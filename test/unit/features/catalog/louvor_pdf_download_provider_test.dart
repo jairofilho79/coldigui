@@ -56,6 +56,7 @@ class _UnusedPdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) {
     throw StateError('não deve chamar fetchBytes');
   }

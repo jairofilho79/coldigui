@@ -28,8 +28,11 @@ class ZipPackageDownloader {
   }
 
   /// Baixa bytes de um PDF individual a partir do [pdfId] do manifest.
-  Future<Uint8List> fetchPdfBytes(String pdfId) {
-    return _bytesDatasource.fetchBytes(_remotePathFromPdfId(pdfId));
+  Future<Uint8List> fetchPdfBytes(String pdfId, {CancelToken? cancelToken}) {
+    return _bytesDatasource.fetchBytes(
+      _remotePathFromPdfId(pdfId),
+      cancelToken: cancelToken,
+    );
   }
 
   /// Legado — não usado no fluxo web Solução C.

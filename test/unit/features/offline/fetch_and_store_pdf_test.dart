@@ -44,6 +44,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     callCount++;
     return onFetch(filePath, onReceiveProgress: onReceiveProgress);

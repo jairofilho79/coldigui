@@ -134,6 +134,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineStopDownload => 'Parar';
 
   @override
+  String get offlineStoppingDownload => 'Parando...';
+
+  @override
   String get offlineCancelDownload => 'Cancelar';
 
   @override
@@ -190,6 +193,16 @@ class AppLocalizationsPt extends AppLocalizations {
     String phase,
   ) {
     return '$category — parte $part/$totalParts — $done/$total PDFs ($phase)';
+  }
+
+  @override
+  String offlineProgressDetailWeb(
+    String category,
+    int done,
+    int total,
+    String phase,
+  ) {
+    return '$category — $done/$total PDFs ($phase)';
   }
 
   @override

@@ -52,6 +52,7 @@ final bulkDownloadWakelockProvider = Provider<BulkDownloadWakelock>(
 enum OfflineBulkDownloadStatus {
   idle,
   running,
+  cancelling,
   completed,
   completedWithWarnings,
   failed,
@@ -74,6 +75,8 @@ class OfflineBulkDownloadState {
   final List<String> unmatchedZipEntries;
 
   bool get isRunning => status == OfflineBulkDownloadStatus.running;
+  bool get isCancelling => status == OfflineBulkDownloadStatus.cancelling;
+  bool get isActive => isRunning || isCancelling;
   bool get hasCheckpoint => checkpoint != null;
   bool get completedWithWarnings =>
       status == OfflineBulkDownloadStatus.completedWithWarnings;
@@ -167,12 +170,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
           .call(
             categories: categories,
             cancelToken: _cancelToken,
-            onProgress: (progress) {
-              state = state.copyWith(
-                status: OfflineBulkDownloadStatus.running,
-                progress: progress,
-              );
-            },
+            onProgress: (progress) => _onDownloadProgress(progress),
           );
 
       await _completeBulkDownload(result);
@@ -217,12 +215,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
             categories: checkpoint.categories,
             cancelToken: _cancelToken,
             resumeCheckpoint: checkpoint,
-            onProgress: (progress) {
-              state = state.copyWith(
-                status: OfflineBulkDownloadStatus.running,
-                progress: progress,
-              );
-            },
+            onProgress: (progress) => _onDownloadProgress(progress),
           );
 
       await _completeBulkDownload(result);
@@ -242,6 +235,17 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     } on Object catch (e) {
       await _failBulkDownload(e);
     }
+  }
+
+  void _onDownloadProgress(OfflineDownloadProgress progress) {
+    if (state.status == OfflineBulkDownloadStatus.cancelling) {
+      state = state.copyWith(progress: progress);
+      return;
+    }
+    state = state.copyWith(
+      status: OfflineBulkDownloadStatus.running,
+      progress: progress,
+    );
   }
 
   Future<void> _failBulkDownload(Object error) async {
@@ -281,7 +285,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   }
 
   void cancel() {
+    if (!state.isRunning) return;
     _cancelToken?.cancel('cancelled by user');
+    state = state.copyWith(status: OfflineBulkDownloadStatus.cancelling);
   }
 
   /// Pausa bulk em andamento ao ir para background (salva checkpoint via cancel).

@@ -24,12 +24,14 @@ class PdfBytesDatasource {
   Future<Uint8List> fetchBytes(
     String filePath, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     final source = _resolver.resolve(filePath);
     return switch (source.kind) {
       PdfSourceKind.remoteUrl => _fetchRemote(
         source.value,
         onReceiveProgress: onReceiveProgress,
+        cancelToken: cancelToken,
       ),
       PdfSourceKind.asset => _fetchAsset(source.value),
       PdfSourceKind.localFile => readLocalPdfBytes(source.value),
@@ -39,6 +41,7 @@ class PdfBytesDatasource {
   Future<Uint8List> _fetchRemote(
     String url, {
     ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
   }) async {
     final response = await _dio.get<List<int>>(
       url,
@@ -48,6 +51,7 @@ class PdfBytesDatasource {
         sendTimeout: OfflineConfig.pdfDownloadSendTimeout,
       ),
       onReceiveProgress: onReceiveProgress,
+      cancelToken: cancelToken,
     );
 
     final data = response.data;

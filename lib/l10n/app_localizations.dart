@@ -326,6 +326,12 @@ abstract class AppLocalizations {
   /// **'Parar'**
   String get offlineStopDownload;
 
+  /// No description provided for @offlineStoppingDownload.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parando...'**
+  String get offlineStoppingDownload;
+
   /// No description provided for @offlineCancelDownload.
   ///
   /// In pt, this message translates to:
@@ -418,6 +424,17 @@ abstract class AppLocalizations {
     String category,
     int part,
     int totalParts,
+    int done,
+    int total,
+    String phase,
+  );
+
+  /// No description provided for @offlineProgressDetailWeb.
+  ///
+  /// In pt, this message translates to:
+  /// **'{category} — {done}/{total} PDFs ({phase})'**
+  String offlineProgressDetailWeb(
+    String category,
     int done,
     int total,
     String phase,
