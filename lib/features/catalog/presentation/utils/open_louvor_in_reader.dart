@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/louvor.dart';
+import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
@@ -40,16 +41,18 @@ Future<void> openLouvorInReader({
     await playlists.ensurePlaylistForLouvor(louvor.pdfId);
   }
 
+  await ref.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor);
+
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
-  final source =
-      await ref.read(louvorPdfDownloadProvider.notifier).resolveLouvorPdf(
-            pdfId: louvor.pdfId,
-            remotePath: remotePath,
-          );
+  final source = await ref
+      .read(louvorPdfDownloadProvider.notifier)
+      .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath);
 
   if (!context.mounted) return;
 
-  final location = ref.read(openPdfInReaderProvider).call(
+  final location = ref
+      .read(openPdfInReaderProvider)
+      .call(
         pdfPath: source.absolutePath,
         pdfId: louvor.pdfId,
         titulo: louvor.nome,
@@ -63,10 +66,9 @@ Future<LocalPdfSource> resolveLouvorPdf({
   required Louvor louvor,
 }) {
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
-  return ref.read(louvorPdfDownloadProvider.notifier).resolveLouvorPdf(
-        pdfId: louvor.pdfId,
-        remotePath: remotePath,
-      );
+  return ref
+      .read(louvorPdfDownloadProvider.notifier)
+      .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath);
 }
 
 /// Mensagem amigável para falhas de abertura/compartilhamento.

@@ -282,9 +282,10 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final sessionLoading = sessionAsync.isLoading;
 
     final materialGroup = pdfId.isNotEmpty
-        ? findLouvorGroupByPdfId(
+        ? findLouvorGroupByPdfIdWithColdigom(
             ref.watch(louvoresManifestProvider).value?.louvores,
             pdfId,
+            coldigomCache: ref.watch(coldigomLouvoresCacheProvider),
           )
         : null;
 

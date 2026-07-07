@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 
 import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
@@ -44,6 +45,8 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
       coldigomCache: ref.read(coldigomLouvoresCacheProvider),
     );
     if (louvor == null) return null;
+
+    await ref.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor);
 
     final remotePath = LouvorPdfPath.fromLouvor(louvor);
     final source = await ref.read(resolvePdfForReaderProvider)(
