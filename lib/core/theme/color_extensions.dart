@@ -15,7 +15,7 @@ abstract final class AppColors {
   static const Color textLight = Color(0xFFFFFFFF);
   static const Color textDark = Color(0xFF2C3E50);
   static const Color pdfArea = Color(0xFF2A2A2A);
-  static const Color chipColdigom = Color(0xFF000000);
+  static const Color chipColdigom = Color(0xFF0F0E13);
   static const Color offlineReady = Color(0xFF28A745);
   static const Color offlineMissing = Color(0xFFDC3545);
 
