@@ -382,7 +382,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get carouselClearConfirmMessage =>
-      'Todos os louvores serão removidos da seleção.';
+      'Nova Lista esvazia a seleção e mantém a lista atual. Apagar lista remove o rascunho permanentemente.';
+
+  @override
+  String get carouselClearCancel => 'Cancelar';
+
+  @override
+  String get carouselClearNewList => 'Nova Lista';
+
+  @override
+  String get carouselClearDeleteList => 'Apagar lista';
 
   @override
   String get carouselAdded => 'Adicionado à seleção';

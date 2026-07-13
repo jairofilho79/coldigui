@@ -2,9 +2,9 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/core/widgets/confirm_dialog.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
@@ -43,12 +43,12 @@ class _CarouselBarTrailingActionsState
     extends ConsumerState<CarouselBarTrailingActions> {
   var _sharing = false;
 
-  Future<bool> _canClear() async {
+  Future<bool> _canDeleteActiveUnsaved() async {
     final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) return true;
+    if (activeId == null) return false;
 
     final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    return active == null || !active.salva;
+    return active != null && !active.salva;
   }
 
   @override
@@ -120,7 +120,7 @@ class _CarouselBarTrailingActionsState
           style: carouselBarIconButtonStyle,
           tooltip: l10n.carouselClear,
           icon: const Icon(Icons.clear_all),
-          onPressed: () => _confirmClear(context, ref, l10n),
+          onPressed: () => _confirmClear(context, ref),
         ),
       ],
     );
@@ -138,7 +138,7 @@ class _CarouselBarTrailingActionsState
       case _CarouselOverflowAction.share:
         _openShareSheet(context, ref, l10n);
       case _CarouselOverflowAction.clear:
-        _confirmClear(context, ref, l10n);
+        _confirmClear(context, ref);
     }
   }
 
@@ -237,28 +237,22 @@ class _CarouselBarTrailingActionsState
     }
   }
 
-  Future<void> _confirmClear(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations l10n,
-  ) async {
-    if (!await _canClear()) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.playlistClearSavedBlocked)));
-      }
-      return;
-    }
-
+  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final canDelete = await _canDeleteActiveUnsaved();
     if (!context.mounted) return;
-    final confirmed = await showConfirmDialog(
-      context: context,
-      title: l10n.carouselClearConfirmTitle,
-      message: l10n.carouselClearConfirmMessage,
-    );
-    if (confirmed != true || !context.mounted) return;
 
-    await ref.read(playlistsProvider.notifier).clearActiveUnsavedPlaylist();
+    final choice = await showCarouselClearChoiceDialog(
+      context,
+      canDelete: canDelete,
+    );
+    if (choice == null || !context.mounted) return;
+
+    final playlists = ref.read(playlistsProvider.notifier);
+    switch (choice) {
+      case CarouselClearChoice.newList:
+        await playlists.startNewEmptySelection();
+      case CarouselClearChoice.deleteList:
+        await playlists.deleteActiveUnsavedPlaylist();
+    }
   }
 }

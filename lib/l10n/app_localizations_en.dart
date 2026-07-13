@@ -376,7 +376,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get carouselClearConfirmMessage =>
-      'All songs will be removed from the selection.';
+      'New list clears the selection and keeps the current playlist. Delete list permanently removes the unsaved draft.';
+
+  @override
+  String get carouselClearCancel => 'Cancel';
+
+  @override
+  String get carouselClearNewList => 'New list';
+
+  @override
+  String get carouselClearDeleteList => 'Delete list';
 
   @override
   String get carouselAdded => 'Added to selection';

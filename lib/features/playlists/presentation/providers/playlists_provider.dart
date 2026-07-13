@@ -297,8 +297,15 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await _reload();
   }
 
-  /// Apaga lista ativa não salva e limpa carousel.
-  Future<void> clearActiveUnsavedPlaylist() async {
+  /// Desanexa a lista ativa e limpa o carousel, sem apagar a playlist.
+  Future<void> startNewEmptySelection() async {
+    ref.read(activePlaylistIdProvider.notifier).clear();
+    await ref.read(carouselLouvoresProvider.notifier).clear();
+    await _reload();
+  }
+
+  /// Apaga a lista ativa não salva e limpa o carousel.
+  Future<void> deleteActiveUnsavedPlaylist() async {
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) {
       await ref.read(carouselLouvoresProvider.notifier).clear();
@@ -308,8 +315,8 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final active = await ref.read(playlistRepositoryProvider).getById(activeId);
     if (active != null && !active.salva) {
       await ref.read(deletePlaylistProvider)(playlistId: activeId);
-      ref.read(activePlaylistIdProvider.notifier).clear();
     }
+    ref.read(activePlaylistIdProvider.notifier).clear();
     await ref.read(carouselLouvoresProvider.notifier).clear();
     await _reload();
   }

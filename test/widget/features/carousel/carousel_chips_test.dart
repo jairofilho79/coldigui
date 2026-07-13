@@ -19,6 +19,8 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier({this.resolvedPlaylist});
 
   final ResolvedActivePlaylist? resolvedPlaylist;
+  var startedNewEmpty = false;
+  var deletedActiveUnsaved = false;
 
   @override
   List<PlaylistViewItem> build() => const [];
@@ -26,6 +28,18 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async =>
       resolvedPlaylist;
+
+  @override
+  Future<void> startNewEmptySelection() async {
+    startedNewEmpty = true;
+    await ref.read(carouselLouvoresProvider.notifier).clear();
+  }
+
+  @override
+  Future<void> deleteActiveUnsavedPlaylist() async {
+    deletedActiveUnsaved = true;
+    await ref.read(carouselLouvoresProvider.notifier).clear();
+  }
 }
 
 class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
@@ -375,18 +389,36 @@ void main() {
     expect(shareNotifier.lastOption, PlaylistShareOption.leaflet);
   });
 
-  testWidgets('limpar seleção após confirmação', (tester) async {
+  testWidgets('limpar seleção com Nova Lista', (tester) async {
     final notifier = _FakeCarouselNotifier(items);
-    await tester.pumpWidget(buildSubject(items, notifier: notifier));
+    final playlists = _FakePlaylistsNotifier();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          carouselLouvoresProvider.overrideWith(() => notifier),
+          playlistsProvider.overrideWith(() => playlists),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(body: CarouselChips()),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.clear_all));
     await tester.pumpAndSettle();
 
     expect(find.text('Limpar seleção?'), findsOneWidget);
-    await tester.tap(find.text('Confirmar'));
+    expect(find.text('Nova Lista'), findsOneWidget);
+    expect(find.text('Apagar lista'), findsNothing);
+    await tester.tap(find.text('Nova Lista'));
     await tester.pumpAndSettle();
 
+    expect(playlists.startedNewEmpty, isTrue);
+    expect(playlists.deletedActiveUnsaved, isFalse);
     expect(notifier.cleared, isTrue);
     expect(find.byType(CarouselLouvorChip), findsNothing);
   });

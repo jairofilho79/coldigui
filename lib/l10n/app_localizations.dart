@@ -668,8 +668,26 @@ abstract class AppLocalizations {
   /// No description provided for @carouselClearConfirmMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Todos os louvores serão removidos da seleção.'**
+  /// **'Nova Lista esvazia a seleção e mantém a lista atual. Apagar lista remove o rascunho permanentemente.'**
   String get carouselClearConfirmMessage;
+
+  /// No description provided for @carouselClearCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get carouselClearCancel;
+
+  /// No description provided for @carouselClearNewList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova Lista'**
+  String get carouselClearNewList;
+
+  /// No description provided for @carouselClearDeleteList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apagar lista'**
+  String get carouselClearDeleteList;
 
   /// No description provided for @carouselAdded.
   ///
