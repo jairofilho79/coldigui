@@ -315,22 +315,6 @@ class _NavLabel extends StatefulWidget {
 }
 
 class _NavLabelState extends State<_NavLabel> {
-  late final double _beamWidth;
-
-  @override
-  void initState() {
-    super.initState();
-    _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
-  }
-
-  @override
-  void didUpdateWidget(covariant _NavLabel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.label != widget.label) {
-      _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
-    }
-  }
-
   static double _computeBeamWidth(String label, TextStyle style) {
     final painter = TextPainter(
       text: TextSpan(text: label, style: style),
@@ -350,6 +334,7 @@ class _NavLabelState extends State<_NavLabel> {
       _NavLabel._activeStyle,
       t,
     )!;
+    final beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
 
     return SizedBox(
       height: 20,
@@ -364,7 +349,7 @@ class _NavLabelState extends State<_NavLabel> {
               child: Transform.scale(
                 scale: beamScale,
                 alignment: Alignment.topCenter,
-                child: LightBeam(width: _beamWidth, height: 9),
+                child: LightBeam(width: beamWidth, height: 9),
               ),
             ),
           ),

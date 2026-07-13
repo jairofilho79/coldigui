@@ -42,6 +42,8 @@ def make_frontend_handler(web_dir: Path) -> type[http.server.SimpleHTTPRequestHa
             )
             if path.rsplit("/", 1)[-1] in entry_points or path.endswith(".part.js"):
                 self.send_header("Cache-Control", "no-cache")
+            elif path.endswith("/MaterialIcons-Regular.otf"):
+                self.send_header("Cache-Control", "no-cache")
             elif path.startswith("/assets/") or path.startswith("/canvaskit/"):
                 self.send_header(
                     "Cache-Control", "public, max-age=31536000, immutable"

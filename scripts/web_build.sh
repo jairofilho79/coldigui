@@ -29,9 +29,12 @@ echo "==> Assets Isar web (OPFS + COEP)..."
 "$ROOT_DIR/scripts/fetch_isar_web_assets.sh"
 
 echo "==> Build Web (WASM, release)..."
+# --no-tree-shake-icons: subset de MaterialIcons muda quando o menu troca ícones;
+# /assets/* é cache immutable — fonte velha = ícones em branco no bottom nav.
 flutter build web \
   --wasm \
   --release \
+  --no-tree-shake-icons \
   "${DEFINE_ARGS[@]}"
 
 echo "==> Artefato em build/web/"

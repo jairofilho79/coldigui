@@ -47,6 +47,10 @@
 /*.part.js
   Cache-Control: no-cache
 
+# Fonte MaterialIcons muda de subset entre builds — nunca immutable sem hash.
+/assets/fonts/MaterialIcons-Regular.otf
+  Cache-Control: no-cache
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 

@@ -22,9 +22,11 @@ final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
   AuthNotifier.new,
 );
 
+/// [GoogleSignIn.initialize] só pode rodar uma vez no processo (plugin web).
+Future<void>? _googleSignInInitFuture;
+
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
-  Future<void>? _googleInitFuture;
 
   @override
   Future<AuthUser?> build() async {
@@ -49,18 +51,15 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     }
   }
 
-  /// Único ponto que chama [GoogleSignIn.initialize] (idempotente).
-  Future<void> ensureGoogleInitialized() {
+  /// Único ponto que chama [GoogleSignIn.initialize] (idempotente no processo).
+  Future<void> ensureGoogleInitialized() async {
     if (AppConfig.isGoogleClientIdMissing) {
-      return Future<void>.value();
+      return;
     }
-    return _googleInitFuture ??= _initGoogle();
-  }
-
-  Future<void> _initGoogle() async {
-    final signIn = GoogleSignIn.instance;
-    await signIn.initialize(clientId: AppConfig.googleClientIdWeb);
-    _authSub ??= signIn.authenticationEvents.listen(
+    await (_googleSignInInitFuture ??= GoogleSignIn.instance.initialize(
+      clientId: AppConfig.googleClientIdWeb,
+    ));
+    _authSub ??= GoogleSignIn.instance.authenticationEvents.listen(
       _onGoogleAuthEvent,
       onError: (_) {},
     );
