@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/routing/route_paths.dart';
+import '../../../../core/routing/shell_navigation.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
-import '../../../../core/routing/route_paths.dart';
-import '../../../../core/routing/shell_navigation.dart';
 
 /// Hub do Perfil — login Google, Sobre, Listas e Offline.
 class ProfileScreen extends ConsumerWidget {
@@ -22,47 +23,77 @@ class ProfileScreen extends ConsumerWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: _maxContentWidth),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             auth.when(
-              data: (user) => user == null
-                  ? const _SignedOutHeader()
-                  : _SignedInHeader(user: user),
-              loading: () => const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
+              data: (user) => _AccountPanel(
+                child: user == null
+                    ? const _SignedOutHeader()
+                    : _SignedInHeader(user: user),
               ),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Erro de autenticação: $e'),
-                    const SizedBox(height: 12),
-                    const GoogleSignInButton(),
-                  ],
+              loading: () => const _AccountPanel(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (e, _) => _AccountPanel(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Erro de autenticação: $e',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      const Center(child: GoogleSignInButton()),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Sobre'),
+            const SizedBox(height: 20),
+            _ProfilePageTile(
+              icon: Icons.info_outline,
+              title: 'Sobre',
               onTap: () => goToShellDestination(context, RoutePaths.about),
             ),
-            ListTile(
-              leading: const Icon(Icons.playlist_play),
-              title: const Text('Listas'),
+            const SizedBox(height: 10),
+            _ProfilePageTile(
+              icon: Icons.playlist_play,
+              title: 'Listas',
               onTap: () => goToShellDestination(context, RoutePaths.playlists),
             ),
-            ListTile(
-              leading: const Icon(Icons.cloud_download),
-              title: const Text('Offline'),
+            const SizedBox(height: 10),
+            _ProfilePageTile(
+              icon: Icons.cloud_download,
+              title: 'Offline',
               onTap: () => goToShellDestination(context, RoutePaths.offline),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AccountPanel extends StatelessWidget {
+  const _AccountPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.btnBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gold, width: 1.5),
+        boxShadow: AppColors.shadowMd,
+      ),
+      child: child,
     );
   }
 }
@@ -73,10 +104,28 @@ class _SignedOutHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [Text('Conta'), SizedBox(height: 12), GoogleSignInButton()],
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Entrar para sincronizar seus dados',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Use sua conta Google para sincronizar listas e outras features.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          ),
+          SizedBox(height: 20),
+          GoogleSignInButton(),
+        ],
       ),
     );
   }
@@ -89,46 +138,118 @@ class _SignedInHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundImage: user.pictureUrl != null
-                    ? NetworkImage(user.pictureUrl!)
-                    : null,
-                child: user.pictureUrl == null
-                    ? const Icon(Icons.person, size: 28)
-                    : null,
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => ref.read(authStateProvider.notifier).signOut(),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                visualDensity: VisualDensity.compact,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name ?? 'Usuário',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    if (user.email != null)
-                      Text(user.email!, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-            ],
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Sair'),
+            ),
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => ref.read(authStateProvider.notifier).signOut(),
-            icon: const Icon(Icons.logout),
-            label: const Text('Sair'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 8, 0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.gold.withValues(alpha: 0.3),
+                  backgroundImage: user.pictureUrl != null
+                      ? NetworkImage(user.pictureUrl!)
+                      : null,
+                  child: user.pictureUrl == null
+                      ? const Icon(Icons.person, size: 28, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.name ?? 'Usuário',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (user.email != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          user.email!,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfilePageTile extends StatelessWidget {
+  const _ProfilePageTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.btnBackground,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.gold.withValues(alpha: 0.5),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.gold),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.gold),
+            ],
+          ),
+        ),
       ),
     );
   }
