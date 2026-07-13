@@ -134,9 +134,11 @@ class _UsernameBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final hasUsername = username != null && username!.isNotEmpty;
+    if (username != null && username!.isNotEmpty) {
+      return const SizedBox.shrink();
+    }
 
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -146,35 +148,22 @@ class _UsernameBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            hasUsername ? Icons.alternate_email : Icons.person_add_alt_1,
-            color: AppColors.gold,
-          ),
+          const Icon(Icons.person_add_alt_1, color: AppColors.gold),
           const SizedBox(width: 10),
           Expanded(
-            child: hasUsername
-                ? Text(
-                    '@$username',
-                    style: const TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  )
-                : Text(
-                    l10n.usernameCreatePrompt,
-                    style: TextStyle(
-                      color: AppColors.textLight.withValues(alpha: 0.7),
-                      fontSize: 13,
-                    ),
-                  ),
-          ),
-          if (!hasUsername)
-            TextButton(
-              onPressed: onCreate,
-              style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
-              child: Text(l10n.usernameCreateButton),
+            child: Text(
+              l10n.usernameCreatePrompt,
+              style: TextStyle(
+                color: AppColors.textLight.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
             ),
+          ),
+          TextButton(
+            onPressed: onCreate,
+            style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
+            child: Text(l10n.usernameCreateButton),
+          ),
         ],
       ),
     );
