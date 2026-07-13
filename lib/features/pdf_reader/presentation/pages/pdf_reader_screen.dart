@@ -389,6 +389,7 @@ class _ReaderScaffold extends StatelessWidget {
             height: kToolbarHeight,
             child: AppBar(
               primary: false,
+              automaticallyImplyLeading: false,
               toolbarHeight: kToolbarHeight,
               title: showTitle
                   ? Text(titulo, overflow: TextOverflow.ellipsis)
