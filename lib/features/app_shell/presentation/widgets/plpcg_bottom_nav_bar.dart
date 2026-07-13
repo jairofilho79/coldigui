@@ -14,14 +14,21 @@ class PlpcgBottomNavDestination {
   const PlpcgBottomNavDestination({
     this.icon,
     this.svgAsset,
+    this.avatarImage,
     required this.label,
-  }) : assert(icon != null || svgAsset != null, 'Informe icon ou svgAsset');
+  }) : assert(
+         icon != null || svgAsset != null || avatarImage != null,
+         'Informe icon, svgAsset ou avatarImage',
+       );
 
   /// Ícone Material exibido acima do rótulo.
   final IconData? icon;
 
   /// SVG colorido (ex.: logo PLPCG na aba Pesquisar).
   final String? svgAsset;
+
+  /// Foto de perfil (ex.: avatar Google na aba Perfil).
+  final ImageProvider? avatarImage;
 
   /// Rótulo curto (ex.: `Pesquisar`, `Biblioteca`). Truncado com ellipsis se necessário.
   final String label;
@@ -233,6 +240,28 @@ class _NavIcon extends StatelessWidget {
       );
     }
 
+    final avatar = destination.avatarImage;
+    if (avatar != null) {
+      final size = lerpDouble(22, 28, progress)!;
+      return ClipOval(
+        child: Image(
+          image: avatar,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Icon(
+            Icons.person,
+            size: size * 0.85,
+            color: Color.lerp(
+              AppColors.textLight.withValues(alpha: 0.52),
+              AppColors.placeholder,
+              progress,
+            ),
+          ),
+        ),
+      );
+    }
+
     final color = Color.lerp(
       AppColors.textLight.withValues(alpha: 0.52),
       AppColors.placeholder,
@@ -280,6 +309,14 @@ class _NavLabelState extends State<_NavLabel> {
   void initState() {
     super.initState();
     _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.label != widget.label) {
+      _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+    }
   }
 
   static double _computeBeamWidth(String label, TextStyle style) {

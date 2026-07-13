@@ -1,5 +1,9 @@
+import { upsertUser } from './auth/session';
+import { verifyGoogleIdToken } from './auth/verify_google_token';
+
 export interface Env {
   DB: D1Database;
+  GOOGLE_CLIENT_ID_WEB: string;
 }
 
 interface LouvorRow {
@@ -22,15 +26,18 @@ interface LouvorJson {
   groupId: string;
 }
 
+type CorsMode = 'catalog' | 'auth';
+
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
   'https://v2.plpcg.com',
   'https://plpcg-v2.pages.dev',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
 ]);
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Previews do Pages: https://<hash>.plpcg-v2.pages.dev
   try {
     const { hostname, protocol } = new URL(origin);
     return (
@@ -43,20 +50,32 @@ function isAllowedOrigin(origin: string): boolean {
   }
 }
 
-function corsHeaders(origin: string | null): Headers {
+function corsHeaders(origin: string | null, mode: CorsMode): Headers {
   const headers = new Headers();
   if (origin !== null && isAllowedOrigin(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, If-None-Match');
+    headers.set(
+      'Access-Control-Allow-Methods',
+      mode === 'auth' ? 'POST, OPTIONS' : 'GET, OPTIONS',
+    );
+    headers.set(
+      'Access-Control-Allow-Headers',
+      mode === 'auth'
+        ? 'Authorization, Content-Type'
+        : 'Content-Type, If-None-Match',
+    );
     headers.set('Vary', 'Origin');
   }
   return headers;
 }
 
-function withCors(response: Response, request: Request): Response {
+function withCors(
+  response: Response,
+  request: Request,
+  mode: CorsMode,
+): Response {
   const origin = request.headers.get('Origin');
-  const cors = corsHeaders(origin);
+  const cors = corsHeaders(origin, mode);
   if (cors.get('Access-Control-Allow-Origin') === null) {
     return response;
   }
@@ -72,7 +91,9 @@ function withCors(response: Response, request: Request): Response {
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json; charset=utf-8');
-  headers.set('Cache-Control', CACHE_CONTROL);
+  if (!headers.has('Cache-Control')) {
+    headers.set('Cache-Control', CACHE_CONTROL);
+  }
   return new Response(JSON.stringify(body), { ...init, headers });
 }
 
@@ -138,34 +159,85 @@ async function fetchChecksum(
   });
 }
 
+function bearerToken(request: Request): string | null {
+  const header = request.headers.get('Authorization');
+  if (!header?.startsWith('Bearer ')) return null;
+  const token = header.slice(7).trim();
+  return token.length > 0 ? token : null;
+}
+
+async function handleAuthSession(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+
+  const clientId = env.GOOGLE_CLIENT_ID_WEB;
+  if (!clientId) {
+    return jsonResponse({ error: 'auth not configured' }, { status: 503 });
+  }
+
+  const token = bearerToken(request);
+  if (!token) {
+    return jsonResponse({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const claims = await verifyGoogleIdToken(token, clientId);
+    const user = await upsertUser(env.DB, claims);
+    return jsonResponse(user, {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  } catch {
+    return jsonResponse({ error: 'unauthorized' }, { status: 401 });
+  }
+}
+
+function corsModeForPath(pathname: string): CorsMode {
+  return pathname.startsWith('/api/auth/') ? 'auth' : 'catalog';
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const mode = corsModeForPath(url.pathname);
 
     if (request.method === 'OPTIONS') {
-      const cors = corsHeaders(request.headers.get('Origin'));
+      const cors = corsHeaders(request.headers.get('Origin'), mode);
       if (cors.get('Access-Control-Allow-Origin') === null) {
-        return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+        return jsonResponse({ error: 'forbidden' }, { status: 403 });
       }
       cors.set('Access-Control-Max-Age', '86400');
       return new Response(null, { status: 204, headers: cors });
+    }
+
+    if (url.pathname === '/api/auth/session') {
+      return withCors(await handleAuthSession(request, env), request, 'auth');
     }
 
     if (request.method !== 'GET') {
       return withCors(
         jsonResponse({ error: 'method not allowed' }, { status: 405 }),
         request,
+        mode,
       );
     }
 
     if (url.pathname === '/api/catalog/louvores') {
-      return withCors(await fetchLouvores(env.DB), request);
+      return withCors(await fetchLouvores(env.DB), request, 'catalog');
     }
 
     if (url.pathname === '/api/catalog/checksum') {
-      return withCors(await fetchChecksum(env.DB, request), request);
+      return withCors(await fetchChecksum(env.DB, request), request, 'catalog');
     }
 
-    return withCors(jsonResponse({ error: 'not found' }, { status: 404 }), request);
+    return withCors(
+      jsonResponse({ error: 'not found' }, { status: 404 }),
+      request,
+      mode,
+    );
   },
 };

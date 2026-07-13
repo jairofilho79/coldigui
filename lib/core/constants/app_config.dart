@@ -12,6 +12,17 @@ abstract final class AppConfig {
   /// configuração ausente; [CatalogRemoteDatasource] lança [StateError].
   static const String apiBaseUrl = String.fromEnvironment('PLPCG_API_BASE_URL');
 
+  /// Client ID OAuth Web (Google). Público — validação real no Worker.
+  ///
+  /// `--dart-define=GOOGLE_CLIENT_ID_WEB` ou `dart_defines/*.json`.
+  /// Ver [docs/GOOGLE_OAUTH_SETUP.md].
+  static const String googleClientIdWeb = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID_WEB',
+  );
+
   /// `true` quando [apiBaseUrl] não foi injetado no build.
   static bool get isApiBaseUrlMissing => apiBaseUrl.isEmpty;
+
+  /// `true` quando o Client ID Web não foi injetado no build.
+  static bool get isGoogleClientIdMissing => googleClientIdWeb.isEmpty;
 }

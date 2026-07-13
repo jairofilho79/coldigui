@@ -38,3 +38,5 @@ flutter run --dart-define-from-file=dart_defines/plpcg.json -d "iPhone 17 Pro"
 flutter emulators --launch coldigui_tablet
 source scripts/android_env.sh
 flutter run --dart-define-from-file=dart_defines/plpcg.json
+
+./scripts/web_deploy.sh

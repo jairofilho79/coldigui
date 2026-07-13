@@ -11,6 +11,12 @@ abstract final class ApiEndpoints {
   /// `GET` → `200` hex ou `204` se inalterado.
   /// Ver [CatalogRemoteDatasource.fetchChecksum].
   static const String louvoresManifestChecksum = '/api/catalog/checksum';
+
+  /// Sessão Google — Worker `plpcg-catalog` + D1 `users`.
+  ///
+  /// `POST` + `Authorization: Bearer <id_token>` → perfil (`googleSub`, …).
+  static const String authSession = '/api/auth/session';
+
   static const String offlineManifest = '/offline-manifest.json';
   static const String uploadLouvor = '/api/upload-louvor';
   static const String assetsPdf = '/assets';

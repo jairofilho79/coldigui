@@ -2,6 +2,7 @@
 # Build release do app Flutter Web (WASM) para deploy em v2.plpcg.com.
 #
 # Usa dart_defines/plpcjf.json (API em plpcg.com; frontend em v2.plpcg.com / plpcjf.org — D7).
+# Se existir, também aplica dart_defines/private.json (gitignored — Client ID Google).
 # Requer cabeçalhos COOP/COEP no hosting — ver web/_headers (D6).
 set -euo pipefail
 
@@ -9,6 +10,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 DART_DEFINES_FILE="dart_defines/plpcjf.json"
+PRIVATE_DEFINES_FILE="dart_defines/private.json"
+
+DEFINE_ARGS=(--dart-define-from-file="$DART_DEFINES_FILE")
+
+if [[ -f "$PRIVATE_DEFINES_FILE" ]]; then
+  echo "==> dart_defines privados: $PRIVATE_DEFINES_FILE"
+  DEFINE_ARGS+=(--dart-define-from-file="$PRIVATE_DEFINES_FILE")
+else
+  echo "Aviso: $PRIVATE_DEFINES_FILE ausente — login Google ficará desabilitado no build." >&2
+  echo "  Copie dart_defines/private.json.example → private.json e cole o Client ID Web." >&2
+fi
 
 echo "==> Dependências Flutter..."
 "$ROOT_DIR/scripts/setup_deps.sh"
@@ -20,7 +32,7 @@ echo "==> Build Web (WASM, release)..."
 flutter build web \
   --wasm \
   --release \
-  --dart-define-from-file="$DART_DEFINES_FILE"
+  "${DEFINE_ARGS[@]}"
 
 echo "==> Artefato em build/web/"
 "$ROOT_DIR/scripts/verify_web_headers_artifact.sh"

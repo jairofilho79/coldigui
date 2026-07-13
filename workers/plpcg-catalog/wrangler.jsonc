@@ -15,6 +15,10 @@
     {
       "pattern": "plpcg.com/api/catalog/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/auth/*",
+      "zone_name": "plpcg.com"
     }
   ]
 }

@@ -45,10 +45,10 @@ check_url() {
   sw_cache="$(header_value "$base/flutter_service_worker.js" "cache-control")"
   wasm_status="$(http_status "$base/isar_plus.wasm")"
 
-  if [[ "$coop" == "same-origin" ]]; then
+  if [[ "$coop" == "same-origin" || "$coop" == "same-origin-allow-popups" ]]; then
     echo "  OK  COOP: $coop"
   else
-    echo "  FAIL COOP: esperado 'same-origin', obtido '${coop:-<ausente>}'" >&2
+    echo "  FAIL COOP: esperado 'same-origin' ou 'same-origin-allow-popups', obtido '${coop:-<ausente>}'" >&2
     failures=$((failures + 1))
   fi
 

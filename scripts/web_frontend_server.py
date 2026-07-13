@@ -24,7 +24,7 @@ def make_frontend_handler(web_dir: Path) -> type[http.server.SimpleHTTPRequestHa
             super().__init__(*args, directory=directory, **kwargs)
 
         def end_headers(self) -> None:
-            self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+            self.send_header("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
             self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
             path = self.path.split("?", 1)[0]
             entry_points = (

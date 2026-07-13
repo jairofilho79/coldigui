@@ -1,9 +1,29 @@
 # Spec — Auth Google + Sync de Playlists (Opção A)
 
 **Criado em:** 2026-06-16  
+**Atualizado em:** 2026-07-05  
+**Versão:** 1.1  
 **Status:** Planejado — **não implementado**  
 **Público:** agente de desenvolvimento (`plpcg-feature-dev`) via `/plpcg-feature-dev UC-15` (criar UC antes de codar)  
 **Complementa:** UC-06, UC-07, UC-13 (admin separado), [FEATURE_INDEX.md](features/FEATURE_INDEX.md)
+
+---
+
+## 0. Prioridade de plataforma
+
+| Plataforma | Prioridade | Notas |
+|------------|------------|-------|
+| **Web (PWA)** | **Primária** | Entrega principal; deploy em Cloudflare Pages; instalação standalone via `manifest.json` |
+| iOS | Secundária | Implementar após MVP web estável; sujeita a revisão jurídica das lojas |
+| Android | Secundária | Idem iOS |
+
+**Contexto estratégico:** problemas jurídicos com distribuição nativa (App Store / Play Store) levaram à decisão de **priorizar Web/PWA** para reduzir dependência de políticas de loja. O codebase Flutter continua multiplataforma, mas **auth, sync e critérios de pronto** desta spec tratam **Web primeiro**; iOS/Android entram como fase posterior sem bloquear o MVP.
+
+**Implicações:**
+
+- OAuth, CORS, armazenamento de sessão e UX de login são desenhados para **browser + PWA instalada**.
+- Backend e Worker assumem **mesma origem** ou CORS explícito para origens PLPCG (`https://v2.plpcg.com`, previews Pages).
+- Testes manuais e automatizados de auth/sync **obrigatórios em Web** antes de validar nativo.
 
 ---
 
@@ -11,7 +31,9 @@
 
 Permitir que o usuário **entre com Google**, tenha um **identificador estável** (`sub`) reconhecido pelo app e pelo backend, e **sincronize playlists online** entre dispositivos — mantendo **offline-first** com Isar como cache local.
 
-**Decisão arquitetural:** Google Sign-In direto + validação de JWT no Cloudflare Worker + persistência em D1. **Não** usar Cloudflare Access como auth de usuário final (Access permanece candidato apenas para admin/upload — UC-13).
+**Decisão arquitetural:** Google Sign-In + validação de JWT no Cloudflare Worker + persistência em D1. **Não** usar Cloudflare Access como auth de usuário final (Access permanece candidato apenas para admin/upload — UC-13).
+
+**Entrega alvo:** **PWA de alta qualidade** — instalável, offline-first, login Google integrado, sync de listas salvas/favoritas entre browsers/dispositivos com a mesma conta Google.
 
 ---
 
@@ -21,23 +43,33 @@ Permitir que o usuário **entre com Google**, tenha um **identificador estável*
 
 | Item | Descrição |
 |------|-----------|
-| Login / logout | Google OAuth no Flutter (iOS, Android; Web opcional nesta fase) |
+| Login / logout | Google OAuth no **Flutter Web (PWA)** — **prioridade MVP**; iOS/Android na fase 2 |
 | Crachá | ID token Google validado no Worker; `user_id` = claim `sub` |
 | API REST | CRUD de playlists do usuário autenticado |
-| Sync | Push/pull entre Isar local e D1; merge com `updated_at` + `version` |
+| Sync | Push/pull entre Isar (IndexedDB na web) e D1; merge com `updated_at` + `version` |
 | Migração | Ao primeiro login, playlists locais existentes sobem para a conta |
-| UX mínima | Botão “Entrar com Google” em `/listas`; indicador de conta logada |
+| UX mínima | Botão “Entrar com Google” em `/listas` (ou aba Perfil); indicador de conta logada |
+| PWA | Login funciona em browser tab **e** em PWA standalone (`display: standalone`) |
 
 ### Fora do escopo (adiar)
 
 | Item | Motivo |
 |------|--------|
-| Cloudflare Access para usuários | Não funciona bem como identity layer no Flutter nativo |
+| Cloudflare Access para usuários | Identity layer de produto, não de usuário final |
 | Sync em tempo real (WebSocket) | Complexidade desnecessária no MVP |
 | Compartilhamento UC-07 na nuvem | Share URL continua local/deep link; não exige login |
 | Contas além de Google | Extensível depois via mesma camada `auth` |
 | UC-13 admin upload | Continua JWT HMAC ou Access — rota separada |
 | Exclusão de conta / LGPD export | Backlog futuro |
+| Auth nativo (lojas) | Adiado por estratégia jurídica; não bloqueia MVP web |
+
+### Dados sincronizados
+
+| Sincroniza | Não sincroniza |
+|------------|----------------|
+| Playlists **salvas** (`salva == true`) | Rascunhos (`salva == false`) |
+| Playlists **favoritas** (salvas + `favorita == true`) | Carousel temporário |
+| Metadados: nome, pdfIds, datas, favorito | PDFs binários (continuam offline/catálogo) |
 
 ---
 
@@ -48,12 +80,17 @@ Permitir que o usuário **entre com Google**, tenha um **identificador estável*
 | Peça | Local |
 |------|-------|
 | Playlists locais (Isar) | `lib/core/database/collections/playlist.dart` |
+| Isar na web (IndexedDB/WASM) | `lib/core/database/isar_bootstrap_web.dart`, `web/isar_plus.*` |
+| PWA manifest + ícones | `web/manifest.json`, `web/icons/` |
+| Headers COOP/COEP (Isar/WASM) | `web/_headers` |
 | Entidade de domínio | `lib/features/playlists/domain/entities/saved_playlist.dart` |
 | Repositório local-only | `lib/features/playlists/data/repositories/playlist_repository_impl.dart` |
 | Worker catálogo (GET only) | `workers/plpcg-catalog/src/index.ts` |
+| CORS catálogo (allowlist) | `ALLOWED_ORIGINS` no Worker |
 | D1 catálogo | `workers/plpcg-catalog/migrations/0001_create_louvores.sql` |
 | HTTP client | `lib/core/providers/dio_provider.dart` + `AppConfig.apiBaseUrl` |
 | Rotas API catálogo | `GET /api/catalog/louvores`, `GET /api/catalog/checksum` |
+| Smoke tests web | `test/web/chrome_smoke_test.dart` |
 
 ### Modelo Isar atual (`Playlist`)
 
@@ -62,7 +99,7 @@ playlistId   // UUID estável — reutilizar como PK remota
 nome
 pdfIds       // List<String>, ordem preservada
 createdAt
-salva        // false = rascunho automático
+salva        // false = rascunho automático — NÃO sync
 savedAt
 favoritedAt
 favorita
@@ -72,9 +109,11 @@ favorita
 
 - Campos de sync no Isar: `updatedAt`, `version`, `syncStatus`, `deletedAt` (soft delete opcional)
 - Feature `auth` (nova) em `lib/features/auth/`
-- Endpoints autenticados no Worker
+- Endpoints autenticados no Worker + **CORS para métodos mutáveis** (PUT/DELETE/POST)
 - Migration D1 `user_playlists`
 - Interceptor Dio com `Authorization: Bearer <id_token>`
+- Script GIS / meta tag em `web/index.html` (se necessário para `google_sign_in` web)
+- Avaliar `Cross-Origin-Opener-Policy` vs popup Google (ver §12 W1)
 
 ---
 
@@ -82,46 +121,66 @@ favorita
 
 ```mermaid
 flowchart TB
-  subgraph flutter [Flutter App]
+  subgraph pwa [Flutter Web PWA]
+    Browser[Browser / Standalone PWA]
     UI[PlaylistsScreen / Login]
     Auth[AuthRepository]
-    Secure[flutter_secure_storage]
+    TokenStore[TokenStore web]
     Repo[PlaylistRepository]
-    Isar[(Isar Playlist)]
+    Isar[(Isar / IndexedDB)]
     Sync[SyncPlaylists]
   end
 
   subgraph cloud [Cloudflare]
+    Pages[Pages — app estático]
     Worker[plpcg-catalog Worker]
     AuthMW[verifyGoogleIdToken]
     D1[(D1 user_playlists)]
   end
 
   subgraph google [Google]
-    GSI[Google Sign-In]
+    GIS[Google Identity Services]
     JWKS[OAuth2 JWKS]
   end
 
+  Browser --> Pages
   UI --> Auth
-  Auth --> GSI
-  Auth --> Secure
+  Auth --> GIS
+  Auth --> TokenStore
   Sync --> Repo
   Repo --> Isar
-  Sync -->|Bearer JWT| Worker
+  Sync -->|Bearer JWT same-origin| Worker
   Worker --> AuthMW
   AuthMW -->|fetch keys| JWKS
   AuthMW --> D1
 ```
 
-### Fluxo de login
+### Vantagem same-origin (Web)
+
+Quando app PWA e API compartilham origem (ex.: `https://v2.plpcg.com` servindo app + Worker em `/api/*`):
+
+- **Sem preflight CORS** para requests same-origin
+- Cookies httpOnly (fase 2 opcional) com `SameSite=Lax`
+- Menor superfície de misconfiguration de CORS
+
+Se app e API estiverem em origens diferentes, CORS allowlist **obrigatória** (já parcialmente implementada no Worker para catálogo).
+
+### Fluxo de login (Web — MVP)
 
 ```text
 1. Usuário toca "Entrar com Google"
-2. google_sign_in retorna idToken (e accessToken — não enviar accessToken ao backend)
-3. App persiste idToken + expiry em flutter_secure_storage
-4. App chama POST /api/auth/session (opcional) ou vai direto ao sync
+2. google_sign_in (web) / GIS abre fluxo OAuth (popup ou redirect — ver §12 W1)
+3. Retorna credential com idToken (NÃO enviar accessToken ao backend)
+4. App persiste idToken + expiry via AuthTokenStore (web: ver §9)
 5. Worker valida JWT → extrai sub, email, name
-6. App dispara SyncPlaylists (upload local + download remoto)
+6. App dispara SyncPlaylists (pull → push)
+```
+
+### Fluxo de login (iOS/Android — fase 2)
+
+```text
+Mesmo fluxo; token em flutter_secure_storage.
+Worker valida aud contra GOOGLE_CLIENT_ID_IOS / ANDROID além do WEB.
 ```
 
 ### Fluxo de request autenticada
@@ -133,7 +192,7 @@ Worker:
   2. Busca JWKS Google (cache em memória do isolate, TTL ~1h)
   3. Verifica assinatura RS256
   4. Valida: exp, iss ∈ {accounts.google.com, https://accounts.google.com}
-  5. Valida: aud === GOOGLE_CLIENT_ID_WEB (secret/env)
+  5. Valida: aud ∈ {GOOGLE_CLIENT_ID_WEB, ...} (web MVP: só WEB)
   6. ctx.userId = payload.sub — NUNCA aceitar user_id do body
 ```
 
@@ -141,29 +200,43 @@ Worker:
 
 ## 5. Google Cloud Console — setup
 
-### OAuth clients necessários
+### OAuth clients (prioridade Web)
 
-| Cliente | Uso | Onde configurar |
-|---------|-----|-------------------|
-| **Web** | `aud` validado no Worker | Google Cloud → APIs → Credentials |
-| **iOS** | `google_sign_in` no iOS | Bundle ID do app |
-| **Android** | `google_sign_in` no Android | SHA-1 debug + release |
+| Cliente | Prioridade | Uso | Onde configurar |
+|---------|------------|-----|-----------------|
+| **Web** | **MVP** | `aud` validado no Worker; GIS no Flutter Web | Google Cloud → Credentials → OAuth 2.0 Client IDs |
+| iOS | Fase 2 | `google_sign_in` nativo | Bundle ID |
+| Android | Fase 2 | `google_sign_in` nativo | SHA-1 debug + release |
+
+### Configuração Web (obrigatória no MVP)
+
+| Campo | Valor |
+|-------|-------|
+| **Authorized JavaScript origins** | `https://v2.plpcg.com`, `https://plpcg-v2.pages.dev`, `http://localhost:*` (dev) |
+| **Authorized redirect URIs** | Mesmas origens + path se usar redirect flow (ex.: `/`, `/oauth/callback`) |
+| **Application type** | Web application |
+
+**Client ID Web** exposto no frontend é **esperado e seguro** (não é secret). O que protege o usuário é validação server-side do id_token.
 
 ### Variáveis / secrets
 
-| Nome | Onde | Exemplo |
-|------|------|---------|
-| `GOOGLE_CLIENT_ID_WEB` | Worker secret / wrangler | `xxxx.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_ID_IOS` | `--dart-define` / xcconfig | mesmo projeto GCP |
-| `GOOGLE_CLIENT_ID_ANDROID` | `android/app/build.gradle` ou define | mesmo projeto GCP |
+| Nome | Onde | Fase |
+|------|------|------|
+| `GOOGLE_CLIENT_ID_WEB` | Worker secret + `--dart-define` Flutter Web | MVP |
+| `GOOGLE_CLIENT_ID_IOS` | `--dart-define` / xcconfig | Fase 2 |
+| `GOOGLE_CLIENT_ID_ANDROID` | `android/app/build.gradle` ou define | Fase 2 |
 
-**Não commitar** client secrets OAuth (fluxo mobile usa PKCE; não há secret no app).
+**Não commitar** client secrets OAuth. Fluxo web/mobile público usa client ID + PKCE; secret só se houver backend confidential client (não necessário no MVP).
 
 ### Escopos Google
 
 - `openid`
 - `email`
 - `profile`
+
+### Tela de consentimento OAuth
+
+Configurar nome do app, logo, domínio autorizado e política de privacidade — **obrigatório** para produção e reduz avisos “app não verificado”.
 
 ---
 
@@ -201,12 +274,13 @@ CREATE INDEX idx_user_playlists_user_deleted
 - Toda query inclui `WHERE user_id = ?` com `?` = `sub` do JWT validado.
 - `id` no body deve coincidir com o path; rejeitar mismatch.
 - Playlists com `deleted_at IS NOT NULL` não aparecem em `GET`; `DELETE` seta `deleted_at`.
+- Rejeitar sync de registros com `salva == false` (defesa em profundidade — cliente não deveria enviar).
 
 ---
 
 ## 7. Backend — API REST
 
-**Base:** mesma origem do catálogo — `AppConfig.apiBaseUrl` (ex.: `https://plpcg.com`).
+**Base:** mesma origem do catálogo — `AppConfig.apiBaseUrl` (ex.: `https://v2.plpcg.com`).
 
 **Binding Worker:** estender `workers/plpcg-catalog/src/index.ts` ou extrair módulos `src/auth/` e `src/playlists/`.
 
@@ -255,28 +329,36 @@ Server:
   - Se row.version < N (cliente mais novo) → aceitar se updated_at cliente > servidor
 ```
 
-**Regra MVP simplificada:** last-write-wins por `updated_at` (ISO comparável); `version` incrementa a cada write bem-sucedido. Documentar no código; evoluir para 409 se necessário.
+**Regra MVP simplificada:** last-write-wins por `updated_at` (ISO comparável); `version` incrementa a cada write bem-sucedido.
 
 ### Códigos HTTP
 
 | Código | Quando |
 |--------|--------|
 | 401 | Token ausente, expirado ou inválido |
-| 403 | Tentativa de acessar playlist de outro `user_id` (não deve ocorrer se queries corretas) |
+| 403 | Tentativa de acessar playlist de outro `user_id` |
 | 404 | Playlist inexistente para este usuário |
 | 409 | Conflito de versão (se habilitado) |
 | 429 | Rate limit Cloudflare |
 
-### CORS (rotas autenticadas)
+### CORS (rotas autenticadas — **crítico para Web**)
 
-- **Não** usar `Access-Control-Allow-Origin: *` nas rotas `/api/playlists/*`.
-- Permitir origem do app web se aplicável; apps nativos não usam CORS.
-- Headers: `Authorization`, `Content-Type`.
+O catálogo hoje permite apenas `GET` + `OPTIONS`. Playlists exigem **extensão do CORS**:
+
+| Requisito | Detalhe |
+|-----------|---------|
+| Origens | Mesma allowlist: `https://v2.plpcg.com`, `https://plpcg-v2.pages.dev`, previews `*.plpcg-v2.pages.dev` |
+| Métodos | `GET, PUT, POST, DELETE, OPTIONS` |
+| Headers | `Authorization`, `Content-Type` |
+| Credentials | `Access-Control-Allow-Credentials: true` **somente** se usar cookies (fase 2); com Bearer, `false` |
+| **Proibido** | `Access-Control-Allow-Origin: *` com credentials |
+
+**Preferência:** deploy PWA e API na **mesma origem** → CORS mínimo ou desnecessário para o app principal.
 
 ### Rate limiting
 
-- Configurar no dashboard Cloudflare ou `rate limiting` binding para `/api/playlists/*`.
-- Sugestão: 60 req/min por IP + considerar por `sub` no futuro.
+- Dashboard Cloudflare ou binding para `/api/playlists/*`
+- Sugestão: 60 req/min por IP; considerar por `sub` no futuro
 
 ---
 
@@ -286,7 +368,7 @@ Server:
 
 ### Dependência
 
-- Usar `jose` (leve, compatível Workers) — **aprovação explícita** antes de `npm install` (regra DevSecOps do projeto).
+- `jose` (leve, compatível Workers) — **aprovação explícita** antes de `npm install`.
 
 ### Pseudocódigo
 
@@ -295,10 +377,10 @@ const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
 const JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 
 async function verifyGoogleIdToken(token: string, env: Env): Promise<GoogleClaims> {
-  // 1. jwtVerify com remotes JWKS (cache 1h em globalThis)
-  // 2. aud === env.GOOGLE_CLIENT_ID_WEB
+  // 1. jwtVerify com remote JWKS (cache 1h em globalThis)
+  // 2. aud === env.GOOGLE_CLIENT_ID_WEB (MVP); fase 2: array de client IDs
   // 3. iss in GOOGLE_ISSUERS
-  // 4. exp > now
+  // 4. exp > now (+ clock skew ≤ 60s)
   // 5. return { sub, email, name, picture? }
 }
 ```
@@ -320,24 +402,6 @@ async function withAuth(request, env, handler): Promise<Response> {
 
 **Importante:** catálogo permanece GET público; apenas `/api/playlists/*` passa por `withAuth`.
 
-### wrangler.jsonc — adicionar
-
-```jsonc
-"vars": {
-  // GOOGLE_CLIENT_ID_WEB apenas se não for secret
-},
-// Preferir: wrangler secret put GOOGLE_CLIENT_ID_WEB
-```
-
-**Rota sugerida:**
-
-```jsonc
-{
-  "pattern": "plpcg.com/api/playlists/*",
-  "zone_name": "plpcg.com"
-}
-```
-
 ---
 
 ## 9. Flutter — estrutura de features
@@ -347,19 +411,21 @@ async function withAuth(request, env, handler): Promise<Response> {
 ```
 lib/features/auth/
   data/
-    datasources/auth_local_datasource.dart      # secure storage
+    datasources/auth_local_datasource.dart      # AuthTokenStore (platform)
+    datasources/auth_local_datasource_web.dart  # sessionStorage + memória
+    datasources/auth_local_datasource_native.dart # flutter_secure_storage (fase 2)
     datasources/google_auth_datasource.dart     # google_sign_in
     repositories/auth_repository_impl.dart
     providers/auth_providers.dart
   domain/
-    entities/auth_user.dart                     # sub, email, displayName, photoUrl?
+    entities/auth_user.dart
     repositories/auth_repository.dart
     usecases/sign_in_with_google.dart
     usecases/sign_out.dart
     usecases/get_current_user.dart
     usecases/refresh_id_token.dart
   presentation/
-    providers/auth_state_provider.dart          # AsyncNotifier<AuthUser?>
+    providers/auth_state_provider.dart
     widgets/sign_in_button.dart
     widgets/auth_user_chip.dart
 ```
@@ -369,41 +435,58 @@ lib/features/auth/
 ```
 lib/features/playlists/
   data/
-    datasources/playlist_remote_datasource.dart   # Dio → /api/playlists
-    repositories/playlist_repository_impl.dart  # compõe local + remote
+    datasources/playlist_remote_datasource.dart
+    repositories/playlist_repository_impl.dart  # local-first + remote
   domain/
     usecases/sync_playlists.dart
     entities/playlist_sync_result.dart
 ```
 
-### Pacotes a adicionar (`pubspec.yaml`)
+### Pacotes (`pubspec.yaml`)
 
-| Pacote | Uso | Aprovação |
-|--------|-----|-----------|
-| `google_sign_in` | OAuth Google | Necessário |
-| `flutter_secure_storage` | Tokens | Necessário — **não** `shared_preferences` |
+| Pacote | Uso | Fase |
+|--------|-----|------|
+| `google_sign_in` | OAuth Google (suporta web) | MVP Web |
+| `flutter_secure_storage` | Tokens nativos | Fase 2 iOS/Android |
+
+### Armazenamento de token por plataforma
+
+| Plataforma | Estratégia MVP | Racional |
+|------------|----------------|----------|
+| **Web** | id_token em **memória** + fallback `sessionStorage` (expiry curta ~1h) | `flutter_secure_storage` web é limitado; **nunca** `localStorage` (persiste após fechar aba → maior janela XSS) |
+| iOS/Android | `flutter_secure_storage` | Keychain / EncryptedSharedPreferences |
+
+**Fase 2 Web (opcional, mais seguro):** endpoint `POST /api/auth/session` troca id_token por **cookie httpOnly** `Secure; SameSite=Lax` — elimina token em JS. Avaliar após MVP Bearer funcionar.
+
+### `web/index.html` — GIS
+
+Se `google_sign_in` web exigir meta tag ou script GIS:
+
+```html
+<meta name="google-signin-client_id" content="CLIENT_ID.apps.googleusercontent.com">
+<!-- ou carregar gsi/client via script — seguir doc do pacote na versão pinada -->
+```
+
+Client ID via build-time define, **não** hardcoded no repo.
 
 ### `dioProvider` — interceptor auth
 
-**Arquivo:** `lib/core/providers/dio_provider.dart` (ou `auth_interceptor.dart`)
-
 ```dart
 // Anexar Authorization apenas a paths /api/playlists/
-// Renovar token via AuthRepository.refreshIdToken() em 401 (uma retry)
+// Web: renovar via google_sign_in silentSignIn() em 401 (uma retry)
+// Não anexar token a rotas de catálogo público
 ```
 
 ### Campos novos no Isar `Playlist`
 
 ```dart
-DateTime updatedAt;           // default createdAt na migração
-int version;                  // default 0 local; sync incrementa
+DateTime updatedAt;
+int version;
 @enumerated
-PlaylistSyncStatus syncStatus; // synced | pendingPush | pendingPull | conflict
+PlaylistSyncStatus syncStatus;
 
 enum PlaylistSyncStatus { synced, pendingPush, pendingPull, conflict }
 ```
-
-**Migração Isar:** incrementar schema version; valores default para registros existentes → `pendingPush` no primeiro login.
 
 ---
 
@@ -411,35 +494,34 @@ enum PlaylistSyncStatus { synced, pendingPush, pendingPull, conflict }
 
 ### Princípio
 
-1. **Leitura:** sempre do Isar (rápido, offline).
-2. **Escrita local:** imediata no Isar + marca `syncStatus = pendingPush`.
+1. **Leitura:** sempre do Isar (rápido, offline) — na web, IndexedDB via Isar WASM.
+2. **Escrita local:** imediata no Isar + `syncStatus = pendingPush`.
 3. **Background sync:** quando online + autenticado, `SyncPlaylists` executa.
 
 ### Algoritmo `SyncPlaylists`
 
 ```text
-Pré-condição: usuário autenticado, rede disponível (connectivity_plus)
+Pré-condição: usuário autenticado, rede disponível (connectivity_plus / navigator.onLine)
 
 Fase A — Pull
   1. GET /api/playlists
-  2. Para cada remota:
+  2. Para cada remota (salva==true):
      - Se não existe local → INSERT
      - Se remota.updatedAt > local.updatedAt → UPDATE local
      - Se local.pendingPush e local.updatedAt > remota → manter para Fase B
 
 Fase B — Push
-  3. Para cada local com syncStatus == pendingPush:
+  3. Para cada local com syncStatus == pendingPush AND salva==true:
      - PUT /api/playlists/:id
      - Sucesso → synced, version = resposta.version
-     - 409 → marcar conflict; UI pode mostrar snackbar (futuro)
+     - 409 → marcar conflict
 
 Fase C — Deletes
-  4. Playlists deletadas localmente com flag tombstone → DELETE remoto
-     (ou campo deletedAt no Isar — implementar se necessário)
+  4. Tombstones locais → DELETE remoto
 
 Pós-login (primeira vez)
-  5. Todas as playlists locais com syncStatus != synced → pendingPush
-  6. Executar sync completo
+  5. Playlists locais salvas → pendingPush
+  6. Pull ANTES de Push (evita sobrescrever nuvem)
 ```
 
 ### Quando disparar sync
@@ -447,52 +529,75 @@ Pós-login (primeira vez)
 | Evento | Ação |
 |--------|------|
 | Login bem-sucedido | Sync completo |
-| App resume (foreground) | Debounce 30s → sync incremental |
-| Após `SavePlaylist` / `UpdatePlaylist` / `DeletePlaylist` | `pendingPush` + sync se online |
+| `visibilitychange` → visible (Web/PWA) | Debounce 30s → sync incremental |
+| Após Save/Update/Delete playlist salva | `pendingPush` + sync se online |
 | Pull-to-refresh em `PlaylistsScreen` | Sync manual |
+| `online` event (browser) | Sync pendente |
 
 ### Rascunhos (`salva == false`)
 
-- **MVP:** não sincronizar rascunhos — apenas `salva == true`.
-- Rascunhos permanecem 100% locais (comportamento atual UC-06 4.8).
+- **Não sincronizar** — 100% locais (UC-06).
 
 ---
 
-## 11. UX / telas
+## 11. UX / telas (Web PWA)
 
-### `PlaylistsScreen`
+### `PlaylistsScreen` (ou aba Perfil — item TODO #7)
 
 | Estado | UI |
 |--------|-----|
 | Não logado | Banner: “Entre para sincronizar suas listas entre dispositivos” + `SignInButton` |
-| Logado | Chip com nome/email + menu “Sair” |
-| Sync em andamento | Indicador discreto (linear progress ou ícone sync) |
-| Offline logado | Listas locais funcionam; badge “Alterações pendentes” se `pendingPush` |
-| Erro auth | Snackbar; não bloquear uso local |
+| Logado | Chip com nome/email + avatar Google + menu “Sair” |
+| Sync em andamento | Indicador discreto |
+| Offline logado | Listas locais funcionam; badge “Alterações pendentes” |
+| Erro auth / popup bloqueado | Snackbar com instrução (“permita popups” ou “tente redirect”) |
+| PWA standalone | Mesmo fluxo; testar GIS em `display: standalone` |
 
 ### Sem login obrigatório
 
-- Usuário **pode** usar playlists só no dispositivo (comportamento atual).
+- Usuário **pode** usar playlists só no dispositivo.
 - Sync é **opt-in** via login.
+
+### Responsividade
+
+- Botão Google com largura adequada em mobile web (touch target ≥ 48dp).
+- Login visível sem scroll em viewport comum (iPhone SE / Android pequeno).
 
 ---
 
 ## 12. Segurança (checklist OpSec)
 
+### Regras gerais
+
 | # | Regra | Verificação |
 |---|-------|-------------|
 | S1 | `user_id` só do JWT validado | Grep: nenhum `user_id` vindo de query/body |
-| S2 | Tokens em `flutter_secure_storage` | Nunca `shared_preferences` |
+| S2 | Tokens: web ≠ localStorage permanente | sessionStorage ou memória; nativo: secure storage |
 | S3 | Não logar id_token | Grep em debug logs |
-| S4 | PKCE / fluxo nativo Google | Sem client secret no app |
-| S5 | HTTPS only | `AppConfig.apiBaseUrl` https |
+| S4 | Client ID web público OK; **sem client secret** no frontend | Code review |
+| S5 | HTTPS only | Produção + HSTS Cloudflare |
 | S6 | Validar `aud`, `iss`, `exp` | Testes unitários Worker |
-| S7 | Rate limit nas rotas auth | Dashboard CF |
-| S8 | CORS restrito em `/api/playlists` | Diferente do catálogo público |
-| S9 | Soft delete — não expor dados de outros users | Testes integração |
-| S10 | Renovação de token antes de expirar | `refreshIdToken` no interceptor |
+| S7 | Rate limit `/api/playlists/*` | Dashboard CF |
+| S8 | CORS allowlist — nunca `*` com credentials | Worker + testes |
+| S9 | Isolamento por `sub` | Testes integração IDOR |
+| S10 | Renovação token (~1h) | silentSignIn + interceptor 401 |
+| S11 | Limites payload (nome, pdfIds count, body size) | Validação Worker |
+| S12 | Rascunhos nunca no servidor | Filtro client + rejeição server |
 
-**Cloudflare Access:** reservar para UC-13 (`/api/upload-louvor`) — não misturar com `/api/playlists`.
+### Riscos específicos Web (prioridade MVP)
+
+| # | Risco | Mitigação |
+|---|-------|-----------|
+| W1 | **COOP `same-origin`** (`web/_headers`) quebra popup GIS | Testar popup; se falhar, usar **redirect flow** ou `Cross-Origin-Opener-Policy: same-origin-allow-popups` |
+| W2 | **XSS** → roubo de id_token em sessionStorage | CSP restritiva (fase 2); sanitizar inputs; dependências atualizadas; evitar `innerHTML` |
+| W3 | Popup bloqueado pelo browser | Fallback redirect + mensagem UX |
+| W4 | Third-party cookies deprecados | GIS/FedCM first-party; não depender de cookies Google cross-site |
+| W5 | Token em URL (redirect mal implementado) | Redirect flow: trocar code/token no fragment **sem** logar URL; limpar history |
+| W6 | PWA cache servindo JS antigo com bug auth | `flutter_service_worker.js` no-cache (já em `_headers`) |
+| W7 | CSRF em rotas Bearer | Bearer no header (não cookie) no MVP → CSRF irrelevante; se cookies fase 2 → CSRF token |
+| W8 | Clickjacking | `X-Frame-Options: DENY` ou CSP `frame-ancestors 'none'` |
+
+**Cloudflare Access:** reservar para UC-13 — não misturar com `/api/playlists`.
 
 ---
 
@@ -504,11 +609,12 @@ Criar **`docs/use-cases/UC-15-sync-playlists-online.md`** antes da implementaç�
 |-------|-------|
 | **ID** | UC-15 |
 | **Feature** | `auth` + `playlists` |
-| **Prioridade** | Média (pós-Fase 4) |
+| **Prioridade** | Alta (PWA / estratégia web-first) |
+| **Plataforma MVP** | Web (browser + PWA standalone) |
 | **Ator** | Usuário autenticado |
 | **Pré-condições** | Rede (para sync); conta Google |
-| **Fluxo principal** | Login → sync bidirecional → playlists disponíveis em outro dispositivo |
-| **Pós-condições** | Isar e D1 convergentes para playlists `salva==true` |
+| **Fluxo principal** | Login → sync bidirecional → playlists em outro browser/dispositivo |
+| **Pós-condições** | Isar e D1 convergentes para `salva==true` |
 | **Dependências** | UC-06 |
 
 ---
@@ -516,46 +622,59 @@ Criar **`docs/use-cases/UC-15-sync-playlists-online.md`** antes da implementaç�
 ## 14. Ordem de implementação (para o agente)
 
 ```text
-Fase A — Backend
+Fase A — Backend (desbloqueia Web)
   A1. Migration D1 0002_user_playlists
   A2. verify_google_token.ts + testes vitest/miniflare
   A3. Handlers GET/PUT/DELETE playlists
-  A4. Rotas wrangler + secrets
-  A5. Testes manuais com curl + token de teste
+  A4. CORS playlists (métodos mutáveis + Authorization header)
+  A5. Rotas wrangler + secret GOOGLE_CLIENT_ID_WEB
+  A6. Testes curl com id_token real (origem web)
 
-Fase B — Flutter auth
-  B1. pubspec: google_sign_in, flutter_secure_storage
-  B2. Feature auth (repository + providers)
-  B3. SignInButton + auth_state_provider
-  B4. Config Google (iOS/Android defines)
+Fase B — Flutter auth WEB (MVP)
+  B1. pubspec: google_sign_in (web)
+  B2. Feature auth + AuthTokenStore web
+  B3. Config GCP: Web client + Authorized JavaScript origins
+  B4. web/index.html meta/script GIS se necessário
+  B5. SignInButton + auth_state_provider
+  B6. Validar COOP vs popup (W1) — redirect se needed
+  B7. Testes widget/integration em Chrome
 
-Fase C — Flutter sync
-  C1. Campos sync no Isar + build_runner
+Fase C — Flutter sync WEB
+  C1. Campos sync Isar + build_runner
   C2. playlist_remote_datasource
-  C3. Estender PlaylistRepository (local-first + remote)
-  C4. SyncPlaylists use case
-  C5. Integrar em PlaylistsScreen + hooks pós-mutação
+  C3. PlaylistRepository local-first + remote
+  C4. SyncPlaylists + hooks visibility/online
+  C5. PlaylistsScreen UX auth/sync
+  C6. Teste manual: browser A → browser B (mesma conta)
 
-Fase D — Polish
-  D1. l10n (pt/en) strings auth/sync
-  D2. Testes unitários sync merge
-  D3. Atualizar FEATURE_INDEX.md
+Fase D — Polish Web PWA
+  D1. l10n auth/sync
+  D2. Testes unitários merge
+  D3. Smoke PWA standalone (instalar → login → sync)
+  D4. Atualizar FEATURE_INDEX.md
+
+Fase E — Nativo (adiado)
+  E1. flutter_secure_storage + client IDs iOS/Android
+  E2. Validar aud múltiplo no Worker
+  E3. Testes dispositivo (quando jurídico permitir)
 ```
 
 ---
 
 ## 15. Critérios de pronto
 
-| # | Critério |
-|---|----------|
-| P1 | Login Google funciona em iOS e Android (simulador/dispositivo) |
-| P2 | Worker rejeita request sem token (401) e token adulterado (401) |
-| P3 | Playlist salva no dispositivo A aparece no dispositivo B após login na mesma conta |
-| P4 | Edição offline em A sincroniza quando rede volta |
-| P5 | Rascunhos (`salva=false`) **não** aparecem no servidor |
-| P6 | Logout limpa tokens; app continua com playlists locais |
-| P7 | Catálogo público continua funcionando sem login |
-| P8 | `flutter analyze` sem erros; testes novos passando |
+| # | Critério | Plataforma |
+|---|----------|------------|
+| P1 | Login Google funciona em **Chrome/Safari/Firefox** (desktop + mobile web) | **Web MVP** |
+| P1b | Login funciona em **PWA standalone** instalada | **Web MVP** |
+| P2 | Worker rejeita token ausente/inválido (401) | Todas |
+| P3 | Playlist salva no browser A aparece no browser B (mesma conta) | **Web MVP** |
+| P4 | Edição offline sincroniza ao voltar online (`online` event) | **Web MVP** |
+| P5 | Rascunhos (`salva=false`) **não** no servidor | Todas |
+| P6 | Logout limpa tokens; playlists locais permanecem | **Web MVP** |
+| P7 | Catálogo público sem login | Todas |
+| P8 | `flutter analyze` + testes novos passando | CI |
+| P9 | Login iOS/Android | Fase 2 |
 
 ---
 
@@ -563,24 +682,29 @@ Fase D — Polish
 
 ### Worker (vitest + miniflare)
 
-- Token inválido → 401
-- Token expirado → 401
-- `aud` errado → 401
-- PUT cria playlist; GET retorna só do `sub` correto
-- DELETE soft; GET não lista deletada
+- Token inválido / expirado / `aud` errado → 401
+- PUT cria playlist; GET isolado por `sub`
+- DELETE soft
+- CORS preflight OPTIONS com `Authorization` permitido
 
-### Flutter
+### Flutter Web
 
-- `SyncPlaylists` merge: remoto mais novo vence
-- `SyncPlaylists` push: local `pendingPush` sobe
-- `AuthRepository` persiste e limpa secure storage
-- Widget: `PlaylistsScreen` mostra SignIn quando deslogado
+- `SyncPlaylists` merge e push
+- `AuthRepository` persiste/limpa sessionStorage
+- Widget: SignIn quando deslogado
+- `test/web/chrome_smoke_test.dart` estendido com fluxo login mockado (se viável)
 
-### Manual
+### Manual Web (obrigatório antes de merge)
 
-1. Criar playlist no device A (logado) → verificar no D1 dashboard.
-2. Login mesma conta no device B → playlist visível.
-3. Editar em B offline → abrir rede → A recebe ao sync.
+1. Browser A: login → criar playlist salva → verificar D1
+2. Browser B (ou aba anônima): mesma conta → playlist visível
+3. B offline (DevTools) → editar → online → A sincroniza
+4. Instalar PWA → repetir login + sync
+5. Popup bloqueado → fallback funciona
+
+### Manual Nativo (fase 2)
+
+- Idem cenários A/B em iOS/Android
 
 ---
 
@@ -590,21 +714,22 @@ Fase D — Polish
 |-----------|------------|
 | [UC-06-manage-playlists.md](use-cases/UC-06-manage-playlists.md) | Modelo de playlist |
 | [UC-13-admin-upload-louvor.md](use-cases/UC-13-admin-upload-louvor.md) | Auth admin separada |
-| [ADR-001-isar-storage.md](adr/ADR-001-isar-storage.md) | Persistência local |
-| [AGENT_PIPELINE.md](AGENT_PIPELINE.md) | Pipeline QA → OpSec após dev |
+| [ADR-001-isar-storage.md](adr/ADR-001-isar-storage.md) | Isar web + nativo |
+| [AGENT_PIPELINE.md](AGENT_PIPELINE.md) | Pipeline QA → OpSec |
+| `web/manifest.json`, `web/_headers` | PWA + COOP/COEP |
 | `workers/plpcg-catalog/README.md` | Deploy Worker |
-| `.cursor/rules/security-devsecops.mdc` | Secrets e auth |
 
 ---
 
 ## 18. Referências externas
 
-- [Google Sign-In for Flutter](https://pub.dev/packages/google_sign_in)
-- [Google ID token validation](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)
+- [Google Sign-In for Flutter](https://pub.dev/packages/google_sign_in) — incluir seção Web
+- [Google Identity Services (Web)](https://developers.google.com/identity/gsi/web)
+- [Verify Google ID token](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)
 - [JWKS Google](https://www.googleapis.com/oauth2/v3/certs)
 - [jose (JWT)](https://github.com/panva/jose)
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
-- [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage)
+- [MDN: PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
 ---
 
@@ -612,11 +737,14 @@ Fase D — Polish
 
 | Risco | Mitigação |
 |-------|-----------|
-| Token Google expira (~1h) | `google_sign_in` silent sign-in + refresh no interceptor |
-| Conflito edição simultânea | `updated_at` + `version`; UI conflict futura |
-| Primeiro login sobrescreve remoto | Pull antes de Push na primeira sync |
-| Custo D1 | Volume baixo (playlists por usuário << catálogo) |
-| Aprovação de deps | Pedir antes de `google_sign_in`, `jose`, `flutter_secure_storage` |
+| COOP bloqueia popup Google (W1) | Testar cedo; redirect ou `same-origin-allow-popups` |
+| Token expira (~1h) | silentSignIn + retry 401 |
+| XSS em PWA | CSP, deps atualizadas, token não em localStorage |
+| Conflito edição simultânea | `updated_at` + `version` |
+| Primeiro login sobrescreve remoto | Pull antes de Push |
+| Jurídico bloqueia lojas nativas | Web-first; nativo não bloqueia MVP |
+| Custo D1 | Volume baixo por usuário |
+| Aprovação deps | `google_sign_in`, `jose` (MVP); `flutter_secure_storage` (fase 2) |
 
 ---
 
@@ -627,10 +755,15 @@ Fase D — Polish
 /plpcg-feature-dev UC-15
 ```
 
-**Contexto mínimo a anexar:** este arquivo (`docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md`).
+**Contexto mínimo a anexar:** este arquivo.
 
-**Hooks esperados:** OpSec deve validar S1–S10; Performance deve avaliar debounce de sync e tamanho payload `pdf_ids`.
+**Hooks esperados:** OpSec S1–S12 + W1–W8; Performance: debounce sync, payload `pdf_ids`, impacto COOP.
 
 ---
 
-*Versão 1.0 — 2026-06-16*
+## Changelog
+
+| Versão | Data | Mudança |
+|--------|------|---------|
+| 1.0 | 2026-06-16 | Spec inicial (multiplataforma, web opcional) |
+| 1.1 | 2026-07-05 | **Web/PWA primário**; nativo fase 2; CORS/COOP/GIS; token storage web; critérios de pronto web-first |

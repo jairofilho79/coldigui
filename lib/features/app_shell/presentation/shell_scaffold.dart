@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/routing/route_paths.dart';
 import '../../../core/widgets/degraded_storage_banner.dart';
 import '../../../core/widgets/plpcg_primary_app_bar.dart';
+import '../../auth/presentation/providers/auth_state_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
 import '../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -19,6 +20,7 @@ import 'widgets/plpcg_bottom_nav_bar.dart';
 ///
 /// Bottom bar: Eventos, Biblioteca, Pesquisar, Social, Perfil. Oculta em
 /// `/leitor`. Destino central: **Pesquisar** (logo PLPCG, [RoutePaths.home]).
+/// Aba Perfil: avatar + nome quando autenticado.
 ///
 /// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
 class ShellScaffold extends ConsumerWidget {
@@ -29,6 +31,38 @@ class ShellScaffold extends ConsumerWidget {
 
   bool _isReaderRoute(BuildContext context) {
     return GoRouterState.of(context).uri.path == RoutePaths.reader;
+  }
+
+  List<PlpcgBottomNavDestination> _destinations(WidgetRef ref) {
+    final user = ref.watch(authStateProvider).asData?.value;
+    final profileLabel = user?.displayFirstName ?? 'Perfil';
+    final profileAvatar = user?.pictureUrl != null
+        ? NetworkImage(user!.pictureUrl!)
+        : null;
+
+    return [
+      const PlpcgBottomNavDestination(
+        icon: Icons.event_outlined,
+        label: 'Eventos',
+      ),
+      const PlpcgBottomNavDestination(
+        icon: Icons.library_books,
+        label: 'Biblioteca',
+      ),
+      const PlpcgBottomNavDestination(
+        svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
+        label: 'Pesquisar',
+      ),
+      const PlpcgBottomNavDestination(
+        icon: Icons.groups_outlined,
+        label: 'Social',
+      ),
+      PlpcgBottomNavDestination(
+        icon: profileAvatar == null ? Icons.person_outline : null,
+        avatarImage: profileAvatar,
+        label: profileLabel,
+      ),
+    ];
   }
 
   @override
@@ -65,29 +99,7 @@ class ShellScaffold extends ConsumerWidget {
             : PlpcgBottomNavBar(
                 selectedIndex: navigationShell.currentIndex,
                 onDestinationSelected: navigationShell.goBranch,
-                destinations: const [
-                  PlpcgBottomNavDestination(
-                    icon: Icons.event_outlined,
-                    label: 'Eventos',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.library_books,
-                    label: 'Biblioteca',
-                  ),
-                  PlpcgBottomNavDestination(
-                    svgAsset:
-                        'assets/branding/logo_colorido_no_bg_logo_only.svg',
-                    label: 'Pesquisar',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.groups_outlined,
-                    label: 'Social',
-                  ),
-                  PlpcgBottomNavDestination(
-                    icon: Icons.person_outline,
-                    label: 'Perfil',
-                  ),
-                ],
+                destinations: _destinations(ref),
               ),
       ),
     );
