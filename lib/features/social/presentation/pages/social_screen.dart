@@ -116,7 +116,9 @@ class SocialScreen extends ConsumerWidget {
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.title.withValues(alpha: 0.8)),
+            style: TextStyle(
+              color: AppColors.textLight.withValues(alpha: 0.85),
+            ),
           ),
         ),
       ),
@@ -154,19 +156,23 @@ class _UsernameBanner extends StatelessWidget {
                 ? Text(
                     '@$username',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textLight,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
                   )
                 : Text(
                     l10n.usernameCreatePrompt,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(
+                      color: AppColors.textLight.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
                   ),
           ),
           if (!hasUsername)
             TextButton(
               onPressed: onCreate,
+              style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
               child: Text(l10n.usernameCreateButton),
             ),
         ],
@@ -193,7 +199,7 @@ class _AuthRequiredBanner extends StatelessWidget {
           Text(
             l10n.socialSignInRequired,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            style: const TextStyle(color: AppColors.textLight, fontSize: 14),
           ),
           const SizedBox(height: 12),
           const GoogleSignInButton(),

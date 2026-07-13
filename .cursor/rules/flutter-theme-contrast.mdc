@@ -1,0 +1,33 @@
+---
+description: Contraste de cores AppColors — texto branco no scaffold escuro, vinho só em cards creme
+globs:
+  - lib/**/*.dart
+alwaysApply: true
+---
+
+# Flutter Theme Contrast (AppColors)
+
+O app **não** é dark-theme Material genérico. Há **duas superfícies** em `lib/core/theme/color_extensions.dart`:
+
+| Superfície | Token | Texto legível |
+|---|---|---|
+| Scaffold / chrome / banners escuros | `AppColors.background`, `btnBackground` | `AppColors.textLight` (branco) |
+| Cards, inputs, sheets creme | `AppColors.card` | `AppColors.title` (vinho `#6A2F2F`) |
+
+## Armadilha do ThemeData
+
+`AppTheme.light` define `textTheme` e `onSurface` com `AppColors.title`. Isso serve **cards creme**. No `scaffoldBackgroundColor` (`background`, vinho escuro), o texto padrão do tema fica **vinho sobre vinho** — quase ilegível.
+
+## Regras ao criar telas / widgets
+
+1. Texto direto no scaffold, empty states, hints, banners escuros → `AppColors.textLight` (ou `.withValues(alpha: 0.7–0.85)`).
+2. Texto dentro de `Card` / container `AppColors.card` → `AppColors.title`.
+3. `TextButton` / `IconButton` sobre fundo escuro → `styleFrom(foregroundColor: AppColors.textLight)`. Sem isso, o primary do tema (`title`) pinta o label de vinho.
+4. Nunca assume que `Theme.of(context).textTheme` / `colorScheme.onSurface` contrastam com o scaffold.
+5. Referência correta: `PlaylistsScreen` (empty state com `textLight`), `ProfileScreen` (branco no chrome).
+
+## Checklist rápido
+
+- [ ] Fundo é escuro? → `textLight`
+- [ ] Fundo é creme/`card`? → `title`
+- [ ] Botão de texto sobre banner escuro? → `foregroundColor: textLight`
