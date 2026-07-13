@@ -1,4 +1,10 @@
 import type { GoogleClaims } from '../auth/verify_google_token';
+import {
+  resolvePublicationFields,
+  validatePublication,
+  type PublicationCategory,
+  type PublicationReach,
+} from './publication_rules';
 
 interface PlaylistRow {
   id: string;
@@ -13,6 +19,10 @@ interface PlaylistRow {
   updated_at: string;
   version: number;
   deleted_at: string | null;
+  is_published: number;
+  publication_reach: string | null;
+  publication_category: string | null;
+  published_at: string | null;
 }
 
 export interface PlaylistJson {
@@ -26,7 +36,15 @@ export interface PlaylistJson {
   createdAt: string;
   updatedAt: string;
   version: number;
+  isPublished: boolean;
+  publicationReach: PublicationReach | null;
+  publicationCategory: PublicationCategory | null;
+  publishedAt: string | null;
 }
+
+const SELECT_COLS = `id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
+              created_at, updated_at, version, deleted_at,
+              is_published, publication_reach, publication_category, published_at`;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -60,6 +78,10 @@ function rowToJson(row: PlaylistRow): PlaylistJson {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     version: row.version,
+    isPublished: row.is_published === 1,
+    publicationReach: row.publication_reach as PublicationReach | null,
+    publicationCategory: row.publication_category as PublicationCategory | null,
+    publishedAt: row.published_at,
   };
 }
 
@@ -82,6 +104,9 @@ interface PutBody {
   createdAt?: unknown;
   updatedAt?: unknown;
   version?: unknown;
+  isPublished?: unknown;
+  publicationReach?: unknown;
+  publicationCategory?: unknown;
 }
 
 function validatePutBody(body: PutBody, pathId: string): string | null {
@@ -106,14 +131,33 @@ function validatePutBody(body: PutBody, pathId: string): string | null {
   return null;
 }
 
+function publicationJson(
+  isPublished: number,
+  reach: PublicationReach | null,
+  category: PublicationCategory | null,
+  publishedAt: string | null,
+): Pick<
+  PlaylistJson,
+  | 'isPublished'
+  | 'publicationReach'
+  | 'publicationCategory'
+  | 'publishedAt'
+> {
+  return {
+    isPublished: isPublished === 1,
+    publicationReach: reach,
+    publicationCategory: category,
+    publishedAt,
+  };
+}
+
 export async function listPlaylists(
   db: D1Database,
   claims: GoogleClaims,
 ): Promise<Response> {
   const result = await db
     .prepare(
-      `SELECT id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
-              created_at, updated_at, version, deleted_at
+      `SELECT ${SELECT_COLS}
        FROM user_playlists
        WHERE user_id = ? AND deleted_at IS NULL
        ORDER BY updated_at DESC`,
@@ -131,8 +175,7 @@ export async function getPlaylist(
 ): Promise<Response> {
   const row = await db
     .prepare(
-      `SELECT id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
-              created_at, updated_at, version, deleted_at
+      `SELECT ${SELECT_COLS}
        FROM user_playlists
        WHERE user_id = ? AND id = ? AND deleted_at IS NULL`,
     )
@@ -161,6 +204,20 @@ export async function upsertPlaylist(
     return json({ error: validationError }, 400);
   }
 
+  const existing = await db
+    .prepare(
+      `SELECT ${SELECT_COLS}
+       FROM user_playlists
+       WHERE user_id = ? AND id = ?`,
+    )
+    .bind(claims.sub, id)
+    .first<PlaylistRow>();
+
+  const pubError = validatePublication(existing, body);
+  if (pubError) {
+    return json({ error: pubError }, 400);
+  }
+
   const nome = (body.nome as string).trim();
   const pdfIdsJson = JSON.stringify(body.pdfIds);
   const favorita = body.favorita === true ? 1 : 0;
@@ -171,23 +228,19 @@ export async function upsertPlaylist(
   const now = new Date().toISOString();
   const pdfIds = body.pdfIds as string[];
 
-  const existing = await db
-    .prepare(
-      `SELECT id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
-              created_at, updated_at, version, deleted_at
-       FROM user_playlists
-       WHERE user_id = ? AND id = ?`,
-    )
-    .bind(claims.sub, id)
-    .first<PlaylistRow>();
+  const pub = resolvePublicationFields(existing, body);
+  const publishedAt = pub.newlyPublished
+    ? now
+    : pub.publishedAt;
 
   if (!existing) {
     await db
       .prepare(
         `INSERT INTO user_playlists
           (id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
-           created_at, updated_at, version, deleted_at)
-         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL)`,
+           created_at, updated_at, version, deleted_at,
+           is_published, publication_reach, publication_category, published_at)
+         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -199,6 +252,10 @@ export async function upsertPlaylist(
         favoritedAt,
         createdAt,
         clientUpdatedAt,
+        pub.isPublished,
+        pub.publicationReach,
+        pub.publicationCategory,
+        publishedAt,
       )
       .run();
 
@@ -213,6 +270,12 @@ export async function upsertPlaylist(
       createdAt,
       updatedAt: clientUpdatedAt,
       version: 1,
+      ...publicationJson(
+        pub.isPublished,
+        pub.publicationReach,
+        pub.publicationCategory,
+        publishedAt,
+      ),
     } satisfies PlaylistJson);
   }
 
@@ -222,7 +285,9 @@ export async function upsertPlaylist(
       .prepare(
         `UPDATE user_playlists SET
            nome = ?, pdf_ids = ?, salva = 1, saved_at = ?, favorita = ?,
-           favorited_at = ?, updated_at = ?, version = ?, deleted_at = NULL
+           favorited_at = ?, updated_at = ?, version = ?, deleted_at = NULL,
+           is_published = ?, publication_reach = ?, publication_category = ?,
+           published_at = ?
          WHERE user_id = ? AND id = ?`,
       )
       .bind(
@@ -233,6 +298,10 @@ export async function upsertPlaylist(
         favoritedAt,
         clientUpdatedAt,
         version,
+        pub.isPublished,
+        pub.publicationReach,
+        pub.publicationCategory,
+        publishedAt,
         claims.sub,
         id,
       )
@@ -249,6 +318,12 @@ export async function upsertPlaylist(
       createdAt: existing.created_at,
       updatedAt: clientUpdatedAt,
       version,
+      ...publicationJson(
+        pub.isPublished,
+        pub.publicationReach,
+        pub.publicationCategory,
+        publishedAt,
+      ),
     } satisfies PlaylistJson);
   }
 
@@ -264,7 +339,9 @@ export async function upsertPlaylist(
     .prepare(
       `UPDATE user_playlists SET
          nome = ?, pdf_ids = ?, salva = 1, saved_at = ?, favorita = ?,
-         favorited_at = ?, updated_at = ?, version = ?
+         favorited_at = ?, updated_at = ?, version = ?,
+         is_published = ?, publication_reach = ?, publication_category = ?,
+         published_at = ?
        WHERE user_id = ? AND id = ?`,
     )
     .bind(
@@ -275,6 +352,10 @@ export async function upsertPlaylist(
       favoritedAt,
       updatedAt,
       version,
+      pub.isPublished,
+      pub.publicationReach,
+      pub.publicationCategory,
+      publishedAt,
       claims.sub,
       id,
     )
@@ -291,6 +372,12 @@ export async function upsertPlaylist(
     createdAt: existing.created_at,
     updatedAt,
     version,
+    ...publicationJson(
+      pub.isPublished,
+      pub.publicationReach,
+      pub.publicationCategory,
+      publishedAt,
+    ),
   } satisfies PlaylistJson);
 }
 

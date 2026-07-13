@@ -1,5 +1,6 @@
 import 'package:isar_plus/isar_plus.dart';
 
+import 'playlist_publication.dart';
 import 'playlist_sync_status.dart';
 
 part 'playlist.g.dart';
@@ -37,6 +38,17 @@ class Playlist {
 
   /// Soft delete local (tombstone até push remoto).
   DateTime? deletedAt;
+
+  /// Publicação irreversível (metadados de alcance/categoria).
+  bool isPublished = false;
+
+  /// Índice de [PlaylistReach]; null se privada.
+  int? publicationReachIndex;
+
+  /// Índice de [PlaylistCategory]; null se privada.
+  int? publicationCategoryIndex;
+
+  DateTime? publishedAt;
 }
 
 extension PlaylistSyncStatusX on Playlist {
@@ -47,4 +59,24 @@ extension PlaylistSyncStatusX on Playlist {
       )];
 
   set syncStatus(PlaylistSyncStatus value) => syncStatusIndex = value.index;
+
+  PlaylistReach? get publicationReach {
+    final index = publicationReachIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= PlaylistReach.values.length) return null;
+    return PlaylistReach.values[index];
+  }
+
+  set publicationReach(PlaylistReach? value) =>
+      publicationReachIndex = value?.index;
+
+  PlaylistCategory? get publicationCategory {
+    final index = publicationCategoryIndex;
+    if (index == null) return null;
+    if (index < 0 || index >= PlaylistCategory.values.length) return null;
+    return PlaylistCategory.values[index];
+  }
+
+  set publicationCategory(PlaylistCategory? value) =>
+      publicationCategoryIndex = value?.index;
 }

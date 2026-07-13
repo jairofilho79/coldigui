@@ -62,6 +62,13 @@ class _FakePlaylistRepository implements PlaylistRepository {
   Future<void> markAllSavedPendingPush() => throw UnimplementedError();
 
   @override
+  Future<void> publish(
+    String playlistId, {
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  }) => throw UnimplementedError();
+
+  @override
   Future<void> upsert(SavedPlaylist playlist) => throw UnimplementedError();
 
   @override

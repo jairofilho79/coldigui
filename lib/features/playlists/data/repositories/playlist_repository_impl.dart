@@ -114,6 +114,34 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   }
 
   @override
+  Future<void> publish(
+    String playlistId, {
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  }) async {
+    final existing = await getById(playlistId);
+    if (existing == null) {
+      throw StateError('Playlist not found: $playlistId');
+    }
+    if (!existing.salva) {
+      throw StateError('Only saved playlists can be published');
+    }
+    if (existing.isPublished) {
+      throw StateError('Playlist already published: $playlistId');
+    }
+    final now = DateTime.now().toUtc();
+    await _local.updateFields(
+      playlistId,
+      isPublished: true,
+      publicationReachIndex: reach.index,
+      publicationCategoryIndex: category.index,
+      publishedAt: now,
+      updatedAt: now,
+      syncStatus: PlaylistSyncStatus.pendingPush,
+    );
+  }
+
+  @override
   Future<void> delete(String playlistId) async {
     final existing = await getById(playlistId);
     if (existing == null) return;
@@ -157,7 +185,11 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..updatedAt = playlist.updatedAt
       ..version = playlist.version
       ..syncStatus = playlist.syncStatus
-      ..deletedAt = playlist.deletedAt;
+      ..deletedAt = playlist.deletedAt
+      ..isPublished = playlist.isPublished
+      ..publicationReach = playlist.publicationReach
+      ..publicationCategory = playlist.publicationCategory
+      ..publishedAt = playlist.publishedAt;
     await _local.insert(row);
   }
 
@@ -179,5 +211,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     version: row.version,
     syncStatus: row.syncStatus,
     deletedAt: row.deletedAt,
+    isPublished: row.isPublished,
+    publicationReach: row.publicationReach,
+    publicationCategory: row.publicationCategory,
+    publishedAt: row.publishedAt,
   );
 }

@@ -11,6 +11,7 @@ import '../../domain/usecases/favorite_playlist.dart';
 import '../../domain/usecases/generate_playlist_share_url.dart';
 import '../../domain/usecases/import_shared_playlist_from_url.dart';
 import '../../domain/usecases/load_playlist_into_carousel.dart';
+import '../../domain/usecases/publish_playlist.dart';
 import '../../domain/usecases/save_playlist.dart';
 import '../../domain/usecases/toggle_playlist_favorite.dart';
 import '../../domain/usecases/unfavorite_playlist.dart';
@@ -60,6 +61,11 @@ final togglePlaylistFavoriteProvider = Provider<TogglePlaylistFavorite>((ref) {
 /// UC-06 — marcar playlist como salva (`salva` + `savedAt`).
 final savePlaylistProvider = Provider<SavePlaylist>((ref) {
   return SavePlaylist(ref.watch(playlistRepositoryProvider));
+});
+
+/// Publicar lista salva (irreversível).
+final publishPlaylistProvider = Provider<PublishPlaylist>((ref) {
+  return PublishPlaylist(ref.watch(playlistRepositoryProvider));
 });
 
 /// UC-06 — favoritar playlist salva.

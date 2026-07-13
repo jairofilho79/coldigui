@@ -42,6 +42,14 @@ abstract class PlaylistRepository {
     bool clearDeletedAt = false,
   });
 
+  /// Publica lista salva (irreversível). Lança [StateError] se já publicada
+  /// ou se não for salva.
+  Future<void> publish(
+    String playlistId, {
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  });
+
   /// Soft delete se salva; hard delete se rascunho.
   Future<void> delete(String playlistId);
 

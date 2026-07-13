@@ -1,5 +1,7 @@
+import '../../../../core/database/collections/playlist_publication.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
 
+export '../../../../core/database/collections/playlist_publication.dart';
 export '../../../../core/database/collections/playlist_sync_status.dart';
 
 /// Playlist do usuário (UC-06, Fase 4.2+ / UC-15 sync).
@@ -19,6 +21,10 @@ class SavedPlaylist {
     this.version = 1,
     this.syncStatus = PlaylistSyncStatus.synced,
     this.deletedAt,
+    this.isPublished = false,
+    this.publicationReach,
+    this.publicationCategory,
+    this.publishedAt,
   }) : updatedAt = updatedAt ?? createdAt;
 
   /// Identificador estável (UUID-like, compatível com PWA).
@@ -48,6 +54,17 @@ class SavedPlaylist {
   final PlaylistSyncStatus syncStatus;
   final DateTime? deletedAt;
 
+  /// `true` após publicação — irreversível sem excluir a lista.
+  final bool isPublished;
+
+  /// Alcance da publicidade; só preenchido se [isPublished].
+  final PlaylistReach? publicationReach;
+
+  /// Categoria; obrigatória na publicação.
+  final PlaylistCategory? publicationCategory;
+
+  final DateTime? publishedAt;
+
   SavedPlaylist copyWith({
     String? playlistId,
     String? nome,
@@ -62,6 +79,11 @@ class SavedPlaylist {
     PlaylistSyncStatus? syncStatus,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
+    bool? isPublished,
+    PlaylistReach? publicationReach,
+    PlaylistCategory? publicationCategory,
+    DateTime? publishedAt,
+    bool clearPublication = false,
   }) {
     return SavedPlaylist(
       playlistId: playlistId ?? this.playlistId,
@@ -76,6 +98,14 @@ class SavedPlaylist {
       version: version ?? this.version,
       syncStatus: syncStatus ?? this.syncStatus,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+      isPublished: clearPublication ? false : (isPublished ?? this.isPublished),
+      publicationReach: clearPublication
+          ? null
+          : (publicationReach ?? this.publicationReach),
+      publicationCategory: clearPublication
+          ? null
+          : (publicationCategory ?? this.publicationCategory),
+      publishedAt: clearPublication ? null : (publishedAt ?? this.publishedAt),
     );
   }
 }

@@ -130,6 +130,10 @@ class SyncPlaylists {
     updatedAt: r.updatedAt,
     version: r.version,
     syncStatus: PlaylistSyncStatus.synced,
+    isPublished: r.isPublished,
+    publicationReach: r.publicationReach,
+    publicationCategory: r.publicationCategory,
+    publishedAt: r.publishedAt,
   );
 
   static RemotePlaylist _toRemote(SavedPlaylist p) => RemotePlaylist(
@@ -143,5 +147,9 @@ class SyncPlaylists {
     version: p.version,
     savedAt: p.savedAt,
     favoritedAt: p.favoritedAt,
+    isPublished: p.isPublished,
+    publicationReach: p.publicationReach,
+    publicationCategory: p.publicationCategory,
+    publishedAt: p.publishedAt,
   );
 }

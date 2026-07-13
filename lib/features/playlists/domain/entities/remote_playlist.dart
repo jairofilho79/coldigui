@@ -1,3 +1,5 @@
+import '../../../../core/database/collections/playlist_publication.dart';
+
 /// Playlist remota (payload Worker `/api/playlists`).
 class RemotePlaylist {
   const RemotePlaylist({
@@ -11,6 +13,10 @@ class RemotePlaylist {
     required this.version,
     this.savedAt,
     this.favoritedAt,
+    this.isPublished = false,
+    this.publicationReach,
+    this.publicationCategory,
+    this.publishedAt,
   });
 
   final String id;
@@ -23,6 +29,10 @@ class RemotePlaylist {
   final int version;
   final DateTime? savedAt;
   final DateTime? favoritedAt;
+  final bool isPublished;
+  final PlaylistReach? publicationReach;
+  final PlaylistCategory? publicationCategory;
+  final DateTime? publishedAt;
 
   factory RemotePlaylist.fromJson(Map<String, dynamic> json) {
     return RemotePlaylist(
@@ -36,6 +46,14 @@ class RemotePlaylist {
       version: json['version'] as int? ?? 1,
       savedAt: _parseOptionalDate(json['savedAt']),
       favoritedAt: _parseOptionalDate(json['favoritedAt']),
+      isPublished: json['isPublished'] as bool? ?? false,
+      publicationReach: PlaylistReachWire.tryParse(
+        json['publicationReach'] as String?,
+      ),
+      publicationCategory: PlaylistCategoryWire.tryParse(
+        json['publicationCategory'] as String?,
+      ),
+      publishedAt: _parseOptionalDate(json['publishedAt']),
     );
   }
 
@@ -50,6 +68,10 @@ class RemotePlaylist {
     'version': version,
     'savedAt': savedAt?.toUtc().toIso8601String(),
     'favoritedAt': favoritedAt?.toUtc().toIso8601String(),
+    'isPublished': isPublished,
+    'publicationReach': publicationReach?.wireValue,
+    'publicationCategory': publicationCategory?.wireValue,
+    'publishedAt': publishedAt?.toUtc().toIso8601String(),
   };
 
   static DateTime? _parseOptionalDate(Object? value) {

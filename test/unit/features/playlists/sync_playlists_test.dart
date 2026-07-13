@@ -103,6 +103,28 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   }
 
   @override
+  Future<void> publish(
+    String playlistId, {
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  }) async {
+    final existing = map[playlistId];
+    if (existing == null) throw StateError('missing');
+    if (!existing.salva || existing.isPublished) {
+      throw StateError('cannot publish');
+    }
+    final now = DateTime.utc(2026, 7, 13);
+    map[playlistId] = existing.copyWith(
+      isPublished: true,
+      publicationCategory: category,
+      publicationReach: reach,
+      publishedAt: now,
+      updatedAt: now,
+      syncStatus: PlaylistSyncStatus.pendingPush,
+    );
+  }
+
+  @override
   Future<void> update(
     String playlistId, {
     String? nome,
@@ -289,5 +311,37 @@ void main() {
     expect(deletedId, 'gone');
     expect(result.deleted, 1);
     expect(repo.map.containsKey('gone'), isFalse);
+  });
+
+  test('pull preserva metadados de publicação', () async {
+    final repo = _MemoryPlaylistRepository();
+    final remote = RemotePlaylist(
+      id: 'pub1',
+      nome: 'Evangelismo',
+      pdfIds: const ['a'],
+      salva: true,
+      favorita: false,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 2, 1),
+      version: 3,
+      savedAt: DateTime.utc(2026, 1, 1),
+      isPublished: true,
+      publicationReach: PlaylistReach.pontual,
+      publicationCategory: PlaylistCategory.evangelizacao,
+      publishedAt: DateTime.utc(2026, 1, 15),
+    );
+
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => [remote],
+      ({required idToken, required playlist}) async => playlist,
+      ({required idToken, required playlistId}) async {},
+    );
+
+    await sync(idToken: 'token');
+    final local = repo.map['pub1']!;
+    expect(local.isPublished, isTrue);
+    expect(local.publicationReach, PlaylistReach.pontual);
+    expect(local.publicationCategory, PlaylistCategory.evangelizacao);
   });
 }

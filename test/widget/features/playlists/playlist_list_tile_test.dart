@@ -281,4 +281,67 @@ void main() {
 
     expect(shareNotifier.lastOption, PlaylistShareOption.link);
   });
+
+  testWidgets('menu exibe Publicar em lista privada', (tester) async {
+    await tester.pumpWidget(
+      buildSubject(playlistsNotifier: _FakePlaylistsNotifier([item])),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Publicar'), findsOneWidget);
+  });
+
+  testWidgets('lista publicada mostra badge e esconde Publicar', (
+    tester,
+  ) async {
+    final published = PlaylistViewItem(
+      playlist: SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Ensaio domingo',
+        pdfIds: [pdfIdA, pdfIdB],
+        createdAt: DateTime(2026, 6, 8),
+        isPublished: true,
+        publicationReach: PlaylistReach.usual,
+        publicationCategory: PlaylistCategory.evangelizacao,
+        publishedAt: DateTime(2026, 6, 9),
+      ),
+      pdfLabels: ['001 — A', '002 — B'],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          playlistsProvider.overrideWith(
+            () => _FakePlaylistsNotifier([published]),
+          ),
+          playlistShareActionsProvider.overrideWith(
+            _FakePlaylistShareActionsNotifier.new,
+          ),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([]),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: PlaylistListTile(item: published, tab: PlaylistTab.saved),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pública'), findsOneWidget);
+    expect(find.text('Evangelização'), findsOneWidget);
+    expect(find.byIcon(Icons.public), findsOneWidget);
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    expect(find.text('Publicar'), findsNothing);
+  });
 }

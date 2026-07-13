@@ -686,6 +686,56 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistDeleteAllUnsavedDone => 'Listas não salvas apagadas';
 
   @override
+  String get playlistPublish => 'Publicar';
+
+  @override
+  String get playlistPublishTitle => 'Publicar lista?';
+
+  @override
+  String get playlistPublishMessage =>
+      'Publicar é irreversível. Para remover a publicação, exclua a lista.';
+
+  @override
+  String get playlistPublishConfirm => 'Publicar';
+
+  @override
+  String get playlistPublishCancel => 'Cancelar';
+
+  @override
+  String get playlistPublishCategoryLabel => 'Categoria';
+
+  @override
+  String get playlistPublishReachLabel => 'Alcance';
+
+  @override
+  String get playlistPublishReachUsual => 'Usual';
+
+  @override
+  String get playlistPublishReachPontual => 'Pontual';
+
+  @override
+  String get playlistPublishCategoryRequired =>
+      'Escolha uma categoria para publicar.';
+
+  @override
+  String get playlistPublished => 'Lista publicada';
+
+  @override
+  String get playlistPublicBadge => 'Pública';
+
+  @override
+  String get playlistCategoryEvangelizacao => 'Evangelização';
+
+  @override
+  String get playlistCategoryAprendizado => 'Aprendizado';
+
+  @override
+  String get playlistCategoryMedleys => 'Medleys';
+
+  @override
+  String get playlistCategoryCultoEspecial => 'Culto especial';
+
+  @override
   String get playlistClearSavedBlocked =>
       'Listas salvas não podem ser limpas pela barra. Use o menu da lista.';
 

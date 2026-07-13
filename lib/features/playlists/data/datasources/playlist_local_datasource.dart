@@ -118,6 +118,11 @@ class PlaylistLocalDatasource {
     PlaylistSyncStatus? syncStatus,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
+    bool? isPublished,
+    int? publicationReachIndex,
+    int? publicationCategoryIndex,
+    DateTime? publishedAt,
+    bool clearPublication = false,
   }) async {
     final isar = _isar;
     if (isar == null) return;
@@ -142,6 +147,21 @@ class PlaylistLocalDatasource {
         existing.deletedAt = null;
       } else if (deletedAt != null) {
         existing.deletedAt = deletedAt;
+      }
+      if (clearPublication) {
+        existing.isPublished = false;
+        existing.publicationReachIndex = null;
+        existing.publicationCategoryIndex = null;
+        existing.publishedAt = null;
+      } else {
+        if (isPublished != null) existing.isPublished = isPublished;
+        if (publicationReachIndex != null) {
+          existing.publicationReachIndex = publicationReachIndex;
+        }
+        if (publicationCategoryIndex != null) {
+          existing.publicationCategoryIndex = publicationCategoryIndex;
+        }
+        if (publishedAt != null) existing.publishedAt = publishedAt;
       }
 
       coll.put(existing);

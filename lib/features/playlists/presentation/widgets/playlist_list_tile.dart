@@ -23,12 +23,14 @@ import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
+import '../../domain/entities/saved_playlist.dart';
 import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'playlist_share_sheet.dart';
+import 'publish_playlist_dialog.dart';
 import 'save_playlist_dialog.dart';
 
 /// Tile de playlist com favorito, expansão e ações (UC-06).
@@ -111,6 +113,16 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 nome: _displayName(playlist.nome),
                 hora: _formatTime(playlist.createdAt),
                 countLabel: l10n.playlistPdfCount(count),
+                isPublished: playlist.isPublished,
+                publicBadgeLabel: l10n.playlistPublicBadge,
+                categoryLabel: playlist.publicationCategory == null
+                    ? null
+                    : _categoryLabel(l10n, playlist.publicationCategory!),
+                reachLabel: playlist.publicationReach == null
+                    ? null
+                    : (playlist.publicationReach == PlaylistReach.usual
+                          ? l10n.playlistPublishReachUsual
+                          : l10n.playlistPublishReachPontual),
                 tab: widget.tab,
                 saveTooltip: l10n.playlistSaveAction,
                 favoriteOffTooltip: l10n.playlistFavoriteOn,
@@ -120,7 +132,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 onPrimaryAction: () =>
                     _handlePrimaryAction(playlist.playlistId),
                 onMenuSelected: (action) => _handleAction(context, action),
-                menuItems: _menuItems(l10n),
+                menuItems: _menuItems(l10n, playlist),
                 onTap: () => setState(() => _expanded = !_expanded),
               ),
               AnimatedCrossFade(
@@ -153,7 +165,10 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     );
   }
 
-  List<PopupMenuEntry<String>> _menuItems(AppLocalizations l10n) {
+  List<PopupMenuEntry<String>> _menuItems(
+    AppLocalizations l10n,
+    SavedPlaylist playlist,
+  ) {
     return [
       PopupMenuItem(value: 'load', child: Text(l10n.playlistLoadIntoCarousel)),
       PopupMenuItem(
@@ -161,9 +176,23 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         child: Text(l10n.playlistOpenInReader),
       ),
       PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
+      if (playlist.salva && !playlist.isPublished)
+        PopupMenuItem(value: 'publish', child: Text(l10n.playlistPublish)),
       PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
       PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
     ];
+  }
+
+  static String _categoryLabel(
+    AppLocalizations l10n,
+    PlaylistCategory category,
+  ) {
+    return switch (category) {
+      PlaylistCategory.evangelizacao => l10n.playlistCategoryEvangelizacao,
+      PlaylistCategory.aprendizado => l10n.playlistCategoryAprendizado,
+      PlaylistCategory.medleys => l10n.playlistCategoryMedleys,
+      PlaylistCategory.cultoEspecial => l10n.playlistCategoryCultoEspecial,
+    };
   }
 
   void _showError(String message) {
@@ -364,6 +393,20 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         await ref
             .read(playlistsProvider.notifier)
             .rename(playlistId: playlist.playlistId, nome: nome);
+      case 'publish':
+        if (playlist.isPublished) return;
+        final result = await showPublishPlaylistDialog(context);
+        if (result == null || !context.mounted) return;
+        await ref
+            .read(playlistsProvider.notifier)
+            .publishPlaylist(
+              playlistId: playlist.playlistId,
+              category: result.category,
+              reach: result.reach,
+            );
+        if (context.mounted) {
+          showAppSnackbar(context, l10n.playlistPublished);
+        }
       case 'delete':
         final confirmed = await showConfirmDialog(
           context: context,
@@ -393,6 +436,10 @@ class _PlaylistHeader extends StatelessWidget {
     required this.nome,
     required this.hora,
     required this.countLabel,
+    required this.isPublished,
+    required this.publicBadgeLabel,
+    required this.categoryLabel,
+    required this.reachLabel,
     required this.tab,
     required this.saveTooltip,
     required this.favoriteOffTooltip,
@@ -408,6 +455,10 @@ class _PlaylistHeader extends StatelessWidget {
   final String nome;
   final String hora;
   final String countLabel;
+  final bool isPublished;
+  final String publicBadgeLabel;
+  final String? categoryLabel;
+  final String? reachLabel;
   final PlaylistTab tab;
   final String saveTooltip;
   final String favoriteOffTooltip;
@@ -464,6 +515,73 @@ class _PlaylistHeader extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if (isPublished) ...[
+                          const SizedBox(height: 6),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              Chip(
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                avatar: const Icon(
+                                  Icons.public,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                label: Text(
+                                  publicBadgeLabel,
+                                  style: AppTypography.label.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.title,
+                                  ),
+                                ),
+                                side: const BorderSide(color: AppColors.gold),
+                                backgroundColor: AppColors.card,
+                              ),
+                              if (categoryLabel != null)
+                                Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  label: Text(
+                                    categoryLabel!,
+                                    style: AppTypography.label.copyWith(
+                                      fontSize: 11,
+                                      color: AppColors.title,
+                                    ),
+                                  ),
+                                  side: BorderSide(
+                                    color: AppColors.gold.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                  backgroundColor: AppColors.card,
+                                ),
+                              if (reachLabel != null)
+                                Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  label: Text(
+                                    reachLabel!,
+                                    style: AppTypography.label.copyWith(
+                                      fontSize: 11,
+                                      color: AppColors.title,
+                                    ),
+                                  ),
+                                  side: BorderSide(
+                                    color: AppColors.gold.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                  backgroundColor: AppColors.card,
+                                ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 2),
                         Text(
                           hora,

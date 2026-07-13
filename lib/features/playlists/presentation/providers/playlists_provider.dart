@@ -258,6 +258,20 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     _syncCloudIfAuthed();
   }
 
+  Future<void> publishPlaylist({
+    required String playlistId,
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  }) async {
+    await ref.read(publishPlaylistProvider)(
+      playlistId: playlistId,
+      category: category,
+      reach: reach,
+    );
+    await _reload();
+    _syncCloudIfAuthed();
+  }
+
   Future<void> rename({
     required String playlistId,
     required String nome,

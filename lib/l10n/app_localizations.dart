@@ -1223,6 +1223,102 @@ abstract class AppLocalizations {
   /// **'Listas não salvas apagadas'**
   String get playlistDeleteAllUnsavedDone;
 
+  /// No description provided for @playlistPublish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicar'**
+  String get playlistPublish;
+
+  /// No description provided for @playlistPublishTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicar lista?'**
+  String get playlistPublishTitle;
+
+  /// No description provided for @playlistPublishMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicar é irreversível. Para remover a publicação, exclua a lista.'**
+  String get playlistPublishMessage;
+
+  /// No description provided for @playlistPublishConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicar'**
+  String get playlistPublishConfirm;
+
+  /// No description provided for @playlistPublishCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get playlistPublishCancel;
+
+  /// No description provided for @playlistPublishCategoryLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get playlistPublishCategoryLabel;
+
+  /// No description provided for @playlistPublishReachLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alcance'**
+  String get playlistPublishReachLabel;
+
+  /// No description provided for @playlistPublishReachUsual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usual'**
+  String get playlistPublishReachUsual;
+
+  /// No description provided for @playlistPublishReachPontual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pontual'**
+  String get playlistPublishReachPontual;
+
+  /// No description provided for @playlistPublishCategoryRequired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha uma categoria para publicar.'**
+  String get playlistPublishCategoryRequired;
+
+  /// No description provided for @playlistPublished.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista publicada'**
+  String get playlistPublished;
+
+  /// No description provided for @playlistPublicBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pública'**
+  String get playlistPublicBadge;
+
+  /// No description provided for @playlistCategoryEvangelizacao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Evangelização'**
+  String get playlistCategoryEvangelizacao;
+
+  /// No description provided for @playlistCategoryAprendizado.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aprendizado'**
+  String get playlistCategoryAprendizado;
+
+  /// No description provided for @playlistCategoryMedleys.
+  ///
+  /// In pt, this message translates to:
+  /// **'Medleys'**
+  String get playlistCategoryMedleys;
+
+  /// No description provided for @playlistCategoryCultoEspecial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Culto especial'**
+  String get playlistCategoryCultoEspecial;
+
   /// No description provided for @playlistClearSavedBlocked.
   ///
   /// In pt, this message translates to:
