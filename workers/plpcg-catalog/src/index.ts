@@ -1,4 +1,5 @@
 import { upsertUser } from './auth/session';
+import { setUsername } from './auth/username';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
 import { withAuth } from './auth/with_auth';
 import {
@@ -8,6 +9,11 @@ import {
   softDeletePlaylist,
   upsertPlaylist,
 } from './playlists/handlers';
+import {
+  listPublicPlaylistsByUsername,
+  searchSocialUsers,
+  socialUsernameFromPath,
+} from './social/handlers';
 
 export interface Env {
   DB: D1Database;
@@ -34,7 +40,7 @@ interface LouvorJson {
   groupId: string;
 }
 
-type CorsMode = 'catalog' | 'auth' | 'playlists';
+type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social';
 
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
@@ -71,8 +77,14 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type',
       );
+    } else if (mode === 'social') {
+      headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      headers.set(
+        'Access-Control-Allow-Headers',
+        'Authorization, Content-Type',
+      );
     } else if (mode === 'auth') {
-      headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      headers.set('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS');
       headers.set(
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type',
@@ -218,8 +230,35 @@ async function handleAuthSession(
 
 function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/playlists')) return 'playlists';
+  if (pathname.startsWith('/api/social')) return 'social';
   if (pathname.startsWith('/api/auth/')) return 'auth';
   return 'catalog';
+}
+
+async function handleSocial(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (pathname === '/api/social/users') {
+    if (request.method === 'GET') {
+      return withAuth(request, env, (req, e) =>
+        searchSocialUsers(e.DB, req),
+      );
+    }
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+
+  const username = socialUsernameFromPath(pathname);
+  if (username === null) {
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  }
+  if (request.method === 'GET') {
+    return withAuth(request, env, (_req, e) =>
+      listPublicPlaylistsByUsername(e.DB, username),
+    );
+  }
+  return jsonResponse({ error: 'method not allowed' }, { status: 405 });
 }
 
 async function handlePlaylists(
@@ -276,6 +315,31 @@ export default {
 
     if (url.pathname === '/api/auth/session') {
       return withCors(await handleAuthSession(request, env), request, 'auth');
+    }
+
+    if (url.pathname === '/api/auth/username') {
+      if (request.method !== 'PUT') {
+        return withCors(
+          jsonResponse({ error: 'method not allowed' }, { status: 405 }),
+          request,
+          'auth',
+        );
+      }
+      return withCors(
+        await withAuth(request, env, (req, e, claims) =>
+          setUsername(e.DB, claims, req),
+        ),
+        request,
+        'auth',
+      );
+    }
+
+    if (url.pathname.startsWith('/api/social')) {
+      return withCors(
+        await handleSocial(request, env, url.pathname),
+        request,
+        'social',
+      );
     }
 
     if (url.pathname.startsWith('/api/playlists')) {

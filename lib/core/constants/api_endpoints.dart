@@ -17,6 +17,15 @@ abstract final class ApiEndpoints {
   /// `POST` + `Authorization: Bearer <id_token>` → perfil (`googleSub`, …).
   static const String authSession = '/api/auth/session';
 
+  /// Define username único — `PUT` + Bearer + `{ username }`.
+  static const String authUsername = '/api/auth/username';
+
+  /// Busca social de usuários com listas públicas — `GET ?q=`.
+  static const String socialUsers = '/api/social/users';
+
+  static String socialUserPlaylists(String username) =>
+      '/api/social/users/${Uri.encodeComponent(username)}/playlists';
+
   /// Playlists do usuário autenticado — Worker + D1 `user_playlists`.
   static const String playlists = '/api/playlists';
 

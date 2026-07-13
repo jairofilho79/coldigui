@@ -759,4 +759,94 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0 with $_temp1';
   }
+
+  @override
+  String get usernameCreateButton => 'Create username';
+
+  @override
+  String get usernameCreateTitle => 'Create username';
+
+  @override
+  String get usernameCreateMessage =>
+      'Choose a unique username for the app. It identifies you and your public playlists. Use 3 to 30 characters: lowercase letters, numbers, or _.';
+
+  @override
+  String get usernameCreatePrompt => 'Create a username to publish playlists.';
+
+  @override
+  String get usernameFieldLabel => 'Username';
+
+  @override
+  String get usernameFieldHint => 'e.g. maria_silva';
+
+  @override
+  String get usernameCreateCancel => 'Cancel';
+
+  @override
+  String get usernameCreateConfirm => 'Save';
+
+  @override
+  String get usernameErrorInvalid => 'Use 3–30 characters: a-z, 0-9, or _.';
+
+  @override
+  String get usernameErrorTaken => 'That username is already taken.';
+
+  @override
+  String get usernameErrorAlreadySet => 'You already have a username.';
+
+  @override
+  String get usernameErrorGeneric => 'Could not save. Please try again.';
+
+  @override
+  String get usernameRequiredToPublish => 'Register Username';
+
+  @override
+  String get socialSearchHint => 'Search people by username';
+
+  @override
+  String get socialSearchEmptyHint => 'Type a username to find people.';
+
+  @override
+  String get socialSearchNoResults => 'No people found.';
+
+  @override
+  String get socialSearchError => 'Search failed. Please try again.';
+
+  @override
+  String get socialSignInRequired => 'Sign in with Google to explore Social.';
+
+  @override
+  String socialPlaylistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists',
+      one: '1 playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get socialPlaylistsError => 'Could not load playlists.';
+
+  @override
+  String get socialPlaylistsEmpty =>
+      'This profile has no public playlists yet.';
+
+  @override
+  String get socialCategoryOther => 'Other';
+
+  @override
+  String socialPlaylistImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs added to your playlist',
+      one: '1 song added to your playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get socialPlaylistImportNone => 'No new songs to add.';
 }

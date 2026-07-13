@@ -119,4 +119,18 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       // Sessão local já limpa.
     }
   }
+
+  /// Cadastra username único e atualiza a sessão local.
+  Future<void> setUsername(String username) async {
+    final current = state.asData?.value;
+    if (current == null) {
+      throw StateError('not_authenticated');
+    }
+    final value = await ref
+        .read(authRemoteDatasourceProvider)
+        .setUsername(idToken: current.idToken, username: username);
+    final updated = current.copyWith(username: value);
+    ref.read(authSessionStoreProvider).write(updated);
+    state = AsyncData(updated);
+  }
 }

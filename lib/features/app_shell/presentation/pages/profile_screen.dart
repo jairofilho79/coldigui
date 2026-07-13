@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
 
 /// Hub do Perfil — login Google, Sobre, Listas e Offline.
@@ -192,6 +194,28 @@ class _SignedInHeader extends ConsumerWidget {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      if (user.hasUsername)
+                        Text(
+                          '@${user.username}',
+                          style: const TextStyle(
+                            color: AppColors.gold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      else
+                        TextButton(
+                          onPressed: () => showCreateUsernameDialog(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.gold,
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context)!.usernameCreateButton,
+                          ),
+                        ),
                     ],
                   ),
                 ),

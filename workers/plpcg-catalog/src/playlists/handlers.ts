@@ -1,3 +1,4 @@
+import { getUsername } from '../auth/session';
 import type { GoogleClaims } from '../auth/verify_google_token';
 import {
   resolvePublicationFields,
@@ -229,6 +230,12 @@ export async function upsertPlaylist(
   const pdfIds = body.pdfIds as string[];
 
   const pub = resolvePublicationFields(existing, body);
+  if (pub.newlyPublished) {
+    const username = await getUsername(db, claims.sub);
+    if (!username) {
+      return json({ error: 'username required' }, 400);
+    }
+  }
   const publishedAt = pub.newlyPublished
     ? now
     : pub.publishedAt;

@@ -1354,6 +1354,150 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{entryCount, plural, one{1 entrada} other{{entryCount} entradas}} com {arrangementCount, plural, one{1 arranjo} other{{arrangementCount} arranjos}}'**
   String louvorGroupMetadataSummary(int entryCount, int arrangementCount);
+
+  /// No description provided for @usernameCreateButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar nome de usuário'**
+  String get usernameCreateButton;
+
+  /// No description provided for @usernameCreateTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar nome de usuário'**
+  String get usernameCreateTitle;
+
+  /// No description provided for @usernameCreateMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha um nome de usuário único no app. Ele identifica você e suas listas públicas. Use 3 a 30 caracteres: letras minúsculas, números ou _.'**
+  String get usernameCreateMessage;
+
+  /// No description provided for @usernameCreatePrompt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre um nome de usuário para publicar listas.'**
+  String get usernameCreatePrompt;
+
+  /// No description provided for @usernameFieldLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome de usuário'**
+  String get usernameFieldLabel;
+
+  /// No description provided for @usernameFieldHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'ex.: maria_silva'**
+  String get usernameFieldHint;
+
+  /// No description provided for @usernameCreateCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get usernameCreateCancel;
+
+  /// No description provided for @usernameCreateConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get usernameCreateConfirm;
+
+  /// No description provided for @usernameErrorInvalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Use 3–30 caracteres: a-z, 0-9 ou _.'**
+  String get usernameErrorInvalid;
+
+  /// No description provided for @usernameErrorTaken.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esse nome de usuário já está em uso.'**
+  String get usernameErrorTaken;
+
+  /// No description provided for @usernameErrorAlreadySet.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você já tem um nome de usuário.'**
+  String get usernameErrorAlreadySet;
+
+  /// No description provided for @usernameErrorGeneric.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível salvar. Tente novamente.'**
+  String get usernameErrorGeneric;
+
+  /// No description provided for @usernameRequiredToPublish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastrar Nome de Usuário'**
+  String get usernameRequiredToPublish;
+
+  /// No description provided for @socialSearchHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar pessoa por nome de usuário'**
+  String get socialSearchHint;
+
+  /// No description provided for @socialSearchEmptyHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Digite um nome de usuário para encontrar pessoas.'**
+  String get socialSearchEmptyHint;
+
+  /// No description provided for @socialSearchNoResults.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma pessoa encontrada.'**
+  String get socialSearchNoResults;
+
+  /// No description provided for @socialSearchError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível buscar. Tente novamente.'**
+  String get socialSearchError;
+
+  /// No description provided for @socialSignInRequired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com o Google para explorar a aba Social.'**
+  String get socialSignInRequired;
+
+  /// No description provided for @socialPlaylistCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 lista} other{{count} listas}}'**
+  String socialPlaylistCount(int count);
+
+  /// No description provided for @socialPlaylistsError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar as listas.'**
+  String get socialPlaylistsError;
+
+  /// No description provided for @socialPlaylistsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este perfil ainda não tem listas públicas.'**
+  String get socialPlaylistsEmpty;
+
+  /// No description provided for @socialCategoryOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outras'**
+  String get socialCategoryOther;
+
+  /// No description provided for @socialPlaylistImported.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 louvor adicionado à sua lista} other{{count} louvores adicionados à sua lista}}'**
+  String socialPlaylistImported(int count);
+
+  /// No description provided for @socialPlaylistImportNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum louvor novo para adicionar.'**
+  String get socialPlaylistImportNone;
 }
 
 class _AppLocalizationsDelegate

@@ -375,5 +375,43 @@
         "type": "int"
       }
     }
-  }
+  },
+  "usernameCreateButton": "Criar nome de usuário",
+  "usernameCreateTitle": "Criar nome de usuário",
+  "usernameCreateMessage": "Escolha um nome de usuário único no app. Ele identifica você e suas listas públicas. Use 3 a 30 caracteres: letras minúsculas, números ou _.",
+  "usernameCreatePrompt": "Cadastre um nome de usuário para publicar listas.",
+  "usernameFieldLabel": "Nome de usuário",
+  "usernameFieldHint": "ex.: maria_silva",
+  "usernameCreateCancel": "Cancelar",
+  "usernameCreateConfirm": "Salvar",
+  "usernameErrorInvalid": "Use 3–30 caracteres: a-z, 0-9 ou _.",
+  "usernameErrorTaken": "Esse nome de usuário já está em uso.",
+  "usernameErrorAlreadySet": "Você já tem um nome de usuário.",
+  "usernameErrorGeneric": "Não foi possível salvar. Tente novamente.",
+  "usernameRequiredToPublish": "Cadastrar Nome de Usuário",
+  "socialSearchHint": "Buscar pessoa por nome de usuário",
+  "socialSearchEmptyHint": "Digite um nome de usuário para encontrar pessoas.",
+  "socialSearchNoResults": "Nenhuma pessoa encontrada.",
+  "socialSearchError": "Não foi possível buscar. Tente novamente.",
+  "socialSignInRequired": "Entre com o Google para explorar a aba Social.",
+  "socialPlaylistCount": "{count, plural, one{1 lista} other{{count} listas}}",
+  "@socialPlaylistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistsError": "Não foi possível carregar as listas.",
+  "socialPlaylistsEmpty": "Este perfil ainda não tem listas públicas.",
+  "socialCategoryOther": "Outras",
+  "socialPlaylistImported": "{count, plural, one{1 louvor adicionado à sua lista} other{{count} louvores adicionados à sua lista}}",
+  "@socialPlaylistImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistImportNone": "Nenhum louvor novo para adicionar."
 }

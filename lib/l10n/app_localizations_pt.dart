@@ -768,4 +768,98 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0 com $_temp1';
   }
+
+  @override
+  String get usernameCreateButton => 'Criar nome de usuário';
+
+  @override
+  String get usernameCreateTitle => 'Criar nome de usuário';
+
+  @override
+  String get usernameCreateMessage =>
+      'Escolha um nome de usuário único no app. Ele identifica você e suas listas públicas. Use 3 a 30 caracteres: letras minúsculas, números ou _.';
+
+  @override
+  String get usernameCreatePrompt =>
+      'Cadastre um nome de usuário para publicar listas.';
+
+  @override
+  String get usernameFieldLabel => 'Nome de usuário';
+
+  @override
+  String get usernameFieldHint => 'ex.: maria_silva';
+
+  @override
+  String get usernameCreateCancel => 'Cancelar';
+
+  @override
+  String get usernameCreateConfirm => 'Salvar';
+
+  @override
+  String get usernameErrorInvalid => 'Use 3–30 caracteres: a-z, 0-9 ou _.';
+
+  @override
+  String get usernameErrorTaken => 'Esse nome de usuário já está em uso.';
+
+  @override
+  String get usernameErrorAlreadySet => 'Você já tem um nome de usuário.';
+
+  @override
+  String get usernameErrorGeneric =>
+      'Não foi possível salvar. Tente novamente.';
+
+  @override
+  String get usernameRequiredToPublish => 'Cadastrar Nome de Usuário';
+
+  @override
+  String get socialSearchHint => 'Buscar pessoa por nome de usuário';
+
+  @override
+  String get socialSearchEmptyHint =>
+      'Digite um nome de usuário para encontrar pessoas.';
+
+  @override
+  String get socialSearchNoResults => 'Nenhuma pessoa encontrada.';
+
+  @override
+  String get socialSearchError => 'Não foi possível buscar. Tente novamente.';
+
+  @override
+  String get socialSignInRequired =>
+      'Entre com o Google para explorar a aba Social.';
+
+  @override
+  String socialPlaylistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count listas',
+      one: '1 lista',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get socialPlaylistsError => 'Não foi possível carregar as listas.';
+
+  @override
+  String get socialPlaylistsEmpty =>
+      'Este perfil ainda não tem listas públicas.';
+
+  @override
+  String get socialCategoryOther => 'Outras';
+
+  @override
+  String socialPlaylistImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count louvores adicionados à sua lista',
+      one: '1 louvor adicionado à sua lista',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get socialPlaylistImportNone => 'Nenhum louvor novo para adicionar.';
 }

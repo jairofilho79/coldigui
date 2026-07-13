@@ -20,6 +20,8 @@ import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
@@ -169,6 +171,9 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     AppLocalizations l10n,
     SavedPlaylist playlist,
   ) {
+    final hasUsername =
+        ref.watch(authStateProvider).asData?.value?.hasUsername ?? false;
+
     return [
       PopupMenuItem(value: 'load', child: Text(l10n.playlistLoadIntoCarousel)),
       PopupMenuItem(
@@ -177,7 +182,16 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       ),
       PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
       if (playlist.salva && !playlist.isPublished)
-        PopupMenuItem(value: 'publish', child: Text(l10n.playlistPublish)),
+        PopupMenuItem(
+          value: 'publish',
+          child: Tooltip(
+            message: hasUsername ? '' : l10n.usernameRequiredToPublish,
+            child: Opacity(
+              opacity: hasUsername ? 1 : 0.45,
+              child: Text(l10n.playlistPublish),
+            ),
+          ),
+        ),
       PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
       PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
     ];
@@ -395,6 +409,12 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
             .rename(playlistId: playlist.playlistId, nome: nome);
       case 'publish':
         if (playlist.isPublished) return;
+        final hasUsername =
+            ref.read(authStateProvider).asData?.value?.hasUsername ?? false;
+        if (!hasUsername) {
+          await showCreateUsernameDialog(context);
+          return;
+        }
         final result = await showPublishPlaylistDialog(context);
         if (result == null || !context.mounted) return;
         await ref

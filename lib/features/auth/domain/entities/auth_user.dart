@@ -6,6 +6,7 @@ class AuthUser {
     this.email,
     this.name,
     this.pictureUrl,
+    this.username,
   });
 
   /// Claim `sub` do JWT Google — PK em D1 `users.google_sub`.
@@ -15,8 +16,13 @@ class AuthUser {
   final String? name;
   final String? pictureUrl;
 
+  /// Handle público único (`users.username`). Null até o usuário cadastrar.
+  final String? username;
+
   /// Google ID token (Bearer nas rotas `/api/auth/*`).
   final String idToken;
+
+  bool get hasUsername => username != null && username!.isNotEmpty;
 
   /// Primeiro nome para a bottom bar (fallback: `Perfil`).
   String get displayFirstName {
@@ -30,6 +36,7 @@ class AuthUser {
     String? email,
     String? name,
     String? pictureUrl,
+    String? username,
     String? idToken,
   }) {
     return AuthUser(
@@ -37,6 +44,7 @@ class AuthUser {
       email: email ?? this.email,
       name: name ?? this.name,
       pictureUrl: pictureUrl ?? this.pictureUrl,
+      username: username ?? this.username,
       idToken: idToken ?? this.idToken,
     );
   }
@@ -46,6 +54,7 @@ class AuthUser {
     'email': email,
     'name': name,
     'pictureUrl': pictureUrl,
+    'username': username,
     'idToken': idToken,
   };
 
@@ -61,6 +70,7 @@ class AuthUser {
       email: json['email'] as String?,
       name: json['name'] as String?,
       pictureUrl: json['pictureUrl'] as String?,
+      username: json['username'] as String?,
       idToken: token,
     );
   }

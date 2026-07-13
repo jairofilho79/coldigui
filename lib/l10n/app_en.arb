@@ -375,5 +375,43 @@
         "type": "int"
       }
     }
-  }
+  },
+  "usernameCreateButton": "Create username",
+  "usernameCreateTitle": "Create username",
+  "usernameCreateMessage": "Choose a unique username for the app. It identifies you and your public playlists. Use 3 to 30 characters: lowercase letters, numbers, or _.",
+  "usernameCreatePrompt": "Create a username to publish playlists.",
+  "usernameFieldLabel": "Username",
+  "usernameFieldHint": "e.g. maria_silva",
+  "usernameCreateCancel": "Cancel",
+  "usernameCreateConfirm": "Save",
+  "usernameErrorInvalid": "Use 3–30 characters: a-z, 0-9, or _.",
+  "usernameErrorTaken": "That username is already taken.",
+  "usernameErrorAlreadySet": "You already have a username.",
+  "usernameErrorGeneric": "Could not save. Please try again.",
+  "usernameRequiredToPublish": "Register Username",
+  "socialSearchHint": "Search people by username",
+  "socialSearchEmptyHint": "Type a username to find people.",
+  "socialSearchNoResults": "No people found.",
+  "socialSearchError": "Search failed. Please try again.",
+  "socialSignInRequired": "Sign in with Google to explore Social.",
+  "socialPlaylistCount": "{count, plural, one{1 playlist} other{{count} playlists}}",
+  "@socialPlaylistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistsError": "Could not load playlists.",
+  "socialPlaylistsEmpty": "This profile has no public playlists yet.",
+  "socialCategoryOther": "Other",
+  "socialPlaylistImported": "{count, plural, one{1 song added to your playlist} other{{count} songs added to your playlist}}",
+  "@socialPlaylistImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "socialPlaylistImportNone": "No new songs to add."
 }
