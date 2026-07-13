@@ -24,7 +24,7 @@ final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
 
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
-  var _googleReady = false;
+  Future<void>? _googleInitFuture;
 
   @override
   Future<AuthUser?> build() async {
@@ -33,7 +33,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       _authSub = null;
     });
 
-    await _ensureGoogleInitialized();
+    await ensureGoogleInitialized();
 
     final stored = ref.read(authSessionStoreProvider).read();
     if (stored == null) return null;
@@ -49,18 +49,21 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     }
   }
 
-  Future<void> _ensureGoogleInitialized() async {
-    if (_googleReady || AppConfig.isGoogleClientIdMissing) return;
+  /// Único ponto que chama [GoogleSignIn.initialize] (idempotente).
+  Future<void> ensureGoogleInitialized() {
+    if (AppConfig.isGoogleClientIdMissing) {
+      return Future<void>.value();
+    }
+    return _googleInitFuture ??= _initGoogle();
+  }
 
+  Future<void> _initGoogle() async {
     final signIn = GoogleSignIn.instance;
     await signIn.initialize(clientId: AppConfig.googleClientIdWeb);
-
     _authSub ??= signIn.authenticationEvents.listen(
       _onGoogleAuthEvent,
       onError: (_) {},
     );
-
-    _googleReady = true;
   }
 
   Future<void> _onGoogleAuthEvent(GoogleSignInAuthenticationEvent event) async {
@@ -78,7 +81,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     if (AppConfig.isGoogleClientIdMissing) {
       throw StateError('GOOGLE_CLIENT_ID_WEB ausente no build');
     }
-    await _ensureGoogleInitialized();
+    await ensureGoogleInitialized();
     state = const AsyncLoading();
     try {
       final account = await GoogleSignIn.instance.authenticate();
@@ -112,9 +115,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     ref.read(authSessionStoreProvider).clear();
     state = const AsyncData(null);
     try {
-      if (_googleReady) {
-        await GoogleSignIn.instance.signOut();
-      }
+      await GoogleSignIn.instance.signOut();
     } on Object {
       // Sessão local já limpa.
     }

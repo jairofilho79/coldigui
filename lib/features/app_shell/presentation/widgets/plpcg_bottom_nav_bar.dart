@@ -249,26 +249,38 @@ class _NavIcon extends StatelessWidget {
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Icon(
-            Icons.person,
-            size: size * 0.85,
-            color: Color.lerp(
-              AppColors.textLight.withValues(alpha: 0.52),
+          errorBuilder: (_, _, _) {
+            final color = Color.lerp(
+              AppColors.textLight.withValues(alpha: 0.72),
               AppColors.placeholder,
               progress,
-            ),
-          ),
+            )!;
+            final sizeIcon = lerpDouble(20, 26, progress)!;
+            return Icon(Icons.person, color: color, size: sizeIcon);
+          },
         ),
       );
     }
 
     final color = Color.lerp(
-      AppColors.textLight.withValues(alpha: 0.52),
+      AppColors.textLight.withValues(alpha: 0.72),
       AppColors.placeholder,
       progress,
     )!;
     final size = lerpDouble(20, 26, progress)!;
-    return Icon(destination.icon, color: color, size: size);
+    // `Icon(Icons.xxx)` direto — tree-shake do Flutter Web só inclui esses usos.
+    return switch (destination.icon) {
+      Icons.event => Icon(Icons.event, color: color, size: size),
+      Icons.library_books => Icon(
+        Icons.library_books,
+        color: color,
+        size: size,
+      ),
+      Icons.groups => Icon(Icons.groups, color: color, size: size),
+      Icons.person => Icon(Icons.person, color: color, size: size),
+      final icon? => Icon(icon, color: color, size: size),
+      null => Icon(Icons.circle, color: color, size: size),
+    };
   }
 }
 

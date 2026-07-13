@@ -41,10 +41,7 @@ class ShellScaffold extends ConsumerWidget {
         : null;
 
     return [
-      const PlpcgBottomNavDestination(
-        icon: Icons.event_outlined,
-        label: 'Eventos',
-      ),
+      const PlpcgBottomNavDestination(icon: Icons.event, label: 'Eventos'),
       const PlpcgBottomNavDestination(
         icon: Icons.library_books,
         label: 'Biblioteca',
@@ -53,12 +50,9 @@ class ShellScaffold extends ConsumerWidget {
         svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
         label: 'Pesquisar',
       ),
-      const PlpcgBottomNavDestination(
-        icon: Icons.groups_outlined,
-        label: 'Social',
-      ),
+      const PlpcgBottomNavDestination(icon: Icons.groups, label: 'Social'),
       PlpcgBottomNavDestination(
-        icon: profileAvatar == null ? Icons.person_outline : null,
+        icon: profileAvatar == null ? Icons.person : null,
         avatarImage: profileAvatar,
         label: profileLabel,
       ),

@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _destinations = [
-  PlpcgBottomNavDestination(icon: Icons.event_outlined, label: 'Eventos'),
+  PlpcgBottomNavDestination(icon: Icons.event, label: 'Eventos'),
   PlpcgBottomNavDestination(icon: Icons.library_books, label: 'Biblioteca'),
   PlpcgBottomNavDestination(
     svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
     label: 'Pesquisar',
   ),
-  PlpcgBottomNavDestination(icon: Icons.groups_outlined, label: 'Social'),
-  PlpcgBottomNavDestination(icon: Icons.person_outline, label: 'Perfil'),
+  PlpcgBottomNavDestination(icon: Icons.groups, label: 'Social'),
+  PlpcgBottomNavDestination(icon: Icons.person, label: 'Perfil'),
 ];
 
 void main() {
