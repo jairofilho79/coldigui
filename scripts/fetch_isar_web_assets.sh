@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="$(rg '^  isar_plus:' "$ROOT_DIR/pubspec.yaml" | awk '{print $2}' | tr -d '^')"
+VERSION="$(grep -E '^  isar_plus:' "$ROOT_DIR/pubspec.yaml" | awk '{print $2}' | tr -d '^')"
 BASE="https://unpkg.com/isar_plus@${VERSION}"
 
 for file in isar_plus.js isar_plus.wasm; do

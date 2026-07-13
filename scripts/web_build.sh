@@ -25,3 +25,12 @@ flutter build web \
 echo "==> Artefato em build/web/"
 "$ROOT_DIR/scripts/verify_web_headers_artifact.sh"
 "$ROOT_DIR/scripts/cache_bust_web_entrypoints.sh"
+
+COMMIT="$(git rev-parse --short HEAD)"
+CACHE_TAG="$(
+  python3 -c "import json; print(json.load(open('build/web/version.json')).get('web_cache_tag',''))"
+)"
+
+echo
+echo "Build OK — Commit: ${COMMIT} | Cache tag: ${CACHE_TAG}"
+echo "Para publicar: ./scripts/web_deploy.sh [--skip-build]"
