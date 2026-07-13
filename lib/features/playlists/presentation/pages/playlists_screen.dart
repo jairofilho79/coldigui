@@ -7,12 +7,14 @@ import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
+import '../providers/playlist_sync_lifecycle.dart';
+import '../providers/playlist_sync_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
 import '../widgets/import_playlist_dialog.dart';
 import '../widgets/playlist_list_tile.dart';
 
-/// UC-06/07 — Gestão de playlists com abas [PlaylistTab] (Fase 4.8).
+/// UC-06/07 — Gestão de playlists com abas [PlaylistTab] (Fase 4.8 + UC-15 sync).
 ///
 /// **Layout (polish jun/2026):** [TabBar] sobre fundo creme; lista ou estado vazio
 /// com texto [AppColors.textLight] (contraste no [AppColors.background] do scaffold).
@@ -27,7 +29,10 @@ class PlaylistsScreen extends ConsumerStatefulWidget {
 }
 
 class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
-    with SingleTickerProviderStateMixin {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        PlaylistSyncLifecycleMixin {
   late final TabController _tabController;
   final _tileKeys = <String, GlobalKey>{};
 
@@ -36,10 +41,12 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
+    startPlaylistSyncLifecycle();
   }
 
   @override
   void dispose() {
+    stopPlaylistSyncLifecycle();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
@@ -101,11 +108,12 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
       if (confirmed != true || !context.mounted) return;
     }
 
-    final playlistId =
-        await ref.read(playlistsProvider.notifier).importSharedFromUrl(
-              sharePdfs: result.sharePdfs,
-              shareName: result.shareName,
-            );
+    final playlistId = await ref
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(
+          sharePdfs: result.sharePdfs,
+          shareName: result.shareName,
+        );
     if (!context.mounted) return;
 
     if (playlistId == null) {
@@ -137,6 +145,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     final l10n = AppLocalizations.of(context)!;
     ref.watch(playlistsProvider);
     final ui = ref.watch(playlistsUiProvider);
+    final syncing = ref.watch(playlistSyncProvider).isSyncing;
     ref.listen(playlistsUiProvider, (_, next) => _syncTabFromProvider(next));
 
     final currentTab = ui.tab;
@@ -173,7 +182,22 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
               controller: _tabController,
               tabs: [
                 Tab(text: l10n.playlistTabUnsaved),
-                Tab(text: l10n.playlistTabSaved),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l10n.playlistTabSaved),
+                      if (syncing) ...[
+                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 Tab(text: l10n.playlistTabFavorites),
               ],
             ),
@@ -181,36 +205,38 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: PlaylistTab.values.map((tab) {
-                final items =
-                    ref.read(playlistsProvider.notifier).itemsForTab(tab);
-                if (items.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        _emptyMessage(l10n, tab),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.textLight,
-                            ),
-                      ),
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return PlaylistListTile(
-                      key: _keyFor(item.playlist.playlistId),
-                      item: item,
-                      tab: tab,
+              children: PlaylistTab.values
+                  .map((tab) {
+                    final items = ref
+                        .read(playlistsProvider.notifier)
+                        .itemsForTab(tab);
+                    if (items.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            _emptyMessage(l10n, tab),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(color: AppColors.textLight),
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 88),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return PlaylistListTile(
+                          key: _keyFor(item.playlist.playlistId),
+                          item: item,
+                          tab: tab,
+                        );
+                      },
                     );
-                  },
-                );
-              }).toList(growable: false),
+                  })
+                  .toList(growable: false),
             ),
           ),
         ],

@@ -1,8 +1,12 @@
-/// Playlist do usuário (UC-06, Fase 4.2+).
+import '../../../../core/database/collections/playlist_sync_status.dart';
+
+export '../../../../core/database/collections/playlist_sync_status.dart';
+
+/// Playlist do usuário (UC-06, Fase 4.2+ / UC-15 sync).
 ///
 /// Espelha o modelo persistido sem expor Isar.
 class SavedPlaylist {
-  const SavedPlaylist({
+  SavedPlaylist({
     required this.playlistId,
     required this.nome,
     required this.pdfIds,
@@ -11,7 +15,11 @@ class SavedPlaylist {
     this.savedAt,
     this.favoritedAt,
     this.favorita = false,
-  });
+    DateTime? updatedAt,
+    this.version = 1,
+    this.syncStatus = PlaylistSyncStatus.synced,
+    this.deletedAt,
+  }) : updatedAt = updatedAt ?? createdAt;
 
   /// Identificador estável (UUID-like, compatível com PWA).
   final String playlistId;
@@ -35,6 +43,11 @@ class SavedPlaylist {
 
   final bool favorita;
 
+  final DateTime updatedAt;
+  final int version;
+  final PlaylistSyncStatus syncStatus;
+  final DateTime? deletedAt;
+
   SavedPlaylist copyWith({
     String? playlistId,
     String? nome,
@@ -44,6 +57,11 @@ class SavedPlaylist {
     DateTime? savedAt,
     DateTime? favoritedAt,
     bool? favorita,
+    DateTime? updatedAt,
+    int? version,
+    PlaylistSyncStatus? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
   }) {
     return SavedPlaylist(
       playlistId: playlistId ?? this.playlistId,
@@ -54,6 +72,10 @@ class SavedPlaylist {
       savedAt: savedAt ?? this.savedAt,
       favoritedAt: favoritedAt ?? this.favoritedAt,
       favorita: favorita ?? this.favorita,
+      updatedAt: updatedAt ?? this.updatedAt,
+      version: version ?? this.version,
+      syncStatus: syncStatus ?? this.syncStatus,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     );
   }
 }

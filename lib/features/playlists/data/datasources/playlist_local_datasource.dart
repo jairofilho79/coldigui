@@ -1,10 +1,11 @@
 import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/playlist.dart';
+import '../../../../core/database/collections/playlist_sync_status.dart';
 
-/// CRUD Isar para [Playlist] (UC-06, Fase 4.2 + 4.8).
+/// CRUD Isar para [Playlist] (UC-06 + UC-15 sync).
 ///
-/// Queries por aba: [findUnsaved], [findSaved], [findFavorites].
+/// Queries por aba excluem tombstones (`deletedAt != null`).
 class PlaylistLocalDatasource {
   const PlaylistLocalDatasource(this._isar);
 
@@ -15,7 +16,7 @@ class PlaylistLocalDatasource {
   Future<List<Playlist>> findAll() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists.where().findAll();
+    return isar.playlists.where().deletedAtIsNull().findAll();
   }
 
   /// Não salvas — `createdAt` desc.
@@ -25,6 +26,8 @@ class PlaylistLocalDatasource {
     return isar.playlists
         .where()
         .salvaEqualTo(false)
+        .and()
+        .deletedAtIsNull()
         .sortByCreatedAtDesc()
         .findAll();
   }
@@ -38,6 +41,8 @@ class PlaylistLocalDatasource {
         .salvaEqualTo(true)
         .and()
         .favoritaEqualTo(false)
+        .and()
+        .deletedAtIsNull()
         .sortBySavedAtDesc()
         .findAll();
   }
@@ -49,6 +54,8 @@ class PlaylistLocalDatasource {
     return isar.playlists
         .where()
         .favoritaEqualTo(true)
+        .and()
+        .deletedAtIsNull()
         .sortByFavoritedAtDesc()
         .findAll();
   }
@@ -57,6 +64,36 @@ class PlaylistLocalDatasource {
     final isar = _isar;
     if (isar == null) return null;
     return isar.playlists.where().playlistIdEqualTo(playlistId).findFirst();
+  }
+
+  Future<List<Playlist>> findPendingPush() async {
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists
+        .where()
+        .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
+        .and()
+        .salvaEqualTo(true)
+        .and()
+        .deletedAtIsNull()
+        .findAll();
+  }
+
+  Future<List<Playlist>> findTombstones() async {
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists
+        .where()
+        .deletedAtIsNotNull()
+        .and()
+        .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
+        .findAll();
+  }
+
+  Future<List<Playlist>> findAllSavedIncludingDeleted() async {
+    final isar = _isar;
+    if (isar == null) return const [];
+    return isar.playlists.where().salvaEqualTo(true).findAll();
   }
 
   Future<void> insert(Playlist playlist) async {
@@ -76,6 +113,11 @@ class PlaylistLocalDatasource {
     DateTime? favoritedAt,
     bool? favorita,
     bool clearFavoritedAt = false,
+    DateTime? updatedAt,
+    int? version,
+    PlaylistSyncStatus? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
   }) async {
     final isar = _isar;
     if (isar == null) return;
@@ -93,7 +135,31 @@ class PlaylistLocalDatasource {
       if (favoritedAt != null) existing.favoritedAt = favoritedAt;
       if (clearFavoritedAt) existing.favoritedAt = null;
       if (favorita != null) existing.favorita = favorita;
+      if (updatedAt != null) existing.updatedAt = updatedAt;
+      if (version != null) existing.version = version;
+      if (syncStatus != null) existing.syncStatus = syncStatus;
+      if (clearDeletedAt) {
+        existing.deletedAt = null;
+      } else if (deletedAt != null) {
+        existing.deletedAt = deletedAt;
+      }
 
+      coll.put(existing);
+    });
+  }
+
+  /// Soft delete: tombstone + pendingPush (listas salvas).
+  Future<void> softDeleteByPlaylistId(String playlistId) async {
+    final isar = _isar;
+    if (isar == null) return;
+    final now = DateTime.now().toUtc();
+    await isar.write((isar) {
+      final coll = isar.playlists;
+      final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
+      if (existing == null) return;
+      existing.deletedAt = now;
+      existing.updatedAt = now;
+      existing.syncStatus = PlaylistSyncStatus.pendingPush;
       coll.put(existing);
     });
   }
@@ -116,9 +182,32 @@ class PlaylistLocalDatasource {
     if (isar == null) return;
     await isar.write((isar) {
       final coll = isar.playlists;
-      final rows = coll.where().salvaEqualTo(false).findAll();
+      final rows = coll
+          .where()
+          .salvaEqualTo(false)
+          .and()
+          .deletedAtIsNull()
+          .findAll();
       for (final row in rows) {
         coll.delete(row.id);
+      }
+    });
+  }
+
+  Future<void> markAllSavedPendingPush() async {
+    final isar = _isar;
+    if (isar == null) return;
+    await isar.write((isar) {
+      final coll = isar.playlists;
+      final rows = coll
+          .where()
+          .salvaEqualTo(true)
+          .and()
+          .deletedAtIsNull()
+          .findAll();
+      for (final row in rows) {
+        row.syncStatus = PlaylistSyncStatus.pendingPush;
+        coll.put(row);
       }
     });
   }

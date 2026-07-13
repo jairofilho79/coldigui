@@ -1,0 +1,59 @@
+/// Playlist remota (payload Worker `/api/playlists`).
+class RemotePlaylist {
+  const RemotePlaylist({
+    required this.id,
+    required this.nome,
+    required this.pdfIds,
+    required this.salva,
+    required this.favorita,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.version,
+    this.savedAt,
+    this.favoritedAt,
+  });
+
+  final String id;
+  final String nome;
+  final List<String> pdfIds;
+  final bool salva;
+  final bool favorita;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int version;
+  final DateTime? savedAt;
+  final DateTime? favoritedAt;
+
+  factory RemotePlaylist.fromJson(Map<String, dynamic> json) {
+    return RemotePlaylist(
+      id: json['id'] as String,
+      nome: json['nome'] as String,
+      pdfIds: (json['pdfIds'] as List<dynamic>).cast<String>(),
+      salva: json['salva'] as bool? ?? true,
+      favorita: json['favorita'] as bool? ?? false,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      version: json['version'] as int? ?? 1,
+      savedAt: _parseOptionalDate(json['savedAt']),
+      favoritedAt: _parseOptionalDate(json['favoritedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nome': nome,
+    'pdfIds': pdfIds,
+    'salva': salva,
+    'favorita': favorita,
+    'createdAt': createdAt.toUtc().toIso8601String(),
+    'updatedAt': updatedAt.toUtc().toIso8601String(),
+    'version': version,
+    'savedAt': savedAt?.toUtc().toIso8601String(),
+    'favoritedAt': favoritedAt?.toUtc().toIso8601String(),
+  };
+
+  static DateTime? _parseOptionalDate(Object? value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+}

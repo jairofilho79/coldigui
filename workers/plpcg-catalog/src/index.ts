@@ -1,5 +1,13 @@
 import { upsertUser } from './auth/session';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
+import { withAuth } from './auth/with_auth';
+import {
+  getPlaylist,
+  listPlaylists,
+  playlistIdFromPath,
+  softDeletePlaylist,
+  upsertPlaylist,
+} from './playlists/handlers';
 
 export interface Env {
   DB: D1Database;
@@ -26,7 +34,7 @@ interface LouvorJson {
   groupId: string;
 }
 
-type CorsMode = 'catalog' | 'auth';
+type CorsMode = 'catalog' | 'auth' | 'playlists';
 
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
@@ -54,16 +62,28 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
   const headers = new Headers();
   if (origin !== null && isAllowedOrigin(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
-    headers.set(
-      'Access-Control-Allow-Methods',
-      mode === 'auth' ? 'POST, OPTIONS' : 'GET, OPTIONS',
-    );
-    headers.set(
-      'Access-Control-Allow-Headers',
-      mode === 'auth'
-        ? 'Authorization, Content-Type'
-        : 'Content-Type, If-None-Match',
-    );
+    if (mode === 'playlists') {
+      headers.set(
+        'Access-Control-Allow-Methods',
+        'GET, PUT, DELETE, OPTIONS',
+      );
+      headers.set(
+        'Access-Control-Allow-Headers',
+        'Authorization, Content-Type',
+      );
+    } else if (mode === 'auth') {
+      headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      headers.set(
+        'Access-Control-Allow-Headers',
+        'Authorization, Content-Type',
+      );
+    } else {
+      headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      headers.set(
+        'Access-Control-Allow-Headers',
+        'Content-Type, If-None-Match',
+      );
+    }
     headers.set('Vary', 'Origin');
   }
   return headers;
@@ -197,7 +217,47 @@ async function handleAuthSession(
 }
 
 function corsModeForPath(pathname: string): CorsMode {
-  return pathname.startsWith('/api/auth/') ? 'auth' : 'catalog';
+  if (pathname.startsWith('/api/playlists')) return 'playlists';
+  if (pathname.startsWith('/api/auth/')) return 'auth';
+  return 'catalog';
+}
+
+async function handlePlaylists(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (pathname === '/api/playlists') {
+    if (request.method === 'GET') {
+      return withAuth(request, env, (_req, e, claims) =>
+        listPlaylists(e.DB, claims),
+      );
+    }
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+
+  const id = playlistIdFromPath(pathname);
+  if (id === null) {
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  }
+
+  if (request.method === 'GET') {
+    return withAuth(request, env, (_req, e, claims) =>
+      getPlaylist(e.DB, claims, id),
+    );
+  }
+  if (request.method === 'PUT') {
+    return withAuth(request, env, (req, e, claims) =>
+      upsertPlaylist(e.DB, claims, id, req),
+    );
+  }
+  if (request.method === 'DELETE') {
+    return withAuth(request, env, (_req, e, claims) =>
+      softDeletePlaylist(e.DB, claims, id),
+    );
+  }
+
+  return jsonResponse({ error: 'method not allowed' }, { status: 405 });
 }
 
 export default {
@@ -216,6 +276,14 @@ export default {
 
     if (url.pathname === '/api/auth/session') {
       return withCors(await handleAuthSession(request, env), request, 'auth');
+    }
+
+    if (url.pathname.startsWith('/api/playlists')) {
+      return withCors(
+        await handlePlaylists(request, env, url.pathname),
+        request,
+        'playlists',
+      );
     }
 
     if (request.method !== 'GET') {

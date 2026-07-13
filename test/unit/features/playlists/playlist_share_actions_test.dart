@@ -1,3 +1,4 @@
+import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
@@ -31,6 +32,9 @@ class _FakePlaylistRepository implements PlaylistRepository {
     DateTime? createdAt,
     bool salva = true,
     DateTime? savedAt,
+    DateTime? updatedAt,
+    int version = 1,
+    PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
   }) => throw UnimplementedError();
 
   @override
@@ -40,10 +44,25 @@ class _FakePlaylistRepository implements PlaylistRepository {
   Future<void> deleteAllUnsaved() => throw UnimplementedError();
 
   @override
+  Future<void> hardDelete(String playlistId) => throw UnimplementedError();
+
+  @override
   Future<List<SavedPlaylist>> getAll() => throw UnimplementedError();
 
   @override
   Future<List<SavedPlaylist>> getByTab(tab) => throw UnimplementedError();
+
+  @override
+  Future<List<SavedPlaylist>> getPendingPush() => throw UnimplementedError();
+
+  @override
+  Future<List<SavedPlaylist>> getTombstones() => throw UnimplementedError();
+
+  @override
+  Future<void> markAllSavedPendingPush() => throw UnimplementedError();
+
+  @override
+  Future<void> upsert(SavedPlaylist playlist) => throw UnimplementedError();
 
   @override
   Future<void> update(
@@ -55,6 +74,11 @@ class _FakePlaylistRepository implements PlaylistRepository {
     DateTime? favoritedAt,
     bool? favorita,
     bool clearFavoritedAt = false,
+    DateTime? updatedAt,
+    int? version,
+    PlaylistSyncStatus? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
   }) => throw UnimplementedError();
 }
 

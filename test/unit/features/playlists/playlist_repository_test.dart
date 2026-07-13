@@ -12,12 +12,9 @@ void main() {
   late Isar isar;
   late PlaylistRepositoryImpl repository;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('playlist_repo_');
-    isar = Isar.open(schemas: [PlaylistSchema],
-      directory: tempDir.path,
-    );
+    isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
     repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
   });
 
@@ -143,17 +140,27 @@ void main() {
     expect(await repository.getById('saved'), isNotNull);
   });
 
-  test('delete idempotente', () async {
+  test('delete soft-delete lista salva e some de getAll', () async {
+    await repository.create(nome: 'Lista', pdfIds: ['a'], playlistId: 'p1');
+
+    await repository.delete('p1');
+    final tomb = await repository.getById('p1');
+    expect(tomb?.deletedAt, isNotNull);
+    expect(await repository.getAll(), isEmpty);
+
+    await repository.delete('missing');
+    expect(await repository.getAll(), isEmpty);
+  });
+
+  test('delete hard-remove rascunho', () async {
     await repository.create(
-      nome: 'Lista',
+      nome: 'Draft',
       pdfIds: ['a'],
-      playlistId: 'p1',
+      playlistId: 'd1',
+      salva: false,
     );
 
-    await repository.delete('p1');
-    expect(await repository.getById('p1'), isNull);
-
-    await repository.delete('p1');
-    expect(await repository.getAll(), isEmpty);
+    await repository.delete('d1');
+    expect(await repository.getById('d1'), isNull);
   });
 }

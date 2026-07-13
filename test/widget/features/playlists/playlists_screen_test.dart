@@ -1,3 +1,5 @@
+import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -8,6 +10,11 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _LoggedOutAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async => null;
+}
 
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier(this.initial);
@@ -44,6 +51,7 @@ void main() {
   Widget buildSubject(List<PlaylistViewItem> items) {
     return ProviderScope(
       overrides: [
+        authStateProvider.overrideWith(_LoggedOutAuth.new),
         playlistsProvider.overrideWith(() => _FakePlaylistsNotifier(items)),
       ],
       child: MaterialApp(
@@ -95,6 +103,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(const []),

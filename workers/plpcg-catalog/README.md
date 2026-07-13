@@ -1,6 +1,6 @@
 # plpcg-catalog — Worker + D1
 
-API do catálogo PLPCG (público) e autenticação Google (sessão).
+API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 
 ## Endpoints
 
@@ -9,8 +9,13 @@ API do catálogo PLPCG (público) e autenticação Google (sessão).
 | `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` incluído) |
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
 | `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, devolve perfil |
+| `GET` | `/api/playlists` | Bearer | Lista playlists salvas do usuário (`deleted_at IS NULL`) |
+| `GET` | `/api/playlists/:id` | Bearer | Uma playlist |
+| `PUT` | `/api/playlists/:id` | Bearer | Upsert (last-write-wins por `updatedAt`) |
+| `DELETE` | `/api/playlists/:id` | Bearer | Soft delete |
 
 Setup OAuth: [docs/GOOGLE_OAUTH_SETUP.md](../../docs/GOOGLE_OAUTH_SETUP.md).
+Spec sync: [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](../../docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md).
 
 ## Setup local
 

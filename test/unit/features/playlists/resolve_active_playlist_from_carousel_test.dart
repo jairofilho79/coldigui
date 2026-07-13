@@ -29,6 +29,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         isarProvider.overrideWithValue(isar),
+        optionalIsarProvider.overrideWithValue(isar),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );

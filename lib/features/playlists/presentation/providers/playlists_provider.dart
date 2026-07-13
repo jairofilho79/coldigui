@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/playlist_share_url_builder.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -24,6 +25,7 @@ import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_provider.dart';
 import 'active_playlist_sync.dart' as active_sync;
+import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
 
 /// Playlist ativa alinhada ao carousel — retorno de
@@ -103,6 +105,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
         .toList(growable: false);
   }
 
+  /// Recarrega listas do Isar (ex.: após sync cloud).
+  Future<void> reload() => _reload();
+
   /// Playlists filtradas e ordenadas para a aba (pilha — mais recente no topo).
   List<PlaylistViewItem> itemsForTab(PlaylistTab tab) {
     return state
@@ -127,6 +132,17 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       PlaylistTab.saved => playlist.savedAt ?? playlist.createdAt,
       PlaylistTab.favorites => playlist.favoritedAt ?? playlist.createdAt,
     };
+  }
+
+  void _syncCloudIfAuthed() {
+    unawaited(
+      ref.read(playlistSyncProvider.notifier).sync().then((result) async {
+        if (!result.skipped &&
+            (result.pulled > 0 || result.pushed > 0 || result.deleted > 0)) {
+          await _reload();
+        }
+      }),
+    );
   }
 
   /// Sincroniza [pdfIds] da playlist ativa com o carousel atual.
@@ -211,6 +227,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     }
     await _reload();
     ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.saved);
+    _syncCloudIfAuthed();
     return true;
   }
 
@@ -220,6 +237,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref
         .read(playlistsUiProvider.notifier)
         .selectTab(PlaylistTab.saved, scrollToPlaylistId: playlistId);
+    _syncCloudIfAuthed();
   }
 
   Future<void> favoritePlaylist(String playlistId) async {
@@ -228,6 +246,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref
         .read(playlistsUiProvider.notifier)
         .selectTab(PlaylistTab.favorites, scrollToPlaylistId: playlistId);
+    _syncCloudIfAuthed();
   }
 
   Future<void> unfavoritePlaylist(String playlistId) async {
@@ -236,6 +255,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref
         .read(playlistsUiProvider.notifier)
         .selectTab(PlaylistTab.saved, scrollToPlaylistId: playlistId);
+    _syncCloudIfAuthed();
   }
 
   Future<void> rename({
@@ -244,6 +264,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }) async {
     await ref.read(updatePlaylistProvider)(playlistId: playlistId, nome: nome);
     await _reload();
+    _syncCloudIfAuthed();
   }
 
   Future<void> removePdf({
@@ -265,6 +286,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       ref.read(activePlaylistIdProvider.notifier).clear();
     }
     await _reload();
+    if (current.salva) _syncCloudIfAuthed();
   }
 
   Future<bool> toggleFavorite(String playlistId) async {
@@ -272,15 +294,27 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       playlistId: playlistId,
     );
     await _reload();
+    _syncCloudIfAuthed();
     return next;
   }
 
   Future<void> delete(String playlistId) async {
-    await ref.read(deletePlaylistProvider)(playlistId: playlistId);
+    final existing = state
+        .where((item) => item.playlist.playlistId == playlistId)
+        .map((e) => e.playlist)
+        .firstOrNull;
+    final authed = ref.read(authStateProvider).asData?.value != null;
+    if (existing?.salva == true && !authed) {
+      // Sem conta: hard delete (sem tombstone órfão).
+      await ref.read(playlistRepositoryProvider).hardDelete(playlistId);
+    } else {
+      await ref.read(deletePlaylistProvider)(playlistId: playlistId);
+    }
     if (ref.read(activePlaylistIdProvider) == playlistId) {
       ref.read(activePlaylistIdProvider.notifier).clear();
     }
     await _reload();
+    if (authed && (existing?.salva ?? true)) _syncCloudIfAuthed();
   }
 
   Future<void> deleteAllUnsaved() async {

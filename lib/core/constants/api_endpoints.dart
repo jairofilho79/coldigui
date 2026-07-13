@@ -17,6 +17,12 @@ abstract final class ApiEndpoints {
   /// `POST` + `Authorization: Bearer <id_token>` → perfil (`googleSub`, …).
   static const String authSession = '/api/auth/session';
 
+  /// Playlists do usuário autenticado — Worker + D1 `user_playlists`.
+  static const String playlists = '/api/playlists';
+
+  static String playlist(String id) =>
+      '/api/playlists/${Uri.encodeComponent(id)}';
+
   static const String offlineManifest = '/offline-manifest.json';
   static const String uploadLouvor = '/api/upload-louvor';
   static const String assetsPdf = '/assets';
