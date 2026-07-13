@@ -2,6 +2,12 @@
 
 A new Flutter project.
 
+## Modo dual PLPCG + Coldigom (fase 1)
+
+A busca na Home consulta o manifest PLPCG (chips **vermelhos**) e a API coldigom em produção (chips **pretos**, borda dourada). Itens coldigom podem ser adicionados ao carousel, abertos no leitor e usados em playlists/folheto.
+
+API coldigom: `https://coldigom-api.coletaneadigitalicm.workers.dev`
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

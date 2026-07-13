@@ -6,6 +6,8 @@ import '../../core/utils/url_sync_params.dart';
 import '../../core/widgets/deferred_route_loader.dart';
 import '../../core/widgets/storage_required_gate.dart';
 import '../../features/app_shell/presentation/pages/about_screen.dart';
+import '../../features/app_shell/presentation/pages/placeholder_tab_screen.dart';
+import '../../features/app_shell/presentation/pages/profile_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
@@ -23,6 +25,8 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// Rotas em [RoutePaths]. `/leitor` é sub-rota da branch Home para reutilizar o
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
 ///
+/// Branch Perfil (índice 4) também hospeda `/sobre`, `/offline` e `/listas`.
+///
 /// `/leitor` adia só a init do pdfrx; offline/leitor no bundle principal (WebKit
 /// dart2js não registra `.part.js` via `<script>` — ver flutter_bootstrap webkit).
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -37,8 +41,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: RoutePaths.about,
-                builder: (context, state) => const AboutScreen(),
+                path: RoutePaths.events,
+                builder: (context, state) =>
+                    const PlaceholderTabScreen(title: 'Eventos'),
               ),
             ],
           ),
@@ -93,14 +98,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: RoutePaths.offline,
+                path: RoutePaths.social,
                 builder: (context, state) =>
-                    const StorageRequiredGate(child: OfflineSettingsScreen()),
+                    const PlaceholderTabScreen(title: 'Social'),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
+              GoRoute(
+                path: RoutePaths.profile,
+                builder: (context, state) => const ProfileScreen(),
+              ),
+              GoRoute(
+                path: RoutePaths.about,
+                builder: (context, state) => const AboutScreen(),
+              ),
+              GoRoute(
+                path: RoutePaths.offline,
+                builder: (context, state) =>
+                    const StorageRequiredGate(child: OfflineSettingsScreen()),
+              ),
               GoRoute(
                 path: RoutePaths.playlists,
                 builder: (context, state) =>

@@ -17,9 +17,8 @@ import 'widgets/plpcg_bottom_nav_bar.dart';
 /// Em fullscreen ([readerFullscreenProvider]), oculta barras 1–2 mantendo
 /// `Expanded(child)` para o PDF não perder constraints.
 ///
-/// Bottom bar: [PlpcgBottomNavBar] com fundo marrom, aba ativa ampliada e
-/// feixe dourado; oculta em `/leitor`. Destino central: rótulo **Pesquisar**
-/// (logo PLPCG, rota [RoutePaths.home]).
+/// Bottom bar: Eventos, Biblioteca, Pesquisar, Social, Perfil. Oculta em
+/// `/leitor`. Destino central: **Pesquisar** (logo PLPCG, [RoutePaths.home]).
 ///
 /// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
 class ShellScaffold extends ConsumerWidget {
@@ -68,8 +67,8 @@ class ShellScaffold extends ConsumerWidget {
                 onDestinationSelected: navigationShell.goBranch,
                 destinations: const [
                   PlpcgBottomNavDestination(
-                    icon: Icons.info_outline,
-                    label: 'Sobre',
+                    icon: Icons.event_outlined,
+                    label: 'Eventos',
                   ),
                   PlpcgBottomNavDestination(
                     icon: Icons.library_books,
@@ -81,12 +80,12 @@ class ShellScaffold extends ConsumerWidget {
                     label: 'Pesquisar',
                   ),
                   PlpcgBottomNavDestination(
-                    icon: Icons.cloud_download,
-                    label: 'Offline',
+                    icon: Icons.groups_outlined,
+                    label: 'Social',
                   ),
                   PlpcgBottomNavDestination(
-                    icon: Icons.playlist_play,
-                    label: 'Listas',
+                    icon: Icons.person_outline,
+                    label: 'Perfil',
                   ),
                 ],
               ),

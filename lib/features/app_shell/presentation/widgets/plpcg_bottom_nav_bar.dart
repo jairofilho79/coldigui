@@ -15,10 +15,7 @@ class PlpcgBottomNavDestination {
     this.icon,
     this.svgAsset,
     required this.label,
-  }) : assert(
-          icon != null || svgAsset != null,
-          'Informe icon ou svgAsset',
-        );
+  }) : assert(icon != null || svgAsset != null, 'Informe icon ou svgAsset');
 
   /// Ícone Material exibido acima do rótulo.
   final IconData? icon;
@@ -49,7 +46,7 @@ class PlpcgBottomNavBar extends StatelessWidget {
 
   static const Curve _animationCurve = Curves.easeOut;
 
-  /// Índice da aba selecionada: 0 Sobre, 1 Biblioteca, 2 Pesquisar (`/`), 3 Offline, 4 Listas.
+  /// Índice: 0 Eventos, 1 Biblioteca, 2 Pesquisar (`/`), 3 Social, 4 Perfil.
   final int selectedIndex;
 
   /// Callback ao tocar uma aba; [ShellScaffold] mapeia para `navigationShell.goBranch`.
@@ -68,11 +65,7 @@ class PlpcgBottomNavBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Divider(
-            height: 4,
-            thickness: 4,
-            color: AppColors.gold,
-          ),
+          const Divider(height: 4, thickness: 4, color: AppColors.gold),
           Padding(
             padding: EdgeInsets.fromLTRB(
               4 + viewPadding.left,
@@ -203,10 +196,7 @@ class _PlpcgBottomNavItemState extends State<_PlpcgBottomNavItem>
                         ),
                       ),
                       const SizedBox(height: 2),
-                      _NavLabel(
-                        label: widget.destination.label,
-                        progress: t,
-                      ),
+                      _NavLabel(label: widget.destination.label, progress: t),
                     ],
                   ),
                 ),
@@ -220,10 +210,7 @@ class _PlpcgBottomNavItemState extends State<_PlpcgBottomNavItem>
 }
 
 class _NavIcon extends StatelessWidget {
-  const _NavIcon({
-    required this.destination,
-    required this.progress,
-  });
+  const _NavIcon({required this.destination, required this.progress});
 
   final PlpcgBottomNavDestination destination;
   final double progress;
@@ -257,10 +244,7 @@ class _NavIcon extends StatelessWidget {
 }
 
 class _NavLabel extends StatefulWidget {
-  const _NavLabel({
-    required this.label,
-    required this.progress,
-  });
+  const _NavLabel({required this.label, required this.progress});
 
   final String label;
   final double progress;
@@ -273,11 +257,7 @@ class _NavLabel extends StatefulWidget {
     height: 1.1,
     color: AppColors.placeholder,
     shadows: [
-      Shadow(
-        color: Color(0x66D4AF37),
-        blurRadius: 6,
-        offset: Offset(0, 1),
-      ),
+      Shadow(color: Color(0x66D4AF37), blurRadius: 6, offset: Offset(0, 1)),
     ],
   );
 
@@ -316,8 +296,11 @@ class _NavLabelState extends State<_NavLabel> {
     final t = widget.progress;
     final beamOpacity = t;
     final beamScale = lerpDouble(0.6, 1, t)!;
-    final style =
-        TextStyle.lerp(_NavLabel._inactiveStyle, _NavLabel._activeStyle, t)!;
+    final style = TextStyle.lerp(
+      _NavLabel._inactiveStyle,
+      _NavLabel._activeStyle,
+      t,
+    )!;
 
     return SizedBox(
       height: 20,

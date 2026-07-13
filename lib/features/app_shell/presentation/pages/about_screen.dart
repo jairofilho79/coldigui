@@ -10,8 +10,7 @@ import '../widgets/about_info_card.dart';
 ///
 /// Conteúdo institucional fixo em PT — sem [AppLocalizations] nesta entrega.
 ///
-/// Consumidores: [appRouterProvider] → [ShellScaffold.child] (aba Sobre,
-/// índice 0 em [PlpcgBottomNavBar]).
+/// Consumidores: [appRouterProvider] → branch Perfil ([RoutePaths.about]).
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -45,10 +44,7 @@ class AboutScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: const [
-            AboutInfoCard(
-              title: 'Quem somos',
-              paragraphs: [_quemSomosBody],
-            ),
+            AboutInfoCard(title: 'Quem somos', paragraphs: [_quemSomosBody]),
             SizedBox(height: 16),
             AboutInfoCard(
               title: 'Objetivo',

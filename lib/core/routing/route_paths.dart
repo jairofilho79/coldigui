@@ -11,12 +11,21 @@ abstract final class RoutePaths {
   /// Leitor PDF UC-11 — filha do [ShellRoute] com `parentNavigatorKey` fullscreen.
   static const String reader = '/leitor';
 
-  /// Offline UC-09/10 ([OfflineSettingsScreen]).
+  /// Eventos — placeholder (índice 0 em [PlpcgBottomNavBar]).
+  static const String events = '/eventos';
+
+  /// Social — placeholder (índice 3 em [PlpcgBottomNavBar]).
+  static const String social = '/social';
+
+  /// Perfil — hub Sobre/Listas/Offline (índice 4 em [PlpcgBottomNavBar]).
+  static const String profile = '/perfil';
+
+  /// Offline UC-09/10 ([OfflineSettingsScreen]) — branch Perfil.
   static const String offline = '/offline';
 
-  /// Playlists UC-06/07 ([PlaylistsScreen]).
+  /// Playlists UC-06/07 ([PlaylistsScreen]) — branch Perfil.
   static const String playlists = '/listas';
 
-  /// Sobre UC-14 ([AboutScreen]) — índice 0 em [PlpcgBottomNavBar].
+  /// Sobre UC-14 ([AboutScreen]) — branch Perfil.
   static const String about = '/sobre';
 }

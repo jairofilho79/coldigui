@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _destinations = [
-  PlpcgBottomNavDestination(icon: Icons.info_outline, label: 'Sobre'),
+  PlpcgBottomNavDestination(icon: Icons.event_outlined, label: 'Eventos'),
   PlpcgBottomNavDestination(icon: Icons.library_books, label: 'Biblioteca'),
   PlpcgBottomNavDestination(
     svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
     label: 'Pesquisar',
   ),
-  PlpcgBottomNavDestination(icon: Icons.cloud_download, label: 'Offline'),
-  PlpcgBottomNavDestination(icon: Icons.playlist_play, label: 'Listas'),
+  PlpcgBottomNavDestination(icon: Icons.groups_outlined, label: 'Social'),
+  PlpcgBottomNavDestination(icon: Icons.person_outline, label: 'Perfil'),
 ];
 
 void main() {
@@ -38,10 +38,7 @@ void main() {
     final screenBottom = tester.getBottomLeft(find.byType(Scaffold)).dy;
     final rowBottom = tester.getBottomLeft(find.byType(Row).first).dy;
 
-    expect(
-      screenBottom - rowBottom,
-      greaterThanOrEqualTo(bottomInset + 2),
-    );
+    expect(screenBottom - rowBottom, greaterThanOrEqualTo(bottomInset + 2));
   });
 
   testWidgets('Pesquisar responde ao toque acima da safe area', (tester) async {
