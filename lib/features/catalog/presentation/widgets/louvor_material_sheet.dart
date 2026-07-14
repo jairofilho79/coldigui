@@ -191,7 +191,10 @@ class _LouvorMaterialSheetBodyState
                               ),
                         onTap: () {
                           Navigator.of(context).pop();
-                          widget.onMaterialSelected(material.louvor);
+                          // Pós-frame: evita race push vs pop (modal ainda no stack).
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            widget.onMaterialSelected(material.louvor);
+                          });
                         },
                       ),
                   ],
@@ -237,7 +240,9 @@ class _LouvorMaterialSheetBodyState
                               ),
                         onTap: () {
                           Navigator.of(context).pop();
-                          widget.onAudioSelected?.call(track);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            widget.onAudioSelected?.call(track);
+                          });
                         },
                       ),
                   ],

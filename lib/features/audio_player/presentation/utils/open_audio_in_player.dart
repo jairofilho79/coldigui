@@ -24,16 +24,9 @@ Future<void> openAudioInPlayer({
           .indexWhere((t) => t.audioId == track.audioId)
           .clamp(0, tracks.length - 1);
 
-  await ref
-      .read(playlistsProvider.notifier)
-      .addAudioToActivePlaylist(track.audioId);
-
-  await ref
-      .read(audioPlayerSessionProvider.notifier)
-      .playQueue(tracks, startIndex: index);
-
+  // Navega antes do play: após pop do sheet o push imediato race e some
+  // (PDF “sempre abre” porque resolve/download atrasa o push).
   if (!context.mounted) return;
-
   final params = <String, String>{
     UrlSyncParams.audioId: track.audioId,
     UrlSyncParams.titulo: track.nome,
@@ -43,4 +36,12 @@ Future<void> openAudioInPlayer({
       .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
       .join('&');
   unawaited(context.push('${RoutePaths.audio}?$query'));
+
+  await ref
+      .read(playlistsProvider.notifier)
+      .addAudioToActivePlaylist(track.audioId);
+
+  await ref
+      .read(audioPlayerSessionProvider.notifier)
+      .playQueue(tracks, startIndex: index);
 }
