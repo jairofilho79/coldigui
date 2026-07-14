@@ -32,14 +32,16 @@ class LibrarySpecialArrangementState {
 }
 
 /// Filtro de arranjo especial — UC-03.
-final librarySpecialArrangementProvider = NotifierProvider<
-    LibrarySpecialArrangementNotifier, LibrarySpecialArrangementState>(
-  LibrarySpecialArrangementNotifier.new,
-);
+final librarySpecialArrangementProvider =
+    NotifierProvider<
+      LibrarySpecialArrangementNotifier,
+      LibrarySpecialArrangementState
+    >(LibrarySpecialArrangementNotifier.new);
 
 /// Arranjos especiais únicos do manifest (inclui [LouvorClassification.specialArrangementPadrao]).
-final libraryAvailableSpecialArrangementsProvider =
-    Provider<Set<String>>((ref) {
+final libraryAvailableSpecialArrangementsProvider = Provider<Set<String>>((
+  ref,
+) {
   final catalog = ref.watch(louvoresManifestProvider).value?.louvores;
   if (catalog == null) return const {};
   return catalog
@@ -57,10 +59,13 @@ class LibrarySpecialArrangementNotifier
   void hydrateFromUrl({String? arranjoEspecial}) {
     state = LibrarySpecialArrangementState(
       selectedSpecialArrangements:
-          LouvorClassification.parseSpecialArrangementsFromUrl(
-        arranjoEspecial,
-      ),
+          LouvorClassification.parseSpecialArrangementsFromUrl(arranjoEspecial),
     );
+  }
+
+  /// Limpa filtro de arranjo especial.
+  void clear() {
+    state = LibrarySpecialArrangementState.empty();
   }
 
   void toggleSpecialArrangement(String arrangement) {

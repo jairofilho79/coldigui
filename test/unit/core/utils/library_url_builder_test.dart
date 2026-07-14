@@ -54,4 +54,38 @@ void main() {
       ),
     );
   });
+
+  test('buildLibraryLocation inclui fonte coldigom e filtros', () {
+    final location = buildLibraryLocation(
+      fonte: 'coldigom',
+      tonality: 'Dm,G',
+      rhythm: 'Fox',
+      tags: 'tag-1',
+      materialKinds: 'kind-1',
+      pagina: '2',
+    );
+
+    expect(location, contains('fonte=coldigom'));
+    expect(location, contains('tonality='));
+    expect(location, contains('rhythm=Fox'));
+    expect(location, contains('tags=tag-1'));
+    expect(location, contains('materialKinds=kind-1'));
+    expect(location, contains('pagina=2'));
+    expect(location, isNot(contains('materiais=')));
+  });
+
+  test('buildLibraryLocationFromUri preserva params coldigom', () {
+    final uri = Uri.parse(
+      '/biblioteca?fonte=coldigom&tonality=Dm&rhythm=Fox&pagina=3',
+    );
+    expect(
+      buildLibraryLocationFromUri(uri),
+      buildLibraryLocation(
+        fonte: 'coldigom',
+        tonality: 'Dm',
+        rhythm: 'Fox',
+        pagina: '3',
+      ),
+    );
+  });
 }

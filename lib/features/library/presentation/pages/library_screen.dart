@@ -6,9 +6,15 @@ import 'package:coldigui/features/catalog/presentation/providers/louvores_manife
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
+import 'package:coldigui/features/library/domain/entities/library_catalog_mode.dart';
+import 'package:coldigui/features/library/presentation/providers/coldigom_library_filters_provider.dart';
+import 'package:coldigui/features/library/presentation/providers/library_catalog_mode_provider.dart';
+import 'package:coldigui/features/library/presentation/providers/library_coldigom_browse_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_special_arrangement_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
+import 'package:coldigui/features/library/presentation/widgets/coldigom_library_filters.dart';
+import 'package:coldigui/features/library/presentation/widgets/library_catalog_mode_toggle.dart';
 import 'package:coldigui/features/library/presentation/widgets/library_view_controls.dart';
 import 'package:coldigui/features/library/presentation/widgets/special_arrangement_filters.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -18,31 +24,35 @@ import 'package:go_router/go_router.dart';
 
 /// UC-03 — Biblioteca paginada (Fase 1.4).
 ///
-/// Ordenação, paginação 10/25/50/100 e filtros UC-02 + arranjo especial —
-/// sem busca obrigatória. Sync URL via [buildLibraryLocation].
-///
-/// Layout alinhado à Home: `maxWidth: 896`, containers dourados (§5.2),
-/// ordem Filtros → Visualização → lista.
-///
-/// Espaçamento: 12px entre seções do header; 16px entre [LibraryViewControls]
-/// e a `SliverList` de [LouvorGroupCard] (paridade Home); 8px entre chips.
-///
-/// **Ciclo de vida Riverpod:** hidratação e `goRouter.go` adiados com
-/// `addPostFrameCallback` — mesmo padrão de [HomeScreen].
+/// Modo PLPCG: ordenação, paginação e filtros UC-02 + arranjo especial.
+/// Modo Coldigom: listagem online com filtros server-side.
+/// Sync URL via [buildLibraryLocation].
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({
     super.key,
+    this.initialFonte,
     this.initialMateriais,
     this.initialArranjo,
     this.initialArranjoEspecial,
+    this.initialTonality,
+    this.initialRhythm,
+    this.initialCategory,
+    this.initialTags,
+    this.initialMaterialKinds,
     this.initialOrdenar,
     this.initialItensPorPagina,
     this.initialPagina,
   });
 
+  final String? initialFonte;
   final String? initialMateriais;
   final String? initialArranjo;
   final String? initialArranjoEspecial;
+  final String? initialTonality;
+  final String? initialRhythm;
+  final String? initialCategory;
+  final String? initialTags;
+  final String? initialMaterialKinds;
   final String? initialOrdenar;
   final String? initialItensPorPagina;
   final String? initialPagina;
@@ -79,6 +89,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_initialized) return;
     _initialized = true;
     ref
+        .read(libraryCatalogModeProvider.notifier)
+        .hydrateFromUrl(fonte: widget.initialFonte);
+    ref
         .read(catalogFiltersProvider.notifier)
         .hydrateFromUrl(
           materiais: widget.initialMateriais,
@@ -87,6 +100,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     ref
         .read(librarySpecialArrangementProvider.notifier)
         .hydrateFromUrl(arranjoEspecial: widget.initialArranjoEspecial);
+    ref
+        .read(coldigomLibraryFiltersProvider.notifier)
+        .hydrateFromUrl(
+          tonality: widget.initialTonality,
+          rhythm: widget.initialRhythm,
+          category: widget.initialCategory,
+          tags: widget.initialTags,
+          materialKinds: widget.initialMaterialKinds,
+        );
     ref
         .read(libraryViewSettingsProvider.notifier)
         .hydrateFromUrl(
@@ -102,19 +124,37 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void didUpdateWidget(LibraryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final modeChanged = oldWidget.initialFonte != widget.initialFonte;
     final filtersChanged =
         oldWidget.initialMateriais != widget.initialMateriais ||
         oldWidget.initialArranjo != widget.initialArranjo;
     final specialChanged =
         oldWidget.initialArranjoEspecial != widget.initialArranjoEspecial;
+    final coldigomChanged =
+        oldWidget.initialTonality != widget.initialTonality ||
+        oldWidget.initialRhythm != widget.initialRhythm ||
+        oldWidget.initialCategory != widget.initialCategory ||
+        oldWidget.initialTags != widget.initialTags ||
+        oldWidget.initialMaterialKinds != widget.initialMaterialKinds;
     final viewChanged =
         oldWidget.initialOrdenar != widget.initialOrdenar ||
         oldWidget.initialItensPorPagina != widget.initialItensPorPagina ||
         oldWidget.initialPagina != widget.initialPagina;
-    if (!filtersChanged && !specialChanged && !viewChanged) return;
+    if (!modeChanged &&
+        !filtersChanged &&
+        !specialChanged &&
+        !coldigomChanged &&
+        !viewChanged) {
+      return;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (modeChanged) {
+        ref
+            .read(libraryCatalogModeProvider.notifier)
+            .hydrateFromUrl(fonte: widget.initialFonte);
+      }
       if (filtersChanged) {
         ref
             .read(catalogFiltersProvider.notifier)
@@ -127,6 +167,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ref
             .read(librarySpecialArrangementProvider.notifier)
             .hydrateFromUrl(arranjoEspecial: widget.initialArranjoEspecial);
+      }
+      if (coldigomChanged) {
+        ref
+            .read(coldigomLibraryFiltersProvider.notifier)
+            .hydrateFromUrl(
+              tonality: widget.initialTonality,
+              rhythm: widget.initialRhythm,
+              category: widget.initialCategory,
+              tags: widget.initialTags,
+              materialKinds: widget.initialMaterialKinds,
+            );
       }
       if (viewChanged) {
         ref
@@ -152,19 +203,39 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (goRouter == null) return;
 
     final uri = goRouter.routerDelegate.currentConfiguration.uri;
-    final filters = ref.read(catalogFiltersProvider);
-    final special = ref.read(librarySpecialArrangementProvider);
+    final mode = ref.read(libraryCatalogModeProvider);
     final viewSettings = ref.read(libraryViewSettingsProvider);
 
-    final target = buildLibraryLocation(
-      materiais: filters.materiaisUrlValue,
-      arranjo: filters.arranjoUrlValue,
-      arranjoEspecial: special.arranjoEspecialUrlValue,
-      ordenar: viewSettings.ordenarUrlValue ?? viewSettings.sortBy,
-      itensPorPagina:
-          viewSettings.itensPorPaginaUrlValue ?? '${viewSettings.itemsPerPage}',
-      pagina: viewSettings.paginaUrlValue ?? '${viewSettings.page}',
-    );
+    final String target;
+    if (mode == LibraryCatalogMode.coldigom) {
+      final coldigom = ref.read(coldigomLibraryFiltersProvider);
+      target = buildLibraryLocation(
+        fonte: mode.urlValue,
+        tonality: coldigom.tonalityUrlValue,
+        rhythm: coldigom.rhythmUrlValue,
+        category: coldigom.categoryUrlValue,
+        tags: coldigom.tagsUrlValue,
+        materialKinds: coldigom.materialKindsUrlValue,
+        ordenar: viewSettings.ordenarUrlValue ?? viewSettings.sortBy,
+        itensPorPagina:
+            viewSettings.itensPorPaginaUrlValue ??
+            '${viewSettings.itemsPerPage}',
+        pagina: viewSettings.paginaUrlValue ?? '${viewSettings.page}',
+      );
+    } else {
+      final filters = ref.read(catalogFiltersProvider);
+      final special = ref.read(librarySpecialArrangementProvider);
+      target = buildLibraryLocation(
+        materiais: filters.materiaisUrlValue,
+        arranjo: filters.arranjoUrlValue,
+        arranjoEspecial: special.arranjoEspecialUrlValue,
+        ordenar: viewSettings.ordenarUrlValue ?? viewSettings.sortBy,
+        itensPorPagina:
+            viewSettings.itensPorPaginaUrlValue ??
+            '${viewSettings.itemsPerPage}',
+        pagina: viewSettings.paginaUrlValue ?? '${viewSettings.page}',
+      );
+    }
 
     if (buildLibraryLocationFromUri(uri) == target) return;
     goRouter.go(target);
@@ -173,8 +244,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final mode = ref.watch(libraryCatalogModeProvider);
+    final isColdigom = mode == LibraryCatalogMode.coldigom;
     final results = ref.watch(libraryGroupResultsProvider);
     final manifestAsync = ref.watch(louvoresManifestProvider);
+    final coldigomAsync = ref.watch(libraryColdigomBrowseProvider);
+
+    ref.listen<LibraryCatalogMode>(libraryCatalogModeProvider, (_, _) {
+      if (!_urlSyncEnabled) return;
+      _syncUrlFromState();
+    });
 
     ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
       if (!_urlSyncEnabled) return;
@@ -188,6 +267,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         _syncUrlFromState();
       },
     );
+
+    ref.listen<ColdigomLibraryFilterState>(coldigomLibraryFiltersProvider, (
+      _,
+      _,
+    ) {
+      if (!_urlSyncEnabled) return;
+      _syncUrlFromState();
+    });
 
     ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
       previous,
@@ -204,14 +291,26 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
-    final hasInitialFilters =
-        widget.initialMateriais != null ||
-        widget.initialArranjo != null ||
-        widget.initialArranjoEspecial != null;
+    final hasInitialFilters = isColdigom
+        ? (widget.initialTonality != null ||
+              widget.initialRhythm != null ||
+              widget.initialCategory != null ||
+              widget.initialTags != null ||
+              widget.initialMaterialKinds != null)
+        : (widget.initialMateriais != null ||
+              widget.initialArranjo != null ||
+              widget.initialArranjoEspecial != null);
 
     final horizontalPadding = MediaQuery.sizeOf(context).width > 600
         ? 24.0
         : 16.0;
+
+    final showLoading = isColdigom
+        ? coldigomAsync.isLoading
+        : manifestAsync.isLoading;
+    final errorText = isColdigom
+        ? (coldigomAsync.hasError ? l10n.coldigomLoadError : null)
+        : (manifestAsync.hasError ? l10n.catalogLoadError : null);
 
     return Scaffold(
       body: Center(
@@ -231,18 +330,25 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const LibraryCatalogModeToggle(),
+                      const SizedBox(height: 12),
                       FiltersPanel(
+                        key: ValueKey(mode),
                         initiallyExpanded: hasInitialFilters,
-                        additionalExpandedSections: const [
-                          SpecialArrangementFilters(),
+                        showPlpcgSections: !isColdigom,
+                        additionalExpandedSections: [
+                          if (isColdigom)
+                            const ColdigomLibraryFilters()
+                          else
+                            const SpecialArrangementFilters(),
                         ],
                       ),
                       const SizedBox(height: 12),
                       const LibraryViewControls(),
-                      if (manifestAsync.hasError) ...[
+                      if (errorText != null) ...[
                         const SizedBox(height: 16),
                         Text(
-                          l10n.catalogLoadError,
+                          errorText,
                           style: AppTypography.body.copyWith(
                             color: AppColors.offlineMissing,
                           ),
@@ -253,7 +359,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                if (manifestAsync.isLoading)
+                if (showLoading)
                   const CatalogLoadingSliver()
                 else
                   SliverList(

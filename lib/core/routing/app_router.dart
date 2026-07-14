@@ -53,12 +53,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: RoutePaths.library,
                 builder: (context, state) => LibraryScreen(
+                  initialFonte: state.uri.queryParameters[UrlSyncParams.fonte],
                   initialMateriais:
                       state.uri.queryParameters[UrlSyncParams.materiais],
                   initialArranjo:
                       state.uri.queryParameters[UrlSyncParams.arranjo],
                   initialArranjoEspecial:
                       state.uri.queryParameters[UrlSyncParams.arranjoEspecial],
+                  initialTonality:
+                      state.uri.queryParameters[UrlSyncParams.tonality],
+                  initialRhythm:
+                      state.uri.queryParameters[UrlSyncParams.rhythm],
+                  initialCategory:
+                      state.uri.queryParameters[UrlSyncParams.category],
+                  initialTags: state.uri.queryParameters[UrlSyncParams.tags],
+                  initialMaterialKinds:
+                      state.uri.queryParameters[UrlSyncParams.materialKinds],
                   initialOrdenar:
                       state.uri.queryParameters[UrlSyncParams.ordenar],
                   initialItensPorPagina:

@@ -10,18 +10,20 @@ class _FakeColdigomRemote extends ColdigomRemoteDatasource {
 
   final List<PraiseSummaryDto> _summaries;
   final Map<String, PraiseDetailDto> _details;
-  int? lastPage;
-  int? lastLimit;
+  ColdigomPraisesQuery? lastQuery;
 
   @override
-  Future<List<PraiseSummaryDto>> search({
-    required String query,
-    int limit = 20,
-    int page = 1,
-  }) async {
-    lastPage = page;
-    lastLimit = limit;
-    return _summaries;
+  Future<PraisesPageDto> listPraises(ColdigomPraisesQuery query) async {
+    lastQuery = query;
+    return PraisesPageDto(
+      data: _summaries,
+      pagination: PraisesPaginationDto(
+        page: query.page,
+        limit: query.limit,
+        total: _summaries.length,
+        totalPages: 1,
+      ),
+    );
   }
 
   @override
@@ -102,11 +104,51 @@ void main() {
 
       final result = await repo.search('hino', page: 2);
 
-      expect(remote.lastPage, 2);
-      expect(remote.lastLimit, 20);
+      expect(remote.lastQuery?.page, 2);
+      expect(remote.lastQuery?.limit, 20);
       expect(result.page, 2);
       expect(result.hasNextPage, isTrue);
       expect(result.groups, hasLength(20));
+    });
+
+    test('browse com q vazio usa total da API', () async {
+      const praiseId = 'p1';
+      final remote = _FakeColdigomRemote(
+        [const PraiseSummaryDto(id: praiseId, name: 'Hino', number: '010')],
+        {
+          praiseId: const PraiseDetailDto(
+            id: praiseId,
+            name: 'Hino',
+            number: '010',
+            rhythm: 'Fox',
+            materials: [
+              MaterialDto(
+                id: 'm1',
+                type: 'pdf',
+                r2Key: 'assets/praises/p1/m1.pdf',
+                materialKindName: 'Partitura',
+              ),
+            ],
+          ),
+        },
+      );
+      final repo = ColdigomSearchRepositoryImpl(remote);
+
+      final result = await repo.browse(
+        const ColdigomBrowseQuery(
+          tonalities: {'Dm'},
+          page: 1,
+          limit: 10,
+          sortBy: 'nome',
+        ),
+      );
+
+      expect(remote.lastQuery?.q, isNull);
+      expect(remote.lastQuery?.tonalities, {'Dm'});
+      expect(remote.lastQuery?.sort, 'name');
+      expect(result.groups, hasLength(1));
+      expect(result.totalItems, 1);
+      expect(result.louvores, hasLength(1));
     });
   });
 }

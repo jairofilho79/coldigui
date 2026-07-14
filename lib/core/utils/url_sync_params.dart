@@ -7,6 +7,16 @@ abstract final class UrlSyncParams {
   static const String ordenar = 'ordenar';
   static const String itensPorPagina = 'itensPorPagina';
   static const String pagina = 'pagina';
+
+  /// Biblioteca: `plpcg` (omitido) | `coldigom`.
+  static const String fonte = 'fonte';
+
+  /// Filtros Coldigom (CSV) — espelham query params da API.
+  static const String tonality = 'tonality';
+  static const String rhythm = 'rhythm';
+  static const String category = 'category';
+  static const String tags = 'tags';
+  static const String materialKinds = 'materialKinds';
   static const String sharePdfs = 'sharepdfs';
   static const String shareName = 'sharename';
   static const String file = 'file';

@@ -308,6 +308,60 @@ abstract class AppLocalizations {
   /// **'Nenhum louvor encontrado com os filtros atuais'**
   String get libraryResultsEmpty;
 
+  /// No description provided for @libraryCatalogModeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fonte'**
+  String get libraryCatalogModeLabel;
+
+  /// No description provided for @libraryCatalogModePlpcg.
+  ///
+  /// In pt, this message translates to:
+  /// **'PLPCG'**
+  String get libraryCatalogModePlpcg;
+
+  /// No description provided for @libraryCatalogModeColdigom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coldigom'**
+  String get libraryCatalogModeColdigom;
+
+  /// No description provided for @coldigomFilterTonality.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tom'**
+  String get coldigomFilterTonality;
+
+  /// No description provided for @coldigomFilterRhythm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ritmo'**
+  String get coldigomFilterRhythm;
+
+  /// No description provided for @coldigomFilterCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get coldigomFilterCategory;
+
+  /// No description provided for @coldigomFilterTags.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tags'**
+  String get coldigomFilterTags;
+
+  /// No description provided for @coldigomFilterMaterials.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais'**
+  String get coldigomFilterMaterials;
+
+  /// No description provided for @coldigomLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar o catálogo Coldigom'**
+  String get coldigomLoadError;
+
   /// No description provided for @offlineTitle.
   ///
   /// In pt, this message translates to:

@@ -9,7 +9,10 @@ import '../../../catalog/domain/entities/louvores_manifest.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../data/providers/library_providers.dart';
+import '../../domain/entities/library_catalog_mode.dart';
 import '../../domain/entities/paginated_louvor_groups.dart';
+import 'library_catalog_mode_provider.dart';
+import 'library_coldigom_browse_provider.dart';
 import 'library_group_worker.dart';
 import 'library_special_arrangement_provider.dart';
 import 'library_view_settings_provider.dart';
@@ -31,11 +34,8 @@ final libraryGroupPipelineDriverProvider =
       LibraryGroupPipelineDriver.new,
     );
 
-/// Pipeline UC-03 agrupado: manifest → Browse → Group → Sort (off-thread) → Paginate.
-///
-/// Paginação permanece síncrona sobre [libraryGroupSortedResultsDataProvider]
-/// para evitar reprocessar ~4600 louvores ao mudar apenas a página.
-final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
+/// Pipeline PLPCG: manifest → Browse → Group → Sort → Paginate.
+final libraryPlpcgGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
   ref.watch(libraryGroupPipelineDriverProvider);
   final sortedGroups = ref.watch(libraryGroupSortedResultsDataProvider);
   final viewSettings = ref.watch(libraryViewSettingsProvider);
@@ -51,6 +51,18 @@ final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
     page: viewSettings.page,
     itemsPerPage: viewSettings.itemsPerPage,
   );
+});
+
+/// Resultados da biblioteca conforme [libraryCatalogModeProvider].
+///
+/// Coldigom: usa o último valor do browse remoto (loading → empty até chegar).
+final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
+  final mode = ref.watch(libraryCatalogModeProvider);
+  if (mode == LibraryCatalogMode.coldigom) {
+    return ref.watch(libraryColdigomBrowseProvider).value ??
+        PaginatedLouvorGroups.empty;
+  }
+  return ref.watch(libraryPlpcgGroupResultsProvider);
 });
 
 /// Executa o pipeline da Biblioteca fora do main thread; descarta resultados obsoletos.

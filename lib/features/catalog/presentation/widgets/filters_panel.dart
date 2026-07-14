@@ -21,11 +21,16 @@ class FiltersPanel extends StatefulWidget {
   const FiltersPanel({
     super.key,
     this.initiallyExpanded = false,
+    this.showPlpcgSections = true,
     this.additionalExpandedSections = const [],
   });
 
   /// Expande ao montar quando a URL traz `materiais=` ou `arranjo=`.
   final bool initiallyExpanded;
+
+  /// Quando `false`, omite [CategoryFilters]/[ClassificationFilters]
+  /// (modo Coldigom usa só [additionalExpandedSections]).
+  final bool showPlpcgSections;
 
   /// Seções extras após [ClassificationFilters] (ex.: arranjo especial na biblioteca).
   final List<Widget> additionalExpandedSections;
@@ -88,20 +93,27 @@ class _FiltersPanelState extends State<FiltersPanel> {
             ),
             if (_expanded) ...[
               const SizedBox(height: 12),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: CategoryFilters(),
-              ),
-              const SizedBox(height: 8),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: ClassificationFilters(),
-              ),
-              for (final section in widget.additionalExpandedSections) ...[
+              if (widget.showPlpcgSections) ...[
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: CategoryFilters(),
+                ),
                 const SizedBox(height: 8),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: ClassificationFilters(),
+                ),
+              ],
+              for (
+                var i = 0;
+                i < widget.additionalExpandedSections.length;
+                i++
+              ) ...[
+                if (widget.showPlpcgSections || i > 0)
+                  const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: section,
+                  child: widget.additionalExpandedSections[i],
                 ),
               ],
             ],

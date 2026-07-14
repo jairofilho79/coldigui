@@ -5,17 +5,26 @@ import 'package:coldigui/core/utils/url_sync_params.dart';
 ///
 /// Omite params com valor padrão: [materiais] todos selecionados, [arranjo] e
 /// [arranjoEspecial] vazios, [ordenar] `numero`, [itensPorPagina] `10`,
-/// [pagina] `1`. Valores codificados via [Uri.encodeComponent].
+/// [pagina] `1`, [fonte] `plpcg`. Valores codificados via [Uri.encodeComponent].
 String buildLibraryLocation({
+  String? fonte,
   String? materiais,
   String? arranjo,
   String? arranjoEspecial,
+  String? tonality,
+  String? rhythm,
+  String? category,
+  String? tags,
+  String? materialKinds,
   String ordenar = UrlSyncParams.defaultOrdenar,
   String itensPorPagina = UrlSyncParams.defaultItensPorPagina,
   String pagina = UrlSyncParams.defaultPagina,
 }) {
   final params = <String, String>{};
 
+  if (fonte != null && fonte.isNotEmpty) {
+    params[UrlSyncParams.fonte] = fonte;
+  }
   if (materiais != null && materiais.isNotEmpty) {
     params[UrlSyncParams.materiais] = materiais;
   }
@@ -24,6 +33,21 @@ String buildLibraryLocation({
   }
   if (arranjoEspecial != null && arranjoEspecial.isNotEmpty) {
     params[UrlSyncParams.arranjoEspecial] = arranjoEspecial;
+  }
+  if (tonality != null && tonality.isNotEmpty) {
+    params[UrlSyncParams.tonality] = tonality;
+  }
+  if (rhythm != null && rhythm.isNotEmpty) {
+    params[UrlSyncParams.rhythm] = rhythm;
+  }
+  if (category != null && category.isNotEmpty) {
+    params[UrlSyncParams.category] = category;
+  }
+  if (tags != null && tags.isNotEmpty) {
+    params[UrlSyncParams.tags] = tags;
+  }
+  if (materialKinds != null && materialKinds.isNotEmpty) {
+    params[UrlSyncParams.materialKinds] = materialKinds;
   }
   if (ordenar != UrlSyncParams.defaultOrdenar) {
     params[UrlSyncParams.ordenar] = ordenar;
@@ -47,13 +71,21 @@ String buildLibraryLocation({
 ///
 /// Usado por [LibraryScreen] para evitar `go()` redundante no sync de URL.
 String buildLibraryLocationFromUri(Uri uri) => buildLibraryLocation(
-      materiais: uri.queryParameters[UrlSyncParams.materiais],
-      arranjo: uri.queryParameters[UrlSyncParams.arranjo],
-      arranjoEspecial: uri.queryParameters[UrlSyncParams.arranjoEspecial],
-      ordenar: uri.queryParameters[UrlSyncParams.ordenar] ??
-          UrlSyncParams.defaultOrdenar,
-      itensPorPagina: uri.queryParameters[UrlSyncParams.itensPorPagina] ??
-          UrlSyncParams.defaultItensPorPagina,
-      pagina: uri.queryParameters[UrlSyncParams.pagina] ??
-          UrlSyncParams.defaultPagina,
-    );
+  fonte: uri.queryParameters[UrlSyncParams.fonte],
+  materiais: uri.queryParameters[UrlSyncParams.materiais],
+  arranjo: uri.queryParameters[UrlSyncParams.arranjo],
+  arranjoEspecial: uri.queryParameters[UrlSyncParams.arranjoEspecial],
+  tonality: uri.queryParameters[UrlSyncParams.tonality],
+  rhythm: uri.queryParameters[UrlSyncParams.rhythm],
+  category: uri.queryParameters[UrlSyncParams.category],
+  tags: uri.queryParameters[UrlSyncParams.tags],
+  materialKinds: uri.queryParameters[UrlSyncParams.materialKinds],
+  ordenar:
+      uri.queryParameters[UrlSyncParams.ordenar] ??
+      UrlSyncParams.defaultOrdenar,
+  itensPorPagina:
+      uri.queryParameters[UrlSyncParams.itensPorPagina] ??
+      UrlSyncParams.defaultItensPorPagina,
+  pagina:
+      uri.queryParameters[UrlSyncParams.pagina] ?? UrlSyncParams.defaultPagina,
+);

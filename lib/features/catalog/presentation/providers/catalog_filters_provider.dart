@@ -22,9 +22,9 @@ class CatalogFilterState {
 
   /// Estado inicial: todos os materiais, nenhum arranjo filtrado.
   factory CatalogFilterState.defaults() => CatalogFilterState(
-        selectedMaterials: Set<String>.from(CatalogMaterials.defaultSelected),
-        selectedArranjos: {},
-      );
+    selectedMaterials: Set<String>.from(CatalogMaterials.defaultSelected),
+    selectedArranjos: {},
+  );
 
   CatalogFilterState copyWith({
     Set<String>? selectedMaterials,
@@ -47,8 +47,8 @@ class CatalogFilterState {
 /// Filtros de material e arranjo — UC-02.
 final catalogFiltersProvider =
     NotifierProvider<CatalogFiltersNotifier, CatalogFilterState>(
-  CatalogFiltersNotifier.new,
-);
+      CatalogFiltersNotifier.new,
+    );
 
 /// Classificações base disponíveis no manifest (chips de arranjo).
 final catalogAvailableArranjosProvider = Provider<Set<String>>((ref) {
@@ -67,6 +67,11 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
       selectedMaterials: CatalogMaterials.parseFromUrl(materiais),
       selectedArranjos: LouvorClassification.parseArranjosFromUrl(arranjo),
     );
+  }
+
+  /// Restaura seleção padrão (todos materiais, nenhum arranjo).
+  void reset() {
+    state = CatalogFilterState.defaults();
   }
 
   /// Alterna material; impede desmarcar o último chip restante.

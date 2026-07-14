@@ -127,6 +127,34 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhum louvor encontrado com os filtros atuais';
 
   @override
+  String get libraryCatalogModeLabel => 'Fonte';
+
+  @override
+  String get libraryCatalogModePlpcg => 'PLPCG';
+
+  @override
+  String get libraryCatalogModeColdigom => 'Coldigom';
+
+  @override
+  String get coldigomFilterTonality => 'Tom';
+
+  @override
+  String get coldigomFilterRhythm => 'Ritmo';
+
+  @override
+  String get coldigomFilterCategory => 'Categoria';
+
+  @override
+  String get coldigomFilterTags => 'Tags';
+
+  @override
+  String get coldigomFilterMaterials => 'Materiais';
+
+  @override
+  String get coldigomLoadError =>
+      'Não foi possível carregar o catálogo Coldigom';
+
+  @override
   String get offlineTitle => 'Offline';
 
   @override
