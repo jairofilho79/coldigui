@@ -1,4 +1,3 @@
-import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
@@ -28,6 +27,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -76,6 +76,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,

@@ -23,6 +23,13 @@ abstract final class UrlSyncParams {
 
   /// Identificador do louvor na rota `/leitor` — habilita carousel in-reader (4.7).
   static const String pdfId = 'pdfId';
+
+  /// Identificador da faixa na rota `/audio`.
+  static const String audioId = 'audioId';
+
+  /// CSV de audioIds no share de playlist (`shareaudios`).
+  static const String shareAudios = 'shareaudios';
+
   static const String titulo = 'titulo';
   static const String subtitulo = 'subtitulo';
   static const String validated = 'validated';

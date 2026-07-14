@@ -593,6 +593,62 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistOpenInReader => 'Abrir no leitor';
 
   @override
+  String get playlistOpenInAudioPlayer => 'Abrir no reprodutor';
+
+  @override
+  String get playlistFacePdf => 'PDFs';
+
+  @override
+  String get playlistFaceAudio => 'Áudios';
+
+  @override
+  String get playlistFaceToggleSemantics =>
+      'Alternar face da playlist entre PDFs e áudios';
+
+  @override
+  String playlistAudioCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count áudios',
+      one: '1 áudio',
+      zero: 'Nenhum áudio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistAudioEmpty => 'Esta lista não tem áudios.';
+
+  @override
+  String get audioPlayerTitle => 'Áudio';
+
+  @override
+  String get audioMaterialSection => 'Áudio';
+
+  @override
+  String get audioPlay => 'Reproduzir';
+
+  @override
+  String get audioPause => 'Pausar';
+
+  @override
+  String get audioPrevious => 'Anterior';
+
+  @override
+  String get audioNext => 'Próximo';
+
+  @override
+  String get audioFlagComingSoon => 'Marcadores de áudio em breve';
+
+  @override
+  String get audioPlaybackError => 'Não foi possível reproduzir este áudio.';
+
+  @override
+  String get audioWebBackgroundNotice =>
+      'Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.';
+
+  @override
   String get playlistLoadConfirmTitle => 'Substituir seleção?';
 
   @override

@@ -1055,6 +1055,96 @@ abstract class AppLocalizations {
   /// **'Abrir no leitor'**
   String get playlistOpenInReader;
 
+  /// No description provided for @playlistOpenInAudioPlayer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no reprodutor'**
+  String get playlistOpenInAudioPlayer;
+
+  /// No description provided for @playlistFacePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'PDFs'**
+  String get playlistFacePdf;
+
+  /// No description provided for @playlistFaceAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudios'**
+  String get playlistFaceAudio;
+
+  /// No description provided for @playlistFaceToggleSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar face da playlist entre PDFs e áudios'**
+  String get playlistFaceToggleSemantics;
+
+  /// No description provided for @playlistAudioCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Nenhum áudio} =1{1 áudio} other{{count} áudios}}'**
+  String playlistAudioCount(int count);
+
+  /// No description provided for @playlistAudioEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta lista não tem áudios.'**
+  String get playlistAudioEmpty;
+
+  /// No description provided for @audioPlayerTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudio'**
+  String get audioPlayerTitle;
+
+  /// No description provided for @audioMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudio'**
+  String get audioMaterialSection;
+
+  /// No description provided for @audioPlay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reproduzir'**
+  String get audioPlay;
+
+  /// No description provided for @audioPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar'**
+  String get audioPause;
+
+  /// No description provided for @audioPrevious.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anterior'**
+  String get audioPrevious;
+
+  /// No description provided for @audioNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo'**
+  String get audioNext;
+
+  /// No description provided for @audioFlagComingSoon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcadores de áudio em breve'**
+  String get audioFlagComingSoon;
+
+  /// No description provided for @audioPlaybackError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível reproduzir este áudio.'**
+  String get audioPlaybackError;
+
+  /// No description provided for @audioWebBackgroundNotice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.'**
+  String get audioWebBackgroundNotice;
+
   /// No description provided for @playlistLoadConfirmTitle.
   ///
   /// In pt, this message translates to:

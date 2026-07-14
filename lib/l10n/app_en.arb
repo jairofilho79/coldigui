@@ -316,6 +316,26 @@
   "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
   "playlistLoadIntoCarousel": "Load into carousel",
   "playlistOpenInReader": "Open in reader",
+  "playlistOpenInAudioPlayer": "Open in audio player",
+  "playlistFacePdf": "PDFs",
+  "playlistFaceAudio": "Audio",
+  "playlistFaceToggleSemantics": "Switch playlist face between PDFs and audio",
+  "playlistAudioCount": "{count, plural, =0{No audio} =1{1 track} other{{count} tracks}}",
+  "@playlistAudioCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistAudioEmpty": "This playlist has no audio tracks.",
+  "audioPlayerTitle": "Audio",
+  "audioMaterialSection": "Audio",
+  "audioPlay": "Play",
+  "audioPause": "Pause",
+  "audioPrevious": "Previous",
+  "audioNext": "Next",
+  "audioFlagComingSoon": "Audio flags coming soon",
+  "audioPlaybackError": "Could not play this audio.",
+  "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",
   "playlistLoadConfirmTitle": "Replace selection?",
   "playlistLoadConfirmMessage": "The current selection will be replaced with songs from this playlist.",
   "playlistLoaded": "Playlist loaded into carousel",

@@ -12,6 +12,7 @@ interface PlaylistRow {
   user_id: string;
   nome: string;
   pdf_ids: string;
+  audio_ids: string;
   salva: number;
   saved_at: string | null;
   favorita: number;
@@ -30,6 +31,7 @@ export interface PlaylistJson {
   id: string;
   nome: string;
   pdfIds: string[];
+  audioIds: string[];
   salva: boolean;
   savedAt: string | null;
   favorita: boolean;
@@ -43,7 +45,7 @@ export interface PlaylistJson {
   publishedAt: string | null;
 }
 
-const SELECT_COLS = `id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
+const SELECT_COLS = `id, user_id, nome, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
               created_at, updated_at, version, deleted_at,
               is_published, publication_reach, publication_category, published_at`;
 
@@ -57,7 +59,8 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function parsePdfIds(raw: string): string[] {
+function parseIdList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -67,11 +70,15 @@ function parsePdfIds(raw: string): string[] {
   }
 }
 
+const parsePdfIds = parseIdList;
+const parseAudioIds = parseIdList;
+
 function rowToJson(row: PlaylistRow): PlaylistJson {
   return {
     id: row.id,
     nome: row.nome,
     pdfIds: parsePdfIds(row.pdf_ids),
+    audioIds: parseAudioIds(row.audio_ids),
     salva: row.salva === 1,
     savedAt: row.saved_at,
     favorita: row.favorita === 1,
@@ -98,6 +105,7 @@ interface PutBody {
   id?: unknown;
   nome?: unknown;
   pdfIds?: unknown;
+  audioIds?: unknown;
   salva?: unknown;
   savedAt?: unknown;
   favorita?: unknown;
@@ -122,6 +130,13 @@ function validatePutBody(body: PutBody, pathId: string): string | null {
     !body.pdfIds.every((v) => typeof v === 'string')
   ) {
     return 'pdfIds must be string array';
+  }
+  if (
+    body.audioIds !== undefined &&
+    (!Array.isArray(body.audioIds) ||
+      !body.audioIds.every((v) => typeof v === 'string'))
+  ) {
+    return 'audioIds must be string array';
   }
   if (body.salva === false) {
     return 'drafts not allowed';
@@ -221,6 +236,10 @@ export async function upsertPlaylist(
 
   const nome = (body.nome as string).trim();
   const pdfIdsJson = JSON.stringify(body.pdfIds);
+  const audioIds = Array.isArray(body.audioIds)
+    ? (body.audioIds as string[])
+    : [];
+  const audioIdsJson = JSON.stringify(audioIds);
   const favorita = body.favorita === true ? 1 : 0;
   const savedAt = isIsoDate(body.savedAt) ? body.savedAt : null;
   const favoritedAt = isIsoDate(body.favoritedAt) ? body.favoritedAt : null;
@@ -244,16 +263,17 @@ export async function upsertPlaylist(
     await db
       .prepare(
         `INSERT INTO user_playlists
-          (id, user_id, nome, pdf_ids, salva, saved_at, favorita, favorited_at,
+          (id, user_id, nome, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
            created_at, updated_at, version, deleted_at,
            is_published, publication_reach, publication_category, published_at)
-         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL, ?, ?, ?, ?)`,
       )
       .bind(
         id,
         claims.sub,
         nome,
         pdfIdsJson,
+        audioIdsJson,
         savedAt,
         favorita,
         favoritedAt,
@@ -270,6 +290,7 @@ export async function upsertPlaylist(
       id,
       nome,
       pdfIds,
+      audioIds,
       salva: true,
       savedAt,
       favorita: favorita === 1,
@@ -291,7 +312,7 @@ export async function upsertPlaylist(
     await db
       .prepare(
         `UPDATE user_playlists SET
-           nome = ?, pdf_ids = ?, salva = 1, saved_at = ?, favorita = ?,
+           nome = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
            favorited_at = ?, updated_at = ?, version = ?, deleted_at = NULL,
            is_published = ?, publication_reach = ?, publication_category = ?,
            published_at = ?
@@ -300,6 +321,7 @@ export async function upsertPlaylist(
       .bind(
         nome,
         pdfIdsJson,
+        audioIdsJson,
         savedAt,
         favorita,
         favoritedAt,
@@ -318,6 +340,7 @@ export async function upsertPlaylist(
       id,
       nome,
       pdfIds,
+      audioIds,
       salva: true,
       savedAt,
       favorita: favorita === 1,
@@ -345,7 +368,7 @@ export async function upsertPlaylist(
   await db
     .prepare(
       `UPDATE user_playlists SET
-         nome = ?, pdf_ids = ?, salva = 1, saved_at = ?, favorita = ?,
+         nome = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
          favorited_at = ?, updated_at = ?, version = ?,
          is_published = ?, publication_reach = ?, publication_category = ?,
          published_at = ?
@@ -354,6 +377,7 @@ export async function upsertPlaylist(
     .bind(
       nome,
       pdfIdsJson,
+      audioIdsJson,
       savedAt,
       favorita,
       favoritedAt,
@@ -372,6 +396,7 @@ export async function upsertPlaylist(
     id,
     nome,
     pdfIds,
+    audioIds,
     salva: true,
     savedAt,
     favorita: favorita === 1,

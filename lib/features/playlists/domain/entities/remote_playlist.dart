@@ -11,6 +11,7 @@ class RemotePlaylist {
     required this.createdAt,
     required this.updatedAt,
     required this.version,
+    this.audioIds = const [],
     this.savedAt,
     this.favoritedAt,
     this.isPublished = false,
@@ -22,6 +23,7 @@ class RemotePlaylist {
   final String id;
   final String nome;
   final List<String> pdfIds;
+  final List<String> audioIds;
   final bool salva;
   final bool favorita;
   final DateTime createdAt;
@@ -38,7 +40,8 @@ class RemotePlaylist {
     return RemotePlaylist(
       id: json['id'] as String,
       nome: json['nome'] as String,
-      pdfIds: (json['pdfIds'] as List<dynamic>).cast<String>(),
+      pdfIds: (json['pdfIds'] as List<dynamic>? ?? const []).cast<String>(),
+      audioIds: (json['audioIds'] as List<dynamic>? ?? const []).cast<String>(),
       salva: json['salva'] as bool? ?? true,
       favorita: json['favorita'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -61,6 +64,7 @@ class RemotePlaylist {
     'id': id,
     'nome': nome,
     'pdfIds': pdfIds,
+    'audioIds': audioIds,
     'salva': salva,
     'favorita': favorita,
     'createdAt': createdAt.toUtc().toIso8601String(),

@@ -1,5 +1,6 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -9,19 +10,24 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Callback de adição de um material ao carousel no sheet.
+/// Callback de adição de um material PDF ao carousel no sheet.
 typedef LouvorMaterialAddCallback = Future<void> Function(Louvor louvor);
 
-/// Bottom sheet — escolha de material por classificação → categoria.
+/// Callback de adição de áudio à playlist ativa.
+typedef LouvorAudioAddCallback = Future<void> Function(AudioTrack track);
+
+/// Bottom sheet — escolha de material por classificação → categoria (+ áudios).
 ///
 /// Exibido quando [LouvorGroup.totalMaterials] > 1. Seções ordenadas por
 /// [LouvorMaterialSection.displayLabel]; materiais por [LouvorCategoryOrder].
-/// Adicionar ([onMaterialAdd]) fica no trailing de cada linha — não no card.
+/// Áudios Coldigom aparecem numa seção final com ícone de música.
 Future<void> showLouvorMaterialSheet({
   required BuildContext context,
   required LouvorGroup group,
   required ValueChanged<Louvor> onMaterialSelected,
+  ValueChanged<AudioTrack>? onAudioSelected,
   LouvorMaterialAddCallback? onMaterialAdd,
+  LouvorAudioAddCallback? onAudioAdd,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -34,7 +40,9 @@ Future<void> showLouvorMaterialSheet({
       return _LouvorMaterialSheetBody(
         group: group,
         onMaterialSelected: onMaterialSelected,
+        onAudioSelected: onAudioSelected,
         onMaterialAdd: onMaterialAdd,
+        onAudioAdd: onAudioAdd,
       );
     },
   );
@@ -44,12 +52,16 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
   const _LouvorMaterialSheetBody({
     required this.group,
     required this.onMaterialSelected,
+    this.onAudioSelected,
     this.onMaterialAdd,
+    this.onAudioAdd,
   });
 
   final LouvorGroup group;
   final ValueChanged<Louvor> onMaterialSelected;
+  final ValueChanged<AudioTrack>? onAudioSelected;
   final LouvorMaterialAddCallback? onMaterialAdd;
+  final LouvorAudioAddCallback? onAudioAdd;
 
   @override
   ConsumerState<_LouvorMaterialSheetBody> createState() =>
@@ -58,17 +70,29 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
 
 class _LouvorMaterialSheetBodyState
     extends ConsumerState<_LouvorMaterialSheetBody> {
-  String? _addingPdfId;
+  String? _addingId;
 
-  Future<void> _handleAdd(Louvor louvor) async {
+  Future<void> _handleAddPdf(Louvor louvor) async {
     final onAdd = widget.onMaterialAdd;
-    if (onAdd == null || _addingPdfId != null) return;
+    if (onAdd == null || _addingId != null) return;
 
-    setState(() => _addingPdfId = louvor.pdfId);
+    setState(() => _addingId = louvor.pdfId);
     try {
       await onAdd(louvor);
     } finally {
-      if (mounted) setState(() => _addingPdfId = null);
+      if (mounted) setState(() => _addingId = null);
+    }
+  }
+
+  Future<void> _handleAddAudio(AudioTrack track) async {
+    final onAdd = widget.onAudioAdd;
+    if (onAdd == null || _addingId != null) return;
+
+    setState(() => _addingId = track.audioId);
+    try {
+      await onAdd(track);
+    } finally {
+      if (mounted) setState(() => _addingId = null);
     }
   }
 
@@ -79,6 +103,7 @@ class _LouvorMaterialSheetBodyState
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = widget.group;
     final onMaterialAdd = widget.onMaterialAdd;
+    final onAudioAdd = widget.onAudioAdd;
     final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
 
     return Padding(
@@ -158,14 +183,61 @@ class _LouvorMaterialSheetBodyState
                         trailing: onMaterialAdd == null
                             ? null
                             : _MaterialAddTrailing(
-                                isAdded:
-                                    carouselPdfIds.contains(material.pdfId),
-                                isAdding: _addingPdfId == material.pdfId,
-                                onAdd: () => _handleAdd(material.louvor),
+                                isAdded: carouselPdfIds.contains(
+                                  material.pdfId,
+                                ),
+                                isAdding: _addingId == material.pdfId,
+                                onAdd: () => _handleAddPdf(material.louvor),
                               ),
                         onTap: () {
                           Navigator.of(context).pop();
                           widget.onMaterialSelected(material.louvor);
+                        },
+                      ),
+                  ],
+                  if (group.audioTracks.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+                      child: Text(
+                        l10n.audioMaterialSection,
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.title,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    for (final track in group.audioTracks)
+                      ListTile(
+                        leading: const Icon(
+                          LouvorMaterialIcons.audio,
+                          color: AppColors.title,
+                        ),
+                        title: Text(
+                          track.categoria,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        subtitle: track.author.isEmpty
+                            ? null
+                            : Text(
+                                track.author,
+                                style: AppTypography.label.copyWith(
+                                  color: AppColors.textDark.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                              ),
+                        trailing: onAudioAdd == null
+                            ? null
+                            : _MaterialAddTrailing(
+                                isAdded: false,
+                                isAdding: _addingId == track.audioId,
+                                onAdd: () => _handleAddAudio(track),
+                              ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onAudioSelected?.call(track);
                         },
                       ),
                   ],
@@ -211,11 +283,7 @@ class _MaterialAddTrailing extends StatelessWidget {
         child: const SizedBox(
           width: 24,
           height: 24,
-          child: Icon(
-            Icons.check,
-            size: 16,
-            color: AppColors.title,
-          ),
+          child: Icon(Icons.check, size: 16, color: AppColors.title),
         ),
       );
     }

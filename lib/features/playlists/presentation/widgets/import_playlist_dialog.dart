@@ -9,10 +9,14 @@ class ImportPlaylistDialogResult {
   const ImportPlaylistDialogResult({
     required this.sharePdfs,
     required this.shareName,
+    this.shareAudios = '',
   });
 
   /// Valor bruto do param `sharepdfs` (CSV).
   final String sharePdfs;
+
+  /// Valor bruto do param `shareaudios` (CSV), opcional.
+  final String shareAudios;
 
   /// Nome da playlist conforme param `sharename`.
   final String shareName;
@@ -41,6 +45,7 @@ Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
             Navigator.of(dialogContext).pop(
               ImportPlaylistDialogResult(
                 sharePdfs: params.sharePdfs,
+                shareAudios: params.shareAudios,
                 shareName: params.shareName,
               ),
             );
@@ -66,8 +71,9 @@ Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: l10n.playlistImportUrlLabel,
-                    errorText:
-                        invalidInput ? l10n.playlistImportInvalidUrl : null,
+                    errorText: invalidInput
+                        ? l10n.playlistImportInvalidUrl
+                        : null,
                   ),
                   onChanged: (_) {
                     if (invalidInput) {

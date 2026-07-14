@@ -28,6 +28,7 @@ void main() {
       );
 
       final louvores = ColdigomLouvorAdapter.toLouvores(praise);
+      final tracks = ColdigomLouvorAdapter.toAudioTracks(praise);
 
       expect(louvores, hasLength(1));
       expect(louvores.first.nome, 'Grande Deus');
@@ -41,6 +42,17 @@ void main() {
         louvores.first.pdfId,
         encodePdfId('assets/praises/praise-1/mat-1.pdf'),
       );
+
+      expect(tracks, hasLength(1));
+      expect(
+        tracks.first.audioId,
+        encodePdfId('assets/praises/praise-1/mat-2.mp3'),
+      );
+      expect(tracks.first.r2Key, 'assets/praises/praise-1/mat-2.mp3');
+      expect(tracks.first.nome, 'Grande Deus');
+      expect(tracks.first.groupId, 'praise-1');
+      expect(tracks.first.categoria, 'Áudio');
+      expect(tracks.first.source, LouvorDataSource.coldigom);
     });
   });
 }

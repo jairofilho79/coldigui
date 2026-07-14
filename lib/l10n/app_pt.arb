@@ -316,6 +316,26 @@
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
   "playlistLoadIntoCarousel": "Carregar no carousel",
   "playlistOpenInReader": "Abrir no leitor",
+  "playlistOpenInAudioPlayer": "Abrir no reprodutor",
+  "playlistFacePdf": "PDFs",
+  "playlistFaceAudio": "Áudios",
+  "playlistFaceToggleSemantics": "Alternar face da playlist entre PDFs e áudios",
+  "playlistAudioCount": "{count, plural, =0{Nenhum áudio} =1{1 áudio} other{{count} áudios}}",
+  "@playlistAudioCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistAudioEmpty": "Esta lista não tem áudios.",
+  "audioPlayerTitle": "Áudio",
+  "audioMaterialSection": "Áudio",
+  "audioPlay": "Reproduzir",
+  "audioPause": "Pausar",
+  "audioPrevious": "Anterior",
+  "audioNext": "Próximo",
+  "audioFlagComingSoon": "Marcadores de áudio em breve",
+  "audioPlaybackError": "Não foi possível reproduzir este áudio.",
+  "audioWebBackgroundNotice": "Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.",
   "playlistLoadConfirmTitle": "Substituir seleção?",
   "playlistLoadConfirmMessage": "A seleção atual será substituída pelos louvores desta lista.",
   "playlistLoaded": "Lista carregada no carousel",

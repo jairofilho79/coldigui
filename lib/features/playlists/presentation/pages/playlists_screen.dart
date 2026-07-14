@@ -13,6 +13,7 @@ import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
 import '../widgets/import_playlist_dialog.dart';
 import '../widgets/playlist_list_tile.dart';
+import '../widgets/playlist_media_face_toggle.dart';
 
 /// UC-06/07 — Gestão de playlists com abas [PlaylistTab] (Fase 4.8 + UC-15 sync).
 ///
@@ -112,6 +113,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         .read(playlistsProvider.notifier)
         .importSharedFromUrl(
           sharePdfs: result.sharePdfs,
+          shareAudios: result.shareAudios,
           shareName: result.shareName,
         );
     if (!context.mounted) return;
@@ -200,6 +202,13 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
                 ),
                 Tab(text: l10n.playlistTabFavorites),
               ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: PlaylistMediaFaceToggle(),
             ),
           ),
           Expanded(

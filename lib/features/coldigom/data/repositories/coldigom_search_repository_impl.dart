@@ -1,3 +1,4 @@
+import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
@@ -40,11 +41,15 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final louvores = await _fetchLouvoresForSummaries(pageDto.data);
-    final groups = LouvorGroup.fromLouvores(louvores);
+    final fetched = await _fetchMaterialsForSummaries(pageDto.data);
+    final groups = LouvorGroup.fromLouvores(
+      fetched.louvores,
+      audioTracks: fetched.audioTracks,
+    );
     return ColdigomSearchResult(
       groups: groups,
-      louvores: louvores,
+      louvores: fetched.louvores,
+      audioTracks: fetched.audioTracks,
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
     );
@@ -84,12 +89,16 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final louvores = await _fetchLouvoresForSummaries(pageDto.data);
-    final groups = LouvorGroup.fromLouvores(louvores);
+    final fetched = await _fetchMaterialsForSummaries(pageDto.data);
+    final groups = LouvorGroup.fromLouvores(
+      fetched.louvores,
+      audioTracks: fetched.audioTracks,
+    );
 
     return ColdigomBrowseResult(
       groups: groups,
-      louvores: louvores,
+      louvores: fetched.louvores,
+      audioTracks: fetched.audioTracks,
       page: pageDto.pagination.page,
       limit: pageDto.pagination.limit,
       totalItems: pageDto.pagination.total,
@@ -97,10 +106,10 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     );
   }
 
-  Future<List<Louvor>> _fetchLouvoresForSummaries(
-    List<PraiseSummaryDto> summaries,
-  ) async {
+  Future<({List<Louvor> louvores, List<AudioTrack> audioTracks})>
+  _fetchMaterialsForSummaries(List<PraiseSummaryDto> summaries) async {
     final louvores = <Louvor>[];
+    final audioTracks = <AudioTrack>[];
     for (var i = 0; i < summaries.length; i += detailConcurrency) {
       final batch = summaries.skip(i).take(detailConcurrency);
       final details = await Future.wait(
@@ -108,8 +117,9 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
       for (final detail in details) {
         louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
+        audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
       }
     }
-    return louvores;
+    return (louvores: louvores, audioTracks: audioTracks);
   }
 }

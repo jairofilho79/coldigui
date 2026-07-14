@@ -21,10 +21,21 @@ void main() {
       expect(location, contains('sharename=C%C3%A2ntico'));
     });
 
-    test('lança se pdfIds vazio', () {
+    test('lança se pdfIds e audioIds vazios', () {
       expect(
         () => buildPlaylistShareLocation(pdfIds: [], shareName: 'Nome'),
         throwsArgumentError,
+      );
+    });
+
+    test('aceita só audioIds', () {
+      expect(
+        buildPlaylistShareLocation(
+          pdfIds: const [],
+          audioIds: const ['a1', 'a2'],
+          shareName: 'Lista audio',
+        ),
+        '/?shareaudios=a1%2Ca2&sharename=Lista%20audio',
       );
     });
 
@@ -62,24 +73,15 @@ void main() {
 
   group('parsePdfIdsFromSharePdfs', () {
     test('preserva ordem', () {
-      expect(
-        parsePdfIdsFromSharePdfs('z,y,x'),
-        ['z', 'y', 'x'],
-      );
+      expect(parsePdfIdsFromSharePdfs('z,y,x'), ['z', 'y', 'x']);
     });
 
     test('remove vazios e dedupe', () {
-      expect(
-        parsePdfIdsFromSharePdfs('a,,b, a ,b,c'),
-        ['a', 'b', 'c'],
-      );
+      expect(parsePdfIdsFromSharePdfs('a,,b, a ,b,c'), ['a', 'b', 'c']);
     });
 
     test('trim em cada id', () {
-      expect(
-        parsePdfIdsFromSharePdfs(' id1 , id2 '),
-        ['id1', 'id2'],
-      );
+      expect(parsePdfIdsFromSharePdfs(' id1 , id2 '), ['id1', 'id2']);
     });
   });
 

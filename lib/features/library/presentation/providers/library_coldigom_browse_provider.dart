@@ -43,6 +43,9 @@ class LibraryColdigomBrowseNotifier
     ref
         .read(coldigomLouvoresCacheProvider.notifier)
         .mergeLouvores(result.louvores);
+    ref
+        .read(coldigomAudioTracksCacheProvider.notifier)
+        .mergeTracks(result.audioTracks);
 
     return PaginatedLouvorGroups(
       items: result.groups,

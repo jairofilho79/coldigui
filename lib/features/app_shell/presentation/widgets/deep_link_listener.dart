@@ -73,7 +73,8 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
     final params = parsePlaylistShareParams(uri);
     if (params == null) return;
 
-    final fingerprint = '${params.sharePdfs}|${params.shareName}';
+    final fingerprint =
+        '${params.sharePdfs}|${params.shareAudios}|${params.shareName}';
     if (_lastProcessedKey == fingerprint) return;
 
     _handling = true;

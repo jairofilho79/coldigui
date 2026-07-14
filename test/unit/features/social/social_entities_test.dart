@@ -20,6 +20,7 @@ void main() {
       'publishedAt': '2026-07-01T00:00:00.000Z',
     });
     expect(playlist.pdfIds, ['a', 'b']);
+    expect(playlist.audioIds, isEmpty);
     expect(playlist.publicationReach, PlaylistReach.usual);
     expect(playlist.publicationCategory, PlaylistCategory.medleys);
     expect(playlist.publishedAt?.isUtc, isTrue);

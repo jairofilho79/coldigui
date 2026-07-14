@@ -1,9 +1,12 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
@@ -20,9 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Card agrupado na Home/Biblioteca — um louvor lógico, vários materiais.
 ///
-/// Tap: sublista se [LouvorGroup.totalMaterials] > 1; senão abre PDF direto.
-/// Trailing +: adiciona ao carousel só com 1 material; com vários, + fica no sheet.
-/// Compartilhar (UC-04): com 1 PDF, só no leitor.
+/// Tap: sublista se [LouvorGroup.totalMaterials] > 1; senão abre PDF/áudio direto.
+/// Trailing +: adiciona ao carousel só com 1 PDF; com vários, + fica no sheet.
 class LouvorGroupCard extends ConsumerStatefulWidget {
   const LouvorGroupCard({required this.group, super.key});
 
@@ -33,8 +35,18 @@ class LouvorGroupCard extends ConsumerStatefulWidget {
 }
 
 class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
-  Louvor? get _singleLouvor =>
-      widget.group.totalMaterials == 1 ? widget.group.primaryLouvor : null;
+  Louvor? get _singleLouvor {
+    if (widget.group.totalMaterials != 1) return null;
+    if (widget.group.audioTracks.isNotEmpty) return null;
+    return widget.group.primaryLouvor;
+  }
+
+  AudioTrack? get _singleAudio {
+    if (widget.group.totalMaterials != 1) return null;
+    if (widget.group.audioTracks.length != 1) return null;
+    if (widget.group.totalPdfs > 0) return null;
+    return widget.group.audioTracks.first;
+  }
 
   CarouselItem _toCarouselItem(Louvor louvor) {
     return CarouselItem(
@@ -63,17 +75,41 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
   }
 
+  Future<void> _openAudio(AudioTrack track) async {
+    try {
+      await openAudioInPlayer(
+        ref: ref,
+        context: context,
+        track: track,
+        queue: widget.group.audioTracks,
+      );
+    } on Object catch (e) {
+      if (mounted) {
+        showAppSnackbar(context, e.toString());
+      }
+    }
+  }
+
   Future<void> _handleTap() async {
+    final singleAudio = _singleAudio;
+    if (singleAudio != null) {
+      await _openAudio(singleAudio);
+      return;
+    }
+
     final single = _singleLouvor;
     if (single != null) {
       await _openLouvor(single);
       return;
     }
+
     await showLouvorMaterialSheet(
       context: context,
       group: widget.group,
       onMaterialSelected: _openLouvor,
+      onAudioSelected: _openAudio,
       onMaterialAdd: _handleAddMaterialToCarousel,
+      onAudioAdd: _handleAddAudioToPlaylist,
     );
   }
 
@@ -124,6 +160,28 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
   }
 
+  Future<void> _handleAddAudioToPlaylist(AudioTrack track) async {
+    if (!ref.read(isarAvailableProvider)) {
+      if (!mounted) return;
+      showAppSnackbar(
+        context,
+        'Armazenamento local indisponível. Listas não podem ser salvas.',
+      );
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    final added = await ref
+        .read(playlistsProvider.notifier)
+        .addAudioToActivePlaylist(track.audioId);
+
+    if (!mounted) return;
+    showAppSnackbar(
+      context,
+      added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
+    );
+  }
+
   Set<String> get _groupPdfIds => {
     for (final section in widget.group.sections)
       for (final material in section.materials) material.pdfId,
@@ -156,22 +214,25 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
     final isLoading = activeDownload?.isLoading ?? false;
     final primary = widget.group.primaryLouvor;
+    final singleAudio = _singleAudio;
     final isAdded = primary != null
         ? ref.watch(
             carouselPdfIdsProvider.select((ids) => ids.contains(primary.pdfId)),
           )
         : false;
     final isMultiMaterial = widget.group.totalMaterials > 1;
+    final hasAudio = widget.group.audioTracks.isNotEmpty;
 
     final chipItem = primary != null
         ? _toCarouselItem(primary)
         : CarouselItem(
-            pdfId: widget.group.groupId,
+            pdfId: singleAudio?.audioId ?? widget.group.groupId,
             sortOrder: 0,
             numero: widget.group.numero,
             nome: widget.group.nome,
-            categoria: '',
-            classificacao: '',
+            categoria: hasAudio ? 'Áudio' : '',
+            classificacao: singleAudio?.classificacao ?? '',
+            source: singleAudio?.source ?? LouvorDataSource.coldigom,
           );
 
     final metadataSummary =
@@ -179,9 +240,11 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         (isMultiMaterial
             ? l10n.louvorGroupMetadataSummary(
                 widget.group.totalMaterials,
-                widget.group.totalArrangements,
+                widget.group.totalArrangements == 0
+                    ? 1
+                    : widget.group.totalArrangements,
               )
-            : null);
+            : (hasAudio ? l10n.audioMaterialSection : null));
 
     final offlineAvailability = primary != null
         ? ref.watch(_offlineAvailabilityProvider(primary.pdfId)).value ??
@@ -194,7 +257,12 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         item: chipItem,
         metadataSummary: metadataSummary,
         onTap: isLoading ? null : _handleTap,
-        onAdd: isLoading || isAdded || primary == null || isMultiMaterial
+        onAdd:
+            isLoading ||
+                isAdded ||
+                primary == null ||
+                isMultiMaterial ||
+                singleAudio != null
             ? null
             : _handleAddToCarousel,
         isAdded: isMultiMaterial ? false : isAdded,

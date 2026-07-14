@@ -4,7 +4,6 @@ import 'package:coldigui/features/playlists/domain/exceptions/empty_playlist_sha
 import 'package:coldigui/features/playlists/domain/exceptions/playlist_not_found_exception.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/generate_playlist_share_url.dart';
-import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakePlaylistRepository implements PlaylistRepository {
@@ -16,6 +15,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -69,6 +69,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,

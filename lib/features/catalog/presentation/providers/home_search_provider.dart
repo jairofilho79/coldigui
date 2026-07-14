@@ -194,6 +194,9 @@ class HomeSearchPipelineDriver extends Notifier<int> {
       ref
           .read(coldigomLouvoresCacheProvider.notifier)
           .mergeLouvores(coldigomResult.louvores);
+      ref
+          .read(coldigomAudioTracksCacheProvider.notifier)
+          .mergeTracks(coldigomResult.audioTracks);
 
       ref.read(homeSearchColdigomGroupsDataProvider.notifier).state =
           coldigomResult.groups;

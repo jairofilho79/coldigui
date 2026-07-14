@@ -24,7 +24,12 @@ final ensureColdigomPraiseMaterialsCachedProvider =
         final siblingsInCache = cache.values
             .where((l) => coldigomPraiseIdFromPdfId(l.pdfId) == praiseId)
             .length;
-        if (siblingsInCache > 1) return;
+        final audioSiblings = ref
+            .read(coldigomAudioTracksCacheProvider)
+            .values
+            .where((t) => t.groupId == praiseId)
+            .length;
+        if (siblingsInCache > 1 || audioSiblings > 0) return;
 
         final detail = await ref
             .read(coldigomRemoteDatasourceProvider)
@@ -32,5 +37,8 @@ final ensureColdigomPraiseMaterialsCachedProvider =
         ref
             .read(coldigomLouvoresCacheProvider.notifier)
             .mergeLouvores(ColdigomLouvorAdapter.toLouvores(detail));
+        ref
+            .read(coldigomAudioTracksCacheProvider.notifier)
+            .mergeTracks(ColdigomLouvorAdapter.toAudioTracks(detail));
       };
     });

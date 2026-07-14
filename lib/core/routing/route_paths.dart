@@ -11,6 +11,9 @@ abstract final class RoutePaths {
   /// Leitor PDF UC-11 — filha do [ShellRoute] com `parentNavigatorKey` fullscreen.
   static const String reader = '/leitor';
 
+  /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
+  static const String audio = '/audio';
+
   /// Eventos — placeholder (índice 0 em [PlpcgBottomNavBar]).
   static const String events = '/eventos';
 

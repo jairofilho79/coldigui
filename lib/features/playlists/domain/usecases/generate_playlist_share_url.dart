@@ -14,7 +14,7 @@ class GeneratePlaylistShareUrl {
   final PlaylistRepository _repository;
   final String shareOrigin;
 
-  /// Retorna URL absoluta `/?sharepdfs=...&sharename=...`.
+  /// Retorna URL absoluta com `sharepdfs` e/ou `shareaudios`.
   ///
   /// Lança [PlaylistNotFoundException] ou [EmptyPlaylistShareException].
   Future<String> call({required String playlistId}) async {
@@ -22,13 +22,14 @@ class GeneratePlaylistShareUrl {
     if (playlist == null) {
       throw const PlaylistNotFoundException();
     }
-    if (playlist.pdfIds.isEmpty) {
+    if (playlist.pdfIds.isEmpty && playlist.audioIds.isEmpty) {
       throw const EmptyPlaylistShareException();
     }
 
     return buildPlaylistShareUrl(
       origin: shareOrigin,
       pdfIds: playlist.pdfIds,
+      audioIds: playlist.audioIds,
       shareName: playlist.nome,
     );
   }

@@ -12,6 +12,7 @@ import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
 import '../../features/offline/presentation/pages/offline_settings_screen.dart';
+import '../../features/audio_player/presentation/pages/audio_player_screen.dart';
 import '../../features/pdf_reader/data/pdfrx_bootstrap.dart';
 import '../../features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import '../../features/playlists/presentation/pages/playlists_screen.dart';
@@ -100,6 +101,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                       builder: () => PdfReaderScreen(
                         queryParams: state.uri.queryParameters,
                       ),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'audio',
+                    builder: (context, state) => AudioPlayerScreen(
+                      queryParams: state.uri.queryParameters,
                     ),
                   ),
                 ],

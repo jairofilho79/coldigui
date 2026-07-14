@@ -37,6 +37,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -52,6 +53,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..playlistId = id
       ..nome = nome
       ..pdfIds = List<String>.from(pdfIds)
+      ..audioIds = List<String>.from(audioIds)
       ..createdAt = now
       ..salva = salva
       ..savedAt = savedAt ?? (salva ? now : null)
@@ -71,6 +73,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,
@@ -87,6 +90,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final touchSync =
         nome != null ||
         pdfIds != null ||
+        audioIds != null ||
         salva != null ||
         savedAt != null ||
         favoritedAt != null ||
@@ -98,6 +102,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       playlistId,
       nome: nome,
       pdfIds: pdfIds,
+      audioIds: audioIds,
       salva: salva,
       savedAt: savedAt,
       favoritedAt: favoritedAt,
@@ -177,6 +182,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..playlistId = playlist.playlistId
       ..nome = playlist.nome
       ..pdfIds = List<String>.from(playlist.pdfIds)
+      ..audioIds = List<String>.from(playlist.audioIds)
       ..createdAt = playlist.createdAt
       ..salva = playlist.salva
       ..savedAt = playlist.savedAt
@@ -200,6 +206,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     playlistId: row.playlistId,
     nome: row.nome,
     pdfIds: List<String>.from(row.pdfIds),
+    audioIds: List<String>.from(row.audioIds),
     createdAt: row.createdAt,
     salva: row.salva,
     savedAt: row.savedAt,

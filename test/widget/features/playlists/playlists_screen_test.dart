@@ -29,9 +29,11 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<String?> importSharedFromUrl({
     required String sharePdfs,
     required String shareName,
+    String shareAudios = '',
   }) async {
     lastImport = ImportPlaylistDialogResult(
       sharePdfs: sharePdfs,
+      shareAudios: shareAudios,
       shareName: shareName,
     );
     return 'imported-id';

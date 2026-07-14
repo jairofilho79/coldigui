@@ -108,6 +108,7 @@ class PlaylistLocalDatasource {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,
@@ -135,6 +136,7 @@ class PlaylistLocalDatasource {
 
       if (nome != null) existing.nome = nome;
       if (pdfIds != null) existing.pdfIds = List<String>.from(pdfIds);
+      if (audioIds != null) existing.audioIds = List<String>.from(audioIds);
       if (salva != null) existing.salva = salva;
       if (savedAt != null) existing.savedAt = savedAt;
       if (favoritedAt != null) existing.favoritedAt = favoritedAt;

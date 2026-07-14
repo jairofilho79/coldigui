@@ -19,12 +19,14 @@ interface PublicPlaylistRow {
   id: string;
   nome: string;
   pdf_ids: string;
+  audio_ids: string;
   publication_reach: string | null;
   publication_category: string | null;
   published_at: string | null;
 }
 
-function parsePdfIds(raw: string): string[] {
+function parseIdList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -101,7 +103,7 @@ export async function listPublicPlaylistsByUsername(
 
   const result = await db
     .prepare(
-      `SELECT id, nome, pdf_ids, publication_reach, publication_category, published_at
+      `SELECT id, nome, pdf_ids, audio_ids, publication_reach, publication_category, published_at
        FROM user_playlists
        WHERE user_id = ?
          AND is_published = 1
@@ -115,7 +117,8 @@ export async function listPublicPlaylistsByUsername(
     (result.results ?? []).map((row) => ({
       id: row.id,
       nome: row.nome,
-      pdfIds: parsePdfIds(row.pdf_ids),
+      pdfIds: parseIdList(row.pdf_ids),
+      audioIds: parseIdList(row.audio_ids),
       publicationReach: row.publication_reach as PublicationReach | null,
       publicationCategory:
         row.publication_category as PublicationCategory | null,

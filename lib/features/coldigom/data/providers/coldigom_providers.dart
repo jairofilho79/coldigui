@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../datasources/coldigom_remote_datasource.dart';
 import '../providers/coldigom_dio_provider.dart';
@@ -26,6 +27,29 @@ class ColdigomLouvoresCacheNotifier extends Notifier<Map<String, Louvor>> {
 final coldigomLouvoresCacheProvider =
     NotifierProvider<ColdigomLouvoresCacheNotifier, Map<String, Louvor>>(
       ColdigomLouvoresCacheNotifier.new,
+    );
+
+/// Cache em memória de faixas coldigom indexadas por `audioId`.
+class ColdigomAudioTracksCacheNotifier
+    extends Notifier<Map<String, AudioTrack>> {
+  @override
+  Map<String, AudioTrack> build() => const {};
+
+  void mergeTracks(Iterable<AudioTrack> tracks) {
+    if (tracks.isEmpty) return;
+    final next = Map<String, AudioTrack>.from(state);
+    for (final track in tracks) {
+      next[track.audioId] = track;
+    }
+    state = next;
+  }
+
+  AudioTrack? findByAudioId(String audioId) => state[audioId];
+}
+
+final coldigomAudioTracksCacheProvider =
+    NotifierProvider<ColdigomAudioTracksCacheNotifier, Map<String, AudioTrack>>(
+      ColdigomAudioTracksCacheNotifier.new,
     );
 
 final coldigomRemoteDatasourceProvider = Provider<ColdigomRemoteDatasource>((

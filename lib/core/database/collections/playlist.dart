@@ -7,7 +7,7 @@ part 'playlist.g.dart';
 
 /// Playlist do usuário (UC-06/07 + UC-15 sync).
 ///
-/// [playlistId] é UUID estável; [pdfIds] preserva ordem da seleção.
+/// [playlistId] é UUID estável; [pdfIds]/[audioIds] preservam ordem.
 /// [salva] default `true` migra registros existentes como salvas.
 @Collection()
 class Playlist {
@@ -18,6 +18,10 @@ class Playlist {
 
   late String nome;
   late List<String> pdfIds;
+
+  /// Faixas Coldigom — coleção paralela independente de [pdfIds].
+  List<String> audioIds = const [];
+
   late DateTime createdAt;
 
   /// `false` = lista não salva (rascunho automático ao abrir louvor).

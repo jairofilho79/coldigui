@@ -1,4 +1,3 @@
-import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/remote_playlist.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -13,6 +12,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -27,6 +27,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
       playlistId: id,
       nome: nome,
       pdfIds: pdfIds,
+      audioIds: audioIds,
       createdAt: now,
       salva: salva,
       savedAt: savedAt ?? (salva ? now : null),
@@ -129,6 +130,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,
@@ -145,6 +147,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
     map[playlistId] = existing.copyWith(
       nome: nome,
       pdfIds: pdfIds,
+      audioIds: audioIds,
       salva: salva,
       savedAt: savedAt,
       favoritedAt: clearFavoritedAt ? null : favoritedAt,

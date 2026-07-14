@@ -13,6 +13,7 @@ class SavedPlaylist {
     required this.nome,
     required this.pdfIds,
     required this.createdAt,
+    this.audioIds = const [],
     this.salva = true,
     this.savedAt,
     this.favoritedAt,
@@ -35,6 +36,9 @@ class SavedPlaylist {
 
   /// IDs dos PDFs na ordem da seleção original.
   final List<String> pdfIds;
+
+  /// IDs das faixas de áudio (ordem independente).
+  final List<String> audioIds;
 
   final DateTime createdAt;
 
@@ -69,6 +73,7 @@ class SavedPlaylist {
     String? playlistId,
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     DateTime? createdAt,
     bool? salva,
     DateTime? savedAt,
@@ -89,6 +94,7 @@ class SavedPlaylist {
       playlistId: playlistId ?? this.playlistId,
       nome: nome ?? this.nome,
       pdfIds: pdfIds ?? this.pdfIds,
+      audioIds: audioIds ?? this.audioIds,
       createdAt: createdAt ?? this.createdAt,
       salva: salva ?? this.salva,
       savedAt: savedAt ?? this.savedAt,

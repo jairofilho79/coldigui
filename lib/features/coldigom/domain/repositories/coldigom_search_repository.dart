@@ -1,3 +1,4 @@
+import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 
@@ -41,17 +42,19 @@ class ColdigomBrowseQuery {
   String get apiSort => sortBy == 'nome' ? 'name' : 'number';
 }
 
-/// Resultado da busca coldigom com louvores flat para cache.
+/// Resultado da busca coldigom com louvores/áudios flat para cache.
 class ColdigomSearchResult {
   const ColdigomSearchResult({
     required this.groups,
     required this.louvores,
+    this.audioTracks = const [],
     this.page = 1,
     this.hasNextPage = false,
   });
 
   final List<LouvorGroup> groups;
   final List<Louvor> louvores;
+  final List<AudioTrack> audioTracks;
   final int page;
   final bool hasNextPage;
 }
@@ -61,6 +64,7 @@ class ColdigomBrowseResult {
   const ColdigomBrowseResult({
     required this.groups,
     required this.louvores,
+    this.audioTracks = const [],
     required this.page,
     required this.limit,
     required this.totalItems,
@@ -69,6 +73,7 @@ class ColdigomBrowseResult {
 
   final List<LouvorGroup> groups;
   final List<Louvor> louvores;
+  final List<AudioTrack> audioTracks;
   final int page;
   final int limit;
   final int totalItems;

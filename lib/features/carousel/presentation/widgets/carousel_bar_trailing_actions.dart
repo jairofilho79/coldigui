@@ -8,7 +8,10 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_c
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
+import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_ui_provider.dart';
@@ -56,6 +59,8 @@ class _CarouselBarTrailingActionsState
     final l10n = AppLocalizations.of(context)!;
     final isCompact =
         MediaQuery.sizeOf(context).width < kCarouselBarExpandedBreakpoint;
+    final face = ref.watch(playlistMediaFaceProvider);
+    final isAudioFace = face == PlaylistMediaFace.audio;
 
     if (isCompact) {
       return PopupMenuButton<_CarouselOverflowAction>(
@@ -115,6 +120,17 @@ class _CarouselBarTrailingActionsState
           onPressed: _sharing
               ? null
               : () => _openShareSheet(context, ref, l10n),
+        ),
+        IconButton(
+          style: carouselBarIconButtonStyle,
+          tooltip: isAudioFace ? l10n.playlistFacePdf : l10n.playlistFaceAudio,
+          icon: Icon(
+            isAudioFace
+                ? Icons.picture_as_pdf_outlined
+                : LouvorMaterialIcons.audio,
+          ),
+          onPressed: () =>
+              ref.read(playlistMediaFaceProvider.notifier).toggle(),
         ),
         IconButton(
           style: carouselBarIconButtonStyle,

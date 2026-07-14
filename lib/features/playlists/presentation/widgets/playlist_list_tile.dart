@@ -1,5 +1,6 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -23,14 +24,17 @@ import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/entities/saved_playlist.dart';
+import '../providers/playlist_media_face_provider.dart';
 import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
+import 'playlist_audio_face_panel.dart';
 import 'playlist_share_sheet.dart';
 import 'publish_playlist_dialog.dart';
 import 'save_playlist_dialog.dart';
@@ -95,7 +99,10 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
 
     final l10n = AppLocalizations.of(context)!;
     final playlist = widget.item.playlist;
-    final count = playlist.pdfIds.length;
+    final face = ref.watch(playlistMediaFaceProvider);
+    final countLabel = face == PlaylistMediaFace.audio
+        ? l10n.playlistAudioCount(playlist.audioIds.length)
+        : l10n.playlistPdfCount(playlist.pdfIds.length);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -114,7 +121,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
               _PlaylistHeader(
                 nome: _displayName(playlist.nome),
                 hora: _formatTime(playlist.createdAt),
-                countLabel: l10n.playlistPdfCount(count),
+                countLabel: countLabel,
                 isPublished: playlist.isPublished,
                 publicBadgeLabel: l10n.playlistPublicBadge,
                 categoryLabel: playlist.publicationCategory == null
@@ -134,7 +141,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 onPrimaryAction: () =>
                     _handlePrimaryAction(playlist.playlistId),
                 onMenuSelected: (action) => _handleAction(context, action),
-                menuItems: _menuItems(l10n, playlist),
+                menuItems: _menuItems(l10n, playlist, face),
                 onTap: () => setState(() => _expanded = !_expanded),
               ),
               AnimatedCrossFade(
@@ -147,11 +154,14 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                       thickness: 1,
                       color: AppColors.gold.withValues(alpha: 0.35),
                     ),
-                    _PlaylistDetailChips(
-                      item: widget.item,
-                      loading: _loading,
-                      onPdfTap: (pdfId) => _openPdfInReader(pdfId),
-                    ),
+                    if (face == PlaylistMediaFace.audio)
+                      PlaylistAudioFacePanel(playlist: playlist)
+                    else
+                      _PlaylistDetailChips(
+                        item: widget.item,
+                        loading: _loading,
+                        onPdfTap: (pdfId) => _openPdfInReader(pdfId),
+                      ),
                   ],
                 ),
                 crossFadeState: _expanded
@@ -170,15 +180,24 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
   List<PopupMenuEntry<String>> _menuItems(
     AppLocalizations l10n,
     SavedPlaylist playlist,
+    PlaylistMediaFace face,
   ) {
     final hasUsername =
         ref.watch(authStateProvider).asData?.value?.hasUsername ?? false;
 
     return [
-      PopupMenuItem(value: 'load', child: Text(l10n.playlistLoadIntoCarousel)),
+      if (face == PlaylistMediaFace.pdf)
+        PopupMenuItem(
+          value: 'load',
+          child: Text(l10n.playlistLoadIntoCarousel),
+        ),
       PopupMenuItem(
-        value: 'openReader',
-        child: Text(l10n.playlistOpenInReader),
+        value: face == PlaylistMediaFace.audio ? 'openAudio' : 'openReader',
+        child: Text(
+          face == PlaylistMediaFace.audio
+              ? l10n.playlistOpenInAudioPlayer
+              : l10n.playlistOpenInReader,
+        ),
       ),
       PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
       if (playlist.salva && !playlist.isPublished)
@@ -361,9 +380,34 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
           if (mounted) setState(() => _loading = false);
         }
       case 'openReader':
-        await _openPdfInReader(playlist.pdfIds.first);
-      case 'share':
         if (playlist.pdfIds.isEmpty) {
+          _showError(l10n.playlistEmptyPdfList);
+          return;
+        }
+        await _openPdfInReader(playlist.pdfIds.first);
+      case 'openAudio':
+        if (playlist.audioIds.isEmpty) {
+          _showError(l10n.playlistAudioEmpty);
+          return;
+        }
+        setState(() => _expanded = true);
+        final cache = ref.read(coldigomAudioTracksCacheProvider);
+        final tracks = [
+          for (final id in playlist.audioIds)
+            if (cache[id] != null) cache[id]!,
+        ];
+        if (tracks.isEmpty) {
+          _showError(l10n.playlistAudioEmpty);
+          return;
+        }
+        await openAudioInPlayer(
+          ref: ref,
+          context: context,
+          track: tracks.first,
+          queue: tracks,
+        );
+      case 'share':
+        if (playlist.pdfIds.isEmpty && playlist.audioIds.isEmpty) {
           _showError(l10n.playlistEmptyPdfList);
           return;
         }

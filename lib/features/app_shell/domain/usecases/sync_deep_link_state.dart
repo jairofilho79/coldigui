@@ -16,10 +16,7 @@ enum SyncDeepLinkOutcome {
 
 /// Resultado tipado do sync de deep link (UC-14, Fase 4.5).
 class SyncDeepLinkResult {
-  const SyncDeepLinkResult({
-    required this.outcome,
-    this.playlistId,
-  });
+  const SyncDeepLinkResult({required this.outcome, this.playlistId});
 
   /// Desfecho do processamento da URI.
   final SyncDeepLinkOutcome outcome;
@@ -27,15 +24,17 @@ class SyncDeepLinkResult {
   /// ID da playlist criada quando [outcome] é [SyncDeepLinkOutcome.success].
   final String? playlistId;
 
-  static const skipped =
-      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.skipped);
-  static const invalid =
-      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.invalid);
+  static const skipped = SyncDeepLinkResult(
+    outcome: SyncDeepLinkOutcome.skipped,
+  );
+  static const invalid = SyncDeepLinkResult(
+    outcome: SyncDeepLinkOutcome.invalid,
+  );
 
   static SyncDeepLinkResult success(String playlistId) => SyncDeepLinkResult(
-        outcome: SyncDeepLinkOutcome.success,
-        playlistId: playlistId,
-      );
+    outcome: SyncDeepLinkOutcome.success,
+    playlistId: playlistId,
+  );
 }
 
 /// UC-14 — Sincronizar deep link de playlist com estado local (Fase 4.5).
@@ -62,6 +61,7 @@ class SyncDeepLinkState {
     try {
       final playlistId = await _importSharedPlaylist(
         sharePdfs: params.sharePdfs,
+        shareAudios: params.shareAudios,
         shareName: params.shareName,
       );
       return SyncDeepLinkResult.success(playlistId);

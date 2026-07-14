@@ -1,3 +1,5 @@
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'louvor.dart';
@@ -28,13 +30,14 @@ class LouvorMaterialSection {
   final List<LouvorMaterialEntry> materials;
 }
 
-/// Louvor lógico — um card na Home/Biblioteca (vários PDFs possíveis).
+/// Louvor lógico — um card na Home/Biblioteca (vários PDFs/áudios possíveis).
 class LouvorGroup {
   LouvorGroup({
     required this.groupId,
     required this.numero,
     required this.nome,
     required this.sections,
+    this.audioTracks = const [],
   }) : numeroSortKey = _parseNumeroSortKey(numero);
 
   final String groupId;
@@ -42,17 +45,23 @@ class LouvorGroup {
   final String nome;
   final List<LouvorMaterialSection> sections;
 
+  /// Faixas Coldigom associadas ao mesmo [groupId].
+  final List<AudioTrack> audioTracks;
+
   /// Chave numérica para ordenação — parse feito uma vez no construtor.
   final int numeroSortKey;
 
-  /// Total de PDFs/materiais no grupo.
-  int get totalMaterials =>
+  /// Total de PDFs no grupo.
+  int get totalPdfs =>
       sections.fold(0, (sum, section) => sum + section.materials.length);
 
-  /// Classificações distintas no grupo (uma seção por arranjo).
+  /// Total de entradas (PDFs + áudios) no grupo.
+  int get totalMaterials => totalPdfs + audioTracks.length;
+
+  /// Classificações distintas no grupo (uma seção por arranjo PDF).
   int get totalArrangements => sections.length;
 
-  /// Material preferido para atalhos (+ no card): Partitura ou primeiro.
+  /// Material PDF preferido para atalhos (+ no card): Partitura ou primeiro.
   Louvor? get primaryLouvor {
     for (final section in sections) {
       for (final material in section.materials) {
@@ -65,23 +74,42 @@ class LouvorGroup {
     return null;
   }
 
-  /// Agrupa [louvores] filtrados pelo mesmo critério de `groupId`.
-  static List<LouvorGroup> fromLouvores(List<Louvor> louvores) {
+  /// Agrupa [louvores] e opcionalmente [audioTracks] pelo mesmo critério de groupId.
+  static List<LouvorGroup> fromLouvores(
+    List<Louvor> louvores, {
+    List<AudioTrack> audioTracks = const [],
+  }) {
     final byGroup = <String, List<Louvor>>{};
     for (final louvor in louvores) {
       final gid = louvor.effectiveGroupId;
       byGroup.putIfAbsent(gid, () => []).add(louvor);
     }
 
-    final groups = byGroup.entries.map((entry) {
-      return _buildGroup(entry.key, entry.value);
+    final audioByGroup = <String, List<AudioTrack>>{};
+    for (final track in audioTracks) {
+      final gid = track.groupId.trim();
+      if (gid.isEmpty) continue;
+      audioByGroup.putIfAbsent(gid, () => []).add(track);
+    }
+
+    final allGroupIds = <String>{...byGroup.keys, ...audioByGroup.keys};
+    final groups = allGroupIds.map((gid) {
+      return _buildGroup(
+        gid,
+        byGroup[gid] ?? const [],
+        audioByGroup[gid] ?? const [],
+      );
     }).toList();
 
     groups.sort(_compareGroups);
     return groups;
   }
 
-  static LouvorGroup _buildGroup(String groupId, List<Louvor> items) {
+  static LouvorGroup _buildGroup(
+    String groupId,
+    List<Louvor> items,
+    List<AudioTrack> tracks,
+  ) {
     final byClass = <String, List<Louvor>>{};
     for (final item in items) {
       byClass.putIfAbsent(item.classificacao, () => []).add(item);
@@ -99,8 +127,9 @@ class LouvorGroup {
       sections.add(
         LouvorMaterialSection(
           classificacao: classificacao,
-          displayLabel:
-              LouvorClassification.materialSectionLabel(classificacao),
+          displayLabel: LouvorClassification.materialSectionLabel(
+            classificacao,
+          ),
           materials: [
             for (final louvor in classItems)
               LouvorMaterialEntry(
@@ -113,14 +142,19 @@ class LouvorGroup {
       );
     }
 
-    final canonicalNome = _canonicalNome(items);
-    final numero = _canonicalNumero(items);
+    final nome = items.isNotEmpty
+        ? _canonicalNome(items)
+        : (tracks.isNotEmpty ? tracks.first.nome : '');
+    final numero = items.isNotEmpty
+        ? _canonicalNumero(items)
+        : (tracks.isNotEmpty ? tracks.first.numero.trim() : '');
 
     return LouvorGroup(
       groupId: groupId,
       numero: numero,
-      nome: canonicalNome,
+      nome: nome,
       sections: sections,
+      audioTracks: List<AudioTrack>.from(tracks),
     );
   }
 

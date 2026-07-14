@@ -16,6 +16,7 @@ abstract class PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -30,6 +31,7 @@ abstract class PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,

@@ -13,16 +13,18 @@ class ImportSharedPlaylistFromUrl {
   final PlaylistRepository _playlistRepository;
   final LoadPlaylistIntoCarousel _loadIntoCarousel;
 
-  /// Persiste nova playlist e carrega no carousel. Retorna [playlistId] criado.
+  /// Persiste nova playlist e carrega PDFs no carousel. Retorna [playlistId].
   ///
   /// Lança [InvalidSharePlaylistException] se params inválidos.
   Future<String> call({
     required String sharePdfs,
     required String shareName,
+    String shareAudios = '',
   }) async {
     final pdfIds = parsePdfIdsFromSharePdfs(sharePdfs);
+    final audioIds = parseAudioIdsFromShareAudios(shareAudios);
     final nome = shareName.trim();
-    if (pdfIds.isEmpty || nome.isEmpty) {
+    if ((pdfIds.isEmpty && audioIds.isEmpty) || nome.isEmpty) {
       throw const InvalidSharePlaylistException();
     }
 
@@ -30,10 +32,13 @@ class ImportSharedPlaylistFromUrl {
     final playlistId = await _playlistRepository.create(
       nome: nome,
       pdfIds: pdfIds,
+      audioIds: audioIds,
       salva: true,
       savedAt: now,
     );
-    await _loadIntoCarousel(playlistId: playlistId);
+    if (pdfIds.isNotEmpty) {
+      await _loadIntoCarousel(playlistId: playlistId);
+    }
     return playlistId;
   }
 }

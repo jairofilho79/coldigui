@@ -216,7 +216,8 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     if (activeId == null) return false;
 
     final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active == null || active.pdfIds.isEmpty) return false;
+    if (active == null) return false;
+    if (active.pdfIds.isEmpty && active.audioIds.isEmpty) return false;
 
     await syncActivePlaylistFromCarousel();
 
@@ -296,7 +297,33 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       playlistId: playlistId,
       pdfIds: nextIds,
     );
-    if (nextIds.isEmpty && ref.read(activePlaylistIdProvider) == playlistId) {
+    if (nextIds.isEmpty &&
+        current.audioIds.isEmpty &&
+        ref.read(activePlaylistIdProvider) == playlistId) {
+      ref.read(activePlaylistIdProvider.notifier).clear();
+    }
+    await _reload();
+    if (current.salva) _syncCloudIfAuthed();
+  }
+
+  Future<void> removeAudio({
+    required String playlistId,
+    required String audioId,
+  }) async {
+    final current = state
+        .firstWhere((item) => item.playlist.playlistId == playlistId)
+        .playlist;
+    final nextIds = current.audioIds
+        .where((id) => id != audioId)
+        .toList(growable: false);
+
+    await ref.read(updatePlaylistProvider)(
+      playlistId: playlistId,
+      audioIds: nextIds,
+    );
+    if (nextIds.isEmpty &&
+        current.pdfIds.isEmpty &&
+        ref.read(activePlaylistIdProvider) == playlistId) {
       ref.read(activePlaylistIdProvider.notifier).clear();
     }
     await _reload();
@@ -579,13 +606,58 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref.read(carouselLouvoresProvider.notifier).reload();
   }
 
+  /// Adiciona áudio à lista ativa (cria rascunho se necessário).
+  Future<bool> addAudioToActivePlaylist(String audioId) async {
+    var activeId = ref.read(activePlaylistIdProvider);
+    final repo = ref.read(playlistRepositoryProvider);
+
+    if (activeId == null) {
+      final nome = defaultPlaylistName();
+      activeId = await repo.create(
+        nome: nome,
+        pdfIds: const [],
+        audioIds: [audioId],
+        salva: false,
+      );
+      ref.read(activePlaylistIdProvider.notifier).set(activeId);
+      await _reload();
+      return true;
+    }
+
+    final active = await repo.getById(activeId);
+    if (active == null) {
+      final nome = defaultPlaylistName();
+      activeId = await repo.create(
+        nome: nome,
+        pdfIds: const [],
+        audioIds: [audioId],
+        salva: false,
+      );
+      ref.read(activePlaylistIdProvider.notifier).set(activeId);
+      await _reload();
+      return true;
+    }
+
+    if (active.audioIds.contains(audioId)) return false;
+
+    final next = [...active.audioIds, audioId];
+    await ref.read(updatePlaylistProvider)(
+      playlistId: activeId,
+      audioIds: next,
+    );
+    await _reload();
+    return true;
+  }
+
   Future<String?> importSharedFromUrl({
     required String sharePdfs,
     required String shareName,
+    String shareAudios = '',
   }) async {
     try {
       final playlistId = await ref.read(importSharedPlaylistFromUrlProvider)(
         sharePdfs: sharePdfs,
+        shareAudios: shareAudios,
         shareName: shareName,
       );
       ref.read(activePlaylistIdProvider.notifier).set(playlistId);

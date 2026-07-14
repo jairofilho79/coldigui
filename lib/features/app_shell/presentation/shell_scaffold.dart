@@ -29,8 +29,9 @@ class ShellScaffold extends ConsumerWidget {
   /// Pilha indexada das branches do shell — preserva estado ao trocar aba.
   final StatefulNavigationShell navigationShell;
 
-  bool _isReaderRoute(BuildContext context) {
-    return GoRouterState.of(context).uri.path == RoutePaths.reader;
+  bool _isImmersiveMediaRoute(BuildContext context) {
+    final path = GoRouterState.of(context).uri.path;
+    return path == RoutePaths.reader || path == RoutePaths.audio;
   }
 
   List<PlpcgBottomNavDestination> _destinations(WidgetRef ref) {
@@ -61,16 +62,16 @@ class ShellScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isReader = _isReaderRoute(context);
+    final isImmersive = _isImmersiveMediaRoute(context);
     final isFullscreen = ref.watch(readerFullscreenProvider);
 
-    if (!isReader && ref.read(readerFullscreenProvider)) {
+    if (!isImmersive && ref.read(readerFullscreenProvider)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(readerFullscreenProvider.notifier).exit();
       });
     }
 
-    final hideChrome = isReader && isFullscreen;
+    final hideChrome = isImmersive && isFullscreen;
 
     return OfflineLifecycleListener(
       child: Scaffold(
@@ -88,7 +89,7 @@ class ShellScaffold extends ConsumerWidget {
                   ],
                 ),
               ),
-        bottomNavigationBar: isReader
+        bottomNavigationBar: isImmersive
             ? null
             : PlpcgBottomNavBar(
                 selectedIndex: navigationShell.currentIndex,

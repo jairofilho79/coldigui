@@ -1,4 +1,3 @@
-import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
@@ -12,6 +11,7 @@ class _Repo implements PlaylistRepository {
   Future<String> create({
     required String nome,
     required List<String> pdfIds,
+    List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
     bool salva = true,
@@ -57,8 +57,9 @@ class _Repo implements PlaylistRepository {
   }) async {
     final existing = playlist;
     if (existing == null) throw StateError('missing');
-    if (!existing.salva)
+    if (!existing.salva) {
       throw StateError('Only saved playlists can be published');
+    }
     if (existing.isPublished) {
       throw StateError('Playlist already published: $playlistId');
     }
@@ -76,6 +77,7 @@ class _Repo implements PlaylistRepository {
     String playlistId, {
     String? nome,
     List<String>? pdfIds,
+    List<String>? audioIds,
     bool? salva,
     DateTime? savedAt,
     DateTime? favoritedAt,

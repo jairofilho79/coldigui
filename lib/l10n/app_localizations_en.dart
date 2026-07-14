@@ -586,6 +586,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistOpenInReader => 'Open in reader';
 
   @override
+  String get playlistOpenInAudioPlayer => 'Open in audio player';
+
+  @override
+  String get playlistFacePdf => 'PDFs';
+
+  @override
+  String get playlistFaceAudio => 'Audio';
+
+  @override
+  String get playlistFaceToggleSemantics =>
+      'Switch playlist face between PDFs and audio';
+
+  @override
+  String playlistAudioCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tracks',
+      one: '1 track',
+      zero: 'No audio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistAudioEmpty => 'This playlist has no audio tracks.';
+
+  @override
+  String get audioPlayerTitle => 'Audio';
+
+  @override
+  String get audioMaterialSection => 'Audio';
+
+  @override
+  String get audioPlay => 'Play';
+
+  @override
+  String get audioPause => 'Pause';
+
+  @override
+  String get audioPrevious => 'Previous';
+
+  @override
+  String get audioNext => 'Next';
+
+  @override
+  String get audioFlagComingSoon => 'Audio flags coming soon';
+
+  @override
+  String get audioPlaybackError => 'Could not play this audio.';
+
+  @override
+  String get audioWebBackgroundNotice =>
+      'On the web, background playback and system controls depend on the browser — this is not an app bug.';
+
+  @override
   String get playlistLoadConfirmTitle => 'Replace selection?';
 
   @override
