@@ -84,6 +84,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String pageCurrent(int page) {
+    return 'Página $page';
+  }
+
+  @override
   String get specialArrangementPadrao => 'Padrão';
 
   @override

@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Página {current} de {total}'**
   String pageIndicator(int current, int total);
 
+  /// No description provided for @pageCurrent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Página {page}'**
+  String pageCurrent(int page);
+
   /// No description provided for @specialArrangementPadrao.
   ///
   /// In pt, this message translates to:

@@ -9,6 +9,9 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 | `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` incluído) |
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
 | `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, devolve perfil |
+| `PUT` | `/api/auth/username` | Bearer | Define username único (uma vez) |
+| `GET` | `/api/social/users?q=` | Bearer | Busca usernames (conta listas públicas; `@` opcional) |
+| `GET` | `/api/social/users/:username/playlists` | Bearer | Listas públicas do perfil |
 | `GET` | `/api/playlists` | Bearer | Lista playlists salvas do usuário (`deleted_at IS NULL`) |
 | `GET` | `/api/playlists/:id` | Bearer | Uma playlist |
 | `PUT` | `/api/playlists/:id` | Bearer | Upsert (last-write-wins por `updatedAt`) |

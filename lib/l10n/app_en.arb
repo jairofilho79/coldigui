@@ -48,6 +48,14 @@
       }
     }
   },
+  "pageCurrent": "Page {page}",
+  "@pageCurrent": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      }
+    }
+  },
   "specialArrangementPadrao": "Default",
   "filtersSpecialArrangementTitle": "Special arrangement",
   "catalogRefreshAction": "Update list",

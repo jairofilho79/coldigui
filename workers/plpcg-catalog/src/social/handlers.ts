@@ -38,13 +38,18 @@ function sanitizeLike(q: string): string {
   return q.replace(/%/g, '').replace(/_/g, '');
 }
 
-/** GET /api/social/users?q= — perfis com listas públicas. */
+/** Normaliza query social: trim, lower, remove `@` inicial. */
+export function normalizeSocialQuery(raw: string): string {
+  return raw.trim().toLowerCase().replace(/^@+/, '');
+}
+
+/** GET /api/social/users?q= — perfis com username (contagem de listas públicas). */
 export async function searchSocialUsers(
   db: D1Database,
   request: Request,
 ): Promise<Response> {
   const url = new URL(request.url);
-  const q = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+  const q = normalizeSocialQuery(url.searchParams.get('q') ?? '');
   if (q.length < 1) {
     return json([]);
   }
@@ -54,7 +59,7 @@ export async function searchSocialUsers(
     .prepare(
       `SELECT u.username AS username, COUNT(p.id) AS playlist_count
        FROM users u
-       INNER JOIN user_playlists p
+       LEFT JOIN user_playlists p
          ON p.user_id = u.google_sub
         AND p.is_published = 1
         AND p.deleted_at IS NULL

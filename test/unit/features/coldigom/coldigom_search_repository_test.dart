@@ -10,6 +10,8 @@ class _FakeColdigomRemote extends ColdigomRemoteDatasource {
 
   final List<PraiseSummaryDto> _summaries;
   final Map<String, PraiseDetailDto> _details;
+  int? lastPage;
+  int? lastLimit;
 
   @override
   Future<List<PraiseSummaryDto>> search({
@@ -17,6 +19,8 @@ class _FakeColdigomRemote extends ColdigomRemoteDatasource {
     int limit = 20,
     int page = 1,
   }) async {
+    lastPage = page;
+    lastLimit = limit;
     return _summaries;
   }
 
@@ -57,6 +61,8 @@ void main() {
       expect(result.groups, hasLength(1));
       expect(result.groups.first.nome, 'Hino');
       expect(result.louvores, hasLength(1));
+      expect(result.hasNextPage, isFalse);
+      expect(result.page, 1);
     });
 
     test('query vazia retorna listas vazias', () async {
@@ -66,6 +72,41 @@ void main() {
       final result = await repo.search('   ');
       expect(result.groups, isEmpty);
       expect(result.louvores, isEmpty);
+      expect(result.hasNextPage, isFalse);
+    });
+
+    test('passa page ao remote e hasNextPage quando página cheia', () async {
+      final summaries = [
+        for (var i = 0; i < 20; i++)
+          PraiseSummaryDto(id: 'p$i', name: 'Hino $i', number: '$i'),
+      ];
+      final details = {
+        for (final s in summaries)
+          s.id: PraiseDetailDto(
+            id: s.id,
+            name: s.name,
+            number: s.number,
+            rhythm: 'Fox',
+            materials: [
+              MaterialDto(
+                id: 'm-${s.id}',
+                type: 'pdf',
+                r2Key: 'assets/praises/${s.id}/m.pdf',
+                materialKindName: 'Partitura',
+              ),
+            ],
+          ),
+      };
+      final remote = _FakeColdigomRemote(summaries, details);
+      final repo = ColdigomSearchRepositoryImpl(remote);
+
+      final result = await repo.search('hino', page: 2);
+
+      expect(remote.lastPage, 2);
+      expect(remote.lastLimit, 20);
+      expect(result.page, 2);
+      expect(result.hasNextPage, isTrue);
+      expect(result.groups, hasLength(20));
     });
   });
 }

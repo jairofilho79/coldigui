@@ -24,11 +24,19 @@ class SocialSearchDebouncer extends Notifier<String> {
     ref.listen(socialSearchRawQueryProvider, (_, next) {
       _timer?.cancel();
       _timer = Timer(const Duration(milliseconds: 300), () {
-        state = next.trim().toLowerCase();
+        state = _normalizeSocialQuery(next);
       });
     });
-    return ref.read(socialSearchRawQueryProvider).trim().toLowerCase();
+    return _normalizeSocialQuery(ref.read(socialSearchRawQueryProvider));
   }
+}
+
+String _normalizeSocialQuery(String raw) {
+  var q = raw.trim().toLowerCase();
+  while (q.startsWith('@')) {
+    q = q.substring(1);
+  }
+  return q;
 }
 
 /// Resultados da busca social (auth obrigatória).

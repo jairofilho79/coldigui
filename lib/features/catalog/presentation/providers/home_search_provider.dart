@@ -32,10 +32,29 @@ final homeSearchDebouncedQueryProvider =
 /// `true` enquanto a busca coldigom está em andamento (após resultados PLPCG).
 final homeSearchColdigomLoadingProvider = StateProvider<bool>((ref) => false);
 
-/// Cache dos grupos exibidos — atualizado pelo pipeline assíncrono.
-final homeSearchGroupResultsDataProvider = StateProvider<List<LouvorGroup>>(
+/// Página 1-based da busca coldigom (limit fixo 20).
+final homeSearchColdigomPageProvider = StateProvider<int>((ref) => 1);
+
+/// Heurística: última página coldigom veio cheia (`length >= limit`).
+final homeSearchColdigomHasNextProvider = StateProvider<bool>((ref) => false);
+
+/// Grupos PLPCG da query atual (sempre no topo da lista).
+final homeSearchPlpcgGroupsDataProvider = StateProvider<List<LouvorGroup>>(
   (ref) => const [],
 );
+
+/// Grupos coldigom da [homeSearchColdigomPageProvider] atual.
+final homeSearchColdigomGroupsDataProvider = StateProvider<List<LouvorGroup>>(
+  (ref) => const [],
+);
+
+/// Cache combinado PLPCG + coldigom — atualizado pelo pipeline assíncrono.
+final homeSearchGroupResultsDataProvider = Provider<List<LouvorGroup>>((ref) {
+  return [
+    ...ref.watch(homeSearchPlpcgGroupsDataProvider),
+    ...ref.watch(homeSearchColdigomGroupsDataProvider),
+  ];
+});
 
 /// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
 ///
@@ -92,37 +111,52 @@ class HomeSearchPipelineDriver extends Notifier<int> {
 
   @override
   int build() {
-    ref.listen<String>(
-      homeSearchDebouncedQueryProvider,
-      (_, _) => _scheduleSearch(),
-      fireImmediately: true,
-    );
-    ref.listen<CatalogFilterState>(
-      catalogFiltersProvider,
-      (_, _) => _scheduleSearch(),
-    );
-    ref.listen<AsyncValue<LouvoresManifest>>(
-      louvoresManifestProvider,
-      (_, _) => _scheduleSearch(),
-      fireImmediately: true,
-    );
+    ref.listen<String>(homeSearchDebouncedQueryProvider, (_, _) {
+      _resetPageAndSearch();
+    }, fireImmediately: true);
+    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
+      _resetPageAndSearch();
+    });
+    ref.listen<AsyncValue<LouvoresManifest>>(louvoresManifestProvider, (_, _) {
+      _resetPageAndSearch();
+    }, fireImmediately: true);
+    ref.listen<int>(homeSearchColdigomPageProvider, (previous, next) {
+      if (previous == next) return;
+      _scheduleSearch();
+    });
 
     return 0;
+  }
+
+  void _resetPageAndSearch() {
+    if (ref.read(homeSearchColdigomPageProvider) != 1) {
+      // A mudança de página dispara o listen de page → um único search.
+      ref.read(homeSearchColdigomPageProvider.notifier).state = 1;
+      return;
+    }
+    _scheduleSearch();
   }
 
   void _scheduleSearch() {
     Future.microtask(() => unawaited(_runSearch()));
   }
 
+  void _clearResults() {
+    ref.read(homeSearchPlpcgGroupsDataProvider.notifier).state = const [];
+    ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
+    ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
+    ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
+  }
+
   Future<void> _runSearch() async {
     final query = ref.read(homeSearchDebouncedQueryProvider);
     final filters = ref.read(catalogFiltersProvider);
     final catalog = ref.read(louvoresManifestProvider).value?.louvores;
+    final page = ref.read(homeSearchColdigomPageProvider);
 
     if (query.trim().isEmpty) {
       _generation++;
-      ref.read(homeSearchGroupResultsDataProvider.notifier).state = const [];
-      ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
+      _clearResults();
       return;
     }
 
@@ -142,15 +176,18 @@ class HomeSearchPipelineDriver extends Notifier<int> {
 
       if (generation != _generation) return;
 
-      ref.read(homeSearchGroupResultsDataProvider.notifier).state = groupsPlpcg;
+      ref.read(homeSearchPlpcgGroupsDataProvider.notifier).state = groupsPlpcg;
+      // Mantém coldigom da página anterior até a nova resposta chegar.
     }
 
     ref.read(homeSearchColdigomLoadingProvider.notifier).state = true;
+    // Evita mostrar página anterior enquanto a nova chega.
+    ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
 
     try {
       final coldigomResult = await ref
           .read(coldigomSearchRepositoryProvider)
-          .search(query);
+          .search(query, page: page);
 
       if (generation != _generation) return;
 
@@ -158,13 +195,15 @@ class HomeSearchPipelineDriver extends Notifier<int> {
           .read(coldigomLouvoresCacheProvider.notifier)
           .mergeLouvores(coldigomResult.louvores);
 
-      ref.read(homeSearchGroupResultsDataProvider.notifier).state = [
-        ...groupsPlpcg,
-        ...coldigomResult.groups,
-      ];
+      ref.read(homeSearchColdigomGroupsDataProvider.notifier).state =
+          coldigomResult.groups;
+      ref.read(homeSearchColdigomHasNextProvider.notifier).state =
+          coldigomResult.hasNextPage;
     } on Object {
       if (generation != _generation) return;
-      // Mantém resultados PLPCG já exibidos em caso de falha coldigom.
+      // Mantém resultados PLPCG já exibidos; limpa coldigom desta página.
+      ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
+      ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
     } finally {
       if (generation == _generation) {
         ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;

@@ -84,6 +84,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String pageCurrent(int page) {
+    return 'Page $page';
+  }
+
+  @override
   String get specialArrangementPadrao => 'Default';
 
   @override

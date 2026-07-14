@@ -19,6 +19,14 @@
     {
       "pattern": "plpcg.com/api/auth/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/playlists*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/social/*",
+      "zone_name": "plpcg.com"
     }
   ]
 }

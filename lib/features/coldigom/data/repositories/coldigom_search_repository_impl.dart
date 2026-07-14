@@ -17,15 +17,28 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
   final int detailConcurrency;
 
   @override
-  Future<ColdigomSearchResult> search(String query) async {
+  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
     final trimmed = query.trim();
+    final safePage = page < 1 ? 1 : page;
     if (trimmed.isEmpty) {
-      return const ColdigomSearchResult(groups: [], louvores: []);
+      return ColdigomSearchResult(
+        groups: const [],
+        louvores: const [],
+        page: safePage,
+      );
     }
 
-    final summaries = await _remote.search(query: trimmed, limit: searchLimit);
+    final summaries = await _remote.search(
+      query: trimmed,
+      limit: searchLimit,
+      page: safePage,
+    );
     if (summaries.isEmpty) {
-      return const ColdigomSearchResult(groups: [], louvores: []);
+      return ColdigomSearchResult(
+        groups: const [],
+        louvores: const [],
+        page: safePage,
+      );
     }
 
     final louvores = <Louvor>[];
@@ -40,6 +53,11 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     }
 
     final groups = LouvorGroup.fromLouvores(louvores);
-    return ColdigomSearchResult(groups: groups, louvores: louvores);
+    return ColdigomSearchResult(
+      groups: groups,
+      louvores: louvores,
+      page: safePage,
+      hasNextPage: summaries.length >= searchLimit,
+    );
   }
 }
