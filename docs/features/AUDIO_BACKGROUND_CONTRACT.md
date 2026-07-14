@@ -9,6 +9,7 @@
 ## Web
 
 - `JustAudioBackground.init` **não** roda (`kIsWeb`).
+- `JustAudioPlugin` é registrado explicitamente em boot (`ensureAudioWebPlatformRegistered`) — cobre registrant sem `just_audio_web` (evita `MissingPluginException`).
 - A reprodução continua enquanto a aba/navegador permitir (políticas de autoplay, suspensão em background, etc.).
 - Controles de mídia do SO **não** são garantidos.
 - A UI mostra o aviso localizado `audioWebBackgroundNotice` para o usuário final não confundir com bug.

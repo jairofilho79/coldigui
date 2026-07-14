@@ -31,6 +31,7 @@ echo "==> Assets Isar web (OPFS + COEP)..."
 echo "==> Build Web (WASM, release)..."
 # --no-tree-shake-icons: subset de MaterialIcons muda quando o menu troca ícones;
 # /assets/* é cache immutable — fonte velha = ícones em branco no bottom nav.
+# just_audio_web: se faltar no registrant, ensureAudioWebPlatformRegistered cobre no boot.
 flutter build web \
   --wasm \
   --release \
