@@ -63,33 +63,51 @@ class _CarouselBarTrailingActionsState
     final isAudioFace = face == PlaylistMediaFace.audio;
 
     if (isCompact) {
-      return PopupMenuButton<_CarouselOverflowAction>(
-        tooltip: l10n.carouselOverflowMenu,
-        iconColor: AppColors.title,
-        icon: _sharing
-            ? SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.title,
-                ),
-              )
-            : const Icon(Icons.more_vert),
-        onSelected: (action) =>
-            _handleOverflowAction(context, ref, l10n, action),
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            value: _CarouselOverflowAction.savePlaylist,
-            child: Text(l10n.carouselSavePlaylist),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            style: carouselBarIconButtonStyle,
+            tooltip: isAudioFace
+                ? l10n.playlistFacePdf
+                : l10n.playlistFaceAudio,
+            icon: Icon(
+              isAudioFace
+                  ? Icons.picture_as_pdf_outlined
+                  : LouvorMaterialIcons.audio,
+            ),
+            onPressed: () =>
+                ref.read(playlistMediaFaceProvider.notifier).toggle(),
           ),
-          PopupMenuItem(
-            value: _CarouselOverflowAction.share,
-            child: Text(l10n.carouselSharePlaylist),
-          ),
-          PopupMenuItem(
-            value: _CarouselOverflowAction.clear,
-            child: Text(l10n.carouselClear),
+          PopupMenuButton<_CarouselOverflowAction>(
+            tooltip: l10n.carouselOverflowMenu,
+            iconColor: AppColors.title,
+            icon: _sharing
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.title,
+                    ),
+                  )
+                : const Icon(Icons.more_vert),
+            onSelected: (action) =>
+                _handleOverflowAction(context, ref, l10n, action),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _CarouselOverflowAction.savePlaylist,
+                child: Text(l10n.carouselSavePlaylist),
+              ),
+              PopupMenuItem(
+                value: _CarouselOverflowAction.share,
+                child: Text(l10n.carouselSharePlaylist),
+              ),
+              PopupMenuItem(
+                value: _CarouselOverflowAction.clear,
+                child: Text(l10n.carouselClear),
+              ),
+            ],
           ),
         ],
       );

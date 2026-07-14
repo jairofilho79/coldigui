@@ -4,6 +4,8 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +25,12 @@ Future<void> openAudioInPlayer({
       tracks
           .indexWhere((t) => t.audioId == track.audioId)
           .clamp(0, tracks.length - 1);
+
+  unawaited(
+    ref
+        .read(playlistMediaFaceProvider.notifier)
+        .setFace(PlaylistMediaFace.audio),
+  );
 
   // Navega antes do play: após pop do sheet o push imediato race e some
   // (PDF “sempre abre” porque resolve/download atrasa o push).

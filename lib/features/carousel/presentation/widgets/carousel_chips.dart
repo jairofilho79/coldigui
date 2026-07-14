@@ -2,11 +2,13 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_display_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -19,8 +21,10 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carou
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_ui_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -30,32 +34,44 @@ import 'package:go_router/go_router.dart';
 
 /// Barra global de seleção temporária (UC-05 / UC-11) exibida no [ShellScaffold].
 ///
-/// Única instância compartilhada em todas as rotas do shell, inclusive `/leitor`.
+/// Única instância compartilhada em todas as rotas do shell, inclusive `/leitor`
+/// e `/audio`.
 ///
-/// **Modo shell:** setas movem [carouselFocusedIndexProvider]; toque no chip
-/// abre o leitor com `context.push`.
+/// **Face PDF:** chips do carousel Isar (como antes).
+/// **Face áudio:** [CarouselAudioFaceBar] quando há sessão/playlist de áudio.
 ///
-/// **Modo leitor** (`/leitor`): `pdfId` ativo via query params do GoRouter
-/// (fallback [readerRouteParamsProvider] espelhado por [PdfReaderScreen], depois
-/// índice focado); [readerCarouselPositionProvider] calcula posição de forma
-/// síncrona; setas e modal trocam o PDF via
-/// [ReaderCarouselActionsNotifier.navigateToPdfId] + `context.replace`.
-/// [carouselFocusedIndexProvider.focusPdfId] só após navegação bem-sucedida.
-/// `_openingReader` cobre apenas resolve + disparo do `push` (não aguarda `pop`).
-/// Botão olho/lista permanecem habilitados durante `_carouselNavLoading`.
-///
-/// Composição: [CarouselBarShell] → [CarouselNavigatorBar] +
-/// [CarouselBarTrailingActions] (salvar playlist UC-06, folheto UC-08, limpar).
-///
-/// Retorna [SizedBox.shrink] quando a seleção está vazia.
+/// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
 class CarouselChips extends ConsumerWidget {
   const CarouselChips({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final items = ref.watch(carouselLouvoresDisplayProvider);
-    if (items.isEmpty) return const SizedBox.shrink();
-    return _CarouselChipsBar(items: items);
+    final pdfItems = ref.watch(carouselLouvoresDisplayProvider);
+    final face = ref.watch(playlistMediaFaceProvider);
+    final session = ref.watch(audioPlayerSessionProvider);
+    final hasAudio = session.queue.isNotEmpty || _activeHasAudioIds(ref);
+    final hasPdf = pdfItems.isNotEmpty;
+
+    if (!hasPdf && !hasAudio) return const SizedBox.shrink();
+
+    final showAudioFace =
+        face == PlaylistMediaFace.audio || (hasAudio && !hasPdf);
+    if (showAudioFace && hasAudio) {
+      return const CarouselAudioFaceBar();
+    }
+    if (!hasPdf) return const SizedBox.shrink();
+    return _CarouselChipsBar(items: pdfItems);
+  }
+
+  bool _activeHasAudioIds(WidgetRef ref) {
+    final activeId = ref.watch(activePlaylistIdProvider);
+    if (activeId == null) return false;
+    for (final item in ref.watch(playlistsProvider)) {
+      if (item.playlist.playlistId == activeId) {
+        return item.playlist.audioIds.isNotEmpty;
+      }
+    }
+    return false;
   }
 }
 
