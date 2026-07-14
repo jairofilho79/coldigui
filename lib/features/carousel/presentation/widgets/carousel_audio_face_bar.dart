@@ -40,9 +40,9 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     const Icon(
                       LouvorMaterialIcons.audio,
                       color: AppColors.title,
-                      size: 20,
+                      size: 18,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         track == null
@@ -50,7 +50,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                             : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.body.copyWith(
+                        style: AppTypography.label.copyWith(
                           color: AppColors.title,
                           fontWeight: FontWeight.w600,
                         ),
@@ -59,10 +59,16 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                   ],
                 ),
                 if (track != null) ...[
-                  AudioFlagPlaceholder(tooltip: l10n.audioFlagComingSoon),
+                  AudioFlagPlaceholder(
+                    tooltip: l10n.audioFlagComingSoon,
+                    onLightBackground: true,
+                    compact: true,
+                  ),
                   AudioSeekBar(
                     position: session.position,
                     duration: session.duration,
+                    onLightBackground: true,
+                    compact: true,
                     onSeek: (value) {
                       ref.read(audioPlayerSessionProvider.notifier).seek(value);
                     },
@@ -72,6 +78,8 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     buffering: session.buffering,
                     hasPrevious: session.hasPrevious,
                     hasNext: session.hasNext,
+                    onLightBackground: true,
+                    compact: true,
                     onPrevious: () {
                       ref
                           .read(audioPlayerSessionProvider.notifier)

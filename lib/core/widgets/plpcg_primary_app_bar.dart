@@ -11,7 +11,7 @@ import 'plpcg_app_bar_title.dart';
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
 /// Em Sobre/Listas/Offline, exibe voltar para [RoutePaths.profile].
-/// Em `/leitor`, exibe voltar (pop → home) para padronizar com as demais rotas.
+/// Em `/leitor` e `/audio`, exibe voltar (pop → home) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const PlpcgPrimaryAppBar({super.key});
@@ -28,8 +28,9 @@ class PlpcgPrimaryAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
-    final isReader = path == RoutePaths.reader;
-    final showBack = isReader || _profileSubRoutes.contains(path);
+    final isImmersiveMedia =
+        path == RoutePaths.reader || path == RoutePaths.audio;
+    final showBack = isImmersiveMedia || _profileSubRoutes.contains(path);
 
     return AppBar(
       automaticallyImplyLeading: false,
@@ -38,7 +39,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Voltar',
               onPressed: () {
-                if (isReader) {
+                if (isImmersiveMedia) {
                   if (context.canPop()) {
                     context.pop();
                   } else {

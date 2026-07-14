@@ -89,10 +89,14 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 8),
-            AudioFlagPlaceholder(tooltip: l10n.audioFlagComingSoon),
+            AudioFlagPlaceholder(
+              tooltip: l10n.audioFlagComingSoon,
+              onLightBackground: true,
+            ),
             AudioSeekBar(
               position: currentInPlaylist ? session.position : Duration.zero,
               duration: currentInPlaylist ? session.duration : Duration.zero,
+              onLightBackground: true,
               onSeek: (value) {
                 if (!currentInPlaylist) return;
                 ref.read(audioPlayerSessionProvider.notifier).seek(value);
@@ -103,6 +107,7 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
               buffering: currentInPlaylist && session.buffering,
               hasPrevious: true,
               hasNext: tracks.length > 1,
+              onLightBackground: true,
               onPrevious: () {
                 if (currentInPlaylist) {
                   ref
