@@ -9,6 +9,12 @@ import 'package:flutter/material.dart';
 /// [carouselBarIconButtonStyle] — cor vinho PLPCG nos ícones da barra.
 const carouselBarShellHeight = 60.0;
 
+/// Gap horizontal entre itens da barra (tempos↔slider, seeker↔controles).
+///
+/// Igual ao padding lateral do shell e ao padding padrão dos [IconButton]
+/// (Salvar / Compartilhar ficam colados; o ar entre glifos é ~2× este valor).
+const carouselBarHorizontalGap = 8.0;
+
 /// Estilo padrão dos [IconButton] da barra de carousel.
 ///
 /// Consumido por [CarouselNavigatorBar] (setas, lista) e
@@ -18,9 +24,9 @@ const carouselBarShellHeight = 60.0;
 /// o mesmo matiz com opacidade reduzida — evita ícones pretos/cinza do tema
 /// Material padrão sobre o fundo creme da barra.
 ButtonStyle get carouselBarIconButtonStyle => IconButton.styleFrom(
-      foregroundColor: AppColors.title,
-      disabledForegroundColor: AppColors.title.withValues(alpha: 0.38),
-    );
+  foregroundColor: AppColors.title,
+  disabledForegroundColor: AppColors.title.withValues(alpha: 0.38),
+);
 
 class CarouselBarShell extends StatelessWidget {
   const CarouselBarShell({
@@ -40,22 +46,13 @@ class CarouselBarShell extends StatelessWidget {
 
     final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: child),
-        ],
-      ),
+      child: Row(children: [Expanded(child: child)]),
     );
 
     return Material(
       elevation: 1,
       color: theme.colorScheme.surfaceContainerHighest,
-      child: applySafeArea
-          ? SafeArea(
-              bottom: false,
-              child: content,
-            )
-          : content,
+      child: applySafeArea ? SafeArea(bottom: false, child: content) : content,
     );
   }
 }

@@ -26,27 +26,29 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
 
-    // Controles ao lado dos trailing (mesmo eixo vertical); seeker preenche o resto.
+    // Seeker preenche o resto; controles colados aos trailing (mesmo ritmo dos ícones).
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            // Mesma altura do chip PDF ([carouselChipTopBarHeight]).
+            // Conteúdo denso (título + seek colados), centrado na altura do chip PDF.
             child: SizedBox(
               height: carouselChipTopBarHeight,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   Row(
                     children: [
                       const Icon(
                         LouvorMaterialIcons.audio,
                         color: AppColors.title,
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: carouselBarHorizontalGap),
                       Expanded(
                         child: Text(
                           track == null
@@ -57,42 +59,38 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                           style: AppTypography.label.copyWith(
                             color: AppColors.title,
                             fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                            height: 1.1,
+                            fontSize: 11,
+                            height: 1.0,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  if (track != null) ...[
-                    const SizedBox(height: 2),
-                    Expanded(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.hardEdge,
-                        children: [
-                          AudioSeekBar(
-                            position: session.position,
-                            duration: session.duration,
+                  if (track != null)
+                    Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        AudioSeekBar(
+                          position: session.position,
+                          duration: session.duration,
+                          onLightBackground: true,
+                          compact: true,
+                          onSeek: (value) {
+                            ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .seek(value);
+                          },
+                        ),
+                        IgnorePointer(
+                          child: AudioFlagPlaceholder(
+                            tooltip: l10n.audioFlagComingSoon,
                             onLightBackground: true,
                             compact: true,
-                            onSeek: (value) {
-                              ref
-                                  .read(audioPlayerSessionProvider.notifier)
-                                  .seek(value);
-                            },
                           ),
-                          IgnorePointer(
-                            child: AudioFlagPlaceholder(
-                              tooltip: l10n.audioFlagComingSoon,
-                              onLightBackground: true,
-                              compact: true,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
                 ],
               ),
             ),

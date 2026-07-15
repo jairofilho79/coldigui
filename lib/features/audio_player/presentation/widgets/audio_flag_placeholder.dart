@@ -30,12 +30,12 @@ class AudioFlagPlaceholder extends StatelessWidget {
     // Compacto: só a bandeira (empilha no seek via Stack; sem 2ª trilha).
     if (compact) {
       return SizedBox(
-        height: 14,
+        height: 12,
         child: Align(
           alignment: const Alignment(0.2, 0),
           child: Tooltip(
             message: tooltip,
-            child: Icon(Icons.flag_outlined, size: 12, color: muted),
+            child: Icon(Icons.flag_outlined, size: 10, color: muted),
           ),
         ),
       );

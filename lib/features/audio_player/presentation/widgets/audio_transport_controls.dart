@@ -41,23 +41,19 @@ class AudioTransportControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = onLightBackground ? AppColors.title : AppColors.textLight;
-    final skipSize = compact ? 22.0 : 36.0;
+    // Compacto: mesmo ritmo dos IconButton trailing (padding padrão, sem gap extra).
+    final skipSize = compact ? 24.0 : 36.0;
     final playSize = compact ? 24.0 : 40.0;
-    // Compacto ≤ altura dos IconButton trailing (~48) / chip PDF (52).
-    final playMin = compact ? const Size(32, 32) : const Size(64, 64);
-    final skipConstraints = compact
-        ? const BoxConstraints(minWidth: 28, minHeight: 28)
-        : null;
+    final playMin = compact ? const Size(48, 48) : const Size(64, 64);
 
     final previous = IconButton(
       tooltip: previousTooltip,
       onPressed: hasPrevious ? onPrevious : null,
       iconSize: skipSize,
-      visualDensity: compact ? VisualDensity.compact : null,
-      constraints: skipConstraints,
-      padding: compact ? EdgeInsets.zero : null,
-      color: fg,
-      disabledColor: fg.withValues(alpha: 0.3),
+      style: IconButton.styleFrom(
+        foregroundColor: fg,
+        disabledForegroundColor: fg.withValues(alpha: 0.3),
+      ),
       icon: const Icon(Icons.skip_previous),
     );
     final playPause = Semantics(
@@ -72,15 +68,11 @@ class AudioTransportControls extends StatelessWidget {
           foregroundColor: AppColors.title,
           disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
           minimumSize: playMin,
-          tapTargetSize: compact
-              ? MaterialTapTargetSize.shrinkWrap
-              : MaterialTapTargetSize.padded,
-          padding: compact ? EdgeInsets.zero : null,
         ),
         icon: buffering
             ? SizedBox(
-                width: compact ? 16 : 28,
-                height: compact ? 16 : 28,
+                width: compact ? 18 : 28,
+                height: compact ? 18 : 28,
                 child: const CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(playing ? Icons.pause : Icons.play_arrow),
@@ -90,23 +82,23 @@ class AudioTransportControls extends StatelessWidget {
       tooltip: nextTooltip,
       onPressed: hasNext ? onNext : null,
       iconSize: skipSize,
-      visualDensity: compact ? VisualDensity.compact : null,
-      constraints: skipConstraints,
-      padding: compact ? EdgeInsets.zero : null,
-      color: fg,
-      disabledColor: fg.withValues(alpha: 0.3),
+      style: IconButton.styleFrom(
+        foregroundColor: fg,
+        disabledForegroundColor: fg.withValues(alpha: 0.3),
+      ),
       icon: const Icon(Icons.skip_next),
     );
 
-    // Compacto: largura intrínseca (sem Expanded) para não espalhar em telas largas.
+    // Compacto: IconButtons colados como Salvar/Compartilhar (sem SizedBox).
+    // Tela cheia: gap explícito entre botões maiores.
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         previous,
-        SizedBox(width: compact ? 2 : 12),
+        if (!compact) const SizedBox(width: 12),
         playPause,
-        SizedBox(width: compact ? 2 : 12),
+        if (!compact) const SizedBox(width: 12),
         next,
       ],
     );

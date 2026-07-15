@@ -39,7 +39,8 @@ class AudioSeekBar extends StatelessWidget {
 
     final timeStyle = AppTypography.label.copyWith(
       color: muted,
-      fontSize: compact ? 11 : null,
+      fontSize: compact ? 10 : null,
+      height: compact ? 1.0 : null,
     );
 
     final slider = SliderTheme(
@@ -49,8 +50,11 @@ class AudioSeekBar extends StatelessWidget {
         thumbColor: AppColors.goldLight,
         overlayColor: AppColors.gold.withValues(alpha: 0.2),
         trackHeight: compact ? 2 : 4,
-        thumbShape: RoundSliderThumbShape(enabledThumbRadius: compact ? 5 : 10),
-        overlayShape: RoundSliderOverlayShape(overlayRadius: compact ? 8 : 16),
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: compact ? 4 : 10),
+        // Compacto: sem overlay — evita altura fantasma entre título e seek.
+        overlayShape: compact
+            ? SliderComponentShape.noOverlay
+            : const RoundSliderOverlayShape(overlayRadius: 16),
         padding: compact
             ? EdgeInsets.zero
             : const EdgeInsets.symmetric(horizontal: 8),
@@ -69,13 +73,16 @@ class AudioSeekBar extends StatelessWidget {
       ),
     );
 
-    // Compacto: tempos nas laterais; slider com altura limitada (= linha do chip PDF).
+    // Compacto: tempos nas laterais; gap = padding dos IconButton da barra (8).
     if (compact) {
+      const gap = 8.0;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(_format(position), style: timeStyle),
-          Expanded(child: SizedBox(height: 20, child: slider)),
+          const SizedBox(width: gap),
+          Expanded(child: SizedBox(height: 14, child: slider)),
+          const SizedBox(width: gap),
           Text(_format(duration), style: timeStyle),
         ],
       );
