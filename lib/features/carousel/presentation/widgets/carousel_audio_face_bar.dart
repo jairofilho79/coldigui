@@ -15,8 +15,6 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const _audioContentVerticalOffset = Offset(0, -6);
-
 /// Face de áudio compacta na barra do shell (sem lista completa de faixas).
 class CarouselAudioFaceBar extends ConsumerWidget {
   const CarouselAudioFaceBar({super.key});
@@ -27,75 +25,69 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
 
-    // Seeker preenche o resto; controles colados aos trailing (mesmo ritmo dos ícones).
+    // Altura = IconButtons trailing (igual PDF). Sem SizedBox fixo / play 48.
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            // Mesma altura interativa dos IconButtons da barra PDF.
-            child: SizedBox(
-              height: kMinInteractiveDimension,
-              child: Transform.translate(
-                offset: _audioContentVerticalOffset,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          LouvorMaterialIcons.audio,
-                          color: AppColors.title,
-                          size: 14,
-                        ),
-                        const SizedBox(width: carouselBarHorizontalGap),
-                        Expanded(
-                          child: Text(
-                            track == null
-                                ? l10n.playlistAudioEmpty
-                                : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.label.copyWith(
-                              color: AppColors.title,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ],
+                    const Icon(
+                      LouvorMaterialIcons.audio,
+                      color: AppColors.title,
+                      size: 14,
                     ),
-                    if (track != null)
-                      Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.hardEdge,
-                        children: [
-                          AudioSeekBar(
-                            position: session.position,
-                            duration: session.duration,
-                            onLightBackground: true,
-                            compact: true,
-                            onSeek: (value) {
-                              ref
-                                  .read(audioPlayerSessionProvider.notifier)
-                                  .seek(value);
-                            },
-                          ),
-                          IgnorePointer(
-                            child: AudioFlagPlaceholder(
-                              tooltip: l10n.audioFlagComingSoon,
-                              onLightBackground: true,
-                              compact: true,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(width: carouselBarHorizontalGap),
+                    Expanded(
+                      child: Text(
+                        track == null
+                            ? l10n.playlistAudioEmpty
+                            : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.title,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          height: 1.0,
+                        ),
                       ),
+                    ),
                   ],
                 ),
-              ),
+                if (track != null)
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      AudioSeekBar(
+                        position: session.position,
+                        duration: session.duration,
+                        onLightBackground: true,
+                        compact: true,
+                        onSeek: (value) {
+                          ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .seek(value);
+                        },
+                      ),
+                      IgnorePointer(
+                        child: AudioFlagPlaceholder(
+                          tooltip: l10n.audioFlagComingSoon,
+                          onLightBackground: true,
+                          compact: true,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
           if (track != null)

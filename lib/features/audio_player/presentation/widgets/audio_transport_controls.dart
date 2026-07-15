@@ -41,10 +41,11 @@ class AudioTransportControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = onLightBackground ? AppColors.title : AppColors.textLight;
-    // Compacto: mesmo ritmo dos IconButton trailing (padding padrão, sem gap extra).
+    // Compacto: skip = IconButton padrão (como Salvar); play capped — filled+padding
+    // com minimumSize 48 estoura a barra além da PDF.
     final skipSize = compact ? 24.0 : 36.0;
-    final playSize = compact ? 24.0 : 40.0;
-    final playMin = compact ? const Size(48, 48) : const Size(64, 64);
+    final playSize = compact ? 22.0 : 40.0;
+    final playBox = compact ? const Size(36, 36) : const Size(64, 64);
 
     final previous = IconButton(
       tooltip: previousTooltip,
@@ -67,12 +68,18 @@ class AudioTransportControls extends StatelessWidget {
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.title,
           disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
-          minimumSize: playMin,
+          minimumSize: playBox,
+          maximumSize: compact ? playBox : null,
+          fixedSize: compact ? playBox : null,
+          padding: compact ? EdgeInsets.zero : null,
+          tapTargetSize: compact
+              ? MaterialTapTargetSize.shrinkWrap
+              : MaterialTapTargetSize.padded,
         ),
         icon: buffering
             ? SizedBox(
-                width: compact ? 18 : 28,
-                height: compact ? 18 : 28,
+                width: compact ? 16 : 28,
+                height: compact ? 16 : 28,
                 child: const CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(playing ? Icons.pause : Icons.play_arrow),
