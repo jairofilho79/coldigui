@@ -51,7 +51,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                         child: Text(
                           track == null
                               ? l10n.playlistAudioEmpty
-                              : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
+                              : _trackTitle(track),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.label.copyWith(
@@ -119,6 +119,14 @@ class CarouselAudioFaceBar extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Mesmo rótulo do sheet (`track.categoria` = material kind Coldigom).
+  static String _trackTitle(AudioTrack track) {
+    final head =
+        '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}';
+    if (track.categoria.isEmpty) return head;
+    return '$head | ${track.categoria}';
   }
 
   AudioTrack? _resolveTrack(WidgetRef ref, AudioTrack? current) {
