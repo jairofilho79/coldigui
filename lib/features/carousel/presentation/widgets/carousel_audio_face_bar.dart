@@ -7,6 +7,7 @@ import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_b
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
@@ -25,105 +26,99 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
 
+    // Controles ao lado dos trailing (mesmo eixo vertical); seeker preenche o resto.
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      LouvorMaterialIcons.audio,
-                      color: AppColors.title,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        track == null
-                            ? l10n.playlistAudioEmpty
-                            : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.label.copyWith(
-                          color: AppColors.title,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (track != null)
+            // Mesma altura do chip PDF ([carouselChipTopBarHeight]).
+            child: SizedBox(
+              height: carouselChipTopBarHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        flex: 4,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.none,
-                          children: [
-                            AudioSeekBar(
-                              position: session.position,
-                              duration: session.duration,
-                              onLightBackground: true,
-                              compact: true,
-                              onSeek: (value) {
-                                ref
-                                    .read(audioPlayerSessionProvider.notifier)
-                                    .seek(value);
-                              },
-                            ),
-                            IgnorePointer(
-                              child: AudioFlagPlaceholder(
-                                tooltip: l10n.audioFlagComingSoon,
-                                onLightBackground: true,
-                                compact: true,
-                              ),
-                            ),
-                          ],
-                        ),
+                      const Icon(
+                        LouvorMaterialIcons.audio,
+                        color: AppColors.title,
+                        size: 16,
                       ),
+                      const SizedBox(width: 6),
                       Expanded(
-                        flex: 1,
-                        child: AudioTransportControls(
-                          playing: session.playing,
-                          buffering: session.buffering,
-                          hasPrevious: session.hasPrevious,
-                          hasNext: session.hasNext,
-                          onLightBackground: true,
-                          compact: true,
-                          onPrevious: () {
-                            ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .skipToPrevious();
-                          },
-                          onPlayPause: () {
-                            ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .playPause();
-                          },
-                          onNext: () {
-                            ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .skipToNext();
-                          },
-                          playTooltip: l10n.audioPlay,
-                          pauseTooltip: l10n.audioPause,
-                          previousTooltip: l10n.audioPrevious,
-                          nextTooltip: l10n.audioNext,
+                        child: Text(
+                          track == null
+                              ? l10n.playlistAudioEmpty
+                              : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.label.copyWith(
+                            color: AppColors.title,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ],
                   ),
-              ],
+                  if (track != null) ...[
+                    const SizedBox(height: 2),
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          AudioSeekBar(
+                            position: session.position,
+                            duration: session.duration,
+                            onLightBackground: true,
+                            compact: true,
+                            onSeek: (value) {
+                              ref
+                                  .read(audioPlayerSessionProvider.notifier)
+                                  .seek(value);
+                            },
+                          ),
+                          IgnorePointer(
+                            child: AudioFlagPlaceholder(
+                              tooltip: l10n.audioFlagComingSoon,
+                              onLightBackground: true,
+                              compact: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
+          if (track != null)
+            AudioTransportControls(
+              playing: session.playing,
+              buffering: session.buffering,
+              hasPrevious: session.hasPrevious,
+              hasNext: session.hasNext,
+              onLightBackground: true,
+              compact: true,
+              onPrevious: () {
+                ref.read(audioPlayerSessionProvider.notifier).skipToPrevious();
+              },
+              onPlayPause: () {
+                ref.read(audioPlayerSessionProvider.notifier).playPause();
+              },
+              onNext: () {
+                ref.read(audioPlayerSessionProvider.notifier).skipToNext();
+              },
+              playTooltip: l10n.audioPlay,
+              pauseTooltip: l10n.audioPause,
+              previousTooltip: l10n.audioPrevious,
+              nextTooltip: l10n.audioNext,
+            ),
           const CarouselBarTrailingActions(),
         ],
       ),

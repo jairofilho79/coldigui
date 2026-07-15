@@ -42,10 +42,11 @@ class AudioTransportControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = onLightBackground ? AppColors.title : AppColors.textLight;
     final skipSize = compact ? 22.0 : 36.0;
-    final playSize = compact ? 26.0 : 40.0;
-    final playMin = compact ? const Size(36, 36) : const Size(64, 64);
+    final playSize = compact ? 24.0 : 40.0;
+    // Compacto ≤ altura dos IconButton trailing (~48) / chip PDF (52).
+    final playMin = compact ? const Size(32, 32) : const Size(64, 64);
     final skipConstraints = compact
-        ? const BoxConstraints(minWidth: 32, minHeight: 32)
+        ? const BoxConstraints(minWidth: 28, minHeight: 28)
         : null;
 
     final previous = IconButton(
@@ -97,25 +98,15 @@ class AudioTransportControls extends StatelessWidget {
       icon: const Icon(Icons.skip_next),
     );
 
-    // Compacto: ocupa 95% da largura (margens 2.5% cada lado).
-    if (compact) {
-      return FractionallySizedBox(
-        widthFactor: 0.95,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [previous, playPause, next],
-        ),
-      );
-    }
-
+    // Compacto: largura intrínseca (sem Expanded) para não espalhar em telas largas.
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         previous,
-        const SizedBox(width: 12),
+        SizedBox(width: compact ? 2 : 12),
         playPause,
-        const SizedBox(width: 12),
+        SizedBox(width: compact ? 2 : 12),
         next,
       ],
     );
