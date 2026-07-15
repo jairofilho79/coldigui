@@ -41,22 +41,24 @@ class AudioTransportControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = onLightBackground ? AppColors.title : AppColors.textLight;
-    final skipSize = compact ? 22.0 : 36.0;
-    final playSize = compact ? 28.0 : 40.0;
-    final playMin = compact ? const Size(40, 40) : const Size(64, 64);
-    final gap = compact ? 4.0 : 12.0;
+    final skipSize = compact ? 18.0 : 36.0;
+    final playSize = compact ? 22.0 : 40.0;
+    final playMin = compact ? const Size(32, 32) : const Size(64, 64);
+    final gap = compact ? 0.0 : 12.0;
+    final skipConstraints = compact
+        ? const BoxConstraints(minWidth: 28, minHeight: 28)
+        : null;
 
-    return Row(
+    final row = Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
       children: [
         IconButton(
           tooltip: previousTooltip,
           onPressed: hasPrevious ? onPrevious : null,
           iconSize: skipSize,
           visualDensity: compact ? VisualDensity.compact : null,
-          constraints: compact
-              ? const BoxConstraints(minWidth: 36, minHeight: 36)
-              : null,
+          constraints: skipConstraints,
           padding: compact ? EdgeInsets.zero : null,
           color: fg,
           disabledColor: fg.withValues(alpha: 0.3),
@@ -78,11 +80,12 @@ class AudioTransportControls extends StatelessWidget {
               tapTargetSize: compact
                   ? MaterialTapTargetSize.shrinkWrap
                   : MaterialTapTargetSize.padded,
+              padding: compact ? EdgeInsets.zero : null,
             ),
             icon: buffering
                 ? SizedBox(
-                    width: compact ? 18 : 28,
-                    height: compact ? 18 : 28,
+                    width: compact ? 14 : 28,
+                    height: compact ? 14 : 28,
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Icon(playing ? Icons.pause : Icons.play_arrow),
@@ -94,9 +97,7 @@ class AudioTransportControls extends StatelessWidget {
           onPressed: hasNext ? onNext : null,
           iconSize: skipSize,
           visualDensity: compact ? VisualDensity.compact : null,
-          constraints: compact
-              ? const BoxConstraints(minWidth: 36, minHeight: 36)
-              : null,
+          constraints: skipConstraints,
           padding: compact ? EdgeInsets.zero : null,
           color: fg,
           disabledColor: fg.withValues(alpha: 0.3),
@@ -104,5 +105,11 @@ class AudioTransportControls extends StatelessWidget {
         ),
       ],
     );
+
+    // Barra estreita (1/4): encolhe se não couber.
+    if (compact) {
+      return FittedBox(fit: BoxFit.scaleDown, child: row);
+    }
+    return row;
   }
 }

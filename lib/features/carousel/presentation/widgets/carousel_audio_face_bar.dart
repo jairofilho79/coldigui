@@ -58,47 +58,73 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     ),
                   ],
                 ),
-                if (track != null) ...[
-                  AudioFlagPlaceholder(
-                    tooltip: l10n.audioFlagComingSoon,
-                    onLightBackground: true,
-                    compact: true,
+                if (track != null)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AudioSeekBar(
+                              position: session.position,
+                              duration: session.duration,
+                              onLightBackground: true,
+                              compact: true,
+                              onSeek: (value) {
+                                ref
+                                    .read(audioPlayerSessionProvider.notifier)
+                                    .seek(value);
+                              },
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: 0,
+                              child: IgnorePointer(
+                                child: AudioFlagPlaceholder(
+                                  tooltip: l10n.audioFlagComingSoon,
+                                  onLightBackground: true,
+                                  compact: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: AudioTransportControls(
+                          playing: session.playing,
+                          buffering: session.buffering,
+                          hasPrevious: session.hasPrevious,
+                          hasNext: session.hasNext,
+                          onLightBackground: true,
+                          compact: true,
+                          onPrevious: () {
+                            ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .skipToPrevious();
+                          },
+                          onPlayPause: () {
+                            ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .playPause();
+                          },
+                          onNext: () {
+                            ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .skipToNext();
+                          },
+                          playTooltip: l10n.audioPlay,
+                          pauseTooltip: l10n.audioPause,
+                          previousTooltip: l10n.audioPrevious,
+                          nextTooltip: l10n.audioNext,
+                        ),
+                      ),
+                    ],
                   ),
-                  AudioSeekBar(
-                    position: session.position,
-                    duration: session.duration,
-                    onLightBackground: true,
-                    compact: true,
-                    onSeek: (value) {
-                      ref.read(audioPlayerSessionProvider.notifier).seek(value);
-                    },
-                  ),
-                  AudioTransportControls(
-                    playing: session.playing,
-                    buffering: session.buffering,
-                    hasPrevious: session.hasPrevious,
-                    hasNext: session.hasNext,
-                    onLightBackground: true,
-                    compact: true,
-                    onPrevious: () {
-                      ref
-                          .read(audioPlayerSessionProvider.notifier)
-                          .skipToPrevious();
-                    },
-                    onPlayPause: () {
-                      ref.read(audioPlayerSessionProvider.notifier).playPause();
-                    },
-                    onNext: () {
-                      ref
-                          .read(audioPlayerSessionProvider.notifier)
-                          .skipToNext();
-                    },
-                    playTooltip: l10n.audioPlay,
-                    pauseTooltip: l10n.audioPause,
-                    previousTooltip: l10n.audioPrevious,
-                    nextTooltip: l10n.audioNext,
-                  ),
-                ],
               ],
             ),
           ),
