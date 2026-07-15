@@ -41,75 +41,83 @@ class AudioTransportControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = onLightBackground ? AppColors.title : AppColors.textLight;
-    final skipSize = compact ? 18.0 : 36.0;
-    final playSize = compact ? 22.0 : 40.0;
-    final playMin = compact ? const Size(32, 32) : const Size(64, 64);
-    final gap = compact ? 0.0 : 12.0;
+    final skipSize = compact ? 22.0 : 36.0;
+    final playSize = compact ? 26.0 : 40.0;
+    final playMin = compact ? const Size(36, 36) : const Size(64, 64);
     final skipConstraints = compact
-        ? const BoxConstraints(minWidth: 28, minHeight: 28)
+        ? const BoxConstraints(minWidth: 32, minHeight: 32)
         : null;
 
-    final row = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: previousTooltip,
-          onPressed: hasPrevious ? onPrevious : null,
-          iconSize: skipSize,
-          visualDensity: compact ? VisualDensity.compact : null,
-          constraints: skipConstraints,
+    final previous = IconButton(
+      tooltip: previousTooltip,
+      onPressed: hasPrevious ? onPrevious : null,
+      iconSize: skipSize,
+      visualDensity: compact ? VisualDensity.compact : null,
+      constraints: skipConstraints,
+      padding: compact ? EdgeInsets.zero : null,
+      color: fg,
+      disabledColor: fg.withValues(alpha: 0.3),
+      icon: const Icon(Icons.skip_previous),
+    );
+    final playPause = Semantics(
+      button: true,
+      label: playing ? pauseTooltip : playTooltip,
+      child: IconButton.filled(
+        tooltip: playing ? pauseTooltip : playTooltip,
+        onPressed: buffering ? null : onPlayPause,
+        iconSize: playSize,
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.gold,
+          foregroundColor: AppColors.title,
+          disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
+          minimumSize: playMin,
+          tapTargetSize: compact
+              ? MaterialTapTargetSize.shrinkWrap
+              : MaterialTapTargetSize.padded,
           padding: compact ? EdgeInsets.zero : null,
-          color: fg,
-          disabledColor: fg.withValues(alpha: 0.3),
-          icon: const Icon(Icons.skip_previous),
         ),
-        SizedBox(width: gap),
-        Semantics(
-          button: true,
-          label: playing ? pauseTooltip : playTooltip,
-          child: IconButton.filled(
-            tooltip: playing ? pauseTooltip : playTooltip,
-            onPressed: buffering ? null : onPlayPause,
-            iconSize: playSize,
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              foregroundColor: AppColors.title,
-              disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
-              minimumSize: playMin,
-              tapTargetSize: compact
-                  ? MaterialTapTargetSize.shrinkWrap
-                  : MaterialTapTargetSize.padded,
-              padding: compact ? EdgeInsets.zero : null,
-            ),
-            icon: buffering
-                ? SizedBox(
-                    width: compact ? 14 : 28,
-                    height: compact ? 14 : 28,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(playing ? Icons.pause : Icons.play_arrow),
-          ),
-        ),
-        SizedBox(width: gap),
-        IconButton(
-          tooltip: nextTooltip,
-          onPressed: hasNext ? onNext : null,
-          iconSize: skipSize,
-          visualDensity: compact ? VisualDensity.compact : null,
-          constraints: skipConstraints,
-          padding: compact ? EdgeInsets.zero : null,
-          color: fg,
-          disabledColor: fg.withValues(alpha: 0.3),
-          icon: const Icon(Icons.skip_next),
-        ),
-      ],
+        icon: buffering
+            ? SizedBox(
+                width: compact ? 16 : 28,
+                height: compact ? 16 : 28,
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(playing ? Icons.pause : Icons.play_arrow),
+      ),
+    );
+    final next = IconButton(
+      tooltip: nextTooltip,
+      onPressed: hasNext ? onNext : null,
+      iconSize: skipSize,
+      visualDensity: compact ? VisualDensity.compact : null,
+      constraints: skipConstraints,
+      padding: compact ? EdgeInsets.zero : null,
+      color: fg,
+      disabledColor: fg.withValues(alpha: 0.3),
+      icon: const Icon(Icons.skip_next),
     );
 
-    // Barra estreita (1/4): encolhe se não couber.
+    // Compacto: ocupa 95% da largura (margens 2.5% cada lado).
     if (compact) {
-      return FittedBox(fit: BoxFit.scaleDown, child: row);
+      return FractionallySizedBox(
+        widthFactor: 0.95,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [previous, playPause, next],
+        ),
+      );
     }
-    return row;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        previous,
+        const SizedBox(width: 12),
+        playPause,
+        const SizedBox(width: 12),
+        next,
+      ],
+    );
   }
 }

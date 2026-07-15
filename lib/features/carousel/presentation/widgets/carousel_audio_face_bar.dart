@@ -28,7 +28,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -63,8 +63,9 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
-                        flex: 3,
+                        flex: 4,
                         child: Stack(
+                          alignment: Alignment.center,
                           clipBehavior: Clip.none,
                           children: [
                             AudioSeekBar(
@@ -78,16 +79,11 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                                     .seek(value);
                               },
                             ),
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              top: 0,
-                              child: IgnorePointer(
-                                child: AudioFlagPlaceholder(
-                                  tooltip: l10n.audioFlagComingSoon,
-                                  onLightBackground: true,
-                                  compact: true,
-                                ),
+                            IgnorePointer(
+                              child: AudioFlagPlaceholder(
+                                tooltip: l10n.audioFlagComingSoon,
+                                onLightBackground: true,
+                                compact: true,
                               ),
                             ),
                           ],

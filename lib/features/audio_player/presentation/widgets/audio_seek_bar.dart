@@ -37,58 +37,61 @@ class AudioSeekBar extends StatelessWidget {
         ? AppColors.title.withValues(alpha: 0.2)
         : AppColors.textLight.withValues(alpha: 0.25);
 
+    final timeStyle = AppTypography.label.copyWith(
+      color: muted,
+      fontSize: compact ? 11 : null,
+    );
+
+    final slider = SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        activeTrackColor: AppColors.gold,
+        inactiveTrackColor: inactiveTrack,
+        thumbColor: AppColors.goldLight,
+        overlayColor: AppColors.gold.withValues(alpha: 0.2),
+        trackHeight: compact ? 2 : 4,
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: compact ? 6 : 10),
+        overlayShape: RoundSliderOverlayShape(overlayRadius: compact ? 12 : 16),
+        padding: compact
+            ? EdgeInsets.zero
+            : const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      child: Semantics(
+        slider: true,
+        value: _format(position),
+        child: Slider(
+          min: 0,
+          max: max,
+          value: value,
+          onChanged: totalMs <= 0
+              ? null
+              : (v) => onSeek(Duration(milliseconds: v.round())),
+        ),
+      ),
+    );
+
+    // Compacto: tempos nas laterais do seek (1 linha, menos altura).
+    if (compact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(_format(position), style: timeStyle),
+          Expanded(child: slider),
+          Text(_format(duration), style: timeStyle),
+        ],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.gold,
-            inactiveTrackColor: inactiveTrack,
-            thumbColor: AppColors.goldLight,
-            overlayColor: AppColors.gold.withValues(alpha: 0.2),
-            trackHeight: compact ? 2 : 4,
-            thumbShape: RoundSliderThumbShape(
-              enabledThumbRadius: compact ? 6 : 10,
-            ),
-            overlayShape: RoundSliderOverlayShape(
-              overlayRadius: compact ? 12 : 16,
-            ),
-            padding: compact
-                ? EdgeInsets.zero
-                : const EdgeInsets.symmetric(horizontal: 8),
-          ),
-          child: Semantics(
-            slider: true,
-            value: _format(position),
-            child: Slider(
-              min: 0,
-              max: max,
-              value: value,
-              onChanged: totalMs <= 0
-                  ? null
-                  : (v) => onSeek(Duration(milliseconds: v.round())),
-            ),
-          ),
-        ),
+        slider,
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _format(position),
-                style: AppTypography.label.copyWith(
-                  color: muted,
-                  fontSize: compact ? 11 : null,
-                ),
-              ),
-              Text(
-                _format(duration),
-                style: AppTypography.label.copyWith(
-                  color: muted,
-                  fontSize: compact ? 11 : null,
-                ),
-              ),
+              Text(_format(position), style: timeStyle),
+              Text(_format(duration), style: timeStyle),
             ],
           ),
         ),
