@@ -25,69 +25,72 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
 
-    // Altura = IconButtons trailing (igual PDF). Sem SizedBox fixo / play 48.
+    // Título acima do seek; translate sobe o bloco para o eixo do seek
+    // coincidir com o centro dos IconButtons (Column centrada deixa o seek baixo).
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      LouvorMaterialIcons.audio,
-                      color: AppColors.title,
-                      size: 14,
-                    ),
-                    const SizedBox(width: carouselBarHorizontalGap),
-                    Expanded(
-                      child: Text(
-                        track == null
-                            ? l10n.playlistAudioEmpty
-                            : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.label.copyWith(
-                          color: AppColors.title,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                          height: 1.0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (track != null)
-                  Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.hardEdge,
+            child: Transform.translate(
+              offset: const Offset(0, -6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      AudioSeekBar(
-                        position: session.position,
-                        duration: session.duration,
-                        onLightBackground: true,
-                        compact: true,
-                        onSeek: (value) {
-                          ref
-                              .read(audioPlayerSessionProvider.notifier)
-                              .seek(value);
-                        },
+                      const Icon(
+                        LouvorMaterialIcons.audio,
+                        color: AppColors.title,
+                        size: 14,
                       ),
-                      IgnorePointer(
-                        child: AudioFlagPlaceholder(
-                          tooltip: l10n.audioFlagComingSoon,
-                          onLightBackground: true,
-                          compact: true,
+                      const SizedBox(width: carouselBarHorizontalGap),
+                      Expanded(
+                        child: Text(
+                          track == null
+                              ? l10n.playlistAudioEmpty
+                              : '${track.numero.isNotEmpty ? '${track.numero} — ' : ''}${track.nome}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.label.copyWith(
+                            color: AppColors.title,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                            height: 1.0,
+                          ),
                         ),
                       ),
                     ],
                   ),
-              ],
+                  if (track != null)
+                    Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        AudioSeekBar(
+                          position: session.position,
+                          duration: session.duration,
+                          onLightBackground: true,
+                          compact: true,
+                          onSeek: (value) {
+                            ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .seek(value);
+                          },
+                        ),
+                        IgnorePointer(
+                          child: AudioFlagPlaceholder(
+                            tooltip: l10n.audioFlagComingSoon,
+                            onLightBackground: true,
+                            compact: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
           if (track != null)
