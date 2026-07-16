@@ -1130,7 +1130,7 @@ abstract class AppLocalizations {
   /// No description provided for @audioClosePlayer.
   ///
   /// In pt, this message translates to:
-  /// **'Fechar player'**
+  /// **'Encerrar e voltar à busca'**
   String get audioClosePlayer;
 
   /// No description provided for @audioFlagComingSoon.

@@ -632,7 +632,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioNext => 'Next';
 
   @override
-  String get audioClosePlayer => 'Close player';
+  String get audioClosePlayer => 'Close and return to search';
 
   @override
   String get audioFlagComingSoon => 'Audio flags coming soon';

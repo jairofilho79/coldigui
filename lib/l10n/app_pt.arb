@@ -333,7 +333,7 @@
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",
   "audioNext": "Próximo",
-  "audioClosePlayer": "Fechar player",
+  "audioClosePlayer": "Encerrar e voltar à busca",
   "audioFlagComingSoon": "Marcadores de áudio em breve",
   "audioPlaybackError": "Não foi possível reproduzir este áudio.",
   "audioWebBackgroundNotice": "Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.",

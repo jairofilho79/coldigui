@@ -639,7 +639,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioNext => 'Próximo';
 
   @override
-  String get audioClosePlayer => 'Fechar player';
+  String get audioClosePlayer => 'Encerrar e voltar à busca';
 
   @override
   String get audioFlagComingSoon => 'Marcadores de áudio em breve';

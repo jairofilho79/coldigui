@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -18,6 +20,7 @@ import 'package:coldigui/features/playlists/presentation/providers/playlists_pro
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// Face de áudio compacta na barra do shell (sem lista completa de faixas).
 class CarouselAudioFaceBar extends ConsumerWidget {
@@ -130,6 +133,12 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     .read(playlistMediaFaceProvider.notifier)
                     .setFace(PlaylistMediaFace.pdf),
               );
+              // Mesmo destino do voltar do AppBar em /audio e /leitor.
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                goToShellDestination(context, RoutePaths.home);
+              }
             },
           ),
           const CarouselBarTrailingActions(),
