@@ -49,18 +49,20 @@ class CarouselChips extends ConsumerWidget {
     final pdfItems = ref.watch(carouselLouvoresDisplayProvider);
     final face = ref.watch(playlistMediaFaceProvider);
     final session = ref.watch(audioPlayerSessionProvider);
-    final hasAudio = session.queue.isNotEmpty || _activeHasAudioIds(ref);
+    final hasSession = session.queue.isNotEmpty;
+    final hasAudioPlaylist = _activeHasAudioIds(ref);
     final hasPdf = pdfItems.isNotEmpty;
 
-    if (!hasPdf && !hasAudio) return const SizedBox.shrink();
-
-    final showAudioFace =
-        face == PlaylistMediaFace.audio || (hasAudio && !hasPdf);
-    if (showAudioFace && hasAudio) {
-      return const CarouselAudioFaceBar();
+    if (!shouldShowCarouselAudioFace(
+      face: face,
+      hasPdf: hasPdf,
+      hasSessionQueue: hasSession,
+      hasAudioPlaylist: hasAudioPlaylist,
+    )) {
+      if (!hasPdf) return const SizedBox.shrink();
+      return _CarouselChipsBar(items: pdfItems);
     }
-    if (!hasPdf) return const SizedBox.shrink();
-    return _CarouselChipsBar(items: pdfItems);
+    return const CarouselAudioFaceBar();
   }
 
   bool _activeHasAudioIds(WidgetRef ref) {
@@ -73,6 +75,20 @@ class CarouselChips extends ConsumerWidget {
     }
     return false;
   }
+}
+
+/// Após [AudioPlayerSessionNotifier.close] (fila vazia + face PDF) não força
+/// áudio só por `audioIds`. Face áudio explícita ou sessão ativa sem PDF reabre.
+@visibleForTesting
+bool shouldShowCarouselAudioFace({
+  required PlaylistMediaFace face,
+  required bool hasPdf,
+  required bool hasSessionQueue,
+  required bool hasAudioPlaylist,
+}) {
+  final hasAudio = hasSessionQueue || hasAudioPlaylist;
+  if (!hasPdf && !hasAudio) return false;
+  return face == PlaylistMediaFace.audio || (hasSessionQueue && !hasPdf);
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {

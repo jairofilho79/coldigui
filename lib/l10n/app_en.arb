@@ -333,6 +333,7 @@
   "audioPause": "Pause",
   "audioPrevious": "Previous",
   "audioNext": "Next",
+  "audioClosePlayer": "Close player",
   "audioFlagComingSoon": "Audio flags coming soon",
   "audioPlaybackError": "Could not play this audio.",
   "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",

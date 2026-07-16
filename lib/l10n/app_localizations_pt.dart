@@ -639,6 +639,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioNext => 'Próximo';
 
   @override
+  String get audioClosePlayer => 'Fechar player';
+
+  @override
   String get audioFlagComingSoon => 'Marcadores de áudio em breve';
 
   @override

@@ -184,6 +184,12 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     await _player?.stop();
     state = state.copyWith(playing: false, position: Duration.zero);
   }
+
+  /// Encerra o player: para e limpa fila/posição (diferente de [stop]).
+  Future<void> close() async {
+    await _player?.stop();
+    state = const AudioPlayerSessionState();
+  }
 }
 
 final audioPlayerSessionProvider =

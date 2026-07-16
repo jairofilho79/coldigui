@@ -1127,6 +1127,12 @@ abstract class AppLocalizations {
   /// **'Próximo'**
   String get audioNext;
 
+  /// No description provided for @audioClosePlayer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar player'**
+  String get audioClosePlayer;
+
   /// No description provided for @audioFlagComingSoon.
   ///
   /// In pt, this message translates to:

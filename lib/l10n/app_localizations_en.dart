@@ -632,6 +632,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioNext => 'Next';
 
   @override
+  String get audioClosePlayer => 'Close player';
+
+  @override
   String get audioFlagComingSoon => 'Audio flags coming soon';
 
   @override

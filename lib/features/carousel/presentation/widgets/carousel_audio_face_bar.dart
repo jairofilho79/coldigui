@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -9,7 +11,9 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_she
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -115,6 +119,19 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               previousTooltip: l10n.audioPrevious,
               nextTooltip: l10n.audioNext,
             ),
+          IconButton(
+            style: carouselBarIconButtonStyle,
+            tooltip: l10n.audioClosePlayer,
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              unawaited(ref.read(audioPlayerSessionProvider.notifier).close());
+              unawaited(
+                ref
+                    .read(playlistMediaFaceProvider.notifier)
+                    .setFace(PlaylistMediaFace.pdf),
+              );
+            },
+          ),
           const CarouselBarTrailingActions(),
         ],
       ),
