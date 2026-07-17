@@ -6,21 +6,23 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeColdigomRemote extends ColdigomRemoteDatasource {
-  _FakeColdigomRemote(this._summaries, this._details) : super(Dio());
+  _FakeColdigomRemote(this._details) : super(Dio());
 
-  final List<PraiseSummaryDto> _summaries;
-  final Map<String, PraiseDetailDto> _details;
+  final List<PraiseDetailDto> _details;
   ColdigomPraisesQuery? lastQuery;
+  int fetchDetailCalls = 0;
 
   @override
-  Future<PraisesPageDto> listPraises(ColdigomPraisesQuery query) async {
+  Future<PlpcgPraisesPageDto> listPlpcgPraises(
+    ColdigomPraisesQuery query,
+  ) async {
     lastQuery = query;
-    return PraisesPageDto(
-      data: _summaries,
+    return PlpcgPraisesPageDto(
+      data: _details,
       pagination: PraisesPaginationDto(
         page: query.page,
         limit: query.limit,
-        total: _summaries.length,
+        total: _details.length,
         totalPages: 1,
       ),
     );
@@ -28,35 +30,37 @@ class _FakeColdigomRemote extends ColdigomRemoteDatasource {
 
   @override
   Future<PraiseDetailDto> fetchDetail(String praiseId) async {
-    return _details[praiseId]!;
+    fetchDetailCalls++;
+    throw StateError('fetchDetail não deve ser chamado no search/browse');
   }
 }
 
 void main() {
   group('ColdigomSearchRepositoryImpl', () {
-    test('retorna grupos a partir de detalhes com PDFs', () async {
+    test('retorna grupos a partir do endpoint PLPCG sem fetchDetail', () async {
       const praiseId = 'p1';
-      final repo = ColdigomSearchRepositoryImpl(
-        _FakeColdigomRemote(
-          [const PraiseSummaryDto(id: praiseId, name: 'Hino', number: '010')],
-          {
-            praiseId: const PraiseDetailDto(
-              id: praiseId,
-              name: 'Hino',
-              number: '010',
-              rhythm: 'Fox',
-              materials: [
-                MaterialDto(
-                  id: 'm1',
-                  type: 'pdf',
-                  r2Key: 'assets/praises/p1/m1.pdf',
-                  materialKindName: 'Partitura',
-                ),
-              ],
+      final remote = _FakeColdigomRemote([
+        const PraiseDetailDto(
+          id: praiseId,
+          name: 'Hino',
+          number: '010',
+          rhythm: 'Fox',
+          materials: [
+            MaterialDto(
+              id: 'm1',
+              type: 'pdf',
+              r2Key: 'assets/praises/p1/m1.pdf',
+              materialKindName: 'Partitura',
             ),
-          },
+            MaterialDto(
+              id: 'lyrics:p1',
+              type: 'lyrics',
+              materialKindName: 'Letra',
+            ),
+          ],
         ),
-      );
+      ]);
+      final repo = ColdigomSearchRepositoryImpl(remote);
 
       final ColdigomSearchResult result = await repo.search('hino');
 
@@ -65,41 +69,38 @@ void main() {
       expect(result.louvores, hasLength(1));
       expect(result.hasNextPage, isFalse);
       expect(result.page, 1);
+      expect(remote.fetchDetailCalls, 0);
     });
 
     test('query vazia retorna listas vazias', () async {
-      final repo = ColdigomSearchRepositoryImpl(
-        _FakeColdigomRemote(const [], const {}),
-      );
+      final remote = _FakeColdigomRemote(const []);
+      final repo = ColdigomSearchRepositoryImpl(remote);
       final result = await repo.search('   ');
       expect(result.groups, isEmpty);
       expect(result.louvores, isEmpty);
       expect(result.hasNextPage, isFalse);
+      expect(remote.lastQuery, isNull);
     });
 
     test('passa page ao remote e hasNextPage quando página cheia', () async {
-      final summaries = [
+      final details = [
         for (var i = 0; i < 20; i++)
-          PraiseSummaryDto(id: 'p$i', name: 'Hino $i', number: '$i'),
-      ];
-      final details = {
-        for (final s in summaries)
-          s.id: PraiseDetailDto(
-            id: s.id,
-            name: s.name,
-            number: s.number,
+          PraiseDetailDto(
+            id: 'p$i',
+            name: 'Hino $i',
+            number: '$i',
             rhythm: 'Fox',
             materials: [
               MaterialDto(
-                id: 'm-${s.id}',
+                id: 'm-$i',
                 type: 'pdf',
-                r2Key: 'assets/praises/${s.id}/m.pdf',
+                r2Key: 'assets/praises/p$i/m.pdf',
                 materialKindName: 'Partitura',
               ),
             ],
           ),
-      };
-      final remote = _FakeColdigomRemote(summaries, details);
+      ];
+      final remote = _FakeColdigomRemote(details);
       final repo = ColdigomSearchRepositoryImpl(remote);
 
       final result = await repo.search('hino', page: 2);
@@ -109,29 +110,27 @@ void main() {
       expect(result.page, 2);
       expect(result.hasNextPage, isTrue);
       expect(result.groups, hasLength(20));
+      expect(remote.fetchDetailCalls, 0);
     });
 
     test('browse com q vazio usa total da API', () async {
       const praiseId = 'p1';
-      final remote = _FakeColdigomRemote(
-        [const PraiseSummaryDto(id: praiseId, name: 'Hino', number: '010')],
-        {
-          praiseId: const PraiseDetailDto(
-            id: praiseId,
-            name: 'Hino',
-            number: '010',
-            rhythm: 'Fox',
-            materials: [
-              MaterialDto(
-                id: 'm1',
-                type: 'pdf',
-                r2Key: 'assets/praises/p1/m1.pdf',
-                materialKindName: 'Partitura',
-              ),
-            ],
-          ),
-        },
-      );
+      final remote = _FakeColdigomRemote([
+        const PraiseDetailDto(
+          id: praiseId,
+          name: 'Hino',
+          number: '010',
+          rhythm: 'Fox',
+          materials: [
+            MaterialDto(
+              id: 'm1',
+              type: 'pdf',
+              r2Key: 'assets/praises/p1/m1.pdf',
+              materialKindName: 'Partitura',
+            ),
+          ],
+        ),
+      ]);
       final repo = ColdigomSearchRepositoryImpl(remote);
 
       final result = await repo.browse(
@@ -149,6 +148,7 @@ void main() {
       expect(result.groups, hasLength(1));
       expect(result.totalItems, 1);
       expect(result.louvores, hasLength(1));
+      expect(remote.fetchDetailCalls, 0);
     });
   });
 }

@@ -89,9 +89,37 @@ class ColdigomRemoteDatasource {
     return PraisesPageDto.fromJson(data);
   }
 
+  /// Listagem PLPCG com materials slim (`GET /api/plpcg/praises`).
+  ///
+  /// Busca `q` ainda encontra por letra no servidor; a resposta não inclui
+  /// o texto da letra.
+  Future<PlpcgPraisesPageDto> listPlpcgPraises(
+    ColdigomPraisesQuery query,
+  ) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      ColdigomEndpoints.plpcgPraises,
+      queryParameters: query.toQueryParameters(),
+    );
+
+    final data = response.data;
+    if (data == null) {
+      return const PlpcgPraisesPageDto(
+        data: [],
+        pagination: PraisesPaginationDto(
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 1,
+        ),
+      );
+    }
+
+    return PlpcgPraisesPageDto.fromJson(data);
+  }
+
   /// Busca louvores por texto (`GET /api/praises?q=`).
   ///
-  /// Mantido para a Home; internamente usa [listPraises].
+  /// Mantido para compat; internamente usa [listPraises].
   Future<List<PraiseSummaryDto>> search({
     required String query,
     int limit = 20,

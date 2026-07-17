@@ -112,5 +112,31 @@ void main() {
       });
       expect(dto.url, 'https://www.youtube.com/watch?v=1Pks43ceAac');
     });
+
+    test('ignora material type lyrics (ainda sem suporte na UI)', () {
+      const praise = PraiseDetailDto(
+        id: 'praise-1',
+        name: 'Hino',
+        number: '001',
+        rhythm: 'Fox',
+        materials: [
+          MaterialDto(
+            id: 'lyrics:praise-1',
+            type: 'lyrics',
+            materialKindName: 'Letra',
+          ),
+          MaterialDto(
+            id: 'mat-1',
+            type: 'pdf',
+            r2Key: 'assets/praises/praise-1/mat-1.pdf',
+            materialKindName: 'Partitura',
+          ),
+        ],
+      );
+
+      expect(ColdigomLouvorAdapter.toLouvores(praise), hasLength(1));
+      expect(ColdigomLouvorAdapter.toAudioTracks(praise), isEmpty);
+      expect(ColdigomLouvorAdapter.toYoutubeMaterials(praise), isEmpty);
+    });
   });
 }

@@ -7,17 +7,12 @@ import '../adapters/coldigom_louvor_adapter.dart';
 import '../datasources/coldigom_remote_datasource.dart';
 import '../models/praise_dto.dart';
 
-/// Orquestra busca/browse coldigom: resumo → detalhes paralelos → adapter → grupos.
+/// Orquestra busca/browse coldigom via endpoint PLPCG (1 request com materials).
 class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
-  const ColdigomSearchRepositoryImpl(
-    this._remote, {
-    this.searchLimit = 20,
-    this.detailConcurrency = 5,
-  });
+  const ColdigomSearchRepositoryImpl(this._remote, {this.searchLimit = 20});
 
   final ColdigomRemoteDatasource _remote;
   final int searchLimit;
-  final int detailConcurrency;
 
   @override
   Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
@@ -31,7 +26,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final pageDto = await _remote.listPraises(
+    final pageDto = await _remote.listPlpcgPraises(
       ColdigomPraisesQuery(q: trimmed, limit: searchLimit, page: safePage),
     );
     if (pageDto.data.isEmpty) {
@@ -42,7 +37,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final fetched = await _fetchMaterialsForSummaries(pageDto.data);
+    final fetched = _mapDetails(pageDto.data);
     final groups = LouvorGroup.fromLouvores(
       fetched.louvores,
       audioTracks: fetched.audioTracks,
@@ -63,7 +58,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     final safePage = query.page < 1 ? 1 : query.page;
     final safeLimit = query.limit < 1 ? 10 : query.limit;
 
-    final pageDto = await _remote.listPraises(
+    final pageDto = await _remote.listPlpcgPraises(
       ColdigomPraisesQuery(
         q: query.q,
         tonalities: query.tonalities,
@@ -92,7 +87,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final fetched = await _fetchMaterialsForSummaries(pageDto.data);
+    final fetched = _mapDetails(pageDto.data);
     final groups = LouvorGroup.fromLouvores(
       fetched.louvores,
       audioTracks: fetched.audioTracks,
@@ -111,29 +106,19 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     );
   }
 
-  Future<
-    ({
-      List<Louvor> louvores,
-      List<AudioTrack> audioTracks,
-      List<YoutubeMaterial> youtubeMaterials,
-    })
-  >
-  _fetchMaterialsForSummaries(List<PraiseSummaryDto> summaries) async {
+  static ({
+    List<Louvor> louvores,
+    List<AudioTrack> audioTracks,
+    List<YoutubeMaterial> youtubeMaterials,
+  })
+  _mapDetails(List<PraiseDetailDto> details) {
     final louvores = <Louvor>[];
     final audioTracks = <AudioTrack>[];
     final youtubeMaterials = <YoutubeMaterial>[];
-    for (var i = 0; i < summaries.length; i += detailConcurrency) {
-      final batch = summaries.skip(i).take(detailConcurrency);
-      final details = await Future.wait(
-        batch.map((s) => _remote.fetchDetail(s.id)),
-      );
-      for (final detail in details) {
-        louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
-        audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
-        youtubeMaterials.addAll(
-          ColdigomLouvorAdapter.toYoutubeMaterials(detail),
-        );
-      }
+    for (final detail in details) {
+      louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
+      audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
+      youtubeMaterials.addAll(ColdigomLouvorAdapter.toYoutubeMaterials(detail));
     }
     return (
       louvores: louvores,

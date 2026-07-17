@@ -160,6 +160,27 @@ class PraisesPageDto {
   }
 }
 
+/// Página de `GET /api/plpcg/praises` (praise + materials slim embutidos).
+class PlpcgPraisesPageDto {
+  const PlpcgPraisesPageDto({required this.data, required this.pagination});
+
+  final List<PraiseDetailDto> data;
+  final PraisesPaginationDto pagination;
+
+  factory PlpcgPraisesPageDto.fromJson(Map<String, dynamic> json) {
+    final list = json['data'] as List<dynamic>? ?? const [];
+    final paginationJson =
+        json['pagination'] as Map<String, dynamic>? ?? const {};
+    return PlpcgPraisesPageDto(
+      data: [
+        for (final item in list)
+          PraiseDetailDto.fromJson(item as Map<String, dynamic>),
+      ],
+      pagination: PraisesPaginationDto.fromJson(paginationJson),
+    );
+  }
+}
+
 /// Resposta de `GET /api/praises/:id`.
 class PraiseDetailResponseDto {
   const PraiseDetailResponseDto({required this.data});

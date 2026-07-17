@@ -5,12 +5,12 @@ import '../../../catalog/domain/entities/youtube_material.dart';
 
 /// Porta de busca/browse coldigom.
 abstract interface class ColdigomSearchRepository {
-  /// Busca remota + detalhes → grupos para exibição na Home.
+  /// Busca via `/api/plpcg/praises` → grupos para exibição na Home.
   ///
   /// Query vazia → listas vazias (comportamento Home).
   Future<ColdigomSearchResult> search(String query, {int page = 1});
 
-  /// Browse filtrado no servidor (biblioteca); [q] opcional.
+  /// Browse filtrado via `/api/plpcg/praises` (biblioteca); [q] opcional.
   Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query);
 }
 
