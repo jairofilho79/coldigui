@@ -329,6 +329,8 @@
   "playlistAudioEmpty": "This playlist has no audio tracks.",
   "audioPlayerTitle": "Audio",
   "audioMaterialSection": "Audio",
+  "youtubeMaterialSection": "YouTube",
+  "youtubeOpenError": "Could not open YouTube",
   "audioPlay": "Play",
   "audioPause": "Pause",
   "audioPrevious": "Previous",

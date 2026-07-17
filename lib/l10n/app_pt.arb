@@ -329,6 +329,8 @@
   "playlistAudioEmpty": "Esta lista não tem áudios.",
   "audioPlayerTitle": "Áudio",
   "audioMaterialSection": "Áudio",
+  "youtubeMaterialSection": "YouTube",
+  "youtubeOpenError": "Não foi possível abrir o YouTube",
   "audioPlay": "Reproduzir",
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",

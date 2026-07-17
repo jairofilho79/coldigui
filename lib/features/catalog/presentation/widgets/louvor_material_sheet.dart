@@ -5,6 +5,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -20,12 +21,13 @@ typedef LouvorAudioAddCallback = Future<void> Function(AudioTrack track);
 ///
 /// Exibido quando [LouvorGroup.totalMaterials] > 1. Seções ordenadas por
 /// [LouvorMaterialSection.displayLabel]; materiais por [LouvorCategoryOrder].
-/// Áudios Coldigom aparecem numa seção final com ícone de música.
+/// Áudios e YouTube Coldigom aparecem em seções finais.
 Future<void> showLouvorMaterialSheet({
   required BuildContext context,
   required LouvorGroup group,
   required ValueChanged<Louvor> onMaterialSelected,
   ValueChanged<AudioTrack>? onAudioSelected,
+  ValueChanged<YoutubeMaterial>? onYoutubeSelected,
   LouvorMaterialAddCallback? onMaterialAdd,
   LouvorAudioAddCallback? onAudioAdd,
 }) {
@@ -41,6 +43,7 @@ Future<void> showLouvorMaterialSheet({
         group: group,
         onMaterialSelected: onMaterialSelected,
         onAudioSelected: onAudioSelected,
+        onYoutubeSelected: onYoutubeSelected,
         onMaterialAdd: onMaterialAdd,
         onAudioAdd: onAudioAdd,
       );
@@ -53,6 +56,7 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
     required this.group,
     required this.onMaterialSelected,
     this.onAudioSelected,
+    this.onYoutubeSelected,
     this.onMaterialAdd,
     this.onAudioAdd,
   });
@@ -60,6 +64,7 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
   final LouvorGroup group;
   final ValueChanged<Louvor> onMaterialSelected;
   final ValueChanged<AudioTrack>? onAudioSelected;
+  final ValueChanged<YoutubeMaterial>? onYoutubeSelected;
   final LouvorMaterialAddCallback? onMaterialAdd;
   final LouvorAudioAddCallback? onAudioAdd;
 
@@ -94,6 +99,19 @@ class _LouvorMaterialSheetBodyState
     } finally {
       if (mounted) setState(() => _addingId = null);
     }
+  }
+
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+      child: Text(
+        text,
+        style: AppTypography.label.copyWith(
+          color: AppColors.title,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 
   @override
@@ -158,16 +176,7 @@ class _LouvorMaterialSheetBodyState
               child: ListView(
                 children: [
                   for (final section in group.sections) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-                      child: Text(
-                        section.displayLabel,
-                        style: AppTypography.label.copyWith(
-                          color: AppColors.title,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    _sectionLabel(section.displayLabel),
                     for (final material in section.materials)
                       ListTile(
                         leading: Icon(
@@ -199,16 +208,7 @@ class _LouvorMaterialSheetBodyState
                       ),
                   ],
                   if (group.audioTracks.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
-                      child: Text(
-                        l10n.audioMaterialSection,
-                        style: AppTypography.label.copyWith(
-                          color: AppColors.title,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    _sectionLabel(l10n.audioMaterialSection),
                     for (final track in group.audioTracks)
                       ListTile(
                         leading: const Icon(
@@ -242,6 +242,28 @@ class _LouvorMaterialSheetBodyState
                           Navigator.of(context).pop();
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             widget.onAudioSelected?.call(track);
+                          });
+                        },
+                      ),
+                  ],
+                  if (group.youtubeMaterials.isNotEmpty) ...[
+                    _sectionLabel(l10n.youtubeMaterialSection),
+                    for (final item in group.youtubeMaterials)
+                      ListTile(
+                        leading: const Icon(
+                          LouvorMaterialIcons.youtube,
+                          color: AppColors.youtube,
+                        ),
+                        title: Text(
+                          item.categoria,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            widget.onYoutubeSelected?.call(item);
                           });
                         },
                       ),

@@ -29,6 +29,9 @@
 /version.json
   Cache-Control: no-cache
 
+/assets/FontManifest.json
+  Cache-Control: no-cache
+
 /manifest.json
   Cache-Control: no-cache
 
@@ -47,10 +50,6 @@
 /*.part.js
   Cache-Control: no-cache
 
-# Fonte MaterialIcons muda de subset entre builds — nunca immutable sem hash.
-/assets/fonts/MaterialIcons-Regular.otf
-  Cache-Control: no-cache
-
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -59,3 +58,9 @@
 
 /assets/packages/wakelock_plus/assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Depois de /assets/*: regra posterior vence no Pages.
+# Nome com hash (cache_bust_web_entrypoints.sh) fica immutable via /assets/*.
+# Sem hash: nunca immutable — zone plpcg.com já serviu OTF velho 11+ dias (HIT).
+/assets/fonts/MaterialIcons-Regular.otf
+  Cache-Control: no-cache

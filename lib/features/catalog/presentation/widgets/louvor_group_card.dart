@@ -8,9 +8,11 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
+import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
@@ -35,16 +37,15 @@ class LouvorGroupCard extends ConsumerStatefulWidget {
 }
 
 class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
+  /// PDF único (sem áudio/YouTube). YouTube sozinho sempre passa pelo sheet.
   Louvor? get _singleLouvor {
     if (widget.group.totalMaterials != 1) return null;
-    if (widget.group.audioTracks.isNotEmpty) return null;
     return widget.group.primaryLouvor;
   }
 
   AudioTrack? get _singleAudio {
     if (widget.group.totalMaterials != 1) return null;
     if (widget.group.audioTracks.length != 1) return null;
-    if (widget.group.totalPdfs > 0) return null;
     return widget.group.audioTracks.first;
   }
 
@@ -90,6 +91,13 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
   }
 
+  Future<void> _openYoutube(YoutubeMaterial material) async {
+    final opened = await openYoutubeMaterial(material);
+    if (!opened && mounted) {
+      showAppSnackbar(context, AppLocalizations.of(context)!.youtubeOpenError);
+    }
+  }
+
   Future<void> _handleTap() async {
     final singleAudio = _singleAudio;
     if (singleAudio != null) {
@@ -103,11 +111,13 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       return;
     }
 
+    // YouTube (mesmo único) sempre via sheet — ícone vermelho e abertura externa.
     await showLouvorMaterialSheet(
       context: context,
       group: widget.group,
       onMaterialSelected: _openLouvor,
       onAudioSelected: _openAudio,
+      onYoutubeSelected: _openYoutube,
       onMaterialAdd: _handleAddMaterialToCarousel,
       onAudioAdd: _handleAddAudioToPlaylist,
     );

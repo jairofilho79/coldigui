@@ -1103,6 +1103,18 @@ abstract class AppLocalizations {
   /// **'Áudio'**
   String get audioMaterialSection;
 
+  /// No description provided for @youtubeMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'YouTube'**
+  String get youtubeMaterialSection;
+
+  /// No description provided for @youtubeOpenError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível abrir o YouTube'**
+  String get youtubeOpenError;
+
   /// No description provided for @audioPlay.
   ///
   /// In pt, this message translates to:

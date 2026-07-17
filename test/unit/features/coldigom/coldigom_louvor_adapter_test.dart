@@ -54,5 +54,63 @@ void main() {
       expect(tracks.first.categoria, 'Áudio');
       expect(tracks.first.source, LouvorDataSource.coldigom);
     });
+
+    test('mapeia YouTube com URL válida e ignora url null/inválida', () {
+      const praise = PraiseDetailDto(
+        id: 'praise-1',
+        name: 'Leão',
+        number: '010',
+        rhythm: 'Fox',
+        author: 'CIAS',
+        materials: [
+          MaterialDto(
+            id: 'yt-ok',
+            type: 'youtube',
+            url: 'https://www.youtube.com/watch?v=1Pks43ceAac',
+            materialKindName: 'Áudio',
+          ),
+          MaterialDto(
+            id: 'yt-short',
+            type: 'youtube',
+            url: 'https://youtu.be/1Pks43ceAac',
+            materialKindName: 'Gestos CIAs',
+          ),
+          MaterialDto(
+            id: 'yt-null',
+            type: 'youtube',
+            url: null,
+            materialKindName: 'Áudio',
+          ),
+          MaterialDto(
+            id: 'yt-bad',
+            type: 'youtube',
+            url: 'https://example.com/v/1',
+            materialKindName: 'Áudio',
+          ),
+        ],
+      );
+
+      final items = ColdigomLouvorAdapter.toYoutubeMaterials(praise);
+
+      expect(items, hasLength(2));
+      expect(items.first.id, 'yt-ok');
+      expect(items.first.url, 'https://www.youtube.com/watch?v=1Pks43ceAac');
+      expect(items.first.categoria, 'Áudio');
+      expect(items.first.groupId, 'praise-1');
+      expect(items.first.author, 'CIAS');
+      expect(items.first.source, LouvorDataSource.coldigom);
+      expect(items.last.url, 'https://youtu.be/1Pks43ceAac');
+    });
+
+    test('fromJson lê campo url do material', () {
+      final dto = MaterialDto.fromJson({
+        'id': 'm1',
+        'type': 'youtube',
+        'r2_key': null,
+        'url': 'https://www.youtube.com/watch?v=1Pks43ceAac',
+        'material_kind_name': 'Áudio',
+      });
+      expect(dto.url, 'https://www.youtube.com/watch?v=1Pks43ceAac');
+    });
   });
 }

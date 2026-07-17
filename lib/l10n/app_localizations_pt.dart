@@ -627,6 +627,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioMaterialSection => 'Áudio';
 
   @override
+  String get youtubeMaterialSection => 'YouTube';
+
+  @override
+  String get youtubeOpenError => 'Não foi possível abrir o YouTube';
+
+  @override
   String get audioPlay => 'Reproduzir';
 
   @override

@@ -1,15 +1,19 @@
-/// Material de um louvor (PDF, áudio, etc.).
+/// Material de um louvor (PDF, áudio, YouTube, etc.).
 class MaterialDto {
   const MaterialDto({
     required this.id,
     required this.type,
     this.r2Key,
+    this.url,
     this.materialKindName,
   });
 
   final String id;
   final String type;
   final String? r2Key;
+
+  /// URL externa (ex.: YouTube). Pode ser null na maioria dos registros.
+  final String? url;
   final String? materialKindName;
 
   factory MaterialDto.fromJson(Map<String, dynamic> json) {
@@ -17,6 +21,7 @@ class MaterialDto {
       id: json['id'] as String,
       type: json['type'] as String,
       r2Key: json['r2_key'] as String?,
+      url: json['url'] as String?,
       materialKindName: json['material_kind_name'] as String?,
     );
   }

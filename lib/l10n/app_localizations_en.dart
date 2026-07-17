@@ -620,6 +620,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioMaterialSection => 'Audio';
 
   @override
+  String get youtubeMaterialSection => 'YouTube';
+
+  @override
+  String get youtubeOpenError => 'Could not open YouTube';
+
+  @override
   String get audioPlay => 'Play';
 
   @override

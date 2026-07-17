@@ -3,6 +3,7 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'louvor.dart';
+import 'youtube_material.dart';
 
 /// Folha da sublista — exatamente um PDF/material.
 class LouvorMaterialEntry {
@@ -38,6 +39,7 @@ class LouvorGroup {
     required this.nome,
     required this.sections,
     this.audioTracks = const [],
+    this.youtubeMaterials = const [],
   }) : numeroSortKey = _parseNumeroSortKey(numero);
 
   final String groupId;
@@ -48,6 +50,9 @@ class LouvorGroup {
   /// Faixas Coldigom associadas ao mesmo [groupId].
   final List<AudioTrack> audioTracks;
 
+  /// Links YouTube Coldigom associados ao mesmo [groupId].
+  final List<YoutubeMaterial> youtubeMaterials;
+
   /// Chave numérica para ordenação — parse feito uma vez no construtor.
   final int numeroSortKey;
 
@@ -55,8 +60,9 @@ class LouvorGroup {
   int get totalPdfs =>
       sections.fold(0, (sum, section) => sum + section.materials.length);
 
-  /// Total de entradas (PDFs + áudios) no grupo.
-  int get totalMaterials => totalPdfs + audioTracks.length;
+  /// Total de entradas (PDFs + áudios + YouTube) no grupo.
+  int get totalMaterials =>
+      totalPdfs + audioTracks.length + youtubeMaterials.length;
 
   /// Classificações distintas no grupo (uma seção por arranjo PDF).
   int get totalArrangements => sections.length;
@@ -74,10 +80,11 @@ class LouvorGroup {
     return null;
   }
 
-  /// Agrupa [louvores] e opcionalmente [audioTracks] pelo mesmo critério de groupId.
+  /// Agrupa [louvores] e opcionalmente áudios/YouTube pelo mesmo groupId.
   static List<LouvorGroup> fromLouvores(
     List<Louvor> louvores, {
     List<AudioTrack> audioTracks = const [],
+    List<YoutubeMaterial> youtubeMaterials = const [],
   }) {
     final byGroup = <String, List<Louvor>>{};
     for (final louvor in louvores) {
@@ -92,12 +99,24 @@ class LouvorGroup {
       audioByGroup.putIfAbsent(gid, () => []).add(track);
     }
 
-    final allGroupIds = <String>{...byGroup.keys, ...audioByGroup.keys};
+    final youtubeByGroup = <String, List<YoutubeMaterial>>{};
+    for (final item in youtubeMaterials) {
+      final gid = item.groupId.trim();
+      if (gid.isEmpty) continue;
+      youtubeByGroup.putIfAbsent(gid, () => []).add(item);
+    }
+
+    final allGroupIds = <String>{
+      ...byGroup.keys,
+      ...audioByGroup.keys,
+      ...youtubeByGroup.keys,
+    };
     final groups = allGroupIds.map((gid) {
       return _buildGroup(
         gid,
         byGroup[gid] ?? const [],
         audioByGroup[gid] ?? const [],
+        youtubeByGroup[gid] ?? const [],
       );
     }).toList();
 
@@ -109,6 +128,7 @@ class LouvorGroup {
     String groupId,
     List<Louvor> items,
     List<AudioTrack> tracks,
+    List<YoutubeMaterial> youtube,
   ) {
     final byClass = <String, List<Louvor>>{};
     for (final item in items) {
@@ -142,12 +162,21 @@ class LouvorGroup {
       );
     }
 
-    final nome = items.isNotEmpty
-        ? _canonicalNome(items)
-        : (tracks.isNotEmpty ? tracks.first.nome : '');
-    final numero = items.isNotEmpty
-        ? _canonicalNumero(items)
-        : (tracks.isNotEmpty ? tracks.first.numero.trim() : '');
+    final String nome;
+    final String numero;
+    if (items.isNotEmpty) {
+      nome = _canonicalNome(items);
+      numero = _canonicalNumero(items);
+    } else if (tracks.isNotEmpty) {
+      nome = tracks.first.nome;
+      numero = tracks.first.numero.trim();
+    } else if (youtube.isNotEmpty) {
+      nome = youtube.first.nome;
+      numero = youtube.first.numero.trim();
+    } else {
+      nome = '';
+      numero = '';
+    }
 
     return LouvorGroup(
       groupId: groupId,
@@ -155,6 +184,7 @@ class LouvorGroup {
       nome: nome,
       sections: sections,
       audioTracks: List<AudioTrack>.from(tracks),
+      youtubeMaterials: List<YoutubeMaterial>.from(youtube),
     );
   }
 

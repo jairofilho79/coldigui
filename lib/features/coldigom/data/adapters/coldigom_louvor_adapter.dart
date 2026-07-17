@@ -2,10 +2,12 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
+import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
 
 import '../models/praise_dto.dart';
 
-/// Converte louvores coldigom em entidades [Louvor] / [AudioTrack] do PLPCG.
+/// Converte louvores coldigom em entidades [Louvor] / [AudioTrack] / YouTube.
 abstract final class ColdigomLouvorAdapter {
   /// Um [Louvor] por material PDF com `r2_key` válido.
   static List<Louvor> toLouvores(PraiseDetailDto praise) {
@@ -59,6 +61,32 @@ abstract final class ColdigomLouvorAdapter {
     }
 
     return tracks;
+  }
+
+  /// Um [YoutubeMaterial] por `type: youtube` com URL HTTPS válida.
+  static List<YoutubeMaterial> toYoutubeMaterials(PraiseDetailDto praise) {
+    final items = <YoutubeMaterial>[];
+
+    for (final material in praise.materials) {
+      if (material.type.toLowerCase() != 'youtube') continue;
+      if (!YoutubeUrl.isValid(material.url)) continue;
+
+      items.add(
+        YoutubeMaterial(
+          id: material.id,
+          url: material.url!.trim(),
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'YouTube',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          source: LouvorDataSource.coldigom,
+        ),
+      );
+    }
+
+    return items;
   }
 
   static bool _isAudioType(String type) {

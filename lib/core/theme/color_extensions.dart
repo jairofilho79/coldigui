@@ -34,6 +34,9 @@ abstract final class AppColors {
   static const Color offlineReady = Color(0xFF28A745);
   static const Color offlineMissing = Color(0xFFDC3545);
 
+  /// Ícone YouTube no sheet de materiais.
+  static const Color youtube = Color(0xFFFF0000);
+
   /// Elevação padrão (§6.2).
   static const List<BoxShadow> shadowMd = [
     BoxShadow(color: Color(0x1A000000), blurRadius: 6, offset: Offset(0, 4)),

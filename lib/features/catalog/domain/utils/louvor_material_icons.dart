@@ -25,4 +25,7 @@ abstract final class LouvorMaterialIcons {
 
   /// Ícone dedicado a materiais de áudio (cards / sheet).
   static const IconData audio = Icons.library_music;
+
+  /// Ícone dedicado a materiais YouTube (sheet).
+  static const IconData youtube = Icons.smart_display;
 }
