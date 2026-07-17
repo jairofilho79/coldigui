@@ -333,6 +333,7 @@
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",
   "audioNext": "Próximo",
+  "audioOpenPlayer": "Abrir player",
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioFlagComingSoon": "Marcadores de áudio em breve",
   "audioPlaybackError": "Não foi possível reproduzir este áudio.",

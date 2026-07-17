@@ -333,6 +333,7 @@
   "audioPause": "Pause",
   "audioPrevious": "Previous",
   "audioNext": "Next",
+  "audioOpenPlayer": "Open player",
   "audioClosePlayer": "Close and return to search",
   "audioFlagComingSoon": "Audio flags coming soon",
   "audioPlaybackError": "Could not play this audio.",

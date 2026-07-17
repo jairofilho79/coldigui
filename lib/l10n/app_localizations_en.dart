@@ -632,6 +632,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioNext => 'Next';
 
   @override
+  String get audioOpenPlayer => 'Open player';
+
+  @override
   String get audioClosePlayer => 'Close and return to search';
 
   @override

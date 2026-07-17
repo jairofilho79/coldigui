@@ -11,6 +11,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Navega para `/audio` com os query params da faixa (sem alterar a sessão).
+///
+/// No-op se já estiver na rota de áudio.
+void pushAudioPlayerRoute(BuildContext context, AudioTrack track) {
+  if (!context.mounted) return;
+  final path = GoRouterState.of(context).uri.path;
+  if (path == RoutePaths.audio) return;
+
+  final params = <String, String>{
+    UrlSyncParams.audioId: track.audioId,
+    UrlSyncParams.titulo: track.nome,
+    if (track.numero.isNotEmpty) UrlSyncParams.subtitulo: track.numero,
+  };
+  final query = params.entries
+      .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+      .join('&');
+  unawaited(context.push('${RoutePaths.audio}?$query'));
+}
+
 /// Abre a rota `/audio` e inicia a faixa (ou fila) na sessão global.
 Future<void> openAudioInPlayer({
   required WidgetRef ref,
@@ -34,16 +53,7 @@ Future<void> openAudioInPlayer({
 
   // Navega antes do play: após pop do sheet o push imediato race e some
   // (PDF “sempre abre” porque resolve/download atrasa o push).
-  if (!context.mounted) return;
-  final params = <String, String>{
-    UrlSyncParams.audioId: track.audioId,
-    UrlSyncParams.titulo: track.nome,
-    if (track.numero.isNotEmpty) UrlSyncParams.subtitulo: track.numero,
-  };
-  final query = params.entries
-      .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-      .join('&');
-  unawaited(context.push('${RoutePaths.audio}?$query'));
+  pushAudioPlayerRoute(context, track);
 
   await ref
       .read(playlistsProvider.notifier)

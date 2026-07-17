@@ -6,6 +6,7 @@ import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_flag_placeholder.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
@@ -121,6 +122,13 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               pauseTooltip: l10n.audioPause,
               previousTooltip: l10n.audioPrevious,
               nextTooltip: l10n.audioNext,
+            ),
+          if (track != null)
+            IconButton(
+              style: carouselBarIconButtonStyle,
+              tooltip: l10n.audioOpenPlayer,
+              icon: const Icon(Icons.open_in_full),
+              onPressed: () => pushAudioPlayerRoute(context, track),
             ),
           IconButton(
             style: carouselBarIconButtonStyle,
