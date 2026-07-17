@@ -52,9 +52,9 @@ class AudioSeekBar extends StatelessWidget {
       height: compact ? 1.0 : null,
     );
 
-    // Compact: ~14px no vão abaixo do track (barra 60px); full: um pouco maior.
-    final flagSize = compact ? 14.0 : 16.0;
-    const flagVerticalMargin = 2.0;
+    // Compact: flags pequenas no vão abaixo do track; full: um pouco maior.
+    final flagSize = compact ? 11.0 : 16.0;
+    const flagVerticalMargin = 1.0;
 
     final slider = SliderTheme(
       data: SliderTheme.of(context).copyWith(

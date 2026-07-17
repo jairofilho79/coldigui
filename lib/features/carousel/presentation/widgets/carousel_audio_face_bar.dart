@@ -7,6 +7,7 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
+import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
@@ -34,9 +35,13 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     ref.watch(audioFlagSyncProvider);
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
+    final flags = track == null
+        ? const <SavedAudioFlag>[]
+        : (ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
+              const []);
 
-    // Título acima do seek; translate sobe o bloco para o eixo do seek
-    // coincidir com o centro dos IconButtons (Column centrada deixa o seek baixo).
+    // Sem flags: sobe o bloco para o seek alinhar aos IconButtons.
+    // Com flags: sem translate — o eixo do seek já fica no centro.
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
@@ -44,7 +49,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
         children: [
           Expanded(
             child: Transform.translate(
-              offset: const Offset(0, -6),
+              offset: Offset(0, flags.isEmpty ? -6 : 0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,12 +85,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                       duration: session.duration,
                       onLightBackground: true,
                       compact: true,
-                      flags:
-                          ref
-                              .watch(audioFlagsForTrackProvider(track.audioId))
-                              .asData
-                              ?.value ??
-                          const [],
+                      flags: flags,
                       onFlagTap: (flag) {
                         ref
                             .read(audioPlayerSessionProvider.notifier)
