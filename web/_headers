@@ -29,9 +29,6 @@
 /version.json
   Cache-Control: no-cache
 
-/assets/FontManifest.json
-  Cache-Control: no-cache
-
 /manifest.json
   Cache-Control: no-cache
 
@@ -59,8 +56,11 @@
 /assets/packages/wakelock_plus/assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Depois de /assets/*: regra posterior vence no Pages.
-# Nome com hash (cache_bust_web_entrypoints.sh) fica immutable via /assets/*.
+# Depois de /assets/* — no Pages a regra posterior vence merges de Cache-Control.
+/assets/FontManifest.json
+  Cache-Control: no-cache
+
+# Nome com hash + ?v= (cache_bust_web_entrypoints.sh) evita OTF stale na zone.
 # Sem hash: nunca immutable — zone plpcg.com já serviu OTF velho 11+ dias (HIT).
 /assets/fonts/MaterialIcons-Regular.otf
   Cache-Control: no-cache

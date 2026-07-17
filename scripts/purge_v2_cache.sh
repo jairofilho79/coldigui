@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 # Purga cache CDN de v2.plpcg.com (zone plpcg.com).
 #
-# Necessário após deploys quando /*.js tinha Cache-Control: immutable —
-# o domínio customizado servia bundle antigo enquanto previews *.pages.dev ficavam corretos.
+# Necessário quando a zone cacheou resposta errada (ex.: MaterialIcons.otf antigo
+# ou index.html no lugar do .otf) com Cache-Control: immutable.
+# Previews *.pages.dev não passam por essa zone — por isso só o custom domain quebra.
 #
 # Requer token com permissão "Cache Purge" na zone plpcg.com:
 #   export CLOUDFLARE_API_TOKEN="..."
 #   ./scripts/purge_v2_cache.sh
+#
+# Manual: Dashboard → plpcg.com → Caching → Configuration → Purge Cache
+#   → Custom Purge → Hosts: v2.plpcg.com
+#   (ou Purge Everything se Custom não bastar)
 set -euo pipefail
 
 ZONE_ID="${CLOUDFLARE_ZONE_ID:-955b720a65982ace96b20108feb35d4f}"
@@ -26,3 +31,4 @@ curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_ca
 
 echo
 echo "OK: cache purged for ${HOST}"
+echo "Hard-refresh no browser (Cmd+Shift+R). Se ícones ainda falharem, Purge Everything no dashboard."
