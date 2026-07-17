@@ -52,6 +52,10 @@ class AudioSeekBar extends StatelessWidget {
       height: compact ? 1.0 : null,
     );
 
+    // Compact: ~14px no vão abaixo do track (barra 60px); full: um pouco maior.
+    final flagSize = compact ? 14.0 : 16.0;
+    const flagVerticalMargin = 2.0;
+
     final slider = SliderTheme(
       data: SliderTheme.of(context).copyWith(
         activeTrackColor: AppColors.gold,
@@ -81,26 +85,40 @@ class AudioSeekBar extends StatelessWidget {
       ),
     );
 
-    final sliderWithFlags = _SeekWithFlags(
+    final flagRow = _FlagMarkersRow(
       totalMs: totalMs,
       flags: flags,
       onFlagTap: onFlagTap,
       flagColor: flagColor,
-      flagSize: compact ? 10.0 : 14.0,
+      flagSize: flagSize,
+      verticalMargin: flagVerticalMargin,
       horizontalInset: compact ? 0 : 8,
-      child: slider,
     );
 
     if (compact) {
       const gap = 8.0;
       return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(formatAudioFlagTime(position), style: timeStyle),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(formatAudioFlagTime(position), style: timeStyle),
+          ),
           const SizedBox(width: gap),
-          Expanded(child: SizedBox(height: 14, child: sliderWithFlags)),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 14, child: slider),
+                flagRow,
+              ],
+            ),
+          ),
           const SizedBox(width: gap),
-          Text(formatAudioFlagTime(duration), style: timeStyle),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(formatAudioFlagTime(duration), style: timeStyle),
+          ),
         ],
       );
     }
@@ -108,7 +126,8 @@ class AudioSeekBar extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        sliderWithFlags,
+        slider,
+        flagRow,
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
@@ -124,15 +143,16 @@ class AudioSeekBar extends StatelessWidget {
   }
 }
 
-class _SeekWithFlags extends StatelessWidget {
-  const _SeekWithFlags({
+/// Marcadores alinhados à track, na faixa abaixo do slider.
+class _FlagMarkersRow extends StatelessWidget {
+  const _FlagMarkersRow({
     required this.totalMs,
     required this.flags,
     required this.onFlagTap,
     required this.flagColor,
     required this.flagSize,
+    required this.verticalMargin,
     required this.horizontalInset,
-    required this.child,
   });
 
   final int totalMs;
@@ -140,41 +160,40 @@ class _SeekWithFlags extends StatelessWidget {
   final ValueChanged<SavedAudioFlag>? onFlagTap;
   final Color flagColor;
   final double flagSize;
+  final double verticalMargin;
   final double horizontalInset;
-  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    if (flags.isEmpty || totalMs <= 0) return child;
+    if (flags.isEmpty || totalMs <= 0) return const SizedBox.shrink();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final trackWidth = (constraints.maxWidth - horizontalInset * 2).clamp(
-          0.0,
-          double.infinity,
-        );
-        return Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            child,
-            for (final flag in flags)
-              Positioned(
-                left:
-                    horizontalInset +
-                    (flag.positionMs.clamp(0, totalMs) / totalMs) * trackWidth -
-                    flagSize / 2,
-                top: 0,
-                bottom: 0,
-                child: Tooltip(
-                  message: audioFlagTooltipLabel(flag.label, flag.position),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onFlagTap == null ? null : () => onFlagTap!(flag),
-                    child: SizedBox(
-                      width: flagSize + 4,
-                      child: Align(
-                        alignment: Alignment.center,
+    return SizedBox(
+      height: flagSize + verticalMargin * 2,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final trackWidth = (constraints.maxWidth - horizontalInset * 2).clamp(
+            0.0,
+            double.infinity,
+          );
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (final flag in flags)
+                Positioned(
+                  left:
+                      horizontalInset +
+                      (flag.positionMs.clamp(0, totalMs) / totalMs) *
+                          trackWidth -
+                      flagSize / 2,
+                  top: verticalMargin,
+                  child: Tooltip(
+                    message: audioFlagTooltipLabel(flag.label, flag.position),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onFlagTap == null ? null : () => onFlagTap!(flag),
+                      child: SizedBox(
+                        width: flagSize,
+                        height: flagSize,
                         child: Icon(
                           Icons.flag,
                           size: flagSize,
@@ -184,10 +203,10 @@ class _SeekWithFlags extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
