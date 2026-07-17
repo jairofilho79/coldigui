@@ -1139,11 +1139,59 @@ abstract class AppLocalizations {
   /// **'Encerrar e voltar à busca'**
   String get audioClosePlayer;
 
-  /// No description provided for @audioFlagComingSoon.
+  /// No description provided for @audioFlagAdd.
   ///
   /// In pt, this message translates to:
-  /// **'Marcadores de áudio em breve'**
-  String get audioFlagComingSoon;
+  /// **'Adicionar marcador'**
+  String get audioFlagAdd;
+
+  /// No description provided for @audioFlagPauseToAdd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pause para adicionar um marcador'**
+  String get audioFlagPauseToAdd;
+
+  /// No description provided for @audioFlagAddTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo marcador'**
+  String get audioFlagAddTitle;
+
+  /// No description provided for @audioFlagLabelHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rótulo opcional'**
+  String get audioFlagLabelHint;
+
+  /// No description provided for @audioFlagCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get audioFlagCancel;
+
+  /// No description provided for @audioFlagSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar'**
+  String get audioFlagSave;
+
+  /// No description provided for @audioFlagListTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcadores'**
+  String get audioFlagListTitle;
+
+  /// No description provided for @audioFlagListEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum marcador. Pause e toque no botão de bandeira.'**
+  String get audioFlagListEmpty;
+
+  /// No description provided for @audioFlagDelete.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover marcador'**
+  String get audioFlagDelete;
 
   /// No description provided for @audioPlaybackError.
   ///

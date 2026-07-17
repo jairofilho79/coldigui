@@ -638,7 +638,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioClosePlayer => 'Close and return to search';
 
   @override
-  String get audioFlagComingSoon => 'Audio flags coming soon';
+  String get audioFlagAdd => 'Add audio flag';
+
+  @override
+  String get audioFlagPauseToAdd => 'Pause to add an audio flag';
+
+  @override
+  String get audioFlagAddTitle => 'New audio flag';
+
+  @override
+  String get audioFlagLabelHint => 'Optional label';
+
+  @override
+  String get audioFlagCancel => 'Cancel';
+
+  @override
+  String get audioFlagSave => 'Save';
+
+  @override
+  String get audioFlagListTitle => 'Flags';
+
+  @override
+  String get audioFlagListEmpty =>
+      'No flags yet. Pause and tap the flag button.';
+
+  @override
+  String get audioFlagDelete => 'Remove flag';
 
   @override
   String get audioPlaybackError => 'Could not play this audio.';

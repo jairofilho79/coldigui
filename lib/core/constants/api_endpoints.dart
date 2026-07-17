@@ -32,6 +32,12 @@ abstract final class ApiEndpoints {
   static String playlist(String id) =>
       '/api/playlists/${Uri.encodeComponent(id)}';
 
+  /// Marcadores de áudio do usuário — Worker + D1 `user_audio_flags`.
+  static const String audioFlags = '/api/audio-flags';
+
+  static String audioFlag(String id) =>
+      '/api/audio-flags/${Uri.encodeComponent(id)}';
+
   static const String offlineManifest = '/offline-manifest.json';
   static const String uploadLouvor = '/api/upload-louvor';
   static const String assetsPdf = '/assets';

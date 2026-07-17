@@ -1,7 +1,10 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
+import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
+import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/audio_flag_placeholder.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
@@ -19,8 +22,12 @@ class AudioPlayerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    ref.watch(audioFlagSyncProvider);
     final session = ref.watch(audioPlayerSessionProvider);
     final track = session.currentTrack;
+    final audioId = track?.audioId ?? '';
+    final flagsAsync = ref.watch(audioFlagsForTrackProvider(audioId));
+    final flags = flagsAsync.asData?.value ?? const [];
     final title = track?.nome ?? queryParams['titulo'] ?? l10n.audioPlayerTitle;
     final subtitleParts = <String>[
       if ((track?.numero ?? queryParams['subtitulo'] ?? '').isNotEmpty)
@@ -28,6 +35,7 @@ class AudioPlayerScreen extends ConsumerWidget {
       if (track != null && track.categoria.isNotEmpty) track.categoria,
       if (track != null && track.author.isNotEmpty) track.author,
     ];
+    final canAddFlag = track != null && !session.playing;
 
     return ColoredBox(
       color: AppColors.pdfArea,
@@ -81,11 +89,33 @@ class AudioPlayerScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              AudioFlagPlaceholder(tooltip: l10n.audioFlagComingSoon),
-              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.center,
+                child: IconButton(
+                  tooltip: canAddFlag
+                      ? l10n.audioFlagAdd
+                      : l10n.audioFlagPauseToAdd,
+                  onPressed: !canAddFlag
+                      ? null
+                      : () => _addFlag(context, ref, audioId, session.position),
+                  icon: Icon(
+                    Icons.flag,
+                    color: canAddFlag
+                        ? AppColors.textLight
+                        : AppColors.textLight.withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               AudioSeekBar(
                 position: session.position,
                 duration: session.duration,
+                flags: flags,
+                onFlagTap: (flag) {
+                  ref
+                      .read(audioPlayerSessionProvider.notifier)
+                      .seek(flag.position);
+                },
                 onSeek: (value) {
                   ref.read(audioPlayerSessionProvider.notifier).seek(value);
                 },
@@ -113,6 +143,34 @@ class AudioPlayerScreen extends ConsumerWidget {
                 previousTooltip: l10n.audioPrevious,
                 nextTooltip: l10n.audioNext,
               ),
+              if (track != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  l10n.audioFlagListTitle,
+                  style: AppTypography.label.copyWith(
+                    color: AppColors.textLight.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 160),
+                  child: SingleChildScrollView(
+                    child: AudioFlagList(
+                      flags: flags,
+                      onSeek: (flag) {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .seek(flag.position);
+                      },
+                      onDelete: (flag) {
+                        ref
+                            .read(audioFlagActionsProvider)
+                            .remove(audioId: audioId, flagId: flag.flagId);
+                      },
+                    ),
+                  ),
+                ),
+              ],
               if (session.errorMessage != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -128,6 +186,23 @@ class AudioPlayerScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _addFlag(
+    BuildContext context,
+    WidgetRef ref,
+    String audioId,
+    Duration position,
+  ) async {
+    final label = await showAddAudioFlagDialog(context);
+    if (label == null || !context.mounted) return;
+    await ref
+        .read(audioFlagActionsProvider)
+        .add(
+          audioId: audioId,
+          positionMs: position.inMilliseconds,
+          label: label,
+        );
   }
 }
 

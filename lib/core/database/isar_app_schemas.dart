@@ -1,5 +1,6 @@
 import 'package:isar_plus/isar_plus.dart';
 
+import 'collections/audio_flag.dart';
 import 'collections/carousel_entry.dart';
 import 'collections/louvor_cache.dart';
 import 'collections/offline_pdf_index.dart';
@@ -14,4 +15,5 @@ final List<IsarGeneratedSchema> kAppIsarSchemas = [
   CarouselEntrySchema,
   PlaylistSchema,
   OfflinePdfIndexSchema,
+  AudioFlagSchema,
 ];

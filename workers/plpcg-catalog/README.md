@@ -16,6 +16,9 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 | `GET` | `/api/playlists/:id` | Bearer | Uma playlist |
 | `PUT` | `/api/playlists/:id` | Bearer | Upsert (last-write-wins por `updatedAt`) |
 | `DELETE` | `/api/playlists/:id` | Bearer | Soft delete |
+| `GET` | `/api/audio-flags` | Bearer | Lista marcadores de áudio do usuário |
+| `PUT` | `/api/audio-flags/:id` | Bearer | Upsert (last-write-wins por `updatedAt`) |
+| `DELETE` | `/api/audio-flags/:id` | Bearer | Soft delete |
 
 Setup OAuth: [docs/GOOGLE_OAUTH_SETUP.md](../../docs/GOOGLE_OAUTH_SETUP.md).
 Spec sync: [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](../../docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md).

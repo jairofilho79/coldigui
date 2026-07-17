@@ -17,5 +17,5 @@
 ## Fora de escopo (v1)
 
 - Download offline de áudio.
-- Persistência / edição de audio flags (apenas placeholder visual).
+- ~~Persistência / edição de audio flags~~ — implementado (Isar + `/api/audio-flags`).
 - Catálogo de áudio PLPCG (apenas Coldigom).

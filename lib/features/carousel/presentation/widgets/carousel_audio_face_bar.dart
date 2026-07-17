@@ -7,7 +7,8 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/audio_flag_placeholder.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
@@ -30,6 +31,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    ref.watch(audioFlagSyncProvider);
     final session = ref.watch(audioPlayerSessionProvider);
     final track = _resolveTrack(ref, session.currentTrack);
 
@@ -73,29 +75,27 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     ],
                   ),
                   if (track != null)
-                    Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        AudioSeekBar(
-                          position: session.position,
-                          duration: session.duration,
-                          onLightBackground: true,
-                          compact: true,
-                          onSeek: (value) {
-                            ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .seek(value);
-                          },
-                        ),
-                        IgnorePointer(
-                          child: AudioFlagPlaceholder(
-                            tooltip: l10n.audioFlagComingSoon,
-                            onLightBackground: true,
-                            compact: true,
-                          ),
-                        ),
-                      ],
+                    AudioSeekBar(
+                      position: session.position,
+                      duration: session.duration,
+                      onLightBackground: true,
+                      compact: true,
+                      flags:
+                          ref
+                              .watch(audioFlagsForTrackProvider(track.audioId))
+                              .asData
+                              ?.value ??
+                          const [],
+                      onFlagTap: (flag) {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .seek(flag.position);
+                      },
+                      onSeek: (value) {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .seek(value);
+                      },
                     ),
                 ],
               ),

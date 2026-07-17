@@ -645,7 +645,32 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioClosePlayer => 'Encerrar e voltar à busca';
 
   @override
-  String get audioFlagComingSoon => 'Marcadores de áudio em breve';
+  String get audioFlagAdd => 'Adicionar marcador';
+
+  @override
+  String get audioFlagPauseToAdd => 'Pause para adicionar um marcador';
+
+  @override
+  String get audioFlagAddTitle => 'Novo marcador';
+
+  @override
+  String get audioFlagLabelHint => 'Rótulo opcional';
+
+  @override
+  String get audioFlagCancel => 'Cancelar';
+
+  @override
+  String get audioFlagSave => 'Salvar';
+
+  @override
+  String get audioFlagListTitle => 'Marcadores';
+
+  @override
+  String get audioFlagListEmpty =>
+      'Nenhum marcador. Pause e toque no botão de bandeira.';
+
+  @override
+  String get audioFlagDelete => 'Remover marcador';
 
   @override
   String get audioPlaybackError => 'Não foi possível reproduzir este áudio.';

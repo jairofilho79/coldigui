@@ -3,6 +3,12 @@ import { setUsername } from './auth/username';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
 import { withAuth } from './auth/with_auth';
 import {
+  audioFlagIdFromPath,
+  listAudioFlags,
+  softDeleteAudioFlag,
+  upsertAudioFlag,
+} from './audio_flags/handlers';
+import {
   getPlaylist,
   listPlaylists,
   playlistIdFromPath,
@@ -230,6 +236,7 @@ async function handleAuthSession(
 
 function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/playlists')) return 'playlists';
+  if (pathname.startsWith('/api/audio-flags')) return 'playlists';
   if (pathname.startsWith('/api/social')) return 'social';
   if (pathname.startsWith('/api/auth/')) return 'auth';
   return 'catalog';
@@ -299,6 +306,39 @@ async function handlePlaylists(
   return jsonResponse({ error: 'method not allowed' }, { status: 405 });
 }
 
+async function handleAudioFlags(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (pathname === '/api/audio-flags') {
+    if (request.method === 'GET') {
+      return withAuth(request, env, (_req, e, claims) =>
+        listAudioFlags(e.DB, claims),
+      );
+    }
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+
+  const id = audioFlagIdFromPath(pathname);
+  if (id === null) {
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  }
+
+  if (request.method === 'PUT') {
+    return withAuth(request, env, (req, e, claims) =>
+      upsertAudioFlag(e.DB, claims, id, req),
+    );
+  }
+  if (request.method === 'DELETE') {
+    return withAuth(request, env, (_req, e, claims) =>
+      softDeleteAudioFlag(e.DB, claims, id),
+    );
+  }
+
+  return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -345,6 +385,14 @@ export default {
     if (url.pathname.startsWith('/api/playlists')) {
       return withCors(
         await handlePlaylists(request, env, url.pathname),
+        request,
+        'playlists',
+      );
+    }
+
+    if (url.pathname.startsWith('/api/audio-flags')) {
+      return withCors(
+        await handleAudioFlags(request, env, url.pathname),
         request,
         'playlists',
       );

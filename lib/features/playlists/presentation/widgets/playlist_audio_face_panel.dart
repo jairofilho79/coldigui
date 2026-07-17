@@ -3,7 +3,8 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/audio_flag_placeholder.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
@@ -15,7 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Face de áudio da playlist: metadados, seeker, controles e flag placeholder.
+/// Face de áudio da playlist: metadados, seeker, controles e marcadores.
 class PlaylistAudioFacePanel extends ConsumerWidget {
   const PlaylistAudioFacePanel({required this.playlist, super.key});
 
@@ -24,6 +25,7 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    ref.watch(audioFlagSyncProvider);
     final cache = ref.watch(coldigomAudioTracksCacheProvider);
     final tracks = [
       for (final id in playlist.audioIds)
@@ -89,14 +91,24 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 8),
-            AudioFlagPlaceholder(
-              tooltip: l10n.audioFlagComingSoon,
-              onLightBackground: true,
-            ),
             AudioSeekBar(
               position: currentInPlaylist ? session.position : Duration.zero,
               duration: currentInPlaylist ? session.duration : Duration.zero,
               onLightBackground: true,
+              flags: active == null
+                  ? const []
+                  : (ref
+                            .watch(audioFlagsForTrackProvider(active.audioId))
+                            .asData
+                            ?.value ??
+                        const []),
+              onFlagTap: currentInPlaylist
+                  ? (flag) {
+                      ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .seek(flag.position);
+                    }
+                  : null,
               onSeek: (value) {
                 if (!currentInPlaylist) return;
                 ref.read(audioPlayerSessionProvider.notifier).seek(value);
