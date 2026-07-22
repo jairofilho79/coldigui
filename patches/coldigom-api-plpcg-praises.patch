@@ -1,0 +1,418 @@
+diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
+index 9df7fbb..6ec8c56 100644
+--- a/api/src/__tests__/index.test.ts
++++ b/api/src/__tests__/index.test.ts
+@@ -549,6 +549,143 @@ describe('API Routes', () => {
+     });
+   });
+ 
++  describe('GET /api/plpcg/praises', () => {
++    it('returns slim materials without lyrics text and synthetic lyrics material', async () => {
++      const mockDB = {
++        prepare: vi.fn((query: string) => ({
++          bind: vi.fn((..._args: unknown[]) => ({
++            all: vi.fn().mockImplementation(async () => {
++              if (query.includes('COALESCE(t.label')) {
++                return { results: mockMaterialKindLabels };
++              }
++              if (query.includes('FROM praise_materials')) {
++                return { results: mockMaterials };
++              }
++              if (query.includes('FROM praises p') && query.includes('LIMIT')) {
++                return { results: [mockPraises[0]] };
++              }
++              return { results: [] };
++            }),
++            first: vi.fn().mockResolvedValue({ total: 1 }),
++          })),
++          all: vi.fn().mockResolvedValue({ results: [] }),
++          first: vi.fn().mockResolvedValue({ total: 1 }),
++        })),
++      };
++      const mockR2 = createMockR2();
++
++      const res = await app.request('/api/plpcg/praises?q=Grande&limit=20', {}, {
++        DB: mockDB,
++        ASSETS: mockR2,
++      });
++
++      expect(res.status).toBe(200);
++      const json = await res.json();
++      expect(json.pagination).toEqual({
++        page: 1,
++        limit: 20,
++        total: 1,
++        totalPages: 1,
++      });
++      expect(json.data).toHaveLength(1);
++      expect(json.data[0].lyrics).toBeUndefined();
++      expect(json.data[0].name).toBe('Grande Deus');
++      expect(json.data[0].materials).toEqual([
++        {
++          id: 'mat1',
++          type: 'pdf',
++          r2_key: mockMaterials[0].r2_key,
++          url: null,
++          material_kind_name: 'Partitura',
++        },
++        {
++          id: 'mat2',
++          type: 'mp3',
++          r2_key: mockMaterials[1].r2_key,
++          url: null,
++          material_kind_name: 'Áudio',
++        },
++        {
++          id: `lyrics:${mockPraises[0].id}`,
++          type: 'lyrics',
++          r2_key: null,
++          url: null,
++          material_kind_name: 'Letra',
++        },
++      ]);
++    });
++
++    it('omits synthetic lyrics material when lyrics are empty', async () => {
++      const praiseNoLyrics = { ...mockPraises[0], lyrics: '   ' };
++      const mockDB = {
++        prepare: vi.fn((query: string) => ({
++          bind: vi.fn((..._args: unknown[]) => ({
++            all: vi.fn().mockImplementation(async () => {
++              if (query.includes('COALESCE(t.label')) {
++                return { results: mockMaterialKindLabels };
++              }
++              if (query.includes('FROM praise_materials')) {
++                return { results: [mockMaterials[0]] };
++              }
++              if (query.includes('FROM praises p') && query.includes('LIMIT')) {
++                return { results: [praiseNoLyrics] };
++              }
++              return { results: [] };
++            }),
++            first: vi.fn().mockResolvedValue({ total: 1 }),
++          })),
++        })),
++      };
++
++      const res = await app.request('/api/plpcg/praises', {}, {
++        DB: mockDB,
++        ASSETS: createMockR2(),
++      });
++
++      expect(res.status).toBe(200);
++      const json = await res.json();
++      expect(json.data[0].materials).toHaveLength(1);
++      expect(json.data[0].materials.every((m: { type: string }) => m.type !== 'lyrics')).toBe(true);
++    });
++
++    it('returns empty page without materials query results', async () => {
++      const mockDB = createMockD1({
++        all: { results: [] },
++        first: { total: 0 },
++      });
++
++      const res = await app.request('/api/plpcg/praises', {}, {
++        DB: mockDB,
++        ASSETS: createMockR2(),
++      });
++
++      expect(res.status).toBe(200);
++      const json = await res.json();
++      expect(json.data).toEqual([]);
++      expect(json.pagination.total).toBe(0);
++    });
++
++    it('returns 500 on database error', async () => {
++      const mockDB = {
++        prepare: vi.fn().mockReturnValue({
++          bind: vi.fn().mockReturnValue({
++            all: vi.fn().mockRejectedValue(new Error('DB Error')),
++            first: vi.fn().mockRejectedValue(new Error('DB Error')),
++          }),
++        }),
++      };
++
++      const res = await app.request('/api/plpcg/praises', {}, {
++        DB: mockDB,
++        ASSETS: createMockR2(),
++      });
++
++      expect(res.status).toBe(500);
++      const json = await res.json();
++      expect(json.error).toBe('Failed to fetch praises');
++    });
++  });
++
+   describe('GET /api/praises/filters', () => {
+     it('should return filter options', async () => {
+       const mockDB = {
+diff --git a/api/src/index.ts b/api/src/index.ts
+index d2141ef..892ec1a 100644
+--- a/api/src/index.ts
++++ b/api/src/index.ts
+@@ -475,26 +475,99 @@ function buildWhereClause(params: {
+   return { clause, bindings };
+ }
+ 
+-// GET /api/praises - List all praises with optional search
+-app.get('/api/praises', async (c) => {
++type PraisesListQuery = {
++  search: string;
++  page: number;
++  limit: number;
++  offset: number;
++  tags?: string[];
++  rhythm?: string[];
++  tonality?: string[];
++  category?: string[];
++  materialKinds?: string[];
++  numberMin?: number;
++  numberMax?: number;
++  sort: SortField;
++  order: 'ASC' | 'DESC';
++};
++
++function parseCsvQuery(value: string | undefined): string[] | undefined {
++  if (!value) return undefined;
++  const items = value.split(',').filter(Boolean);
++  return items.length > 0 ? items : undefined;
++}
++
++function parsePraisesListQuery(c: { req: { query: (k: string) => string | undefined } }): PraisesListQuery {
+   const search = c.req.query('q') || '';
+   const page = parseInt(c.req.query('page') || '1', 10);
+   const limit = parseInt(c.req.query('limit') || '20', 10);
+-  const offset = (page - 1) * limit;
+-
+-  const tags = c.req.query('tags') ? c.req.query('tags')!.split(',').filter(Boolean) : undefined;
+-  const rhythm = c.req.query('rhythm') ? c.req.query('rhythm')!.split(',').filter(Boolean) : undefined;
+-  const tonality = c.req.query('tonality') ? c.req.query('tonality')!.split(',').filter(Boolean) : undefined;
+-  const category = c.req.query('category') ? c.req.query('category')!.split(',').filter(Boolean) : undefined;
+-  const materialKinds = c.req.query('materialKinds')
+-    ? c.req.query('materialKinds')!.split(',').filter(Boolean)
+-    : undefined;
+-  const numberMin = c.req.query('numberMin') ? parseInt(c.req.query('numberMin')!, 10) : undefined;
+-  const numberMax = c.req.query('numberMax') ? parseInt(c.req.query('numberMax')!, 10) : undefined;
+-
+   const sortParam = c.req.query('sort') as SortField | undefined;
+   const sort = VALID_SORT_FIELDS.includes(sortParam!) ? sortParam! : 'number';
+   const order = c.req.query('order')?.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
++  const numberMinRaw = c.req.query('numberMin');
++  const numberMaxRaw = c.req.query('numberMax');
++
++  return {
++    search,
++    page,
++    limit,
++    offset: (page - 1) * limit,
++    tags: parseCsvQuery(c.req.query('tags')),
++    rhythm: parseCsvQuery(c.req.query('rhythm')),
++    tonality: parseCsvQuery(c.req.query('tonality')),
++    category: parseCsvQuery(c.req.query('category')),
++    materialKinds: parseCsvQuery(c.req.query('materialKinds')),
++    numberMin: numberMinRaw ? parseInt(numberMinRaw, 10) : undefined,
++    numberMax: numberMaxRaw ? parseInt(numberMaxRaw, 10) : undefined,
++    sort,
++    order,
++  };
++}
++
++type SlimMaterialRow = {
++  id: string;
++  praise_id: string;
++  type: string;
++  r2_key: string | null;
++  url: string | null;
++  material_kind: string;
++};
++
++type PlpcgSlimMaterial = {
++  id: string;
++  type: string;
++  r2_key: string | null;
++  url: string | null;
++  material_kind_name: string;
++};
++
++function buildLyricsMaterial(praiseId: string): PlpcgSlimMaterial {
++  return {
++    id: `lyrics:${praiseId}`,
++    type: 'lyrics',
++    r2_key: null,
++    url: null,
++    material_kind_name: 'Letra',
++  };
++}
++
++// GET /api/praises - List all praises with optional search
++app.get('/api/praises', async (c) => {
++  const {
++    search,
++    page,
++    limit,
++    offset,
++    tags,
++    rhythm,
++    tonality,
++    category,
++    materialKinds,
++    numberMin,
++    numberMax,
++    sort,
++    order,
++  } = parsePraisesListQuery(c);
+ 
+   let useFtsAttempt = Boolean(search);
+ 
+@@ -577,6 +650,151 @@ app.get('/api/praises', async (c) => {
+   return c.json({ error: 'Failed to fetch praises' }, 500);
+ });
+ 
++/**
++ * GET /api/plpcg/praises — listagem leve para o app PLPCG.
++ *
++ * Mesmos filtros/busca de GET /api/praises (inclui match por letra no servidor),
++ * mas a resposta embute materials slim e omite o texto da letra.
++ * Quando há letra, inclui material sintético `{ type: 'lyrics', id: 'lyrics:<praiseId>' }`.
++ */
++app.get('/api/plpcg/praises', async (c) => {
++  const {
++    search,
++    page,
++    limit,
++    offset,
++    tags,
++    rhythm,
++    tonality,
++    category,
++    materialKinds,
++    numberMin,
++    numberMax,
++    sort,
++    order,
++  } = parsePraisesListQuery(c);
++
++  let useFtsAttempt = Boolean(search);
++
++  for (let attempt = 0; attempt < 2; attempt++) {
++    try {
++      const tagGroups =
++        tags && tags.length > 0 ? await resolveTagFilterGroups(c.env.DB, tags) : undefined;
++
++      const { clause: whereClause, bindings: whereBindings } = buildWhereClause({
++        search: search || undefined,
++        useFts: useFtsAttempt,
++        tagGroups,
++        rhythm,
++        tonality,
++        category,
++        materialKinds,
++        numberMin,
++        numberMax,
++      });
++
++      const orderClause = buildOrderClause(sort, order);
++      const bindings: (string | number)[] = [...whereBindings];
++
++      // Sem join de tags — o PLPCG só precisa dos metadados do louvor + materials.
++      const query = `
++        SELECT
++          p.id, p.name, p.number, p.author, p.rhythm, p.tonality, p.category, p.lyrics, p.group_id
++        FROM praises p
++        ${whereClause}
++        ${orderClause}
++        LIMIT ? OFFSET ?
++      `;
++      bindings.push(limit, offset);
++
++      const result = await c.env.DB.prepare(query).bind(...bindings).all();
++      const rows = (result.results ?? []) as PraiseResult[];
++
++      let countQuery: string;
++      let countBindings: (string | number)[] = [...whereBindings];
++
++      if (whereClause) {
++        countQuery = `SELECT COUNT(*) as total FROM praises p ${whereClause}`;
++      } else {
++        countQuery = `SELECT COUNT(*) as total FROM praises`;
++        countBindings = [];
++      }
++
++      const countResult = await c.env.DB.prepare(countQuery).bind(...countBindings).first();
++      const total = (countResult?.total as number) || 0;
++
++      const materialsByPraise = new Map<string, PlpcgSlimMaterial[]>();
++      if (rows.length > 0) {
++        const ids = rows.map((r) => r.id);
++        const placeholders = ids.map(() => '?').join(',');
++        const materialsQuery = `
++          SELECT pm.id, pm.praise_id, pm.type, pm.r2_key, pm.url, pm.material_kind
++          FROM praise_materials pm
++          WHERE pm.praise_id IN (${placeholders})
++        `;
++        const materialsResult = await c.env.DB.prepare(materialsQuery).bind(...ids).all();
++        const materialKindLabels = await loadMaterialKindLabels(c.env.DB);
++
++        for (const row of (materialsResult.results ?? []) as SlimMaterialRow[]) {
++          const slim: PlpcgSlimMaterial = {
++            id: row.id,
++            type: row.type,
++            r2_key: row.r2_key ?? null,
++            url: row.url ?? null,
++            material_kind_name: labelFor(materialKindLabels, row.material_kind),
++          };
++          const list = materialsByPraise.get(row.praise_id) ?? [];
++          list.push(slim);
++          materialsByPraise.set(row.praise_id, list);
++        }
++      }
++
++      const data = rows.map((row) => {
++        const materials = [...(materialsByPraise.get(row.id) ?? [])];
++        if (typeof row.lyrics === 'string' && row.lyrics.trim().length > 0) {
++          materials.push(buildLyricsMaterial(row.id));
++        }
++        return {
++          id: row.id,
++          name: row.name,
++          number: row.number,
++          author: row.author,
++          rhythm: row.rhythm,
++          tonality: row.tonality,
++          category: row.category,
++          group_id: row.group_id,
++          materials,
++        };
++      });
++
++      return c.json({
++        data,
++        pagination: {
++          page,
++          limit,
++          total,
++          totalPages: Math.ceil(total / limit),
++        },
++      });
++    } catch (error) {
++      if (useFtsAttempt && search) {
++        useFtsAttempt = false;
++        console.warn(
++          JSON.stringify({
++            msg: 'api.plpcg.praises.fts_fallback',
++            error: error instanceof Error ? error.message : String(error),
++          })
++        );
++        continue;
++      }
++      console.error('Error fetching PLPCG praises:', error);
++      return c.json({ error: 'Failed to fetch praises' }, 500);
++    }
++  }
++
++  return c.json({ error: 'Failed to fetch praises' }, 500);
++});
++
+ // GET /api/praises/filters - Get filter options
+ app.get('/api/praises/filters', async (c) => {
+   try {
