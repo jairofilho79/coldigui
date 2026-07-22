@@ -147,7 +147,7 @@ index 9df7fbb..6ec8c56 100644
      it('should return filter options', async () => {
        const mockDB = {
 diff --git a/api/src/index.ts b/api/src/index.ts
-index d2141ef..892ec1a 100644
+index d2141ef..23de458 100644
 --- a/api/src/index.ts
 +++ b/api/src/index.ts
 @@ -475,26 +475,99 @@ function buildWhereClause(params: {
@@ -326,7 +326,7 @@ index d2141ef..892ec1a 100644
 +      bindings.push(limit, offset);
 +
 +      const result = await c.env.DB.prepare(query).bind(...bindings).all();
-+      const rows = (result.results ?? []) as PraiseResult[];
++      const rows = (result.results ?? []) as unknown as PraiseResult[];
 +
 +      let countQuery: string;
 +      let countBindings: (string | number)[] = [...whereBindings];
