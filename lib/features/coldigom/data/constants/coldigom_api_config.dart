@@ -2,5 +2,5 @@
 abstract final class ColdigomApiConfig {
   /// URL base do Worker coldigom em produção.
   static const String baseUrl =
-      'https://coldigom-api.coletaneadigitalicm.workers.dev';
+      'https://coldigom-api.jairofilho79.workers.dev';
 }

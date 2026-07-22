@@ -6,7 +6,7 @@ A new Flutter project.
 
 A busca na Home consulta o manifest PLPCG (chips **vermelhos**) e a API coldigom em produção (chips **pretos**, borda dourada). Itens coldigom podem ser adicionados ao carousel, abertos no leitor e usados em playlists/folheto.
 
-API coldigom: `https://coldigom-api.coletaneadigitalicm.workers.dev`
+API coldigom: `https://coldigom-api.jairofilho79.workers.dev`
 
 ## Getting Started
 
