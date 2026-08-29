@@ -278,6 +278,11 @@ class _NavIcon extends StatelessWidget {
       ),
       Icons.groups => Icon(Icons.groups, color: color, size: size),
       Icons.person => Icon(Icons.person, color: color, size: size),
+      Icons.playlist_play => Icon(
+        Icons.playlist_play,
+        color: color,
+        size: size,
+      ),
       final icon? => Icon(icon, color: color, size: size),
       null => Icon(Icons.circle, color: color, size: size),
     };

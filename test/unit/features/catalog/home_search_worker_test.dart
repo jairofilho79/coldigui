@@ -29,4 +29,35 @@ void main() {
     expect(result, hasLength(1));
     expect(result.first.nome, 'Aleluia');
   });
+
+  test('runHomeSearchPipeline preserva ranking: título exato no topo', () {
+    final catalog = [
+      Louvor.fromManifest(
+        nome: 'Senhor Deus',
+        numero: '001',
+        categoria: 'Partitura',
+        classificacao: 'ColAdultos',
+        pdf: '001.pdf',
+        pdfId: 'partial',
+      ),
+      Louvor.fromManifest(
+        nome: 'A Ti Senhor',
+        numero: '500',
+        categoria: 'Partitura',
+        classificacao: 'ColAdultos',
+        pdf: '500.pdf',
+        pdfId: 'exact',
+      ),
+    ];
+    final input = HomeSearchPipelineInput(
+      catalog: catalog,
+      query: 'A Ti Senhor',
+      selectedMaterials: CatalogMaterials.defaultSelected,
+      selectedArranjos: {},
+    );
+
+    final result = runHomeSearchPipeline(input);
+
+    expect(result.first.nome, 'A Ti Senhor');
+  });
 }

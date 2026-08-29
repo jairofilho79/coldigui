@@ -2,6 +2,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
+import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../adapters/coldigom_louvor_adapter.dart';
 import '../datasources/coldigom_remote_datasource.dart';
@@ -42,12 +43,15 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      coldigomMetaByGroupId: fetched.metaByGroupId,
+      sortByNumber: false,
     );
     return ColdigomSearchResult(
       groups: groups,
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      praiseMetaByGroupId: fetched.metaByGroupId,
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
     );
@@ -57,6 +61,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
   Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
     final safePage = query.page < 1 ? 1 : query.page;
     final safeLimit = query.limit < 1 ? 10 : query.limit;
+    final hasQuery = query.q != null && query.q!.trim().isNotEmpty;
 
     final pageDto = await _remote.listPlpcgPraises(
       ColdigomPraisesQuery(
@@ -92,6 +97,9 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      coldigomMetaByGroupId: fetched.metaByGroupId,
+      // Com q a API já ranqueia; sem q ordenamos por número localmente.
+      sortByNumber: !hasQuery,
     );
 
     return ColdigomBrowseResult(
@@ -99,6 +107,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      praiseMetaByGroupId: fetched.metaByGroupId,
       page: pageDto.pagination.page,
       limit: pageDto.pagination.limit,
       totalItems: pageDto.pagination.total,
@@ -110,20 +119,24 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     List<Louvor> louvores,
     List<AudioTrack> audioTracks,
     List<YoutubeMaterial> youtubeMaterials,
+    Map<String, ColdigomPraiseMetadata> metaByGroupId,
   })
   _mapDetails(List<PraiseDetailDto> details) {
     final louvores = <Louvor>[];
     final audioTracks = <AudioTrack>[];
     final youtubeMaterials = <YoutubeMaterial>[];
+    final metaByGroupId = <String, ColdigomPraiseMetadata>{};
     for (final detail in details) {
       louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
       audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
       youtubeMaterials.addAll(ColdigomLouvorAdapter.toYoutubeMaterials(detail));
+      metaByGroupId[detail.id] = ColdigomLouvorAdapter.toMetadata(detail);
     }
     return (
       louvores: louvores,
       audioTracks: audioTracks,
       youtubeMaterials: youtubeMaterials,
+      metaByGroupId: metaByGroupId,
     );
   }
 }

@@ -5,30 +5,29 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
-/// Barra compartilhada: chip único, setas condicionais, olho/lista e ações extras.
+/// Barra compartilhada: chip único, setas, abrir, olho, layers e ações extras.
 ///
 /// Embutida em [CarouselBarShell] no shell ([CarouselChips]) e na barra 2 do
 /// leitor PDF ([PdfReaderScreen]).
 ///
-/// Ícones (setas, olho, lista) usam [carouselBarIconButtonStyle] — vinho PLPCG
-/// ([AppColors.title]), inclusive no estado desabilitado durante [loading].
+/// Ícones usam [carouselBarIconButtonStyle] — vinho PLPCG ([AppColors.title]).
 ///
 /// [onChipTap] — no shell, abre o louvor focado em `/leitor`; omitido no
 /// leitor (chip já representa o PDF em exibição).
 ///
-/// [trailingActions] — tipicamente [CarouselBarTrailingActions] (salvar
-/// playlist, folheto, limpar) no shell e no leitor.
+/// [trailingActions] — [CarouselBarTrailingActions] (overflow + limpar).
 class CarouselNavigatorBar extends StatelessWidget {
   const CarouselNavigatorBar({
     required this.item,
     required this.canGoPrevious,
     required this.canGoNext,
     required this.onOpenSelection,
-    required this.onGoToPlaylists,
     this.chipVariant = CarouselLouvorChipVariant.modal,
     this.onPrevious,
     this.onNext,
     this.onChipTap,
+    this.onOpenPlayer,
+    this.swapMaterial,
     this.loading = false,
     this.trailingActions = const [],
     super.key,
@@ -44,13 +43,16 @@ class CarouselNavigatorBar extends StatelessWidget {
   /// Propagado para [CarouselLouvorChip.onTap] quando não [loading].
   final VoidCallback? onChipTap;
 
+  /// Abre `/leitor` com o item focado. No-op típico quando já está no leitor.
+  final VoidCallback? onOpenPlayer;
+
+  /// Botão layers (trocar material). Omitido se o louvor não tem alternativa.
+  final Widget? swapMaterial;
+
   /// Abre modal com louvores da seleção atual.
   final VoidCallback onOpenSelection;
 
-  /// Navega para a aba Listas com a playlist ativa em foco.
-  final VoidCallback onGoToPlaylists;
-
-  /// Desabilita setas/chip; olho e lista permanecem habilitados.
+  /// Desabilita setas/chip/abrir; olho permanece habilitado.
   final bool loading;
   final List<Widget> trailingActions;
 
@@ -81,18 +83,20 @@ class CarouselNavigatorBar extends StatelessWidget {
             onPressed: loading ? null : onNext,
             icon: const Icon(Icons.chevron_right),
           ),
+        if (onOpenPlayer != null)
+          IconButton(
+            style: carouselBarIconButtonStyle,
+            tooltip: l10n?.playlistOpenInReader ?? 'Abrir no leitor',
+            onPressed: loading ? null : onOpenPlayer,
+            icon: const Icon(Icons.open_in_full),
+          ),
         IconButton(
           style: carouselBarIconButtonStyle,
           tooltip: l10n?.carouselOpenList ?? 'Ver seleção',
           onPressed: onOpenSelection,
           icon: const Icon(Icons.visibility_outlined),
         ),
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n?.playlistViewLists ?? 'Ver listas',
-          onPressed: onGoToPlaylists,
-          icon: const Icon(Icons.view_list),
-        ),
+        ?swapMaterial,
         ...trailingActions,
       ],
     );

@@ -31,10 +31,9 @@ List<LouvorGroup> runHomeSearchPipeline(HomeSearchPipelineInput input) {
     selectedMaterials: input.selectedMaterials,
     selectedArranjos: input.selectedArranjos,
   );
-  return group(filtered);
+  return group(filtered, sortByNumber: false);
 }
 
 /// Executa [runHomeSearchPipeline] — padrão via `compute`, injetável em testes.
-typedef HomeSearchPipelineExecutor = Future<List<LouvorGroup>> Function(
-  HomeSearchPipelineInput input,
-);
+typedef HomeSearchPipelineExecutor =
+    Future<List<LouvorGroup>> Function(HomeSearchPipelineInput input);

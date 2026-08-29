@@ -623,6 +623,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youtubeMaterialSection => 'YouTube';
 
   @override
+  String get pdfMaterialSection => 'PDF';
+
+  @override
+  String get coldigomMetaTonality => 'Key';
+
+  @override
+  String get coldigomMetaAuthor => 'Author';
+
+  @override
+  String get coldigomMetaRhythm => 'Rhythm';
+
+  @override
+  String get coldigomMetaCategory => 'Category';
+
+  @override
+  String get coldigomMetaTags => 'Tags';
+
+  @override
   String get youtubeOpenError => 'Could not open YouTube';
 
   @override
@@ -677,6 +695,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get audioWebBackgroundNotice =>
       'On the web, background playback and system controls depend on the browser — this is not an app bug.';
+
+  @override
+  String get audioWebPlatformHintTooltip => 'About web playback';
+
+  @override
+  String get audioWebIosPwaNotice =>
+      'On iPhone with the app installed on the Home Screen, audio may pause when you lock the screen or switch apps. Keep the app open to listen.';
 
   @override
   String get playlistLoadConfirmTitle => 'Replace selection?';
@@ -854,19 +879,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Saved playlists cannot be cleared from the bar. Use the playlist menu.';
-
-  @override
-  String get playlistOpenLouvorChoiceTitle => 'How to add to the playlist?';
-
-  @override
-  String get playlistOpenLouvorChoiceMessage =>
-      'This song is not in the current playlist. How would you like to continue?\n\nWhen creating a new playlist, the current one will not be lost — it will remain in Unsaved playlists.';
-
-  @override
-  String get playlistOpenLouvorChoiceAddToCurrent => 'Add to current playlist';
-
-  @override
-  String get playlistOpenLouvorChoiceCreateNew => 'Create new playlist';
 
   @override
   String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {

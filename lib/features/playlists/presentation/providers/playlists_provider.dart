@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -13,6 +14,7 @@ import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../domain/entities/playlist_media_face.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
@@ -25,6 +27,8 @@ import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_provider.dart';
 import 'active_playlist_sync.dart' as active_sync;
+import 'playlist_media_face_provider.dart';
+import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
 
@@ -57,6 +61,8 @@ class PlaylistViewItem {
 /// playlist ativa antes de compartilhar; [findLouvorByPdfId] e
 /// [loadIntoCarousel] com instrumentação [playlistOpenDebugLog*] em debug.
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
+  var _sessionHydrated = false;
+
   @override
   List<PlaylistViewItem> build() {
     ref.listen(louvoresManifestProvider, (_, _) {
@@ -103,6 +109,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
           ),
         )
         .toList(growable: false);
+
+    if (!_sessionHydrated) {
+      _sessionHydrated = true;
+      unawaited(hydratePlaylistSession(ref));
+    }
   }
 
   /// Recarrega listas do Isar (ex.: após sync cloud).
@@ -164,17 +175,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return result.playlistId;
   }
 
-  /// `true` quando há lista ativa com louvores e [pdfId] ainda não está nela.
-  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async {
-    final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) return false;
-
-    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active == null || active.pdfIds.isEmpty) return false;
-
-    return !active.pdfIds.contains(pdfId);
-  }
-
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {
     var activeId = ref.read(activePlaylistIdProvider);
@@ -189,7 +189,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return true;
     }
 
-    if (active.pdfIds.contains(pdfId)) return false;
+    if (active.pdfIds.contains(pdfId)) {
+      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
+      return false;
+    }
 
     final added = await ref.read(carouselLouvoresProvider.notifier).add(pdfId);
     if (added) {
@@ -372,8 +375,18 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await _reload();
   }
 
+  /// Para o áudio e volta a face PDF — as duas vistas da seleção somem juntas.
+  Future<void> _releaseMediaSelectionViews() async {
+    await ref.read(audioPlayerSessionProvider.notifier).close();
+    await ref
+        .read(playlistMediaFaceProvider.notifier)
+        .setFace(PlaylistMediaFace.pdf);
+    ref.read(carouselFocusedIndexProvider.notifier).clearFocus();
+  }
+
   /// Desanexa a lista ativa e limpa o carousel, sem apagar a playlist.
   Future<void> startNewEmptySelection() async {
+    await _releaseMediaSelectionViews();
     ref.read(activePlaylistIdProvider.notifier).clear();
     await ref.read(carouselLouvoresProvider.notifier).clear();
     await _reload();
@@ -381,6 +394,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   /// Apaga a lista ativa não salva e limpa o carousel.
   Future<void> deleteActiveUnsavedPlaylist() async {
+    await _releaseMediaSelectionViews();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) {
       await ref.read(carouselLouvoresProvider.notifier).clear();
@@ -646,6 +660,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       audioIds: next,
     );
     await _reload();
+    if (active.salva) _syncCloudIfAuthed();
     return true;
   }
 

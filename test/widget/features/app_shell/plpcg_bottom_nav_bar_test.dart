@@ -3,14 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _destinations = [
-  PlpcgBottomNavDestination(icon: Icons.event, label: 'Eventos'),
   PlpcgBottomNavDestination(icon: Icons.library_books, label: 'Biblioteca'),
   PlpcgBottomNavDestination(
     svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
     label: 'Pesquisar',
   ),
-  PlpcgBottomNavDestination(icon: Icons.groups, label: 'Social'),
-  PlpcgBottomNavDestination(icon: Icons.person, label: 'Perfil'),
+  PlpcgBottomNavDestination(icon: Icons.playlist_play, label: 'Listas'),
 ];
 
 void main() {
@@ -26,7 +24,7 @@ void main() {
           ),
           child: Scaffold(
             bottomNavigationBar: PlpcgBottomNavBar(
-              selectedIndex: 2,
+              selectedIndex: 1,
               onDestinationSelected: (_) {},
               destinations: _destinations,
             ),
@@ -65,6 +63,6 @@ void main() {
     await tester.tap(find.text('Pesquisar'));
     await tester.pumpAndSettle();
 
-    expect(tappedIndex, 2);
+    expect(tappedIndex, 1);
   });
 }

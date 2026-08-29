@@ -630,6 +630,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get youtubeMaterialSection => 'YouTube';
 
   @override
+  String get pdfMaterialSection => 'PDF';
+
+  @override
+  String get coldigomMetaTonality => 'Tom';
+
+  @override
+  String get coldigomMetaAuthor => 'Autor';
+
+  @override
+  String get coldigomMetaRhythm => 'Ritmo';
+
+  @override
+  String get coldigomMetaCategory => 'Categoria';
+
+  @override
+  String get coldigomMetaTags => 'Tags';
+
+  @override
   String get youtubeOpenError => 'Não foi possível abrir o YouTube';
 
   @override
@@ -684,6 +702,13 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get audioWebBackgroundNotice =>
       'Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.';
+
+  @override
+  String get audioWebPlatformHintTooltip => 'Sobre reprodução na Web';
+
+  @override
+  String get audioWebIosPwaNotice =>
+      'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.';
 
   @override
   String get playlistLoadConfirmTitle => 'Substituir seleção?';
@@ -864,19 +889,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get playlistClearSavedBlocked =>
       'Listas salvas não podem ser limpas pela barra. Use o menu da lista.';
-
-  @override
-  String get playlistOpenLouvorChoiceTitle => 'Como adicionar à lista?';
-
-  @override
-  String get playlistOpenLouvorChoiceMessage =>
-      'Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.';
-
-  @override
-  String get playlistOpenLouvorChoiceAddToCurrent => 'Adicionar à lista atual';
-
-  @override
-  String get playlistOpenLouvorChoiceCreateNew => 'Criar nova lista';
 
   @override
   String louvorGroupMetadataSummary(int entryCount, int arrangementCount) {

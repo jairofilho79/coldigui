@@ -4,9 +4,8 @@ import '../utils/louvor_numero_normalizer.dart';
 
 /// UC-01 — Buscar louvor por número ou texto na Home.
 ///
-/// Filtro in-memory sobre o manifest: query vazia → `[]`; número exato
-/// prioritário ([LouvorNumeroNormalizer] — `3` ≡ `003`); texto tolerante via
-/// [LouvorSearchTokens.matchesText].
+/// Ranking (alinhado à API coldigom): número exato → título exato →
+/// título parcial. Query vazia → `[]`.
 class SearchLouvorByNumberOrText {
   const SearchLouvorByNumberOrText();
 
@@ -15,27 +14,47 @@ class SearchLouvorByNumberOrText {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    final exactMatches = catalog
+    final exactNumber = catalog
         .where((l) => _matchesNumero(l.numero, trimmed))
         .toList(growable: false);
-    final exactIds = exactMatches.map((l) => l.pdfId).toSet();
+    final seen = exactNumber.map((l) => l.pdfId).toSet();
 
     final queryTokens = LouvorSearchTokens.tokenize(trimmed);
-    if (queryTokens.isEmpty) return exactMatches;
+    if (queryTokens.isEmpty) return exactNumber;
 
-    final textMatches = <Louvor>[];
+    final queryNorm = LouvorSearchTokens.normalize(trimmed);
+    final queryCompact = LouvorSearchTokens.compact(trimmed);
+    final exactTitle = <Louvor>[];
+    final partialTitle = <Louvor>[];
+
     for (final louvor in catalog) {
-      if (exactIds.contains(louvor.pdfId)) continue;
+      if (seen.contains(louvor.pdfId)) continue;
+      if (_matchesExactTitle(louvor, queryNorm, queryCompact)) {
+        exactTitle.add(louvor);
+        seen.add(louvor.pdfId);
+        continue;
+      }
       final matches = LouvorSearchTokens.matchesText(
         contentTokens: louvor.searchContentTokens,
         compactContent: louvor.searchCompactContent,
         query: trimmed,
         queryTokens: queryTokens,
       );
-      if (matches) textMatches.add(louvor);
+      if (matches) partialTitle.add(louvor);
     }
 
-    return [...exactMatches, ...textMatches];
+    return [...exactNumber, ...exactTitle, ...partialTitle];
+  }
+
+  bool _matchesExactTitle(
+    Louvor louvor,
+    String queryNorm,
+    String queryCompact,
+  ) {
+    if (louvor.searchTitleNorm == queryNorm) return true;
+    // pontuação/hífen: "A Ti, Senhor" ≡ "A Ti Senhor"
+    return queryCompact.length >= 3 &&
+        louvor.searchCompactContent == queryCompact;
   }
 
   bool _matchesNumero(String louvorNumero, String query) {

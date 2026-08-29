@@ -6,15 +6,14 @@ Louvor _louvor({
   required String nome,
   required String numero,
   required String pdfId,
-}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: '$numero.pdf',
-      pdfId: pdfId,
-    );
+}) => Louvor.fromManifest(
+  nome: nome,
+  numero: numero,
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  pdf: '$numero.pdf',
+  pdfId: pdfId,
+);
 
 void main() {
   late SearchLouvorByNumberOrText search;
@@ -93,5 +92,17 @@ void main() {
       expect(result, hasLength(1), reason: 'query: $query');
       expect(result.first.nome, 'Buscar-me-eis');
     }
+  });
+
+  test('título exato vem antes de match parcial no título', () {
+    final extended = [
+      ...catalog,
+      _louvor(nome: 'Aleluia', numero: '500', pdfId: 'exact'),
+    ];
+
+    final result = search(extended, 'Aleluia');
+
+    expect(result.first.nome, 'Aleluia');
+    expect(result.map((l) => l.nome), contains('Aleluia ao Senhor'));
   });
 }

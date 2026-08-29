@@ -1,3 +1,4 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -10,6 +11,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _LoggedOutAuth extends AuthNotifier {
   @override
@@ -50,9 +52,17 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
 }
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   Widget buildSubject(List<PlaylistViewItem> items) {
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedOutAuth.new),
         playlistsProvider.overrideWith(() => _FakePlaylistsNotifier(items)),
       ],
@@ -105,6 +115,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
           carouselLouvoresProvider.overrideWith(

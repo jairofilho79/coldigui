@@ -12,7 +12,6 @@ import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dar
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -44,15 +43,6 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (kIsWeb) ...[
-            Text(
-              l10n.audioWebBackgroundNotice,
-              style: AppTypography.label.copyWith(
-                color: AppColors.title.withValues(alpha: 0.75),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
           if (tracks.isEmpty)
             Text(
               l10n.playlistAudioEmpty,

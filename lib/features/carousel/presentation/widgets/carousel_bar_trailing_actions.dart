@@ -22,18 +22,9 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Largura mínima da tela (px) para layout expandido da barra do carousel.
-///
-/// Em larguras menores, [CarouselBarTrailingActions] colapsa salvar/compartilhar/
-/// limpar em [PopupMenuButton] (`more_vert`). [CarouselNavigatorBar]
-/// mantém setas e botão lista sempre visíveis.
-const kCarouselBarExpandedBreakpoint = 600.0;
+enum _CarouselOverflowAction { savePlaylist, share }
 
-enum _CarouselOverflowAction { savePlaylist, share, clear }
-
-/// Ações à direita da barra de carousel: salvar, compartilhar e limpar.
-///
-/// **Compartilhar** (UC-07/UC-08): bottom sheet com link, folheto ou ambos.
+/// Ações à direita da barra: toggle de face, overflow (salvar/compartilhar) e limpar.
 class CarouselBarTrailingActions extends ConsumerStatefulWidget {
   const CarouselBarTrailingActions({super.key});
 
@@ -57,88 +48,12 @@ class _CarouselBarTrailingActionsState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isCompact =
-        MediaQuery.sizeOf(context).width < kCarouselBarExpandedBreakpoint;
     final face = ref.watch(playlistMediaFaceProvider);
     final isAudioFace = face == PlaylistMediaFace.audio;
-
-    if (isCompact) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            style: carouselBarIconButtonStyle,
-            tooltip: isAudioFace
-                ? l10n.playlistFacePdf
-                : l10n.playlistFaceAudio,
-            icon: Icon(
-              isAudioFace
-                  ? Icons.picture_as_pdf_outlined
-                  : LouvorMaterialIcons.audio,
-            ),
-            onPressed: () =>
-                ref.read(playlistMediaFaceProvider.notifier).toggle(),
-          ),
-          PopupMenuButton<_CarouselOverflowAction>(
-            tooltip: l10n.carouselOverflowMenu,
-            iconColor: AppColors.title,
-            icon: _sharing
-                ? SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.title,
-                    ),
-                  )
-                : const Icon(Icons.more_vert),
-            onSelected: (action) =>
-                _handleOverflowAction(context, ref, l10n, action),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: _CarouselOverflowAction.savePlaylist,
-                child: Text(l10n.carouselSavePlaylist),
-              ),
-              PopupMenuItem(
-                value: _CarouselOverflowAction.share,
-                child: Text(l10n.carouselSharePlaylist),
-              ),
-              PopupMenuItem(
-                value: _CarouselOverflowAction.clear,
-                child: Text(l10n.carouselClear),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n.carouselSavePlaylist,
-          icon: const Icon(Icons.save_outlined),
-          onPressed: () => _savePlaylist(context, ref, l10n),
-        ),
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n.carouselSharePlaylist,
-          icon: _sharing
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.title,
-                  ),
-                )
-              : const Icon(Icons.share_outlined),
-          onPressed: _sharing
-              ? null
-              : () => _openShareSheet(context, ref, l10n),
-        ),
         IconButton(
           style: carouselBarIconButtonStyle,
           tooltip: isAudioFace ? l10n.playlistFacePdf : l10n.playlistFaceAudio,
@@ -149,6 +64,32 @@ class _CarouselBarTrailingActionsState
           ),
           onPressed: () =>
               ref.read(playlistMediaFaceProvider.notifier).toggle(),
+        ),
+        PopupMenuButton<_CarouselOverflowAction>(
+          tooltip: l10n.carouselOverflowMenu,
+          iconColor: AppColors.title,
+          icon: _sharing
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.title,
+                  ),
+                )
+              : const Icon(Icons.more_vert),
+          onSelected: (action) =>
+              _handleOverflowAction(context, ref, l10n, action),
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: _CarouselOverflowAction.savePlaylist,
+              child: Text(l10n.carouselSavePlaylist),
+            ),
+            PopupMenuItem(
+              value: _CarouselOverflowAction.share,
+              child: Text(l10n.carouselSharePlaylist),
+            ),
+          ],
         ),
         IconButton(
           style: carouselBarIconButtonStyle,
@@ -171,8 +112,6 @@ class _CarouselBarTrailingActionsState
         _savePlaylist(context, ref, l10n);
       case _CarouselOverflowAction.share:
         _openShareSheet(context, ref, l10n);
-      case _CarouselOverflowAction.clear:
-        _confirmClear(context, ref);
     }
   }
 

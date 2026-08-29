@@ -18,7 +18,8 @@ class MaterialDto {
 
   factory MaterialDto.fromJson(Map<String, dynamic> json) {
     return MaterialDto(
-      id: json['id'] as String,
+      // API PLPCG envia id null no placeholder de letra.
+      id: json['id'] as String? ?? '',
       type: json['type'] as String,
       r2Key: json['r2_key'] as String?,
       url: json['url'] as String?,
@@ -60,19 +61,20 @@ class PraiseSummaryDto {
       tonality: json['tonality'] as String? ?? '',
       category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
-      tagIds: _splitCsv(json['tag_ids']),
-      tagNames: _splitCsv(json['tag_names']),
+      tagIds: splitColdigomCsv(json['tag_ids']),
+      tagNames: splitColdigomCsv(json['tag_names']),
     );
   }
+}
 
-  static List<String> _splitCsv(Object? raw) {
-    if (raw is! String || raw.trim().isEmpty) return const [];
-    return raw
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
-  }
+/// CSV de facets Coldigom (`tag_ids`, `tag_names`).
+List<String> splitColdigomCsv(Object? raw) {
+  if (raw is! String || raw.trim().isEmpty) return const [];
+  return raw
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList(growable: false);
 }
 
 /// Detalhe completo de louvor — `GET /api/praises/:id`.
@@ -86,6 +88,7 @@ class PraiseDetailDto {
     this.tonality = '',
     this.category = '',
     this.author = '',
+    this.tagNames = const [],
   });
 
   final String id;
@@ -95,6 +98,7 @@ class PraiseDetailDto {
   final String tonality;
   final String category;
   final String author;
+  final List<String> tagNames;
   final List<MaterialDto> materials;
 
   factory PraiseDetailDto.fromJson(Map<String, dynamic> json) {
@@ -107,6 +111,7 @@ class PraiseDetailDto {
       tonality: json['tonality'] as String? ?? '',
       category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
+      tagNames: splitColdigomCsv(json['tag_names']),
       materials: [
         for (final item in materialsJson)
           MaterialDto.fromJson(item as Map<String, dynamic>),

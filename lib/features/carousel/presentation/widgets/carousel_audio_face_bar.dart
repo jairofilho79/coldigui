@@ -1,7 +1,3 @@
-import 'dart:async';
-
-import 'package:coldigui/core/routing/route_paths.dart';
-import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -12,13 +8,16 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +38,13 @@ class CarouselAudioFaceBar extends ConsumerWidget {
         ? const <SavedAudioFlag>[]
         : (ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
               const []);
+    final pdfItems = ref.watch(carouselLouvoresProvider);
+    final focusedPdfId = pdfItems.isEmpty
+        ? null
+        : pdfItems[ref
+                  .watch(carouselFocusedIndexProvider)
+                  .clamp(0, pdfItems.length - 1)]
+              .pdfId;
 
     // Sem flags: sobe o bloco para o seek alinhar aos IconButtons.
     // Com flags: sem translate — o eixo do seek já fica no centro.
@@ -130,24 +136,26 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               icon: const Icon(Icons.open_in_full),
               onPressed: () => pushAudioPlayerRoute(context, track),
             ),
-          IconButton(
-            style: carouselBarIconButtonStyle,
-            tooltip: l10n.audioClosePlayer,
-            icon: const Icon(Icons.close),
-            onPressed: () {
-              unawaited(ref.read(audioPlayerSessionProvider.notifier).close());
-              unawaited(
-                ref
-                    .read(playlistMediaFaceProvider.notifier)
-                    .setFace(PlaylistMediaFace.pdf),
-              );
-              // Mesmo destino do voltar do AppBar em /audio e /leitor.
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                goToShellDestination(context, RoutePaths.home);
-              }
-            },
+          if (pdfItems.isNotEmpty)
+            IconButton(
+              style: carouselBarIconButtonStyle,
+              tooltip: l10n.carouselOpenList,
+              icon: const Icon(Icons.visibility_outlined),
+              onPressed: () => showCarouselSelectionSheet(
+                context,
+                onItemTap: (item) => openCarouselPdfInReader(
+                  ref: ref,
+                  context: context,
+                  pdfId: item.pdfId,
+                  navigate: (location) async {
+                    context.push(location);
+                  },
+                ),
+              ),
+            ),
+          CarouselSwapMaterialButton(
+            pdfId: focusedPdfId,
+            audioId: track?.audioId,
           ),
           const CarouselBarTrailingActions(),
         ],
@@ -181,8 +189,8 @@ class CarouselAudioFaceBar extends ConsumerWidget {
 
     final cache = ref.watch(coldigomAudioTracksCacheProvider);
     for (final id in audioIds) {
-      final track = cache[id];
-      if (track != null) return track;
+      final found = cache[id];
+      if (found != null) return found;
     }
     return null;
   }

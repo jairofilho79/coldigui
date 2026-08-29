@@ -1,8 +1,10 @@
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'louvor.dart';
+import 'louvor_data_source.dart';
 import 'youtube_material.dart';
 
 /// Folha da sublista — exatamente um PDF/material.
@@ -40,6 +42,7 @@ class LouvorGroup {
     required this.sections,
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
+    this.coldigomMeta,
   }) : numeroSortKey = _parseNumeroSortKey(numero);
 
   final String groupId;
@@ -53,8 +56,44 @@ class LouvorGroup {
   /// Links YouTube Coldigom associados ao mesmo [groupId].
   final List<YoutubeMaterial> youtubeMaterials;
 
+  /// Metadados Coldigom (tom, autor, ritmo…) — null no PLPCG.
+  final ColdigomPraiseMetadata? coldigomMeta;
+
   /// Chave numérica para ordenação — parse feito uma vez no construtor.
   final int numeroSortKey;
+
+  /// True se o grupo vem do acervo Coldigom.
+  bool get isColdigom {
+    if (coldigomMeta != null) return true;
+    final primary = primaryLouvor;
+    if (primary?.source == LouvorDataSource.coldigom) return true;
+    if (audioTracks.any((t) => t.source == LouvorDataSource.coldigom)) {
+      return true;
+    }
+    return youtubeMaterials.any((y) => y.source == LouvorDataSource.coldigom);
+  }
+
+  /// Cópia com [coldigomMeta] (ex.: attach a partir do cache).
+  LouvorGroup withColdigomMeta(ColdigomPraiseMetadata? meta) {
+    return LouvorGroup(
+      groupId: groupId,
+      numero: numero,
+      nome: nome,
+      sections: sections,
+      audioTracks: audioTracks,
+      youtubeMaterials: youtubeMaterials,
+      coldigomMeta: meta,
+    );
+  }
+
+  /// PDFs de todas as seções, ordenados por categoria (sem labels de ritmo).
+  List<LouvorMaterialEntry> get flatPdfMaterials {
+    final entries = [for (final section in sections) ...section.materials];
+    entries.sort(
+      (a, b) => LouvorCategoryOrder.compare(a.categoria, b.categoria),
+    );
+    return entries;
+  }
 
   /// Total de PDFs no grupo.
   int get totalPdfs =>
@@ -81,10 +120,15 @@ class LouvorGroup {
   }
 
   /// Agrupa [louvores] e opcionalmente áudios/YouTube pelo mesmo groupId.
+  ///
+  /// [sortByNumber] `true` (padrão) — browse/biblioteca por número.
+  /// `false` — preserva ordem de primeira aparição (busca ranqueada).
   static List<LouvorGroup> fromLouvores(
     List<Louvor> louvores, {
     List<AudioTrack> audioTracks = const [],
     List<YoutubeMaterial> youtubeMaterials = const [],
+    Map<String, ColdigomPraiseMetadata>? coldigomMetaByGroupId,
+    bool sortByNumber = true,
   }) {
     final byGroup = <String, List<Louvor>>{};
     for (final louvor in louvores) {
@@ -117,10 +161,11 @@ class LouvorGroup {
         byGroup[gid] ?? const [],
         audioByGroup[gid] ?? const [],
         youtubeByGroup[gid] ?? const [],
+        coldigomMetaByGroupId?[gid],
       );
     }).toList();
 
-    groups.sort(_compareGroups);
+    if (sortByNumber) groups.sort(_compareGroups);
     return groups;
   }
 
@@ -128,8 +173,9 @@ class LouvorGroup {
     String groupId,
     List<Louvor> items,
     List<AudioTrack> tracks,
-    List<YoutubeMaterial> youtube,
-  ) {
+    List<YoutubeMaterial> youtube, [
+    ColdigomPraiseMetadata? coldigomMeta,
+  ]) {
     final byClass = <String, List<Louvor>>{};
     for (final item in items) {
       byClass.putIfAbsent(item.classificacao, () => []).add(item);
@@ -185,6 +231,7 @@ class LouvorGroup {
       sections: sections,
       audioTracks: List<AudioTrack>.from(tracks),
       youtubeMaterials: List<YoutubeMaterial>.from(youtube),
+      coldigomMeta: coldigomMeta,
     );
   }
 

@@ -5,13 +5,9 @@ import 'light_beam.dart';
 
 /// Título PLPCG com feixe de luz dourado sob as letras (light-beam §6.2).
 ///
-/// Usado em [PlpcgPrimaryAppBar] ([ShellScaffold]) e na barra 1 do leitor
-/// ([PdfReaderScreen]).
+/// Usado em [PlpcgPrimaryAppBar] ([ShellScaffold]) e no folheto impresso.
 class PlpcgAppBarTitle extends StatelessWidget {
-  const PlpcgAppBarTitle({
-    this.showLightBeam = true,
-    super.key,
-  });
+  const PlpcgAppBarTitle({this.showLightBeam = true, super.key});
 
   /// Exibe o feixe dourado sob a marca (AppBar). Desligado no folheto impresso.
   final bool showLightBeam;

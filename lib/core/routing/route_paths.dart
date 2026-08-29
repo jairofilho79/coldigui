@@ -14,21 +14,21 @@ abstract final class RoutePaths {
   /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
   static const String audio = '/audio';
 
-  /// Eventos — placeholder (índice 0 em [PlpcgBottomNavBar]).
+  /// Eventos — oculto neste build (deep link → home).
   static const String events = '/eventos';
 
-  /// Social — placeholder (índice 3 em [PlpcgBottomNavBar]).
+  /// Social — oculto neste build (deep link → home).
   static const String social = '/social';
 
-  /// Perfil — hub Sobre/Listas/Offline (índice 4 em [PlpcgBottomNavBar]).
+  /// Perfil — oculto neste build (deep link → home).
   static const String profile = '/perfil';
 
-  /// Offline UC-09/10 ([OfflineSettingsScreen]) — branch Perfil.
+  /// Offline UC-09/10 — oculto neste build (deep link → home).
   static const String offline = '/offline';
 
-  /// Playlists UC-06/07 ([PlaylistsScreen]) — branch Perfil.
+  /// Playlists UC-06/07 ([PlaylistsScreen]) — aba Listas (índice 2).
   static const String playlists = '/listas';
 
-  /// Sobre UC-14 ([AboutScreen]) — branch Perfil.
+  /// Sobre UC-14 — oculto neste build (deep link → home).
   static const String about = '/sobre';
 }

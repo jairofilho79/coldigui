@@ -1,4 +1,5 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
@@ -169,6 +170,51 @@ void main() {
         findLouvorGroupByPdfIdWithColdigom([
           plpcgPartitura,
         ], plpcgPartitura.pdfId),
+        isNull,
+      );
+    });
+  });
+
+  group('findSwapMaterialGroup', () {
+    final sharedGroupId = LouvorGroupId.compute(
+      numero: '001',
+      nome: 'Grande Deus',
+    );
+    final plpcgPartitura = Louvor.fromManifest(
+      nome: 'Grande Deus',
+      numero: '001',
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+      pdf: '001.pdf',
+      pdfId: 'plpcg-part',
+      groupId: sharedGroupId,
+    );
+    final track = AudioTrack(
+      audioId: 'a1',
+      r2Key: 'k',
+      nome: 'Grande Deus',
+      numero: '001',
+      groupId: sharedGroupId,
+      categoria: 'Áudio',
+      classificacao: 'ColAdultos',
+    );
+
+    test('inclui áudio mesmo com um só PDF', () {
+      final group = findSwapMaterialGroup(
+        pdfId: plpcgPartitura.pdfId,
+        plpcgCatalog: [plpcgPartitura],
+        audioCache: {track.audioId: track},
+      );
+      expect(group, isNotNull);
+      expect(group!.totalMaterials, 2);
+    });
+
+    test('retorna null sem alternativa', () {
+      expect(
+        findSwapMaterialGroup(
+          pdfId: plpcgPartitura.pdfId,
+          plpcgCatalog: [plpcgPartitura],
+        ),
         isNull,
       );
     });

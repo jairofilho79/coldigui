@@ -15,11 +15,11 @@ const _testItem = CarouselItem(
 );
 
 void main() {
-  testWidgets('exibe chip, setas condicionais, olho e lista', (tester) async {
+  testWidgets('exibe chip, setas condicionais e olho', (tester) async {
     var previousTapped = false;
     var nextTapped = false;
     var selectionTapped = false;
-    var playlistsTapped = false;
+    var openPlayerTapped = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -34,7 +34,7 @@ void main() {
             onPrevious: () => previousTapped = true,
             onNext: () => nextTapped = true,
             onOpenSelection: () => selectionTapped = true,
-            onGoToPlaylists: () => playlistsTapped = true,
+            onOpenPlayer: () => openPlayerTapped = true,
           ),
         ),
       ),
@@ -44,17 +44,18 @@ void main() {
     expect(find.byTooltip('Louvor anterior'), findsOneWidget);
     expect(find.byTooltip('Próximo louvor'), findsOneWidget);
     expect(find.byTooltip('Ver seleção'), findsOneWidget);
-    expect(find.byTooltip('Ver listas'), findsOneWidget);
+    expect(find.byTooltip('Ver listas'), findsNothing);
+    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
 
     await tester.tap(find.byTooltip('Louvor anterior'));
     await tester.tap(find.byTooltip('Próximo louvor'));
     await tester.tap(find.byTooltip('Ver seleção'));
-    await tester.tap(find.byTooltip('Ver listas'));
+    await tester.tap(find.byIcon(Icons.open_in_full));
 
     expect(previousTapped, isTrue);
     expect(nextTapped, isTrue);
     expect(selectionTapped, isTrue);
-    expect(playlistsTapped, isTrue);
+    expect(openPlayerTapped, isTrue);
   });
 
   testWidgets('oculta setas quando navegação indisponível', (tester) async {
@@ -76,7 +77,6 @@ void main() {
             canGoPrevious: false,
             canGoNext: false,
             onOpenSelection: () {},
-            onGoToPlaylists: () {},
           ),
         ),
       ),
@@ -85,14 +85,13 @@ void main() {
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsNothing);
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.view_list), findsOneWidget);
+    expect(find.byIcon(Icons.view_list), findsNothing);
   });
 
-  testWidgets('desabilita setas durante loading mas mantém olho e lista', (
+  testWidgets('desabilita setas durante loading mas mantém olho', (
     tester,
   ) async {
     var selectionTapped = false;
-    var playlistsTapped = false;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -108,7 +107,7 @@ void main() {
             onPrevious: () {},
             onNext: () {},
             onOpenSelection: () => selectionTapped = true,
-            onGoToPlaylists: () => playlistsTapped = true,
+            onOpenPlayer: () {},
           ),
         ),
       ),
@@ -119,9 +118,7 @@ void main() {
     expect(arrowButtons.every((button) => button.onPressed == null), isTrue);
 
     await tester.tap(find.byTooltip('Ver seleção'));
-    await tester.tap(find.byTooltip('Ver listas'));
     expect(selectionTapped, isTrue);
-    expect(playlistsTapped, isTrue);
   });
 
   testWidgets('topBar não estoura com textScaler elevado', (tester) async {
@@ -148,7 +145,6 @@ void main() {
                 canGoPrevious: true,
                 canGoNext: true,
                 onOpenSelection: () {},
-                onGoToPlaylists: () {},
               ),
             ),
           ),

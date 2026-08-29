@@ -1,5 +1,4 @@
 import 'package:coldigui/core/routing/route_paths.dart';
-import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -14,19 +13,17 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_tra
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
-import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_ui_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,7 +75,7 @@ class CarouselChips extends ConsumerWidget {
 }
 
 /// Após [AudioPlayerSessionNotifier.close] (fila vazia + face PDF) não força
-/// áudio só por `audioIds`. Face áudio explícita ou sessão ativa sem PDF reabre.
+/// áudio só por `audioIds`. Face áudio só com sessão ou playlist de áudio.
 @visibleForTesting
 bool shouldShowCarouselAudioFace({
   required PlaylistMediaFace face,
@@ -88,7 +85,8 @@ bool shouldShowCarouselAudioFace({
 }) {
   final hasAudio = hasSessionQueue || hasAudioPlaylist;
   if (!hasPdf && !hasAudio) return false;
-  return face == PlaylistMediaFace.audio || (hasSessionQueue && !hasPdf);
+  if (face == PlaylistMediaFace.audio) return hasAudio;
+  return hasSessionQueue && !hasPdf;
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {
@@ -339,36 +337,6 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     }
   }
 
-  Future<void> _goToActivePlaylistInLists() async {
-    final repository = ref.read(playlistRepositoryProvider);
-    final activeId = ref.read(activePlaylistIdProvider);
-    var playlist = activeId == null ? null : await repository.getById(activeId);
-
-    if (playlist == null) {
-      final resolved = await ref
-          .read(playlistsProvider.notifier)
-          .resolveActivePlaylistFromCarousel();
-      if (resolved != null) {
-        playlist = await repository.getById(resolved.playlistId);
-      }
-    }
-
-    if (!mounted) return;
-
-    if (playlist != null) {
-      ref
-          .read(playlistsUiProvider.notifier)
-          .focusPlaylist(
-            PlaylistTabForPlaylist.forPlaylist(playlist),
-            playlist.playlistId,
-          );
-    } else {
-      ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.unsaved);
-    }
-
-    goToShellDestination(context, RoutePaths.playlists);
-  }
-
   Widget _buildNavigatorBar({
     required CarouselItem item,
     required bool canGoPrevious,
@@ -378,7 +346,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     VoidCallback? onNext,
     VoidCallback? onChipTap,
     required VoidCallback onOpenSelection,
-    required VoidCallback onGoToPlaylists,
+    VoidCallback? onOpenPlayer,
   }) {
     return CarouselBarShell(
       applySafeArea: false,
@@ -391,8 +359,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         onPrevious: onPrevious,
         onNext: onNext,
         onChipTap: onChipTap,
+        onOpenPlayer: onOpenPlayer,
         onOpenSelection: onOpenSelection,
-        onGoToPlaylists: onGoToPlaylists,
+        swapMaterial: CarouselSwapMaterialButton(pdfId: item.pdfId),
         trailingActions: const [CarouselBarTrailingActions()],
       ),
     );
@@ -430,6 +399,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
       onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
+      onOpenPlayer: onReaderWithoutPdfId
+          ? () {}
+          : () => _openInReader(focusedItem),
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
@@ -440,7 +412,6 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
           }
         },
       ),
-      onGoToPlaylists: _goToActivePlaylistInLists,
     );
   }
 
@@ -456,7 +427,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoNext: false,
         loading: loading,
         onOpenSelection: _openReaderSelectionSheet,
-        onGoToPlaylists: _goToActivePlaylistInLists,
+        onOpenPlayer: () {},
       );
     }
 
@@ -478,7 +449,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             )
           : null,
       onOpenSelection: _openReaderSelectionSheet,
-      onGoToPlaylists: _goToActivePlaylistInLists,
+      onOpenPlayer: () {},
     );
   }
 

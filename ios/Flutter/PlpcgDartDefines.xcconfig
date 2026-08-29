@@ -1,4 +1,5 @@
-// URL pública do backend PLPCG (não é secret).
+// URLs públicas dos backends (não são secret).
 // base64("PLPCG_API_BASE_URL=https://plpcg.com")
-// Garante o define em builds Xcode / flutter install sem flags no terminal.
-DART_DEFINES=$(DART_DEFINES),UExQQ0dfQVBJX0JBU0VfVVJMPWh0dHBzOi8vcGxwY2cuY29t
+// base64("COLDIGOM_API_BASE_URL=https://coldigom-api.jairofilho79.workers.dev")
+// Garante os defines em builds Xcode / flutter install sem flags no terminal.
+DART_DEFINES=$(DART_DEFINES),UExQQ0dfQVBJX0JBU0VfVVJMPWh0dHBzOi8vcGxwY2cuY29t,Q09MRElHT01fQVBJX0JBU0VfVVJMPWh0dHBzOi8vY29sZGlnb20tYXBpLmphaXJvZmlsaG83OS53b3JrZXJzLmRldg==

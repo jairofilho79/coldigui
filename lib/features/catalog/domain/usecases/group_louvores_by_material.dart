@@ -5,7 +5,8 @@ import '../entities/louvor_group.dart';
 class GroupLouvoresByMaterial {
   const GroupLouvoresByMaterial();
 
-  /// Retorna grupos ordenados por número (numérico) e desempate por nome.
-  List<LouvorGroup> call(List<Louvor> louvores) =>
-      LouvorGroup.fromLouvores(louvores);
+  /// Agrupa por `groupId`. [sortByNumber] `true` (padrão) ordena por número;
+  /// `false` preserva ordem de entrada (busca ranqueada).
+  List<LouvorGroup> call(List<Louvor> louvores, {bool sortByNumber = true}) =>
+      LouvorGroup.fromLouvores(louvores, sortByNumber: sortByNumber);
 }

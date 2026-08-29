@@ -10,17 +10,11 @@ import 'plpcg_app_bar_title.dart';
 ///
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
-/// Em Sobre/Listas/Offline, exibe voltar para [RoutePaths.profile].
+/// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
 /// Em `/leitor` e `/audio`, exibe voltar (pop → home) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const PlpcgPrimaryAppBar({super.key});
-
-  static const _profileSubRoutes = {
-    RoutePaths.about,
-    RoutePaths.offline,
-    RoutePaths.playlists,
-  };
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 4);
@@ -30,28 +24,31 @@ class PlpcgPrimaryAppBar extends StatelessWidget
     final path = GoRouterState.of(context).uri.path;
     final isImmersiveMedia =
         path == RoutePaths.reader || path == RoutePaths.audio;
-    final showBack = isImmersiveMedia || _profileSubRoutes.contains(path);
 
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: showBack
+      leading: isImmersiveMedia
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Voltar',
               onPressed: () {
-                if (isImmersiveMedia) {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    goToShellDestination(context, RoutePaths.home);
-                  }
-                  return;
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  goToShellDestination(context, RoutePaths.home);
                 }
-                goToShellDestination(context, RoutePaths.profile);
               },
             )
           : null,
-      title: const PlpcgAppBarTitle(),
+      // ponytail: go (não push) — descarta /leitor, /audio e sub-rotas do shell
+      title: Tooltip(
+        message: 'Início',
+        child: InkWell(
+          onTap: () => goToShellDestination(context, RoutePaths.home),
+          borderRadius: BorderRadius.circular(8),
+          child: const PlpcgAppBarTitle(),
+        ),
+      ),
       bottom: const PreferredSize(
         preferredSize: Size.fromHeight(4),
         child: Divider(height: 4, thickness: 4, color: AppColors.gold),

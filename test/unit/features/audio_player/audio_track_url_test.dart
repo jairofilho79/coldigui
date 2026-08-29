@@ -20,4 +20,24 @@ void main() {
       '${ColdigomApiConfig.baseUrl}/assets/praises/p1/a.mp3',
     );
   });
+
+  test('fetchUrlForKey usa proxy plpcg.com na web', () {
+    expect(
+      AudioTrackUrl.fetchUrlForKey(
+        'assets/praises/p1/a.mp3',
+        apiBase: 'https://plpcg.com',
+      ),
+      'https://plpcg.com/api/coldigom/assets/praises/p1/a.mp3',
+    );
+  });
+
+  test('fetchUrlForKey mantém URL absoluta', () {
+    expect(
+      AudioTrackUrl.fetchUrlForKey(
+        'https://cdn.example/a.mp3',
+        apiBase: 'https://plpcg.com',
+      ),
+      'https://cdn.example/a.mp3',
+    );
+  });
 }

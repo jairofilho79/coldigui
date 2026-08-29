@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guia visual — Listas · PLPCG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #4b2d2b;
+      --btn: #6a3b39;
+      --card: #fff8e1;
+      --title: #6a2f2f;
+      --gold: #d4af37;
+      --gold-light: #f4d03f;
+      --text: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Open Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 72px; }
+    h1, h2 { font-family: "EB Garamond", serif; color: #f0e68c; font-weight: 800; }
+    h1 { font-size: 2rem; margin: 0 0 8px; }
+    h2 { font-size: 1.45rem; margin: 40px 0 10px; }
+    p, li { max-width: 70ch; }
+    .lede { color: rgba(255,255,255,.85); }
+    .note {
+      border: 2px solid var(--gold);
+      background: var(--btn);
+      padding: 12px 16px;
+      border-radius: 8px;
+      max-width: 70ch;
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+    .col h3 {
+      margin: 0 0 10px;
+      font-size: 0.8rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+    }
+    .box {
+      background: var(--card);
+      color: var(--title);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .box h4 { margin: 0 0 10px; font-size: 1rem; }
+    .lane {
+      border: 1px dashed #c4a574;
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 8px;
+      min-height: 88px;
+    }
+    .lane strong { font-size: 12px; }
+    .item, .row {
+      background: #fff;
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-top: 6px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .seg {
+      display: flex;
+      gap: 0;
+      margin-bottom: 10px;
+    }
+    .seg button {
+      flex: 1;
+      border: 2px solid var(--gold);
+      background: var(--btn);
+      color: var(--text);
+      padding: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .seg button:first-child { border-radius: 8px 0 0 8px; }
+    .seg button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }
+    .seg .on { background: var(--card); color: var(--title); }
+    .hide { display: none; }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--gold);
+      color: var(--title);
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .menu {
+      font-size: 11px;
+      color: var(--title);
+      text-align: right;
+      line-height: 1.35;
+    }
+    .steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+    .steps span {
+      background: var(--btn);
+      border: 1px solid var(--gold);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .steps i { opacity: .55; font-style: normal; }
+    .x { color: #f0a0a0; }
+    .ok { color: #c8e6c0; }
+    .phone {
+      width: 280px;
+      border: 3px solid var(--gold);
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .ph-top { padding: 10px 12px 6px; font-size: 12px; opacity: .8; }
+    .ph-body { padding: 0 10px 12px; }
+    .active-bar {
+      background: var(--gold);
+      color: var(--title);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .search {
+      background: var(--card);
+      color: var(--title);
+      border: 2px solid var(--gold);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    button.plus {
+      border: 2px solid var(--gold);
+      background: var(--card);
+      color: var(--title);
+      border-radius: 8px;
+      font-weight: 700;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .caption { font-size: 0.9rem; color: rgba(255,255,255,.82); max-width: 36ch; }
+    svg.diagram { width: 100%; height: auto; display: block; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>A mudança nas listas</h1>
+    <p class="lede">
+      A busca por título/letra/número <strong>não muda</strong>. O que muda é o que acontece
+      quando você monta uma reunião: hoje a app trata PDF e áudio como <strong>duas listas</strong>.
+      A proposta é <strong>uma lista de louvores</strong>, cada um com o material que você escolheu.
+    </p>
+    <p class="note">
+      Hoje, no código: <code>pdfIds[]</code> e <code>audioIds[]</code> separados + botão PDF | Áudio.
+      Chordpro ou YouTube virariam a terceira fila. Isso é o que não escala.
+    </p>
+
+    <h2>1. O modelo (é só isso)</h2>
+    <div class="grid2">
+      <div class="col">
+        <h3>Hoje — duas caixas</h3>
+        <div class="box">
+          <h4>Lista “Culto domingo”</h4>
+          <div class="lane">
+            <strong>Caixa PDF</strong>
+            <div class="item"><span>384 · Grande é o Senhor</span><span class="tag">cifra</span></div>
+            <div class="item"><span>412 · Porque Ele vive</span><span class="tag">partitura</span></div>
+          </div>
+          <div class="lane">
+            <strong>Caixa Áudio</strong>
+            <div class="item"><span>384 · Grande é o Senhor</span><span class="tag">áudio</span></div>
+            <div class="item"><span>128 · A Deus seja a glória</span><span class="tag">áudio</span></div>
+          </div>
+          <p style="margin:8px 0 0;font-size:13px">
+            São <strong>ordens diferentes</strong>. O botão PDF | Áudio mostra uma caixa ou a outra.
+            “Próximo” no leitor anda só os PDFs. “Próximo” no player anda só os áudios.
+          </p>
+        </div>
+      </div>
+      <div class="col">
+        <h3>Proposto — uma fila</h3>
+        <div class="box">
+          <h4>Lista “Culto domingo”</h4>
+          <div class="item">
+            <span>1. 384 · Grande é o Senhor</span>
+            <span class="tag">cifra ▾</span>
+          </div>
+          <div class="menu">também: partitura · áudio · YouTube</div>
+          <div class="item">
+            <span>2. 412 · Porque Ele vive</span>
+            <span class="tag">áudio ▾</span>
+          </div>
+          <div class="menu">também: cifra · gestos</div>
+          <div class="item">
+            <span>3. 128 · A Deus seja a glória</span>
+            <span class="tag">YouTube ▾</span>
+          </div>
+          <p style="margin:10px 0 0;font-size:13px">
+            Uma ordem. “Próximo” vai 384 cifra → 412 áudio → 128 YouTube.
+            Trocar o material é no <strong>item</strong>, não virar a lista inteira.
+            Chordpro no futuro é mais um tipo no ▾ — não uma terceira caixa.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h2>2. O botão que existe hoje</h2>
+    <p>Na tela de playlists há um interruptor <strong>PDF | Áudio</strong>. Clique e veja as duas filas.</p>
+    <div class="box" style="max-width:420px">
+      <div class="seg">
+        <button type="button" class="on" id="b-pdf">PDF</button>
+        <button type="button" id="b-audio">Áudio</button>
+      </div>
+      <div id="face-pdf">
+        <div class="item"><span>384 cifra</span><span class="tag">PDF 1/2</span></div>
+        <div class="item"><span>412 partitura</span><span class="tag">PDF 2/2</span></div>
+      </div>
+      <div id="face-audio" class="hide">
+        <div class="item"><span>384 áudio</span><span class="tag">Áudio 1/2</span></div>
+        <div class="item"><span>128 áudio</span><span class="tag">Áudio 2/2</span></div>
+      </div>
+      <p style="margin:10px 0 0;font-size:13px">
+        O 412 some na face áudio. O 128 some na face PDF.
+        Não é a mesma reunião — são duas.
+      </p>
+    </div>
+
+    <h2>3. O vai-e-volta (hoje) vs ficar na lista</h2>
+    <div class="grid2">
+      <div class="col">
+        <h3 class="x">Hoje</h3>
+        <div class="steps">
+          <span>Buscar louvor</span><i>→</i>
+          <span>Sheet de material</span><i>→</i>
+          <span>Abre o leitor</span><i>→</i>
+          <span>Cria lista “não salva”</span><i>→</i>
+          <span>Volta em Listas</span><i>→</i>
+          <span>Carregar no carousel?</span><i>→</i>
+          <span>Confirma substituir</span>
+        </div>
+        <p class="caption">Abrir um PDF e montar a reunião são caminhos diferentes que se esbarram.</p>
+      </div>
+      <div class="col">
+        <h3 class="ok">Proposto</h3>
+        <div class="steps">
+          <span>Buscar (título/letra/nº)</span><i>→</i>
+          <span>+ na lista ativa</span><i>→</i>
+          <span>Toque abre o material</span><i>→</i>
+          <span>Próximo = próximo da lista</span>
+        </div>
+        <p class="caption">
+          “Nova lista” só quando você pede. “+” sem lista ativa cria a primeira.
+          O leitor é a lista em tela cheia, não outro mundo.
+        </p>
+      </div>
+    </div>
+
+    <h2>4. A busca continua. O + só aponta para a lista ativa</h2>
+    <div class="grid2">
+      <div class="col">
+        <h3>Home — não some</h3>
+        <div class="phone">
+          <div class="ph-top">Pesquisar</div>
+          <div class="ph-body">
+            <div class="search">grande é o senh…</div>
+            <div class="item">
+              <span>384 · Grande é o Senhor<br /><small>cifra · áudio · YouTube</small></span>
+              <button type="button" class="plus" id="add-384">+</button>
+            </div>
+            <div class="item">
+              <span>Outro louvor…</span>
+              <button type="button" class="plus">+</button>
+            </div>
+          </div>
+        </div>
+        <p class="caption">Mesma busca de sempre. O + não pergunta “nova ou existente?” no caminho quente.</p>
+      </div>
+      <div class="col">
+        <h3>Lista ativa (o carousel vira isto)</h3>
+        <div class="phone">
+          <div class="ph-top">Lista ativa · Culto domingo</div>
+          <div class="ph-body">
+            <div class="active-bar" id="active-count">0 louvores nesta reunião</div>
+            <div id="active-empty" style="font-size:13px;opacity:.8;padding:8px 0">Vazia. Na busca, toque +.</div>
+            <div id="active-list"></div>
+          </div>
+        </div>
+        <p class="caption">Uma faixa, uma ordem. Cada linha tem o material. ▾ troca cifra/áudio/YouTube naquele louvor.</p>
+      </div>
+    </div>
+
+    <h2>5. Frase única</h2>
+    <p>
+      <strong>Hoje:</strong> “esta lista tem PDFs, e também tem áudios, em outra ordem.”<br />
+      <strong>Proposto:</strong> “esta lista é a ordem da reunião; cada louvor diz qual material está ativo.”
+    </p>
+  </div>
+  <script>
+    const pdfBtn = document.getElementById("b-pdf");
+    const audioBtn = document.getElementById("b-audio");
+    const facePdf = document.getElementById("face-pdf");
+    const faceAudio = document.getElementById("face-audio");
+    pdfBtn.addEventListener("click", () => {
+      pdfBtn.classList.add("on");
+      audioBtn.classList.remove("on");
+      facePdf.classList.remove("hide");
+      faceAudio.classList.add("hide");
+    });
+    audioBtn.addEventListener("click", () => {
+      audioBtn.classList.add("on");
+      pdfBtn.classList.remove("on");
+      faceAudio.classList.remove("hide");
+      facePdf.classList.add("hide");
+    });
+
+    const titles = {
+      "384": { nome: "384 · Grande é o Senhor", mat: "cifra" },
+    };
+    const active = [];
+    const activeList = document.getElementById("active-list");
+    const activeCount = document.getElementById("active-count");
+    const activeEmpty = document.getElementById("active-empty");
+
+    function paintActive() {
+      activeCount.textContent = active.length + " louvor(es) nesta reunião";
+      activeEmpty.style.display = active.length ? "none" : "block";
+      while (activeList.firstChild) activeList.removeChild(activeList.firstChild);
+      active.forEach((id) => {
+        const row = document.createElement("div");
+        row.className = "item";
+        const left = document.createElement("span");
+        left.textContent = titles[id].nome;
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = titles[id].mat + " ▾";
+        row.appendChild(left);
+        row.appendChild(tag);
+        activeList.appendChild(row);
+      });
+    }
+
+    document.getElementById("add-384").addEventListener("click", () => {
+      if (!active.includes("384")) active.push("384");
+      paintActive();
+    });
+  </script>
+</body>
+</html>

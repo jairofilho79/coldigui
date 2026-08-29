@@ -1,13 +1,14 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
@@ -27,9 +28,65 @@ Louvor _louvor({required String nome, required String numero}) =>
       pdfId: 'id-$numero',
     );
 
+LouvorGroup _group(Louvor louvor) => LouvorGroup(
+  groupId: 'cg-${louvor.numero}',
+  numero: louvor.numero,
+  nome: louvor.nome,
+  sections: [
+    LouvorMaterialSection(
+      classificacao: louvor.classificacao,
+      displayLabel: louvor.classificacao,
+      materials: [
+        LouvorMaterialEntry(
+          categoria: louvor.categoria,
+          pdfId: louvor.pdfId,
+          louvor: louvor,
+        ),
+      ],
+    ),
+  ],
+);
+
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
   List<CarouselItem> build() => const [];
+}
+
+class _FakeColdigomRepo implements ColdigomSearchRepository {
+  _FakeColdigomRepo(this.catalog);
+
+  final List<Louvor> catalog;
+
+  @override
+  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
+    final q = query.trim().toLowerCase();
+    final matched = catalog
+        .where(
+          (l) =>
+              l.numero.toLowerCase().contains(q) ||
+              l.nome.toLowerCase().contains(q),
+        )
+        .toList();
+    final groups = matched.map(_group).toList();
+    return ColdigomSearchResult(
+      groups: groups,
+      louvores: matched,
+      page: page,
+      hasNextPage: false,
+    );
+  }
+
+  @override
+  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
+    return const ColdigomBrowseResult(
+      groups: [],
+      louvores: [],
+      page: 1,
+      limit: 10,
+      totalItems: 0,
+      totalPages: 0,
+    );
+  }
 }
 
 List<Override> _homeSearchTestOverrides({
@@ -40,9 +97,8 @@ List<Override> _homeSearchTestOverrides({
     sharedPreferencesProvider.overrideWithValue(prefs),
     louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-    homeSearchPipelineExecutorProvider.overrideWith(
-      (ref) =>
-          (input) async => runHomeSearchPipeline(input),
+    coldigomSearchRepositoryProvider.overrideWithValue(
+      _FakeColdigomRepo(catalog),
     ),
   ];
 }

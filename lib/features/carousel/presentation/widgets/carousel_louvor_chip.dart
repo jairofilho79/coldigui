@@ -296,32 +296,39 @@ class _MetadataRow extends StatelessWidget {
     }
 
     if (width < _compactWidth) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
-          if (classificationLabel.isNotEmpty)
-            Tooltip(
-              message: classificationLabel,
-              child: Icon(
-                Icons.collections_bookmark_outlined,
-                size: 14,
-                color: AppColors.textLight.withValues(alpha: 0.9),
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (numeroWidget != null) ...[
+              numeroWidget,
+              const SizedBox(width: 6),
+            ],
+            if (classificationLabel.isNotEmpty)
+              Tooltip(
+                message: classificationLabel,
+                child: Icon(
+                  Icons.collections_bookmark_outlined,
+                  size: 14,
+                  color: AppColors.textLight.withValues(alpha: 0.9),
+                ),
               ),
-            ),
-          if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
-            const SizedBox(width: 6),
-          if (categoria.isNotEmpty)
-            Tooltip(
-              message: categoria,
-              child: Icon(
-                categoryIcon,
-                size: 14,
-                color: AppColors.textLight.withValues(alpha: 0.9),
+            if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
+              const SizedBox(width: 6),
+            if (categoria.isNotEmpty)
+              Tooltip(
+                message: categoria,
+                child: Icon(
+                  categoryIcon,
+                  size: 14,
+                  color: AppColors.textLight.withValues(alpha: 0.9),
+                ),
               ),
-            ),
-          _offlineBadge(),
-        ],
+            _offlineBadge(),
+          ],
+        ),
       );
     }
 

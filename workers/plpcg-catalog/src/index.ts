@@ -20,10 +20,12 @@ import {
   searchSocialUsers,
   socialUsernameFromPath,
 } from './social/handlers';
+import { proxyColdigomAsset } from './coldigom_assets_proxy';
 
 export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID_WEB: string;
+  COLDIGOM_API_BASE_URL?: string;
 }
 
 interface LouvorRow {
@@ -50,7 +52,10 @@ type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social';
 
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
+  'https://120826.plpcg.com',
   'https://v2.plpcg.com',
+  'https://plpcg.com',
+  'https://plpcjf.org',
   'https://plpcg-v2.pages.dev',
   'http://localhost:8080',
   'http://127.0.0.1:8080',
@@ -63,7 +68,9 @@ function isAllowedOrigin(origin: string): boolean {
     return (
       protocol === 'https:' &&
       (hostname === 'plpcg-v2.pages.dev' ||
-        hostname.endsWith('.plpcg-v2.pages.dev'))
+        hostname.endsWith('.plpcg-v2.pages.dev') ||
+        hostname === 'plpcg-120826.pages.dev' ||
+        hostname.endsWith('.plpcg-120826.pages.dev'))
     );
   } catch {
     return false;
@@ -96,10 +103,14 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
         'Authorization, Content-Type',
       );
     } else {
-      headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set(
         'Access-Control-Allow-Headers',
-        'Content-Type, If-None-Match',
+        'Content-Type, If-None-Match, Range',
+      );
+      headers.set(
+        'Access-Control-Expose-Headers',
+        'Accept-Ranges, Content-Length, Content-Range',
       );
     }
     headers.set('Vary', 'Origin');
@@ -239,6 +250,7 @@ function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/audio-flags')) return 'playlists';
   if (pathname.startsWith('/api/social')) return 'social';
   if (pathname.startsWith('/api/auth/')) return 'auth';
+  if (pathname.startsWith('/api/coldigom/')) return 'catalog';
   return 'catalog';
 }
 
@@ -395,6 +407,14 @@ export default {
         await handleAudioFlags(request, env, url.pathname),
         request,
         'playlists',
+      );
+    }
+
+    if (url.pathname.startsWith('/api/coldigom/')) {
+      return withCors(
+        await proxyColdigomAsset(request, env, url.pathname),
+        request,
+        'catalog',
       );
     }
 

@@ -17,8 +17,7 @@ const carouselBarHorizontalGap = 8.0;
 
 /// Estilo padrão dos [IconButton] da barra de carousel.
 ///
-/// Consumido por [CarouselNavigatorBar] (setas, lista) e
-/// [CarouselBarTrailingActions] (salvar/folheto/limpar em layout expandido).
+/// Consumido por [CarouselNavigatorBar] e [CarouselBarTrailingActions].
 ///
 /// Usa [AppColors.title] como `foregroundColor`. O estado desabilitado mantém
 /// o mesmo matiz com opacidade reduzida — evita ícones pretos/cinza do tema
@@ -26,6 +25,9 @@ const carouselBarHorizontalGap = 8.0;
 ButtonStyle get carouselBarIconButtonStyle => IconButton.styleFrom(
   foregroundColor: AppColors.title,
   disabledForegroundColor: AppColors.title.withValues(alpha: 0.38),
+  visualDensity: VisualDensity.compact,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  minimumSize: const Size(44, 44),
 );
 
 class CarouselBarShell extends StatelessWidget {

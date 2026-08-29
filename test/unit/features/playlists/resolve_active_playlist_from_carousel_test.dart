@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:coldigui/core/database/collections/carousel_entry.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
@@ -14,6 +15,7 @@ import 'package:coldigui/features/playlists/presentation/providers/playlists_pro
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late Directory tempDir;
@@ -21,6 +23,8 @@ void main() {
   late ProviderContainer container;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     tempDir = await Directory.systemTemp.createTemp('resolve_active_playlist_');
     isar = Isar.open(
       schemas: [CarouselEntrySchema, PlaylistSchema],
@@ -28,6 +32,7 @@ void main() {
     );
     container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         isarProvider.overrideWithValue(isar),
         optionalIsarProvider.overrideWithValue(isar),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),

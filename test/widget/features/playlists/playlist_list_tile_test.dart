@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -19,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier(this.initial);
@@ -107,6 +109,13 @@ String _pdfId(String relPath) {
 }
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   final pdfIdA = _pdfId('ColAdultos/001.pdf');
   final pdfIdB = _pdfId('ColAdultos/002.pdf');
 
@@ -129,6 +138,7 @@ void main() {
         shareActionsNotifier ?? _FakePlaylistShareActionsNotifier();
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         playlistsProvider.overrideWith(() => playlistsNotifier),
         playlistShareActionsProvider.overrideWith(() => shareNotifier),
         carouselLouvoresProvider.overrideWith(
@@ -234,6 +244,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => notifier),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier([]),
@@ -314,6 +325,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(
             () => _FakePlaylistsNotifier([published]),
           ),

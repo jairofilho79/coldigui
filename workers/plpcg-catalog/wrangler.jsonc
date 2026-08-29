@@ -31,6 +31,10 @@
     {
       "pattern": "plpcg.com/api/social/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/coldigom/*",
+      "zone_name": "plpcg.com"
     }
   ]
 }

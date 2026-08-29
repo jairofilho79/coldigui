@@ -1,3 +1,4 @@
 {
-  "PLPCG_API_BASE_URL": "https://plpcg.com"
+  "PLPCG_API_BASE_URL": "https://plpcg.com",
+  "COLDIGOM_API_BASE_URL": "https://coldigom-api.jairofilho79.workers.dev"
 }

@@ -2,6 +2,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
+import '../entities/coldigom_praise_metadata.dart';
 
 /// Porta de busca/browse coldigom.
 abstract interface class ColdigomSearchRepository {
@@ -50,6 +51,7 @@ class ColdigomSearchResult {
     required this.louvores,
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
+    this.praiseMetaByGroupId = const {},
     this.page = 1,
     this.hasNextPage = false,
   });
@@ -58,6 +60,7 @@ class ColdigomSearchResult {
   final List<Louvor> louvores;
   final List<AudioTrack> audioTracks;
   final List<YoutubeMaterial> youtubeMaterials;
+  final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
   final int page;
   final bool hasNextPage;
 }
@@ -69,6 +72,7 @@ class ColdigomBrowseResult {
     required this.louvores,
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
+    this.praiseMetaByGroupId = const {},
     required this.page,
     required this.limit,
     required this.totalItems,
@@ -79,6 +83,7 @@ class ColdigomBrowseResult {
   final List<Louvor> louvores;
   final List<AudioTrack> audioTracks;
   final List<YoutubeMaterial> youtubeMaterials;
+  final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
   final int page;
   final int limit;
   final int totalItems;

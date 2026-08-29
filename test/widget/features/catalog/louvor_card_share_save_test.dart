@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -211,9 +212,6 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
 
   @override
-  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
-
-  @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
 }
 
@@ -227,9 +225,6 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
   Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
 
   @override
-  Future<bool> activePlaylistNeedsChoiceForLouvor(String pdfId) async => false;
-
-  @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {
     lastAddedPdfId = pdfId;
     return true;
@@ -240,6 +235,7 @@ List<Override> _commonOverrides({
   PlaylistsNotifier Function()? playlistsNotifier,
 }) {
   return [
+    isarAvailableProvider.overrideWithValue(true),
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     playlistsProvider.overrideWith(

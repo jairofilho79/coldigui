@@ -14,6 +14,8 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/presentation/widgets/coldigom_material_sheet.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
@@ -112,15 +114,37 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
 
     // YouTube (mesmo único) sempre via sheet — ícone vermelho e abertura externa.
+    final group = _sheetGroup;
+    if (group.isColdigom) {
+      await showColdigomMaterialSheet(
+        context: context,
+        group: group,
+        onMaterialSelected: _openLouvor,
+        onAudioSelected: (track) => pushAudioPlayerRoute(context, track),
+        onYoutubeSelected: _openYoutube,
+        onMaterialAdd: _handleAddMaterialToCarousel,
+        onAudioAdd: _handleAddAudioToPlaylist,
+      );
+      return;
+    }
+
     await showLouvorMaterialSheet(
       context: context,
-      group: widget.group,
+      group: group,
       onMaterialSelected: _openLouvor,
-      onAudioSelected: _openAudio,
+      onAudioSelected: (track) => pushAudioPlayerRoute(context, track),
       onYoutubeSelected: _openYoutube,
       onMaterialAdd: _handleAddMaterialToCarousel,
       onAudioAdd: _handleAddAudioToPlaylist,
     );
+  }
+
+  LouvorGroup get _sheetGroup {
+    final group = widget.group;
+    if (!group.isColdigom || group.coldigomMeta != null) return group;
+    final meta = ref.read(coldigomPraiseMetaCacheProvider)[group.groupId];
+    if (meta == null) return group;
+    return group.withColdigomMeta(meta);
   }
 
   Future<void> _handleAddToCarousel() async {

@@ -11,16 +11,15 @@ Louvor _louvor({
   String numero = '100',
   String pdfId = 'id',
   String groupId = '',
-}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: categoria,
-      classificacao: classificacao,
-      pdf: '$numero.pdf',
-      pdfId: pdfId,
-      groupId: groupId,
-    );
+}) => Louvor.fromManifest(
+  nome: nome,
+  numero: numero,
+  categoria: categoria,
+  classificacao: classificacao,
+  pdf: '$numero.pdf',
+  pdfId: pdfId,
+  groupId: groupId,
+);
 
 void main() {
   group('LouvorGroupId', () {
@@ -119,6 +118,31 @@ void main() {
 
       expect(group(louvores), hasLength(1));
       expect(group(louvores).first.numero, '003');
+    });
+
+    test('sortByNumber false preserva ordem de entrada', () {
+      final louvores = [
+        _louvor(
+          nome: 'A Ti Senhor',
+          categoria: CatalogMaterials.partitura,
+          classificacao: 'Coletânea',
+          pdfId: 'top',
+          numero: '500',
+        ),
+        _louvor(
+          nome: 'Abraão',
+          categoria: CatalogMaterials.partitura,
+          classificacao: 'Coletânea',
+          pdfId: 'low',
+          numero: '001',
+        ),
+      ];
+
+      final sorted = group(louvores);
+      expect(sorted.map((g) => g.nome).toList(), ['Abraão', 'A Ti Senhor']);
+
+      final preserved = group(louvores, sortByNumber: false);
+      expect(preserved.map((g) => g.nome).toList(), ['A Ti Senhor', 'Abraão']);
     });
   });
 }

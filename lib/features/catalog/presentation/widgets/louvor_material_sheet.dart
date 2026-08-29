@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -239,6 +242,14 @@ class _LouvorMaterialSheetBodyState
                                 onAdd: () => _handleAddAudio(track),
                               ),
                         onTap: () {
+                          // play() no mesmo tap — post-frame perde o gesto no iOS Safari.
+                          unawaited(
+                            playAudioInSession(
+                              ref: ref,
+                              track: track,
+                              queue: widget.group.audioTracks,
+                            ),
+                          );
                           Navigator.of(context).pop();
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             widget.onAudioSelected?.call(track);

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guia visual — Modo Culto · PLPCG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@600;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #4b2d2b;
+      --btn: #6a3b39;
+      --card: #fff8e1;
+      --title: #6a2f2f;
+      --gold: #d4af37;
+      --gold-light: #f4d03f;
+      --text: #fff;
+      --pdf: #2a2a2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Open Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1, h2, .serif { font-family: "EB Garamond", serif; }
+    h1 { font-size: 2.2rem; font-weight: 800; color: #f0e68c; margin: 0 0 8px; }
+    .lede { color: rgba(255,255,255,.82); max-width: 62ch; margin-bottom: 12px; }
+    .note {
+      border: 2px solid var(--gold);
+      background: var(--btn);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      max-width: 70ch;
+    }
+    h2 { color: #f0e68c; font-size: 1.6rem; margin: 48px 0 8px; }
+    p { max-width: 70ch; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin: 20px 0 8px; }
+    @media (max-width: 820px) { .pair { grid-template-columns: 1fr; } }
+    .col h3 { margin: 0 0 10px; font-size: 0.85rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-light); }
+    .phone {
+      width: 280px;
+      height: 560px;
+      border: 3px solid var(--gold);
+      border-radius: 28px;
+      background: var(--bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .status { height: 28px; font-size: 11px; padding: 8px 16px 0; opacity: .75; }
+    .screen { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    .tabs {
+      display: flex;
+      border-top: 4px solid var(--gold);
+      min-height: 56px;
+    }
+    .tabs button {
+      flex: 1;
+      background: none;
+      border: 0;
+      color: rgba(255,255,255,.55);
+      font: 600 12px/1 "Open Sans", sans-serif;
+      padding: 10px 4px;
+      cursor: pointer;
+    }
+    .tabs .on { color: #fff; box-shadow: inset 0 -3px 0 var(--gold); }
+    .search, .card, .now, .row, .choice, .mini {
+      background: var(--card);
+      color: var(--title);
+      border: 2px solid var(--gold);
+    }
+    .search {
+      margin: 10px 12px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    .chips { display: flex; gap: 6px; padding: 0 12px 8px; }
+    .chip {
+      background: var(--card);
+      color: var(--title);
+      border: 2px solid var(--gold);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+    }
+    .card { border-radius: 12px; margin: 8px 12px; padding: 10px 12px; }
+    .card small { display: block; opacity: .75; font-size: 11px; }
+    .display {
+      text-align: center;
+      font-family: "EB Garamond", serif;
+      font-weight: 800;
+      font-size: 64px;
+      color: #f0e68c;
+      letter-spacing: 2px;
+      padding: 16px 8px 4px;
+      min-height: 88px;
+    }
+    .hint { text-align: center; font-size: 12px; color: rgba(255,255,255,.7); margin-bottom: 8px; min-height: 18px; }
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 8px 20px 12px;
+    }
+    .pad button {
+      background: var(--card);
+      color: var(--title);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      font: 700 20px/1 "Open Sans", sans-serif;
+      padding: 14px 0;
+      cursor: pointer;
+    }
+    .go, .choice {
+      font: 700 15px/1 "Open Sans", sans-serif;
+      cursor: pointer;
+    }
+    .go {
+      margin: 0 20px 10px;
+      background: var(--gold);
+      color: var(--title);
+      border: 0;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .now { margin: 12px; border-width: 3px; border-radius: 12px; padding: 14px; cursor: pointer; }
+    .now .tag { font-size: 10px; letter-spacing: .12em; font-weight: 700; }
+    .now .num { font-family: "EB Garamond", serif; font-size: 40px; font-weight: 800; line-height: 1; }
+    .row {
+      margin: 0 12px 8px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .pdf {
+      flex: 1;
+      background: var(--pdf);
+      color: #eee;
+      font-family: "EB Garamond", serif;
+      padding: 16px 18px;
+      font-size: 18px;
+      line-height: 1.7;
+    }
+    .mini {
+      border-width: 0;
+      border-top-width: 3px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+    .play {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--gold); color: var(--title);
+      display: grid; place-items: center; font-weight: 700; flex-shrink: 0;
+      border: 0; cursor: pointer;
+    }
+    .choice {
+      display: block; width: calc(100% - 24px); margin: 8px 12px;
+      border-radius: 10px; padding: 12px; text-align: left;
+    }
+    .choice.sel { outline: 3px solid var(--gold-light); }
+    .caption { font-size: 0.92rem; color: rgba(255,255,255,.85); max-width: 36ch; }
+    .sketches { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
+    .sketches figure { margin: 0; }
+    .sketches img { width: 100%; border: 2px solid var(--gold); border-radius: 12px; }
+    .sketches figcaption { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 6px; }
+    .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+    .flow span {
+      background: var(--btn);
+      border: 1px solid var(--gold);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    .flow i { opacity: .6; font-style: normal; }
+    .panel { display: none; flex: 1; flex-direction: column; }
+    .panel.show { display: flex; }
+    .muted { opacity: .55; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Modo Culto — hipótese descartada</h1>
+    <p class="lede">
+      <strong>Não seguir.</strong> O pad numérico como porta mata a busca por título/letra
+      (~2000 louvores; a minoria decora o número). Este HTML ficou como arquivo histórico.
+      A direção vigente está em <code>PRODUCT.md</code>.
+    </p>
+    <p class="note">
+      Descartado em 18/08/2026. Não usar como brief, mock aprovado nem referência de implementação.
+    </p>
+    <div class="flow">
+      <span>1. Número 384</span><i>→</i>
+      <span>2. Abre cifra</span><i>→</i>
+      <span>3. Mini-player</span><i>→</i>
+      <span>4. Palco: próximo</span>
+    </div>
+
+    <h2>1. O shell: 5 abas viram 2</h2>
+    <div class="pair">
+      <div class="col">
+        <h3>Hoje — não clicável</h3>
+        <div class="phone">
+          <div class="status">9:41</div>
+          <div class="screen">
+            <div class="search">Buscar por número ou título</div>
+            <div class="chips">
+              <span class="chip">384</span>
+              <span class="chip">412</span>
+              <span class="chip">128</span>
+            </div>
+            <div class="card">384 · Grande é o Senhor<small>3 materiais · toque abre um sheet</small></div>
+            <div class="card">412 · Porque Ele vive<small>Partitura · Cifra · Gestos</small></div>
+            <div class="card">128 · A Deus seja a glória<small>PLPCG + Coldigom</small></div>
+          </div>
+          <div class="tabs">
+            <button type="button" disabled class="muted">Eventos</button>
+            <button type="button" disabled class="muted">Biblio</button>
+            <button type="button" class="on" disabled>Pesquisar</button>
+            <button type="button" disabled class="muted">Social</button>
+            <button type="button" disabled class="muted">Perfil</button>
+          </div>
+        </div>
+        <p class="caption">Cinco destinos. Busca exige texto. Carousel é chip miúdo. Card abre um menu, não o PDF.</p>
+      </div>
+      <div class="col">
+        <h3>Proposto — clicável</h3>
+        <div class="phone" id="phone">
+          <div class="status" id="status">PLPCG · Culto</div>
+
+          <div class="panel show" id="view-teclado">
+            <div class="display" id="digits">· · ·</div>
+            <div class="hint" id="hint">Digite o número do louvor</div>
+            <div class="pad" id="pad">
+              <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+              <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+              <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+              <button type="button"></button><button type="button">0</button><button type="button" id="back">⌫</button>
+            </div>
+            <button type="button" class="go" id="open">Abrir Cifra</button>
+          </div>
+
+          <div class="panel" id="view-palco">
+            <button type="button" class="now" id="open-now">
+              <div class="tag">AGORA</div>
+              <div class="num">384</div>
+              <div>Grande é o Senhor</div>
+              <small>Cifra · toque abre o leitor</small>
+            </button>
+            <div class="row"><span>412 · Porque Ele vive</span><span>⋮⋮</span></div>
+            <div class="row"><span>128 · A Deus seja a glória</span><span>⋮⋮</span></div>
+          </div>
+
+          <div class="panel" id="view-leitor">
+            <div class="pdf">
+              C&nbsp;&nbsp;G&nbsp;&nbsp;Am&nbsp;&nbsp;F<br />
+              Grande é o Senhor<br />
+              e mui digno de louvor<br /><br />
+              C&nbsp;&nbsp;G<br />
+              Em sua casa
+            </div>
+            <div class="mini">
+              <button type="button" class="play" id="play">▶</button>
+              <div>
+                <strong>Grande é o Senhor</strong><br />
+                Áudio Coldigom · não sai do PDF
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="view-pref">
+            <div class="card" style="margin-top:16px"><strong>No culto eu abro</strong><small>O sheet só aparece se faltar este material</small></div>
+            <button type="button" class="choice sel" data-pref="Cifra">Cifra</button>
+            <button type="button" class="choice" data-pref="Partitura">Partitura</button>
+            <button type="button" class="choice" data-pref="Gestos">Gestos</button>
+          </div>
+
+          <div class="tabs">
+            <button type="button" class="on" id="tab-num">Número</button>
+            <button type="button" id="tab-palco">Palco</button>
+          </div>
+        </div>
+        <p class="caption">Dois destinos. Número enorme. Confirmar abre a cifra. Experimente 384 + Abrir.</p>
+        <p>
+          <button type="button" class="choice" id="goto-pref" style="width:auto;display:inline-block;margin:0">Ver “Meu material”</button>
+        </p>
+      </div>
+    </div>
+
+    <h2>2–5. O que cada tela faz</h2>
+    <p><strong>Teclado:</strong> quem sabe o número não usa busca. Match exato não vira lista.</p>
+    <p><strong>Palco:</strong> substitui os chips. Item atual grande; o resto é fila da reunião.</p>
+    <p><strong>Leitor:</strong> a cifra não some. Play fica na faixa creme. Não há rota só de áudio no culto.</p>
+    <p><strong>Meu material:</strong> Cifra / Partitura / Gestos. Sheet só se faltar o default.</p>
+
+    <h2>Esboços gerados (atmosfera)</h2>
+    <p>Olhe densidade e paleta. Ignore texto inventado pela imagem (“Númeroo”, “Pular”).</p>
+    <div class="sketches">
+      <figure>
+        <img src="guia-culto-hoje-vs-proposto.png" alt="Dois telefones: hoje à esquerda, modo culto à direita" />
+        <figcaption>Hoje × Culto — contar as abas, não ler os rótulos</figcaption>
+      </figure>
+      <figure>
+        <img src="guia-culto-teclado.png" alt="Teclado numérico em tela cheia" />
+        <figcaption>Teclado — o número é o herói</figcaption>
+      </figure>
+      <figure>
+        <img src="guia-culto-palco.png" alt="Lista da reunião com item atual grande" />
+        <figcaption>Palco — cartão AGORA + fila</figcaption>
+      </figure>
+      <figure>
+        <img src="guia-culto-leitor-audio.png" alt="Cifra com mini-player embaixo" />
+        <figcaption>Leitor — PDF permanece enquanto o áudio toca</figcaption>
+      </figure>
+      <figure>
+        <img src="guia-culto-meu-material.png" alt="Preferência de material no culto" />
+        <figcaption>Meu material — um default, não um filtro de busca</figcaption>
+      </figure>
+    </div>
+  </div>
+  <script>
+    const hymns = { "384": "Grande é o Senhor", "412": "Porque Ele vive", "128": "A Deus seja a glória" };
+    let digits = "";
+    let pref = "Cifra";
+    let playing = false;
+
+    const digitsEl = document.getElementById("digits");
+    const hintEl = document.getElementById("hint");
+    const openEl = document.getElementById("open");
+    const playEl = document.getElementById("play");
+    const tabNum = document.getElementById("tab-num");
+    const tabPalco = document.getElementById("tab-palco");
+    const views = {
+      teclado: document.getElementById("view-teclado"),
+      palco: document.getElementById("view-palco"),
+      leitor: document.getElementById("view-leitor"),
+      pref: document.getElementById("view-pref"),
+    };
+
+    function show(name) {
+      Object.keys(views).forEach((k) => views[k].classList.toggle("show", k === name));
+      tabNum.classList.toggle("on", name === "teclado" || name === "pref");
+      tabPalco.classList.toggle("on", name === "palco" || name === "leitor");
+    }
+
+    function refresh() {
+      digitsEl.textContent = digits || "· · ·";
+      hintEl.textContent = hymns[digits] || "Digite o número do louvor";
+      openEl.textContent = "Abrir " + pref;
+    }
+
+    document.getElementById("pad").addEventListener("click", (e) => {
+      const t = e.target;
+      if (t.tagName !== "BUTTON") return;
+      if (t.id === "back") digits = digits.slice(0, -1);
+      else if (t.textContent && digits.length < 4) digits += t.textContent;
+      refresh();
+    });
+
+    function openReader() {
+      if (!digits) digits = "384";
+      refresh();
+      show("leitor");
+    }
+
+    openEl.addEventListener("click", openReader);
+    document.getElementById("open-now").addEventListener("click", openReader);
+    tabNum.addEventListener("click", () => show("teclado"));
+    tabPalco.addEventListener("click", () => show("palco"));
+    playEl.addEventListener("click", () => {
+      playing = !playing;
+      playEl.textContent = playing ? "❚❚" : "▶";
+    });
+    document.getElementById("goto-pref").addEventListener("click", () => show("pref"));
+    document.querySelectorAll("[data-pref]").forEach((b) => {
+      b.addEventListener("click", () => {
+        pref = b.getAttribute("data-pref");
+        document.querySelectorAll("[data-pref]").forEach((x) => x.classList.toggle("sel", x === b));
+        refresh();
+      });
+    });
+    refresh();
+  </script>
+</body>
+</html>

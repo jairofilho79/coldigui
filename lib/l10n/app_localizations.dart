@@ -1109,6 +1109,42 @@ abstract class AppLocalizations {
   /// **'YouTube'**
   String get youtubeMaterialSection;
 
+  /// No description provided for @pdfMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'PDF'**
+  String get pdfMaterialSection;
+
+  /// No description provided for @coldigomMetaTonality.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tom'**
+  String get coldigomMetaTonality;
+
+  /// No description provided for @coldigomMetaAuthor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Autor'**
+  String get coldigomMetaAuthor;
+
+  /// No description provided for @coldigomMetaRhythm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ritmo'**
+  String get coldigomMetaRhythm;
+
+  /// No description provided for @coldigomMetaCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get coldigomMetaCategory;
+
+  /// No description provided for @coldigomMetaTags.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tags'**
+  String get coldigomMetaTags;
+
   /// No description provided for @youtubeOpenError.
   ///
   /// In pt, this message translates to:
@@ -1216,6 +1252,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.'**
   String get audioWebBackgroundNotice;
+
+  /// Tooltip do ícone no player que revela o aviso de segundo plano na Web
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre reprodução na Web'**
+  String get audioWebPlatformHintTooltip;
+
+  /// No description provided for @audioWebIosPwaNotice.
+  ///
+  /// In pt, this message translates to:
+  /// **'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.'**
+  String get audioWebIosPwaNotice;
 
   /// No description provided for @playlistLoadConfirmTitle.
   ///
@@ -1546,30 +1594,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Listas salvas não podem ser limpas pela barra. Use o menu da lista.'**
   String get playlistClearSavedBlocked;
-
-  /// No description provided for @playlistOpenLouvorChoiceTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Como adicionar à lista?'**
-  String get playlistOpenLouvorChoiceTitle;
-
-  /// No description provided for @playlistOpenLouvorChoiceMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Este louvor não está na lista atual. Como deseja continuar?\n\nAo criar uma nova lista, a lista atual não será perdida — ela permanecerá em Listas não salvas.'**
-  String get playlistOpenLouvorChoiceMessage;
-
-  /// No description provided for @playlistOpenLouvorChoiceAddToCurrent.
-  ///
-  /// In pt, this message translates to:
-  /// **'Adicionar à lista atual'**
-  String get playlistOpenLouvorChoiceAddToCurrent;
-
-  /// No description provided for @playlistOpenLouvorChoiceCreateNew.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar nova lista'**
-  String get playlistOpenLouvorChoiceCreateNew;
 
   /// Subtítulo do card quando o louvor agrupa vários PDFs (Home/Biblioteca)
   ///

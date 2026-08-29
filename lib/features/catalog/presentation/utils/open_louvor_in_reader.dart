@@ -13,33 +13,19 @@ import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
-import '../../../playlists/presentation/widgets/open_louvor_playlist_choice_dialog.dart';
 
 /// Abre [louvor] no leitor interno (`/leitor`) com resolve local-first.
+///
+/// Sempre entra na lista ativa. Lista nova só pelo limpar da barra
+/// ([CarouselBarTrailingActions] → Nova Lista).
 Future<void> openLouvorInReader({
   required WidgetRef ref,
   required BuildContext context,
   required Louvor louvor,
 }) async {
-  final playlists = ref.read(playlistsProvider.notifier);
-
-  if (await playlists.activePlaylistNeedsChoiceForLouvor(louvor.pdfId)) {
-    if (!context.mounted) return;
-
-    final choice = await showOpenLouvorPlaylistChoiceDialog(context);
-    if (!context.mounted) return;
-
-    switch (choice) {
-      case OpenLouvorPlaylistChoice.addToCurrent:
-        await playlists.addLouvorToActivePlaylist(louvor.pdfId);
-      case OpenLouvorPlaylistChoice.createNew:
-        await playlists.ensurePlaylistForLouvor(louvor.pdfId);
-      case null:
-        return;
-    }
-  } else {
-    await playlists.ensurePlaylistForLouvor(louvor.pdfId);
-  }
+  await ref
+      .read(playlistsProvider.notifier)
+      .addLouvorToActivePlaylist(louvor.pdfId);
 
   await ref.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor);
 

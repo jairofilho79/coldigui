@@ -1,12 +1,22 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   test('close deixa a sessão vazia', () async {
-    final container = ProviderContainer();
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
     addTearDown(container.dispose);
 
     await container.read(audioPlayerSessionProvider.notifier).close();
@@ -16,6 +26,44 @@ void main() {
     expect(state.playing, isFalse);
     expect(state.position, Duration.zero);
     expect(state.currentTrack, isNull);
+  });
+
+  test('restoreQueue preenche a fila e não toca', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
+    addTearDown(container.dispose);
+
+    const tracks = [
+      AudioTrack(
+        audioId: 'aud-a',
+        r2Key: 'assets/praises/p1/a.mp3',
+        nome: 'A',
+        numero: '001',
+        groupId: 'p1',
+        categoria: 'Áudio',
+        classificacao: 'Coro',
+      ),
+      AudioTrack(
+        audioId: 'aud-b',
+        r2Key: 'assets/praises/p1/b.mp3',
+        nome: 'B',
+        numero: '001',
+        groupId: 'p1',
+        categoria: 'Playback',
+        classificacao: 'Coro',
+      ),
+    ];
+
+    await container
+        .read(audioPlayerSessionProvider.notifier)
+        .restoreQueue(tracks, startIndex: 1);
+
+    final state = container.read(audioPlayerSessionProvider);
+    expect(state.queue, tracks);
+    expect(state.currentIndex, 1);
+    expect(state.playing, isFalse);
   });
 
   group('shouldShowCarouselAudioFace', () {
@@ -55,6 +103,18 @@ void main() {
           hasAudioPlaylist: true,
         ),
         isTrue,
+      );
+    });
+
+    test('face áudio sem sessão nem audioIds fica na face PDF', () {
+      expect(
+        shouldShowCarouselAudioFace(
+          face: PlaylistMediaFace.audio,
+          hasPdf: true,
+          hasSessionQueue: false,
+          hasAudioPlaylist: false,
+        ),
+        isFalse,
       );
     });
 

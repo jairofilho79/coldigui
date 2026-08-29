@@ -8,7 +8,8 @@
     "check": "wrangler check",
     "types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply plpcg-catalog --local",
-    "db:migrate:remote": "wrangler d1 migrations apply plpcg-catalog --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply plpcg-catalog --remote",
+    "test": "node --experimental-strip-types --test src/auth/username_rules.test.ts src/playlists/publication_rules.test.ts src/coldigom_assets_proxy.test.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250601.0",

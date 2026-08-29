@@ -80,7 +80,8 @@ void main() {
               'material_kind_name': 'Partitura',
             },
             {
-              'id': 'lyrics:p1',
+              // Produção envia id null no placeholder de letra.
+              'id': null,
               'type': 'lyrics',
               'r2_key': null,
               'url': null,
@@ -97,5 +98,18 @@ void main() {
     expect(page.data.first.materials.first.type, 'pdf');
     expect(page.data.first.materials.last.type, 'lyrics');
     expect(page.pagination.total, 1);
+  });
+
+  test('PraiseDetailDto parseia tag_names opcional', () {
+    final detail = PraiseDetailDto.fromJson({
+      'id': 'p1',
+      'name': 'Hino',
+      'number': '001',
+      'rhythm': 'Fox',
+      'tag_names': 'PES,Coletânea',
+      'materials': const [],
+    });
+
+    expect(detail.tagNames, ['PES', 'Coletânea']);
   });
 }

@@ -1,3 +1,4 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -14,6 +15,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier({this.resolvedPlaylist});
@@ -127,6 +129,13 @@ CarouselItem _item({
 }
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   final items = [
     _item(pdfId: 'a', sortOrder: 0, numero: '001', nome: 'Louvor A'),
     _item(pdfId: 'b', sortOrder: 1, numero: '002', nome: 'Louvor B'),
@@ -140,6 +149,7 @@ void main() {
     final carouselNotifier = notifier ?? _FakeCarouselNotifier(carouselItems);
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         carouselLouvoresProvider.overrideWith(() => carouselNotifier),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
       ],
@@ -231,21 +241,18 @@ void main() {
     );
   });
 
-  testWidgets('exibe botão salvar quando há chips', (tester) async {
+  testWidgets('exibe menu overflow quando há chips', (tester) async {
     await tester.pumpWidget(buildSubject(items));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.save_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    expect(find.byIcon(Icons.save_outlined), findsNothing);
+    expect(find.byIcon(Icons.share_outlined), findsNothing);
+    expect(find.byIcon(Icons.clear_all), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
   });
 
-  testWidgets('exibe botão compartilhar quando há chips', (tester) async {
-    await tester.pumpWidget(buildSubject(items));
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
-  });
-
-  testWidgets('em smartphone usa menu overflow em vez de ícones individuais', (
+  testWidgets('em smartphone overflow não esconde limpar nem o olho', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -259,11 +266,11 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
     expect(find.byIcon(Icons.save_outlined), findsNothing);
     expect(find.byIcon(Icons.share_outlined), findsNothing);
-    expect(find.byIcon(Icons.clear_all), findsNothing);
+    expect(find.byIcon(Icons.clear_all), findsOneWidget);
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.view_list), findsOneWidget);
+    expect(find.byIcon(Icons.view_list), findsNothing);
   });
 
   testWidgets('menu overflow em smartphone abre sheet de compartilhar', (
@@ -285,6 +292,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -328,6 +336,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
             carouselLouvoresProvider.overrideWith(() => carouselNotifier),
             playlistsProvider.overrideWith(() => playlistsNotifier),
             playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -367,6 +376,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -381,7 +391,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.share_outlined));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Compartilhar'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Só o folheto'));
     await tester.pumpAndSettle();
@@ -395,6 +407,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(() => notifier),
           playlistsProvider.overrideWith(() => playlists),
         ],
@@ -443,6 +456,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -485,6 +499,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -531,6 +546,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -598,6 +614,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -661,6 +678,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -693,6 +711,7 @@ void main() {
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.view_list), findsOneWidget);
+    expect(find.byIcon(Icons.view_list), findsNothing);
+    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
   });
 }

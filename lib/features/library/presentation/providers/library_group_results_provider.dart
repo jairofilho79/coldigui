@@ -9,9 +9,7 @@ import '../../../catalog/domain/entities/louvores_manifest.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../data/providers/library_providers.dart';
-import '../../domain/entities/library_catalog_mode.dart';
 import '../../domain/entities/paginated_louvor_groups.dart';
-import 'library_catalog_mode_provider.dart';
 import 'library_coldigom_browse_provider.dart';
 import 'library_group_worker.dart';
 import 'library_special_arrangement_provider.dart';
@@ -53,16 +51,10 @@ final libraryPlpcgGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
   );
 });
 
-/// Resultados da biblioteca conforme [libraryCatalogModeProvider].
-///
-/// Coldigom: usa o último valor do browse remoto (loading → empty até chegar).
+/// Resultados da biblioteca — só Coldigom neste build.
 final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
-  final mode = ref.watch(libraryCatalogModeProvider);
-  if (mode == LibraryCatalogMode.coldigom) {
-    return ref.watch(libraryColdigomBrowseProvider).value ??
-        PaginatedLouvorGroups.empty;
-  }
-  return ref.watch(libraryPlpcgGroupResultsProvider);
+  return ref.watch(libraryColdigomBrowseProvider).value ??
+      PaginatedLouvorGroups.empty;
 });
 
 /// Executa o pipeline da Biblioteca fora do main thread; descarta resultados obsoletos.

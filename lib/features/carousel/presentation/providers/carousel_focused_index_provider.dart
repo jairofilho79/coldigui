@@ -1,21 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../domain/entities/carousel_item.dart';
 import 'carousel_louvores_provider.dart';
 
 /// Índice do louvor visível na barra do carousel (shell).
 ///
-/// Persiste o [pdfId] focado entre mutações da lista (remove/reorder/reload)
-/// e recua o índice quando o item focado deixa de existir. Sincroniza com
-/// [carouselLouvoresProvider] (fonte de verdade); [CarouselChips] resolve o
-/// chip exibido pelo `pdfId` na lista debounced
-/// ([carouselLouvoresDisplayProvider]).
+/// Persiste o [pdfId] focado em SharedPreferences (reload) e entre mutações
+/// da lista (remove/reorder/reload). Recua o índice quando o item focado
+/// deixa de existir. Sincroniza com [carouselLouvoresProvider] (fonte de
+/// verdade); [CarouselChips] resolve o chip exibido pelo `pdfId` na lista
+/// debounced ([carouselLouvoresDisplayProvider]).
 class CarouselFocusedIndexNotifier extends Notifier<int> {
   String? _focusedPdfId;
   int _currentIndex = 0;
+  var _didReadPrefs = false;
 
   @override
   int build() {
+    if (!_didReadPrefs) {
+      _didReadPrefs = true;
+      final raw = ref
+          .read(sharedPreferencesProvider)
+          .getString(kCarouselFocusedPdfIdPrefsKey);
+      if (raw != null && raw.isNotEmpty) {
+        _focusedPdfId = raw;
+      }
+    }
     final synced = _syncIndex(ref.watch(carouselLouvoresProvider));
     _currentIndex = synced;
     return synced;
@@ -23,7 +37,7 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
 
   int _syncIndex(List<CarouselItem> items) {
     if (items.isEmpty) {
-      _focusedPdfId = null;
+      // ponytail: keep persisted pdfId across the empty cold-start reload
       _currentIndex = 0;
       return 0;
     }
@@ -47,7 +61,7 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
     if (items.isEmpty || _currentIndex <= 0) return;
     _currentIndex = _currentIndex - 1;
     state = _currentIndex;
-    _focusedPdfId = items[_currentIndex].pdfId;
+    _setFocusedPdfId(items[_currentIndex].pdfId);
   }
 
   void goNext() {
@@ -55,7 +69,7 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
     if (items.isEmpty || _currentIndex >= items.length - 1) return;
     _currentIndex = _currentIndex + 1;
     state = _currentIndex;
-    _focusedPdfId = items[_currentIndex].pdfId;
+    _setFocusedPdfId(items[_currentIndex].pdfId);
   }
 
   /// Foca o item com [pdfId] — usado ao selecionar louvor no modal do carousel.
@@ -66,7 +80,7 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
     if (index < 0) return;
     _currentIndex = index;
     state = index;
-    _focusedPdfId = pdfId;
+    _setFocusedPdfId(pdfId);
   }
 
   /// Volta ao primeiro item — usado ao carregar playlist no carousel.
@@ -74,12 +88,33 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
     final items = ref.read(carouselLouvoresProvider);
     _currentIndex = 0;
     state = 0;
-    _focusedPdfId = items.isEmpty ? null : items.first.pdfId;
+    _setFocusedPdfId(items.isEmpty ? null : items.first.pdfId);
+  }
+
+  /// Esquece o PDF focado — usado ao limpar a seleção.
+  void clearFocus() {
+    _currentIndex = 0;
+    state = 0;
+    _setFocusedPdfId(null);
+  }
+
+  void _setFocusedPdfId(String? pdfId) {
+    _focusedPdfId = pdfId;
+    unawaited(_persist(pdfId));
+  }
+
+  Future<void> _persist(String? pdfId) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (pdfId == null || pdfId.isEmpty) {
+      await prefs.remove(kCarouselFocusedPdfIdPrefsKey);
+    } else {
+      await prefs.setString(kCarouselFocusedPdfIdPrefsKey, pdfId);
+    }
   }
 }
 
 /// Índice 0-based do louvor exibido na [CarouselNavigatorBar] do shell.
 final carouselFocusedIndexProvider =
     NotifierProvider<CarouselFocusedIndexNotifier, int>(
-  CarouselFocusedIndexNotifier.new,
-);
+      CarouselFocusedIndexNotifier.new,
+    );
