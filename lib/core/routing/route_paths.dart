@@ -11,27 +11,27 @@ abstract final class RoutePaths {
   /// Leitor PDF UC-11 — filha do [ShellRoute] com `parentNavigatorKey` fullscreen.
   static const String reader = '/leitor';
 
-  /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
-  static const String audio = '/audio';
-
   /// Leitor de cifras ChordPro — irmã de [reader], filha da branch Home.
   static const String chords = '/cifra';
 
-  /// Eventos — oculto neste build (deep link → home).
+  /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
+  static const String audio = '/audio';
+
+  /// Eventos — placeholder (índice 0 em [PlpcgBottomNavBar]).
   static const String events = '/eventos';
 
-  /// Social — oculto neste build (deep link → home).
+  /// Social — placeholder (índice 3 em [PlpcgBottomNavBar]).
   static const String social = '/social';
 
-  /// Perfil — oculto neste build (deep link → home).
+  /// Perfil — hub Sobre/Listas/Offline (índice 4 em [PlpcgBottomNavBar]).
   static const String profile = '/perfil';
 
-  /// Offline UC-09/10 — oculto neste build (deep link → home).
+  /// Offline UC-09/10 ([OfflineSettingsScreen]) — branch Perfil.
   static const String offline = '/offline';
 
-  /// Playlists UC-06/07 ([PlaylistsScreen]) — aba Listas (índice 2).
+  /// Playlists UC-06/07 ([PlaylistsScreen]) — branch Perfil.
   static const String playlists = '/listas';
 
-  /// Sobre UC-14 — oculto neste build (deep link → home).
+  /// Sobre UC-14 ([AboutScreen]) — branch Perfil.
   static const String about = '/sobre';
 }

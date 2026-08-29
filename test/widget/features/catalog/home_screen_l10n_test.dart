@@ -2,9 +2,10 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -15,30 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   @override
   List<CarouselItem> build() => const [];
-}
-
-class _EmptyColdigomRepo implements ColdigomSearchRepository {
-  @override
-  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
-    return const ColdigomSearchResult(
-      groups: [],
-      louvores: [],
-      page: 1,
-      hasNextPage: false,
-    );
-  }
-
-  @override
-  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
-    return const ColdigomBrowseResult(
-      groups: [],
-      louvores: [],
-      page: 1,
-      limit: 10,
-      totalItems: 0,
-      totalPages: 0,
-    );
-  }
 }
 
 void main() {
@@ -56,8 +33,9 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          coldigomSearchRepositoryProvider.overrideWithValue(
-            _EmptyColdigomRepo(),
+          homeSearchPipelineExecutorProvider.overrideWith(
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
           ),
         ],
         child: MaterialApp(
@@ -71,6 +49,73 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Buscar por número ou título'), findsOneWidget);
-    expect(find.text('Filtros'), findsNothing);
+    expect(find.text('Filtros'), findsOneWidget);
+    expect(find.text('Toque para ver mais'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen exibe banner quando catálogo está obsoleto', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores(const [], isStale: true),
+          ),
+          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+          homeSearchPipelineExecutorProvider.overrideWith(
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('HomeScreen exibe skeleton enquanto manifest carrega', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresManifestLoadingOverride(),
+          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+          homeSearchPipelineExecutorProvider.overrideWith(
+            (ref) =>
+                (input) async => runHomeSearchPipeline(input),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 600));
   });
 }

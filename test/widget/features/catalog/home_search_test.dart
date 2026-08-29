@@ -6,6 +6,8 @@ import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
@@ -97,8 +99,16 @@ List<Override> _homeSearchTestOverrides({
     sharedPreferencesProvider.overrideWithValue(prefs),
     louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+    // Acervo vazio: estes testes medem debounce/eco de URL sobre a busca PLPCG.
+    // Alimentar o mesmo catálogo nas duas fontes duplicaria cada resultado —
+    // artefato da fixture, não do produto. Coldigom tem cobertura própria em
+    // test/unit/features/coldigom/coldigom_search_repository_test.dart.
     coldigomSearchRepositoryProvider.overrideWithValue(
-      _FakeColdigomRepo(catalog),
+      _FakeColdigomRepo(const []),
+    ),
+    // Pipeline PLPCG síncrono: `compute` roda em isolate e não assenta sob pump.
+    homeSearchPipelineExecutorProvider.overrideWith(
+      (ref) => (input) async => runHomeSearchPipeline(input),
     ),
   ];
 }
