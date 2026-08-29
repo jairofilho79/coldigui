@@ -3066,7 +3066,18 @@ Depois da Task 12, com um `.chord` publicado de verdade:
 flutter run --dart-define-from-file=dart_defines/plpcg.json -d chrome
 ```
 
-Buscar **692 — Comigo habita, ó Deus**, abrir o sheet, confirmar que a seção Cifras aparece com `Cifra I` e `Cifra II`, tocar numa e verificar na tela:
+**Louvores com cifra publicada (varredura de 2026-08-29: 57 arquivos, 40 louvores).** Os publicados se concentram nos números baixos, e quase todos têm `Cifra I` **e** `Cifra II` — o que exercita a lista com múltiplos itens, não só um:
+
+```
+001 — Meu Deus, meu pai                        [Cifra I + Cifra II]
+001 — O sangue de Jesus tem poder              [Cifra I + Cifra II]
+002 — Pai, estou a te clamar                   [Cifra I + Cifra II]
+003 — Clamo, ó Senhor por teu sangue           [Cifra I + Cifra II]
+004 — Clamo, ó Senhor                          [Cifra I + Cifra II]
+692 — Comigo habita, ó Deus                    [Cifra I + Cifra II]
+```
+
+Pegar um deles, abrir o sheet, confirmar que a aba/seção Cifras aparece com as duas, tocar numa e verificar na tela:
 
 - as barras vermelhas caem entre sílabas (`ha│bi`), não no meio de palavra sem acorde;
 - `[Eb]Co - [Bb]migo` mostra os acordes alinhados sobre `Co` e `migo`;
