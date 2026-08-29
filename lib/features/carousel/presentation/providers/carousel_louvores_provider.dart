@@ -40,6 +40,7 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
     final metadata = buildCarouselMetadataMap(
       plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
       coldigomCache: ref.read(coldigomLouvoresCacheProvider),
+      chordCache: ref.read(coldigomChordMaterialsCacheProvider),
     );
     final items = await repository.getOrderedItems(pdfIdToMetadata: metadata);
     if (generation != _reloadGeneration) return;

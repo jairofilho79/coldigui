@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 
@@ -39,6 +41,17 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
+    if (materialIdKindOf(targetPdfId) == MaterialIdKind.chord) {
+      final chord = ref
+          .read(coldigomChordMaterialsCacheProvider)[targetPdfId];
+      if (chord == null) return null;
+      return buildChordReaderLocation(
+        chordId: chord.chordId,
+        titulo: chord.nome,
+        subtitulo: chord.numero,
+      );
+    }
+
     final louvor = findLouvorByPdfIdWithColdigom(
       ref.read(louvoresManifestProvider).value?.louvores,
       targetPdfId,

@@ -14,6 +14,8 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/presentation/widgets/coldigom_material_sheet.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
@@ -100,6 +102,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
   }
 
+  Future<void> _openChord(ChordMaterial chord) =>
+      openChordInReader(ref: ref, context: context, chord: chord);
+
   Future<void> _handleTap() async {
     final singleAudio = _singleAudio;
     if (singleAudio != null) {
@@ -124,6 +129,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         onYoutubeSelected: _openYoutube,
         onMaterialAdd: _handleAddMaterialToCarousel,
         onAudioAdd: _handleAddAudioToPlaylist,
+        onChordSelected: _openChord,
       );
       return;
     }
@@ -136,6 +142,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       onYoutubeSelected: _openYoutube,
       onMaterialAdd: _handleAddMaterialToCarousel,
       onAudioAdd: _handleAddAudioToPlaylist,
+      onChordSelected: _openChord,
     );
   }
 

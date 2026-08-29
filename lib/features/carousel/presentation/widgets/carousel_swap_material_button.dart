@@ -10,6 +10,7 @@ import 'package:coldigui/features/catalog/presentation/providers/louvores_manife
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
+import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/presentation/widgets/coldigom_material_sheet.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -80,6 +81,8 @@ Future<void> showCarouselSwapMaterialSheet({
         selected: selected,
       ),
       onYoutubeSelected: (item) => openYoutubeMaterial(item),
+      onChordSelected: (chord) =>
+          openChordInReader(ref: ref, context: context, chord: chord),
     );
   }
 
@@ -93,6 +96,8 @@ Future<void> showCarouselSwapMaterialSheet({
       selected: selected,
     ),
     onYoutubeSelected: (item) => openYoutubeMaterial(item),
+    onChordSelected: (chord) =>
+        openChordInReader(ref: ref, context: context, chord: chord),
   );
 }
 

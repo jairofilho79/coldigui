@@ -150,7 +150,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }
 
   bool get _isReaderRoute {
-    return _routerState?.uri.path == RoutePaths.reader;
+    final path = _routerState?.uri.path;
+    return path == RoutePaths.reader || path == RoutePaths.chords;
   }
 
   Map<String, String> _readerRouteParams({required bool readOnly}) {

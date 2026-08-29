@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -54,8 +55,8 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
 
         await prefetch.call(
           catalog: catalog,
-          previousPdfId: position.previousPdfId,
-          nextPdfId: position.nextPdfId,
+          previousPdfId: _pdfIdOrNull(position.previousPdfId),
+          nextPdfId: _pdfIdOrNull(position.nextPdfId),
         );
       }
 
@@ -82,3 +83,9 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
 
       ref.watch(pdfReaderSessionProvider(params.filePath));
     });
+
+/// Descarta ids que não são PDF — cifra no carousel não tem o que pré-buscar.
+String? _pdfIdOrNull(String? id) {
+  if (id == null) return null;
+  return materialIdKindOf(id) == MaterialIdKind.pdf ? id : null;
+}
