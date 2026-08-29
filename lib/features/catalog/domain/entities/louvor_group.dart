@@ -1,6 +1,7 @@
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 
+import '../../../chords/domain/entities/chord_material.dart';
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'louvor.dart';
@@ -42,6 +43,7 @@ class LouvorGroup {
     required this.sections,
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
+    this.chordMaterials = const [],
     this.coldigomMeta,
   }) : numeroSortKey = _parseNumeroSortKey(numero);
 
@@ -55,6 +57,9 @@ class LouvorGroup {
 
   /// Links YouTube Coldigom associados ao mesmo [groupId].
   final List<YoutubeMaterial> youtubeMaterials;
+
+  /// Cifras ChordPro Coldigom associadas ao mesmo [groupId].
+  final List<ChordMaterial> chordMaterials;
 
   /// Metadados Coldigom (tom, autor, ritmo…) — null no PLPCG.
   final ColdigomPraiseMetadata? coldigomMeta;
@@ -70,7 +75,11 @@ class LouvorGroup {
     if (audioTracks.any((t) => t.source == LouvorDataSource.coldigom)) {
       return true;
     }
-    return youtubeMaterials.any((y) => y.source == LouvorDataSource.coldigom);
+    if (youtubeMaterials.any((y) => y.source == LouvorDataSource.coldigom)) {
+      return true;
+    }
+    if (chordMaterials.isNotEmpty) return true;
+    return false;
   }
 
   /// Cópia com [coldigomMeta] (ex.: attach a partir do cache).
@@ -82,6 +91,7 @@ class LouvorGroup {
       sections: sections,
       audioTracks: audioTracks,
       youtubeMaterials: youtubeMaterials,
+      chordMaterials: chordMaterials,
       coldigomMeta: meta,
     );
   }
@@ -99,9 +109,12 @@ class LouvorGroup {
   int get totalPdfs =>
       sections.fold(0, (sum, section) => sum + section.materials.length);
 
-  /// Total de entradas (PDFs + áudios + YouTube) no grupo.
+  /// Total de entradas (PDFs + áudios + YouTube + cifras) no grupo.
   int get totalMaterials =>
-      totalPdfs + audioTracks.length + youtubeMaterials.length;
+      totalPdfs +
+      audioTracks.length +
+      youtubeMaterials.length +
+      chordMaterials.length;
 
   /// Classificações distintas no grupo (uma seção por arranjo PDF).
   int get totalArrangements => sections.length;
@@ -127,6 +140,7 @@ class LouvorGroup {
     List<Louvor> louvores, {
     List<AudioTrack> audioTracks = const [],
     List<YoutubeMaterial> youtubeMaterials = const [],
+    List<ChordMaterial> chordMaterials = const [],
     Map<String, ColdigomPraiseMetadata>? coldigomMetaByGroupId,
     bool sortByNumber = true,
   }) {
@@ -150,10 +164,18 @@ class LouvorGroup {
       youtubeByGroup.putIfAbsent(gid, () => []).add(item);
     }
 
+    final chordByGroup = <String, List<ChordMaterial>>{};
+    for (final item in chordMaterials) {
+      final gid = item.groupId.trim();
+      if (gid.isEmpty) continue;
+      chordByGroup.putIfAbsent(gid, () => []).add(item);
+    }
+
     final allGroupIds = <String>{
       ...byGroup.keys,
       ...audioByGroup.keys,
       ...youtubeByGroup.keys,
+      ...chordByGroup.keys,
     };
     final groups = allGroupIds.map((gid) {
       return _buildGroup(
@@ -161,6 +183,7 @@ class LouvorGroup {
         byGroup[gid] ?? const [],
         audioByGroup[gid] ?? const [],
         youtubeByGroup[gid] ?? const [],
+        chordByGroup[gid] ?? const [],
         coldigomMetaByGroupId?[gid],
       );
     }).toList();
@@ -173,7 +196,8 @@ class LouvorGroup {
     String groupId,
     List<Louvor> items,
     List<AudioTrack> tracks,
-    List<YoutubeMaterial> youtube, [
+    List<YoutubeMaterial> youtube,
+    List<ChordMaterial> chords, [
     ColdigomPraiseMetadata? coldigomMeta,
   ]) {
     final byClass = <String, List<Louvor>>{};
@@ -219,6 +243,9 @@ class LouvorGroup {
     } else if (youtube.isNotEmpty) {
       nome = youtube.first.nome;
       numero = youtube.first.numero.trim();
+    } else if (chords.isNotEmpty) {
+      nome = chords.first.nome;
+      numero = chords.first.numero.trim();
     } else {
       nome = '';
       numero = '';
@@ -231,6 +258,7 @@ class LouvorGroup {
       sections: sections,
       audioTracks: List<AudioTrack>.from(tracks),
       youtubeMaterials: List<YoutubeMaterial>.from(youtube),
+      chordMaterials: List<ChordMaterial>.from(chords),
       coldigomMeta: coldigomMeta,
     );
   }

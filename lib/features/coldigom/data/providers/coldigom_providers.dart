@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
+import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../datasources/coldigom_remote_datasource.dart';
@@ -52,6 +53,30 @@ final coldigomAudioTracksCacheProvider =
     NotifierProvider<ColdigomAudioTracksCacheNotifier, Map<String, AudioTrack>>(
       ColdigomAudioTracksCacheNotifier.new,
     );
+
+/// Cache em memória de cifras coldigom indexadas por `chordId`.
+class ColdigomChordMaterialsCacheNotifier
+    extends Notifier<Map<String, ChordMaterial>> {
+  @override
+  Map<String, ChordMaterial> build() => const {};
+
+  void mergeChords(Iterable<ChordMaterial> chords) {
+    if (chords.isEmpty) return;
+    final next = Map<String, ChordMaterial>.from(state);
+    for (final chord in chords) {
+      next[chord.chordId] = chord;
+    }
+    state = next;
+  }
+
+  ChordMaterial? findByChordId(String chordId) => state[chordId];
+}
+
+final coldigomChordMaterialsCacheProvider =
+    NotifierProvider<
+      ColdigomChordMaterialsCacheNotifier,
+      Map<String, ChordMaterial>
+    >(ColdigomChordMaterialsCacheNotifier.new);
 
 /// Cache de metadados Coldigom indexados por praise/`groupId`.
 class ColdigomPraiseMetaCacheNotifier

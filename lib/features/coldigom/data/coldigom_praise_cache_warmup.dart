@@ -38,6 +38,9 @@ Future<void> warmupColdigomPraiseIds(
           .read(coldigomAudioTracksCacheProvider.notifier)
           .mergeTracks(ColdigomLouvorAdapter.toAudioTracks(detail));
       ref
+          .read(coldigomChordMaterialsCacheProvider.notifier)
+          .mergeChords(ColdigomLouvorAdapter.toChordMaterials(detail));
+      ref
           .read(coldigomPraiseMetaCacheProvider.notifier)
           .put(praiseId, ColdigomLouvorAdapter.toMetadata(detail));
     } on Object {
@@ -80,6 +83,9 @@ final ensureColdigomPraiseMaterialsCachedProvider =
         ref
             .read(coldigomAudioTracksCacheProvider.notifier)
             .mergeTracks(ColdigomLouvorAdapter.toAudioTracks(detail));
+        ref
+            .read(coldigomChordMaterialsCacheProvider.notifier)
+            .mergeChords(ColdigomLouvorAdapter.toChordMaterials(detail));
         ref
             .read(coldigomPraiseMetaCacheProvider.notifier)
             .put(praiseId, ColdigomLouvorAdapter.toMetadata(detail));

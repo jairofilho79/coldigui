@@ -2,6 +2,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
+import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../adapters/coldigom_louvor_adapter.dart';
@@ -43,6 +44,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      chordMaterials: fetched.chordMaterials,
       coldigomMetaByGroupId: fetched.metaByGroupId,
       sortByNumber: false,
     );
@@ -51,6 +53,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      chordMaterials: fetched.chordMaterials,
       praiseMetaByGroupId: fetched.metaByGroupId,
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
@@ -97,6 +100,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      chordMaterials: fetched.chordMaterials,
       coldigomMetaByGroupId: fetched.metaByGroupId,
       // Com q a API já ranqueia; sem q ordenamos por número localmente.
       sortByNumber: !hasQuery,
@@ -107,6 +111,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
+      chordMaterials: fetched.chordMaterials,
       praiseMetaByGroupId: fetched.metaByGroupId,
       page: pageDto.pagination.page,
       limit: pageDto.pagination.limit,
@@ -119,23 +124,27 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     List<Louvor> louvores,
     List<AudioTrack> audioTracks,
     List<YoutubeMaterial> youtubeMaterials,
+    List<ChordMaterial> chordMaterials,
     Map<String, ColdigomPraiseMetadata> metaByGroupId,
   })
   _mapDetails(List<PraiseDetailDto> details) {
     final louvores = <Louvor>[];
     final audioTracks = <AudioTrack>[];
     final youtubeMaterials = <YoutubeMaterial>[];
+    final chordMaterials = <ChordMaterial>[];
     final metaByGroupId = <String, ColdigomPraiseMetadata>{};
     for (final detail in details) {
       louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
       audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
       youtubeMaterials.addAll(ColdigomLouvorAdapter.toYoutubeMaterials(detail));
+      chordMaterials.addAll(ColdigomLouvorAdapter.toChordMaterials(detail));
       metaByGroupId[detail.id] = ColdigomLouvorAdapter.toMetadata(detail);
     }
     return (
       louvores: louvores,
       audioTracks: audioTracks,
       youtubeMaterials: youtubeMaterials,
+      chordMaterials: chordMaterials,
       metaByGroupId: metaByGroupId,
     );
   }
