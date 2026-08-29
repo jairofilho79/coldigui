@@ -82,7 +82,7 @@ class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
 class _ColdigomMaterialSheetBodyState
     extends ConsumerState<_ColdigomMaterialSheetBody> {
   String? _addingId;
-  int _selectedKindIndex = 0;
+  _ColdigomMaterialKind? _selectedKind;
 
   @override
   void initState() {
@@ -152,16 +152,16 @@ class _ColdigomMaterialSheetBodyState
     final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
     final availableChords = group.chordMaterials.isEmpty
         ? const <ChordMaterial>[]
-        : ref
-              .watch(availableChordsProvider(group.groupId))
-              .maybeWhen(
-                data: (chords) => chords,
-                orElse: () => const <ChordMaterial>[],
-              );
+        : ref.watch(availableChordsProvider(group.groupId)).value ??
+              const <ChordMaterial>[];
     final kinds = _visibleKinds(group, availableChords);
-    final selectedKindIndex = kinds.isEmpty
+    final selectedKind = _selectedKind;
+    final selectedKindIndexRaw = selectedKind == null
+        ? -1
+        : kinds.indexOf(selectedKind);
+    final selectedKindIndex = selectedKindIndexRaw < 0
         ? 0
-        : _selectedKindIndex.clamp(0, kinds.length - 1);
+        : selectedKindIndexRaw;
     final showSegments = kinds.length > 1;
 
     return Padding(
@@ -248,7 +248,7 @@ class _ColdigomMaterialSheetBodyState
                 labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
                 selectedIndex: selectedKindIndex,
                 onSelected: (index) {
-                  setState(() => _selectedKindIndex = index);
+                  setState(() => _selectedKind = kinds[index]);
                 },
               ),
             ],

@@ -1,4 +1,10 @@
+import 'dart:async';
+
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
@@ -182,4 +188,101 @@ void main() {
 
     expect(selected?.categoria, 'Cifra');
   });
+
+  testWidgets(
+    'aba selecionada nao muda de posicao quando a aba Cifras aparece depois',
+    (tester) async {
+      // Regressao: _selectedKindIndex guardava uma *posicao*. A aba Cifras
+      // e inserida entre pdf e audio, renumerando as abas seguintes — quem
+      // estava em "audio" (posicao 1) ou "youtube" (posicao 2) era jogado
+      // para a aba vizinha quando a cifra resolvia depois do primeiro frame.
+      final pdf = Louvor.fromManifest(
+        nome: 'Comigo habita',
+        numero: '692',
+        categoria: 'Partitura',
+        classificacao: 'Básico',
+        pdf: 'a.pdf',
+        pdfId: 'pdf1',
+        groupId: 'p1',
+        source: LouvorDataSource.coldigom,
+      );
+      const track = AudioTrack(
+        audioId: 'audio1',
+        r2Key: 'audio-key',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'p1',
+        categoria: 'Áudio',
+        classificacao: 'Básico',
+      );
+      const yt = YoutubeMaterial(
+        id: 'yt1',
+        url: 'https://www.youtube.com/watch?v=1Pks43ceAac',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'p1',
+        categoria: 'Gestos CIAs',
+        classificacao: 'Básico',
+      );
+      final group = LouvorGroup.fromLouvores(
+        [pdf],
+        audioTracks: const [track],
+        youtubeMaterials: const [yt],
+        chordMaterials: [_chord('Cifra I', 'k1')],
+      ).first;
+
+      final chordCompleter = Completer<ChordProSong?>();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            chordSongProvider.overrideWith(
+              (ref, r2Key) => chordCompleter.future,
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => showColdigomMaterialSheet(
+                    context: context,
+                    group: group,
+                    onMaterialSelected: (_) {},
+                    onYoutubeSelected: (_) {},
+                  ),
+                  child: const Text('abrir'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('abrir'));
+      await tester.pumpAndSettle();
+
+      // Cifra ainda nao resolveu: so 3 abas (PDF, Audio, YouTube).
+      expect(find.text('Cifras'), findsNothing);
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<IndexedStack>(find.byType(IndexedStack)).index,
+        2, // [pdf, audio, youtube] — youtube na posicao 2
+      );
+
+      chordCompleter.complete(parseChordPro('{title: X}\n\nA [Bb]noite vem,\n'));
+      await tester.pumpAndSettle();
+
+      // Cifra apareceu entre PDF e Audio — a selecao deve seguir o kind
+      // "youtube", nao a posicao antiga.
+      expect(find.text('Cifras'), findsOneWidget);
+      expect(
+        tester.widget<IndexedStack>(find.byType(IndexedStack)).index,
+        3, // [pdf, chord, audio, youtube] — youtube agora na posicao 3
+      );
+    },
+  );
 }

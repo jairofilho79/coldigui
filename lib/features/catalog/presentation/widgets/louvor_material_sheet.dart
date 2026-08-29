@@ -148,6 +148,10 @@ class _LouvorMaterialSheetBodyState
     final onMaterialAdd = widget.onMaterialAdd;
     final onAudioAdd = widget.onAudioAdd;
     final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
+    final availableChords = group.chordMaterials.isEmpty
+        ? const <ChordMaterial>[]
+        : ref.watch(availableChordsProvider(group.groupId)).value ??
+              const <ChordMaterial>[];
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + bottomInset),
@@ -232,45 +236,28 @@ class _LouvorMaterialSheetBodyState
                         },
                       ),
                   ],
-                  if (group.chordMaterials.isNotEmpty)
-                    ref
-                        .watch(availableChordsProvider(group.groupId))
-                        .maybeWhen(
-                          data: (available) => available.isEmpty
-                              ? const SizedBox.shrink()
-                              : Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    _sectionLabel(l10n.chordMaterialSection),
-                                    for (final chord in available)
-                                      ListTile(
-                                        leading: Icon(
-                                          LouvorMaterialIcons.forCategory(
-                                            chord.categoria,
-                                          ),
-                                          color: AppColors.title,
-                                        ),
-                                        title: Text(
-                                          chord.categoria,
-                                          style: AppTypography.body.copyWith(
-                                            color: AppColors.textDark,
-                                          ),
-                                        ),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                                widget.onChordSelected?.call(
-                                                  chord,
-                                                );
-                                              });
-                                        },
-                                      ),
-                                  ],
-                                ),
-                          orElse: () => const SizedBox.shrink(),
+                  if (availableChords.isNotEmpty) ...[
+                    _sectionLabel(l10n.chordMaterialSection),
+                    for (final chord in availableChords)
+                      ListTile(
+                        leading: Icon(
+                          LouvorMaterialIcons.forCategory(chord.categoria),
+                          color: AppColors.title,
                         ),
+                        title: Text(
+                          chord.categoria,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            widget.onChordSelected?.call(chord);
+                          });
+                        },
+                      ),
+                  ],
                   if (group.audioTracks.isNotEmpty) ...[
                     _sectionLabel(l10n.audioMaterialSection),
                     for (final track in group.audioTracks)
