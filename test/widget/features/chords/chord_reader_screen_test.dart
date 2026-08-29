@@ -80,4 +80,72 @@ void main() {
     // O requisito e a persistencia, nao o estado em memoria.
     expect(prefs.getString(StorageKeys.chordReaderMode), 'dark');
   });
+
+  group('barra de controles', () {
+    testWidgets('todos os botoes tem a mesma largura e altura', (tester) async {
+      await _pump(tester, available: true);
+
+      // Os glifos tem larguras intrinsecas diferentes (text_increase e bem
+      // mais largo que add). O minimo de 44pt do estilo e o que uniformiza:
+      // todo glifo cabe folgado, entao todo botao ocupa a mesma caixa.
+      final tooltips = [
+        'Descer meio tom',
+        'Subir meio tom',
+        'Diminuir letra',
+        'Aumentar letra',
+        'Alternar tema do leitor',
+      ];
+
+      final sizes = [
+        for (final t in tooltips) tester.getSize(find.byTooltip(t)),
+      ];
+
+      for (final size in sizes) {
+        expect(size.width, sizes.first.width, reason: 'largura uniforme');
+        expect(size.height, sizes.first.height, reason: 'altura uniforme');
+      }
+      // 40x36 e o que o estilo compartilhado com a barra de carousel produz:
+      // minimo de 44 menos o desconto de VisualDensity.compact, com o padding
+      // padrao do IconButton em volta do glifo de 24. Fixado para pegar
+      // regressao — o que importa e serem todos iguais, acima.
+      expect(sizes.first.width, 40);
+      expect(sizes.first.height, 36);
+    });
+
+    testWidgets('botoes do mesmo grupo ficam encostados', (tester) async {
+      await _pump(tester, available: true);
+
+      double gapBetween(String a, String b) {
+        final left = tester.getRect(find.byTooltip(a));
+        final right = tester.getRect(find.byTooltip(b));
+        return right.left - left.right;
+      }
+
+      // Dentro do grupo de corpo da letra os botoes se tocam.
+      expect(gapBetween('Diminuir letra', 'Aumentar letra'), 0);
+
+      // No grupo de transposicao o unico espaco e o slot reservado ao rotulo,
+      // identico com e sem deslocamento.
+      final slotEmZero = gapBetween('Descer meio tom', 'Subir meio tom');
+      expect(slotEmZero, greaterThan(0));
+
+      await tester.tap(find.byTooltip('Subir meio tom'));
+      await tester.pumpAndSettle();
+      expect(gapBetween('Descer meio tom', 'Subir meio tom'), slotEmZero);
+    });
+
+    testWidgets('o botao - nao se desloca ao transpor', (tester) async {
+      await _pump(tester, available: true);
+
+      final antes = tester.getRect(find.byTooltip('Descer meio tom'));
+      await tester.tap(find.byTooltip('Descer meio tom'));
+      await tester.pumpAndSettle();
+      final depois = tester.getRect(find.byTooltip('Descer meio tom'));
+
+      // O rotulo do deslocamento ocupa largura fixa mesmo em zero, entao
+      // surgir nao empurra o botao de baixo do dedo de quem repete o toque.
+      expect(depois.left, antes.left);
+      expect(find.text('-1'), findsOneWidget);
+    });
+  });
 }

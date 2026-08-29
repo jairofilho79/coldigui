@@ -170,7 +170,33 @@ class _Unavailable extends StatelessWidget {
   }
 }
 
-/// Barra compacta do leitor: tema, corpo da letra e transposição.
+/// Largura reservada ao rótulo de transposição.
+///
+/// Fixa mesmo em zero: sem isso o rótulo surge ao primeiro toque e empurra os
+/// botões à sua esquerda, tirando o `−` de baixo do dedo justo quando o usuário
+/// está repetindo o toque.
+const _transposeLabelWidth = 34.0;
+
+/// Espaço entre grupos de controles — mesmo gap da barra de carousel.
+const _toolbarGroupGap = 8.0;
+
+/// Estilo dos botões da barra do leitor de cifras.
+///
+/// Espelha [carouselBarIconButtonStyle] na forma (densidade compacta, alvo de
+/// 44pt, desabilitado no mesmo matiz) trocando só a cor, que aqui vem da paleta
+/// clara/escura do leitor em vez de [AppColors]. O mínimo de 44 é o que
+/// uniformiza o espaçamento: todo glifo cabe folgado, então cada botão ocupa
+/// exatamente a mesma largura, independentemente de `add` ser mais estreito que
+/// `text_increase`.
+ButtonStyle _toolbarButtonStyle(Color color) => IconButton.styleFrom(
+  foregroundColor: color,
+  disabledForegroundColor: color.withValues(alpha: 0.38),
+  visualDensity: VisualDensity.compact,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  minimumSize: const Size(44, 44),
+);
+
+/// Barra compacta do leitor: transposição, corpo da letra e tema.
 ///
 /// Os controles ficam sempre visíveis porque o tom é o que mais se mexe durante
 /// um ensaio — escondê-los num painel custaria dois toques a cada meio tom.
@@ -193,77 +219,79 @@ class _ChordReaderToolbar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transpose = ref.read(chordReaderTransposeProvider.notifier);
     final size = ref.read(chordReaderFontSizeProvider.notifier);
+    final style = _toolbarButtonStyle(palette.chord);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _ToolbarButton(
+          IconButton(
+            style: style,
             tooltip: l10n.chordReaderTransposeDown,
-            icon: Icons.remove,
-            color: palette.chord,
+            icon: const Icon(Icons.remove),
             onPressed: semitones > -ChordReaderTransposeNotifier.limit
                 ? transpose.down
                 : null,
           ),
-          // Rótulo do deslocamento: toque volta ao tom original. Só aparece
-          // transposto — em zero não há o que desfazer.
-          if (semitones != 0)
-            Tooltip(
-              message: l10n.chordReaderResetTranspose,
-              child: InkWell(
-                onTap: transpose.reset,
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    semitones > 0 ? '+$semitones' : '$semitones',
-                    style: AppTypography.label.copyWith(
-                      color: palette.chord,
-                      fontWeight: FontWeight.w700,
+          SizedBox(
+            width: _transposeLabelWidth,
+            child: semitones == 0
+                ? null
+                // TextButton, não InkWell: ele traz o próprio Material, e a
+                // tela do leitor é um ColoredBox sem Scaffold acima.
+                : TextButton(
+                    onPressed: transpose.reset,
+                    style: TextButton.styleFrom(
+                      foregroundColor: palette.chord,
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(_transposeLabelWidth, 40),
+                      textStyle: AppTypography.label.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: Tooltip(
+                      message: l10n.chordReaderResetTranspose,
+                      child: Text(semitones > 0 ? '+$semitones' : '$semitones'),
                     ),
                   ),
-                ),
-              ),
-            ),
-          _ToolbarButton(
+          ),
+          IconButton(
+            style: style,
             tooltip: l10n.chordReaderTransposeUp,
-            icon: Icons.add,
-            color: palette.chord,
+            icon: const Icon(Icons.add),
             onPressed: semitones < ChordReaderTransposeNotifier.limit
                 ? transpose.up
                 : null,
           ),
-          SizedBox(
-            height: 20,
-            child: VerticalDivider(color: palette.comment, width: 12),
-          ),
-          _ToolbarButton(
+          _ToolbarSeparator(color: palette.comment),
+          IconButton(
+            style: style,
             tooltip: l10n.chordReaderDecreaseFont,
-            icon: Icons.text_decrease,
-            color: palette.chord,
+            icon: const Icon(Icons.text_decrease),
             onPressed: ChordReaderFontSize.canDecrease(fontSize)
                 ? size.decrease
                 : null,
           ),
-          _ToolbarButton(
+          IconButton(
+            style: style,
             tooltip: l10n.chordReaderIncreaseFont,
-            icon: Icons.text_increase,
-            color: palette.chord,
+            icon: const Icon(Icons.text_increase),
             onPressed: ChordReaderFontSize.canIncrease(fontSize)
                 ? size.increase
                 : null,
           ),
-          _ToolbarButton(
+          _ToolbarSeparator(color: palette.comment),
+          IconButton(
+            style: style,
             tooltip: l10n.chordReaderToggleTheme,
-            icon: mode == ChordReaderMode.light
-                ? Icons.dark_mode
-                : Icons.light_mode,
-            color: palette.chord,
+            icon: Icon(
+              mode == ChordReaderMode.light
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
             onPressed: () => ref.read(chordReaderModeProvider.notifier).toggle(),
           ),
         ],
@@ -272,31 +300,22 @@ class _ChordReaderToolbar extends ConsumerWidget {
   }
 }
 
-/// Botão da barra — compacto para caber a fileira inteira em tela estreita.
-class _ToolbarButton extends StatelessWidget {
-  const _ToolbarButton({
-    required this.tooltip,
-    required this.icon,
-    required this.color,
-    required this.onPressed,
-  });
+/// Traço entre grupos de controles.
+///
+/// Separa transposição, corpo e tema — sem ele `−`/`+` e `A−`/`A+` se leem como
+/// uma fileira só de quatro botões equivalentes.
+class _ToolbarSeparator extends StatelessWidget {
+  const _ToolbarSeparator({required this.color});
 
-  final String tooltip;
-  final IconData icon;
   final Color color;
-  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      icon: Icon(icon, size: 20),
-      color: color,
-      disabledColor: color.withValues(alpha: 0.3),
-      onPressed: onPressed,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-      padding: EdgeInsets.zero,
+    return Container(
+      width: 1,
+      height: 18,
+      margin: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap / 2),
+      color: color.withValues(alpha: 0.4),
     );
   }
 }
