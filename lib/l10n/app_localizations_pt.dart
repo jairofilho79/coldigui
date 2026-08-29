@@ -639,6 +639,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordReaderToggleTheme => 'Alternar tema do leitor';
 
   @override
+  String get chordReaderIncreaseFont => 'Aumentar letra';
+
+  @override
+  String get chordReaderDecreaseFont => 'Diminuir letra';
+
+  @override
+  String get chordReaderTransposeUp => 'Subir meio tom';
+
+  @override
+  String get chordReaderTransposeDown => 'Descer meio tom';
+
+  @override
+  String get chordReaderResetTranspose => 'Voltar ao tom original';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

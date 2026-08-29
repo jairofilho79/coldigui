@@ -632,6 +632,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chordReaderToggleTheme => 'Toggle reader theme';
 
   @override
+  String get chordReaderIncreaseFont => 'Increase text size';
+
+  @override
+  String get chordReaderDecreaseFont => 'Decrease text size';
+
+  @override
+  String get chordReaderTransposeUp => 'Transpose up a semitone';
+
+  @override
+  String get chordReaderTransposeDown => 'Transpose down a semitone';
+
+  @override
+  String get chordReaderResetTranspose => 'Back to original key';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

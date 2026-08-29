@@ -1127,6 +1127,36 @@ abstract class AppLocalizations {
   /// **'Alternar tema do leitor'**
   String get chordReaderToggleTheme;
 
+  /// No description provided for @chordReaderIncreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar letra'**
+  String get chordReaderIncreaseFont;
+
+  /// No description provided for @chordReaderDecreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir letra'**
+  String get chordReaderDecreaseFont;
+
+  /// No description provided for @chordReaderTransposeUp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Subir meio tom'**
+  String get chordReaderTransposeUp;
+
+  /// No description provided for @chordReaderTransposeDown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descer meio tom'**
+  String get chordReaderTransposeDown;
+
+  /// No description provided for @chordReaderResetTranspose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao tom original'**
+  String get chordReaderResetTranspose;
+
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:

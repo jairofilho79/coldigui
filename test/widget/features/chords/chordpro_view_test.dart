@@ -93,4 +93,107 @@ void main() {
     expect(text.style?.color, ChordReaderMode.dark.palette.lyric);
     expect(text.style?.color, isNot(ChordReaderMode.light.palette.lyric));
   });
+
+  group('melhorias de leitura', () {
+    testWidgets('zebra listra linhas de letra alternadas', (tester) async {
+      await _pump(tester, 'linha um\nlinha dois\nlinha tres\nlinha quatro\n');
+
+      // Índice par sem faixa, ímpar com faixa.
+      expect(find.byKey(chordStripeKey(0)), findsNothing);
+      expect(find.byKey(chordStripeKey(1)), findsOneWidget);
+      expect(find.byKey(chordStripeKey(2)), findsNothing);
+      expect(find.byKey(chordStripeKey(3)), findsOneWidget);
+    });
+
+    testWidgets('estrofe nao desloca a alternancia da zebra', (tester) async {
+      // Sem contar só linhas de letra, a quebra entre estrofes faria a listra
+      // "pular" e duas linhas seguidas ficariam com o mesmo fundo.
+      await _pump(tester, 'um\ndois\n\n\ntres\nquatro\n');
+
+      expect(find.byKey(chordStripeKey(1)), findsOneWidget);
+      expect(find.byKey(chordStripeKey(2)), findsNothing);
+      expect(find.byKey(chordStripeKey(3)), findsOneWidget);
+    });
+
+    testWidgets('fontSize escala letra e acorde juntos', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChordProView(
+              song: parseChordPro('ha[Cm]bi\n'),
+              palette: ChordReaderMode.light.palette,
+              fontSize: 24,
+            ),
+          ),
+        ),
+      );
+
+      final lyric = tester.widget<Text>(find.text('bi'));
+      final chord = tester.widget<Text>(find.text('Cm'));
+      expect(lyric.style?.fontSize, 24);
+      // Proporção 13/16 preservada para o rótulo não descolar da sílaba.
+      expect(chord.style?.fontSize, closeTo(24 * 13 / 16, 0.01));
+    });
+
+    testWidgets('transposicao muda os acordes e nao a letra', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChordProView(
+              song: parseChordPro('{key: G}\n\nha[G]bi [Am]ta [D7/F#]la\n'),
+              palette: ChordReaderMode.light.palette,
+              semitones: 2,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('A'), findsOneWidget);
+      expect(find.text('Bm'), findsOneWidget);
+      expect(find.text('E7/G#'), findsOneWidget);
+      // A letra segue intacta.
+      expect(find.text('bi '), findsOneWidget);
+      expect(find.text('ta '), findsOneWidget);
+      // E os rótulos originais sumiram.
+      expect(find.text('G'), findsNothing);
+      expect(find.text('Am'), findsNothing);
+    });
+
+    testWidgets('transposicao respeita a grafia do tom de destino',
+        (tester) async {
+      // G subindo um vira Lab (bemois), nao Sol# (oito sustenidos).
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChordProView(
+              song: parseChordPro('{key: G}\n\nca[G]sa [C]la\n'),
+              palette: ChordReaderMode.light.palette,
+              semitones: 1,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Ab'), findsOneWidget);
+      expect(find.text('Db'), findsOneWidget);
+      expect(find.text('G#'), findsNothing);
+    });
+
+    testWidgets('transposicao nao mexe em marcadores como [*2x]',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChordProView(
+              song: parseChordPro('{key: G}\n\nca[*2x]sa\n'),
+              palette: ChordReaderMode.light.palette,
+              semitones: 3,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('*2x'), findsOneWidget);
+    });
+  });
 }

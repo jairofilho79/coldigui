@@ -10,6 +10,7 @@ class ChordReaderPalette {
     required this.chord,
     required this.bar,
     required this.comment,
+    required this.stripe,
   });
 
   final Color background;
@@ -20,6 +21,12 @@ class ChordReaderPalette {
   final Color bar;
 
   final Color comment;
+
+  /// Faixa de fundo alternada nas linhas de letra.
+  ///
+  /// Opacidade maior no escuro: a mesma alfa que se lê sobre creme desaparece
+  /// sobre carvão.
+  final Color stripe;
 }
 
 /// Claro/escuro **local ao leitor de cifras**.
@@ -39,6 +46,7 @@ enum ChordReaderMode {
       chord: AppColors.title,
       bar: Color(0xFFC62828),
       comment: Color(0xFF6B6B6B),
+      stripe: Color(0x0A6A2F2F),
     ),
     ChordReaderMode.dark => const ChordReaderPalette(
       background: AppColors.pdfArea,
@@ -46,6 +54,7 @@ enum ChordReaderMode {
       chord: AppColors.goldLight,
       bar: Color(0xFFFF5252),
       comment: Color(0xFFB0B0B0),
+      stripe: Color(0x12FFFFFF),
     ),
   };
 
