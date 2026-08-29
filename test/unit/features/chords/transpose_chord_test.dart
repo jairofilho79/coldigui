@@ -105,4 +105,37 @@ void main() {
       expect(transposeKeyLabel('F#m', 0), 'F#m');
     });
   });
+
+  group('corpus real — Comigo Habita, tom Eb', () {
+    // Fixture committed em test/fixtures/chordpro/comigo_habita.chord.
+    // A primeira linha e: [Eb]Co - [Bb]migo ha[Cm]bi - [Gm]ta, o [Ab]Deus!
+    const linha = ['Eb', 'Bb', 'Cm', 'Gm', 'Ab'];
+
+    test('descer um da o tom de Re — o que o violao quer', () {
+      final flats = preferFlatsForKey('Eb', -1);
+      expect(transposeKeyLabel('Eb', -1), 'D');
+      expect(
+        [for (final c in linha) transposeChordLabel(c, -1, preferFlats: flats)],
+        ['D', 'A', 'Bm', 'F#m', 'G'],
+      );
+    });
+
+    test('subir um da o tom de Mi, com sustenidos', () {
+      final flats = preferFlatsForKey('Eb', 1);
+      expect(transposeKeyLabel('Eb', 1), 'E');
+      expect(
+        [for (final c in linha) transposeChordLabel(c, 1, preferFlats: flats)],
+        ['E', 'B', 'C#m', 'G#m', 'A'],
+      );
+    });
+
+    test('subir dois mantem bemois — destino Fa', () {
+      final flats = preferFlatsForKey('Eb', 2);
+      expect(transposeKeyLabel('Eb', 2), 'F');
+      expect(
+        [for (final c in linha) transposeChordLabel(c, 2, preferFlats: flats)],
+        ['F', 'C', 'Dm', 'Am', 'Bb'],
+      );
+    });
+  });
 }
