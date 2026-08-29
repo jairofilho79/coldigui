@@ -38,7 +38,9 @@ class ShellScaffold extends ConsumerWidget {
 
   bool _isImmersiveMediaRoute(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
-    return path == RoutePaths.reader || path == RoutePaths.audio;
+    return path == RoutePaths.reader ||
+        path == RoutePaths.audio ||
+        path == RoutePaths.chords;
   }
 
   @override

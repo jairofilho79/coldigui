@@ -29,6 +29,7 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
     plpcgCatalog: ref.watch(louvoresManifestProvider).value?.louvores,
     coldigomCache: ref.watch(coldigomLouvoresCacheProvider),
     audioCache: ref.watch(coldigomAudioTracksCacheProvider),
+    chordCache: ref.watch(coldigomChordMaterialsCacheProvider),
   );
 }
 
@@ -116,7 +117,7 @@ Future<void> _onPdfMaterialSelected({
 }) async {
   if (!context.mounted) return;
   final path = GoRouterState.of(context).uri.path;
-  final onReader = path == RoutePaths.reader;
+  final onReader = path == RoutePaths.reader || path == RoutePaths.chords;
 
   if (currentPdfId != null &&
       currentPdfId.isNotEmpty &&

@@ -11,7 +11,7 @@ import 'plpcg_app_bar_title.dart';
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
 /// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
-/// Em `/leitor` e `/audio`, exibe voltar (pop → home) para padronizar.
+/// Em `/leitor`, `/audio` e `/cifra`, exibe voltar (pop → home) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const PlpcgPrimaryAppBar({super.key});
@@ -23,7 +23,9 @@ class PlpcgPrimaryAppBar extends StatelessWidget
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
     final isImmersiveMedia =
-        path == RoutePaths.reader || path == RoutePaths.audio;
+        path == RoutePaths.reader ||
+        path == RoutePaths.audio ||
+        path == RoutePaths.chords;
 
     return AppBar(
       automaticallyImplyLeading: false,

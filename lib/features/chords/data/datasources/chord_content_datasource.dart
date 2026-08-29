@@ -10,7 +10,10 @@ import '../../domain/usecases/parse_chordpro.dart';
 /// conteúdo?" — porque os arquivos têm 611 B em média. Por isso não há HEAD:
 /// o GET já traz tudo, e o resultado alimenta o leitor sem segunda requisição.
 class ChordContentDatasource {
+  // Dart não aceita identificador privado como rótulo de parâmetro nomeado —
+  // a forma sugerida pelo lint perderia o nome externo `apiBase`.
   const ChordContentDatasource(this._dio, {required String apiBase})
+    // ignore: prefer_initializing_formals
     : _apiBase = apiBase;
 
   final Dio _dio;

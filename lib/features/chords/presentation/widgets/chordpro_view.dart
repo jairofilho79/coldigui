@@ -100,7 +100,15 @@ class _ChordCellView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lyric = Text(cell.text, style: lyricStyle, softWrap: false);
+    // Célula sem acorde não tem rótulo para alinhar, então pode quebrar: sem
+    // isso um trecho longo estoura a largura da viewport e é cortado em
+    // silêncio (TextOverflow.clip, sem reticências). Com acorde, o texto tem
+    // de ficar em uma linha só para não se descolar do rótulo acima.
+    final lyric = Text(
+      cell.text,
+      style: lyricStyle,
+      softWrap: cell.chord == null,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -108,23 +116,16 @@ class _ChordCellView extends StatelessWidget {
       children: [
         Text(cell.chord ?? '', style: chordStyle, softWrap: false),
         if (cell.attached)
-          // IntrinsicHeight dá altura finita à Row — sem ela, o
-          // CrossAxisAlignment.stretch explode com "infinite height" porque
-          // o Wrap/Column ao redor não limita a altura.
-          IntrinsicHeight(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Barra na borda esquerda do texto: é ali que o acorde troca.
-                // Com texto vazio (Sinai[C#m7]) ela cai logo após a célula anterior.
-                SizedBox(
-                  width: 2,
-                  child: ColoredBox(key: barKey, color: barColor),
-                ),
-                lyric,
-              ],
+          // Barra na borda esquerda do texto: é ali que o acorde troca. Como
+          // borda do próprio texto, ela acompanha a altura da letra sem
+          // IntrinsicHeight — nada de segunda passada de layout por célula.
+          // Com texto vazio (Sinai[C#m7]) ela cai logo após a célula anterior.
+          Container(
+            key: barKey,
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: barColor, width: 2)),
             ),
+            child: lyric,
           )
         else
           lyric,

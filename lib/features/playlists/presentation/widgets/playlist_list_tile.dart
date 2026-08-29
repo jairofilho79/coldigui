@@ -4,6 +4,8 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -273,6 +275,30 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     try {
       final loaded = await _loadPlaylist(l10n);
       if (!loaded || !mounted) return;
+
+      // Cifra e PDF dividem o mesmo espaço de ids, então a entrada da lista só
+      // se revela cifra ao ser decodificada. Sem este desvio ela cairia no
+      // findLouvorByPdfId (que só conhece PDFs) e viraria erro genérico.
+      if (materialIdKindOf(pdfId) == MaterialIdKind.chord) {
+        final chord = ref.read(coldigomChordMaterialsCacheProvider)[pdfId];
+        if (chord != null) {
+          final chordLocation = buildChordReaderLocation(
+            chordId: chord.chordId,
+            titulo: chord.nome,
+            subtitulo: chord.numero,
+          );
+          playlistOpenDebugLog('_openPdfInReader: cifra → $chordLocation');
+          if (!mounted) return;
+          await context.push(chordLocation);
+          playlistOpenDebugLog('_openPdfInReader: concluído');
+          return;
+        }
+        // Cache frio: segue para o caminho de erro comum abaixo.
+        playlistOpenDebugLogFailure(
+          '_openPdfInReader',
+          'cifra $pdfId fora do cache',
+        );
+      }
 
       final louvor = ref
           .read(playlistsProvider.notifier)

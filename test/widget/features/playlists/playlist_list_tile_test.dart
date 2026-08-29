@@ -5,6 +5,8 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
@@ -89,6 +91,15 @@ class _LouvorFindingPlaylistsNotifier extends _FakePlaylistsNotifier {
       pdfId: pdfId,
     );
   }
+}
+
+class _FakeChordCacheNotifier extends ColdigomChordMaterialsCacheNotifier {
+  _FakeChordCacheNotifier(this.initial);
+
+  final Map<String, ChordMaterial> initial;
+
+  @override
+  Map<String, ChordMaterial> build() => initial;
 }
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
@@ -271,6 +282,92 @@ void main() {
 
     expect(notifier.lastLoadedPlaylistId, 'p1');
     expect(find.text(pdfIdB), findsOneWidget);
+  });
+
+  testWidgets('Abrir no leitor com cifra na primeira posicao vai para /cifra', (
+    tester,
+  ) async {
+    // A cifra entra na lista com o mesmo espaco de ids do PDF, entao so o
+    // materialIdKindOf separa as duas. Sem o desvio, o notifier abaixo (que
+    // acha Louvor para qualquer id) mandaria a cifra para /leitor.
+    final chordId = _pdfId('assets/praises/p1/m1.chord');
+    final chordItem = PlaylistViewItem(
+      playlist: SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Ensaio com cifra',
+        pdfIds: [chordId, pdfIdB],
+        createdAt: DateTime(2026, 6, 8),
+      ),
+      pdfLabels: ['Cifra — A', '002 — B'],
+    );
+    final chord = ChordMaterial(
+      chordId: chordId,
+      r2Key: 'assets/praises/p1/m1.chord',
+      nome: 'Comigo habita',
+      numero: '001',
+      groupId: 'p1',
+      categoria: 'Cifra',
+      classificacao: 'ColAdultos',
+    );
+
+    final notifier = _LouvorFindingPlaylistsNotifier([chordItem]);
+    final router = GoRouter(
+      initialLocation: RoutePaths.playlists,
+      routes: [
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (_, _) => Scaffold(
+            body: PlaylistListTile(item: chordItem, tab: PlaylistTab.saved),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, state) => Scaffold(
+            body: Text('leitor:${state.uri.queryParameters['pdfId']}'),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.chords,
+          builder: (_, state) => Scaffold(
+            body: Text('cifra:${state.uri.queryParameters['pdfId']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(() => notifier),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([]),
+          ),
+          coldigomChordMaterialsCacheProvider.overrideWith(
+            () => _FakeChordCacheNotifier({chordId: chord}),
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _FakeResolvePdfForReader(),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abrir no leitor'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(find.text('cifra:$chordId'), findsOneWidget);
+    expect(find.textContaining('Não foi possível'), findsNothing);
   });
 
   testWidgets('Compartilhar abre sheet e dispara share', (tester) async {

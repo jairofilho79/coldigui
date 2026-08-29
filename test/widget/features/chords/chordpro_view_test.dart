@@ -47,6 +47,33 @@ void main() {
     expect(find.text('Deus e Amor   '), findsNothing);
   });
 
+  testWidgets('tres espacos ocupam mais largura que um espaco',
+      (tester) async {
+    // find.text casa por Text.data, entao um softWrap/overflow que engula os
+    // espacos passaria verde. So a largura renderizada prova a promessa.
+    await _pump(tester, 'Deus e Amor [C]\nDeus e Amor   [C]\n');
+
+    expect(
+      tester.getSize(find.text('Deus e Amor   ')).width,
+      greaterThan(tester.getSize(find.text('Deus e Amor ')).width),
+    );
+  });
+
+  testWidgets('celula sem acorde quebra em vez de ser cortada',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    const long = 'Quando eu contemplo a cruz gloriosa em que ';
+    await _pump(tester, '$long[C]morreu\n');
+
+    final size = tester.getSize(find.text(long));
+    expect(size.width, lessThanOrEqualTo(360));
+    // Quebrou em duas linhas: sem softWrap seria uma linha so, cortada.
+    expect(size.height, greaterThan(20));
+  });
+
   testWidgets('renderiza comentario de diretiva', (tester) async {
     await _pump(tester, '{comment: Instrumentos: C Am}\nletra\n');
 

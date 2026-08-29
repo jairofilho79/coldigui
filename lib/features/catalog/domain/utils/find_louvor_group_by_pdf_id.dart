@@ -1,4 +1,5 @@
 import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../chords/domain/entities/chord_material.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../entities/louvor.dart';
 import '../entities/louvor_data_source.dart';
@@ -64,16 +65,18 @@ LouvorGroup? _groupFromSiblings(Louvor louvor, Iterable<Louvor> candidates) {
   return LouvorGroup.fromLouvores(sameGroup).first;
 }
 
-/// Grupo para o botão layers da barra: inclui áudios do cache e aceita 1 PDF
-/// se [LouvorGroup.totalMaterials] > 1.
+/// Grupo para o botão layers da barra: inclui áudios/cifras do cache e aceita
+/// 1 PDF se [LouvorGroup.totalMaterials] > 1.
 LouvorGroup? findSwapMaterialGroup({
   String? pdfId,
   String? audioId,
   List<Louvor>? plpcgCatalog,
   Map<String, Louvor>? coldigomCache,
   Map<String, AudioTrack>? audioCache,
+  Map<String, ChordMaterial>? chordCache,
 }) {
   final tracks = audioCache?.values.toList() ?? const <AudioTrack>[];
+  final chords = chordCache?.values.toList() ?? const <ChordMaterial>[];
   Louvor? louvor;
   if (pdfId != null && pdfId.isNotEmpty) {
     louvor = findLouvorByPdfIdWithColdigom(
@@ -88,12 +91,21 @@ LouvorGroup? findSwapMaterialGroup({
       louvor,
       _siblingCatalog(louvor, plpcgCatalog, coldigomCache),
     );
-    final gid = _groupKey(louvor);
-    final matchingTracks = [
-      for (final track in tracks)
-        if (track.groupId == gid) track,
-    ];
-    return _groupIfMultiple(pdfs, matchingTracks);
+    return _groupIfMultiple(pdfs, tracks, chords, _groupKey(louvor));
+  }
+
+  // Cifra: o id decodifica para `.chord`, então nenhum [Louvor] casa com ele.
+  // O praiseId sai do próprio id — é o mesmo `assets/praises/{id}/…` do PDF.
+  if (pdfId != null && pdfId.isNotEmpty) {
+    final chordGid = coldigomPraiseIdFromPdfId(pdfId);
+    if (chordGid != null && chordCache?[pdfId] != null) {
+      return _groupIfMultiple(
+        _coldigomSiblingPdfs(coldigomCache, chordGid),
+        tracks,
+        chords,
+        chordGid,
+      );
+    }
   }
 
   if (audioId == null || audioId.isEmpty) return null;
@@ -101,16 +113,23 @@ LouvorGroup? findSwapMaterialGroup({
   if (track == null || track.groupId.isEmpty) return null;
 
   final gid = track.groupId;
-  final pdfs = <Louvor>[
+  return _groupIfMultiple(
+    _coldigomSiblingPdfs(coldigomCache, gid),
+    tracks,
+    chords,
+    gid,
+  );
+}
+
+List<Louvor> _coldigomSiblingPdfs(
+  Map<String, Louvor>? coldigomCache,
+  String groupId,
+) {
+  return <Louvor>[
     if (coldigomCache != null)
       for (final item in coldigomCache.values)
-        if (item.effectiveGroupId == gid) item,
+        if (item.effectiveGroupId == groupId) item,
   ];
-  final matchingTracks = [
-    for (final item in tracks)
-      if (item.groupId == gid) item,
-  ];
-  return _groupIfMultiple(pdfs, matchingTracks);
 }
 
 Iterable<Louvor> _siblingCatalog(
@@ -149,9 +168,33 @@ List<Louvor> _pdfSiblings(Louvor louvor, Iterable<Louvor> candidates) {
   ];
 }
 
-LouvorGroup? _groupIfMultiple(List<Louvor> pdfs, List<AudioTrack> tracks) {
-  if (pdfs.isEmpty && tracks.isEmpty) return null;
-  final groups = LouvorGroup.fromLouvores(pdfs, audioTracks: tracks);
+/// Monta o grupo de [groupId] e devolve `null` se sobrar um material só.
+///
+/// [tracks] e [chords] chegam inteiros e são filtrados aqui pelo mesmo
+/// [groupId] usado nos PDFs — é o que impede a aba Cifras de sumir por um
+/// filtro esquecido em um dos três ramos de [findSwapMaterialGroup].
+LouvorGroup? _groupIfMultiple(
+  List<Louvor> pdfs,
+  List<AudioTrack> tracks,
+  List<ChordMaterial> chords,
+  String groupId,
+) {
+  final matchingTracks = [
+    for (final track in tracks)
+      if (track.groupId == groupId) track,
+  ];
+  final matchingChords = [
+    for (final chord in chords)
+      if (chord.groupId == groupId) chord,
+  ];
+  if (pdfs.isEmpty && matchingTracks.isEmpty && matchingChords.isEmpty) {
+    return null;
+  }
+  final groups = LouvorGroup.fromLouvores(
+    pdfs,
+    audioTracks: matchingTracks,
+    chordMaterials: matchingChords,
+  );
   if (groups.isEmpty) return null;
   final group = groups.first;
   if (group.totalMaterials <= 1) return null;

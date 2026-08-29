@@ -1,3 +1,4 @@
+import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
@@ -14,7 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _r2Key = 'assets/praises/p1/m1.chord';
 
-Future<void> _pump(
+Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
 }) async {
@@ -45,6 +46,7 @@ Future<void> _pump(
     ),
   );
   await tester.pumpAndSettle();
+  return prefs;
 }
 
 void main() {
@@ -64,7 +66,7 @@ void main() {
   });
 
   testWidgets('toggle alterna o tema do leitor', (tester) async {
-    await _pump(tester, available: true);
+    final prefs = await _pump(tester, available: true);
 
     final container = ProviderScope.containerOf(
       tester.element(find.byType(ChordReaderScreen)),
@@ -75,5 +77,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(chordReaderModeProvider), ChordReaderMode.dark);
+    // O requisito e a persistencia, nao o estado em memoria.
+    expect(prefs.getString(StorageKeys.chordReaderMode), 'dark');
   });
 }
