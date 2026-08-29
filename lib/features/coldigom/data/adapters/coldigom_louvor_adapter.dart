@@ -3,12 +3,26 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
 
 import '../models/praise_dto.dart';
 
 /// Converte louvores coldigom em entidades [Louvor] / [AudioTrack] / YouTube.
 abstract final class ColdigomLouvorAdapter {
+  /// Metadados do praise para o sheet Coldigom (tom, autor, ritmo, tags…).
+  static ColdigomPraiseMetadata toMetadata(PraiseDetailDto praise) {
+    return ColdigomPraiseMetadata(
+      name: praise.name,
+      tonality: praise.tonality,
+      author: praise.author,
+      rhythm: praise.rhythm,
+      category: praise.category,
+      tagNames: praise.tagNames,
+    );
+  }
+
   /// Um [Louvor] por material PDF com `r2_key` válido.
   static List<Louvor> toLouvores(PraiseDetailDto praise) {
     final louvores = <Louvor>[];
@@ -79,6 +93,33 @@ abstract final class ColdigomLouvorAdapter {
           numero: praise.number,
           groupId: praise.id,
           categoria: material.materialKindName ?? 'YouTube',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          source: LouvorDataSource.coldigom,
+        ),
+      );
+    }
+
+    return items;
+  }
+
+  /// Um [ChordMaterial] por `type: chord` com `r2_key` válido.
+  static List<ChordMaterial> toChordMaterials(PraiseDetailDto praise) {
+    final items = <ChordMaterial>[];
+
+    for (final material in praise.materials) {
+      if (material.type.toLowerCase() != 'chord') continue;
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+
+      items.add(
+        ChordMaterial(
+          chordId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Cifra',
           classificacao: praise.rhythm,
           author: praise.author,
           source: LouvorDataSource.coldigom,
