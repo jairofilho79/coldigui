@@ -633,6 +633,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordMaterialSection => 'Cifras';
 
   @override
+  String get chordReaderUnavailable => 'Cifra ainda não disponível';
+
+  @override
+  String get chordReaderToggleTheme => 'Alternar tema do leitor';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

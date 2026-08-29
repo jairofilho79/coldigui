@@ -626,6 +626,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chordMaterialSection => 'Chords';
 
   @override
+  String get chordReaderUnavailable => 'Chord chart not available yet';
+
+  @override
+  String get chordReaderToggleTheme => 'Toggle reader theme';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

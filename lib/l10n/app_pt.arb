@@ -331,6 +331,8 @@
   "audioMaterialSection": "Áudio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Cifras",
+  "chordReaderUnavailable": "Cifra ainda não disponível",
+  "chordReaderToggleTheme": "Alternar tema do leitor",
   "pdfMaterialSection": "PDF",
   "coldigomMetaTonality": "Tom",
   "coldigomMetaAuthor": "Autor",

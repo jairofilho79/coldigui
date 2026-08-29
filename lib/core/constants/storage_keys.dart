@@ -35,4 +35,7 @@ abstract final class StorageKeys {
 
   /// Epoch ms da última busca bem-sucedida do manifest offline.
   static const String offlineManifestCacheTime = 'offline_manifest_cache_time';
+
+  /// Claro/escuro do leitor de cifras (`light` | `dark`).
+  static const String chordReaderMode = 'chordReaderMode';
 }

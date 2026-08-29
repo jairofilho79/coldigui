@@ -331,6 +331,8 @@
   "audioMaterialSection": "Audio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Chords",
+  "chordReaderUnavailable": "Chord chart not available yet",
+  "chordReaderToggleTheme": "Toggle reader theme",
   "pdfMaterialSection": "PDF",
   "coldigomMetaTonality": "Key",
   "coldigomMetaAuthor": "Author",

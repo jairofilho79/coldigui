@@ -1115,6 +1115,18 @@ abstract class AppLocalizations {
   /// **'Cifras'**
   String get chordMaterialSection;
 
+  /// No description provided for @chordReaderUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifra ainda não disponível'**
+  String get chordReaderUnavailable;
+
+  /// No description provided for @chordReaderToggleTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar tema do leitor'**
+  String get chordReaderToggleTheme;
+
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:

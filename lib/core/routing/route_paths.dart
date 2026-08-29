@@ -14,6 +14,9 @@ abstract final class RoutePaths {
   /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
   static const String audio = '/audio';
 
+  /// Leitor de cifras ChordPro — irmã de [reader], filha da branch Home.
+  static const String chords = '/cifra';
+
   /// Eventos — oculto neste build (deep link → home).
   static const String events = '/eventos';
 
