@@ -42,8 +42,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
     if (materialIdKindOf(targetPdfId) == MaterialIdKind.chord) {
-      final chord = ref
-          .read(coldigomChordMaterialsCacheProvider)[targetPdfId];
+      final chord = ref.read(coldigomChordMaterialsCacheProvider)[targetPdfId];
       if (chord == null) return null;
       return buildChordReaderLocation(
         chordId: chord.chordId,

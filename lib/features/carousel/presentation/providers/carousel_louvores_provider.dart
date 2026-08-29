@@ -29,6 +29,9 @@ class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
     ref.listen(coldigomLouvoresCacheProvider, (_, _) {
       unawaited(_reload());
     });
+    ref.listen(coldigomChordMaterialsCacheProvider, (_, _) {
+      unawaited(_reload());
+    });
     ref.onDispose(() => _reorderPersistTimer?.cancel());
     Future.microtask(_reload);
     return const [];
