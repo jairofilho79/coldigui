@@ -10,6 +10,9 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +34,7 @@ Future<void> showLouvorMaterialSheet({
   required ValueChanged<Louvor> onMaterialSelected,
   ValueChanged<AudioTrack>? onAudioSelected,
   ValueChanged<YoutubeMaterial>? onYoutubeSelected,
+  ValueChanged<ChordMaterial>? onChordSelected,
   LouvorMaterialAddCallback? onMaterialAdd,
   LouvorAudioAddCallback? onAudioAdd,
 }) {
@@ -47,6 +51,7 @@ Future<void> showLouvorMaterialSheet({
         onMaterialSelected: onMaterialSelected,
         onAudioSelected: onAudioSelected,
         onYoutubeSelected: onYoutubeSelected,
+        onChordSelected: onChordSelected,
         onMaterialAdd: onMaterialAdd,
         onAudioAdd: onAudioAdd,
       );
@@ -60,6 +65,7 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
     required this.onMaterialSelected,
     this.onAudioSelected,
     this.onYoutubeSelected,
+    this.onChordSelected,
     this.onMaterialAdd,
     this.onAudioAdd,
   });
@@ -68,6 +74,7 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
   final ValueChanged<Louvor> onMaterialSelected;
   final ValueChanged<AudioTrack>? onAudioSelected;
   final ValueChanged<YoutubeMaterial>? onYoutubeSelected;
+  final ValueChanged<ChordMaterial>? onChordSelected;
   final LouvorMaterialAddCallback? onMaterialAdd;
   final LouvorAudioAddCallback? onAudioAdd;
 
@@ -79,6 +86,21 @@ class _LouvorMaterialSheetBody extends ConsumerStatefulWidget {
 class _LouvorMaterialSheetBodyState
     extends ConsumerState<_LouvorMaterialSheetBody> {
   String? _addingId;
+
+  @override
+  void initState() {
+    super.initState();
+    final chords = widget.group.chordMaterials;
+    if (chords.isEmpty) return;
+    // Pós-frame: mutar provider durante a construção do widget dispara
+    // "setState during build" nos ouvintes do cache.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(coldigomChordMaterialsCacheProvider.notifier)
+          .mergeChords(chords);
+    });
+  }
 
   Future<void> _handleAddPdf(Louvor louvor) async {
     final onAdd = widget.onMaterialAdd;
@@ -210,6 +232,45 @@ class _LouvorMaterialSheetBodyState
                         },
                       ),
                   ],
+                  if (group.chordMaterials.isNotEmpty)
+                    ref
+                        .watch(availableChordsProvider(group.groupId))
+                        .maybeWhen(
+                          data: (available) => available.isEmpty
+                              ? const SizedBox.shrink()
+                              : Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _sectionLabel(l10n.chordMaterialSection),
+                                    for (final chord in available)
+                                      ListTile(
+                                        leading: Icon(
+                                          LouvorMaterialIcons.forCategory(
+                                            chord.categoria,
+                                          ),
+                                          color: AppColors.title,
+                                        ),
+                                        title: Text(
+                                          chord.categoria,
+                                          style: AppTypography.body.copyWith(
+                                            color: AppColors.textDark,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                                widget.onChordSelected?.call(
+                                                  chord,
+                                                );
+                                              });
+                                        },
+                                      ),
+                                  ],
+                                ),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
                   if (group.audioTracks.isNotEmpty) ...[
                     _sectionLabel(l10n.audioMaterialSection),
                     for (final track in group.audioTracks)

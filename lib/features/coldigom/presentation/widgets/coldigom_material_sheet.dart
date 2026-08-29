@@ -11,6 +11,9 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +28,7 @@ Future<void> showColdigomMaterialSheet({
   required ValueChanged<Louvor> onMaterialSelected,
   ValueChanged<AudioTrack>? onAudioSelected,
   ValueChanged<YoutubeMaterial>? onYoutubeSelected,
+  ValueChanged<ChordMaterial>? onChordSelected,
   LouvorMaterialAddCallback? onMaterialAdd,
   LouvorAudioAddCallback? onAudioAdd,
 }) {
@@ -41,6 +45,7 @@ Future<void> showColdigomMaterialSheet({
         onMaterialSelected: onMaterialSelected,
         onAudioSelected: onAudioSelected,
         onYoutubeSelected: onYoutubeSelected,
+        onChordSelected: onChordSelected,
         onMaterialAdd: onMaterialAdd,
         onAudioAdd: onAudioAdd,
       );
@@ -48,7 +53,7 @@ Future<void> showColdigomMaterialSheet({
   );
 }
 
-enum _ColdigomMaterialKind { pdf, audio, youtube }
+enum _ColdigomMaterialKind { pdf, chord, audio, youtube }
 
 class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
   const _ColdigomMaterialSheetBody({
@@ -56,6 +61,7 @@ class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
     required this.onMaterialSelected,
     this.onAudioSelected,
     this.onYoutubeSelected,
+    this.onChordSelected,
     this.onMaterialAdd,
     this.onAudioAdd,
   });
@@ -64,6 +70,7 @@ class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
   final ValueChanged<Louvor> onMaterialSelected;
   final ValueChanged<AudioTrack>? onAudioSelected;
   final ValueChanged<YoutubeMaterial>? onYoutubeSelected;
+  final ValueChanged<ChordMaterial>? onChordSelected;
   final LouvorMaterialAddCallback? onMaterialAdd;
   final LouvorAudioAddCallback? onAudioAdd;
 
@@ -75,18 +82,28 @@ class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
 class _ColdigomMaterialSheetBodyState
     extends ConsumerState<_ColdigomMaterialSheetBody> {
   String? _addingId;
-  late final List<_ColdigomMaterialKind> _kinds;
   int _selectedKindIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _kinds = _visibleKinds(widget.group);
+    final chords = widget.group.chordMaterials;
+    if (chords.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(coldigomChordMaterialsCacheProvider.notifier)
+          .mergeChords(chords);
+    });
   }
 
-  static List<_ColdigomMaterialKind> _visibleKinds(LouvorGroup group) {
+  static List<_ColdigomMaterialKind> _visibleKinds(
+    LouvorGroup group,
+    List<ChordMaterial> availableChords,
+  ) {
     return [
       if (group.totalPdfs > 0) _ColdigomMaterialKind.pdf,
+      if (availableChords.isNotEmpty) _ColdigomMaterialKind.chord,
       if (group.audioTracks.isNotEmpty) _ColdigomMaterialKind.audio,
       if (group.youtubeMaterials.isNotEmpty) _ColdigomMaterialKind.youtube,
     ];
@@ -119,6 +136,7 @@ class _ColdigomMaterialSheetBodyState
   String _kindLabel(AppLocalizations l10n, _ColdigomMaterialKind kind) {
     return switch (kind) {
       _ColdigomMaterialKind.pdf => l10n.pdfMaterialSection,
+      _ColdigomMaterialKind.chord => l10n.chordMaterialSection,
       _ColdigomMaterialKind.audio => l10n.audioMaterialSection,
       _ColdigomMaterialKind.youtube => l10n.youtubeMaterialSection,
     };
@@ -132,7 +150,19 @@ class _ColdigomMaterialSheetBodyState
     final group = widget.group;
     final meta = group.coldigomMeta;
     final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
-    final showSegments = _kinds.length > 1;
+    final availableChords = group.chordMaterials.isEmpty
+        ? const <ChordMaterial>[]
+        : ref
+              .watch(availableChordsProvider(group.groupId))
+              .maybeWhen(
+                data: (chords) => chords,
+                orElse: () => const <ChordMaterial>[],
+              );
+    final kinds = _visibleKinds(group, availableChords);
+    final selectedKindIndex = kinds.isEmpty
+        ? 0
+        : _selectedKindIndex.clamp(0, kinds.length - 1);
+    final showSegments = kinds.length > 1;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
@@ -215,8 +245,8 @@ class _ColdigomMaterialSheetBodyState
             if (showSegments) ...[
               const SizedBox(height: 12),
               _KindSegmentBar(
-                labels: [for (final kind in _kinds) _kindLabel(l10n, kind)],
-                selectedIndex: _selectedKindIndex,
+                labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
+                selectedIndex: selectedKindIndex,
                 onSelected: (index) {
                   setState(() => _selectedKindIndex = index);
                 },
@@ -224,25 +254,27 @@ class _ColdigomMaterialSheetBodyState
             ],
             const SizedBox(height: 12),
             Expanded(
-              child: _kinds.isEmpty
+              child: kinds.isEmpty
                   ? const SizedBox.shrink()
                   : showSegments
                   ? IndexedStack(
-                      index: _selectedKindIndex,
+                      index: selectedKindIndex,
                       sizing: StackFit.expand,
                       children: [
-                        for (final kind in _kinds)
+                        for (final kind in kinds)
                           _buildKindList(
                             kind: kind,
                             group: group,
                             carouselPdfIds: carouselPdfIds,
+                            availableChords: availableChords,
                           ),
                       ],
                     )
                   : _buildKindList(
-                      kind: _kinds.first,
+                      kind: kinds.first,
                       group: group,
                       carouselPdfIds: carouselPdfIds,
+                      availableChords: availableChords,
                     ),
             ),
           ],
@@ -255,6 +287,7 @@ class _ColdigomMaterialSheetBodyState
     required _ColdigomMaterialKind kind,
     required LouvorGroup group,
     required Set<String> carouselPdfIds,
+    required List<ChordMaterial> availableChords,
   }) {
     final onMaterialAdd = widget.onMaterialAdd;
     final onAudioAdd = widget.onAudioAdd;
@@ -280,6 +313,24 @@ class _ColdigomMaterialSheetBodyState
               Navigator.of(context).pop();
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 widget.onMaterialSelected(material.louvor);
+              });
+            },
+          );
+        },
+      ),
+      _ColdigomMaterialKind.chord => ListView.separated(
+        itemCount: availableChords.length,
+        separatorBuilder: (_, _) => const _MaterialHairline(),
+        itemBuilder: (context, index) {
+          final chord = availableChords[index];
+          return _MaterialRow(
+            icon: LouvorMaterialIcons.forCategory(chord.categoria),
+            iconColor: AppColors.title,
+            title: chord.categoria,
+            onTap: () {
+              Navigator.of(context).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                widget.onChordSelected?.call(chord);
               });
             },
           );

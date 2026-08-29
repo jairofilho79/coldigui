@@ -623,6 +623,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get youtubeMaterialSection => 'YouTube';
 
   @override
+  String get chordMaterialSection => 'Chords';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

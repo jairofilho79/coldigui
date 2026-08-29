@@ -1109,6 +1109,12 @@ abstract class AppLocalizations {
   /// **'YouTube'**
   String get youtubeMaterialSection;
 
+  /// No description provided for @chordMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras'**
+  String get chordMaterialSection;
+
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:
