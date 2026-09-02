@@ -13,6 +13,19 @@ class UsernameException implements Exception {
   String toString() => 'UsernameException($code)';
 }
 
+/// Worker recusou o `idToken` (401/403) — sessão inválida, deve deslogar.
+///
+/// Distinto de falha de rede/timeout ou 5xx, que preservam a sessão local
+/// (ver [AuthNotifier.build]).
+class AuthUnauthorizedException implements Exception {
+  AuthUnauthorizedException(this.statusCode);
+
+  final int statusCode;
+
+  @override
+  String toString() => 'AuthUnauthorizedException($statusCode)';
+}
+
 /// `POST /api/auth/session` — valida id_token e UPSERT em D1.
 class AuthRemoteDatasource {
   AuthRemoteDatasource(this._dio);
@@ -28,8 +41,13 @@ class AuthRemoteDatasource {
       ),
     );
 
-    if (response.statusCode != 200 || response.data == null) {
-      throw StateError('auth_session_failed_${response.statusCode}');
+    final statusCode = response.statusCode;
+    if (statusCode == 401 || statusCode == 403) {
+      throw AuthUnauthorizedException(statusCode!);
+    }
+
+    if (statusCode != 200 || response.data == null) {
+      throw StateError('auth_session_failed_$statusCode');
     }
 
     final data = response.data!;

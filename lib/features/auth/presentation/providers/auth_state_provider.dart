@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/constants/app_config.dart';
 import '../../../../core/providers/dio_provider.dart';
+import '../../../../core/utils/retryable_init.dart';
 import '../../data/auth_remote_datasource.dart';
 import '../../data/auth_session_store.dart';
 import '../../domain/entities/auth_user.dart';
@@ -23,7 +26,12 @@ final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
 );
 
 /// [GoogleSignIn.initialize] só pode rodar uma vez no processo (plugin web).
-Future<void>? _googleSignInInitFuture;
+///
+/// Usa [RetryableInit] para não memoizar falha: se a inicialização falhar,
+/// a próxima chamada tenta de novo em vez de re-aguardar o mesmo erro.
+final RetryableInit<void> _googleSignInInit = RetryableInit(
+  () => GoogleSignIn.instance.initialize(clientId: AppConfig.googleClientIdWeb),
+);
 
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
@@ -35,7 +43,14 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       _authSub = null;
     });
 
-    await ensureGoogleInitialized();
+    try {
+      await ensureGoogleInitialized();
+    } on Object catch (error) {
+      // Falha de inicialização do Google Sign-In não deve virar AsyncError
+      // permanente: trata como "deslogado, login indisponível".
+      debugPrint('[auth] inicialização do Google Sign-In falhou: $error');
+      return null;
+    }
 
     final stored = ref.read(authSessionStoreProvider).read();
     if (stored == null) return null;
@@ -45,6 +60,20 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       final user = await remote.establishSession(stored.idToken);
       ref.read(authSessionStoreProvider).write(user);
       return user;
+    } on AuthUnauthorizedException {
+      // Worker recusou o idToken — sessão realmente inválida.
+      ref.read(authSessionStoreProvider).clear();
+      return null;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == null || statusCode >= 500) {
+        // Rede/timeout ou 5xx: mantém a sessão local como "não verificada"
+        // em vez de deslogar por uma falha transitória do backend.
+        debugPrint('[auth] sessão mantida sem verificação: $e');
+        return stored;
+      }
+      ref.read(authSessionStoreProvider).clear();
+      return null;
     } on Object {
       ref.read(authSessionStoreProvider).clear();
       return null;
@@ -56,9 +85,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     if (AppConfig.isGoogleClientIdMissing) {
       return;
     }
-    await (_googleSignInInitFuture ??= GoogleSignIn.instance.initialize(
-      clientId: AppConfig.googleClientIdWeb,
-    ));
+    await _googleSignInInit();
     _authSub ??= GoogleSignIn.instance.authenticationEvents.listen(
       _onGoogleAuthEvent,
       onError: (_) {},
