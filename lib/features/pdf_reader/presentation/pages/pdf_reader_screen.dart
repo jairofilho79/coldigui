@@ -21,6 +21,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fulls
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart';
+import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_key_handler.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -256,6 +257,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           : null,
       shareLoading: _shareLoading,
       shareTooltip: l10n?.sharePdf ?? 'Compartilhar',
+      fullscreenTooltip: l10n?.readerFullscreenTooltip ?? 'Tela cheia (F)',
+      exitFullscreenTooltip:
+          l10n?.readerExitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
       body: sessionAsync.when(
         loading: () => const PdfPageSkeleton(),
         error: (error, _) {
@@ -314,6 +318,8 @@ class _ReaderScaffold extends StatelessWidget {
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
+    this.fullscreenTooltip,
+    this.exitFullscreenTooltip,
   });
 
   final String titulo;
@@ -325,6 +331,19 @@ class _ReaderScaffold extends StatelessWidget {
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
+  final String? fullscreenTooltip;
+  final String? exitFullscreenTooltip;
+
+  /// Roda a ação da barra 3 e devolve o foco ao handler de teclado do leitor.
+  ///
+  /// Sem isto o foco fica no botão que acabou de ser clicado e as setas param
+  /// de virar página — o caso mais comum de "o teclado parou de funcionar".
+  void _runAndRestoreKeyboardFocus(VoidCallback action) {
+    action();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      requestPdfReaderKeyboardFocus();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -350,8 +369,10 @@ class _ReaderScaffold extends StatelessWidget {
                         tooltip: shareTooltip,
                         onPressed: shareLoading
                             ? null
-                            : () => onShare!(
-                                sharePositionOriginFromContext(buttonContext),
+                            : () => _runAndRestoreKeyboardFocus(
+                                () => onShare!(
+                                  sharePositionOriginFromContext(buttonContext),
+                                ),
                               ),
                         icon: shareLoading
                             ? const SizedBox(
@@ -367,9 +388,10 @@ class _ReaderScaffold extends StatelessWidget {
                   ),
                 if (onToggleFullscreen != null)
                   IconButton(
-                    tooltip: 'Tela cheia',
+                    tooltip: fullscreenTooltip ?? 'Tela cheia (F)',
                     icon: const Icon(Icons.fullscreen),
-                    onPressed: onToggleFullscreen,
+                    onPressed: () =>
+                        _runAndRestoreKeyboardFocus(onToggleFullscreen!),
                   ),
                 if (filePath != null)
                   PdfReaderPageIndicator(filePath: filePath!),
@@ -388,12 +410,17 @@ class _ReaderScaffold extends StatelessWidget {
                   child: Opacity(
                     opacity: 0.25,
                     child: FloatingActionButton(
-                      tooltip: 'Sair da tela cheia',
+                      tooltip:
+                          exitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
                       elevation: 0,
                       highlightElevation: 0,
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
-                      onPressed: onToggleFullscreen,
+                      onPressed: onToggleFullscreen == null
+                          ? null
+                          : () => _runAndRestoreKeyboardFocus(
+                              onToggleFullscreen!,
+                            ),
                       child: const Icon(Icons.fullscreen_exit),
                     ),
                   ),

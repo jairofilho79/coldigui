@@ -14,6 +14,8 @@
   "pdfShareSuccess": "PDF pronto para compartilhar",
   "pdfSaveSuccess": "PDF salvo com sucesso",
   "pdfActionError": "Não foi possível concluir a ação",
+  "readerFullscreenTooltip": "Tela cheia (F)",
+  "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

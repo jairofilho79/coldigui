@@ -164,6 +164,18 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir a ação'**
   String get pdfActionError;
 
+  /// No description provided for @readerFullscreenTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tela cheia (F)'**
+  String get readerFullscreenTooltip;
+
+  /// No description provided for @readerExitFullscreenTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair da tela cheia (Esc)'**
+  String get readerExitFullscreenTooltip;
+
   /// No description provided for @louvorPdfDownloading.
   ///
   /// In pt, this message translates to:

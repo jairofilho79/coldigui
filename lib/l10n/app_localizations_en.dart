@@ -42,6 +42,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pdfActionError => 'Could not complete the action';
 
   @override
+  String get readerFullscreenTooltip => 'Fullscreen (F)';
+
+  @override
+  String get readerExitFullscreenTooltip => 'Exit fullscreen (Esc)';
+
+  @override
   String get louvorPdfDownloading => 'Downloading...';
 
   @override

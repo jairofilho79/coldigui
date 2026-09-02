@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_reader_font_size.dart';
@@ -31,6 +34,11 @@ class ChordReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen> {
+  late final FocusNode _keyboardFocusNode = FocusNode(
+    debugLabel: 'chordReaderKeys',
+  );
+  var _louvorNavigationInProgress = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +46,87 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen> {
       if (!mounted) return;
       ref.read(readerRouteParamsProvider.notifier).update(widget.queryParams);
     });
+  }
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _navigateLouvor(CarouselReaderDirection direction) async {
+    if (_louvorNavigationInProgress) return;
+    _louvorNavigationInProgress = true;
+    try {
+      await navigateReaderCarouselByKeyboard(
+        ref: ref,
+        context: context,
+        currentPdfId: widget.queryParams[UrlSyncParams.pdfId],
+        direction: direction,
+      );
+    } finally {
+      _louvorNavigationInProgress = false;
+    }
+  }
+
+  /// Teclado do leitor de cifras (C1).
+  ///
+  /// `+`/`=` e `-` transpõem, `Ctrl+↑/↓` mexem no corpo da letra e `Ctrl+→/←`
+  /// trocam de louvor. O `=` entra junto do `+` porque na maioria dos teclados
+  /// é a mesma tecla — cobrar o Shift seria cobrar precisão de quem está com o
+  /// violão na mão. Teclas fora desta lista sobem para [AppShortcuts] (`F`,
+  /// `Esc`, `Espaço`).
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final keyboard = HardwareKeyboard.instance;
+    final commandModifier = keyboard.isControlPressed || keyboard.isMetaPressed;
+    final key = event.logicalKey;
+
+    if (commandModifier) {
+      if (key == LogicalKeyboardKey.arrowUp) {
+        ref.read(chordReaderFontSizeProvider.notifier).increase();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowDown) {
+        ref.read(chordReaderFontSizeProvider.notifier).decrease();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowRight) {
+        _navigateLouvor(CarouselReaderDirection.next);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowLeft) {
+        _navigateLouvor(CarouselReaderDirection.previous);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (_isTransposeUpKey(key, event.character)) {
+      ref.read(chordReaderTransposeProvider.notifier).up();
+      return KeyEventResult.handled;
+    }
+    if (_isTransposeDownKey(key, event.character)) {
+      ref.read(chordReaderTransposeProvider.notifier).down();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  static bool _isTransposeUpKey(LogicalKeyboardKey key, String? character) {
+    return key == LogicalKeyboardKey.equal ||
+        key == LogicalKeyboardKey.add ||
+        key == LogicalKeyboardKey.numpadAdd ||
+        character == '+' ||
+        character == '=';
+  }
+
+  static bool _isTransposeDownKey(LogicalKeyboardKey key, String? character) {
+    return key == LogicalKeyboardKey.minus ||
+        key == LogicalKeyboardKey.numpadSubtract ||
+        character == '-';
   }
 
   /// `r2Key` decodificado do id da rota; vazio se o id faltar ou for inválido.
@@ -60,78 +149,92 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen> {
     final semitones = ref.watch(chordReaderTransposeProvider);
     final songAsync = ref.watch(chordSongProvider(_r2Key));
 
-    return ColoredBox(
-      color: palette.background,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _ChordReaderToolbar(
-              mode: mode,
-              palette: palette,
-              fontSize: fontSize,
-              semitones: semitones,
-              l10n: l10n,
-            ),
-            Expanded(
-              child: songAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => _Unavailable(
-                  message: l10n.chordReaderUnavailable,
+    return Focus(
+      focusNode: _keyboardFocusNode,
+      autofocus: true,
+      onKeyEvent: _onKeyEvent,
+      child: Listener(
+        // Rolar/clicar na cifra devolve o teclado ao leitor depois de um
+        // desvio pelos botões da barra.
+        onPointerDown: (_) => _keyboardFocusNode.requestFocus(),
+        child: ColoredBox(
+          color: palette.background,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ChordReaderToolbar(
+                  mode: mode,
                   palette: palette,
+                  fontSize: fontSize,
+                  semitones: semitones,
+                  l10n: l10n,
                 ),
-                data: (song) {
-                  if (song == null) {
-                    return _Unavailable(
+                Expanded(
+                  child: songAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, _) => _Unavailable(
                       message: l10n.chordReaderUnavailable,
                       palette: palette,
-                    );
-                  }
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (song.title.isNotEmpty)
-                          Text(
-                            song.title,
-                            style: AppTypography.headline.copyWith(
-                              color: palette.chord,
-                            ),
-                          ),
-                        if (_headerMeta(
-                          song.subtitle,
-                          transposeKeyLabel(song.key, semitones),
-                          song.rhythm,
-                          song.artist,
-                        ).isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, bottom: 12),
-                            child: Text(
-                              _headerMeta(
-                                song.subtitle,
-                                transposeKeyLabel(song.key, semitones),
-                                song.rhythm,
-                                song.artist,
-                              ),
-                              style: AppTypography.label.copyWith(
-                                color: palette.comment,
-                              ),
-                            ),
-                          ),
-                        ChordProView(
-                          song: song,
-                          palette: palette,
-                          fontSize: fontSize,
-                          semitones: semitones,
-                        ),
-                      ],
                     ),
-                  );
-                },
-              ),
+                    data: (song) {
+                      if (song == null) {
+                        return _Unavailable(
+                          message: l10n.chordReaderUnavailable,
+                          palette: palette,
+                        );
+                      }
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (song.title.isNotEmpty)
+                              Text(
+                                song.title,
+                                style: AppTypography.headline.copyWith(
+                                  color: palette.chord,
+                                ),
+                              ),
+                            if (_headerMeta(
+                              song.subtitle,
+                              transposeKeyLabel(song.key, semitones),
+                              song.rhythm,
+                              song.artist,
+                            ).isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 4,
+                                  bottom: 12,
+                                ),
+                                child: Text(
+                                  _headerMeta(
+                                    song.subtitle,
+                                    transposeKeyLabel(song.key, semitones),
+                                    song.rhythm,
+                                    song.artist,
+                                  ),
+                                  style: AppTypography.label.copyWith(
+                                    color: palette.comment,
+                                  ),
+                                ),
+                              ),
+                            ChordProView(
+                              song: song,
+                              palette: palette,
+                              fontSize: fontSize,
+                              semitones: semitones,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -139,7 +242,12 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen> {
 
   /// Cabeçalho com o tom já transposto — o músico lê o tom em que vai tocar,
   /// não o do arquivo.
-  String _headerMeta(String subtitle, String key, String rhythm, String artist) {
+  String _headerMeta(
+    String subtitle,
+    String key,
+    String rhythm,
+    String artist,
+  ) {
     return [
       if (subtitle.isNotEmpty) subtitle,
       if (key.isNotEmpty) key,
@@ -292,7 +400,8 @@ class _ChordReaderToolbar extends ConsumerWidget {
                   ? Icons.dark_mode
                   : Icons.light_mode,
             ),
-            onPressed: () => ref.read(chordReaderModeProvider.notifier).toggle(),
+            onPressed: () =>
+                ref.read(chordReaderModeProvider.notifier).toggle(),
           ),
         ],
       ),

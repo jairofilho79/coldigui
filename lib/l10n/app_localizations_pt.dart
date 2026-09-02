@@ -42,6 +42,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get pdfActionError => 'Não foi possível concluir a ação';
 
   @override
+  String get readerFullscreenTooltip => 'Tela cheia (F)';
+
+  @override
+  String get readerExitFullscreenTooltip => 'Sair da tela cheia (Esc)';
+
+  @override
   String get louvorPdfDownloading => 'Baixando...';
 
   @override

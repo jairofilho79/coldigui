@@ -14,6 +14,8 @@
   "pdfShareSuccess": "PDF ready to share",
   "pdfSaveSuccess": "PDF saved successfully",
   "pdfActionError": "Could not complete the action",
+  "readerFullscreenTooltip": "Fullscreen (F)",
+  "readerExitFullscreenTooltip": "Exit fullscreen (Esc)",
   "louvorPdfDownloading": "Downloading...",
   "louvorPdfDownloadingWithProgress": "Downloading... {percent}%",
   "@louvorPdfDownloadingWithProgress": {
