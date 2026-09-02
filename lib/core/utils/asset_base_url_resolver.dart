@@ -7,22 +7,29 @@ abstract final class AssetBaseUrlResolver {
   static const coldigomAssetPrefix = 'assets/praises/';
 
   /// Retorna base URL sem barra final.
-  static String baseUrlForAssetPath(String assetPath) {
+  ///
+  /// [baseUrl], quando informado, substitui [AppConfig.apiBaseUrl] para
+  /// paths que não são assets coldigom (ex.: base injetada em testes ou por
+  /// um resolver com configuração própria).
+  static String baseUrlForAssetPath(String assetPath, {String? baseUrl}) {
     final normalized = assetPath.startsWith('/')
         ? assetPath.substring(1)
         : assetPath;
     if (normalized.startsWith(coldigomAssetPrefix)) {
       return ColdigomApiConfig.baseUrl;
     }
-    return _trimTrailingSlash(AppConfig.apiBaseUrl);
+    return _trimTrailingSlash(baseUrl ?? AppConfig.apiBaseUrl);
   }
 
   /// Junta base + path relativo (`/assets/...` ou `assets/...`).
-  static String joinAssetUrl(String assetPath) {
+  ///
+  /// [baseUrl] é repassado a [baseUrlForAssetPath]; quando omitido, mantém o
+  /// comportamento atual (base global de [AppConfig.apiBaseUrl]).
+  static String joinAssetUrl(String assetPath, {String? baseUrl}) {
     final normalizedPath = assetPath.startsWith('/')
         ? assetPath
         : '/$assetPath';
-    final base = baseUrlForAssetPath(normalizedPath);
+    final base = baseUrlForAssetPath(normalizedPath, baseUrl: baseUrl);
     if (base.isEmpty) return normalizedPath;
     return '$base$normalizedPath';
   }

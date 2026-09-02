@@ -77,6 +77,9 @@ class PdfSourceResolver {
 
   String _joinApiUrl(String path) {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
-    return AssetBaseUrlResolver.joinAssetUrl(normalizedPath);
+    return AssetBaseUrlResolver.joinAssetUrl(
+      normalizedPath,
+      baseUrl: apiBaseUrl,
+    );
   }
 }

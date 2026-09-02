@@ -25,5 +25,25 @@ void main() {
         '${ColdigomApiConfig.baseUrl}/assets/praises/p1/m1.pdf',
       );
     });
+
+    test('baseUrl injetado substitui AppConfig.apiBaseUrl para assets não-coldigom', () {
+      expect(
+        AssetBaseUrlResolver.joinAssetUrl(
+          '/assets/ColAdultos/001.pdf',
+          baseUrl: 'https://plpcg.example.com',
+        ),
+        'https://plpcg.example.com/assets/ColAdultos/001.pdf',
+      );
+    });
+
+    test('baseUrl injetado não afeta assets coldigom', () {
+      expect(
+        AssetBaseUrlResolver.joinAssetUrl(
+          '/assets/praises/p1/m1.pdf',
+          baseUrl: 'https://plpcg.example.com',
+        ),
+        '${ColdigomApiConfig.baseUrl}/assets/praises/p1/m1.pdf',
+      );
+    });
   });
 }
