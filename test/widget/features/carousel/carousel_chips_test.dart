@@ -2,7 +2,9 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -124,6 +126,26 @@ class _FakeColdigomLouvoresCache extends ColdigomLouvoresCacheNotifier {
 
   @override
   Map<String, Louvor> build() => initial;
+}
+
+class _FakeColdigomChordMaterialsCache
+    extends ColdigomChordMaterialsCacheNotifier {
+  _FakeColdigomChordMaterialsCache(this.initial);
+
+  final Map<String, ChordMaterial> initial;
+
+  @override
+  Map<String, ChordMaterial> build() => initial;
+}
+
+/// Sessão de áudio dirigida pelo teste (emula `restoreQueue` / troca de faixa).
+class _ControllableAudioSession extends AudioPlayerSessionNotifier {
+  @override
+  AudioPlayerSessionState build() => const AudioPlayerSessionState();
+
+  void emitQueue(List<AudioTrack> tracks) {
+    state = AudioPlayerSessionState(queue: tracks);
+  }
 }
 
 class _FakeColdigomAudioTracksCache extends ColdigomAudioTracksCacheNotifier {
@@ -815,5 +837,155 @@ void main() {
     expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
     expect(find.byTooltip('Tocar áudio deste louvor'), findsOneWidget);
     expect(find.byIcon(Icons.open_in_full), findsNothing);
+  });
+
+  group('seguir o áudio (listener do shell)', () {
+    final chordP1Id = encodePdfId('assets/praises/p1/cifra.chord');
+    final pdfP1Id = encodePdfId('assets/praises/p1/partitura.pdf');
+    final pdfP2Id = encodePdfId('assets/praises/p2/partitura.pdf');
+
+    Louvor coldigomPdf(String pdfId, String groupId) => Louvor.fromManifest(
+      nome: 'Louvor $groupId',
+      numero: '001',
+      categoria: 'Partitura',
+      classificacao: 'Coro',
+      pdf: 'partitura.pdf',
+      pdfId: pdfId,
+      groupId: groupId,
+      source: LouvorDataSource.coldigom,
+    );
+
+    final chordP1 = ChordMaterial(
+      chordId: chordP1Id,
+      r2Key: 'assets/praises/p1/cifra.chord',
+      nome: 'Louvor p1',
+      numero: '001',
+      groupId: 'p1',
+      categoria: 'Cifra',
+      classificacao: 'Coro',
+    );
+
+    AudioTrack trackFor(String groupId) => AudioTrack(
+      audioId: 'aud-$groupId',
+      r2Key: 'assets/praises/$groupId/a.mp3',
+      nome: 'Louvor $groupId',
+      numero: '001',
+      groupId: groupId,
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
+
+    // A partitura vem antes da cifra: é ela que `findMaterialForGroup` devolve
+    // para o grupo p1, enquanto o leitor exibe a cifra do mesmo louvor.
+    final carouselItems = [
+      _item(pdfId: pdfP1Id, sortOrder: 0, numero: '001', nome: 'Louvor p1'),
+      _item(pdfId: chordP1Id, sortOrder: 1, numero: '001', nome: 'Cifra p1'),
+      _item(pdfId: pdfP2Id, sortOrder: 2, numero: '002', nome: 'Louvor p2'),
+    ];
+
+    Future<_ControllableAudioSession> pumpReader(
+      WidgetTester tester,
+      _FakeReaderCarouselActions readerActions,
+    ) async {
+      final session = _ControllableAudioSession();
+      final router = GoRouter(
+        initialLocation: RoutePaths.home,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: CarouselChips()),
+          ),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, state) => Scaffold(
+              body: Column(
+                children: [
+                  Text('aberto:${state.uri.queryParameters['pdfId'] ?? ''}'),
+                  const Expanded(child: CarouselChips()),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            carouselLouvoresProvider.overrideWith(
+              () => _FakeCarouselNotifier(carouselItems),
+            ),
+            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            readerCarouselActionsProvider.overrideWith(() => readerActions),
+            audioPlayerSessionProvider.overrideWith(() => session),
+            coldigomLouvoresCacheProvider.overrideWith(
+              () => _FakeColdigomLouvoresCache({
+                pdfP1Id: coldigomPdf(pdfP1Id, 'p1'),
+                pdfP2Id: coldigomPdf(pdfP2Id, 'p2'),
+              }),
+            ),
+            coldigomChordMaterialsCacheProvider.overrideWith(
+              () => _FakeColdigomChordMaterialsCache({chordP1Id: chordP1}),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      router.go('${RoutePaths.reader}?pdfId=$chordP1Id&titulo=Cifra%20p1');
+      await tester.pumpAndSettle();
+      return session;
+    }
+
+    testWidgets('restauração da sessão não sequestra o leitor', (tester) async {
+      final readerActions = _FakeReaderCarouselActions();
+      final session = await pumpReader(tester, readerActions);
+
+      // `restoreQueue` no boot: fila com faixa de outro louvor, sem tocar.
+      session.emitQueue([trackFor('p2')]);
+      await tester.pumpAndSettle();
+
+      expect(readerActions.navigatedPdfIds, isEmpty);
+      expect(find.text('aberto:$chordP1Id'), findsOneWidget);
+    });
+
+    testWidgets('não troca o material escolhido do mesmo louvor', (
+      tester,
+    ) async {
+      final readerActions = _FakeReaderCarouselActions();
+      final session = await pumpReader(tester, readerActions);
+
+      session.emitQueue([trackFor('p9')]);
+      await tester.pumpAndSettle();
+
+      // Troca real de louvor, mas para o louvor da cifra já aberta.
+      session.emitQueue([trackFor('p1')]);
+      await tester.pumpAndSettle();
+
+      expect(readerActions.navigatedPdfIds, isEmpty);
+      expect(find.text('aberto:$chordP1Id'), findsOneWidget);
+    });
+
+    testWidgets('segue o áudio quando o louvor muda de verdade', (
+      tester,
+    ) async {
+      final readerActions = _FakeReaderCarouselActions();
+      final session = await pumpReader(tester, readerActions);
+
+      session.emitQueue([trackFor('p9')]);
+      await tester.pumpAndSettle();
+
+      session.emitQueue([trackFor('p2')]);
+      await tester.pumpAndSettle();
+
+      expect(readerActions.navigatedPdfIds, [pdfP2Id]);
+    });
   });
 }

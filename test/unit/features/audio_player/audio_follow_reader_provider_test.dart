@@ -72,7 +72,7 @@ void main() {
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: 'p2',
-          currentMaterialPdfId: 'pdf-p1',
+          currentMaterialGroupId: 'p1',
           targetMaterialPdfId: 'pdf-p2',
         ),
         isTrue,
@@ -86,7 +86,7 @@ void main() {
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: 'p2',
-          currentMaterialPdfId: 'pdf-p1',
+          currentMaterialGroupId: 'p1',
           targetMaterialPdfId: 'pdf-p2',
         ),
         isFalse,
@@ -100,7 +100,21 @@ void main() {
           isReaderRoute: false,
           previousGroupId: 'p1',
           nextGroupId: 'p2',
-          currentMaterialPdfId: null,
+          currentMaterialGroupId: null,
+          targetMaterialPdfId: 'pdf-p2',
+        ),
+        isFalse,
+      );
+    });
+
+    test('não navega na restauração da sessão (sem faixa anterior)', () {
+      expect(
+        shouldFollowAudioInReader(
+          enabled: true,
+          isReaderRoute: true,
+          previousGroupId: null,
+          nextGroupId: 'p2',
+          currentMaterialGroupId: 'p1',
           targetMaterialPdfId: 'pdf-p2',
         ),
         isFalse,
@@ -114,7 +128,7 @@ void main() {
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: 'p1',
-          currentMaterialPdfId: 'outro',
+          currentMaterialGroupId: 'p9',
           targetMaterialPdfId: 'pdf-p1',
         ),
         isFalse,
@@ -128,22 +142,23 @@ void main() {
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: 'p2',
-          currentMaterialPdfId: 'pdf-p1',
+          currentMaterialGroupId: 'p1',
           targetMaterialPdfId: null,
         ),
         isFalse,
       );
     });
 
-    test('não navega quando o material já está aberto', () {
+    test('não troca a cifra aberta pela partitura do mesmo louvor', () {
       expect(
         shouldFollowAudioInReader(
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: 'p2',
-          currentMaterialPdfId: 'pdf-p2',
-          targetMaterialPdfId: 'pdf-p2',
+          // Cifra do louvor p2 aberta; o alvo é a partitura do mesmo p2.
+          currentMaterialGroupId: 'p2',
+          targetMaterialPdfId: 'pdf-p2-partitura',
         ),
         isFalse,
       );
@@ -156,7 +171,7 @@ void main() {
           isReaderRoute: true,
           previousGroupId: 'p1',
           nextGroupId: '',
-          currentMaterialPdfId: 'pdf-p1',
+          currentMaterialGroupId: 'p1',
           targetMaterialPdfId: 'pdf-p2',
         ),
         isFalse,

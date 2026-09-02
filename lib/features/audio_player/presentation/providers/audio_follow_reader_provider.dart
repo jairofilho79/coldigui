@@ -49,21 +49,28 @@ final audioFollowReaderProvider =
 
 /// Decide se a troca de faixa deve trocar o material aberto no leitor.
 ///
-/// Regra pura de [listenAudioFollowReader] — nunca navega fora de `/leitor` e
-/// `/cifra`, nem quando o material alvo já está aberto.
+/// Regra pura de [listenAudioFollowReader]. Nunca navega:
+/// - fora de `/leitor` e `/cifra`;
+/// - sem faixa anterior ([previousGroupId] `null`) — é a restauração da sessão
+///   no boot ([hydratePlaylistSession] chama `restoreQueue` sem tocar nada), e
+///   um reload ou deep link no leitor não pode ser sequestrado por ela;
+/// - quando o louvor **aberto** já é o da faixa ([currentMaterialGroupId]): a
+///   entrada é louvor + material escolhido (PRODUCT §4), então uma cifra aberta
+///   não vira a partitura do mesmo louvor.
 bool shouldFollowAudioInReader({
   required bool enabled,
   required bool isReaderRoute,
   required String? previousGroupId,
   required String? nextGroupId,
-  required String? currentMaterialPdfId,
+  required String? currentMaterialGroupId,
   required String? targetMaterialPdfId,
 }) {
   if (!enabled || !isReaderRoute) return false;
   if (nextGroupId == null || nextGroupId.isEmpty) return false;
+  if (previousGroupId == null) return false;
   if (nextGroupId == previousGroupId) return false;
   if (targetMaterialPdfId == null || targetMaterialPdfId.isEmpty) return false;
-  if (targetMaterialPdfId == currentMaterialPdfId) return false;
+  if (nextGroupId == currentMaterialGroupId) return false;
   return true;
 }
 
@@ -94,6 +101,35 @@ String? resolveMaterialForGroup(
   return findMaterialForGroup(
     groupId: groupId,
     carouselPdfIds: [for (final item in carouselItems) item.pdfId],
+    byPdfId: coldigomCache,
+    chordsById: chordCache,
+    catalog: manifest.value?.louvores ?? const [],
+  );
+}
+
+/// `groupId` do louvor a que [materialId] (PDF ou cifra) pertence.
+///
+/// Contraparte de [resolveMaterialForGroup] — usado para saber de que louvor é
+/// o material já aberto no leitor.
+String? resolveGroupIdForMaterial(
+  WidgetRef ref,
+  String? materialId, {
+  bool listen = true,
+}) {
+  if (materialId == null || materialId.isEmpty) return null;
+
+  final coldigomCache = listen
+      ? ref.watch(coldigomLouvoresCacheProvider)
+      : ref.read(coldigomLouvoresCacheProvider);
+  final chordCache = listen
+      ? ref.watch(coldigomChordMaterialsCacheProvider)
+      : ref.read(coldigomChordMaterialsCacheProvider);
+  final manifest = listen
+      ? ref.watch(louvoresManifestProvider)
+      : ref.read(louvoresManifestProvider);
+
+  return groupIdForMaterialId(
+    materialId: materialId,
     byPdfId: coldigomCache,
     chordsById: chordCache,
     catalog: manifest.value?.louvores ?? const [],
@@ -171,7 +207,11 @@ void listenAudioFollowReader(WidgetRef ref, BuildContext context) {
         isReaderRoute: isReaderRoute(context),
         previousGroupId: previousGroupId,
         nextGroupId: nextGroupId,
-        currentMaterialPdfId: currentReaderMaterialPdfId(context),
+        currentMaterialGroupId: resolveGroupIdForMaterial(
+          ref,
+          currentReaderMaterialPdfId(context),
+          listen: false,
+        ),
         targetMaterialPdfId: targetPdfId,
       )) {
         return;
