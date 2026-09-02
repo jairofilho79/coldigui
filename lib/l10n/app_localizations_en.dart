@@ -1010,4 +1010,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get socialPlaylistImportNone => 'No new songs to add.';
+
+  @override
+  String get deferredLoaderLoading => 'Loading…';
+
+  @override
+  String get deferredLoaderError => 'Could not load this section.';
+
+  @override
+  String get deferredLoaderRetry => 'Try again';
+
+  @override
+  String get authSignInUnavailable => 'Sign-in is unavailable right now.';
+
+  @override
+  String get authSignInRetry => 'Try again';
 }

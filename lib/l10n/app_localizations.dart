@@ -1792,6 +1792,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhum louvor novo para adicionar.'**
   String get socialPlaylistImportNone;
+
+  /// No description provided for @deferredLoaderLoading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando…'**
+  String get deferredLoaderLoading;
+
+  /// No description provided for @deferredLoaderError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar esta seção.'**
+  String get deferredLoaderError;
+
+  /// No description provided for @deferredLoaderRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar novamente'**
+  String get deferredLoaderRetry;
+
+  /// No description provided for @authSignInUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Login indisponível no momento.'**
+  String get authSignInUnavailable;
+
+  /// No description provided for @authSignInRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar novamente'**
+  String get authSignInRetry;
 }
 
 class _AppLocalizationsDelegate

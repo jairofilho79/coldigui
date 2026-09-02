@@ -477,5 +477,10 @@
       }
     }
   },
-  "socialPlaylistImportNone": "Nenhum louvor novo para adicionar."
+  "socialPlaylistImportNone": "Nenhum louvor novo para adicionar.",
+  "deferredLoaderLoading": "Carregando…",
+  "deferredLoaderError": "Não foi possível carregar esta seção.",
+  "deferredLoaderRetry": "Tentar novamente",
+  "authSignInUnavailable": "Login indisponível no momento.",
+  "authSignInRetry": "Tentar novamente"
 }

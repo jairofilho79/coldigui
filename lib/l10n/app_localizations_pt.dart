@@ -1024,4 +1024,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get socialPlaylistImportNone => 'Nenhum louvor novo para adicionar.';
+
+  @override
+  String get deferredLoaderLoading => 'Carregando…';
+
+  @override
+  String get deferredLoaderError => 'Não foi possível carregar esta seção.';
+
+  @override
+  String get deferredLoaderRetry => 'Tentar novamente';
+
+  @override
+  String get authSignInUnavailable => 'Login indisponível no momento.';
+
+  @override
+  String get authSignInRetry => 'Tentar novamente';
 }

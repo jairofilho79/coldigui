@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../theme/app_typography.dart';
 import '../theme/color_extensions.dart';
 
@@ -8,13 +9,16 @@ class DeferredRouteLoader extends StatefulWidget {
   const DeferredRouteLoader({
     required this.load,
     required this.builder,
-    this.loadingMessage = 'Carregando…',
+    this.loadingMessage,
     super.key,
   });
 
   final Future<void> Function() load;
   final Widget Function() builder;
-  final String loadingMessage;
+
+  /// Mensagem exibida durante o carregamento; usa [AppLocalizations] quando
+  /// omitida.
+  final String? loadingMessage;
 
   @override
   State<DeferredRouteLoader> createState() => _DeferredRouteLoaderState();
@@ -49,6 +53,8 @@ class _DeferredRouteLoaderState extends State<DeferredRouteLoader> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_error != null) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -59,7 +65,7 @@ class _DeferredRouteLoaderState extends State<DeferredRouteLoader> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Não foi possível carregar esta seção.',
+                  l10n.deferredLoaderError,
                   textAlign: TextAlign.center,
                   style: AppTypography.body.copyWith(
                     color: AppColors.textLight,
@@ -68,7 +74,7 @@ class _DeferredRouteLoaderState extends State<DeferredRouteLoader> {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _load,
-                  child: const Text('Tentar novamente'),
+                  child: Text(l10n.deferredLoaderRetry),
                 ),
               ],
             ),
@@ -87,7 +93,7 @@ class _DeferredRouteLoaderState extends State<DeferredRouteLoader> {
               const CircularProgressIndicator(color: AppColors.gold),
               const SizedBox(height: 16),
               Text(
-                widget.loadingMessage,
+                widget.loadingMessage ?? l10n.deferredLoaderLoading,
                 style: AppTypography.body.copyWith(color: AppColors.textLight),
               ),
             ],

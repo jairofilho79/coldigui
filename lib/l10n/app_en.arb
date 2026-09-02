@@ -477,5 +477,10 @@
       }
     }
   },
-  "socialPlaylistImportNone": "No new songs to add."
+  "socialPlaylistImportNone": "No new songs to add.",
+  "deferredLoaderLoading": "Loading…",
+  "deferredLoaderError": "Could not load this section.",
+  "deferredLoaderRetry": "Try again",
+  "authSignInUnavailable": "Sign-in is unavailable right now.",
+  "authSignInRetry": "Try again"
 }

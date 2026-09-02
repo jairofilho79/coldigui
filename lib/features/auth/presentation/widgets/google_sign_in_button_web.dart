@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in_web/web_only.dart' as gis;
 
 import '../../../../core/constants/app_config.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_state_provider.dart';
 
 /// Botão oficial GIS (obrigatório no Web — popup do SDK).
@@ -13,9 +14,11 @@ class GoogleSignInButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (AppConfig.isGoogleClientIdMissing) {
       return Text(
-        'Login indisponível: GOOGLE_CLIENT_ID_WEB ausente no build',
+        l10n.authSignInUnavailable,
         style: Theme.of(context).textTheme.bodyMedium,
       );
     }
@@ -27,10 +30,23 @@ class GoogleSignInButton extends ConsumerWidget {
         height: 40,
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      error: (error, _) => Text(
-        'Login indisponível: $error',
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
+      error: (error, _) {
+        debugPrint('[auth] estado de login em erro: $error');
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.authSignInUnavailable,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => ref.invalidate(authStateProvider),
+              child: Text(l10n.authSignInRetry),
+            ),
+          ],
+        );
+      },
       data: (_) => gis.renderButton(
         configuration: gis.GSIButtonConfiguration(
           type: gis.GSIButtonType.standard,
