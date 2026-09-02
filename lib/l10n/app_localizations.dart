@@ -1235,6 +1235,24 @@ abstract class AppLocalizations {
   /// **'Encerrar e voltar à busca'**
   String get audioClosePlayer;
 
+  /// Tooltip do botão que abre no leitor o material do louvor da faixa tocando
+  ///
+  /// In pt, this message translates to:
+  /// **'Partitura/cifra deste louvor'**
+  String get audioOpenSheetMusic;
+
+  /// Tooltip do toggle que troca o material do leitor quando a faixa muda
+  ///
+  /// In pt, this message translates to:
+  /// **'Seguir o áudio'**
+  String get audioFollowReader;
+
+  /// Tooltip do botão que toca o áudio do louvor aberto no leitor
+  ///
+  /// In pt, this message translates to:
+  /// **'Tocar áudio deste louvor'**
+  String get carouselPlayGroupAudio;
+
   /// No description provided for @audioFlagAdd.
   ///
   /// In pt, this message translates to:

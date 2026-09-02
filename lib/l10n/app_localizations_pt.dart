@@ -693,6 +693,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioClosePlayer => 'Encerrar e voltar à busca';
 
   @override
+  String get audioOpenSheetMusic => 'Partitura/cifra deste louvor';
+
+  @override
+  String get audioFollowReader => 'Seguir o áudio';
+
+  @override
+  String get carouselPlayGroupAudio => 'Tocar áudio deste louvor';
+
+  @override
   String get audioFlagAdd => 'Adicionar marcador';
 
   @override

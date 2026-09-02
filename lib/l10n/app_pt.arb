@@ -351,6 +351,18 @@
   "audioNext": "Próximo",
   "audioOpenPlayer": "Abrir player",
   "audioClosePlayer": "Encerrar e voltar à busca",
+  "audioOpenSheetMusic": "Partitura/cifra deste louvor",
+  "@audioOpenSheetMusic": {
+    "description": "Tooltip do botão que abre no leitor o material do louvor da faixa tocando"
+  },
+  "audioFollowReader": "Seguir o áudio",
+  "@audioFollowReader": {
+    "description": "Tooltip do toggle que troca o material do leitor quando a faixa muda"
+  },
+  "carouselPlayGroupAudio": "Tocar áudio deste louvor",
+  "@carouselPlayGroupAudio": {
+    "description": "Tooltip do botão que toca o áudio do louvor aberto no leitor"
+  },
   "audioFlagAdd": "Adicionar marcador",
   "audioFlagPauseToAdd": "Pause para adicionar um marcador",
   "audioFlagAddTitle": "Novo marcador",

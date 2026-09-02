@@ -686,6 +686,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioClosePlayer => 'Close and return to search';
 
   @override
+  String get audioOpenSheetMusic => 'Sheet music for this hymn';
+
+  @override
+  String get audioFollowReader => 'Follow the audio';
+
+  @override
+  String get carouselPlayGroupAudio => 'Play this hymn\'s audio';
+
+  @override
   String get audioFlagAdd => 'Add audio flag';
 
   @override
