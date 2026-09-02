@@ -10,7 +10,9 @@ import '../../playlists/presentation/providers/playlist_sync_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
 import '../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import 'widgets/app_shortcuts.dart';
 import 'widgets/plpcg_bottom_nav_bar.dart';
+import 'widgets/stage_wakelock.dart';
 
 /// UC-14 — Shell com bottom bar customizada de 5 destinos.
 ///
@@ -30,8 +32,7 @@ class ShellScaffold extends ConsumerWidget {
   /// Pilha indexada das branches do shell — preserva estado ao trocar aba.
   final StatefulNavigationShell navigationShell;
 
-  bool _isImmersiveMediaRoute(BuildContext context) {
-    final path = GoRouterState.of(context).uri.path;
+  bool _isImmersiveMediaRoute(String path) {
     return path == RoutePaths.reader ||
         path == RoutePaths.audio ||
         path == RoutePaths.chords;
@@ -66,7 +67,8 @@ class ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(playlistSyncProvider);
-    final isImmersive = _isImmersiveMediaRoute(context);
+    final path = GoRouterState.of(context).uri.path;
+    final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);
 
     if (!isImmersive && ref.read(readerFullscreenProvider)) {
@@ -78,28 +80,34 @@ class ShellScaffold extends ConsumerWidget {
     final hideChrome = isImmersive && isFullscreen;
 
     return OfflineLifecycleListener(
-      child: Scaffold(
-        appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
-        body: hideChrome
-            ? navigationShell
-            : SafeArea(
-                top: false,
-                bottom: false,
-                child: Column(
-                  children: [
-                    const DegradedStorageBanner(),
-                    const CarouselChips(),
-                    Expanded(child: navigationShell),
-                  ],
-                ),
-              ),
-        bottomNavigationBar: isImmersive
-            ? null
-            : PlpcgBottomNavBar(
-                selectedIndex: navigationShell.currentIndex,
-                onDestinationSelected: navigationShell.goBranch,
-                destinations: _destinations(ref),
-              ),
+      child: StageWakelockListener(
+        path: path,
+        child: AppShortcuts(
+          path: path,
+          child: Scaffold(
+            appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
+            body: hideChrome
+                ? navigationShell
+                : SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        const DegradedStorageBanner(),
+                        const CarouselChips(),
+                        Expanded(child: navigationShell),
+                      ],
+                    ),
+                  ),
+            bottomNavigationBar: isImmersive
+                ? null
+                : PlpcgBottomNavBar(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected: navigationShell.goBranch,
+                    destinations: _destinations(ref),
+                  ),
+          ),
+        ),
       ),
     );
   }
