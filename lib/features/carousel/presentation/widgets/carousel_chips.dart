@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_display_provider.dart';
@@ -14,6 +20,8 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
@@ -23,6 +31,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_session_hydrate.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -38,11 +47,17 @@ import 'package:go_router/go_router.dart';
 /// **Face áudio:** [CarouselAudioFaceBar] quando há sessão/playlist de áudio.
 ///
 /// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
+///
+/// Monta também o listener de "Seguir o áudio"
+/// ([listenAudioFollowReader]) — é o único widget presente em todas as rotas
+/// do shell, inclusive quando a barra não desenha nada.
 class CarouselChips extends ConsumerWidget {
   const CarouselChips({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    listenAudioFollowReader(ref, context);
+
     final pdfItems = ref.watch(carouselLouvoresDisplayProvider);
     final face = ref.watch(playlistMediaFaceProvider);
     final session = ref.watch(audioPlayerSessionProvider);
@@ -338,6 +353,53 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     }
   }
 
+  /// Faixas de áudio do louvor de [pdfId] (PDF ou cifra) no acervo.
+  List<AudioTrack> _groupTracksForPdfId(String pdfId) {
+    final groupId = groupIdForMaterialId(
+      materialId: pdfId,
+      byPdfId: ref.watch(coldigomLouvoresCacheProvider),
+      chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
+      catalog: ref.watch(louvoresManifestProvider).value?.louvores ?? const [],
+    );
+    if (groupId == null) return const [];
+    return tracksForGroup(
+      groupId,
+      ref.watch(coldigomAudioTracksCacheProvider).values.toList(),
+    );
+  }
+
+  /// Faixas da lista ativa, na ordem salva (vazio sem playlist de áudio).
+  List<AudioTrack> _activePlaylistTracks() {
+    final activeId = ref.read(activePlaylistIdProvider);
+    if (activeId == null) return const [];
+    for (final item in ref.read(playlistsProvider)) {
+      if (item.playlist.playlistId == activeId) {
+        return tracksForAudioIds(
+          item.playlist.audioIds,
+          ref.read(coldigomAudioTracksCacheProvider),
+        );
+      }
+    }
+    return const [];
+  }
+
+  /// Toca o áudio do louvor aberto no leitor (D10 — o slot morto da barra 2).
+  ///
+  /// Fila = áudios da lista ativa quando ela já contém a faixa; senão só os do
+  /// louvor. Começa sempre na faixa preferida do grupo ([findAudioForGroup]).
+  Future<void> _playGroupAudio(List<AudioTrack> groupTracks) async {
+    if (groupTracks.isEmpty) return;
+    final target = findAudioForGroup(groupTracks.first.groupId, groupTracks);
+    if (target == null) return;
+
+    final playlistTracks = _activePlaylistTracks();
+    final queue = playlistTracks.any((t) => t.audioId == target.audioId)
+        ? playlistTracks
+        : groupTracks;
+
+    await playAudioInSession(ref: ref, track: target, queue: queue);
+  }
+
   Widget _buildNavigatorBar({
     required CarouselItem item,
     required bool canGoPrevious,
@@ -348,6 +410,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     VoidCallback? onChipTap,
     required VoidCallback onOpenSelection,
     VoidCallback? onOpenPlayer,
+    IconData openPlayerIcon = Icons.open_in_full,
+    String? openPlayerTooltip,
   }) {
     return CarouselBarShell(
       applySafeArea: false,
@@ -361,6 +425,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         onNext: onNext,
         onChipTap: onChipTap,
         onOpenPlayer: onOpenPlayer,
+        openPlayerIcon: openPlayerIcon,
+        openPlayerTooltip: openPlayerTooltip,
         onOpenSelection: onOpenSelection,
         swapMaterial: CarouselSwapMaterialButton(pdfId: item.pdfId),
         trailingActions: const [CarouselBarTrailingActions()],
@@ -379,6 +445,11 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             ? displayIndex
             : safeSourceIndex.clamp(0, items.length - 1)];
     final onReaderWithoutPdfId = _isReaderRoute;
+
+    // No leitor sem `pdfId` na URL o slot "abrir" também era morto (D10).
+    final groupTracks = onReaderWithoutPdfId
+        ? _groupTracksForPdfId(focusedPdfId)
+        : const <AudioTrack>[];
 
     return _buildNavigatorBar(
       item: focusedItem,
@@ -401,8 +472,16 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
       onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
       onOpenPlayer: onReaderWithoutPdfId
-          ? () {}
+          ? (groupTracks.isEmpty
+                ? null
+                : () => unawaited(_playGroupAudio(groupTracks)))
           : () => _openInReader(focusedItem),
+      openPlayerIcon: onReaderWithoutPdfId
+          ? Icons.play_circle_outline
+          : Icons.open_in_full,
+      openPlayerTooltip: onReaderWithoutPdfId
+          ? AppLocalizations.of(context)?.carouselPlayGroupAudio
+          : null,
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
@@ -421,6 +500,16 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final item = _itemForPdfId(pdfId, _readerTitulo);
     final loading = _carouselNavLoading;
 
+    // D10: no leitor o slot "abrir" tocava nada — vira "tocar áudio deste
+    // louvor" e some quando o louvor não tem áudio.
+    final groupTracks = _groupTracksForPdfId(pdfId);
+    final playAudio = groupTracks.isEmpty
+        ? null
+        : () => unawaited(_playGroupAudio(groupTracks));
+    final playAudioTooltip = AppLocalizations.of(
+      context,
+    )?.carouselPlayGroupAudio;
+
     if (position == null) {
       return _buildNavigatorBar(
         item: item,
@@ -428,7 +517,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoNext: false,
         loading: loading,
         onOpenSelection: _openReaderSelectionSheet,
-        onOpenPlayer: () {},
+        onOpenPlayer: playAudio,
+        openPlayerIcon: Icons.play_circle_outline,
+        openPlayerTooltip: playAudioTooltip,
       );
     }
 
@@ -450,7 +541,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             )
           : null,
       onOpenSelection: _openReaderSelectionSheet,
-      onOpenPlayer: () {},
+      onOpenPlayer: playAudio,
+      openPlayerIcon: Icons.play_circle_outline,
+      openPlayerTooltip: playAudioTooltip,
     );
   }
 

@@ -1,6 +1,11 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -110,6 +115,24 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
     final byId = {for (final item in state) item.pdfId: item};
     state = pdfIds.map((pdfId) => byId[pdfId]!).toList(growable: false);
   }
+}
+
+class _FakeColdigomLouvoresCache extends ColdigomLouvoresCacheNotifier {
+  _FakeColdigomLouvoresCache(this.initial);
+
+  final Map<String, Louvor> initial;
+
+  @override
+  Map<String, Louvor> build() => initial;
+}
+
+class _FakeColdigomAudioTracksCache extends ColdigomAudioTracksCacheNotifier {
+  _FakeColdigomAudioTracksCache(this.initial);
+
+  final Map<String, AudioTrack> initial;
+
+  @override
+  Map<String, AudioTrack> build() => initial;
 }
 
 CarouselItem _item({
@@ -712,6 +735,85 @@ void main() {
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsNothing);
-    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
+    // D10: sem áudio no louvor aberto, o slot "abrir" não aparece.
+    expect(find.byIcon(Icons.open_in_full), findsNothing);
+    expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+  });
+
+  testWidgets('modo leitor oferece tocar áudio do louvor aberto', (
+    tester,
+  ) async {
+    final pdfId = encodePdfId('assets/praises/p1/partitura.pdf');
+    final louvor = Louvor.fromManifest(
+      nome: 'Louvor D',
+      numero: '004',
+      categoria: 'Partitura',
+      classificacao: 'Coro',
+      pdf: 'partitura.pdf',
+      pdfId: pdfId,
+      groupId: 'p1',
+      source: LouvorDataSource.coldigom,
+    );
+    const track = AudioTrack(
+      audioId: 'aud-p1',
+      r2Key: 'assets/praises/p1/a.mp3',
+      nome: 'Louvor D',
+      numero: '004',
+      groupId: 'p1',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
+    final carouselItem = _item(
+      pdfId: pdfId,
+      sortOrder: 0,
+      numero: '004',
+      nome: 'Louvor D',
+    );
+
+    final router = GoRouter(
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([carouselItem]),
+          ),
+          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          coldigomLouvoresCacheProvider.overrideWith(
+            () => _FakeColdigomLouvoresCache({pdfId: louvor}),
+          ),
+          coldigomAudioTracksCacheProvider.overrideWith(
+            () => _FakeColdigomAudioTracksCache({track.audioId: track}),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('${RoutePaths.reader}?pdfId=$pdfId&titulo=Louvor%20D');
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
+    expect(find.byTooltip('Tocar áudio deste louvor'), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_full), findsNothing);
   });
 }
