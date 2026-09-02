@@ -1,6 +1,7 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
@@ -58,6 +59,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Valor inicial da [SearchBar] — não segue `?pesquisa=` a cada sync de URL.
   late String _searchBarInitialValue;
 
+  /// Vive na tela, não na [SearchBar]: o `Ctrl+K` precisa de um nó estável
+  /// mesmo quando a barra é recriada pela hidratação de URL.
+  final _searchFocusNode = FocusNode(debugLabel: 'homeSearch');
+
   static const double _maxContentWidth = 896;
 
   @override
@@ -65,6 +70,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _searchBarInitialValue = widget.initialSearchQuery;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromUrl());
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _focusSearchField() {
+    _searchFocusNode.requestFocus();
   }
 
   void _hydrateFromUrl() {
@@ -162,6 +177,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _syncUrlFromState();
     });
 
+    ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
+
     final horizontalPadding = MediaQuery.sizeOf(context).width > 600
         ? 24.0
         : 16.0;
@@ -190,10 +207,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     key: ValueKey(_searchHydrationEpoch),
                     hintText: l10n.searchHint,
                     initialValue: _searchBarInitialValue,
+                    focusNode: _searchFocusNode,
                     onQueryChanged: (value) {
                       ref.read(homeSearchRawQueryProvider.notifier).state =
                           value;
                     },
+                    // Enter abre o primeiro resultado — mesma ação do toque.
+                    onSubmitted: (_) => activateFirstHomeSearchResult(),
                   ),
                 ),
                 if (manifestAsync.isLoading) ...[
