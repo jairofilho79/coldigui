@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
@@ -58,7 +61,15 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     );
     if (louvor == null) return null;
 
-    await ref.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor);
+    // Best-effort: nunca bloqueia nem impede a troca de louvor (A3).
+    unawaited(
+      ref
+          .read(ensureColdigomPraiseMaterialsCachedProvider)(louvor)
+          .timeout(coldigomWarmupDefaultTimeout)
+          .catchError((Object e) {
+            debugPrint('[coldigom] warmup falhou: $e');
+          }),
+    );
 
     final remotePath = LouvorPdfPath.fromLouvor(louvor);
     final source = await ref.read(resolvePdfForReaderProvider)(

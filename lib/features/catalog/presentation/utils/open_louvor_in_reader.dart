@@ -18,32 +18,66 @@ import '../../../playlists/presentation/providers/playlists_provider.dart';
 ///
 /// Sempre entra na lista ativa. Lista nova só pelo limpar da barra
 /// ([CarouselBarTrailingActions] → Nova Lista).
+///
+/// Resolve o PDF e adiciona à playlist ativa **em paralelo** (A3): a rede
+/// nunca deve travar a abertura do leitor. O warmup Coldigom roda
+/// best-effort em segundo plano — nunca atrasa nem impede a navegação —, e
+/// uma falha ao adicionar à playlist ativa (ex.: Isar indisponível) também
+/// não impede abrir o PDF, que é a prioridade.
 Future<void> openLouvorInReader({
   required WidgetRef ref,
   required BuildContext context,
   required Louvor louvor,
 }) async {
-  await ref
-      .read(playlistsProvider.notifier)
-      .addLouvorToActivePlaylist(louvor.pdfId);
-
-  await ref.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor);
+  _warmupColdigomPraiseMaterialsInBackground(ref, louvor);
 
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
-  final source = await ref
-      .read(louvorPdfDownloadProvider.notifier)
-      .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath);
+  LocalPdfSource? source;
+
+  await Future.wait<void>([
+    _addLouvorToActivePlaylistSafely(ref, louvor.pdfId),
+    ref
+        .read(louvorPdfDownloadProvider.notifier)
+        .resolveLouvorPdf(pdfId: louvor.pdfId, remotePath: remotePath)
+        .then((value) {
+          source = value;
+        }),
+  ]);
 
   if (!context.mounted) return;
 
   final location = ref
       .read(openPdfInReaderProvider)
       .call(
-        pdfPath: source.absolutePath,
+        pdfPath: source!.absolutePath,
         pdfId: louvor.pdfId,
         titulo: louvor.nome,
       );
   unawaited(context.push(location));
+}
+
+/// Warmup Coldigom best-effort — nunca atrasa nem impede a navegação (A3).
+void _warmupColdigomPraiseMaterialsInBackground(WidgetRef ref, Louvor louvor) {
+  unawaited(
+    ref
+        .read(ensureColdigomPraiseMaterialsCachedProvider)(louvor)
+        .timeout(coldigomWarmupDefaultTimeout)
+        .catchError((Object e) {
+          debugPrint('[coldigom] warmup falhou: $e');
+        }),
+  );
+}
+
+/// Adicionar à playlist ativa nunca deve impedir abrir o PDF (A3).
+Future<void> _addLouvorToActivePlaylistSafely(
+  WidgetRef ref,
+  String pdfId,
+) async {
+  try {
+    await ref.read(playlistsProvider.notifier).addLouvorToActivePlaylist(pdfId);
+  } on Object catch (e) {
+    debugPrint('[catalog] falha ao adicionar louvor à playlist ativa: $e');
+  }
 }
 
 /// Resolve PDF do louvor — expõe erros tipados para UI.
