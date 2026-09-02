@@ -19,6 +19,17 @@
   <link rel="preload" href="main.dart.wasm" as="fetch" crossorigin="anonymous">
   <link rel="preload" href="isar_plus.wasm" as="fetch" crossorigin="anonymous">
 
+  <!-- Fontes variáveis (subset — ver scripts/subset_fonts.sh). Caminho
+       confirmado em build/web/assets/FontManifest.json após o build: como o
+       asset do pubspec já começa com "assets/" (a pasta assets/fonts/ do
+       projeto), o Flutter web duplica o prefixo (assets/assets/fonts/...) e
+       URL-encoda os colchetes do nome do arquivo. É estável — nada no
+       pipeline renomeia estes dois arquivos (diferente de
+       MaterialIcons-Regular.otf, que o cache_bust_web_entrypoints.sh
+       renomeia com hash de conteúdo). -->
+  <link rel="preload" href="assets/assets/fonts/EBGaramond%5Bwght%5D.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/OpenSans%5Bwght%5D.ttf" as="font" type="font/ttf" crossorigin>
+
   <script>
     (function () {
       function supportsSkwasmPreload() {

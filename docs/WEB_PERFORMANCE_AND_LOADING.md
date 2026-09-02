@@ -59,7 +59,7 @@ Medição em `build/web/` após `flutter build web --wasm --release`:
 | `canvaskit/skwasm.wasm` | 3,4 MB | Boot (renderer WASM) |
 | `assets/packages/pdfrx/assets/pdfium.wasm` | 5,0 MB | Boot (`pdfrxFlutterInitialize`) |
 | `isar_plus.wasm` | 1,3 MB | Boot (`Isar.initialize`) |
-| Fontes (EBGaramond, OpenSans) | incluídas no bundle | Boot (tipografia) |
+| Fontes (EBGaramond, OpenSans, subset — Tarefa 5) | ~285 KB (era ~1,35 MB) | Boot (tipografia) |
 | **Total `build/web/`** | **~56 MB** | — |
 
 > Nota: na visita subsequente, o service worker cacheia a maior parte; o delay cai drasticamente. O problema reportado é **cold start / first visit**.
@@ -482,6 +482,7 @@ Regras:
 - **Eliminar completamente o delay na 1ª visita é impossível** (WASM + rede); o objetivo realista é (1) feedback visual imediato e (2) reduzir bytes/init antes do primeiro frame.
 - **Safari iOS** pode ser mais lento com WASM — incluir no test plan (Fase 5 do refactor plan já alertava para isso).
 - Após Fase A, o usuário verá loader → app; o tempo total pode ser igual, mas a **percepção** melhora drasticamente.
+- **Fontes (Tarefa 5, set/2026):** `EBGaramond[wght].ttf` e `OpenSans[wght].ttf` (renomeado — eixo `wdth` fixado em 100 e removido) são gerados por `scripts/subset_fonts.sh` a partir dos originais em `assets/fonts/source/`, com subset de unicodes (Latin + pontuação + bemol/sustenido de cifras) via `fontTools.subset`/`fontTools.varLib.instancer`. Total caiu de ~1,35 MB para ~285 KB. `--no-tree-shake-icons` foi removido de `scripts/web_build.sh`: `scripts/cache_bust_web_entrypoints.sh` já renomeia `MaterialIcons-Regular.otf` com hash de conteúdo e atualiza o `FontManifest.json`, então um subset de ícones diferente a cada build não gera mais ícone em branco por cache immutable.
 
 ---
 
@@ -497,3 +498,4 @@ Regras:
 | jul/2026 | **Fase F (baseline pré-split):** `main.dart.wasm` 3,6 MB, `main.dart.js` 4,1 MB, 0 chunks deferred |
 | jul/2026 | **Fase H:** `window.__plpcgPerf` em `index.html`; `measure_web_boot.sh` + baseline JSON; gate CI; doc [web_phase_h_measurement.md](web_phase_h_measurement.md) |
 | jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |
+| set/2026 | **Tarefa 5 (Top 12 web, A2):** subset de fontes (`scripts/subset_fonts.sh`) — EBGaramond+OpenSans de ~1,35 MB → ~285 KB; `--no-tree-shake-icons` removido de `scripts/web_build.sh` (coberto pelo hash de `MaterialIcons-Regular.otf` em `cache_bust_web_entrypoints.sh`); preload das duas fontes em `web/index.html` |

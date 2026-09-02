@@ -29,13 +29,15 @@ echo "==> Assets Isar web (OPFS + COEP)..."
 "$ROOT_DIR/scripts/fetch_isar_web_assets.sh"
 
 echo "==> Build Web (WASM, release)..."
-# --no-tree-shake-icons: subset de MaterialIcons muda quando o menu troca ícones;
-# /assets/* é cache immutable — fonte velha = ícones em branco no bottom nav.
+# Tree-shake de ícones ligado: o subset de MaterialIcons muda quando o menu
+# troca ícones, mas scripts/cache_bust_web_entrypoints.sh já renomeia
+# MaterialIcons-Regular.otf com hash do conteúdo (MaterialIcons-Regular.<hash>.otf)
+# e atualiza o FontManifest.json de acordo — cache immutable em /assets/* não
+# serve mais um subset velho para um nome de arquivo novo.
 # just_audio_web: se faltar no registrant, ensureAudioWebPlatformRegistered cobre no boot.
 flutter build web \
   --wasm \
   --release \
-  --no-tree-shake-icons \
   "${DEFINE_ARGS[@]}"
 
 echo "==> Artefato em build/web/"
