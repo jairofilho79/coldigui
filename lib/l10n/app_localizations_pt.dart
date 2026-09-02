@@ -412,6 +412,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
 
   @override
+  String get pdfLocalReadFailedMessage =>
+      'Não foi possível ler o arquivo. Tente novamente.';
+
+  @override
   String get pdfOfflineGoToSettings => 'Baixar';
 
   @override

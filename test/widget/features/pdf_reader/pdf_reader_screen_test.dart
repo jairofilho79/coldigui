@@ -5,6 +5,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
@@ -185,12 +186,51 @@ void main() {
     const deleted = PdfExternallyDeletedException(pdfId: 'y');
     const corrupted = PdfLocalCorruptedException(pdfId: 'z');
     const fetchFailed = PdfFetchFailedException('erro fetch');
+    const readFailed = PdfLocalReadFailedException(pdfId: 'w');
 
     expect(pdfReaderErrorMessage(offline), offline.message);
     expect(pdfReaderErrorMessage(deleted), deleted.message);
     expect(pdfReaderErrorMessage(corrupted), corrupted.message);
     expect(pdfReaderErrorMessage(fetchFailed), 'erro fetch');
+    expect(pdfReaderErrorMessage(readFailed), readFailed.message);
   });
+
+  testWidgets(
+    'PdfReaderScreen exibe fallback genérico com retry para '
+    'PdfLocalReadFailedException (B3 — não apaga PDF por erro genérico)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      const readFailed = PdfLocalReadFailedException(pdfId: 'pdf-2');
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider(
+              '/tmp/read-failed.pdf',
+            ).overrideWith((ref) => Future.error(readFailed)),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': '/tmp/read-failed.pdf',
+                  'pdfId': 'pdf-2',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text(readFailed.message), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+      expect(find.text('Baixar novamente'), findsNothing);
+    },
+  );
 
   testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido', (
     tester,

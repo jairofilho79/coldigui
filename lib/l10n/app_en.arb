@@ -248,6 +248,7 @@
   },
   "offlineMissingError": "Could not download missing PDFs",
   "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.",
+  "pdfLocalReadFailedMessage": "Could not read the file. Please try again.",
   "pdfOfflineGoToSettings": "Download",
   "pdfOfflinePersistentTooltip": "Available offline (guaranteed download)",
   "pdfOfflineCachedLruTooltip": "Temporary cache — may be removed to free space",

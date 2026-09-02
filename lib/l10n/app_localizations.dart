@@ -719,6 +719,12 @@ abstract class AppLocalizations {
   /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
   String get pdfOfflineUnavailableMessage;
 
+  /// PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível ler o arquivo. Tente novamente.'**
+  String get pdfLocalReadFailedMessage;
+
   /// No description provided for @pdfOfflineGoToSettings.
   ///
   /// In pt, this message translates to:

@@ -248,6 +248,10 @@
   },
   "offlineMissingError": "Não foi possível baixar os PDFs faltantes",
   "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "pdfLocalReadFailedMessage": "Não foi possível ler o arquivo. Tente novamente.",
+  "@pdfLocalReadFailedMessage": {
+    "description": "PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente"
+  },
   "pdfOfflineGoToSettings": "Baixar",
   "pdfOfflinePersistentTooltip": "Disponível offline (download garantido)",
   "pdfOfflineCachedLruTooltip": "Cache temporário — pode ser removido para liberar espaço",
