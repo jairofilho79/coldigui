@@ -67,6 +67,11 @@ LouvorGroup? _groupFromSiblings(Louvor louvor, Iterable<Louvor> candidates) {
 
 /// Grupo para o botão layers da barra: inclui áudios/cifras do cache e aceita
 /// 1 PDF se [LouvorGroup.totalMaterials] > 1.
+///
+/// Precedência quando os dois ids chegam (face de áudio): manda a faixa
+/// tocando ([audioId]) se o [pdfId] for de **outro** louvor — o chip focado no
+/// carousel não tem relação com o que está tocando. Com os dois no mesmo
+/// grupo o [pdfId] segue mandando, para não perder PDFs PLPCG do grupo.
 LouvorGroup? findSwapMaterialGroup({
   String? pdfId,
   String? audioId,
@@ -83,6 +88,17 @@ LouvorGroup? findSwapMaterialGroup({
       plpcgCatalog,
       pdfId,
       coldigomCache: coldigomCache,
+    );
+  }
+
+  final playingGroupId = _playingTrackGroupId(audioId, audioCache);
+  if (playingGroupId != null &&
+      playingGroupId != _pdfIdGroupKey(pdfId, louvor, chordCache)) {
+    return _groupIfMultiple(
+      _coldigomSiblingPdfs(coldigomCache, playingGroupId),
+      tracks,
+      chords,
+      playingGroupId,
     );
   }
 
@@ -119,6 +135,30 @@ LouvorGroup? findSwapMaterialGroup({
     chords,
     gid,
   );
+}
+
+/// `groupId` da faixa tocando, ou `null` sem faixa/sem grupo.
+String? _playingTrackGroupId(
+  String? audioId,
+  Map<String, AudioTrack>? audioCache,
+) {
+  if (audioId == null || audioId.isEmpty) return null;
+  final track = audioCache?[audioId];
+  if (track == null || track.groupId.isEmpty) return null;
+  return track.groupId;
+}
+
+/// `groupId` do material [pdfId] (PDF ou cifra), ou `null` se desconhecido.
+String? _pdfIdGroupKey(
+  String? pdfId,
+  Louvor? louvor,
+  Map<String, ChordMaterial>? chordCache,
+) {
+  if (louvor != null) return _groupKey(louvor);
+  if (pdfId == null || pdfId.isEmpty) return null;
+  final chord = chordCache?[pdfId];
+  if (chord == null) return null;
+  return coldigomPraiseIdFromPdfId(pdfId);
 }
 
 List<Louvor> _coldigomSiblingPdfs(

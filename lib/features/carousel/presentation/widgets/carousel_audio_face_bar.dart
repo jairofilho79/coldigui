@@ -1,6 +1,7 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
@@ -45,6 +46,11 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                   .watch(carouselFocusedIndexProvider)
                   .clamp(0, pdfItems.length - 1)]
               .pdfId;
+
+    // Ponte D1: o material do louvor **tocando**, não o chip focado — o
+    // carousel pode estar em outro louvor enquanto a faixa toca.
+    final trackMaterialPdfId = resolveMaterialForGroup(ref, track?.groupId);
+    final followingAudio = ref.watch(audioFollowReaderProvider);
 
     // Sem flags: sobe o bloco para o seek alinhar aos IconButtons.
     // Com flags: sem translate — o eixo do seek já fica no centro.
@@ -136,6 +142,25 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               icon: const Icon(Icons.open_in_full),
               onPressed: () => pushAudioPlayerRoute(context, track),
             ),
+          if (track != null && trackMaterialPdfId != null) ...[
+            IconButton(
+              style: carouselBarIconButtonStyle,
+              tooltip: l10n.audioOpenSheetMusic,
+              icon: const Icon(Icons.menu_book),
+              onPressed: () => openMaterialForGroupInReader(
+                ref: ref,
+                context: context,
+                groupId: track.groupId,
+              ),
+            ),
+            IconButton(
+              style: carouselBarIconButtonStyle,
+              tooltip: l10n.audioFollowReader,
+              icon: Icon(followingAudio ? Icons.link : Icons.link_off),
+              onPressed: () =>
+                  ref.read(audioFollowReaderProvider.notifier).toggle(),
+            ),
+          ],
           if (pdfItems.isNotEmpty)
             IconButton(
               style: carouselBarIconButtonStyle,
@@ -153,8 +178,11 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                 ),
               ),
             ),
+          // Layers segue a faixa tocando: `pdfId` do próprio grupo (troca o
+          // material no lugar) e, sem material, só o `audioId` — nunca o chip
+          // focado, que pode ser outro louvor.
           CarouselSwapMaterialButton(
-            pdfId: focusedPdfId,
+            pdfId: track == null ? focusedPdfId : trackMaterialPdfId,
             audioId: track?.audioId,
           ),
           const CarouselBarTrailingActions(),

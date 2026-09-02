@@ -4,6 +4,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/data/web_audio_environment.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
@@ -41,6 +42,9 @@ class AudioPlayerScreen extends ConsumerWidget {
       if (track != null && track.author.isNotEmpty) track.author,
     ];
     final canAddFlag = track != null && !session.playing;
+    // Ponte D1: partitura/cifra do louvor da faixa e toggle "seguir o áudio".
+    final materialPdfId = resolveMaterialForGroup(ref, track?.groupId);
+    final followingAudio = ref.watch(audioFollowReaderProvider);
 
     return ColoredBox(
       color: AppColors.pdfArea,
@@ -94,27 +98,54 @@ class AudioPlayerScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: IconButton(
-                      tooltip: canAddFlag
-                          ? l10n.audioFlagAdd
-                          : l10n.audioFlagPauseToAdd,
-                      onPressed: !canAddFlag
-                          ? null
-                          : () => _addFlag(
-                              context,
-                              ref,
-                              audioId,
-                              session.position,
-                            ),
-                      icon: Icon(
-                        Icons.flag,
-                        color: canAddFlag
-                            ? AppColors.textLight
-                            : AppColors.textLight.withValues(alpha: 0.35),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (track != null && materialPdfId != null)
+                        IconButton(
+                          tooltip: l10n.audioOpenSheetMusic,
+                          onPressed: () => openMaterialForGroupInReader(
+                            ref: ref,
+                            context: context,
+                            groupId: track.groupId,
+                          ),
+                          icon: const Icon(
+                            Icons.menu_book,
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                      IconButton(
+                        tooltip: canAddFlag
+                            ? l10n.audioFlagAdd
+                            : l10n.audioFlagPauseToAdd,
+                        onPressed: !canAddFlag
+                            ? null
+                            : () => _addFlag(
+                                context,
+                                ref,
+                                audioId,
+                                session.position,
+                              ),
+                        icon: Icon(
+                          Icons.flag,
+                          color: canAddFlag
+                              ? AppColors.textLight
+                              : AppColors.textLight.withValues(alpha: 0.35),
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        tooltip: l10n.audioFollowReader,
+                        onPressed: () => ref
+                            .read(audioFollowReaderProvider.notifier)
+                            .toggle(),
+                        icon: Icon(
+                          followingAudio ? Icons.link : Icons.link_off,
+                          color: followingAudio
+                              ? AppColors.goldLight
+                              : AppColors.textLight.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   AudioSeekBar(
