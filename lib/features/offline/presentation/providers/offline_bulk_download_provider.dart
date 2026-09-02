@@ -15,7 +15,7 @@ import '../../domain/usecases/download_offline_packages.dart';
 /// Chave l10n para falhas de bulk mapeadas a partir de exceções concretas.
 String offlineBulkDownloadErrorKey(Object error) {
   if (error is InsufficientDiskSpaceException) {
-    return 'offlineInsufficientDiskSpace';
+    return 'offlineDownloadNoSpace';
   }
   if (error is DioException) {
     return switch (error.type) {
@@ -66,6 +66,7 @@ class OfflineBulkDownloadState {
     this.checkpoint,
     this.errorMessage,
     this.unmatchedZipEntries = const [],
+    this.failedCount = 0,
   });
 
   final OfflineBulkDownloadStatus status;
@@ -73,6 +74,10 @@ class OfflineBulkDownloadState {
   final OfflineBulkCheckpoint? checkpoint;
   final String? errorMessage;
   final List<String> unmatchedZipEntries;
+
+  /// PDFs esperados que falharam na última execução (Task 3/B4) — usado para
+  /// diferenciar `completed` de `completedWithWarnings` e exibir "N falhas".
+  final int failedCount;
 
   bool get isRunning => status == OfflineBulkDownloadStatus.running;
   bool get isCancelling => status == OfflineBulkDownloadStatus.cancelling;
@@ -87,6 +92,7 @@ class OfflineBulkDownloadState {
     OfflineBulkCheckpoint? checkpoint,
     String? errorMessage,
     List<String>? unmatchedZipEntries,
+    int? failedCount,
     bool clearCheckpoint = false,
     bool clearError = false,
     bool clearUnmatchedZipEntries = false,
@@ -99,6 +105,7 @@ class OfflineBulkDownloadState {
       unmatchedZipEntries: clearUnmatchedZipEntries
           ? const []
           : (unmatchedZipEntries ?? this.unmatchedZipEntries),
+      failedCount: failedCount ?? this.failedCount,
     );
   }
 }
@@ -161,6 +168,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       clearError: true,
       clearCheckpoint: true,
       clearUnmatchedZipEntries: true,
+      failedCount: 0,
     );
     await _acquireWakelock();
 
@@ -205,6 +213,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.running,
       clearError: true,
+      failedCount: 0,
     );
     await _acquireWakelock();
 
@@ -266,6 +275,11 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     DownloadOfflinePackagesResult result,
   ) async {
     await _releaseWakelock();
+    final failedCount = result.failedPdfIds.length;
+    // Nada foi de fato gravado neste lote — não é honesto marcar
+    // OFFLINE_AVAILABLE=TRUE (Task 3/B4).
+    final nothingWasStored =
+        result.totalPdfs > 0 && failedCount == result.totalPdfs;
     state = state.copyWith(
       status: result.hasWarnings
           ? OfflineBulkDownloadStatus.completedWithWarnings
@@ -273,6 +287,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       progress: null,
       clearCheckpoint: true,
       unmatchedZipEntries: result.unmatchedZipEntries,
+      failedCount: failedCount,
     );
     if (_lastStartedCategories.isNotEmpty) {
       await ref
@@ -280,7 +295,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
           .registerBulkCompleted(_lastStartedCategories);
     }
     _lastStartedCategories = const [];
-    await ref.read(offlineModeProvider.notifier).markConfigured();
+    if (!nothingWasStored) {
+      await ref.read(offlineModeProvider.notifier).markConfigured();
+    }
     await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
   }
 

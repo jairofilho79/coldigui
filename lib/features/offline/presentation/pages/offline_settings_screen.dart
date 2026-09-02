@@ -158,6 +158,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
           next.errorMessage != previous?.errorMessage) {
         final message = switch (next.errorMessage) {
           'offlineInsufficientDiskSpace' => l10n.offlineInsufficientDiskSpace,
+          'offlineDownloadNoSpace' => l10n.offlineDownloadNoSpace,
           'offlineDownloadTimeout' => l10n.offlineDownloadTimeout,
           'offlineDownloadNetworkError' => l10n.offlineDownloadNetworkError,
           _ => l10n.offlineDownloadError,
@@ -169,9 +170,13 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
       if ((next.status == OfflineBulkDownloadStatus.completed ||
               next.status == OfflineBulkDownloadStatus.completedWithWarnings) &&
           previous?.status != next.status) {
+        final completionMessage =
+            next.status == OfflineBulkDownloadStatus.completedWithWarnings
+            ? l10n.offlineDownloadCompletedWithFailures(next.failedCount)
+            : l10n.offlineDownloadCompleted;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.offlineDownloadCompleted)));
+        ).showSnackBar(SnackBar(content: Text(completionMessage)));
       }
     });
 

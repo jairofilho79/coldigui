@@ -338,6 +338,67 @@ void main() {
     expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
   });
 
+  test(
+    'result.totalPdfs reflete o total esperado nas categorias baixadas (Task 3/B4)',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final useCase = DownloadOfflinePackages(
+        manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+        zipDownloader: _FakeZipDownloader(store, zipPath),
+        extractAndStorePdfs: ExtractAndStorePdfs(
+          repository,
+          pdfStoragePortFor(store),
+          _FakeZipDownloader(store, zipPath),
+        ),
+        reconcileOfflineIndex: ReconcileOfflineIndex(
+          repository,
+          pdfStoragePortFor(store),
+        ),
+        checkpointStore: OfflineBulkCheckpointStore(prefs),
+      );
+
+      final result = await useCase.call(categories: const ['Partitura']);
+
+      expect(result.totalPdfs, 2);
+    },
+  );
+
+  test('result.failedPdfIds.length == result.totalPdfs quando todos os PDFs '
+      'esperados falham na extração (nada foi gravado)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final allCorruptedZipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/010.pdf': Uint8List.fromList([0x3C, 0x68, 0x74, 0x6D]),
+        'ColAdultos/011.pdf': Uint8List.fromList([0x3C, 0x68, 0x74, 0x6D]),
+      },
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+      zipDownloader: _FakeZipDownloader(store, allCorruptedZipPath),
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        pdfStoragePortFor(store),
+        _FakeZipDownloader(store, allCorruptedZipPath),
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final result = await useCase.call(categories: const ['Partitura']);
+
+    expect(result.failedPdfIds.length, result.totalPdfs);
+    expect(result.totalPdfs, 2);
+  });
+
   test('resume de checkpoint continua da part correta', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

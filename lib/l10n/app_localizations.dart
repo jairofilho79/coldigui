@@ -422,6 +422,12 @@ abstract class AppLocalizations {
   /// **'Download offline concluído'**
   String get offlineDownloadCompleted;
 
+  /// No description provided for @offlineDownloadCompletedWithFailures.
+  ///
+  /// In pt, this message translates to:
+  /// **'Download concluído com {failedCount} arquivos com falha'**
+  String offlineDownloadCompletedWithFailures(int failedCount);
+
   /// No description provided for @offlineDownloadError.
   ///
   /// In pt, this message translates to:
@@ -439,6 +445,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Sem conexão. Verifique a internet e retome.'**
   String get offlineDownloadNetworkError;
+
+  /// No description provided for @offlineDownloadNoSpace.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem espaço no dispositivo. Libere espaço e tente novamente.'**
+  String get offlineDownloadNoSpace;
 
   /// No description provided for @offlineKeepAppOpenDuringDownload.
   ///

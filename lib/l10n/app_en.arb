@@ -99,9 +99,16 @@
   "offlineResumeDownload": "Resume",
   "offlineDismissCheckpoint": "Dismiss",
   "offlineDownloadCompleted": "Offline download completed",
+  "offlineDownloadCompletedWithFailures": "Download completed with {failedCount} failed files",
+  "@offlineDownloadCompletedWithFailures": {
+    "placeholders": {
+      "failedCount": { "type": "int" }
+    }
+  },
   "offlineDownloadError": "Could not complete offline download",
   "offlineDownloadTimeout": "Slow connection. Tap Resume when the network improves.",
   "offlineDownloadNetworkError": "No connection. Check your internet and resume.",
+  "offlineDownloadNoSpace": "Not enough space on this device. Free up space and try again.",
   "offlineKeepAppOpenDuringDownload": "Keep the app open while downloading.",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
   "offlinePhaseFetching": "downloading",

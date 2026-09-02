@@ -167,6 +167,49 @@ class _IdleOfflineModeNotifier extends OfflineModeNotifier {
   Future<void> markConfigured() async {}
 }
 
+/// Registra chamadas a [markConfigured] sem persistir nada (Task 3/B4).
+class _TrackingOfflineModeNotifier extends OfflineModeNotifier {
+  var markConfiguredCallCount = 0;
+
+  @override
+  bool build() => false;
+
+  @override
+  Future<void> markConfigured() async {
+    markConfiguredCallCount++;
+  }
+}
+
+/// Usecase fake que retorna um [DownloadOfflinePackagesResult] fixo — usado
+/// para exercitar `_completeBulkDownload` com falhas parciais/totais.
+class _ResultDownloadOfflinePackages extends DownloadOfflinePackages {
+  _ResultDownloadOfflinePackages({
+    required this.result,
+    required PdfStoragePort store,
+    required SharedPreferences prefs,
+    required super.checkpointStore,
+  }) : super(
+         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
+         zipDownloader: ZipPackageDownloader(Dio(), store),
+         extractAndStorePdfs: ExtractAndStorePdfs(
+           _StubRepo(),
+           store,
+           ZipPackageDownloader(Dio(), store),
+         ),
+         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
+       );
+
+  final DownloadOfflinePackagesResult result;
+
+  @override
+  Future<DownloadOfflinePackagesResult> call({
+    required List<String> categories,
+    void Function(OfflineDownloadProgress progress)? onProgress,
+    CancelToken? cancelToken,
+    OfflineBulkCheckpoint? resumeCheckpoint,
+  }) async => result;
+}
+
 class _IdleCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
   OfflineCacheStatus build() => OfflineCacheStatus.empty;
@@ -351,4 +394,115 @@ void main() {
       OfflineBulkDownloadStatus.cancelled,
     );
   });
+
+  test(
+    'InsufficientDiskSpaceException define estado failed com offlineDownloadNoSpace '
+    'e não chama markConfigured (Task 3/B4)',
+    () async {
+      final offlineMode = _TrackingOfflineModeNotifier();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+          downloadOfflinePackagesProvider.overrideWith(
+            (ref) => _ThrowingDownloadOfflinePackages(
+              error: const InsufficientDiskSpaceException(
+                requiredBytes: 5000,
+                availableBytes: 0,
+              ),
+              store: pdfStoragePortFor(store),
+              prefs: prefs,
+              checkpointStore: checkpointStore,
+            ),
+          ),
+          offlineModeProvider.overrideWith(() => offlineMode),
+          offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      await pumpMicrotasks();
+
+      await container.read(offlineBulkDownloadProvider.notifier).start([
+        'Partitura',
+      ]);
+
+      final state = container.read(offlineBulkDownloadProvider);
+      expect(state.status, OfflineBulkDownloadStatus.failed);
+      expect(state.errorMessage, 'offlineDownloadNoSpace');
+      expect(offlineMode.markConfiguredCallCount, 0);
+    },
+  );
+
+  test('2 falhas em 10 completa com completedWithWarnings, failedCount == 2 e '
+      'chama markConfigured (Task 3/B4)', () async {
+    final offlineMode = _TrackingOfflineModeNotifier();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+        downloadOfflinePackagesProvider.overrideWith(
+          (ref) => _ResultDownloadOfflinePackages(
+            result: const DownloadOfflinePackagesResult(
+              failedPdfIds: ['pdf-a', 'pdf-b'],
+              totalPdfs: 10,
+            ),
+            store: pdfStoragePortFor(store),
+            prefs: prefs,
+            checkpointStore: checkpointStore,
+          ),
+        ),
+        offlineModeProvider.overrideWith(() => offlineMode),
+        offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpMicrotasks();
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    final state = container.read(offlineBulkDownloadProvider);
+    expect(state.status, OfflineBulkDownloadStatus.completedWithWarnings);
+    expect(state.failedCount, 2);
+    expect(offlineMode.markConfiguredCallCount, 1);
+  });
+
+  test(
+    'quando failedPdfIds cobre 100% do totalPdfs (nada foi gravado) não chama '
+    'markConfigured mesmo sem exceção fatal (Task 3/B4)',
+    () async {
+      final offlineMode = _TrackingOfflineModeNotifier();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+          downloadOfflinePackagesProvider.overrideWith(
+            (ref) => _ResultDownloadOfflinePackages(
+              result: const DownloadOfflinePackagesResult(
+                failedPdfIds: ['pdf-a', 'pdf-b', 'pdf-c'],
+                totalPdfs: 3,
+              ),
+              store: pdfStoragePortFor(store),
+              prefs: prefs,
+              checkpointStore: checkpointStore,
+            ),
+          ),
+          offlineModeProvider.overrideWith(() => offlineMode),
+          offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      await pumpMicrotasks();
+
+      await container.read(offlineBulkDownloadProvider.notifier).start([
+        'Partitura',
+      ]);
+
+      final state = container.read(offlineBulkDownloadProvider);
+      expect(state.status, OfflineBulkDownloadStatus.completedWithWarnings);
+      expect(state.failedCount, 3);
+      expect(offlineMode.markConfiguredCallCount, 0);
+    },
+  );
 }

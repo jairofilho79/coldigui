@@ -20,10 +20,16 @@ class DownloadOfflinePackagesResult {
   const DownloadOfflinePackagesResult({
     this.unmatchedZipEntries = const [],
     this.failedPdfIds = const [],
+    this.totalPdfs = 0,
   });
 
   final List<String> unmatchedZipEntries;
   final List<String> failedPdfIds;
+
+  /// Total de PDFs esperados nas categorias solicitadas (Task 3/B4) — usado
+  /// pelo provider para saber se `failedPdfIds` cobre 100% do lote (nada
+  /// foi de fato gravado) e, portanto, não marcar `OFFLINE_AVAILABLE`.
+  final int totalPdfs;
 
   bool get hasWarnings =>
       unmatchedZipEntries.isNotEmpty || failedPdfIds.isNotEmpty;
@@ -293,6 +299,7 @@ class DownloadOfflinePackages {
     return DownloadOfflinePackagesResult(
       unmatchedZipEntries: unmatchedAccumulator,
       failedPdfIds: failedPdfIdsAccumulator,
+      totalPdfs: totalPdfsGlobal,
     );
   }
 

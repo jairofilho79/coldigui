@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:web/web.dart';
 
 import '../../../../core/constants/offline_config.dart';
+import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 
 PdfStoragePort createPdfStoragePortImpl() => PdfStorageWeb();
@@ -128,7 +129,26 @@ class PdfStorageWeb implements PdfStoragePort {
     final blobParts = [bytes.toJS].toJS;
     final blob = Blob(blobParts, BlobPropertyBag(type: 'application/pdf'));
     final response = Response(blob, ResponseInit(status: 200));
-    await cache.put(request, response).toDart;
+    try {
+      await cache.put(request, response).toDart;
+    } on Object catch (e) {
+      // `isA` (em vez de `on DOMException catch`) — checagem de tipo interop
+      // consistente entre compiladores (dart2js/dart2wasm), ver dart:js_interop.
+      if (e.isA<DOMException>()) {
+        final domError = e as DOMException;
+        if (isQuotaExceededError(
+          name: domError.name,
+          message: domError.message,
+        )) {
+          throw InsufficientDiskSpaceException(
+            requiredBytes: bytes.length,
+            availableBytes: null,
+          );
+        }
+        throw PdfStorageWriteException(domError.toString());
+      }
+      throw PdfStorageWriteException(e.toString());
+    }
   }
 
   Future<List<String>> _listStorageKeys(Cache cache) async {
@@ -176,4 +196,14 @@ extension on JSArrayBuffer {
     final byteBuffer = toDart;
     return Uint8List.view(byteBuffer);
   }
+}
+
+/// Classifica um erro de `cache.put` como estouro de quota do navegador.
+///
+/// Espelhada em `test/unit/features/offline/pdf_storage_web_quota_classification_test.dart`
+/// — `DOMException` não é instanciável na VM (fora de contexto web), então a
+/// lógica pura fica aqui e o teste mantém uma cópia idêntica.
+bool isQuotaExceededError({required String name, required String message}) {
+  return name == 'QuotaExceededError' ||
+      message.toLowerCase().contains('quota');
 }

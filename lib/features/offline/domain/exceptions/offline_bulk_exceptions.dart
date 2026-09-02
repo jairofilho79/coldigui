@@ -26,7 +26,8 @@ class ZipDownloadSizeMismatchException implements Exception {
   final String filename;
 
   @override
-  String toString() => 'ZipDownloadSizeMismatchException(filename: $filename, '
+  String toString() =>
+      'ZipDownloadSizeMismatchException(filename: $filename, '
       'expected: $expected, actual: $actual)';
 }
 
@@ -36,4 +37,14 @@ class OfflineBulkCancelledException implements Exception {
 
   @override
   String toString() => 'OfflineBulkCancelledException';
+}
+
+/// Falha ao gravar PDF no storage (web — Cache API) não relacionada a quota.
+class PdfStorageWriteException implements Exception {
+  const PdfStorageWriteException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'PdfStorageWriteException($message)';
 }

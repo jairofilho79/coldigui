@@ -182,6 +182,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineDownloadCompleted => 'Offline download completed';
 
   @override
+  String offlineDownloadCompletedWithFailures(int failedCount) {
+    return 'Download completed with $failedCount failed files';
+  }
+
+  @override
   String get offlineDownloadError => 'Could not complete offline download';
 
   @override
@@ -191,6 +196,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get offlineDownloadNetworkError =>
       'No connection. Check your internet and resume.';
+
+  @override
+  String get offlineDownloadNoSpace =>
+      'Not enough space on this device. Free up space and try again.';
 
   @override
   String get offlineKeepAppOpenDuringDownload =>

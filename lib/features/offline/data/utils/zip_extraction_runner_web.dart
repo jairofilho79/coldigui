@@ -29,8 +29,14 @@ Future<ZipExtractResult> runZipExtraction({
   var extracted = 0;
   var nextIndex = 0;
 
+  // Erro fatal de um worker (estouro de quota): interrompe os demais workers
+  // via cancelamento do token compartilhado em vez de acumular em
+  // failedPdfIds — nada é "parcialmente concluído" quando o disco acabou.
+  InsufficientDiskSpaceException? fatalError;
+
   Future<void> worker() async {
     while (true) {
+      if (fatalError != null) return;
       if (cancelToken?.isCancelled == true) {
         throw const OfflineBulkCancelledException();
       }
@@ -63,16 +69,22 @@ Future<ZipExtractResult> runZipExtraction({
                 fileSize: bytes.length,
               ),
             );
+          } on InsufficientDiskSpaceException catch (e) {
+            fatalError ??= e;
+            cancelToken?.cancel('offline_bulk: quota exceeded');
+            return;
           } on Object {
             failedPdfIds.add(pdfId);
           }
         }
       } on DioException catch (e) {
+        if (fatalError != null) return;
         if (e.type == DioExceptionType.cancel) {
           throw const OfflineBulkCancelledException();
         }
         failedPdfIds.add(pdfId);
       } on OfflineBulkCancelledException {
+        if (fatalError != null) return;
         rethrow;
       } on Object {
         failedPdfIds.add(pdfId);
@@ -89,6 +101,10 @@ Future<ZipExtractResult> runZipExtraction({
   );
   if (workerCount > 0) {
     await Future.wait(List.generate(workerCount, (_) => worker()));
+  }
+
+  if (fatalError != null) {
+    throw fatalError!;
   }
 
   return ZipExtractResult(

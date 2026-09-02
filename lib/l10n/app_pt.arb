@@ -99,9 +99,16 @@
   "offlineResumeDownload": "Retomar",
   "offlineDismissCheckpoint": "Descartar",
   "offlineDownloadCompleted": "Download offline concluído",
+  "offlineDownloadCompletedWithFailures": "Download concluído com {failedCount} arquivos com falha",
+  "@offlineDownloadCompletedWithFailures": {
+    "placeholders": {
+      "failedCount": { "type": "int" }
+    }
+  },
   "offlineDownloadError": "Não foi possível concluir o download offline",
   "offlineDownloadTimeout": "Conexão lenta. Toque em Retomar quando a rede melhorar.",
   "offlineDownloadNetworkError": "Sem conexão. Verifique a internet e retome.",
+  "offlineDownloadNoSpace": "Sem espaço no dispositivo. Libere espaço e tente novamente.",
   "offlineKeepAppOpenDuringDownload": "Mantenha o app aberto durante o download.",
   "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
   "offlinePhaseFetching": "baixando",
