@@ -8,25 +8,58 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Louvor _louvor(String pdfId) => Louvor.fromManifest(
-  nome: 'Louvor',
-  numero: '001',
-  categoria: 'Partitura',
-  classificacao: 'ColAdultos',
-  pdf: '001.pdf',
-  pdfId: pdfId,
-);
+Louvor _louvor(String pdfId, {String nome = 'Louvor', String numero = '001'}) =>
+    Louvor.fromManifest(
+      nome: nome,
+      numero: numero,
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+      pdf: '001.pdf',
+      pdfId: pdfId,
+    );
 
 class _TestRemote extends CatalogRemoteDatasource {
-  _TestRemote({this.louvores, this.error}) : super(Dio());
+  _TestRemote({
+    this.louvores,
+    this.error,
+    this.checksumResult,
+    this.notModified = false,
+    this.manifestEtag,
+  }) : super(Dio());
 
   final List<Louvor>? louvores;
   final Object? error;
+  final ManifestChecksumResult? checksumResult;
+  final bool notModified;
+  final String? manifestEtag;
+
+  var manifestCalls = 0;
+  var checksumCalls = 0;
+  String? lastManifestIfNoneMatch;
+  String? lastChecksumIfNoneMatch;
 
   @override
-  Future<List<Louvor>> fetchManifest() async {
+  Future<ManifestChecksumResult> fetchChecksumConditional({
+    String? ifNoneMatch,
+  }) async {
+    checksumCalls++;
+    lastChecksumIfNoneMatch = ifNoneMatch;
+    return checksumResult ??
+        const ManifestChecksumResult(ManifestChecksumStatus.unavailable);
+  }
+
+  @override
+  Future<ManifestFetchResult> fetchManifestConditional({
+    String? ifNoneMatch,
+  }) async {
+    manifestCalls++;
+    lastManifestIfNoneMatch = ifNoneMatch;
     if (error != null) throw error!;
-    return louvores ?? [];
+    if (notModified) return const ManifestFetchResult.notModified();
+    return ManifestFetchResult(
+      louvores: louvores ?? const [],
+      etag: manifestEtag,
+    );
   }
 }
 
@@ -34,9 +67,11 @@ class _TestLocal extends CatalogLocalDatasource {
   _TestLocal() : super(_FakeIsar());
 
   final List<Louvor> store = [];
+  var saveCalls = 0;
 
   @override
   Future<void> saveLouvores(List<Louvor> louvores) async {
+    saveCalls++;
     store
       ..clear()
       ..addAll(louvores);
@@ -207,5 +242,215 @@ void main() {
     await repo.loadManifest();
 
     expect(await repo.isCatalogStale(), isFalse);
+  });
+
+  group('syncManifest — gate por checksum (A1)', () {
+    test(
+      '(a) checksum igual não baixa o manifest nem reescreve o cache',
+      () async {
+        final remote = _TestRemote(
+          louvores: [_louvor('remote-1')],
+          checksumResult: const ManifestChecksumResult(
+            ManifestChecksumStatus.unchanged,
+          ),
+        );
+        final local = _TestLocal()..store.add(_louvor('cached-1'));
+        final prefs = await SharedPreferences.getInstance();
+
+        final repo = _repo(remote: remote, local: local, prefs: prefs);
+        final cached = await repo.loadCachedLouvores();
+
+        final outcome = await repo.syncManifest(
+          cached: cached,
+          knownChecksum: 'abc123',
+        );
+
+        expect(remote.checksumCalls, 1);
+        expect(remote.lastChecksumIfNoneMatch, 'abc123');
+        expect(
+          remote.manifestCalls,
+          0,
+          reason: 'manifest não deve ser baixado',
+        );
+        expect(local.saveCalls, 0, reason: 'Isar não deve ser reescrito');
+        expect(outcome.cacheReplaced, isFalse);
+        expect(outcome.louvores, same(cached));
+        expect(outcome.checksum, isNull);
+        expect(
+          await repo.isCatalogStale(),
+          isFalse,
+          reason: 'checksum confirmado conta como sync bem-sucedido',
+        );
+      },
+    );
+
+    test('(b) checksum diferente baixa o manifest e grava no cache', () async {
+      final remote = _TestRemote(
+        louvores: [_louvor('remote-1')],
+        checksumResult: const ManifestChecksumResult(
+          ManifestChecksumStatus.changed,
+          checksum: 'novo',
+        ),
+      );
+      final local = _TestLocal()..store.add(_louvor('cached-1'));
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+      final cached = await repo.loadCachedLouvores();
+
+      final outcome = await repo.syncManifest(
+        cached: cached,
+        knownChecksum: 'antigo',
+      );
+
+      expect(remote.manifestCalls, 1);
+      expect(remote.lastManifestIfNoneMatch, 'antigo');
+      expect(local.saveCalls, 1);
+      expect(local.store.single.pdfId, 'remote-1');
+      expect(outcome.cacheReplaced, isTrue);
+      expect(outcome.louvores.single.pdfId, 'remote-1');
+      expect(outcome.checksum, 'novo');
+    });
+
+    test('(c) manifest idêntico ao cache não chama cacheManifest', () async {
+      final remote = _TestRemote(
+        louvores: [
+          _louvor('same-1'),
+          _louvor('same-2', numero: '002'),
+        ],
+        checksumResult: const ManifestChecksumResult(
+          ManifestChecksumStatus.changed,
+          checksum: 'novo',
+        ),
+      );
+      final local = _TestLocal()
+        ..store.addAll([_louvor('same-1'), _louvor('same-2', numero: '002')]);
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+      final cached = await repo.loadCachedLouvores();
+
+      final outcome = await repo.syncManifest(
+        cached: cached,
+        knownChecksum: 'antigo',
+      );
+
+      expect(remote.manifestCalls, 1);
+      expect(local.saveCalls, 0, reason: 'lista idêntica → sem clear + putAll');
+      expect(outcome.cacheReplaced, isFalse);
+      expect(outcome.louvores, same(cached));
+      expect(outcome.checksum, 'novo');
+      expect(await repo.isCatalogStale(), isFalse);
+    });
+
+    test('(d) 304 no manifest não grava nada', () async {
+      final remote = _TestRemote(
+        notModified: true,
+        checksumResult: const ManifestChecksumResult(
+          ManifestChecksumStatus.unavailable,
+        ),
+      );
+      final local = _TestLocal()..store.add(_louvor('cached-1'));
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+      final cached = await repo.loadCachedLouvores();
+
+      final outcome = await repo.syncManifest(
+        cached: cached,
+        knownChecksum: 'abc123',
+      );
+
+      expect(remote.manifestCalls, 1);
+      expect(remote.lastManifestIfNoneMatch, 'abc123');
+      expect(local.saveCalls, 0);
+      expect(outcome.cacheReplaced, isFalse);
+      expect(outcome.louvores, same(cached));
+      expect(await repo.isCatalogStale(), isFalse);
+    });
+
+    test('checksum 503 (unavailable) ainda baixa o manifest', () async {
+      final remote = _TestRemote(
+        louvores: [_louvor('remote-1')],
+        checksumResult: const ManifestChecksumResult(
+          ManifestChecksumStatus.unavailable,
+        ),
+      );
+      final local = _TestLocal()..store.add(_louvor('cached-1'));
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+      final cached = await repo.loadCachedLouvores();
+
+      final outcome = await repo.syncManifest(
+        cached: cached,
+        knownChecksum: 'abc123',
+      );
+
+      expect(remote.manifestCalls, 1);
+      expect(local.saveCalls, 1);
+      expect(outcome.cacheReplaced, isTrue);
+    });
+
+    test(
+      'sem checksum salvo pula o endpoint e usa o ETag do manifest',
+      () async {
+        final remote = _TestRemote(
+          louvores: [_louvor('remote-1')],
+          manifestEtag: 'etag-do-manifest',
+        );
+        final local = _TestLocal()..store.add(_louvor('cached-1'));
+        final prefs = await SharedPreferences.getInstance();
+
+        final repo = _repo(remote: remote, local: local, prefs: prefs);
+        final cached = await repo.loadCachedLouvores();
+
+        final outcome = await repo.syncManifest(cached: cached);
+
+        expect(remote.checksumCalls, 0);
+        expect(remote.manifestCalls, 1);
+        expect(remote.lastManifestIfNoneMatch, isNull);
+        expect(outcome.checksum, 'etag-do-manifest');
+      },
+    );
+
+    test('falha de rede mantém o cache em memória sem gravar', () async {
+      final remote = _TestRemote(error: Exception('offline'));
+      final local = _TestLocal()..store.add(_louvor('cached-1'));
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+      final cached = await repo.loadCachedLouvores();
+
+      final outcome = await repo.syncManifest(cached: cached);
+
+      expect(local.saveCalls, 0);
+      expect(outcome.cacheReplaced, isFalse);
+      expect(outcome.louvores, same(cached));
+      expect(outcome.checksum, isNull);
+    });
+
+    test('cache vazio ignora o checksum e baixa o manifest', () async {
+      final remote = _TestRemote(
+        louvores: [_louvor('remote-1')],
+        checksumResult: const ManifestChecksumResult(
+          ManifestChecksumStatus.unchanged,
+        ),
+      );
+      final local = _TestLocal();
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _repo(remote: remote, local: local, prefs: prefs);
+
+      final outcome = await repo.syncManifest(
+        cached: const [],
+        knownChecksum: 'abc123',
+      );
+
+      expect(remote.checksumCalls, 0);
+      expect(remote.manifestCalls, 1);
+      expect(local.saveCalls, 1);
+      expect(outcome.cacheReplaced, isTrue);
+    });
   });
 }

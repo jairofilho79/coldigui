@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/louvor.dart';
 import '../../domain/ports/catalog_manifest_sync_listener.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -8,6 +10,8 @@ import '../datasources/catalog_sync_metadata_store.dart';
 /// Implementação de [CatalogRepository] — orquestra remote + local (UC-12).
 ///
 /// Fluxo: tenta rede → persiste em Isar; em falha ou resposta vazia usa cache local.
+/// [syncManifest] adiciona dois curto-circuitos (A1): checksum inalterado dispensa
+/// o download, e manifest idêntico ao cache dispensa o `clear()` + ~4600 `put`.
 class CatalogRepositoryImpl implements CatalogRepository {
   const CatalogRepositoryImpl({
     required this._remote,
@@ -26,23 +30,83 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<List<Louvor>> loadManifest() async {
-    try {
-      final remoteLouvores = await _remote.fetchManifest();
+    final cached = await _local.loadLouvores();
+    final outcome = await syncManifest(cached: cached);
+    return outcome.louvores;
+  }
 
-      if (remoteLouvores.isEmpty) {
-        final cached = await _local.loadLouvores();
-        if (cached.isNotEmpty) return cached;
-        return remoteLouvores;
+  @override
+  Future<ManifestSyncOutcome> syncManifest({
+    required List<Louvor> cached,
+    String? knownChecksum,
+  }) async {
+    // `If-None-Match` só faz sentido com cache para preservar.
+    final ifNoneMatch =
+        cached.isNotEmpty && knownChecksum != null && knownChecksum.isNotEmpty
+        ? knownChecksum
+        : null;
+
+    try {
+      String? freshChecksum;
+
+      if (ifNoneMatch != null) {
+        final checksumResult = await _remote.fetchChecksumConditional(
+          ifNoneMatch: ifNoneMatch,
+        );
+
+        if (checksumResult.isUnchanged) {
+          debugPrint('[catalog] checksum inalterado — manifest não baixado');
+          await _syncMetadata.markSyncedNow();
+          return ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
+        }
+
+        freshChecksum = checksumResult.checksum;
       }
 
-      final previousLouvores = await _local.loadLouvores();
+      final fetched = await _remote.fetchManifestConditional(
+        ifNoneMatch: ifNoneMatch,
+      );
+      final remoteLouvores = fetched.louvores;
+
+      if (remoteLouvores == null) {
+        debugPrint('[catalog] manifest 304 — cache preservado sem gravação');
+        await _syncMetadata.markSyncedNow();
+        return ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
+      }
+
+      if (remoteLouvores.isEmpty) {
+        debugPrint('[catalog] manifest remoto vazio — cache preservado');
+        return ManifestSyncOutcome(
+          louvores: cached.isEmpty ? remoteLouvores : cached,
+          cacheReplaced: false,
+        );
+      }
+
+      final checksum = freshChecksum ?? fetched.etag;
+
+      if (_isSameManifest(cached, remoteLouvores)) {
+        debugPrint('[catalog] manifest idêntico ao cache — gravação evitada');
+        await _syncMetadata.markSyncedNow();
+        return ManifestSyncOutcome(
+          louvores: cached,
+          cacheReplaced: false,
+          checksum: checksum,
+        );
+      }
+
       await cacheManifest(remoteLouvores);
       await _syncMetadata.markSyncedNow();
-      await _notifyManifestReplaced(previousLouvores, remoteLouvores);
-      return remoteLouvores;
-    } on Object {
-      final cached = await _local.loadLouvores();
-      if (cached.isNotEmpty) return cached;
+      await _notifyManifestReplaced(cached, remoteLouvores);
+      return ManifestSyncOutcome(
+        louvores: remoteLouvores,
+        cacheReplaced: true,
+        checksum: checksum,
+      );
+    } on Object catch (error) {
+      debugPrint('[catalog] sync do manifest falhou: $error');
+      if (cached.isNotEmpty) {
+        return ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
+      }
       rethrow;
     }
   }
@@ -83,4 +147,27 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<bool> isCatalogStale() => _syncMetadata.isStale();
+
+  /// Compara cache e manifest remoto por ordem + campos de identidade.
+  ///
+  /// Cobre exatamente os campos que `LouvorCache` persiste — regravar o Isar não
+  /// mudaria mais nada. Barato o bastante (~4600 comparações) para valer a pena
+  /// diante de um `clear()` + `putAll`, que na web é síncrono na thread da UI.
+  static bool _isSameManifest(List<Louvor> cached, List<Louvor> remote) {
+    if (cached.length != remote.length) return false;
+    for (var i = 0; i < cached.length; i++) {
+      final a = cached[i];
+      final b = remote[i];
+      if (a.pdfId != b.pdfId ||
+          a.nome != b.nome ||
+          a.numero != b.numero ||
+          a.groupId != b.groupId ||
+          a.categoria != b.categoria ||
+          a.classificacao != b.classificacao ||
+          a.pdf != b.pdf) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

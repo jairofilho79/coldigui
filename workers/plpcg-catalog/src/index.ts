@@ -108,9 +108,11 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
         'Access-Control-Allow-Headers',
         'Content-Type, If-None-Match, Range',
       );
+      // `ETag` precisa ser exposto: o cliente Dart o lê para salvar o checksum
+      // do manifest e revalidar com `If-None-Match` no boot seguinte (A1).
       headers.set(
         'Access-Control-Expose-Headers',
-        'Accept-Ranges, Content-Length, Content-Range',
+        'Accept-Ranges, Content-Length, Content-Range, ETag',
       );
     }
     headers.set('Vary', 'Origin');
@@ -165,7 +167,43 @@ function mapRow(row: LouvorRow): LouvorJson {
   };
 }
 
-async function fetchLouvores(db: D1Database): Promise<Response> {
+/** Checksum SHA-256 do catálogo em `catalog_meta`; `null` se não configurado. */
+async function readChecksum(db: D1Database): Promise<string | null> {
+  const row = await db
+    .prepare(`SELECT value FROM catalog_meta WHERE key = 'checksum'`)
+    .first<{ value: string }>();
+
+  return row?.value || null;
+}
+
+/**
+ * `true` quando o `If-None-Match` do cliente corresponde ao checksum atual.
+ *
+ * Aceita o formato ETag (`"<checksum>"`) e o checksum cru, que é o que o
+ * cliente Dart persiste em `ManifestChecksumStore`.
+ */
+function matchesEtag(request: Request, checksum: string): boolean {
+  const ifNoneMatch = request.headers.get('If-None-Match');
+  return ifNoneMatch === `"${checksum}"` || ifNoneMatch === checksum;
+}
+
+async function fetchLouvores(
+  db: D1Database,
+  request: Request,
+): Promise<Response> {
+  const checksum = await readChecksum(db);
+
+  // ETag do manifest = checksum do catálogo: evita baixar ~4600 itens sem mudança.
+  if (checksum && matchesEtag(request, checksum)) {
+    return new Response(null, {
+      status: 304,
+      headers: {
+        ETag: `"${checksum}"`,
+        'Cache-Control': CACHE_CONTROL,
+      },
+    });
+  }
+
   const result = await db
     .prepare(
       `SELECT nome, numero, classificacao, categoria, pdf, pdf_id, group_id
@@ -175,24 +213,24 @@ async function fetchLouvores(db: D1Database): Promise<Response> {
     .all<LouvorRow>();
 
   const louvores = (result.results ?? []).map(mapRow);
-  return jsonResponse(louvores);
+  return jsonResponse(
+    louvores,
+    checksum ? { headers: { ETag: `"${checksum}"` } } : {},
+  );
 }
 
 async function fetchChecksum(
   db: D1Database,
   request: Request,
 ): Promise<Response> {
-  const row = await db
-    .prepare(`SELECT value FROM catalog_meta WHERE key = 'checksum'`)
-    .first<{ value: string }>();
+  const checksum = await readChecksum(db);
 
-  if (!row?.value) {
+  if (!checksum) {
     return textResponse('checksum not configured', { status: 503 });
   }
 
-  const etag = `"${row.value}"`;
-  const ifNoneMatch = request.headers.get('If-None-Match');
-  if (ifNoneMatch === etag || ifNoneMatch === row.value) {
+  const etag = `"${checksum}"`;
+  if (matchesEtag(request, checksum)) {
     return new Response(null, {
       status: 204,
       headers: {
@@ -202,7 +240,7 @@ async function fetchChecksum(
     });
   }
 
-  return textResponse(row.value, {
+  return textResponse(checksum, {
     status: 200,
     headers: { ETag: etag },
   });
@@ -427,7 +465,7 @@ export default {
     }
 
     if (url.pathname === '/api/catalog/louvores') {
-      return withCors(await fetchLouvores(env.DB), request, 'catalog');
+      return withCors(await fetchLouvores(env.DB, request), request, 'catalog');
     }
 
     if (url.pathname === '/api/catalog/checksum') {

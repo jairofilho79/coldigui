@@ -37,6 +37,13 @@ class _FakeCatalogRepository implements CatalogRepository {
   }
 
   @override
+  Future<ManifestSyncOutcome> syncManifest({
+    required List<Louvor> cached,
+    String? knownChecksum,
+  }) async =>
+      ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
+
+  @override
   Future<bool> isCatalogStale() async => false;
 }
 
