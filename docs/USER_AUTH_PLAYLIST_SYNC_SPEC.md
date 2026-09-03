@@ -97,7 +97,9 @@ Permitir que o usuário **entre com Google**, tenha um **identificador estável*
 ```dart
 playlistId   // UUID estável — reutilizar como PK remota
 nome
-pdfIds       // List<String>, ordem preservada
+pdfIds       // List<String>, projeção PDF/cifra de items (compat v1)
+audioIds     // List<String>, projeção de áudio de items (compat v1)
+items        // List<String>, ordem única dos materiais — fonte da verdade
 createdAt
 salva        // false = rascunho automático — NÃO sync
 savedAt
@@ -307,7 +309,10 @@ CREATE INDEX idx_user_playlists_user_deleted
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "nome": "Culto domingo",
+  "schemaVersion": 2,
+  "items": ["Q29s...", "YXNz...", "QXZ1..."],
   "pdfIds": ["Q29s...", "QXZ1..."],
+  "audioIds": ["YXNz..."],
   "salva": true,
   "savedAt": "2026-06-16T12:00:00.000Z",
   "favorita": false,
@@ -317,6 +322,24 @@ CREATE INDEX idx_user_playlists_user_deleted
   "version": 3
 }
 ```
+
+### `schemaVersion` — ordem única de materiais (D2)
+
+| Versão | Formato | Quem escreve |
+| --- | --- | --- |
+| v1 | só `pdfIds` + `audioIds`, duas listas independentes | clientes antigos |
+| v2 | `items` (ordem única de ids de material) + `pdfIds`/`audioIds` **derivados** | cliente atual |
+
+- O cliente **sempre envia v2**, e envia junto as duas listas derivadas de
+  `items` — o Worker `plpcg-catalog` ainda lê os campos v1, então nada quebra.
+- O cliente **aceita as duas**: payload sem `schemaVersion` e sem `items` é
+  tratado como v1 e vira `items = [...pdfIds, ...audioIds]`.
+- Em v2 `items` manda: `pdfIds`/`audioIds` recebidos são ignorados na leitura e
+  recalculados a partir de `items` por `materialIdKindOf` (PDF, cifra e
+  desconhecido na face de partituras; áudio na face de áudio).
+- Consequência prática: a ordem intercalada (partitura, áudio, partitura…)
+  só sobrevive entre clientes v2; para um cliente v1 a lista continua sendo
+  "PDFs primeiro, áudios depois".
 
 ### PUT — versionamento otimista
 

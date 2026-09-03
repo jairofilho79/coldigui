@@ -121,8 +121,7 @@ class SyncPlaylists {
   static SavedPlaylist _fromRemote(RemotePlaylist r) => SavedPlaylist(
     playlistId: r.id,
     nome: r.nome,
-    pdfIds: List<String>.from(r.pdfIds),
-    audioIds: List<String>.from(r.audioIds),
+    items: List<String>.from(r.items),
     createdAt: r.createdAt,
     salva: true,
     savedAt: r.savedAt,
@@ -140,8 +139,7 @@ class SyncPlaylists {
   static RemotePlaylist _toRemote(SavedPlaylist p) => RemotePlaylist(
     id: p.playlistId,
     nome: p.nome,
-    pdfIds: p.pdfIds,
-    audioIds: p.audioIds,
+    items: p.items,
     salva: true,
     favorita: p.favorita,
     createdAt: p.createdAt,
