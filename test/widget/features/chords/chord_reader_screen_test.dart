@@ -2,6 +2,7 @@ import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/pages/chord_reader_screen.dart';
 import 'package:coldigui/features/chords/presentation/providers/chord_reader_mode_provider.dart';
@@ -9,6 +10,7 @@ import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.d
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,7 @@ const _r2Key = 'assets/praises/p1/m1.chord';
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
+  Map<String, String>? queryParams,
 }) async {
   SharedPreferences.setMockInitialValues(const {});
   final prefs = await SharedPreferences.getInstance();
@@ -40,13 +43,29 @@ Future<SharedPreferences> _pump(
         // abaixo esperam as strings em portugues.
         locale: const Locale('pt'),
         home: ChordReaderScreen(
-          queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Comigo habita'},
+          queryParams:
+              queryParams ??
+              {'pdfId': encodePdfId(_r2Key), 'titulo': 'Comigo habita'},
         ),
       ),
     ),
   );
   await tester.pumpAndSettle();
   return prefs;
+}
+
+ProviderContainer _containerOf(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(ChordReaderScreen)));
+
+/// Manda uma tecla com Ctrl (ou Cmd) segurado.
+Future<void> _sendWithControl(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -146,6 +165,120 @@ void main() {
       // surgir nao empurra o botao de baixo do dedo de quem repete o toque.
       expect(depois.left, antes.left);
       expect(find.text('-1'), findsOneWidget);
+    });
+  });
+
+  group('teclado', () {
+    testWidgets('= sobe meio tom', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.equal);
+      await tester.pumpAndSettle();
+
+      expect(container.read(chordReaderTransposeProvider), 1);
+      // O cabecalho tem que acompanhar: o musico le o tom que vai tocar.
+      expect(find.text('-1'), findsNothing);
+    });
+
+    testWidgets('+ do teclado numerico sobe meio tom', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpadAdd);
+      await tester.pumpAndSettle();
+
+      expect(container.read(chordReaderTransposeProvider), 1);
+    });
+
+    testWidgets('- desce meio tom', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.minus);
+      await tester.pumpAndSettle();
+
+      expect(container.read(chordReaderTransposeProvider), -1);
+      expect(find.text('-1'), findsOneWidget);
+    });
+
+    testWidgets('- do teclado numerico desce meio tom', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpadSubtract);
+      await tester.pumpAndSettle();
+
+      expect(container.read(chordReaderTransposeProvider), -1);
+    });
+
+    testWidgets('Ctrl+= nao transpoe (fica com o zoom do navegador)', (
+      tester,
+    ) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await _sendWithControl(tester, LogicalKeyboardKey.equal);
+
+      expect(container.read(chordReaderTransposeProvider), 0);
+    });
+
+    testWidgets('Ctrl+seta para cima aumenta o corpo da letra', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+      final antes = container.read(chordReaderFontSizeProvider);
+
+      await _sendWithControl(tester, LogicalKeyboardKey.arrowUp);
+
+      expect(
+        container.read(chordReaderFontSizeProvider),
+        ChordReaderFontSize.increase(antes),
+      );
+    });
+
+    testWidgets('Ctrl+seta para baixo diminui o corpo da letra', (
+      tester,
+    ) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+      final antes = container.read(chordReaderFontSizeProvider);
+
+      await _sendWithControl(tester, LogicalKeyboardKey.arrowDown);
+
+      expect(
+        container.read(chordReaderFontSizeProvider),
+        ChordReaderFontSize.decrease(antes),
+      );
+    });
+
+    testWidgets('setas sem Ctrl nao mexem no corpo nem no tom', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+      final fonte = container.read(chordReaderFontSizeProvider);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(container.read(chordReaderFontSizeProvider), fonte);
+      expect(container.read(chordReaderTransposeProvider), 0);
+    });
+
+    testWidgets('Ctrl+setas laterais sem pdfId nao quebram', (tester) async {
+      // Sem id de rota nao ha vizinho para resolver: a troca de louvor tem que
+      // sair sem excecao (e sem GoRouter na arvore deste teste).
+      await _pump(
+        tester,
+        available: true,
+        queryParams: const {'titulo': 'Comigo habita'},
+      );
+      final container = _containerOf(tester);
+
+      await _sendWithControl(tester, LogicalKeyboardKey.arrowRight);
+      await _sendWithControl(tester, LogicalKeyboardKey.arrowLeft);
+
+      expect(tester.takeException(), isNull);
+      expect(container.read(chordReaderTransposeProvider), 0);
     });
   });
 }
