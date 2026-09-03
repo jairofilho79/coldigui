@@ -209,7 +209,11 @@ class _LouvorMaterialSheetBodyState
                     for (final material in section.materials)
                       ListTile(
                         leading: Icon(
-                          LouvorMaterialIcons.forCategory(material.categoria),
+                          LouvorMaterialIcons.forKind(
+                            LouvorMaterialIcons.kindForCategory(
+                              material.categoria,
+                            ),
+                          ),
                           color: AppColors.title,
                         ),
                         title: Text(
@@ -241,7 +245,11 @@ class _LouvorMaterialSheetBodyState
                     for (final chord in availableChords)
                       ListTile(
                         leading: Icon(
-                          LouvorMaterialIcons.forCategory(chord.categoria),
+                          LouvorMaterialIcons.forKind(
+                            LouvorMaterialIcons.kindForCategory(
+                              chord.categoria,
+                            ),
+                          ),
                           color: AppColors.title,
                         ),
                         title: Text(

@@ -57,7 +57,7 @@ void main() {
       ]),
     ).single;
 
-    expect(materialIdKindOf(item.chordId), MaterialIdKind.chord);
+    expect(materialIdKindOf(item.chordId), MaterialKind.chord);
     expect(item.r2Key, 'assets/praises/praise-1/m1.chord');
   });
 

@@ -139,7 +139,9 @@ class CarouselLouvorChip extends StatelessWidget {
     final classificationLabel = LouvorClassification.displayLabel(
       item.classificacao,
     );
-    final categoryIcon = LouvorMaterialIcons.forCategory(item.categoria);
+    final categoryIcon = LouvorMaterialIcons.forKind(
+      LouvorMaterialIcons.kindForCategory(item.categoria),
+    );
     final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)

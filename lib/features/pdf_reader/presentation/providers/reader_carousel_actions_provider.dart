@@ -44,7 +44,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
-    if (materialIdKindOf(targetPdfId) == MaterialIdKind.chord) {
+    if (materialIdKindOf(targetPdfId) == MaterialKind.chord) {
       final chord = ref.read(coldigomChordMaterialsCacheProvider)[targetPdfId];
       if (chord == null) return null;
       return buildChordReaderLocation(

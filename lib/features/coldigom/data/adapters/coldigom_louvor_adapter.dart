@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -28,7 +29,7 @@ abstract final class ColdigomLouvorAdapter {
     final louvores = <Louvor>[];
 
     for (final material in praise.materials) {
-      if (material.type != 'pdf') continue;
+      if (_kindOfType(material.type) != MaterialKind.pdf) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -55,7 +56,7 @@ abstract final class ColdigomLouvorAdapter {
     final tracks = <AudioTrack>[];
 
     for (final material in praise.materials) {
-      if (!_isAudioType(material.type)) continue;
+      if (_kindOfType(material.type) != MaterialKind.audio) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -82,7 +83,7 @@ abstract final class ColdigomLouvorAdapter {
     final items = <YoutubeMaterial>[];
 
     for (final material in praise.materials) {
-      if (material.type.toLowerCase() != 'youtube') continue;
+      if (_kindOfType(material.type) != MaterialKind.youtube) continue;
       if (!YoutubeUrl.isValid(material.url)) continue;
 
       items.add(
@@ -108,7 +109,7 @@ abstract final class ColdigomLouvorAdapter {
     final items = <ChordMaterial>[];
 
     for (final material in praise.materials) {
-      if (material.type.toLowerCase() != 'chord') continue;
+      if (_kindOfType(material.type) != MaterialKind.chord) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -130,9 +131,16 @@ abstract final class ColdigomLouvorAdapter {
     return items;
   }
 
-  static bool _isAudioType(String type) {
-    final lower = type.toLowerCase();
-    return lower == 'mp3' || lower == 'audio';
+  /// Único ponto que traduz o `type` do worker para o vocabulário do app.
+  static MaterialKind _kindOfType(String type) {
+    return switch (type.toLowerCase()) {
+      'pdf' => MaterialKind.pdf,
+      'chord' => MaterialKind.chord,
+      'mp3' || 'audio' => MaterialKind.audio,
+      'youtube' => MaterialKind.youtube,
+      'gesture' || 'gest' => MaterialKind.gesture,
+      _ => MaterialKind.unknown,
+    };
   }
 
   static String _basename(String path) {

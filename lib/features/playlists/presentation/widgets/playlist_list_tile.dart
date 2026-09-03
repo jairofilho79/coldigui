@@ -279,7 +279,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       // Cifra e PDF dividem o mesmo espaço de ids, então a entrada da lista só
       // se revela cifra ao ser decodificada. Sem este desvio ela cairia no
       // findLouvorByPdfId (que só conhece PDFs) e viraria erro genérico.
-      if (materialIdKindOf(pdfId) == MaterialIdKind.chord) {
+      if (materialIdKindOf(pdfId) == MaterialKind.chord) {
         final chord = ref.read(coldigomChordMaterialsCacheProvider)[pdfId];
         if (chord != null) {
           final chordLocation = buildChordReaderLocation(

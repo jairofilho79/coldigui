@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
@@ -53,8 +54,6 @@ Future<void> showColdigomMaterialSheet({
   );
 }
 
-enum _ColdigomMaterialKind { pdf, chord, audio, youtube }
-
 class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
   const _ColdigomMaterialSheetBody({
     required this.group,
@@ -82,7 +81,7 @@ class _ColdigomMaterialSheetBody extends ConsumerStatefulWidget {
 class _ColdigomMaterialSheetBodyState
     extends ConsumerState<_ColdigomMaterialSheetBody> {
   String? _addingId;
-  _ColdigomMaterialKind? _selectedKind;
+  MaterialKind? _selectedKind;
 
   @override
   void initState() {
@@ -97,15 +96,15 @@ class _ColdigomMaterialSheetBodyState
     });
   }
 
-  static List<_ColdigomMaterialKind> _visibleKinds(
+  static List<MaterialKind> _visibleKinds(
     LouvorGroup group,
     List<ChordMaterial> availableChords,
   ) {
     return [
-      if (group.totalPdfs > 0) _ColdigomMaterialKind.pdf,
-      if (availableChords.isNotEmpty) _ColdigomMaterialKind.chord,
-      if (group.audioTracks.isNotEmpty) _ColdigomMaterialKind.audio,
-      if (group.youtubeMaterials.isNotEmpty) _ColdigomMaterialKind.youtube,
+      if (group.totalPdfs > 0) MaterialKind.pdf,
+      if (availableChords.isNotEmpty) MaterialKind.chord,
+      if (group.audioTracks.isNotEmpty) MaterialKind.audio,
+      if (group.youtubeMaterials.isNotEmpty) MaterialKind.youtube,
     ];
   }
 
@@ -133,12 +132,14 @@ class _ColdigomMaterialSheetBodyState
     }
   }
 
-  String _kindLabel(AppLocalizations l10n, _ColdigomMaterialKind kind) {
+  String _kindLabel(AppLocalizations l10n, MaterialKind kind) {
     return switch (kind) {
-      _ColdigomMaterialKind.pdf => l10n.pdfMaterialSection,
-      _ColdigomMaterialKind.chord => l10n.chordMaterialSection,
-      _ColdigomMaterialKind.audio => l10n.audioMaterialSection,
-      _ColdigomMaterialKind.youtube => l10n.youtubeMaterialSection,
+      MaterialKind.pdf => l10n.pdfMaterialSection,
+      MaterialKind.chord => l10n.chordMaterialSection,
+      MaterialKind.audio => l10n.audioMaterialSection,
+      MaterialKind.youtube => l10n.youtubeMaterialSection,
+      // Inalcançável: _visibleKinds só emite os quatro kinds acima.
+      MaterialKind.gesture || MaterialKind.unknown => l10n.pdfMaterialSection,
     };
   }
 
@@ -284,7 +285,7 @@ class _ColdigomMaterialSheetBodyState
   }
 
   Widget _buildKindList({
-    required _ColdigomMaterialKind kind,
+    required MaterialKind kind,
     required LouvorGroup group,
     required Set<String> carouselPdfIds,
     required List<ChordMaterial> availableChords,
@@ -293,13 +294,15 @@ class _ColdigomMaterialSheetBodyState
     final onAudioAdd = widget.onAudioAdd;
 
     return switch (kind) {
-      _ColdigomMaterialKind.pdf => ListView.separated(
+      MaterialKind.pdf => ListView.separated(
         itemCount: group.flatPdfMaterials.length,
         separatorBuilder: (_, _) => const _MaterialHairline(),
         itemBuilder: (context, index) {
           final material = group.flatPdfMaterials[index];
           return _MaterialRow(
-            icon: LouvorMaterialIcons.forCategory(material.categoria),
+            icon: LouvorMaterialIcons.forKind(
+              LouvorMaterialIcons.kindForCategory(material.categoria),
+            ),
             iconColor: AppColors.title,
             title: material.categoria,
             trailing: onMaterialAdd == null
@@ -318,13 +321,15 @@ class _ColdigomMaterialSheetBodyState
           );
         },
       ),
-      _ColdigomMaterialKind.chord => ListView.separated(
+      MaterialKind.chord => ListView.separated(
         itemCount: availableChords.length,
         separatorBuilder: (_, _) => const _MaterialHairline(),
         itemBuilder: (context, index) {
           final chord = availableChords[index];
           return _MaterialRow(
-            icon: LouvorMaterialIcons.forCategory(chord.categoria),
+            icon: LouvorMaterialIcons.forKind(
+              LouvorMaterialIcons.kindForCategory(chord.categoria),
+            ),
             iconColor: AppColors.title,
             title: chord.categoria,
             onTap: () {
@@ -336,7 +341,7 @@ class _ColdigomMaterialSheetBodyState
           );
         },
       ),
-      _ColdigomMaterialKind.audio => ListView.separated(
+      MaterialKind.audio => ListView.separated(
         itemCount: group.audioTracks.length,
         separatorBuilder: (_, _) => const _MaterialHairline(),
         itemBuilder: (context, index) {
@@ -369,7 +374,7 @@ class _ColdigomMaterialSheetBodyState
           );
         },
       ),
-      _ColdigomMaterialKind.youtube => ListView.separated(
+      MaterialKind.youtube => ListView.separated(
         itemCount: group.youtubeMaterials.length,
         separatorBuilder: (_, _) => const _MaterialHairline(),
         itemBuilder: (context, index) {
@@ -387,6 +392,8 @@ class _ColdigomMaterialSheetBodyState
           );
         },
       ),
+      // Inalcançável: _visibleKinds só emite os quatro kinds acima.
+      MaterialKind.gesture || MaterialKind.unknown => const SizedBox.shrink(),
     };
   }
 }

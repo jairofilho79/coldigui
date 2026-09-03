@@ -87,5 +87,5 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
 /// Descarta ids que não são PDF — cifra no carousel não tem o que pré-buscar.
 String? _pdfIdOrNull(String? id) {
   if (id == null) return null;
-  return materialIdKindOf(id) == MaterialIdKind.pdf ? id : null;
+  return materialIdKindOf(id) == MaterialKind.pdf ? id : null;
 }
