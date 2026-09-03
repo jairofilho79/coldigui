@@ -3,8 +3,10 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../offline/data/utils/pdf_integrity_validator.dart';
 import '../../../pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import '../../domain/entities/pdf_reader_preferences.dart';
+import '../../domain/exceptions/pdf_local_open_failure.dart';
 import '../../domain/ports/pdf_reader_controller_port.dart';
 import '../pdfrx_bootstrap.dart';
 import '../models/pdf_reader_viewer_handle.dart';
@@ -81,9 +83,28 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
   }
 
   /// D2 OA — local sempre via bytes; web não usa [PdfDocument.openFile].
+  ///
+  /// UC-11 B3: a falha ao abrir o documento é embrulhada em
+  /// [PdfLocalOpenFailure] com o veredito do magic `%PDF` calculado sobre os
+  /// bytes que acabaram de ser lidos. Se a **leitura** falhar, o erro sobe
+  /// cru (sem veredito) — não há evidência de corrupção e o
+  /// `pdfReaderSessionProvider` preserva o arquivo offline.
   Future<PdfDocument> _openLocal(String path) async {
     final bytes = await _bytesDatasource.fetchBytes(path);
-    return PdfDocument.openData(bytes, sourceName: path);
+    final hasValidMagicBytes = PdfIntegrityValidator.hasValidPdfMagicBytes(
+      bytes.length >= 4 ? bytes.sublist(0, 4) : bytes,
+    );
+    try {
+      return await PdfDocument.openData(bytes, sourceName: path);
+    } on Object catch (error, stackTrace) {
+      Error.throwWithStackTrace(
+        PdfLocalOpenFailure(
+          cause: error,
+          hasValidMagicBytes: hasValidMagicBytes,
+        ),
+        stackTrace,
+      );
+    }
   }
 
   @override

@@ -13,6 +13,7 @@ import 'package:coldigui/features/pdf_reader/data/adapters/pdfrx_viewer_adapter.
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/data/providers/pdf_reader_providers.dart';
 import 'package:coldigui/features/pdf_reader/data/utils/pdf_source_resolver.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_open_failure.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_session_cache.dart';
@@ -291,8 +292,12 @@ void main() {
         }
       });
 
+      // Bytes lidos e com magic `%PDF` válido, mas o pdfrx recusa o formato.
       final adapter = _CorruptLocalAdapter(
-        errorBuilder: () => Exception('FPDF_ERR_FORMAT: bad header'),
+        errorBuilder: () => const PdfLocalOpenFailure(
+          cause: 'FPDF_ERR_FORMAT: bad header',
+          hasValidMagicBytes: true,
+        ),
       );
       final container = ProviderContainer(
         overrides: [
@@ -321,7 +326,7 @@ void main() {
   );
 
   test(
-    'magic bytes inválidos no disco -> remove e lança '
+    'bytes lidos sem magic %PDF -> remove e lança '
     'PdfLocalCorruptedException (B3 evidência a)',
     () async {
       // HTML de erro salvo no lugar do PDF — cenário real de corrupção.
@@ -335,8 +340,13 @@ void main() {
         }
       });
 
+      // Bytes lidos com sucesso pelo adapter e SEM o magic `%PDF` — única
+      // evidência (a) aceita para remover o PDF offline.
       final adapter = _CorruptLocalAdapter(
-        errorBuilder: () => StateError('PDF sem páginas'),
+        errorBuilder: () => PdfLocalOpenFailure(
+          cause: StateError('PDF sem páginas'),
+          hasValidMagicBytes: false,
+        ),
       );
       final container = ProviderContainer(
         overrides: [
@@ -378,7 +388,12 @@ void main() {
         }
       });
 
-      final adapter = _CorruptLocalAdapter();
+      final adapter = _CorruptLocalAdapter(
+        errorBuilder: () => const PdfLocalOpenFailure(
+          cause: 'corrupt pdf',
+          hasValidMagicBytes: true,
+        ),
+      );
       final container = ProviderContainer(
         overrides: [
           pdfViewerAdapterProvider.overrideWithValue(adapter),
@@ -457,5 +472,62 @@ void main() {
         fixture.pdfId,
       );
     },
+  );
+
+  test(
+    'arquivo existe mas não pode ser lido (permissão/storage) -> preserva '
+    'arquivo e índice e lança PdfLocalReadFailedException (B3 R1)',
+    () async {
+      final fixture = await setUpIndexedLocalPdf(
+        Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
+      );
+      addTearDown(() async {
+        // Devolve a permissão antes de limpar o diretório temporário.
+        Process.runSync('chmod', ['600', fixture.absolutePath]);
+        fixture.isar.close(deleteFromDisk: true);
+        if (fixture.tempDir.existsSync()) {
+          await fixture.tempDir.delete(recursive: true);
+        }
+      });
+
+      // Arquivo presente no disco, porém ilegível (permissão negada / erro de
+      // storage / scoped storage). NÃO é evidência de corrupção.
+      final chmod = Process.runSync('chmod', ['000', fixture.absolutePath]);
+      expect(chmod.exitCode, 0, reason: 'chmod 000 falhou: ${chmod.stderr}');
+      expect(File(fixture.absolutePath).existsSync(), isTrue);
+
+      final adapter = _CorruptLocalAdapter(
+        errorBuilder: () =>
+            const FileSystemException('Permission denied', 'open'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          pdfViewerAdapterProvider.overrideWithValue(adapter),
+          offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(
+        pdfReaderSessionProvider(fixture.absolutePath),
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(sub.close);
+
+      await expectLater(
+        container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
+        throwsA(isA<PdfLocalReadFailedException>()),
+      );
+
+      expect(
+        await fixture.repository.findPdfIdByAbsolutePath(
+          fixture.absolutePath,
+        ),
+        fixture.pdfId,
+      );
+      expect(File(fixture.absolutePath).existsSync(), isTrue);
+    },
+    skip: Platform.isWindows ? 'chmod indisponível no Windows' : null,
   );
 }

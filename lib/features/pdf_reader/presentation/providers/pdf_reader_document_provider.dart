@@ -1,18 +1,15 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../offline/data/providers/offline_providers.dart';
-import '../../../offline/data/utils/pdf_integrity_validator.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../data/adapters/pdfrx_viewer_adapter.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
 import '../../data/providers/pdf_reader_viewer_providers.dart';
 import '../../data/utils/pdf_source_resolver.dart';
 import '../../domain/exceptions/invalid_pdf_path_exception.dart';
+import '../../domain/exceptions/pdf_local_open_failure.dart';
 import '../../domain/exceptions/pdf_local_read_failed_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';
 import 'pdf_session_cache.dart';
@@ -45,6 +42,12 @@ class PdfReaderSession {
 /// Ao sair de `/leitor`, o cache é limpo e todos os handles são liberados.
 ///
 /// Valida via [OpenPdfDocument], delega renderização a [PdfrxViewerAdapter].
+///
+/// O retry automático do Riverpod 3 fica **desligado de propósito**
+/// (`retry: (_, _) => null`) para todos os erros, inclusive os de rede: um erro
+/// imediato somado ao botão manual "Tentar novamente" da tela do leitor é
+/// melhor do que ~38 s de spinner enquanto o framework tenta de novo em
+/// backoff exponencial.
 final pdfReaderSessionProvider = FutureProvider.autoDispose
     .family<PdfReaderSession, String>(
       (ref, filePath) async {
@@ -68,16 +71,18 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
               }
             }
           }
-        } on Object catch (error) {
+        } on Object catch (error, stackTrace) {
           handle?.dispose();
           cache.remove(filePath);
+          // O adapter embrulha a falha de abertura em [PdfLocalOpenFailure]
+          // com o veredito do magic `%PDF` sobre os bytes que ele leu; se a
+          // leitura em si falhou, o erro chega cru e não há evidência.
+          final openFailure = error is PdfLocalOpenFailure ? error : null;
+          final cause = openFailure?.cause ?? error;
           if (source.kind == PdfSourceKind.localFile) {
-            final hasValidMagicBytes = _localPdfMagicBytesValiditySync(
-              source.value,
-            );
             final failureKind = classifyPdfOpenFailure(
-              error,
-              hasValidMagicBytes: hasValidMagicBytes,
+              cause,
+              hasValidMagicBytes: openFailure?.hasValidMagicBytes,
             );
             if (failureKind == PdfOpenFailureKind.corrupted) {
               final pdfId = await _removeCorruptedLocalPdf(ref, source.value);
@@ -91,7 +96,8 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
               }
             }
           }
-          rethrow;
+          // Sempre propaga o erro ORIGINAL (não o wrapper interno).
+          Error.throwWithStackTrace(cause, stackTrace);
         }
 
         final sessionHandle = handle;
@@ -140,15 +146,20 @@ enum PdfOpenFailureKind {
 }
 
 /// Mensagens que o pdfrx emite ao falhar por documento malformado.
-const _pdfrxFormatErrorPatterns = ['FPDF_ERR_FORMAT', 'Failed to open document'];
+const _pdfrxFormatErrorPatterns = [
+  'FPDF_ERR_FORMAT',
+  'Failed to open document',
+];
 
 /// Classifica a falha ao abrir um PDF local (UC-11 B3): evita apagar o PDF
 /// offline por erro genérico.
 ///
-/// [hasValidMagicBytes] é `null` quando os bytes do arquivo não puderam ser
-/// lidos (arquivo ausente, erro de storage no disco); `true`/`false` quando
-/// os primeiros bytes foram lidos com sucesso e avaliados contra o magic
-/// `%PDF` (via [PdfIntegrityValidator]).
+/// [hasValidMagicBytes] vem de [PdfLocalOpenFailure] (produzido pelo
+/// [PdfrxViewerAdapter] a partir dos bytes que ele leu): `null` quando os
+/// bytes do arquivo não puderam ser lidos (arquivo ausente, permissão negada,
+/// erro de storage); `true`/`false` quando os bytes foram lidos com sucesso e
+/// avaliados contra o magic `%PDF`. Não depende de `dart:io` — o veredito é
+/// idêntico na web e no nativo.
 ///
 /// Só há [PdfOpenFailureKind.corrupted] quando: (a) os bytes existem e
 /// falham no magic `%PDF`, ou (b) o pdfrx sinaliza explicitamente um erro de
@@ -171,23 +182,6 @@ PdfOpenFailureKind classifyPdfOpenFailure(
     return PdfOpenFailureKind.corrupted;
   }
   return PdfOpenFailureKind.readFailed;
-}
-
-/// Lê os primeiros bytes de [absolutePath] e valida o magic `%PDF`.
-///
-/// Síncrona de propósito — evita introduzir um gap assíncrono extra no catch
-/// de erro do provider. Retorna `null` quando o arquivo não existe ou
-/// quando a leitura falha por qualquer motivo (storage, permissão, `dart:io`
-/// indisponível na web) — tratado como ausência de evidência de corrupção
-/// (não remove o PDF).
-bool? _localPdfMagicBytesValiditySync(String absolutePath) {
-  try {
-    if (!File(absolutePath).existsSync()) return null;
-    return PdfIntegrityValidator.isValidPdfFileSync(absolutePath);
-  } on Object catch (e) {
-    debugPrint('[pdf_reader] Falha ao validar bytes do PDF local: $e');
-    return null;
-  }
 }
 
 /// Desembrulha [ProviderException] (Riverpod 3) para mensagens e handlers de erro.

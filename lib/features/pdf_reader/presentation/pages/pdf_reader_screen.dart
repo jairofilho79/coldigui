@@ -14,6 +14,7 @@ import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_u
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjacent_pdf_prefetch_provider.dart';
@@ -282,7 +283,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             );
           }
           return _ReaderMessage(
-            message: pdfReaderErrorMessage(unwrapped),
+            message: unwrapped is PdfLocalReadFailedException
+                ? (l10n?.pdfLocalReadFailedMessage ?? unwrapped.message)
+                : pdfReaderErrorMessage(unwrapped),
             onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
           );
         },
