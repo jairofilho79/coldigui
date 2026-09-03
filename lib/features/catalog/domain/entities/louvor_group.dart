@@ -4,6 +4,7 @@ import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metad
 import '../../../chords/domain/entities/chord_material.dart';
 import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
+import 'catalog_material.dart';
 import 'louvor.dart';
 import 'louvor_data_source.dart';
 import 'youtube_material.dart';
@@ -104,6 +105,19 @@ class LouvorGroup {
     );
     return entries;
   }
+
+  /// Todos os materiais do grupo num vocabulário único, na ordem de exibição:
+  /// PDFs por seção, cifras, áudios, YouTube.
+  ///
+  /// Derivado das listas existentes — nada é armazenado e nenhum consumidor
+  /// atual muda de comportamento. É o insumo do `openMaterialProvider`.
+  List<CatalogMaterial> get materials => [
+    for (final section in sections)
+      for (final entry in section.materials) PdfMaterial(entry.louvor),
+    for (final chord in chordMaterials) ChordMaterialRef(chord),
+    for (final track in audioTracks) AudioMaterial(track),
+    for (final youtube in youtubeMaterials) YoutubeMaterialRef(youtube),
+  ];
 
   /// Total de PDFs no grupo.
   int get totalPdfs =>
