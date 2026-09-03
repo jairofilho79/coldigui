@@ -16,6 +16,9 @@ import '../../../playlists/presentation/providers/playlists_provider.dart';
 
 /// Abre [louvor] no leitor interno (`/leitor`) com resolve local-first.
 ///
+/// Caminho `PdfMaterial` do `openMaterialProvider` — as exceções tipadas que
+/// escapam daqui são traduzidas lá por `presentMaterialOpenError`.
+///
 /// Sempre entra na lista ativa. Lista nova só pelo limpar da barra
 /// ([CarouselBarTrailingActions] → Nova Lista).
 ///

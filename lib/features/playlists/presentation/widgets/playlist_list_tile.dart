@@ -4,7 +4,6 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
@@ -19,13 +18,13 @@ import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
-import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
-import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../catalog/presentation/providers/open_material_provider.dart';
+import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
@@ -279,20 +278,18 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       // Cifra e PDF dividem o mesmo espaço de ids, então a entrada da lista só
       // se revela cifra ao ser decodificada. Sem este desvio ela cairia no
       // findLouvorByPdfId (que só conhece PDFs) e viraria erro genérico.
+      final chordLocation = chordReaderLocationFor(
+        pdfId,
+        ref.read(coldigomChordMaterialsCacheProvider),
+      );
+      if (chordLocation != null) {
+        playlistOpenDebugLog('_openPdfInReader: cifra → $chordLocation');
+        if (!mounted) return;
+        await context.push(chordLocation);
+        playlistOpenDebugLog('_openPdfInReader: concluído');
+        return;
+      }
       if (materialIdKindOf(pdfId) == MaterialKind.chord) {
-        final chord = ref.read(coldigomChordMaterialsCacheProvider)[pdfId];
-        if (chord != null) {
-          final chordLocation = buildChordReaderLocation(
-            chordId: chord.chordId,
-            titulo: chord.nome,
-            subtitulo: chord.numero,
-          );
-          playlistOpenDebugLog('_openPdfInReader: cifra → $chordLocation');
-          if (!mounted) return;
-          await context.push(chordLocation);
-          playlistOpenDebugLog('_openPdfInReader: concluído');
-          return;
-        }
         // Cache frio: segue para o caminho de erro comum abaixo.
         playlistOpenDebugLogFailure(
           '_openPdfInReader',
@@ -334,21 +331,24 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       if (!mounted) return;
       await context.push(location);
       playlistOpenDebugLog('_openPdfInReader: concluído');
-    } on InvalidPdfPathException catch (error, stackTrace) {
-      playlistOpenDebugLogError('caminho PDF inválido', error, stackTrace);
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-    } on PdfOfflineUnavailableException catch (e) {
-      playlistOpenDebugLogFailure('PDF offline indisponível', e.message);
-      _showError(e.message);
-    } on PdfExternallyDeletedException catch (e) {
-      playlistOpenDebugLogFailure('PDF removido externamente', e.message);
-      _showError(e.message);
-    } on PdfFetchFailedException catch (e, stackTrace) {
-      playlistOpenDebugLogError('falha ao baixar PDF', e, stackTrace);
-      _showError(e.message);
     } on Object catch (error, stackTrace) {
-      playlistOpenDebugLogError('_openPdfInReader', error, stackTrace);
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
+      // Escada única de exceções de abertura (compartilhada com o carousel);
+      // aqui ela ganha o log de diagnóstico UC-06 e a snackbar com resumo.
+      final failure = classifyMaterialOpenFailure(
+        error,
+        genericStage: '_openPdfInReader',
+      );
+      final message = failure.message;
+      if (failure.logWithStack) {
+        playlistOpenDebugLogError(failure.stage, error, stackTrace);
+      } else {
+        playlistOpenDebugLogFailure(failure.stage, message!);
+      }
+      if (message != null) {
+        _showError(message);
+      } else if (mounted) {
+        showPlaylistOpenErrorSnackbar(context, l10n);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -5,9 +5,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/chord_reader_url_builder.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 import '../../domain/entities/chord_material.dart';
+
+/// Rota `/cifra` de [materialId] quando ele é cifra e está em [chordCache].
+///
+/// `null` quando o id não é cifra **ou** quando o cache está frio — cabe a quem
+/// chama decidir o que fazer (seguir para o caminho de PDF, logar, avisar).
+/// Ponto único do desvio de cifra: playlist e carousel/leitor compartilham o
+/// mesmo espaço de ids, então o id só se revela cifra ao ser decodificado.
+String? chordReaderLocationFor(
+  String materialId,
+  Map<String, ChordMaterial> chordCache,
+) {
+  if (materialIdKindOf(materialId) != MaterialKind.chord) return null;
+  final chord = chordCache[materialId];
+  if (chord == null) return null;
+  return buildChordReaderLocation(
+    chordId: chord.chordId,
+    titulo: chord.nome,
+    subtitulo: chord.numero,
+  );
+}
 
 /// Abre [chord] em `/cifra`, entrando na lista ativa como o PDF faz.
 ///

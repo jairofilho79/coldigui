@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 
 import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -44,15 +44,13 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
-    if (materialIdKindOf(targetPdfId) == MaterialKind.chord) {
-      final chord = ref.read(coldigomChordMaterialsCacheProvider)[targetPdfId];
-      if (chord == null) return null;
-      return buildChordReaderLocation(
-        chordId: chord.chordId,
-        titulo: chord.nome,
-        subtitulo: chord.numero,
-      );
-    }
+    final chordLocation = chordReaderLocationFor(
+      targetPdfId,
+      ref.read(coldigomChordMaterialsCacheProvider),
+    );
+    if (chordLocation != null) return chordLocation;
+    // Cifra com cache frio não tem para onde ir — não vira busca de PDF.
+    if (materialIdKindOf(targetPdfId) == MaterialKind.chord) return null;
 
     final louvor = findLouvorByPdfIdWithColdigom(
       ref.read(louvoresManifestProvider).value?.louvores,
