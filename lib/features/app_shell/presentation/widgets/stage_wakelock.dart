@@ -64,19 +64,42 @@ class StageWakelockListener extends ConsumerStatefulWidget {
 }
 
 class _StageWakelockListenerState extends ConsumerState<StageWakelockListener> {
-  bool? _held;
+  /// O que o plugin tem hoje — não o que se quer que ele tenha.
+  ///
+  /// Começa em `false` (o app abre sem lock): se começasse em `null`, o
+  /// primeiro build fora das rotas de palco veria `null != false` e dispararia
+  /// um `disable()` inútil — que na web ainda carrega o `no_sleep.js` à toa.
+  /// E só vira `true`/`false` depois de a chamada de plataforma dar certo, para
+  /// que um `enable()` que falhou seja tentado de novo no próximo build em vez
+  /// de ficar marcado como aplicado.
+  bool _held = false;
+
+  /// Último valor pedido pelo `build`.
+  bool _target = false;
+
+  bool _syncing = false;
+
+  /// Controlador guardado no `build`.
+  ///
+  /// `ref.read` no `dispose` **lança** ("Using ref when a widget is about to or
+  /// has been unmounted is unsafe"), então o lock nunca era solto na saída —
+  /// justamente o caso que o `dispose` existe para cobrir. Guardar a instância
+  /// resolve; o `try/catch` de [_call] cuida do resto.
+  StageWakelockController? _controller;
 
   @override
   void dispose() {
     // O shell só é desmontado no fim do app; ainda assim, não deixar o lock
     // pendurado é mais barato que descobrir a bateria vazia depois.
-    if (_held == true) {
-      _call(ref.read(stageWakelockProvider), hold: false);
+    final controller = _controller;
+    if (_held && controller != null) {
+      _call(controller, hold: false);
     }
     super.dispose();
   }
 
-  Future<void> _call(
+  /// `true` quando a chamada de plataforma foi até o fim.
+  Future<bool> _call(
     StageWakelockController controller, {
     required bool hold,
   }) async {
@@ -86,27 +109,41 @@ class _StageWakelockListenerState extends ConsumerState<StageWakelockListener> {
       } else {
         await controller.disable();
       }
+      return true;
     } on Object catch (error) {
       // Na web o lock depende de permissão/gesto do usuário e pode lançar;
       // a tela apagar não justifica derrubar a navegação.
       debugPrint(
         '[StageWakelock] ${hold ? 'enable' : 'disable'} falhou: $error',
       );
+      return false;
     }
   }
 
   void _sync(bool hold) {
-    if (_held == hold) return;
-    _held = hold;
-    final controller = ref.read(stageWakelockProvider);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _call(controller, hold: hold);
-    });
+    _target = hold;
+    if (_syncing || _held == hold) return;
+    _syncing = true;
+    final controller = _controller!;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _drain(controller));
+  }
+
+  /// Persegue [_target] até alcançá-lo, uma chamada por vez.
+  ///
+  /// Uma troca de rota durante o `await` não se perde (o laço relê o alvo) e
+  /// duas chamadas de plataforma nunca ficam em voo ao mesmo tempo.
+  Future<void> _drain(StageWakelockController controller) async {
+    while (mounted && _held != _target) {
+      final hold = _target;
+      if (!await _call(controller, hold: hold)) break;
+      _held = hold;
+    }
+    _syncing = false;
   }
 
   @override
   Widget build(BuildContext context) {
+    _controller = ref.watch(stageWakelockProvider);
     final playing = ref.watch(
       audioPlayerSessionProvider.select((session) => session.playing),
     );

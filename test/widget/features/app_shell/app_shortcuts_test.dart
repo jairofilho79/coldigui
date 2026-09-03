@@ -1,10 +1,13 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,10 +15,37 @@ import 'package:go_router/go_router.dart';
 /// os atalhos globais.
 const _stage = Focus(autofocus: true, child: SizedBox.expand());
 
+const _track = AudioTrack(
+  audioId: 'a1',
+  r2Key: 'assets/praises/p1/m1.mp3',
+  nome: 'Comigo habita',
+  numero: '1',
+  groupId: 'g1',
+  categoria: 'Áudio',
+  classificacao: '',
+);
+
+/// Sessão de áudio de mentira: conta os `playPause` sem instanciar o
+/// `AudioPlayer` real (que a sessão de verdade cria no `build`).
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession({this.hasTrack = true});
+
+  final bool hasTrack;
+  int playPauseCalls = 0;
+
+  @override
+  AudioPlayerSessionState build() =>
+      AudioPlayerSessionState(queue: hasTrack ? const [_track] : const []);
+
+  @override
+  Future<void> playPause() async => playPauseCalls++;
+}
+
 Future<ProviderContainer> _pumpShortcuts(
   WidgetTester tester, {
   required String path,
   Widget child = _stage,
+  List<Override> overrides = const [],
 }) async {
   final router = GoRouter(
     initialLocation: path,
@@ -32,6 +62,7 @@ Future<ProviderContainer> _pumpShortcuts(
 
   await tester.pumpWidget(
     ProviderScope(
+      overrides: overrides,
       child: MaterialApp.router(
         routerConfig: router,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -125,5 +156,128 @@ void main() {
 
     expect(container.read(searchFocusRequestProvider), 0);
     expect(container.read(readerFullscreenProvider), isFalse);
+  });
+
+  group('Espaço', () {
+    testWidgets('sem controle focado dá play/pause', (tester) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      expect(session.playPauseCalls, 1);
+    });
+
+    testWidgets('sem faixa na sessão não chama o player', (tester) async {
+      final session = _FakeAudioSession(hasTrack: false);
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      expect(session.playPauseCalls, 0);
+    });
+
+    testWidgets('com botão focado aciona o botão, não o play/pause', (
+      tester,
+    ) async {
+      final session = _FakeAudioSession();
+      var pressed = 0;
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: Center(
+          child: ElevatedButton(
+            autofocus: true,
+            onPressed: () => pressed++,
+            child: const Text('Abrir'),
+          ),
+        ),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      // Espaço é a tecla de "ativar" do Flutter: com foco num botão ela é do
+      // botão, não do player.
+      expect(pressed, 1, reason: 'o botão focado tem que ser acionado');
+      expect(session.playPauseCalls, 0, reason: 'play/pause não pode roubar');
+    });
+
+    testWidgets('com InkWell focado aciona o InkWell, não o play/pause', (
+      tester,
+    ) async {
+      final session = _FakeAudioSession();
+      var tapped = 0;
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: Center(
+          child: Material(
+            child: InkWell(
+              autofocus: true,
+              onTap: () => tapped++,
+              child: const SizedBox(width: 80, height: 40),
+            ),
+          ),
+        ),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      expect(tapped, 1);
+      expect(session.playPauseCalls, 0);
+    });
+
+    testWidgets('com o foco dentro de uma lista rolável não dá play/pause', (
+      tester,
+    ) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: ListView(
+          children: [
+            const Focus(autofocus: true, child: SizedBox(height: 60)),
+            for (var i = 0; i < 40; i++)
+              SizedBox(height: 60, child: Text('$i')),
+          ],
+        ),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      // Espaço é o page-down natural de quem está lendo uma lista longa.
+      expect(session.playPauseCalls, 0);
+    });
+
+    testWidgets('num campo de texto continua inerte', (tester) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: const TextField(autofocus: true),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+
+      expect(session.playPauseCalls, 0);
+    });
   });
 }

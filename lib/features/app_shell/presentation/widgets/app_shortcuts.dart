@@ -43,6 +43,45 @@ bool keyboardFocusIsInsideTextField() {
   return context.findAncestorWidgetOfExactType<EditableText>() != null;
 }
 
+/// `true` quando o foco está num controle para o qual `Espaço` já tem dono.
+///
+/// O `Shortcuts` de [WidgetsApp] liga `Espaço` a `ActivateIntent` (na web
+/// `PrioritizedIntents([Activate, Scroll])`) e mora **acima** do
+/// `MaterialApp.router` — ou seja, acima de [AppShortcuts]. Como o evento sobe
+/// do nó com foco para os ancestrais, [AppShortcuts] vê a tecla **antes** e, se
+/// a consumir, o intent nunca dispara: com uma faixa carregada, `Espaço` num
+/// botão da barra, num destino da navegação ou num card viraria play/pause em
+/// vez de acionar o controle, e deixaria de rolar a cifra.
+///
+/// Então o play/pause por `Espaço` só vale quando nada com semântica própria
+/// está focado: sem foco, num `FocusScopeNode` (foco "de tela", não de widget)
+/// ou num nó que não está dentro de um [InkResponse] / [ButtonStyleButton] /
+/// [Scrollable].
+bool keyboardFocusIsOnSpaceActivatableControl() {
+  final focus = FocusManager.instance.primaryFocus;
+  if (focus == null || focus is FocusScopeNode) return false;
+
+  final context = focus.context;
+  if (context == null) return false;
+
+  bool ownsSpace(Widget widget) =>
+      widget is InkResponse ||
+      widget is ButtonStyleButton ||
+      widget is Scrollable;
+
+  if (ownsSpace(context.widget)) return true;
+
+  var found = false;
+  context.visitAncestorElements((element) {
+    if (ownsSpace(element.widget)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
 /// Troca de louvor pelo teclado dentro do leitor (PDF ou cifra).
 ///
 /// Percorre o mesmo caminho das setas da barra 2: posição no carousel ->
@@ -170,6 +209,11 @@ class AppShortcuts extends ConsumerWidget {
     }
 
     if (key == LogicalKeyboardKey.space) {
+      // `Espaço` é a tecla de "ativar" e de rolar do Flutter: só vira
+      // play/pause quando não há controle nenhum com direito sobre ela.
+      if (keyboardFocusIsOnSpaceActivatableControl()) {
+        return KeyEventResult.ignored;
+      }
       return _playPause(ref) ? KeyEventResult.handled : KeyEventResult.ignored;
     }
 
