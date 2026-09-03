@@ -5,6 +5,7 @@ import 'package:web/web.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../domain/exceptions/quota_exceeded_classifier.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 
 PdfStoragePort createPdfStoragePortImpl() => PdfStorageWeb();
@@ -196,14 +197,4 @@ extension on JSArrayBuffer {
     final byteBuffer = toDart;
     return Uint8List.view(byteBuffer);
   }
-}
-
-/// Classifica um erro de `cache.put` como estouro de quota do navegador.
-///
-/// Espelhada em `test/unit/features/offline/pdf_storage_web_quota_classification_test.dart`
-/// — `DOMException` não é instanciável na VM (fora de contexto web), então a
-/// lógica pura fica aqui e o teste mantém uma cópia idêntica.
-bool isQuotaExceededError({required String name, required String message}) {
-  return name == 'QuotaExceededError' ||
-      message.toLowerCase().contains('quota');
 }

@@ -1,14 +1,11 @@
+import 'package:coldigui/features/offline/domain/exceptions/quota_exceeded_classifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Espelha [PdfStorageWeb.isQuotaExceededError] — `DOMException` não é
-/// instanciável na VM (fora de contexto web/JS interop), então a lógica pura
-/// de classificação é testada aqui como cópia fiel da implementação real em
-/// `pdf_storage_web.dart`.
-bool isQuotaExceededError({required String name, required String message}) {
-  return name == 'QuotaExceededError' ||
-      message.toLowerCase().contains('quota');
-}
-
+/// Testa [isQuotaExceededError] diretamente — a função foi extraída para um
+/// arquivo Dart puro (`quota_exceeded_classifier.dart`) exatamente para que
+/// `pdf_storage_web.dart` (que importa `package:web`/`dart:js_interop` e não
+/// pode ser importado por um teste rodando na VM) não precise ser tocado por
+/// este teste, sem recorrer a uma cópia duplicada da lógica.
 void main() {
   test('name == QuotaExceededError é classificado como quota', () {
     expect(

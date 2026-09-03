@@ -17,6 +17,19 @@ import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
 
+/// Mensagem do snackbar de conclusão do bulk download (Task 3/B4 — fix
+/// round 1).
+///
+/// Decide pelo `failedCount` real, não pelo `status`: `completedWithWarnings`
+/// também é disparado quando só há `unmatchedZipEntries` (ZIP com entradas
+/// sem pdfId no manifest) e nenhum `failedPdfIds` — nesse caso a mensagem de
+/// sucesso simples é a correta, não "concluído com 0 arquivos com falha".
+String offlineBulkCompletionMessage(AppLocalizations l10n, int failedCount) {
+  return failedCount > 0
+      ? l10n.offlineDownloadCompletedWithFailures(failedCount)
+      : l10n.offlineDownloadCompleted;
+}
+
 /// UC-09, UC-10 — Configuração e manutenção do cache offline (Fase 3.7).
 class OfflineSettingsScreen extends ConsumerStatefulWidget {
   const OfflineSettingsScreen({super.key});
@@ -170,10 +183,10 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
       if ((next.status == OfflineBulkDownloadStatus.completed ||
               next.status == OfflineBulkDownloadStatus.completedWithWarnings) &&
           previous?.status != next.status) {
-        final completionMessage =
-            next.status == OfflineBulkDownloadStatus.completedWithWarnings
-            ? l10n.offlineDownloadCompletedWithFailures(next.failedCount)
-            : l10n.offlineDownloadCompleted;
+        final completionMessage = offlineBulkCompletionMessage(
+          l10n,
+          next.failedCount,
+        );
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(completionMessage)));
