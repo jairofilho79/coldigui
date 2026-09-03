@@ -6,6 +6,10 @@ import '../../../../core/database/collections/playlist_sync_status.dart';
 /// CRUD Isar para [Playlist] (UC-06 + UC-15 sync).
 ///
 /// Queries por aba excluem tombstones (`deletedAt != null`).
+///
+/// Toda leitura passa por [_migrated]: registros gravados antes da ordem única
+/// (D2) chegam com [Playlist.items] vazio e são migrados na hora
+/// (`items = [...pdfIds, ...audioIds]`), com persistência imediata.
 class PlaylistLocalDatasource {
   const PlaylistLocalDatasource(this._isar);
 
@@ -16,84 +20,128 @@ class PlaylistLocalDatasource {
   Future<List<Playlist>> findAll() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists.where().deletedAtIsNull().findAll();
+    return _migrated(isar.playlists.where().deletedAtIsNull().findAll());
   }
 
   /// Não salvas — `createdAt` desc.
   Future<List<Playlist>> findUnsaved() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists
-        .where()
-        .salvaEqualTo(false)
-        .and()
-        .deletedAtIsNull()
-        .sortByCreatedAtDesc()
-        .findAll();
+    return _migrated(
+      isar.playlists
+          .where()
+          .salvaEqualTo(false)
+          .and()
+          .deletedAtIsNull()
+          .sortByCreatedAtDesc()
+          .findAll(),
+    );
   }
 
   /// Salvas (não favoritas) — `savedAt` desc.
   Future<List<Playlist>> findSaved() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists
-        .where()
-        .salvaEqualTo(true)
-        .and()
-        .favoritaEqualTo(false)
-        .and()
-        .deletedAtIsNull()
-        .sortBySavedAtDesc()
-        .findAll();
+    return _migrated(
+      isar.playlists
+          .where()
+          .salvaEqualTo(true)
+          .and()
+          .favoritaEqualTo(false)
+          .and()
+          .deletedAtIsNull()
+          .sortBySavedAtDesc()
+          .findAll(),
+    );
   }
 
   /// Favoritas — `favoritedAt` desc.
   Future<List<Playlist>> findFavorites() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists
-        .where()
-        .favoritaEqualTo(true)
-        .and()
-        .deletedAtIsNull()
-        .sortByFavoritedAtDesc()
-        .findAll();
+    return _migrated(
+      isar.playlists
+          .where()
+          .favoritaEqualTo(true)
+          .and()
+          .deletedAtIsNull()
+          .sortByFavoritedAtDesc()
+          .findAll(),
+    );
   }
 
   Future<Playlist?> findByPlaylistId(String playlistId) async {
     final isar = _isar;
     if (isar == null) return null;
-    return isar.playlists.where().playlistIdEqualTo(playlistId).findFirst();
+    final row = isar.playlists
+        .where()
+        .playlistIdEqualTo(playlistId)
+        .findFirst();
+    if (row == null) return null;
+    return _migrated([row]).first;
   }
 
   Future<List<Playlist>> findPendingPush() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists
-        .where()
-        .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
-        .and()
-        .salvaEqualTo(true)
-        .and()
-        .deletedAtIsNull()
-        .findAll();
+    return _migrated(
+      isar.playlists
+          .where()
+          .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
+          .and()
+          .salvaEqualTo(true)
+          .and()
+          .deletedAtIsNull()
+          .findAll(),
+    );
   }
 
   Future<List<Playlist>> findTombstones() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists
-        .where()
-        .deletedAtIsNotNull()
-        .and()
-        .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
-        .findAll();
+    return _migrated(
+      isar.playlists
+          .where()
+          .deletedAtIsNotNull()
+          .and()
+          .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
+          .findAll(),
+    );
   }
 
   Future<List<Playlist>> findAllSavedIncludingDeleted() async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.playlists.where().salvaEqualTo(true).findAll();
+    return _migrated(isar.playlists.where().salvaEqualTo(true).findAll());
+  }
+
+  /// Migração lazy para a ordem única (D2): preenche [Playlist.items] a partir
+  /// das duas listas legadas e persiste, numa única transação.
+  ///
+  /// Idempotente — registros que já têm [Playlist.items] passam intocados.
+  List<Playlist> _migrated(List<Playlist> rows) {
+    final isar = _isar;
+    if (isar == null) return rows;
+
+    final pending = rows
+        .where(
+          (row) =>
+              row.items.isEmpty &&
+              (row.pdfIds.isNotEmpty || row.audioIds.isNotEmpty),
+        )
+        .toList(growable: false);
+    if (pending.isEmpty) return rows;
+
+    for (final row in pending) {
+      row.items = <String>[...row.pdfIds, ...row.audioIds];
+    }
+    isar.write((isar) {
+      final coll = isar.playlists;
+      for (final row in pending) {
+        coll.put(row);
+      }
+    });
+    return rows;
   }
 
   Future<void> insert(Playlist playlist) async {
@@ -104,9 +152,12 @@ class PlaylistLocalDatasource {
     });
   }
 
+  /// [items] é a ordem única; [pdfIds]/[audioIds] são as projeções gravadas
+  /// junto para o schema v1 continuar legível.
   Future<void> updateFields(
     String playlistId, {
     String? nome,
+    List<String>? items,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,
@@ -135,6 +186,7 @@ class PlaylistLocalDatasource {
       }
 
       if (nome != null) existing.nome = nome;
+      if (items != null) existing.items = List<String>.from(items);
       if (pdfIds != null) existing.pdfIds = List<String>.from(pdfIds);
       if (audioIds != null) existing.audioIds = List<String>.from(audioIds);
       if (salva != null) existing.salva = salva;

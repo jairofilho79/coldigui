@@ -13,9 +13,14 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
 /// relativo do asset — para que carousel e playlist não precisem de um segundo
 /// espaço de ids. O tipo é recuperado decodificando o id e olhando a extensão.
 ///
-/// Retorna [MaterialKind.unknown] para id inválido — nunca lança. Áudio e
-/// YouTube não vivem neste espaço de ids: `.mp3` continua [MaterialKind.unknown]
-/// aqui (o áudio é reconhecido pela entidade, não pela extensão).
+/// Áudio Coldigom também vive neste espaço: `ColdigomLouvorAdapter` monta
+/// `audioId` com o mesmo `encodePdfId(r2Key)` dos PDFs/cifras, então a extensão
+/// do R2 key (`.mp3`, `.m4a`, `.ogg`, `.wav`) classifica a faixa. Isso é o que
+/// permite à playlist derivar `pdfIds`/`audioIds` de uma ordem única de ids.
+/// YouTube não vive aqui (o id vem do worker, não é path) e cai em
+/// [MaterialKind.unknown].
+///
+/// Retorna [MaterialKind.unknown] para id inválido — nunca lança.
 MaterialKind materialIdKindOf(String id) {
   if (id.isEmpty) return MaterialKind.unknown;
 
@@ -31,6 +36,12 @@ MaterialKind materialIdKindOf(String id) {
   if (lower.endsWith('.chord')) return MaterialKind.chord;
   if (lower.endsWith('.txt') || lower.endsWith('.gest')) {
     return MaterialKind.gesture;
+  }
+  if (lower.endsWith('.mp3') ||
+      lower.endsWith('.m4a') ||
+      lower.endsWith('.ogg') ||
+      lower.endsWith('.wav')) {
+    return MaterialKind.audio;
   }
   return MaterialKind.unknown;
 }

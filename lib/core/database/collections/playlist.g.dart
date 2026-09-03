@@ -37,6 +37,7 @@ final PlaylistSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'publicationReachIndex', type: IsarType.long),
       IsarPropertySchema(name: 'publicationCategoryIndex', type: IsarType.long),
       IsarPropertySchema(name: 'publishedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'items', type: IsarType.stringList),
     ],
     indexes: [
       IsarIndexSchema(
@@ -120,6 +121,14 @@ int serializePlaylist(IsarWriter writer, Playlist object) {
     17,
     object.publishedAt?.toUtc().microsecondsSinceEpoch ?? -9223372036854775808,
   );
+  {
+    final list = object.items;
+    final listWriter = IsarCore.beginList(writer, 18, list.length);
+    for (var i = 0; i < list.length; i++) {
+      IsarCore.writeString(listWriter, i, list[i]);
+    }
+    IsarCore.endList(writer, listWriter);
+  }
   return object.id;
 }
 
@@ -252,6 +261,22 @@ Playlist deserializePlaylist(IsarReader reader) {
         value,
         isUtc: true,
       ).toLocal();
+    }
+  }
+  {
+    final length = IsarCore.readList(reader, 18, IsarCore.readerPtrPtr);
+    {
+      final reader = IsarCore.readerPtr;
+      if (reader.isNull) {
+        object.items = const <String>[];
+      } else {
+        final list = List<String>.filled(length, '', growable: true);
+        for (var i = 0; i < length; i++) {
+          list[i] = IsarCore.readString(reader, i) ?? '';
+        }
+        IsarCore.freeReader(reader);
+        object.items = list;
+      }
     }
   }
   return object;
@@ -398,6 +423,23 @@ dynamic deserializePlaylistProp(IsarReader reader, int property) {
             value,
             isUtc: true,
           ).toLocal();
+        }
+      }
+    case 18:
+      {
+        final length = IsarCore.readList(reader, 18, IsarCore.readerPtrPtr);
+        {
+          final reader = IsarCore.readerPtr;
+          if (reader.isNull) {
+            return const <String>[];
+          } else {
+            final list = List<String>.filled(length, '', growable: true);
+            for (var i = 0; i < length; i++) {
+              list[i] = IsarCore.readString(reader, i) ?? '';
+            }
+            IsarCore.freeReader(reader);
+            return list;
+          }
         }
       }
     default:
@@ -2051,6 +2093,176 @@ extension PlaylistQueryFilter
       );
     });
   }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementGreaterThan(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementGreaterThanOrEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementLessThan(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 18, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementLessThanOrEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementBetween(
+    String lower,
+    String upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 18,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 18,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsElementMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 18,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 18, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  itemsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 18, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsIsEmpty() {
+    return not().itemsIsNotEmpty();
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> itemsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterOrEqualCondition(property: 18, value: null),
+      );
+    });
+  }
 }
 
 extension PlaylistQueryObject
@@ -2576,6 +2788,12 @@ extension PlaylistQueryWhereDistinct
       return query.addDistinctBy(17);
     });
   }
+
+  QueryBuilder<Playlist, Playlist, QAfterDistinct> distinctByItems() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(18);
+    });
+  }
 }
 
 extension PlaylistQueryProperty1
@@ -2686,6 +2904,12 @@ extension PlaylistQueryProperty1
   QueryBuilder<Playlist, DateTime?, QAfterProperty> publishedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(17);
+    });
+  }
+
+  QueryBuilder<Playlist, List<String>, QAfterProperty> itemsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(18);
     });
   }
 }
@@ -2799,6 +3023,12 @@ extension PlaylistQueryProperty2<R>
   QueryBuilder<Playlist, (R, DateTime?), QAfterProperty> publishedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(17);
+    });
+  }
+
+  QueryBuilder<Playlist, (R, List<String>), QAfterProperty> itemsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(18);
     });
   }
 }
@@ -2915,6 +3145,12 @@ extension PlaylistQueryProperty3<R1, R2>
   publishedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(17);
+    });
+  }
+
+  QueryBuilder<Playlist, (R1, R2, List<String>), QOperations> itemsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(18);
     });
   }
 }

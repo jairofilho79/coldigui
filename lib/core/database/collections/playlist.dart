@@ -7,7 +7,7 @@ part 'playlist.g.dart';
 
 /// Playlist do usuário (UC-06/07 + UC-15 sync).
 ///
-/// [playlistId] é UUID estável; [pdfIds]/[audioIds] preservam ordem.
+/// [playlistId] é UUID estável; [items] é a ordem única dos materiais.
 /// [salva] default `true` migra registros existentes como salvas.
 @Collection()
 class Playlist {
@@ -17,9 +17,12 @@ class Playlist {
   late String playlistId;
 
   late String nome;
+
+  /// Projeção PDF/cifra de [items] — mantida em disco por compatibilidade
+  /// (schema v1, share URL e Worker atual).
   late List<String> pdfIds;
 
-  /// Faixas Coldigom — coleção paralela independente de [pdfIds].
+  /// Projeção de áudio de [items] — mantida em disco por compatibilidade.
   List<String> audioIds = const [];
 
   late DateTime createdAt;
@@ -53,6 +56,15 @@ class Playlist {
   int? publicationCategoryIndex;
 
   DateTime? publishedAt;
+
+  /// Ordem única de materiais (D2) — fonte da verdade a partir do schema v2.
+  ///
+  /// Declarado por último de propósito: o índice de propriedade das colunas
+  /// anteriores não muda, então bases já gravadas continuam legíveis.
+  /// Vazio em registros anteriores à migração; a leitura em
+  /// `PlaylistLocalDatasource` faz a migração lazy
+  /// (`items = [...pdfIds, ...audioIds]`) e persiste.
+  List<String> items = const [];
 }
 
 extension PlaylistSyncStatusX on Playlist {

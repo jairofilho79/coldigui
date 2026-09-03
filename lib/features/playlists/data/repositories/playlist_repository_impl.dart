@@ -52,6 +52,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final row = Playlist()
       ..playlistId = id
       ..nome = nome
+      ..items = <String>[...pdfIds, ...audioIds]
       ..pdfIds = List<String>.from(pdfIds)
       ..audioIds = List<String>.from(audioIds)
       ..createdAt = now
@@ -68,6 +69,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     return id;
   }
 
+  /// [pdfIds]/[audioIds] substituem apenas o seu subconjunto da ordem única —
+  /// ver [SavedPlaylist.replaceSubset]. Um reorder da face de partituras
+  /// vindo do carousel não move os áudios de lugar.
   @override
   Future<void> update(
     String playlistId, {
@@ -98,11 +102,19 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
         clearFavoritedAt ||
         deletedAt != null;
 
+    // Reprojeta a ordem única antes de escrever: as duas listas gravadas em
+    // disco continuam sendo projeções coerentes de `items`.
+    SavedPlaylist? next;
+    if ((pdfIds != null || audioIds != null) && existing != null) {
+      next = existing.copyWith(pdfIds: pdfIds, audioIds: audioIds);
+    }
+
     await _local.updateFields(
       playlistId,
       nome: nome,
-      pdfIds: pdfIds,
-      audioIds: audioIds,
+      items: next?.items,
+      pdfIds: next?.pdfIds ?? pdfIds,
+      audioIds: next?.audioIds ?? audioIds,
       salva: salva,
       savedAt: savedAt,
       favoritedAt: favoritedAt,
@@ -181,6 +193,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final row = Playlist()
       ..playlistId = playlist.playlistId
       ..nome = playlist.nome
+      ..items = List<String>.from(playlist.items)
       ..pdfIds = List<String>.from(playlist.pdfIds)
       ..audioIds = List<String>.from(playlist.audioIds)
       ..createdAt = playlist.createdAt
@@ -204,9 +217,11 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
 
   SavedPlaylist _toEntity(Playlist row) => SavedPlaylist(
     playlistId: row.playlistId,
+    // `items` já vem migrado do datasource; o fallback cobre a lista vazia.
+    items: row.items.isNotEmpty
+        ? List<String>.from(row.items)
+        : <String>[...row.pdfIds, ...row.audioIds],
     nome: row.nome,
-    pdfIds: List<String>.from(row.pdfIds),
-    audioIds: List<String>.from(row.audioIds),
     createdAt: row.createdAt,
     salva: row.salva,
     savedAt: row.savedAt,

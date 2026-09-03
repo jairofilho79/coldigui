@@ -36,8 +36,28 @@ void main() {
     });
 
     test('classifica extensao desconhecida como unknown', () {
-      final id = encodePdfId('assets/praises/abc/def.mp3');
+      final id = encodePdfId('assets/praises/abc/def.bin');
       expect(materialIdKindOf(id), MaterialKind.unknown);
+    });
+
+    test('reconhece audio por .mp3', () {
+      final id = encodePdfId('assets/praises/abc/def.mp3');
+      expect(materialIdKindOf(id), MaterialKind.audio);
+    });
+
+    test('reconhece audio por .m4a/.ogg/.wav', () {
+      for (final ext in ['m4a', 'ogg', 'wav']) {
+        expect(
+          materialIdKindOf(encodePdfId('assets/praises/abc/def.$ext')),
+          MaterialKind.audio,
+          reason: ext,
+        );
+      }
+    });
+
+    test('ignora caixa da extensao de audio', () {
+      final id = encodePdfId('assets/praises/abc/def.MP3');
+      expect(materialIdKindOf(id), MaterialKind.audio);
     });
 
     test('devolve unknown em id invalido sem lancar', () {
