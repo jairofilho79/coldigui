@@ -6,6 +6,7 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/usecases/update_playlist.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
@@ -321,6 +322,123 @@ void main() {
 
       final created = await repository.getById('p2');
       expect(created?.items, [pdfA, audioA]);
+    });
+  });
+
+  group('UpdatePlaylist — mutações de add/remove sobre a ordem única', () {
+    late Directory tempDir;
+    late Isar isar;
+    late PlaylistRepositoryImpl repository;
+    late UpdatePlaylist updatePlaylist;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('playlist_mutations_');
+      isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
+      repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+      updatePlaylist = UpdatePlaylist(repository);
+      await repository.upsert(
+        SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
+          items: [pdfA, audioA, pdfB, audioB],
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      );
+    });
+
+    tearDown(() async {
+      isar.close(deleteFromDisk: true);
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Espelha `PlaylistsNotifier.removePdf`.
+    Future<void> removePdf(String pdfId) async {
+      final current = (await repository.getById('p1'))!;
+      await updatePlaylist(
+        playlistId: 'p1',
+        pdfIds: current.pdfIds.where((id) => id != pdfId).toList(),
+      );
+    }
+
+    /// Espelha `PlaylistsNotifier.removeAudio`.
+    Future<void> removeAudio(String audioId) async {
+      final current = (await repository.getById('p1'))!;
+      await updatePlaylist(
+        playlistId: 'p1',
+        audioIds: current.audioIds.where((id) => id != audioId).toList(),
+      );
+    }
+
+    /// Espelha `PlaylistsNotifier.addAudioToActivePlaylist`.
+    Future<void> addAudio(String audioId) async {
+      final current = (await repository.getById('p1'))!;
+      await updatePlaylist(
+        playlistId: 'p1',
+        audioIds: [...current.audioIds, audioId],
+      );
+    }
+
+    /// Espelha `syncActivePlaylistFromCarousel` (add de louvor e reorder).
+    Future<void> syncFromCarousel(List<String> carouselPdfIds) {
+      return updatePlaylist(playlistId: 'p1', pdfIds: carouselPdfIds);
+    }
+
+    test('removePdf tira um slot PDF e não mexe nos áudios', () async {
+      await removePdf(pdfA);
+
+      // O PDF que sobrou desliza para o primeiro slot PDF; os áudios ficam
+      // onde estavam (é a regra de `SavedPlaylist.replaceSubset`).
+      final updated = await repository.getById('p1');
+      expect(updated?.items, [pdfB, audioA, audioB]);
+      expect(updated?.audioIds, [audioA, audioB]);
+    });
+
+    test('removeAudio tira um slot de áudio e não mexe nos PDFs', () async {
+      await removeAudio(audioA);
+
+      final updated = await repository.getById('p1');
+      expect(updated?.items, [pdfA, audioB, pdfB]);
+      expect(updated?.pdfIds, [pdfA, pdfB]);
+    });
+
+    test('addAudio entra na ordem única sem mexer nos PDFs', () async {
+      await addAudio(encodePdfId('assets/praises/c/003.mp3'));
+
+      final updated = await repository.getById('p1');
+      expect(updated?.pdfIds, [pdfA, pdfB]);
+      expect(updated?.audioIds, [
+        audioA,
+        audioB,
+        encodePdfId('assets/praises/c/003.mp3'),
+      ]);
+    });
+
+    test('add de louvor via carousel preserva os áudios', () async {
+      await syncFromCarousel([pdfA, pdfB, pdfC]);
+
+      final updated = await repository.getById('p1');
+      expect(updated?.items, [pdfA, audioA, pdfB, pdfC, audioB]);
+      expect(updated?.audioIds, [audioA, audioB]);
+    });
+
+    test('reorder no carousel não mexe nos áudios', () async {
+      await syncFromCarousel([pdfB, pdfA]);
+
+      final updated = await repository.getById('p1');
+      expect(updated?.items, [pdfB, audioA, pdfA, audioB]);
+    });
+
+    test('esvaziar as duas faces ainda apaga a playlist', () async {
+      await updatePlaylist(playlistId: 'p1', pdfIds: const []);
+      // Só a face de áudio sobrou — a playlist continua viva.
+      expect((await repository.getById('p1'))?.items, [audioA, audioB]);
+
+      await updatePlaylist(playlistId: 'p1', audioIds: const []);
+
+      // Lista salva vira tombstone (comportamento pré-existente do delete).
+      expect((await repository.getById('p1'))?.deletedAt, isNotNull);
     });
   });
 }
