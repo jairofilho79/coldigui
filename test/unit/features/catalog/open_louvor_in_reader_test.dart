@@ -8,10 +8,12 @@ import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dar
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
+import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -252,66 +254,59 @@ void main() {
         // Simula os "10s" do enunciado — o warmup deve estourar o timeout de
         // 5s internamente, em silêncio, sem afetar o que já navegou.
         await tester.pump(const Duration(seconds: 10));
-        expect(
-          logs.any((l) => l.contains('[coldigom] warmup falhou')),
-          isTrue,
-        );
+        expect(logs.any((l) => l.contains('[coldigom] warmup falhou')), isTrue);
       } finally {
         debugPrint = originalDebugPrint;
       }
     },
   );
 
-  testWidgets(
-    'warmup Coldigom que lança não impede abrir o leitor',
-    (tester) async {
-      final logs = <String>[];
-      final originalDebugPrint = debugPrint;
-      debugPrint = (String? message, {int? wrapWidth}) {
-        logs.add(message ?? '');
-      };
+  testWidgets('warmup Coldigom que lança não impede abrir o leitor', (
+    tester,
+  ) async {
+    final logs = <String>[];
+    final originalDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      logs.add(message ?? '');
+    };
 
-      try {
-        late BuildContext capturedContext;
-        late WidgetRef capturedRef;
+    try {
+      late BuildContext capturedContext;
+      late WidgetRef capturedRef;
 
-        final router = _buildRouter(
-          onBuild: (context, ref) {
-            capturedContext = context;
-            capturedRef = ref;
-          },
-        );
+      final router = _buildRouter(
+        onBuild: (context, ref) {
+          capturedContext = context;
+          capturedRef = ref;
+        },
+      );
 
-        await tester.pumpWidget(
-          _harness(router, [
-            playlistsProvider.overrideWith(_RecordingPlaylistsNotifier.new),
-            ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
-              (Louvor _) async => throw StateError('coldigom indisponível'),
-            ),
-            resolvePdfForReaderProvider.overrideWithValue(
-              _ControllableResolvePdfForReader(() async => _source),
-            ),
-          ]),
-        );
-        await tester.pump();
+      await tester.pumpWidget(
+        _harness(router, [
+          playlistsProvider.overrideWith(_RecordingPlaylistsNotifier.new),
+          ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
+            (Louvor _) async => throw StateError('coldigom indisponível'),
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _ControllableResolvePdfForReader(() async => _source),
+          ),
+        ]),
+      );
+      await tester.pump();
 
-        await openLouvorInReader(
-          ref: capturedRef,
-          context: capturedContext,
-          louvor: _louvor,
-        );
-        await tester.pumpAndSettle();
+      await openLouvorInReader(
+        ref: capturedRef,
+        context: capturedContext,
+        louvor: _louvor,
+      );
+      await tester.pumpAndSettle();
 
-        expect(router.state.uri.path, RoutePaths.reader);
-        expect(
-          logs.any((l) => l.contains('[coldigom] warmup falhou')),
-          isTrue,
-        );
-      } finally {
-        debugPrint = originalDebugPrint;
-      }
-    },
-  );
+      expect(router.state.uri.path, RoutePaths.reader);
+      expect(logs.any((l) => l.contains('[coldigom] warmup falhou')), isTrue);
+    } finally {
+      debugPrint = originalDebugPrint;
+    }
+  });
 
   testWidgets(
     'resolve do PDF dispara mesmo com addLouvorToActivePlaylist ainda pendente '
@@ -357,8 +352,7 @@ void main() {
       expect(
         resolve.callCount,
         1,
-        reason:
-            'resolveLouvorPdf deve disparar mesmo com a playlist pendente',
+        reason: 'resolveLouvorPdf deve disparar mesmo com a playlist pendente',
       );
       expect(
         router.state.uri.path,
@@ -372,4 +366,58 @@ void main() {
       expect(router.state.uri.path, RoutePaths.reader);
     },
   );
+
+  group('louvorPdfErrorMessage', () {
+    const generic = 'Não foi possível concluir a ação';
+
+    test('caminho inválido cai na mensagem genérica', () {
+      expect(
+        louvorPdfErrorMessage(
+          const InvalidPdfPathException('path ruim'),
+          generic,
+        ),
+        generic,
+      );
+    });
+
+    test('PDF indisponível offline mostra a mensagem própria', () {
+      expect(
+        louvorPdfErrorMessage(
+          const PdfOfflineUnavailableException(
+            pdfId: 'pdf-1',
+            message: 'não baixado',
+          ),
+          generic,
+        ),
+        'não baixado',
+      );
+    });
+
+    test('PDF removido do dispositivo mostra a mensagem própria', () {
+      expect(
+        louvorPdfErrorMessage(
+          const PdfExternallyDeletedException(
+            pdfId: 'pdf-1',
+            message: 'apagado do disco',
+          ),
+          generic,
+        ),
+        'apagado do disco',
+      );
+    });
+
+    test('falha de download mostra a mensagem própria', () {
+      expect(
+        louvorPdfErrorMessage(
+          const PdfFetchFailedException('rede caiu'),
+          generic,
+        ),
+        'rede caiu',
+      );
+    });
+
+    test('erro desconhecido cai na mensagem genérica', () {
+      expect(louvorPdfErrorMessage(StateError('boom'), generic), generic);
+    });
+  });
 }

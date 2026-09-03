@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
-import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
-import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,13 +9,16 @@ import 'package:go_router/go_router.dart';
 import '../../domain/entities/louvor.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
+import '../providers/open_material_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 
 /// Abre [louvor] no leitor interno (`/leitor`) com resolve local-first.
 ///
-/// Caminho `PdfMaterial` do `openMaterialProvider` — as exceções tipadas que
-/// escapam daqui são traduzidas lá por `presentMaterialOpenError`.
+/// Caminho `PdfMaterial` do `openMaterialProvider`, que traduz por
+/// `presentMaterialOpenError` as exceções tipadas que escapam daqui. Quem chama
+/// esta função direto (cards, sheet de faltantes) trata o erro por conta
+/// própria — normalmente com [louvorPdfErrorMessage].
 ///
 /// Sempre entra na lista ativa. Lista nova só pelo limpar da barra
 /// ([CarouselBarTrailingActions] → Nova Lista).
@@ -95,12 +96,8 @@ Future<LocalPdfSource> resolveLouvorPdf({
 }
 
 /// Mensagem amigável para falhas de abertura/compartilhamento.
-String louvorPdfErrorMessage(Object error, String genericMessage) {
-  return switch (error) {
-    InvalidPdfPathException() => genericMessage,
-    PdfOfflineUnavailableException(:final message) => message,
-    PdfExternallyDeletedException(:final message) => message,
-    PdfFetchFailedException(:final message) => message,
-    _ => genericMessage,
-  };
-}
+///
+/// Delega à escada única ([classifyMaterialOpenFailure]): erros com mensagem
+/// própria mostram a mensagem, o resto cai em [genericMessage].
+String louvorPdfErrorMessage(Object error, String genericMessage) =>
+    classifyMaterialOpenFailure(error).message ?? genericMessage;

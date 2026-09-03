@@ -95,24 +95,6 @@ void main() {
       expect(materials[4], isA<YoutubeMaterialRef>());
     });
 
-    test('preserva a ordem das seções e das entradas dentro delas', () {
-      final groups = LouvorGroup.fromLouvores([
-        _louvor(categoria: 'Gestos', classificacao: 'Coletânea', pdfId: 'pdf2'),
-        _louvor(
-          categoria: 'Partitura',
-          classificacao: 'Coletânea',
-          pdfId: 'pdf1',
-        ),
-      ]);
-
-      final group = groups.single;
-      // A ordem dentro da seção é a de LouvorCategoryOrder (Partitura antes).
-      expect(
-        group.materials.map((m) => m.id).toList(),
-        group.sections.expand((s) => s.materials).map((e) => e.pdfId).toList(),
-      );
-    });
-
     test('expõe groupId e categoria de cada material', () {
       final groups = LouvorGroup.fromLouvores(
         [

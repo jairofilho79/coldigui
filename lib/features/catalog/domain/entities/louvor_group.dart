@@ -109,6 +109,10 @@ class LouvorGroup {
   /// Todos os materiais do grupo num vocabulário único, na ordem de exibição:
   /// PDFs por seção, cifras, áudios, YouTube.
   ///
+  /// Os PDFs saem na ordem das [sections] (classificação, depois categoria
+  /// dentro da seção) — diferente de [flatPdfMaterials], que reordena todas as
+  /// seções juntas por [LouvorCategoryOrder].
+  ///
   /// Derivado das listas existentes — nada é armazenado e nenhum consumidor
   /// atual muda de comportamento. É o insumo do `openMaterialProvider`.
   List<CatalogMaterial> get materials => [

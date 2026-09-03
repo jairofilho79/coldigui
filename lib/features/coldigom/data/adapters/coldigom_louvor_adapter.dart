@@ -138,7 +138,6 @@ abstract final class ColdigomLouvorAdapter {
       'chord' => MaterialKind.chord,
       'mp3' || 'audio' => MaterialKind.audio,
       'youtube' => MaterialKind.youtube,
-      'gesture' || 'gest' => MaterialKind.gesture,
       _ => MaterialKind.unknown,
     };
   }

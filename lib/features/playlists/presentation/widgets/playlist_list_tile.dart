@@ -339,10 +339,10 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         genericStage: '_openPdfInReader',
       );
       final message = failure.message;
-      if (failure.logWithStack) {
-        playlistOpenDebugLogError(failure.stage, error, stackTrace);
+      if (message != null && !failure.logWithStack) {
+        playlistOpenDebugLogFailure(failure.stage, message);
       } else {
-        playlistOpenDebugLogFailure(failure.stage, message!);
+        playlistOpenDebugLogError(failure.stage, error, stackTrace);
       }
       if (message != null) {
         _showError(message);

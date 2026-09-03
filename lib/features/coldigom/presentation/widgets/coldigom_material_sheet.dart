@@ -138,8 +138,10 @@ class _ColdigomMaterialSheetBodyState
       MaterialKind.chord => l10n.chordMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
-      // Inalcançável: _visibleKinds só emite os quatro kinds acima.
-      MaterialKind.gesture || MaterialKind.unknown => l10n.pdfMaterialSection,
+      // _visibleKinds só emite os quatro kinds acima; se um dia emitir outro,
+      // que falhe alto em vez de mentir o rótulo.
+      MaterialKind.gesture ||
+      MaterialKind.unknown => throw StateError('kind não visível: $kind'),
     };
   }
 
