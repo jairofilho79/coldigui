@@ -414,8 +414,15 @@ void main() {
       expect(opener.opened!.categoria, 'Cifra');
     });
 
+    // Defensivo (A4): em produção `availableChordsProvider` engole falha de
+    // rede e nunca emite `AsyncError` — ver
+    // `available_chords_provider_test.dart`, "falha de rede nunca vira
+    // AsyncError". O override abaixo força o estado que só um erro inesperado
+    // (bug de parsing, provider trocado) produziria; o teste existe para que a
+    // linha de retry continue correta se isso acontecer.
     testWidgets(
-      'erro mostra "indisponível · tentar de novo" e o toque retenta',
+      'defensivo: AsyncError mostra "indisponível · tentar de novo" e o toque '
+      'retenta',
       (tester) async {
         var failing = true;
         var calls = 0;

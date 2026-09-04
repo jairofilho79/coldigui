@@ -257,6 +257,12 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         iconColor: AppColors.title,
                         carouselPdfIds: carouselPdfIds,
                       ),
+                    // Defensivo: `availableChordsProvider` engole falha de rede
+                    // por cifra (a cifra fica listada), então este ramo só é
+                    // alcançado por erro inesperado. Fica porque o custo é uma
+                    // linha e a alternativa — seção sumindo sem explicação — é
+                    // pior. Contrato pinado em
+                    // `available_chords_provider_test.dart`.
                     if (chordsAsync.hasError)
                       ListTile(
                         leading: const Icon(

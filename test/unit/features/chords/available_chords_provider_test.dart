@@ -68,4 +68,26 @@ void main() {
 
     expect(chords.map((c) => c.r2Key), [_falhaKey]);
   });
+
+  // A4: contrato real do provider — `_isPublished` engole a falha de rede, então
+  // este provider **nunca** emite `AsyncError` por cifra que não respondeu. É
+  // por isso que a linha "cifra indisponível · tentar de novo" do
+  // `material_sheet` é código defensivo: em produção ela não aparece por falha
+  // de rede numa cifra. Se algum dia este teste ficar vermelho, a linha do sheet
+  // passou a ser alcançável de verdade.
+  test(
+    'falha de rede nunca vira AsyncError (contrato que o sheet defende)',
+    () async {
+      final container = _container({
+        _okKey: _material(_okKey, 'Cifra I'),
+        _falhaKey: _material(_falhaKey, 'Cifra II'),
+      });
+
+      await container.read(availableChordsProvider(_group).future);
+      final state = container.read(availableChordsProvider(_group));
+
+      expect(state.hasError, isFalse);
+      expect(state.hasValue, isTrue);
+    },
+  );
 }
