@@ -25,8 +25,6 @@ class LoadPlaylistIntoCarousel {
       throw const PlaylistNotFoundException();
     }
 
-    await _carouselRepository.replaceAll(
-      List<String>.from(playlist.pdfIds),
-    );
+    await _carouselRepository.replaceAll(List<String>.from(playlist.pdfIds));
   }
 }

@@ -22,9 +22,7 @@ Future<String?> showSavePlaylistDialog(
       content: TextField(
         controller: controller,
         autofocus: true,
-        decoration: InputDecoration(
-          labelText: l10n.playlistSaveNameLabel,
-        ),
+        decoration: InputDecoration(labelText: l10n.playlistSaveNameLabel),
         onSubmitted: (_) {
           final nome = controller.text.trim();
           if (nome.isNotEmpty) {

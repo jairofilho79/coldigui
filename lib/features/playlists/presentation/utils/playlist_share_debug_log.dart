@@ -36,8 +36,9 @@ String playlistShareDebugErrorSummary() {
   final error = playlistShareLastError;
   final stage = playlistShareLastStage;
   if (error == null) return stage ?? 'erro desconhecido';
-  final errorText =
-      error.runtimeType == String ? '$error' : '${error.runtimeType}: $error';
+  final errorText = error.runtimeType == String
+      ? '$error'
+      : '${error.runtimeType}: $error';
   if (stage == null) return errorText;
   return '$stage — $errorText';
 }

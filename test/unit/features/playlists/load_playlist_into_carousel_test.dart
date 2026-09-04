@@ -18,18 +18,15 @@ void main() {
   late PlaylistRepositoryImpl playlistRepository;
   late LoadPlaylistIntoCarousel useCase;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('load_playlist_');
-    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(
+      schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
     playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
-    useCase = LoadPlaylistIntoCarousel(
-      playlistRepository,
-      carouselRepository,
-    );
+    useCase = LoadPlaylistIntoCarousel(playlistRepository, carouselRepository);
   });
 
   tearDown(() async {

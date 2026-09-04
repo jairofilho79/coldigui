@@ -127,8 +127,8 @@ void main() {
     c.read(playlistsProvider);
     await _flushAsync();
 
-    // O id cai na face de partituras, então `audioIds` nunca o contém — só o
-    // dedupe contra `items` impede a duplicata.
+    // A extensão não classifica o id como áudio, mas ele foi declarado áudio
+    // ao ser adicionado (A8); o dedupe continua sendo contra `items`.
     await c
         .read(playlistsProvider.notifier)
         .addAudioToActivePlaylist(audioSemExtensaoConhecida);
@@ -140,7 +140,8 @@ void main() {
 
     final saved = await repository.getById('p1');
     expect(second, isFalse);
-    expect(saved?.audioIds, isEmpty);
+    expect(saved?.audioIds, [audioSemExtensaoConhecida]);
+    expect(saved?.pdfIds, [pdfA]);
     expect(
       saved!.items.where((id) => id == audioSemExtensaoConhecida).length,
       1,

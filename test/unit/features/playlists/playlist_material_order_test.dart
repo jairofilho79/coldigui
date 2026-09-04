@@ -20,6 +20,9 @@ final audioA = encodePdfId('assets/praises/a/001.mp3');
 final audioB = encodePdfId('assets/praises/b/002.mp3');
 final gestureA = encodePdfId('ColAdultos/001.gest');
 
+/// Áudio real do Worker com container fora de [kAudioMaterialExtensions].
+final audioMisfiled = encodePdfId('assets/praises/a/001.mid');
+
 SavedPlaylist _playlist({
   List<String>? items,
   List<String> pdfIds = const [],
@@ -78,6 +81,20 @@ void main() {
       expect(playlist.items, [pdfA, chordA, pdfB, audioA, audioB]);
       expect(playlist.pdfIds, [pdfA, chordA, pdfB]);
       expect(playlist.audioIds, [audioA, audioB]);
+    });
+
+    test('audioIds declarados vencem a extensão do id (A8)', () {
+      final playlist = _playlist(
+        items: [pdfA, audioMisfiled, audioA],
+        audioIds: [audioMisfiled, audioA],
+      );
+
+      expect(
+        playlist.audioIds,
+        [audioMisfiled, audioA],
+        reason: 'quem gravou a lista já decidiu que este id é áudio',
+      );
+      expect(playlist.pdfIds, [pdfA]);
     });
 
     test('items tem precedência sobre pdfIds/audioIds', () {
@@ -157,29 +174,40 @@ void main() {
       expect(before.copyWith(nome: 'Outro').items, [pdfA, audioA, pdfB]);
     });
 
-    test('áudio com container não reconhecido não é perdido', () {
+    test('áudio com container não reconhecido fica na face de áudio', () {
       // `type: mp3` no worker, extensão fora de kAudioMaterialExtensions: o id
       // não classifica como áudio, mas o chamador o declarou em `audioIds:`.
-      // Ele entra em `items` (e cai na face de partituras) em vez de sumir.
-      final estranho = encodePdfId('assets/praises/a/001.mid');
-      expect(materialIdKindOf(estranho), isNot(MaterialKind.audio));
+      expect(materialIdKindOf(audioMisfiled), isNot(MaterialKind.audio));
 
       final before = _playlist(items: [pdfA, audioA]);
-      final after = before.copyWith(audioIds: [audioA, estranho]);
+      final after = before.copyWith(audioIds: [audioA, audioMisfiled]);
 
-      expect(after.items, [pdfA, audioA, estranho]);
-      expect(after.audioIds, [audioA]);
-      expect(after.pdfIds, [pdfA, estranho]);
+      expect(after.items, [pdfA, audioA, audioMisfiled]);
+      expect(after.audioIds, [audioA, audioMisfiled]);
+      expect(after.pdfIds, [pdfA]);
     });
 
     test('reordenar a face de áudio com id estranho é estável', () {
-      final estranho = encodePdfId('assets/praises/a/001.mid');
-      final before = _playlist(items: [pdfA, audioA, estranho]);
+      final before = _playlist(items: [pdfA, audioA, audioMisfiled]);
 
       // Idempotente: repassar a mesma face não move nada.
-      final after = before.copyWith(audioIds: [audioA, estranho]);
+      final after = before.copyWith(audioIds: [audioA, audioMisfiled]);
 
-      expect(after.items, [pdfA, audioA, estranho]);
+      expect(after.items, [pdfA, audioA, audioMisfiled]);
+    });
+
+    test('sync do carousel na face PDF não engole o áudio declarado (A8)', () {
+      final before = _playlist(
+        items: [pdfA, audioA, audioMisfiled],
+        audioIds: [audioA, audioMisfiled],
+      );
+
+      // O carousel reescreve só a face de partituras.
+      final after = before.copyWith(pdfIds: [pdfA, pdfB]);
+
+      expect(after.items, [pdfA, pdfB, audioA, audioMisfiled]);
+      expect(after.audioIds, [audioA, audioMisfiled]);
+      expect(after.pdfIds, [pdfA, pdfB]);
     });
   });
 
@@ -275,6 +303,26 @@ void main() {
       expect(row?.items, [pdfA, audioA]);
     });
 
+    test(
+      'linha legada com áudio misfiled fica na face de áudio (A8)',
+      () async {
+        writeLegacyRow(
+          playlistId: 'legacy',
+          pdfIds: [pdfA],
+          audioIds: [audioMisfiled],
+        );
+
+        final playlist = await repository.getById('legacy');
+
+        expect(
+          playlist?.audioIds,
+          [audioMisfiled],
+          reason: 'row.audioIds é o veredito de quem gravou a linha',
+        );
+        expect(playlist?.pdfIds, [pdfA]);
+      },
+    );
+
     test('entidade lida de linha legada expõe as duas projeções', () async {
       writeLegacyRow(
         playlistId: 'legacy',
@@ -327,6 +375,33 @@ void main() {
       expect(updated?.items, [pdfB, audioA, pdfA, audioB]);
       expect(updated?.audioIds, [audioA, audioB]);
       expect(updated?.pdfIds, [pdfB, pdfA]);
+    });
+
+    test('update(pdfIds:) não consome o áudio misfiled (A8)', () async {
+      await repository.upsert(
+        SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
+          items: [pdfA, audioMisfiled],
+          audioIds: [audioMisfiled],
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      );
+
+      // Sync do carousel: reescreve só a face de partituras.
+      await repository.update('p1', pdfIds: [pdfA, pdfB]);
+
+      final updated = await repository.getById('p1');
+      expect(updated?.items, [pdfA, pdfB, audioMisfiled]);
+      expect(updated?.audioIds, [audioMisfiled]);
+      expect(updated?.pdfIds, [pdfA, pdfB]);
+
+      final raw = isar.playlists.where().playlistIdEqualTo('p1').findFirst();
+      expect(
+        raw?.audioIds,
+        [audioMisfiled],
+        reason: 'o veredito precisa sobreviver ao round-trip pelo Isar',
+      );
     });
 
     test('update(audioIds:) preserva os PDFs', () async {

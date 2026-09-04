@@ -30,6 +30,7 @@ class RemotePlaylist {
     List<String>? items,
     List<String> pdfIds = const [],
     List<String> audioIds = const [],
+    Set<String>? declaredAudioIds,
     this.schemaVersion = kPlaylistSchemaVersion,
     this.savedAt,
     this.favoritedAt,
@@ -39,6 +40,10 @@ class RemotePlaylist {
     this.publishedAt,
   }) : items = List<String>.unmodifiable(
          items ?? <String>[...pdfIds, ...audioIds],
+       ),
+       declaredAudioIds = Set<String>.unmodifiable(
+         declaredAudioIds ??
+             audioIds.where((id) => !SavedPlaylist.isAudioFaceItem(id)),
        );
 
   final String id;
@@ -50,16 +55,26 @@ class RemotePlaylist {
   /// Ordem única de materiais — fonte da verdade a partir da v2.
   final List<String> items;
 
+  /// Ids declarados áudio no payload que a extensão não classifica assim.
+  ///
+  /// Contraparte de `SavedPlaylist.declaredAudioIds`: preserva o veredito do
+  /// Worker na ida e na volta em vez de deixar a heurística de extensão
+  /// migrar a faixa para a face de partituras (A8).
+  final Set<String> declaredAudioIds;
+
   /// Projeção PDF/cifra de [items] — enviada para o Worker v1 continuar
   /// funcionando.
   late final List<String> pdfIds = items
-      .where(SavedPlaylist.isPdfFaceItem)
+      .where((id) => !_isAudioFace(id))
       .toList(growable: false);
 
   /// Projeção de áudio de [items].
   late final List<String> audioIds = items
-      .where(SavedPlaylist.isAudioFaceItem)
+      .where(_isAudioFace)
       .toList(growable: false);
+
+  bool _isAudioFace(String id) =>
+      SavedPlaylist.isAudioFaceItem(id) || declaredAudioIds.contains(id);
 
   final bool salva;
   final bool favorita;
@@ -90,6 +105,7 @@ class RemotePlaylist {
       items: rawItems == null
           ? <String>[...pdfIds, ...audioIds]
           : rawItems.cast<String>(),
+      audioIds: audioIds,
       salva: json['salva'] as bool? ?? true,
       favorita: json['favorita'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),

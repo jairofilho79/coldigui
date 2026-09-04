@@ -221,6 +221,10 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     items: row.items.isNotEmpty
         ? List<String>.from(row.items)
         : <String>[...row.pdfIds, ...row.audioIds],
+    // `row.audioIds` é o veredito de quem gravou a linha: sem ele, um áudio com
+    // container fora de kAudioMaterialExtensions migraria para a face de
+    // partituras e o próximo sync do carousel o consumiria (A8).
+    audioIds: List<String>.from(row.audioIds),
     nome: row.nome,
     createdAt: row.createdAt,
     salva: row.salva,

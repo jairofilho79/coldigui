@@ -26,6 +26,7 @@ class SavedPlaylist {
     List<String>? items,
     List<String> pdfIds = const [],
     List<String> audioIds = const [],
+    Set<String>? declaredAudioIds,
     this.salva = true,
     this.savedAt,
     this.favoritedAt,
@@ -41,6 +42,9 @@ class SavedPlaylist {
   }) : updatedAt = updatedAt ?? createdAt,
        items = List<String>.unmodifiable(
          items ?? <String>[...pdfIds, ...warnIfNotAudio(audioIds)],
+       ),
+       declaredAudioIds = Set<String>.unmodifiable(
+         declaredAudioIds ?? audioIds.where((id) => !isAudioFaceItem(id)),
        );
 
   /// Identificador estável (UUID-like, compatível com PWA).
@@ -52,6 +56,15 @@ class SavedPlaylist {
   /// Ordem única de materiais (PDF, cifra, áudio…) — fonte da verdade.
   final List<String> items;
 
+  /// Ids que **quem gravou esta lista** declarou áudio e a extensão não
+  /// classifica assim (linha `audioIds` do Isar, `audioIds` do payload remoto).
+  ///
+  /// A fonte da verdade do tipo é o `type` do Worker, não o `r2_key`: um áudio
+  /// publicado com container fora de [kAudioMaterialExtensions] migraria para a
+  /// face de partituras e o próximo sync do carousel o consumiria como se fosse
+  /// um PDF removido. Guardar o veredito por instância evita essa perda (A8).
+  final Set<String> declaredAudioIds;
+
   /// Projeção PDF/cifra de [items], na ordem em que aparecem.
   ///
   /// Inclui [MaterialKind.gesture] (gesto é material de leitura, abre no leitor
@@ -59,13 +72,21 @@ class SavedPlaylist {
   /// decodifica como path: ids legados **e ids de YouTube** (que vêm do Worker
   /// e não são path nenhum). Assim nenhuma família some das duas faces (A7).
   late final List<String> pdfIds = items
-      .where((id) => isPdfFaceItem(id))
+      .where((id) => !belongsToAudioFace(id))
       .toList(growable: false);
 
   /// Projeção de áudio de [items], na ordem em que aparecem.
   late final List<String> audioIds = items
-      .where((id) => isAudioFaceItem(id))
+      .where(belongsToAudioFace)
       .toList(growable: false);
+
+  /// `true` se [id] é da face de áudio **nesta** playlist.
+  ///
+  /// Extensão reconhecida ([isAudioFaceItem]) **ou** veredito de quem gravou a
+  /// lista ([declaredAudioIds]). As duas faces particionam [items]: o que não
+  /// é áudio abre no leitor.
+  bool belongsToAudioFace(String id) =>
+      isAudioFaceItem(id) || declaredAudioIds.contains(id);
 
   /// `true` se [id] pertence à face de partituras/cifras.
   ///
@@ -95,8 +116,9 @@ class SavedPlaylist {
     for (final id in audioIds) {
       if (isAudioFaceItem(id)) continue;
       debugPrint(
-        '[playlists] id de áudio sem extensão reconhecida (vai para a face de '
-        'partituras): $id — ver kAudioMaterialExtensions',
+        '[playlists] id de áudio sem extensão reconhecida (mantido na face de '
+        'áudio pela declaração de quem gravou): $id — '
+        'ver kAudioMaterialExtensions',
       );
     }
     return audioIds;
@@ -203,6 +225,12 @@ class SavedPlaylist {
       playlistId: playlistId ?? this.playlistId,
       nome: nome ?? this.nome,
       items: items ?? nextItemsWith(pdfIds: pdfIds, audioIds: audioIds),
+      declaredAudioIds: audioIds == null
+          ? declaredAudioIds
+          : <String>{
+              ...declaredAudioIds,
+              ...audioIds.where((id) => !isAudioFaceItem(id)),
+            },
       createdAt: createdAt ?? this.createdAt,
       salva: salva ?? this.salva,
       savedAt: savedAt ?? this.savedAt,
@@ -227,12 +255,12 @@ class SavedPlaylist {
   ///
   /// `null` em [pdfIds]/[audioIds] significa "não mexe nessa face".
   ///
-  /// A face de um slot é "o que [materialIdKindOf] diz **ou** o que o chamador
-  /// declarou": um id passado em [audioIds] conta como slot de áudio mesmo que
-  /// a extensão não o classifique assim. Sem isso, um áudio com container fora
-  /// de [kAudioMaterialExtensions] seria descartado por [replaceSubset] em vez
-  /// de apenas cair na face errada — perda de dado. [warnIfNotAudio] avisa
-  /// quando isso acontece.
+  /// A face de um slot é "o que [belongsToAudioFace] diz **ou** o que o
+  /// chamador declarou nesta chamada": um id passado em [audioIds] conta como
+  /// slot de áudio mesmo que a extensão não o classifique assim. Sem isso, um
+  /// áudio com container fora de [kAudioMaterialExtensions] seria descartado
+  /// por [replaceSubset] em vez de apenas cair na face errada — perda de dado.
+  /// [warnIfNotAudio] avisa quando isso acontece.
   List<String> nextItemsWith({List<String>? pdfIds, List<String>? audioIds}) {
     var next = items;
     if (pdfIds != null) {
@@ -240,7 +268,7 @@ class SavedPlaylist {
       next = replaceSubset(
         next,
         pdfIds,
-        (id) => isPdfFaceItem(id) || declared.contains(id),
+        (id) => !belongsToAudioFace(id) || declared.contains(id),
       );
     }
     if (audioIds != null) {
@@ -249,7 +277,7 @@ class SavedPlaylist {
       next = replaceSubset(
         next,
         audioIds,
-        (id) => isAudioFaceItem(id) || declared.contains(id),
+        (id) => belongsToAudioFace(id) || declared.contains(id),
       );
     }
     return next;

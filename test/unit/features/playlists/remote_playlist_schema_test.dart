@@ -9,6 +9,9 @@ final chordA = encodePdfId('ColAdultos/001.chord');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 final audioB = encodePdfId('assets/praises/b/002.mp3');
 
+/// Áudio do Worker com container fora de `kAudioMaterialExtensions`.
+final audioMisfiled = encodePdfId('assets/praises/a/001.mid');
+
 Map<String, dynamic> _baseJson() => {
   'id': 'p1',
   'nome': 'Ensaio',
@@ -131,6 +134,24 @@ void main() {
       expect(parsed.audioIds, original.audioIds);
       expect(parsed.schemaVersion, 2);
       expect(parsed.version, 7);
+    });
+
+    test('audioIds do payload vencem a extensão do id (A8)', () {
+      final remote = RemotePlaylist.fromJson({
+        ..._baseJson(),
+        'schemaVersion': 2,
+        'items': [pdfA, audioMisfiled],
+        'pdfIds': [pdfA],
+        'audioIds': [audioMisfiled],
+      });
+
+      expect(remote.audioIds, [audioMisfiled]);
+      expect(remote.pdfIds, [pdfA]);
+
+      // Round-trip: o veredito sobrevive ao toJson/fromJson.
+      final parsed = RemotePlaylist.fromJson(remote.toJson());
+      expect(parsed.audioIds, [audioMisfiled]);
+      expect(parsed.pdfIds, [pdfA]);
     });
   });
 }

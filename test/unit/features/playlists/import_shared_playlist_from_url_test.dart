@@ -19,10 +19,10 @@ void main() {
   late PlaylistRepositoryImpl playlistRepository;
   late ImportSharedPlaylistFromUrl useCase;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('import_playlist_');
-    isar = Isar.open(schemas: [CarouselEntrySchema, PlaylistSchema],
+    isar = Isar.open(
+      schemas: [CarouselEntrySchema, PlaylistSchema],
       directory: tempDir.path,
     );
     carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
@@ -55,10 +55,7 @@ void main() {
   });
 
   test('preserva ordem dos pdfIds', () async {
-    await useCase(
-      sharePdfs: 'z,y,x',
-      shareName: 'Ordem',
-    );
+    await useCase(sharePdfs: 'z,y,x', shareName: 'Ordem');
 
     final all = await playlistRepository.getAll();
     expect(all.single.pdfIds, ['z', 'y', 'x']);

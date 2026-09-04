@@ -38,9 +38,9 @@ class _PlaylistShareSheetBody extends StatelessWidget {
                 child: Text(
                   l10n.playlistShareSheetTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.title,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.title,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               _ShareOptionTile(
@@ -60,10 +60,8 @@ class _PlaylistShareSheetBody extends StatelessWidget {
                 icon: Icons.share_outlined,
                 title: l10n.playlistShareOptionLinkWithLeaflet,
                 subtitle: l10n.playlistShareOptionLinkWithLeafletSubtitle,
-                onTap: () => Navigator.pop(
-                  context,
-                  PlaylistShareOption.linkWithLeaflet,
-                ),
+                onTap: () =>
+                    Navigator.pop(context, PlaylistShareOption.linkWithLeaflet),
               ),
               _ShareOptionTile(
                 icon: Icons.chat_bubble_outline,
@@ -104,15 +102,9 @@ class _ShareOptionTile extends StatelessWidget {
       leading: Icon(icon, color: iconColor ?? AppColors.title),
       title: Text(
         title,
-        style: TextStyle(
-          color: AppColors.title,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: AppColors.title, fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(color: AppColors.placeholder),
-      ),
+      subtitle: Text(subtitle, style: TextStyle(color: AppColors.placeholder)),
       onTap: onTap,
     );
   }

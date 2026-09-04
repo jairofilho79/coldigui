@@ -122,6 +122,8 @@ class SyncPlaylists {
     playlistId: r.id,
     nome: r.nome,
     items: List<String>.from(r.items),
+    // Veredito de áudio do Worker — ver `SavedPlaylist.declaredAudioIds` (A8).
+    audioIds: List<String>.from(r.audioIds),
     createdAt: r.createdAt,
     salva: true,
     savedAt: r.savedAt,
@@ -140,6 +142,7 @@ class SyncPlaylists {
     id: p.playlistId,
     nome: p.nome,
     items: p.items,
+    declaredAudioIds: p.declaredAudioIds,
     salva: true,
     favorita: p.favorita,
     createdAt: p.createdAt,

@@ -17,10 +17,10 @@ void main() {
   late PlaylistRepositoryImpl playlistRepo;
   late EnsurePlaylistForLouvor useCase;
 
-
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('ensure_pl_');
-    isar = Isar.open(schemas: [PlaylistSchema, CarouselEntrySchema],
+    isar = Isar.open(
+      schemas: [PlaylistSchema, CarouselEntrySchema],
       directory: tempDir.path,
     );
     playlistRepo = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
@@ -46,10 +46,7 @@ void main() {
       salva: false,
     );
 
-    final result = await useCase(
-      pdfId: 'pdf-b',
-      activePlaylistId: id,
-    );
+    final result = await useCase(pdfId: 'pdf-b', activePlaylistId: id);
 
     expect(result.createdNew, isFalse);
     expect(result.playlistId, 'active');
@@ -63,10 +60,7 @@ void main() {
       salva: false,
     );
 
-    final result = await useCase(
-      pdfId: 'pdf-b',
-      activePlaylistId: 'active',
-    );
+    final result = await useCase(pdfId: 'pdf-b', activePlaylistId: 'active');
 
     expect(result.createdNew, isTrue);
     final created = await playlistRepo.getById(result.playlistId);
