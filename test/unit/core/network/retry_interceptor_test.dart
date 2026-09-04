@@ -182,6 +182,32 @@ void main() {
     expect(adapter.calls, 1);
   });
 
+  test('opt-out via extra desliga o retry nesta request', () async {
+    final adapter = _ScriptedAdapter([DioExceptionType.connectionError]);
+
+    await expectLater(
+      dioWith(adapter).get<Object?>(
+        '/pdf',
+        options: Options(extra: const {RetryInterceptor.disableKey: true}),
+      ),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(adapter.calls, 1, reason: 'quem já retenta sozinho não pode dobrar');
+    expect(waited, isEmpty);
+  });
+
+  test('extra com opt-out false continua retentando', () async {
+    final adapter = _ScriptedAdapter([DioExceptionType.connectionError, 200]);
+
+    await dioWith(adapter).get<Object?>(
+      '/pdf',
+      options: Options(extra: const {RetryInterceptor.disableKey: false}),
+    );
+
+    expect(adapter.calls, 2);
+  });
+
   test('maxRetries: 0 desliga o retry', () async {
     final adapter = _ScriptedAdapter([DioExceptionType.connectionError]);
 

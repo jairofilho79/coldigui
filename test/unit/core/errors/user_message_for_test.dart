@@ -2,6 +2,8 @@ import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/errors/user_message_for.dart';
 import 'package:coldigui/features/auth/data/auth_remote_datasource.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_open_failure.dart';
+import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
@@ -109,12 +111,6 @@ void main() {
   });
 
   group('exceções de PDF já conhecidas', () {
-    test('PDF offline indisponível mantém a mensagem própria', () {
-      const error = PdfOfflineUnavailableException(pdfId: 'p1');
-
-      expect(userMessageFor(pt, error), error.message);
-    });
-
     test('PDF removido do dispositivo mantém a mensagem própria', () {
       const error = PdfExternallyDeletedException(pdfId: 'p1');
 
@@ -125,6 +121,82 @@ void main() {
       const error = PdfFetchFailedException('Falha ao baixar o PDF');
 
       expect(userMessageFor(pt, error), 'Falha ao baixar o PDF');
+    });
+  });
+
+  group('causa embrulhada (Important 2)', () {
+    test('PdfFetchFailedException com causa de rede vira erro de conexão', () {
+      const error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: null,
+      );
+      final withCause = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: _dio(DioExceptionType.connectionError),
+      );
+
+      expect(userMessageFor(pt, withCause), pt.errorNoConnection);
+      // Sem causa continua caindo na mensagem própria.
+      expect(userMessageFor(pt, error), 'Falha ao baixar o PDF');
+    });
+
+    test('causa de timeout vira mensagem de timeout', () {
+      final error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: _dio(DioExceptionType.receiveTimeout),
+      );
+
+      expect(userMessageFor(pt, error), pt.errorTimeout);
+    });
+
+    test('causa 5xx vira mensagem de servidor', () {
+      final error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: _dio(DioExceptionType.badResponse, statusCode: 503),
+      );
+
+      expect(userMessageFor(pt, error), pt.errorServer);
+    });
+
+    test('causa de armazenamento vira aviso de armazenamento', () {
+      final error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: const StorageUnavailableException('offline.put'),
+      );
+
+      expect(userMessageFor(pt, error), pt.offlineStorageUnavailable);
+    });
+
+    test('PdfLocalOpenFailure desembrulha a causa de rede', () {
+      final error = PdfLocalOpenFailure(
+        cause: _dio(DioExceptionType.connectionError),
+        hasValidMagicBytes: null,
+      );
+
+      expect(userMessageFor(pt, error), pt.errorNoConnection);
+    });
+  });
+
+  group('família PDF prefere chave l10n (Important 2)', () {
+    test('PDF offline indisponível usa a chave, não o literal PT', () {
+      const error = PdfOfflineUnavailableException(pdfId: 'p1');
+
+      expect(userMessageFor(pt, error), pt.pdfOfflineUnavailableMessage);
+      expect(userMessageFor(en, error), en.pdfOfflineUnavailableMessage);
+      // Em inglês não pode sair a mensagem PT embutida na exceção.
+      expect(userMessageFor(en, error), isNot(error.message));
+    });
+
+    test('leitura local falha usa a chave própria', () {
+      const error = PdfLocalReadFailedException(pdfId: 'p1');
+
+      expect(userMessageFor(en, error), en.pdfLocalReadFailedMessage);
+    });
+
+    test('sem chave l10n cai na mensagem da própria exceção', () {
+      const error = PdfExternallyDeletedException(pdfId: 'p1');
+
+      expect(userMessageFor(pt, error), error.message);
     });
   });
 

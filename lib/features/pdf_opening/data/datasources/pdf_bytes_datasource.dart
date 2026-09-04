@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/constants/offline_config.dart';
+import '../../../../core/network/retry_interceptor.dart';
 import '../../../pdf_reader/data/utils/pdf_source_resolver.dart';
 import 'pdf_bytes_local_reader_stub.dart'
     if (dart.library.io) 'pdf_bytes_local_reader_native.dart'
@@ -49,6 +50,8 @@ class PdfBytesDatasource {
         responseType: ResponseType.bytes,
         receiveTimeout: OfflineConfig.pdfDownloadReceiveTimeout,
         sendTimeout: OfflineConfig.pdfDownloadSendTimeout,
+        // `_fetchBytesWithRetry` já retenta 3× com backoff próprio.
+        extra: const {RetryInterceptor.disableKey: true},
       ),
       onReceiveProgress: onReceiveProgress,
       cancelToken: cancelToken,

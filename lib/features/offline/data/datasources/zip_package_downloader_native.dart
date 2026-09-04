@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/constants/app_config.dart';
 import '../../../../core/constants/offline_config.dart';
+import '../../../../core/network/retry_interceptor.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/utils/download_retry.dart';
 import '../../domain/ports/pdf_storage_port.dart';
@@ -181,6 +182,8 @@ class ZipPackageDownloader {
       receiveTimeout: OfflineConfig.zipDownloadReceiveTimeout,
       sendTimeout: OfflineConfig.zipDownloadSendTimeout,
       headers: headers,
+      // `download` já retenta 3× com backoff próprio.
+      extra: const {RetryInterceptor.disableKey: true},
     );
   }
 
