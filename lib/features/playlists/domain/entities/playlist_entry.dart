@@ -28,8 +28,14 @@ final class PlaylistEntry {
   /// Aceita o objeto v2 (`{'id': …, 'kind': …}`) e a `String` solta do rascunho
   /// v2 da fatia 1 (que só existiu em Isar local). Para a `String`,
   /// [declaredAudio] é o conjunto `audioIds` do mesmo payload — o veredito de
-  /// áudio de quem gravou. `kind` desconhecido vira [MaterialKind.unknown];
-  /// `kind` válido passa por [resolveWireKind].
+  /// áudio de quem gravou.
+  ///
+  /// **O `kind` do wire não é preservado literalmente**: um nome fora do enum
+  /// (`'video'`) vira [MaterialKind.unknown], e todo `kind` — inclusive o
+  /// `unknown` recém-criado — passa por [resolveWireKind], que refina
+  /// `pdf`/`unknown` pela extensão do id. Ou seja, `{'kind': 'video'}` num id
+  /// `.chord` devolve [MaterialKind.chord], **não** `unknown`. Só
+  /// [MaterialKind.audio] atravessa intocado.
   factory PlaylistEntry.fromJson(
     Object raw, {
     Set<String> declaredAudio = const {},
@@ -90,6 +96,13 @@ final class PlaylistEntry {
 ///   (mais específico), a extensão ganha. Um Worker que derive `items` das duas
 ///   listas v1 marca toda cifra como `pdf`; esta regra a recupera.
 /// - Os demais (`chord`, `gesture`, `youtube`) ficam como vieram.
+///
+/// **`unknown` não é preservado literalmente.** Ele é tratado como "o wire não
+/// sabe", não como "o material é de tipo desconhecido": num id `.chord` ou
+/// `.gest` a extensão o substitui. É por aí que um `kind` inválido do wire
+/// (`'video'`, que [materialKindFromName] já reduziu a `unknown`) acaba
+/// devolvido como `chord`/`gesture` em vez de `unknown` — quem precisar do
+/// valor cru do wire tem que lê-lo antes de chamar esta função.
 MaterialKind resolveWireKind(MaterialKind wireKind, String id) {
   if (wireKind != MaterialKind.pdf && wireKind != MaterialKind.unknown) {
     return wireKind;

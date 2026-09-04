@@ -242,6 +242,74 @@ void main() {
       expect(after.pdfIds, [pdfA, pdfB]);
     });
 
+    test('id de áudio repassado em pdfIds não duplica na ordem única', () {
+      // O carousel devolve a lista inteira que ele conhece; se um id de áudio
+      // escapar para dentro dela, o slot de áudio não pode virar dois.
+      final before = _legacy(items: [pdfA, audioA, pdfB]);
+
+      final after = before.copyWith(pdfIds: [pdfA, audioA, pdfB]);
+
+      expect(after.items, [pdfA, audioA, pdfB]);
+      expect(after.audioIds, [audioA]);
+      expect(after.pdfIds, [pdfA, pdfB]);
+    });
+
+    test('áudio declarado repassado em pdfIds não muda de face (A8)', () {
+      final before = _legacy(
+        items: [pdfA, audioMisfiled],
+        audioIds: [audioMisfiled],
+      );
+
+      final after = before.copyWith(pdfIds: [pdfA, audioMisfiled]);
+
+      expect(after.items, [pdfA, audioMisfiled]);
+      expect(after.audioIds, [
+        audioMisfiled,
+      ], reason: 'pdfIds: nunca rebaixa uma entrada que já é áudio');
+      expect(after.pdfIds, [pdfA]);
+    });
+
+    test('kind declarado no wire sobrevive ao sync da face de partituras', () {
+      // `youtube` não decodifica como path: reclassificar pela extensão o
+      // rebaixaria para `unknown` a cada sync do carousel.
+      final youtubeId = 'yt:dQw4w9WgXcQ';
+      final before = SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Lista',
+        entries: [
+          PlaylistEntry.classified(pdfA),
+          const PlaylistEntry(id: 'yt:dQw4w9WgXcQ', kind: MaterialKind.youtube),
+        ],
+        createdAt: DateTime.utc(2026, 9, 1),
+      );
+
+      final after = before.copyWith(pdfIds: [pdfA, youtubeId]);
+
+      expect(after.items, [pdfA, youtubeId]);
+      expect(_kinds(after), [MaterialKind.pdf, MaterialKind.youtube]);
+    });
+
+    test('cifra existente não é reclassificada por pdfIds', () {
+      final before = _legacy(items: [chordA, pdfA]);
+
+      final after = before.copyWith(pdfIds: [pdfA, chordA]);
+
+      expect(after.items, [pdfA, chordA]);
+      expect(_kinds(after), [MaterialKind.pdf, MaterialKind.chord]);
+    });
+
+    test('id novo em pdfIds é classificado pela extensão', () {
+      final before = _legacy(items: [pdfA]);
+
+      final after = before.copyWith(pdfIds: [pdfA, chordA, gestureA]);
+
+      expect(_kinds(after), [
+        MaterialKind.pdf,
+        MaterialKind.chord,
+        MaterialKind.gesture,
+      ]);
+    });
+
     test('id .aac reordenado na face de áudio não migra para partituras', () {
       final before = _legacy(
         items: [pdfA, audioAac, audioA],

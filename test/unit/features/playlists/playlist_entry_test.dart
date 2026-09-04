@@ -104,6 +104,14 @@ void main() {
       expect(entry.kind, MaterialKind.unknown);
     });
 
+    test('kind desconhecido ainda é refinado pela extensão', () {
+      // `'video'` reduz a `unknown`, e `unknown` num id `.chord` vira `chord`:
+      // o valor cru do wire **não** é preservado (ver `resolveWireKind`).
+      final entry = PlaylistEntry.fromJson({'id': chordA, 'kind': 'video'});
+
+      expect(entry.kind, MaterialKind.chord);
+    });
+
     test('objeto sem kind cai na classificação por extensão', () {
       final entry = PlaylistEntry.fromJson({'id': chordA});
 

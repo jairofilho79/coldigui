@@ -259,11 +259,21 @@ class SavedPlaylist {
   ///
   /// `null` em [pdfIds]/[audioIds] significa "não mexe nessa face".
   ///
-  /// Antes de trocar os slots, os ids que o chamador listou **adotam** a face
-  /// declarada: passar um id em `audioIds:` é declará-lo áudio (A8), mesmo que
-  /// a extensão diga outra coisa e mesmo que ele já estivesse na lista com
-  /// outro `kind`. Sem isso a entrada antiga sobreviveria fora do subconjunto e
-  /// o id apareceria duas vezes na ordem única.
+  /// As duas faces **não** são simétricas, e é de propósito:
+  ///
+  /// - `audioIds:` **declara** áudio (A8). Um id listado ali vira
+  ///   [MaterialKind.audio] mesmo que a extensão diga outra coisa e mesmo que
+  ///   já estivesse na lista com outro `kind` — é o veredito de quem gravou.
+  ///   A entrada antiga é retipada no lugar ([_retaggedAsAudio]), então o id
+  ///   muda de face sem aparecer duas vezes na ordem única.
+  /// - `pdfIds:` **não declara nada**. É a lista que o carousel devolve, e o
+  ///   carousel não sabe o tipo de nada: reclassificar por ela rebaixaria um
+  ///   `youtube`/`chord` declarado para o que a extensão adivinhar, e
+  ///   rebaixaria um áudio declarado para a face de partituras. Por isso
+  ///   [_pdfFaceReplacement] preserva o `kind` que a entrada já tem, só
+  ///   classifica pela extensão os ids que ainda não estão na lista, e
+  ///   **ignora** os ids que já são áudio (a entrada de áudio fica onde está,
+  ///   fora do subconjunto que [replaceSubset] substitui).
   List<PlaylistEntry> nextEntriesWith({
     List<String>? pdfIds,
     List<String>? audioIds,
@@ -271,14 +281,14 @@ class SavedPlaylist {
     var next = entries;
     if (pdfIds != null) {
       next = replaceSubset(
-        _retagged(next, pdfIds.toSet(), PlaylistEntry.classified),
-        pdfIds.map(PlaylistEntry.classified).toList(growable: false),
+        next,
+        _pdfFaceReplacement(next, pdfIds),
         (e) => !e.isAudio,
       );
     }
     if (audioIds != null) {
       next = replaceSubset(
-        _retagged(next, audioIds.toSet(), PlaylistEntry.audio),
+        _retaggedAsAudio(next, audioIds.toSet()),
         audioIds.map(PlaylistEntry.audio).toList(growable: false),
         (e) => e.isAudio,
       );
@@ -286,15 +296,38 @@ class SavedPlaylist {
     return next;
   }
 
-  static List<PlaylistEntry> _retagged(
+  /// Entradas que vão ocupar os slots da face de partituras.
+  ///
+  /// Id já presente e não-áudio → a **própria entrada** (preserva o `kind`);
+  /// id já presente e áudio → **descartado** (nunca rebaixa uma face de áudio);
+  /// id novo → [PlaylistEntry.classified].
+  static List<PlaylistEntry> _pdfFaceReplacement(
+    List<PlaylistEntry> current,
+    List<String> pdfIds,
+  ) {
+    final byId = <String, PlaylistEntry>{
+      for (final entry in current) entry.id: entry,
+    };
+    final next = <PlaylistEntry>[];
+    for (final id in pdfIds) {
+      final existing = byId[id];
+      if (existing == null) {
+        next.add(PlaylistEntry.classified(id));
+      } else if (!existing.isAudio) {
+        next.add(existing);
+      }
+    }
+    return next;
+  }
+
+  static List<PlaylistEntry> _retaggedAsAudio(
     List<PlaylistEntry> current,
     Set<String> declared,
-    PlaylistEntry Function(String id) retag,
   ) {
     if (declared.isEmpty) return current;
     return <PlaylistEntry>[
       for (final entry in current)
-        declared.contains(entry.id) ? retag(entry.id) : entry,
+        declared.contains(entry.id) ? PlaylistEntry.audio(entry.id) : entry,
     ];
   }
 }
