@@ -28,9 +28,9 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
 ///
 /// YouTube não vive neste espaço (o id vem do Worker, não é um path): ele não
 /// decodifica e portanto classifica [MaterialKind.unknown] — ou seja, **um id
-/// de YouTube aparece em `pdfIds`**, junto com os ids legados. Só
-/// [MaterialKind.gesture] fica invisível às duas faces (e hoje nenhum caminho
-/// do app produz id de gesto).
+/// de YouTube aparece em `pdfIds`**, junto com os ids legados e com
+/// [MaterialKind.gesture] (gesto abre no leitor). Nenhuma família fica
+/// invisível às duas faces da playlist (A7).
 ///
 /// Retorna [MaterialKind.unknown] para id inválido — nunca lança.
 MaterialKind materialIdKindOf(String id) {

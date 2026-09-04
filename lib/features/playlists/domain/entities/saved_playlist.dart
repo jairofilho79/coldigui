@@ -54,11 +54,10 @@ class SavedPlaylist {
 
   /// Projeção PDF/cifra de [items], na ordem em que aparecem.
   ///
-  /// Inclui [MaterialKind.unknown], que é o balde de tudo que não decodifica
-  /// como path: ids legados **e ids de YouTube** (que vêm do Worker e não são
-  /// path nenhum). Eles ficam na face de partituras em vez de sumir da lista.
-  /// A única família invisível às duas faces é [MaterialKind.gesture] — e hoje
-  /// nenhum caminho do app coloca id de gesto numa playlist.
+  /// Inclui [MaterialKind.gesture] (gesto é material de leitura, abre no leitor
+  /// como PDF e cifra) e [MaterialKind.unknown], que é o balde de tudo que não
+  /// decodifica como path: ids legados **e ids de YouTube** (que vêm do Worker
+  /// e não são path nenhum). Assim nenhuma família some das duas faces (A7).
   late final List<String> pdfIds = items
       .where((id) => isPdfFaceItem(id))
       .toList(growable: false);
@@ -69,10 +68,15 @@ class SavedPlaylist {
       .toList(growable: false);
 
   /// `true` se [id] pertence à face de partituras/cifras.
+  ///
+  /// Tudo que não é áudio: o que sobra da face de áudio abre no leitor, e um
+  /// id que não entra em nenhuma das duas faces vira linha fantasma — visível
+  /// em `items`, invisível nas duas listas da UI (A7).
   static bool isPdfFaceItem(String id) {
     final kind = materialIdKindOf(id);
     return kind == MaterialKind.pdf ||
         kind == MaterialKind.chord ||
+        kind == MaterialKind.gesture ||
         kind == MaterialKind.unknown;
   }
 

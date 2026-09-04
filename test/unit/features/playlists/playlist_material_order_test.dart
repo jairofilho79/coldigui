@@ -18,6 +18,7 @@ final pdfC = encodePdfId('ColAdultos/003.pdf');
 final chordA = encodePdfId('ColAdultos/001.chord');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 final audioB = encodePdfId('assets/praises/b/002.mp3');
+final gestureA = encodePdfId('ColAdultos/001.gest');
 
 SavedPlaylist _playlist({
   List<String>? items,
@@ -48,6 +49,17 @@ void main() {
 
       expect(playlist.pdfIds, [chordA]);
       expect(playlist.audioIds, isEmpty);
+    });
+
+    test('gesto entra em pdfIds e não some das duas faces (A7)', () {
+      final playlist = _playlist(items: [pdfA, gestureA, audioA]);
+
+      expect(
+        playlist.pdfIds,
+        [pdfA, gestureA],
+        reason: 'gesto é material de leitura — abre no leitor como PDF/cifra',
+      );
+      expect(playlist.audioIds, [audioA]);
     });
 
     test('id legado indecifrável fica com os PDFs', () {
