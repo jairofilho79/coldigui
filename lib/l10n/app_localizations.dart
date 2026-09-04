@@ -494,6 +494,12 @@ abstract class AppLocalizations {
   /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
   String get offlineStorageUnavailable;
 
+  /// No description provided for @offlineMaintenanceBusy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outra operação offline está em andamento. Tente de novo em instantes.'**
+  String get offlineMaintenanceBusy;
+
   /// No description provided for @offlinePhaseFetching.
   ///
   /// In pt, this message translates to:

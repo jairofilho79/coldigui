@@ -6,6 +6,8 @@ import 'package:coldigui/core/database/collections/louvor_cache.dart';
 
 import 'offline_test_helpers.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/core/utils/pdf_path_normalizer.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
@@ -524,5 +526,51 @@ void main() {
         expect(result.$2, isFalse);
       },
     );
+  });
+
+  group('modo degradado (Isar indisponível)', () {
+    late OfflinePdfRepositoryImpl degraded;
+
+    setUp(() {
+      degraded = OfflinePdfRepositoryImpl(
+        store: pdfStoragePortFor(store),
+        local: const OfflinePdfLocalDatasource.unavailable(),
+      );
+    });
+
+    test('upsert grava o PDF e devolve a entrada mesmo sem índice', () async {
+      final bytes = _validPdfBytes();
+
+      final entry = await degraded.upsert(
+        pdfId: pdfId,
+        bytes: bytes,
+        category: category,
+      );
+
+      expect(entry.pdfId, pdfId);
+      expect(entry.fileSize, bytes.length);
+      expect(await File(entry.absolutePath).exists(), isTrue);
+      expect(await File(entry.absolutePath).readAsBytes(), bytes);
+    });
+
+    test('upsertBatch continua propagando a falha de índice', () async {
+      expect(
+        () => degraded.upsertBatch([
+          OfflinePdfBatchItem(
+            pdfId: pdfId,
+            bytes: _validPdfBytes(),
+            category: category,
+          ),
+        ]),
+        throwsA(isA<StorageUnavailableException>()),
+      );
+    });
+
+    test('clearAll continua propagando a falha de índice', () {
+      expect(
+        () => degraded.clearAll(),
+        throwsA(isA<StorageUnavailableException>()),
+      );
+    });
   });
 }

@@ -126,6 +126,15 @@ class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
   }
 }
 
+/// Wakelock que falha ao ligar — cobre o vazamento do lock de manutenção.
+class _ThrowingWakelock implements BulkDownloadWakelock {
+  @override
+  Future<void> enable() async => throw StateError('wakelock indisponível');
+
+  @override
+  Future<void> disable() async {}
+}
+
 class _FakeWakelock implements BulkDownloadWakelock {
   var enableCount = 0;
   var disableCount = 0;
@@ -621,6 +630,64 @@ void main() {
     expect(useCase.callCount, 1);
     expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
+
+  test('start libera o lock de manutenção se o wakelock falhar', () async {
+    final useCase = _CountingDownloadOfflinePackages(
+      store: pdfStoragePortFor(store),
+      prefs: prefs,
+      checkpointStore: checkpointStore,
+    );
+    final container = createContainer(
+      Object(),
+      wakelock: _ThrowingWakelock(),
+      useCase: useCase,
+    );
+    await pumpMicrotasks();
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    expect(useCase.callCount, 0);
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.failed,
+    );
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
+  });
+
+  test(
+    'resumeFromCheckpoint libera o lock de manutenção se o wakelock falhar',
+    () async {
+      await checkpointStore.save(
+        OfflineBulkCheckpoint(
+          categories: const ['Partitura'],
+          categoryIndex: 0,
+          partIndex: 0,
+          extractedPdfCount: 0,
+          startedAt: DateTime.now(),
+        ),
+      );
+      final useCase = _CountingDownloadOfflinePackages(
+        store: pdfStoragePortFor(store),
+        prefs: prefs,
+        checkpointStore: checkpointStore,
+      );
+      final container = createContainer(
+        Object(),
+        wakelock: _ThrowingWakelock(),
+        useCase: useCase,
+      );
+      await pumpMicrotasks();
+
+      await container
+          .read(offlineBulkDownloadProvider.notifier)
+          .resumeFromCheckpoint();
+
+      expect(useCase.callCount, 0);
+      expect(container.read(offlineMaintenanceLockProvider), isNull);
+    },
+  );
 
   test('bulk libera o lock de manutenção ao falhar', () async {
     final container = createContainer(

@@ -173,18 +173,20 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     if (!_ensureStorageAvailable()) return;
     if (!_acquireMaintenanceLock()) return;
 
-    _lastStartedCategories = List<String>.from(categories);
-    _cancelToken = CancelToken();
-    state = state.copyWith(
-      status: OfflineBulkDownloadStatus.running,
-      clearError: true,
-      clearCheckpoint: true,
-      clearUnmatchedZipEntries: true,
-      failedCount: 0,
-    );
-    await _acquireWakelock();
-
+    // Tudo o que pode lançar fica dentro do try: o `finally` é a única
+    // garantia de que o lock de manutenção não vaza pela sessão inteira.
     try {
+      _lastStartedCategories = List<String>.from(categories);
+      _cancelToken = CancelToken();
+      state = state.copyWith(
+        status: OfflineBulkDownloadStatus.running,
+        clearError: true,
+        clearCheckpoint: true,
+        clearUnmatchedZipEntries: true,
+        failedCount: 0,
+      );
+      await _acquireWakelock();
+
       final result = await ref
           .read(downloadOfflinePackagesProvider)
           .call(
@@ -226,16 +228,16 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     if (checkpoint == null) return;
     if (!_acquireMaintenanceLock()) return;
 
-    _lastStartedCategories = List<String>.from(checkpoint.categories);
-    _cancelToken = CancelToken();
-    state = state.copyWith(
-      status: OfflineBulkDownloadStatus.running,
-      clearError: true,
-      failedCount: 0,
-    );
-    await _acquireWakelock();
-
     try {
+      _lastStartedCategories = List<String>.from(checkpoint.categories);
+      _cancelToken = CancelToken();
+      state = state.copyWith(
+        status: OfflineBulkDownloadStatus.running,
+        clearError: true,
+        failedCount: 0,
+      );
+      await _acquireWakelock();
+
       final result = await ref
           .read(downloadOfflinePackagesProvider)
           .call(

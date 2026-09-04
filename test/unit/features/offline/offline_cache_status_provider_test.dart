@@ -7,6 +7,7 @@ import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasou
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
+import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
@@ -206,6 +207,48 @@ void main() {
     expect(status.validCount, 1);
     expect(status.removedCount, 2);
   });
+
+  test(
+    'refreshAll com reconcile pulado não propaga removedCount velho',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          ..._offlineCacheStatusTestOverrides(
+            stats: const OfflineStats(byCategory: {'Partitura': 1}),
+          ),
+          offlineReconcileProvider.overrideWith(_SkippedReconcileNotifier.new),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(offlineCacheStatusProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      await container.read(offlineCacheStatusProvider.notifier).refreshAll();
+
+      final status = container.read(offlineCacheStatusProvider);
+      expect(status.validCount, 1);
+      expect(status.removedCount, 0);
+      expect(status.showRemovedWarning, isFalse);
+    },
+  );
+}
+
+/// Reconcile que devolve um `lastResult` antigo e sinaliza que foi pulado —
+/// o `removedFromIndex` dele não vale para esta rodada.
+class _SkippedReconcileNotifier extends OfflineReconcileNotifier {
+  @override
+  OfflineReconcileState build() => const OfflineReconcileState(
+    lastResult: ReconcileResult(removedFromIndex: 5, orphanFiles: 0),
+  );
+
+  @override
+  Future<void> requestReconcile({
+    OfflineMaterialPackage? materialPackage,
+    String? materialCategory,
+  }) async {
+    state = state.copyWith(lastSkipReason: ReconcileSkipReason.locked);
+  }
 }
 
 class _TestReconcileNotifier extends OfflineReconcileNotifier {

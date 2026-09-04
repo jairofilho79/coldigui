@@ -1,7 +1,9 @@
 import 'dart:math' show min;
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/collections/offline_pdf_index.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/entities/offline_pdf_entry.dart';
@@ -109,7 +111,17 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
       ..lastAccessedAt = now
       ..isPersistent = persistent;
 
-    await _local.put(index);
+    // O arquivo já está no disco: em modo degradado o leitor precisa poder
+    // abri-lo, mesmo sem entrada no índice (fix round 1 / spec C.1). Quem
+    // realmente depende do índice (bulk, faltantes, limpar) usa as outras
+    // operações, que continuam propagando a exceção.
+    try {
+      await _local.put(index);
+    } on StorageUnavailableException {
+      debugPrint(
+        '[offline] índice indisponível; PDF gravado sem índice: $pdfId',
+      );
+    }
 
     return OfflinePdfEntry(
       pdfId: pdfId,

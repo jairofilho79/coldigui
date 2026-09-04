@@ -237,6 +237,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
 
   @override
+  String get offlineMaintenanceBusy =>
+      'Outra operação offline está em andamento. Tente de novo em instantes.';
+
+  @override
   String get offlinePhaseFetching => 'baixando';
 
   @override

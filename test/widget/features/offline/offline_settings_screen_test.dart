@@ -1,12 +1,14 @@
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_category_selection_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_missing_louvores_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -22,6 +24,12 @@ class _FixedCacheStatusNotifier extends OfflineCacheStatusNotifier {
 
   @override
   OfflineCacheStatus build() => fixed;
+}
+
+/// Lock de manutenção já tomado por outro dono (spec C.1).
+class _BusyMaintenanceLock extends OfflineMaintenanceLock {
+  @override
+  OfflineMaintenanceOwner? build() => OfflineMaintenanceOwner.bulk;
 }
 
 class _IdleReconcileNotifier extends OfflineReconcileNotifier {
@@ -312,6 +320,39 @@ void main() {
     final clearButton = find.widgetWithText(TextButton, 'Limpar cache offline');
     expect(clearButton, findsOneWidget);
     expect(tester.widget<TextButton>(clearButton).onPressed, isNotNull);
+  });
+
+  testWidgets('limpar com manutenção ocupada avisa em vez de agir', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {'Partitura': 3}),
+        ),
+        selectionState: const OfflineCategorySelectionState(
+          selected: {CatalogMaterials.partitura},
+          bulkDownloaded: {CatalogMaterials.partitura},
+        ),
+        extraOverrides: [
+          isarAvailableProvider.overrideWithValue(true),
+          offlineMaintenanceLockProvider.overrideWith(_BusyMaintenanceLock.new),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.widgetWithText(TextButton, 'Limpar cache offline'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Limpar'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Outra operação offline está em andamento. Tente de novo em instantes.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows zip byte progress during native fetching phase', (

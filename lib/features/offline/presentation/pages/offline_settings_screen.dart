@@ -134,7 +134,9 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
 
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);
     if (!lock.tryAcquire(OfflineMaintenanceOwner.clear)) {
-      debugPrint('[offline] limpar adiado: manutenção offline em andamento');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.offlineMaintenanceBusy)));
       return;
     }
 

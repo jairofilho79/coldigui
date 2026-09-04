@@ -76,8 +76,7 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
     ref.listen(offlineReconcileProvider, (previous, next) {
       final wasRunning = previous?.isRunning ?? false;
       if (wasRunning && !next.isRunning) {
-        final removed = next.lastResult?.removedFromIndex ?? 0;
-        unawaited(refresh(removedCount: removed));
+        unawaited(refresh(removedCount: _removedFromLastReconcile(next)));
       }
     });
 
@@ -111,8 +110,9 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
 
     try {
       await ref.read(offlineReconcileProvider.notifier).requestReconcile();
-      final removed =
-          ref.read(offlineReconcileProvider).lastResult?.removedFromIndex ?? 0;
+      final removed = _removedFromLastReconcile(
+        ref.read(offlineReconcileProvider),
+      );
       final stats = await ref.read(getOfflineStatsByCategoryProvider).call();
       final freeDiskBytes = await estimateFreeStorageBytes();
       state = OfflineCacheStatus(
@@ -125,6 +125,14 @@ class OfflineCacheStatusNotifier extends Notifier<OfflineCacheStatus> {
         state = state.copyWith(isRefreshing: false);
       }
     }
+  }
+
+  /// `removedFromIndex` só vale quando o reconcile de fato rodou: se foi
+  /// pulado (lock ocupado, índice indisponível/vazio), o `lastResult` é de
+  /// uma execução anterior e não descreve esta rodada (fix round 1).
+  static int _removedFromLastReconcile(OfflineReconcileState reconcile) {
+    if (reconcile.lastSkipReason != null) return 0;
+    return reconcile.lastResult?.removedFromIndex ?? 0;
   }
 
   /// Oculta o banner de PDFs removidos sem alterar o índice Isar.

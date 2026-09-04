@@ -232,6 +232,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Local storage is unavailable. Reload the page or free up space.';
 
   @override
+  String get offlineMaintenanceBusy =>
+      'Another offline operation is running. Try again shortly.';
+
+  @override
   String get offlinePhaseFetching => 'downloading';
 
   @override
