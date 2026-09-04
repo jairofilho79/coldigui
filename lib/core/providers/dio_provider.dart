@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/domain/entities/auth_user.dart';
 import '../../features/auth/presentation/providers/auth_state_provider.dart';
 import '../constants/app_config.dart';
 import '../network/auth_refresh_interceptor.dart';
@@ -31,6 +32,13 @@ final dioProvider = Provider<Dio>((ref) {
       // mudança de sessão, e a chamada só acontece dentro de um 401.
       refreshIdToken: () =>
           ref.read(authStateProvider.notifier).refreshIdToken(),
+      // `exp` do id_token guardado: renovar às vésperas do vencimento evita o
+      // 401 (e a request repetida) na maioria das vezes. Token sem sessão ou
+      // sem `exp` legível devolve `false` — aí só o 401 renova.
+      tokenExpiresSoon: () {
+        final user = ref.read(authStateProvider).asData?.value;
+        return user != null && user.expiresSoon;
+      },
       isSessionExpired: () => ref.read(sessionExpiredProvider),
       markSessionExpired: () =>
           ref.read(sessionExpiredProvider.notifier).markExpired(),

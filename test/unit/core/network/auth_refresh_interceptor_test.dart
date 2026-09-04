@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/network/auth_refresh_interceptor.dart';
@@ -41,6 +42,7 @@ void main() {
   Dio dioWith(
     _ScriptedAdapter adapter, {
     required Future<String?> Function() refreshIdToken,
+    bool Function()? tokenExpiresSoon,
   }) {
     final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.httpClientAdapter = adapter;
@@ -48,6 +50,7 @@ void main() {
       AuthRefreshInterceptor(
         dio: dio,
         refreshIdToken: refreshIdToken,
+        tokenExpiresSoon: tokenExpiresSoon ?? () => false,
         isSessionExpired: () => sessionExpired,
         markSessionExpired: () {
           sessionExpired = true;
@@ -265,6 +268,146 @@ void main() {
       expect(refreshes, 1, reason: 'não pode tentar renovar de novo');
     },
   );
+
+  group('refresh preventivo (A5)', () {
+    test('token expirando é renovado antes de a request sair', () async {
+      var refreshes = 0;
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => true,
+        refreshIdToken: () async {
+          refreshes++;
+          return 'token-novo';
+        },
+      );
+
+      final response = await dio.get<Object?>(
+        '/playlists',
+        options: auth('token-velho'),
+      );
+
+      expect(response.statusCode, 200);
+      expect(refreshes, 1);
+      expect(adapter.authHeaders, ['Bearer token-novo']);
+    });
+
+    test('token fresco não dispara refresh preventivo', () async {
+      var refreshes = 0;
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => false,
+        refreshIdToken: () async {
+          refreshes++;
+          return 'token-novo';
+        },
+      );
+
+      await dio.get<Object?>('/playlists', options: auth('token-velho'));
+
+      expect(refreshes, 0);
+      expect(adapter.authHeaders, ['Bearer token-velho']);
+    });
+
+    test(
+      'refresh preventivo falhando manda a request com o token antigo',
+      () async {
+        final adapter = _ScriptedAdapter([200]);
+        final dio = dioWith(
+          adapter,
+          tokenExpiresSoon: () => true,
+          refreshIdToken: () async => throw StateError('sdk bloqueado'),
+        );
+
+        final response = await dio.get<Object?>(
+          '/playlists',
+          options: auth('token-velho'),
+        );
+
+        // O 401 continua sendo o caminho de recuperação — o preventivo é um
+        // atalho, nunca um bloqueio.
+        expect(response.statusCode, 200);
+        expect(adapter.authHeaders, ['Bearer token-velho']);
+      },
+    );
+
+    test('refresh preventivo devolvendo null mantém o token antigo', () async {
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => true,
+        refreshIdToken: () async => null,
+      );
+
+      await dio.get<Object?>('/playlists', options: auth('token-velho'));
+
+      expect(adapter.authHeaders, ['Bearer token-velho']);
+    });
+
+    test('request sem Authorization não dispara refresh preventivo', () async {
+      var refreshes = 0;
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => true,
+        refreshIdToken: () async {
+          refreshes++;
+          return 'token-novo';
+        },
+      );
+
+      await dio.get<Object?>('/publico');
+
+      expect(refreshes, 0);
+    });
+
+    test('sessão expirada não dispara refresh preventivo', () async {
+      sessionExpired = true;
+      var refreshes = 0;
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => true,
+        refreshIdToken: () async {
+          refreshes++;
+          return 'token-novo';
+        },
+      );
+
+      await dio.get<Object?>('/playlists', options: auth('token-velho'));
+
+      expect(refreshes, 0);
+      expect(adapter.authHeaders, ['Bearer token-velho']);
+    });
+
+    test('requests simultâneas compartilham um único refresh', () async {
+      var refreshes = 0;
+      final gate = Completer<String?>();
+      final adapter = _ScriptedAdapter([200]);
+      final dio = dioWith(
+        adapter,
+        tokenExpiresSoon: () => true,
+        refreshIdToken: () {
+          refreshes++;
+          return gate.future;
+        },
+      );
+
+      final calls = [
+        dio.get<Object?>('/a', options: auth('token-velho')),
+        dio.get<Object?>('/b', options: auth('token-velho')),
+      ];
+      // Espera as duas requests chegarem ao `onRequest` antes de soltar o
+      // refresh — só então a segunda pode (ou não) reaproveitar o da primeira.
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      gate.complete('token-novo');
+      await Future.wait(calls);
+
+      expect(refreshes, 1);
+      expect(adapter.authHeaders, ['Bearer token-novo', 'Bearer token-novo']);
+    });
+  });
 
   test('POST autenticado também é repetido após refresh', () async {
     final adapter = _ScriptedAdapter([401, 200]);
