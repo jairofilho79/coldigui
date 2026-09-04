@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
@@ -178,8 +179,12 @@ MaterialOpenFailure classifyMaterialOpenFailure(
 /// PDF que não está offline continua ganhando a snackbar **com ação** para a
 /// tela offline ("Baixar"), como o card já fazia antes do sheet único — a
 /// mensagem sem saída seria uma regressão de UX. Os demais erros com mensagem
-/// própria (apagado, download) mostram a mensagem; o resto cai no genérico
-/// [AppLocalizations.pdfActionError].
+/// própria (apagado, download) mostram a mensagem.
+///
+/// O resto passa por [userMessageFor]: abrir uma cifra ou um áudio estoura
+/// `DioException`/`StorageUnavailableException`, que a escada de PDF não
+/// classifica — mostrar o genérico ali escondia "sem conexão" e "sem
+/// armazenamento", que o usuário sabe resolver. Só sem [l10n] resta o literal.
 void presentMaterialOpenError(
   BuildContext context,
   AppLocalizations? l10n,
@@ -194,7 +199,8 @@ void presentMaterialOpenError(
   showAppSnackbar(
     context,
     failure.message ??
-        l10n?.pdfActionError ??
-        'Não foi possível concluir a ação',
+        (l10n != null
+            ? userMessageFor(l10n, error)
+            : 'Não foi possível concluir a ação'),
   );
 }

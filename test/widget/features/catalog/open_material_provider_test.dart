@@ -1,4 +1,5 @@
 // test/widget/features/catalog/open_material_provider_test.dart
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -9,6 +10,7 @@ import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -230,7 +232,51 @@ void main() {
       await open(PdfMaterial(_louvor));
       await tester.pump();
 
-      expect(find.text('Não foi possível concluir a ação'), findsOneWidget);
+      expect(
+        find.text('Não foi possível concluir a ação. Tente de novo.'),
+        findsOneWidget,
+      );
+    });
+
+    // A2: erro sem mensagem própria mas classificável (rede, storage) não pode
+    // cair no genérico — `userMessageFor` já sabe traduzir esses.
+    testWidgets('falta de conexão vira o aviso de rede, não o genérico', (
+      tester,
+    ) async {
+      final spy = _OpenerSpy()
+        ..pdfError = DioException(
+          requestOptions: RequestOptions(path: '/x'),
+          type: DioExceptionType.connectionError,
+        );
+      final open = await _mount(tester, spy.build());
+
+      await open(PdfMaterial(_louvor));
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Sem conexão com a internet. Verifique sua rede e tente de novo.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('storage indisponível vira o aviso de armazenamento', (
+      tester,
+    ) async {
+      final spy = _OpenerSpy()
+        ..pdfError = const StorageUnavailableException('offline.put');
+      final open = await _mount(tester, spy.build());
+
+      await open(PdfMaterial(_louvor));
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 
