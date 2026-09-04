@@ -2,6 +2,7 @@ import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/playlist.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/material_id_kind.dart';
 
 /// CRUD Isar para [Playlist] (UC-06 + UC-15 sync).
@@ -9,8 +10,14 @@ import '../../../../core/utils/material_id_kind.dart';
 /// Queries por aba excluem tombstones (`deletedAt != null`).
 ///
 /// Toda leitura passa por [_migrated]: registros gravados antes da ordem única
-/// (D2) chegam com [Playlist.items] vazio e são migrados na hora
-/// (`items = [...pdfIds, ...audioIds]`), com persistência imediata.
+/// tipada (D2) chegam com [Playlist.items] e/ou [Playlist.itemKinds] vazios e
+/// são migrados na hora, com persistência imediata.
+///
+/// Isar indisponível (modo degradado, B5): as leituras devolvem vazio/`null`,
+/// mas **toda escrita lança [StorageUnavailableException]** — um no-op
+/// silencioso faz o chamador acreditar que persistiu (era assim que
+/// `PlaylistRepositoryImpl.create` devolvia um id inexistente e o deep link de
+/// lista compartilhada estourava depois, sem tratamento).
 class PlaylistLocalDatasource {
   const PlaylistLocalDatasource(this._isar);
 
@@ -164,7 +171,9 @@ class PlaylistLocalDatasource {
 
   Future<void> insert(Playlist playlist) async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.insert');
+    }
     await isar.write((isar) {
       _putByPlaylistId(isar.playlists, playlist);
     });
@@ -196,7 +205,9 @@ class PlaylistLocalDatasource {
     bool clearPublication = false,
   }) async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.update');
+    }
     await isar.write((isar) {
       final coll = isar.playlists;
       final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
@@ -247,7 +258,9 @@ class PlaylistLocalDatasource {
   /// Soft delete: tombstone + pendingPush (listas salvas).
   Future<void> softDeleteByPlaylistId(String playlistId) async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.softDelete');
+    }
     final now = DateTime.now().toUtc();
     await isar.write((isar) {
       final coll = isar.playlists;
@@ -263,7 +276,9 @@ class PlaylistLocalDatasource {
   /// Idempotente se [playlistId] ausente.
   Future<void> deleteByPlaylistId(String playlistId) async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.delete');
+    }
     await isar.write((isar) {
       final coll = isar.playlists;
       final existing = coll.where().playlistIdEqualTo(playlistId).findFirst();
@@ -275,7 +290,9 @@ class PlaylistLocalDatasource {
 
   Future<void> deleteAllUnsaved() async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.deleteAllUnsaved');
+    }
     await isar.write((isar) {
       final coll = isar.playlists;
       final rows = coll
@@ -292,7 +309,11 @@ class PlaylistLocalDatasource {
 
   Future<void> markAllSavedPendingPush() async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException(
+        'playlists.markAllSavedPendingPush',
+      );
+    }
     await isar.write((isar) {
       final coll = isar.playlists;
       final rows = coll
