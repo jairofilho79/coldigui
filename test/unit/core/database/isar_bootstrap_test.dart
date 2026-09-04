@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:coldigui/core/database/collections/audio_flag.dart';
 import 'package:coldigui/core/database/collections/carousel_entry.dart';
+import 'package:coldigui/core/database/collections/chord_content_cache.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
@@ -32,7 +33,7 @@ void main() {
     isar = await openAppIsar(name: instanceName, directory: tempDir!.path);
 
     expect(isar!.isOpen, isTrue);
-    expect(kAppIsarSchemas.length, 5);
+    expect(kAppIsarSchemas.length, 6);
 
     isar!.write((isar) {
       expect(isar.louvorCaches, isNotNull);
@@ -40,6 +41,7 @@ void main() {
       expect(isar.playlists, isNotNull);
       expect(isar.offlinePdfIndexs, isNotNull);
       expect(isar.audioFlags, isNotNull);
+      expect(isar.chordContentCaches, isNotNull);
     });
   });
 }

@@ -4,14 +4,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Interceptor que responde da tabela [routes] sem tocar na rede.
 class _FakeAdapter extends Interceptor {
-  _FakeAdapter(this.routes);
+  _FakeAdapter(this.routes, {this.offline = false});
 
   final Map<String, (int status, String body)> routes;
+
+  /// Simula queda de rede: [DioExceptionType.connectionError] sem resposta.
+  final bool offline;
   final requestedPaths = <String>[];
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     requestedPaths.add(options.path);
+    if (offline) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+        ),
+      );
+      return;
+    }
     final route = routes[options.path];
     if (route == null) {
       handler.reject(
@@ -84,5 +96,39 @@ void main() {
     final adapter = _FakeAdapter(const {});
     expect(await _datasource(adapter).fetchSong(''), isNull);
     expect(adapter.requestedPaths, isEmpty);
+  });
+
+  test(
+    'lanca ChordFetchFailedException em 500 (nao vira cifra inexistente)',
+    () {
+      final adapter = _FakeAdapter({url: (500, 'boom')});
+
+      expect(
+        () => _datasource(adapter).fetchSong(key),
+        throwsA(
+          isA<ChordFetchFailedException>().having((e) => e.r2Key, 'r2Key', key),
+        ),
+      );
+    },
+  );
+
+  test('lanca ChordFetchFailedException em falha de rede', () {
+    final adapter = _FakeAdapter(const {}, offline: true);
+
+    expect(
+      () => _datasource(adapter).fetchSong(key),
+      throwsA(isA<ChordFetchFailedException>()),
+    );
+  });
+
+  test('fetchContent devolve o corpo cru para o cache', () async {
+    const body = '{title: Comigo}\n\nA [Bb]noite vem,\n';
+    final adapter = _FakeAdapter({url: (200, body)});
+
+    expect(await _datasource(adapter).fetchContent(key), body);
+  });
+
+  test('fetchContent devolve null em 404', () async {
+    expect(await _datasource(_FakeAdapter(const {})).fetchContent(key), isNull);
   });
 }

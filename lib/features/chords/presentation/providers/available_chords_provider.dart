@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../coldigom/data/providers/coldigom_providers.dart';
@@ -25,13 +26,27 @@ final availableChordsProvider = FutureProvider.autoDispose
 
       if (chords.isEmpty) return const [];
 
-      final songs = await Future.wait([
-        for (final chord in chords)
-          ref.watch(chordSongProvider(chord.r2Key).future),
+      final published = await Future.wait([
+        for (final chord in chords) _isPublished(ref, chord.r2Key),
       ]);
 
       return [
         for (var i = 0; i < chords.length; i++)
-          if (songs[i] != null) chords[i],
+          if (published[i]) chords[i],
       ];
     });
+
+/// `false` só quando a resposta é conclusiva: o arquivo não existe (404) ou não
+/// tem letra.
+///
+/// Falha de rede devolve `true` — a cifra fica listada e o leitor mostra
+/// "indisponível", em vez de o louvor parecer não ter cifra nenhuma. Uma cifra
+/// que não responde também não pode derrubar as vizinhas que responderam.
+Future<bool> _isPublished(Ref ref, String r2Key) async {
+  try {
+    return await ref.watch(chordSongProvider(r2Key).future) != null;
+  } on Object catch (error) {
+    debugPrint('[cifras] disponibilidade de $r2Key indefinida: $error');
+    return true;
+  }
+}

@@ -4,6 +4,24 @@ import '../../../../core/utils/coldigom_asset_url.dart';
 import '../../domain/entities/chordpro_song.dart';
 import '../../domain/usecases/parse_chordpro.dart';
 
+/// Falha ao buscar o `.chord` de [r2Key] — rede, timeout ou status != 200/404.
+///
+/// Existe para separar "a cifra não existe" (404 → `null`) de "não deu para
+/// saber agora": sem essa distinção uma queda de rede vira, para o resto do
+/// app, um louvor sem cifra.
+class ChordFetchFailedException implements Exception {
+  const ChordFetchFailedException(this.r2Key, this.cause);
+
+  /// Chave Coldigom do arquivo pedido.
+  final String r2Key;
+
+  /// Erro original (normalmente [DioException]).
+  final Object cause;
+
+  @override
+  String toString() => 'ChordFetchFailedException($r2Key): $cause';
+}
+
 /// Busca e parseia o conteúdo `.chord` de um material coldigom.
 ///
 /// Uma ida à rede resolve as duas perguntas do sheet — "existe?" e "qual é o
@@ -19,31 +37,61 @@ class ChordContentDatasource {
   final Dio _dio;
   final String _apiBase;
 
-  /// Música parseada, ou `null` quando indisponível.
+  /// Conteúdo cru do `.chord`, ou `null` quando o arquivo não existe.
   ///
-  /// `null` cobre os quatro casos em que o sheet não deve listar a cifra:
-  /// chave vazia, 404, falha de rede e arquivo sem nenhuma linha de letra.
-  Future<ChordProSong?> fetchSong(String r2Key) async {
+  /// `null` só nos casos em que a resposta é conclusiva: chave vazia, 404 e
+  /// corpo vazio (lápide). Qualquer outra falha vira
+  /// [ChordFetchFailedException] — quem chama decide entre cache e "tentar de
+  /// novo", em vez de tratar como cifra inexistente.
+  Future<String?> fetchContent(String r2Key) async {
     final key = r2Key.trim();
     if (key.isEmpty) return null;
 
     final url = ColdigomAssetUrl.fetchUrlForKey(key, apiBase: _apiBase);
 
-    final String body;
+    final Response<String> response;
     try {
-      final response = await _dio.get<String>(
+      response = await _dio.get<String>(
         url,
         options: Options(responseType: ResponseType.plain),
       );
-      if (response.statusCode != 200) return null;
-      body = response.data ?? '';
-    } on Object {
-      return null;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      throw ChordFetchFailedException(key, error);
+    } on Object catch (error) {
+      throw ChordFetchFailedException(key, error);
     }
 
-    if (body.trim().isEmpty) return null;
+    final status = response.statusCode;
+    if (status == 404) return null;
+    if (status != 200) {
+      throw ChordFetchFailedException(
+        key,
+        DioException.badResponse(
+          statusCode: status ?? 0,
+          requestOptions: response.requestOptions,
+          response: response,
+        ),
+      );
+    }
 
-    final song = parseChordPro(body);
-    return song.hasLyrics ? song : null;
+    final body = response.data ?? '';
+    return body.trim().isEmpty ? null : body;
   }
+
+  /// Música parseada, ou `null` quando a cifra não existe.
+  ///
+  /// Propaga [ChordFetchFailedException] de [fetchContent].
+  Future<ChordProSong?> fetchSong(String r2Key) async {
+    final body = await fetchContent(r2Key);
+    if (body == null) return null;
+    return parseChordSongOrNull(body);
+  }
+}
+
+/// Parseia [content] e devolve `null` quando o arquivo não tem nenhuma linha
+/// de letra (arquivo-lápide publicado sem conteúdo útil).
+ChordProSong? parseChordSongOrNull(String content) {
+  final song = parseChordPro(content);
+  return song.hasLyrics ? song : null;
 }
