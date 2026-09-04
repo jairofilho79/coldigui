@@ -189,7 +189,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return true;
     }
 
-    if (active.pdfIds.contains(pdfId)) {
+    // Dedupe contra `items` (fonte da verdade), não contra a projeção: um id
+    // que a heurística de extensão classificar na outra face continua sendo
+    // detectado como já presente.
+    if (active.items.contains(pdfId)) {
       ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
       return false;
     }
@@ -652,7 +655,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return true;
     }
 
-    if (active.audioIds.contains(audioId)) return false;
+    // Dedupe contra `items`: se o id já estiver na lista — mesmo que a
+    // extensão o tenha jogado na face de partituras — não duplica.
+    if (active.items.contains(audioId)) return false;
 
     final next = [...active.audioIds, audioId];
     await ref.read(updatePlaylistProvider)(

@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -142,6 +143,31 @@ void main() {
       final before = _playlist(items: [pdfA, audioA, pdfB]);
 
       expect(before.copyWith(nome: 'Outro').items, [pdfA, audioA, pdfB]);
+    });
+
+    test('áudio com container não reconhecido não é perdido', () {
+      // `type: mp3` no worker, extensão fora de kAudioMaterialExtensions: o id
+      // não classifica como áudio, mas o chamador o declarou em `audioIds:`.
+      // Ele entra em `items` (e cai na face de partituras) em vez de sumir.
+      final estranho = encodePdfId('assets/praises/a/001.mid');
+      expect(materialIdKindOf(estranho), isNot(MaterialKind.audio));
+
+      final before = _playlist(items: [pdfA, audioA]);
+      final after = before.copyWith(audioIds: [audioA, estranho]);
+
+      expect(after.items, [pdfA, audioA, estranho]);
+      expect(after.audioIds, [audioA]);
+      expect(after.pdfIds, [pdfA, estranho]);
+    });
+
+    test('reordenar a face de áudio com id estranho é estável', () {
+      final estranho = encodePdfId('assets/praises/a/001.mid');
+      final before = _playlist(items: [pdfA, audioA, estranho]);
+
+      // Idempotente: repassar a mesma face não move nada.
+      final after = before.copyWith(audioIds: [audioA, estranho]);
+
+      expect(after.items, [pdfA, audioA, estranho]);
     });
   });
 

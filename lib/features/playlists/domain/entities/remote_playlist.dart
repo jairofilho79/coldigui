@@ -1,3 +1,8 @@
+// `PlaylistReach`/`PlaylistCategory` são usados aqui por direito próprio;
+// depender do re-export de `saved_playlist.dart` deixaria este arquivo
+// quebrado se aquele export sumisse.
+// ignore: unnecessary_import
+import '../../../../core/database/collections/playlist_publication.dart';
 import 'saved_playlist.dart';
 
 /// Versão do payload de playlist enviada ao Worker.

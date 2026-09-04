@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/database/collections/playlist_publication.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
 import '../../../../core/utils/material_id_kind.dart';
@@ -38,7 +40,7 @@ class SavedPlaylist {
     this.publishedAt,
   }) : updatedAt = updatedAt ?? createdAt,
        items = List<String>.unmodifiable(
-         items ?? <String>[...pdfIds, ...audioIds],
+         items ?? <String>[...pdfIds, ...warnIfNotAudio(audioIds)],
        );
 
   /// Identificador estável (UUID-like, compatível com PWA).
@@ -52,8 +54,11 @@ class SavedPlaylist {
 
   /// Projeção PDF/cifra de [items], na ordem em que aparecem.
   ///
-  /// Inclui [MaterialKind.unknown] para que dados legados (ids que não
-  /// decodificam) continuem visíveis na face de partituras em vez de sumirem.
+  /// Inclui [MaterialKind.unknown], que é o balde de tudo que não decodifica
+  /// como path: ids legados **e ids de YouTube** (que vêm do Worker e não são
+  /// path nenhum). Eles ficam na face de partituras em vez de sumir da lista.
+  /// A única família invisível às duas faces é [MaterialKind.gesture] — e hoje
+  /// nenhum caminho do app coloca id de gesto numa playlist.
   late final List<String> pdfIds = items
       .where((id) => isPdfFaceItem(id))
       .toList(growable: false);
@@ -75,6 +80,24 @@ class SavedPlaylist {
   static bool isAudioFaceItem(String id) =>
       materialIdKindOf(id) == MaterialKind.audio;
 
+  /// Devolve [audioIds] avisando no console sobre ids que **não** classificam
+  /// como [MaterialKind.audio].
+  ///
+  /// A fonte da verdade do tipo é o `type` do Worker, mas a projeção de faces
+  /// usa a extensão do `r2_key` ([kAudioMaterialExtensions]). Quando as duas
+  /// discordam, a faixa migraria silenciosamente para a face de partituras —
+  /// este aviso faz o descompasso aparecer em vez de virar bug de UI.
+  static List<String> warnIfNotAudio(List<String> audioIds) {
+    for (final id in audioIds) {
+      if (isAudioFaceItem(id)) continue;
+      debugPrint(
+        '[playlists] id de áudio sem extensão reconhecida (vai para a face de '
+        'partituras): $id — ver kAudioMaterialExtensions',
+      );
+    }
+    return audioIds;
+  }
+
   /// Substitui em [current] o subconjunto que [belongs] seleciona por [next],
   /// **preservando a posição relativa dos demais materiais**.
   ///
@@ -89,6 +112,11 @@ class SavedPlaylist {
     List<String> next,
     bool Function(String id) belongs,
   ) {
+    assert(
+      next.every(belongs),
+      'replaceSubset: `next` só pode conter ids da face que `belongs` aceita; '
+      'recebido: ${next.where((id) => !belongs(id)).toList()}',
+    );
     final result = <String>[];
     var cursor = 0;
     var afterLastSlot = -1;
@@ -194,13 +222,31 @@ class SavedPlaylist {
   /// Nova ordem única aplicando as substituições parciais de face.
   ///
   /// `null` em [pdfIds]/[audioIds] significa "não mexe nessa face".
+  ///
+  /// A face de um slot é "o que [materialIdKindOf] diz **ou** o que o chamador
+  /// declarou": um id passado em [audioIds] conta como slot de áudio mesmo que
+  /// a extensão não o classifique assim. Sem isso, um áudio com container fora
+  /// de [kAudioMaterialExtensions] seria descartado por [replaceSubset] em vez
+  /// de apenas cair na face errada — perda de dado. [warnIfNotAudio] avisa
+  /// quando isso acontece.
   List<String> nextItemsWith({List<String>? pdfIds, List<String>? audioIds}) {
     var next = items;
     if (pdfIds != null) {
-      next = replaceSubset(next, pdfIds, isPdfFaceItem);
+      final declared = pdfIds.toSet();
+      next = replaceSubset(
+        next,
+        pdfIds,
+        (id) => isPdfFaceItem(id) || declared.contains(id),
+      );
     }
     if (audioIds != null) {
-      next = replaceSubset(next, audioIds, isAudioFaceItem);
+      warnIfNotAudio(audioIds);
+      final declared = audioIds.toSet();
+      next = replaceSubset(
+        next,
+        audioIds,
+        (id) => isAudioFaceItem(id) || declared.contains(id),
+      );
     }
     return next;
   }

@@ -113,6 +113,9 @@ favorita
 - Feature `auth` (nova) em `lib/features/auth/`
 - Endpoints autenticados no Worker + **CORS para métodos mutáveis** (PUT/DELETE/POST)
 - Migration D1 `user_playlists`
+- **Ordem única (D2):** a tabela `playlists` precisa de coluna `items` +
+  leitura/escrita nos handlers (`rowToJson`, INSERT/PUT); até lá o pull do
+  Worker atual achata a ordem intercalada (ver §7 `schemaVersion`)
 - Interceptor Dio com `Authorization: Bearer <id_token>`
 - Script GIS / meta tag em `web/index.html` (se necessário para `google_sign_in` web)
 - Avaliar `Cross-Origin-Opener-Policy` vs popup Google (ver §12 W1)
@@ -337,9 +340,18 @@ CREATE INDEX idx_user_playlists_user_deleted
 - Em v2 `items` manda: `pdfIds`/`audioIds` recebidos são ignorados na leitura e
   recalculados a partir de `items` por `materialIdKindOf` (PDF, cifra e
   desconhecido na face de partituras; áudio na face de áudio).
+
+> ⚠️ **`items` é client-local hoje.** O Worker em produção
+> (`workers/plpcg-catalog/src/playlists/handlers.ts`) só tem as colunas
+> `pdf_ids`/`audio_ids`: ele **descarta** `items` e `schemaVersion` no PUT e
+> **todo GET responde v1**. Ou seja, a v2 do wire já existe no cliente, mas o
+> servidor ainda não a persiste.
+
 - Consequência prática: a ordem intercalada (partitura, áudio, partitura…)
-  só sobrevive entre clientes v2; para um cliente v1 a lista continua sendo
-  "PDFs primeiro, áudios depois".
+  sobrevive **localmente** e num push→pull no mesmo dispositivo (a base Isar
+  mantém `items`); **qualquer pull do Worker atual achata** a lista para
+  "PDFs primeiro, áudios depois", porque `_fromRemote` reconstrói `items` a
+  partir das duas listas v1 devolvidas. O mesmo vale para um cliente v1.
 
 ### PUT — versionamento otimista
 

@@ -14,11 +14,23 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
 /// espaço de ids. O tipo é recuperado decodificando o id e olhando a extensão.
 ///
 /// Áudio Coldigom também vive neste espaço: `ColdigomLouvorAdapter` monta
-/// `audioId` com o mesmo `encodePdfId(r2Key)` dos PDFs/cifras, então a extensão
-/// do R2 key (`.mp3`, `.m4a`, `.ogg`, `.wav`) classifica a faixa. Isso é o que
+/// `audioId` com o mesmo `encodePdfId(r2Key)` dos PDFs/cifras, e é isso que
 /// permite à playlist derivar `pdfIds`/`audioIds` de uma ordem única de ids.
-/// YouTube não vive aqui (o id vem do worker, não é path) e cai em
-/// [MaterialKind.unknown].
+///
+/// **Atenção — a extensão aqui é uma heurística, não a fonte da verdade.** Quem
+/// decide que um material é áudio é o campo `type` do Worker (`mp3`/`audio`,
+/// ver `ColdigomLouvorAdapter._kindOfType`), que não olha o `r2_key`. Um áudio
+/// publicado com extensão fora de [kAudioMaterialExtensions] (ou sem extensão)
+/// classifica [MaterialKind.unknown] e cai na face de partituras. Mantenha a
+/// lista abaixo em sincronia com o que o Worker aceita; a playlist avisa por
+/// `debugPrint` quando recebe um id de áudio que não classifica
+/// (`SavedPlaylist`).
+///
+/// YouTube não vive neste espaço (o id vem do Worker, não é um path): ele não
+/// decodifica e portanto classifica [MaterialKind.unknown] — ou seja, **um id
+/// de YouTube aparece em `pdfIds`**, junto com os ids legados. Só
+/// [MaterialKind.gesture] fica invisível às duas faces (e hoje nenhum caminho
+/// do app produz id de gesto).
 ///
 /// Retorna [MaterialKind.unknown] para id inválido — nunca lança.
 MaterialKind materialIdKindOf(String id) {
@@ -37,11 +49,31 @@ MaterialKind materialIdKindOf(String id) {
   if (lower.endsWith('.txt') || lower.endsWith('.gest')) {
     return MaterialKind.gesture;
   }
-  if (lower.endsWith('.mp3') ||
-      lower.endsWith('.m4a') ||
-      lower.endsWith('.ogg') ||
-      lower.endsWith('.wav')) {
+  final dot = lower.lastIndexOf('.');
+  if (dot != -1 && kAudioMaterialExtensions.contains(lower.substring(dot))) {
     return MaterialKind.audio;
   }
   return MaterialKind.unknown;
 }
+
+/// Extensões que [materialIdKindOf] reconhece como [MaterialKind.audio].
+///
+/// Cobre o que um `type: mp3`/`audio` do Worker pode carregar no `r2_key`.
+/// Ampliar aqui é seguro; esquecer uma extensão joga a faixa na face de
+/// partituras.
+const Set<String> kAudioMaterialExtensions = {
+  '.mp3',
+  '.m4a',
+  '.m4b',
+  '.aac',
+  '.ogg',
+  '.oga',
+  '.opus',
+  '.wav',
+  '.flac',
+  '.wma',
+  '.weba',
+  '.webm',
+  '.aiff',
+  '.aif',
+};
