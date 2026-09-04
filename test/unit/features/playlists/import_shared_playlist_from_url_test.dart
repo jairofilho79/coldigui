@@ -6,6 +6,7 @@ import 'package:coldigui/features/carousel/data/datasources/carousel_local_datas
 import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/invalid_share_playlist_exception.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
 import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
@@ -73,5 +74,72 @@ void main() {
       () => useCase(sharePdfs: 'a,b', shareName: '  '),
       throwsA(isA<InvalidSharePlaylistException>()),
     );
+  });
+
+  group('shareitems (v2)', () {
+    test('cria a playlist com entries na ordem intercalada', () async {
+      final id = await useCase(
+        shareItems: 'p:pdf-a,a:aud-1,c:cif-1',
+        sharePdfs: 'pdf-a,cif-1',
+        shareAudios: 'aud-1',
+        shareName: 'Lista v2',
+      );
+
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.entries, const [
+        PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+        PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+        PlaylistEntry(id: 'cif-1', kind: MaterialKind.chord),
+      ]);
+      expect(saved.items, ['pdf-a', 'aud-1', 'cif-1']);
+      expect(saved.pdfIds, ['pdf-a', 'cif-1']);
+      expect(saved.audioIds, ['aud-1']);
+    });
+
+    test('shareitems vence os legados quando divergem', () async {
+      final id = await useCase(
+        shareItems: 'a:aud-1,p:pdf-a',
+        sharePdfs: 'pdf-a',
+        shareAudios: 'aud-1',
+        shareName: 'Ordem v2',
+      );
+
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.items, ['aud-1', 'pdf-a']);
+    });
+
+    test('shareitems inválido cai nos legados', () async {
+      final id = await useCase(
+        shareItems: 'lixo-sem-prefixo',
+        sharePdfs: 'pdf-a',
+        shareName: 'Fallback',
+      );
+
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.pdfIds, ['pdf-a']);
+    });
+
+    test('só áudio não carrega o carousel', () async {
+      await carouselRepository.add('pdf-old');
+
+      await useCase(shareItems: 'a:aud-1,a:aud-2', shareName: 'Só áudio');
+
+      expect(await carouselRepository.getOrderedPdfIds(), ['pdf-old']);
+    });
+
+    test('só cifra carrega o carousel', () async {
+      await carouselRepository.add('pdf-old');
+
+      await useCase(shareItems: 'c:cif-1', shareName: 'Só cifra');
+
+      expect(await carouselRepository.getOrderedPdfIds(), ['cif-1']);
+    });
+
+    test('lança InvalidSharePlaylistException se tudo vazio', () async {
+      expect(
+        () => useCase(shareItems: '', sharePdfs: '', shareName: 'Nome'),
+        throwsA(isA<InvalidSharePlaylistException>()),
+      );
+    });
   });
 }

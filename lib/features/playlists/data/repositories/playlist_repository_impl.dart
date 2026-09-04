@@ -36,7 +36,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   @override
   Future<String> create({
     required String nome,
-    required List<String> pdfIds,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
     List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
@@ -65,7 +66,11 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     // nunca as listas cruas que o chamador passou.
     _writeEntries(
       row,
-      SavedPlaylist.entriesFromLegacyLists(pdfIds: pdfIds, audioIds: audioIds),
+      entries ??
+          SavedPlaylist.entriesFromLegacyLists(
+            pdfIds: pdfIds,
+            audioIds: audioIds,
+          ),
     );
 
     await _local.insert(row);

@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_playlist_share_exception.dart';
@@ -14,7 +15,8 @@ class _FakePlaylistRepository implements PlaylistRepository {
   @override
   Future<String> create({
     required String nome,
-    required List<String> pdfIds,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
     List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
@@ -102,6 +104,29 @@ void main() {
     final url = await useCase(playlistId: 'p1');
     expect(url, contains('sharepdfs='));
     expect(url, contains('sharename='));
+  });
+
+  test('emite shareitems com a ordem intercalada da playlist', () async {
+    const entries = [
+      PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+      PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+      PlaylistEntry(id: 'cif-1', kind: MaterialKind.chord),
+    ];
+    final useCase = GeneratePlaylistShareUrl(
+      _FakePlaylistRepository({
+        'p1': SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
+          entries: entries,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      }),
+      shareOrigin: origin,
+    );
+
+    final url = await useCase(playlistId: 'p1');
+    final params = parsePlaylistShareParams(Uri.parse(url));
+    expect(params!.entries, entries);
   });
 
   test('lança PlaylistNotFoundException quando ausente', () async {

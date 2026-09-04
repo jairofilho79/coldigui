@@ -114,6 +114,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         .importSharedFromUrl(
           sharePdfs: result.sharePdfs,
           shareAudios: result.shareAudios,
+          shareItems: result.shareItems,
           shareName: result.shareName,
         );
     if (!context.mounted) return;

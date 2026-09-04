@@ -11,7 +11,8 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   @override
   Future<String> create({
     required String nome,
-    required List<String> pdfIds,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
     List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,

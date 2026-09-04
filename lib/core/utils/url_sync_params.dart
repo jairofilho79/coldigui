@@ -30,6 +30,14 @@ abstract final class UrlSyncParams {
   /// CSV de audioIds no share de playlist (`shareaudios`).
   static const String shareAudios = 'shareaudios';
 
+  /// Ordem única tipada do share de playlist v2 (`shareitems`, spec A.5).
+  ///
+  /// CSV de `prefixo:id` (`p` pdf, `c` cifra, `a` áudio, `y` youtube,
+  /// `g` gesto, `u` desconhecido). Preserva a ordem intercalada e o tipo, que
+  /// [sharePdfs]/[shareAudios] sozinhos perdem; os dois legados continuam
+  /// sendo emitidos para apps antigos.
+  static const String shareItems = 'shareitems';
+
   static const String titulo = 'titulo';
   static const String subtitulo = 'subtitulo';
   static const String validated = 'validated';

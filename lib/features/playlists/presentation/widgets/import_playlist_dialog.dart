@@ -7,9 +7,10 @@ import '../../../../l10n/app_localizations.dart';
 /// Resultado do diálogo de importação de playlist (UC-07).
 class ImportPlaylistDialogResult {
   const ImportPlaylistDialogResult({
-    required this.sharePdfs,
     required this.shareName,
+    this.sharePdfs = '',
     this.shareAudios = '',
+    this.shareItems = '',
   });
 
   /// Valor bruto do param `sharepdfs` (CSV).
@@ -17,6 +18,9 @@ class ImportPlaylistDialogResult {
 
   /// Valor bruto do param `shareaudios` (CSV), opcional.
   final String shareAudios;
+
+  /// Valor bruto do param `shareitems` (CSV `prefixo:id`, v2), opcional.
+  final String shareItems;
 
   /// Nome da playlist conforme param `sharename`.
   final String shareName;
@@ -46,6 +50,7 @@ Future<ImportPlaylistDialogResult?> showImportPlaylistDialog(
               ImportPlaylistDialogResult(
                 sharePdfs: params.sharePdfs,
                 shareAudios: params.shareAudios,
+                shareItems: params.shareItems ?? '',
                 shareName: params.shareName,
               ),
             );

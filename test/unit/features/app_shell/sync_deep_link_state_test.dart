@@ -24,7 +24,8 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
   @override
   Future<String> create({
     required String nome,
-    required List<String> pdfIds,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
     List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,
@@ -152,11 +153,34 @@ void main() {
     expect(result.playlistId, isNotEmpty);
   });
 
-  test('retorna invalid quando params de share inválidos', () async {
+  test('retorna invalid quando o nome é só espaço', () async {
+    final result = await useCase(
+      uri: Uri.parse('/?sharepdfs=a&sharename=%20%20'),
+    );
+    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+  });
+
+  test('retorna skipped quando nenhuma lista tem entrada', () async {
+    // `sharepdfs= , ` não rende nenhuma entrada, então
+    // `parsePlaylistShareParams` já devolve null (spec A.5) e nem chega ao
+    // import — mesmo caminho de uma URI sem params de share.
     final result = await useCase(
       uri: Uri.parse('/?sharepdfs= , &sharename=Nome'),
     );
-    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+    expect(result.outcome, SyncDeepLinkOutcome.skipped);
+  });
+
+  test('importa preservando a ordem de shareitems (v2)', () async {
+    final result = await useCase(
+      uri: Uri.parse(
+        '/?shareitems=p%3Apdf-a%2Ca%3Aaud-1%2Cp%3Apdf-b&sharename=Ensaio',
+      ),
+    );
+    expect(result.outcome, SyncDeepLinkOutcome.success);
+
+    final saved = isar.playlists.where().findAll().single;
+    expect(saved.items, ['pdf-a', 'aud-1', 'pdf-b']);
+    expect(saved.itemKinds, ['pdf', 'audio', 'pdf']);
   });
 
   test(

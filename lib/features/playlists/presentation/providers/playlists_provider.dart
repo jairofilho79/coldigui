@@ -674,14 +674,16 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 
   Future<String?> importSharedFromUrl({
-    required String sharePdfs,
     required String shareName,
+    String sharePdfs = '',
     String shareAudios = '',
+    String shareItems = '',
   }) async {
     try {
       final playlistId = await ref.read(importSharedPlaylistFromUrlProvider)(
         sharePdfs: sharePdfs,
         shareAudios: shareAudios,
+        shareItems: shareItems,
         shareName: shareName,
       );
       ref.read(activePlaylistIdProvider.notifier).set(playlistId);

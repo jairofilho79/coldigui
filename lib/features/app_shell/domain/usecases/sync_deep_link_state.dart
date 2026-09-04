@@ -77,6 +77,7 @@ class SyncDeepLinkState {
       final playlistId = await _importSharedPlaylist(
         sharePdfs: params.sharePdfs,
         shareAudios: params.shareAudios,
+        shareItems: params.shareItems ?? '',
         shareName: params.shareName,
       );
       return SyncDeepLinkResult.success(playlistId);

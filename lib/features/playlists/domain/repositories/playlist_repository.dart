@@ -13,9 +13,15 @@ abstract class PlaylistRepository {
   Future<SavedPlaylist?> getById(String playlistId);
 
   /// Persiste nova playlist; retorna [playlistId] gerado.
+  ///
+  /// [entries] é a ordem única tipada e vence as duas listas legadas quando
+  /// informado — é o único jeito de criar uma playlist com partituras e áudios
+  /// intercalados (import de share v2, spec A.5). Sem ele, `pdfIds` seguido de
+  /// `audioIds` continua sendo a ordem gravada.
   Future<String> create({
     required String nome,
-    required List<String> pdfIds,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
     List<String> audioIds = const [],
     String? playlistId,
     DateTime? createdAt,

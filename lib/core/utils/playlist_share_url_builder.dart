@@ -1,15 +1,74 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/safe_query_parameters.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+
+/// Prefixo de uma letra por [MaterialKind] no param `shareitems` (spec A.5).
+///
+/// Ids de material já são base64url (sem `,` nem `:`), então `prefixo:id`
+/// separado por `,` é reversível sem escape adicional.
+const Map<MaterialKind, String> _shareItemPrefixes = {
+  MaterialKind.pdf: 'p',
+  MaterialKind.chord: 'c',
+  MaterialKind.audio: 'a',
+  MaterialKind.youtube: 'y',
+  MaterialKind.gesture: 'g',
+  MaterialKind.unknown: 'u',
+};
+
+const Map<String, MaterialKind> _shareItemKinds = {
+  'p': MaterialKind.pdf,
+  'c': MaterialKind.chord,
+  'a': MaterialKind.audio,
+  'y': MaterialKind.youtube,
+  'g': MaterialKind.gesture,
+  'u': MaterialKind.unknown,
+};
+
+/// Serializa a ordem única tipada como `p:ID,a:ID,c:ID`.
+String encodeShareItems(List<PlaylistEntry> entries) => entries
+    .map((e) => '${_shareItemPrefixes[e.kind] ?? 'u'}:${e.id}')
+    .join(',');
+
+/// Lê o param `shareitems`; devolve `null` se **qualquer** token for inválido.
+///
+/// Token inválido = sem `:`, com prefixo fora da tabela, com prefixo vazio ou
+/// com id vazio. Segmentos vazios (`a,,b`, vírgula final) são tolerados, como
+/// nos CSVs legados. Ids repetidos deduplicam pela primeira ocorrência —
+/// mesma regra de [parsePdfIdsFromSharePdfs], para que a ordem única continue
+/// sem repetições.
+///
+/// Devolver `null` (e não uma lista parcial) é deliberado: quem chama cai nos
+/// params legados, que um app antigo sabe montar, em vez de importar uma
+/// playlist pela metade.
+List<PlaylistEntry>? decodeShareItems(String raw) {
+  final entries = <PlaylistEntry>[];
+  final seen = <String>{};
+  for (final part in raw.split(',')) {
+    final token = part.trim();
+    if (token.isEmpty) continue;
+    final separator = token.indexOf(':');
+    if (separator <= 0 || separator == token.length - 1) return null;
+    final kind = _shareItemKinds[token.substring(0, separator)];
+    if (kind == null) return null;
+    final id = token.substring(separator + 1);
+    if (!seen.add(id)) continue;
+    entries.add(PlaylistEntry(id: id, kind: kind));
+  }
+  return entries.isEmpty ? null : entries;
+}
 
 /// Params extraídos de URL de compartilhamento de playlist (UC-07, Fase 4.4).
 ///
-/// Valores brutos dos query params [UrlSyncParams.sharePdfs],
-/// [UrlSyncParams.shareAudios] e [UrlSyncParams.shareName].
+/// Valores brutos dos query params [UrlSyncParams.shareItems],
+/// [UrlSyncParams.sharePdfs], [UrlSyncParams.shareAudios] e
+/// [UrlSyncParams.shareName].
 class PlaylistShareParams {
   const PlaylistShareParams({
-    required this.sharePdfs,
     required this.shareName,
+    this.sharePdfs = '',
     this.shareAudios = '',
+    this.shareItems,
   });
 
   /// CSV de [pdfId] conforme query `sharepdfs`.
@@ -20,27 +79,60 @@ class PlaylistShareParams {
 
   /// Nome exibido da playlist conforme query `sharename`.
   final String shareName;
+
+  /// CSV `prefixo:id` conforme query `shareitems` (v2, ausente em apps antigos).
+  final String? shareItems;
+
+  /// Ordem única tipada da playlist compartilhada.
+  ///
+  /// [shareItems] válido vence — é o único que preserva a ordem intercalada e
+  /// o tipo. Sem ele (ou com ele inválido) cai nos legados: `sharepdfs`
+  /// classificado pela extensão, depois `shareaudios` declarado como áudio.
+  List<PlaylistEntry> get entries {
+    final raw = shareItems;
+    if (raw != null) {
+      final decoded = decodeShareItems(raw);
+      if (decoded != null) return decoded;
+    }
+    return <PlaylistEntry>[
+      ...parsePdfIdsFromSharePdfs(sharePdfs).map(PlaylistEntry.classified),
+      ...parseAudioIdsFromShareAudios(shareAudios).map(PlaylistEntry.audio),
+    ];
+  }
 }
 
-/// Monta path relativo `/?sharepdfs=...&sharename=...` (+ `shareaudios` opcional).
+/// Monta path relativo `/?shareitems=...&sharename=...&sharepdfs=...`.
 ///
-/// Lança [ArgumentError] se ambas listas vazias ou [shareName] inválido.
+/// Emite o param v2 **e** os dois legados: um app antigo lê `sharepdfs`/
+/// `shareaudios` e importa a playlist sem a ordem intercalada; um app novo lê
+/// `shareitems` e a preserva junto com o tipo de cada material.
+///
+/// Lança [ArgumentError] se [entries] vazio ou [shareName] em branco.
 String buildPlaylistShareLocation({
-  required List<String> pdfIds,
+  required List<PlaylistEntry> entries,
   required String shareName,
-  List<String> audioIds = const [],
 }) {
-  if (pdfIds.isEmpty && audioIds.isEmpty) {
-    throw ArgumentError('pdfIds/audioIds must not both be empty');
+  if (entries.isEmpty) {
+    throw ArgumentError.value(entries, 'entries', 'must not be empty');
   }
   if (shareName.trim().isEmpty) {
     throw ArgumentError.value(shareName, 'shareName', 'must not be empty');
   }
 
+  final pdfIds = <String>[
+    for (final e in entries)
+      if (!e.isAudio) e.id,
+  ];
+  final audioIds = <String>[
+    for (final e in entries)
+      if (e.isAudio) e.id,
+  ];
+
   final params = <String, String>{
+    UrlSyncParams.shareItems: encodeShareItems(entries),
+    UrlSyncParams.shareName: shareName,
     if (pdfIds.isNotEmpty) UrlSyncParams.sharePdfs: pdfIds.join(','),
     if (audioIds.isNotEmpty) UrlSyncParams.shareAudios: audioIds.join(','),
-    UrlSyncParams.shareName: shareName,
   };
 
   final query = params.entries
@@ -49,27 +141,48 @@ String buildPlaylistShareLocation({
   return '${RoutePaths.home}?$query';
 }
 
-/// Monta URL absoluta para compartilhamento ([origin] + [buildPlaylistShareLocation]).
+/// Monta URL absoluta ([origin] + [buildPlaylistShareLocation]).
+String buildPlaylistShareUrlFromEntries({
+  required String origin,
+  required List<PlaylistEntry> entries,
+  required String shareName,
+}) {
+  final normalizedOrigin = origin.endsWith('/')
+      ? origin.substring(0, origin.length - 1)
+      : origin;
+  return '$normalizedOrigin'
+      '${buildPlaylistShareLocation(entries: entries, shareName: shareName)}';
+}
+
+/// Wrapper legado por duas listas — monta [PlaylistEntry] e delega a
+/// [buildPlaylistShareUrlFromEntries].
+///
+/// Perde a ordem intercalada (partituras primeiro, áudios depois) porque a
+/// entrada já vem separada em duas listas; quem tiver a ordem única deve
+/// chamar [buildPlaylistShareUrlFromEntries].
 String buildPlaylistShareUrl({
   required String origin,
   required List<String> pdfIds,
   required String shareName,
   List<String> audioIds = const [],
 }) {
-  final normalizedOrigin = origin.endsWith('/')
-      ? origin.substring(0, origin.length - 1)
-      : origin;
-  final location = buildPlaylistShareLocation(
-    pdfIds: pdfIds,
-    audioIds: audioIds,
+  if (pdfIds.isEmpty && audioIds.isEmpty) {
+    throw ArgumentError('pdfIds/audioIds must not both be empty');
+  }
+  return buildPlaylistShareUrlFromEntries(
+    origin: origin,
+    entries: <PlaylistEntry>[
+      ...pdfIds.map(PlaylistEntry.classified),
+      ...audioIds.map(PlaylistEntry.audio),
+    ],
     shareName: shareName,
   );
-  return '$normalizedOrigin$location';
 }
 
 /// Remove params de share de playlist de [uri] (UC-07 / UC-14, Fase 4.5).
 Uri stripPlaylistShareParams(Uri uri) {
-  final query = Map<String, String>.from(uri.queryParameters)
+  final query = Map<String, String>.from(safeQueryParameters(uri))
+    ..remove(UrlSyncParams.shareItems)
     ..remove(UrlSyncParams.sharePdfs)
     ..remove(UrlSyncParams.shareAudios)
     ..remove(UrlSyncParams.shareName);
@@ -79,18 +192,21 @@ Uri stripPlaylistShareParams(Uri uri) {
   return uri.replace(queryParameters: query);
 }
 
-/// Extrai params de share de [uri] quando `sharename` e ao menos uma lista presentes.
+/// Extrai params de share de [uri] quando `sharename` e ao menos uma entrada
+/// (por `shareitems` ou pelos legados) estão presentes.
 PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
-  final shareName = uri.queryParameters[UrlSyncParams.shareName];
-  final sharePdfs = uri.queryParameters[UrlSyncParams.sharePdfs] ?? '';
-  final shareAudios = uri.queryParameters[UrlSyncParams.shareAudios] ?? '';
+  final query = safeQueryParameters(uri);
+  final shareName = query[UrlSyncParams.shareName];
   if (shareName == null || shareName.isEmpty) return null;
-  if (sharePdfs.isEmpty && shareAudios.isEmpty) return null;
-  return PlaylistShareParams(
-    sharePdfs: sharePdfs,
-    shareAudios: shareAudios,
+
+  final params = PlaylistShareParams(
+    sharePdfs: query[UrlSyncParams.sharePdfs] ?? '',
+    shareAudios: query[UrlSyncParams.shareAudios] ?? '',
     shareName: shareName,
+    shareItems: query[UrlSyncParams.shareItems],
   );
+  if (params.entries.isEmpty) return null;
+  return params;
 }
 
 /// Parse CSV de IDs — preserva ordem, dedupe (primeira ocorrência).
@@ -130,9 +246,11 @@ PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
   final fromQuery = parsePlaylistShareParams(Uri(query: queryOnly));
   if (fromQuery != null) return fromQuery;
 
-  final hasShareName = trimmed.contains('sharename=');
+  final hasShareName = trimmed.contains('${UrlSyncParams.shareName}=');
   final hasList =
-      trimmed.contains('sharepdfs=') || trimmed.contains('shareaudios=');
+      trimmed.contains('${UrlSyncParams.shareItems}=') ||
+      trimmed.contains('${UrlSyncParams.sharePdfs}=') ||
+      trimmed.contains('${UrlSyncParams.shareAudios}=');
   if (hasShareName && hasList) {
     final questionIndex = trimmed.indexOf('?');
     final queryPart = questionIndex >= 0

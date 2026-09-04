@@ -15,16 +15,21 @@ import '../../../../core/utils/safe_query_parameters.dart';
 /// cair para [fromAppLinks].
 Uri? resolveWebInitialDeepLinkUri(Uri? fromAppLinks, {Uri? browserUri}) {
   final base = browserUri ?? Uri.base;
+  // `parsePlaylistShareParams` já lê a query por [safeQueryParameters] e não
+  // lança (Tarefa 3): o `%` malformado só aparece para quem receber esta URI
+  // de volta (router, listener), então a saneamos aqui em vez de esperar a
+  // exceção.
+  if (parsePlaylistShareParams(base) == null) return fromAppLinks;
+  if (_queryDecodes(base)) return base;
+  debugPrint('[deep-link] query malformada na URL inicial: ${base.query}');
+  return base.replace(queryParameters: safeQueryParameters(base));
+}
+
+bool _queryDecodes(Uri uri) {
   try {
-    if (parsePlaylistShareParams(base) != null) {
-      return base;
-    }
-  } on FormatException catch (e) {
-    debugPrint('[deep-link] query malformada na URL inicial: $e');
-    final sanitized = base.replace(queryParameters: safeQueryParameters(base));
-    if (parsePlaylistShareParams(sanitized) != null) {
-      return sanitized;
-    }
+    uri.queryParameters;
+    return true;
+  } on FormatException {
+    return false;
   }
-  return fromAppLinks;
 }

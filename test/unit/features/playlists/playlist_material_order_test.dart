@@ -47,7 +47,8 @@ void main() {
 
     void writeLegacyRow({
       required String playlistId,
-      required List<String> pdfIds,
+      List<PlaylistEntry>? entries,
+      List<String> pdfIds = const [],
       List<String> audioIds = const [],
       List<String> items = const [],
     }) {
