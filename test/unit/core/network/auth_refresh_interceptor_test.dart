@@ -36,6 +36,7 @@ class _ScriptedAdapter implements HttpClientAdapter {
 
 void main() {
   late List<String> events;
+  late bool sessionExpired;
 
   Dio dioWith(
     _ScriptedAdapter adapter, {
@@ -47,7 +48,11 @@ void main() {
       AuthRefreshInterceptor(
         dio: dio,
         refreshIdToken: refreshIdToken,
-        markSessionExpired: () => events.add('sessionExpired'),
+        isSessionExpired: () => sessionExpired,
+        markSessionExpired: () {
+          sessionExpired = true;
+          events.add('sessionExpired');
+        },
       ),
     );
     return dio;
@@ -56,7 +61,10 @@ void main() {
   Options auth(String token) =>
       Options(headers: {'Authorization': 'Bearer $token'});
 
-  setUp(() => events = []);
+  setUp(() {
+    events = [];
+    sessionExpired = false;
+  });
 
   test('401 dispara refresh e repete a request com o Bearer novo', () async {
     final adapter = _ScriptedAdapter([401, 200]);
@@ -201,6 +209,62 @@ void main() {
       ),
     );
   });
+
+  test('sessão já expirada não tenta refresh de novo (Critical 1)', () async {
+    sessionExpired = true;
+    var refreshes = 0;
+    final adapter = _ScriptedAdapter([401]);
+    final dio = dioWith(
+      adapter,
+      refreshIdToken: () async {
+        refreshes++;
+        return 'token-novo';
+      },
+    );
+
+    await expectLater(
+      dio.get<Object?>('/playlists', options: auth('t')),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(refreshes, 0);
+    expect(adapter.calls, 1);
+  });
+
+  test(
+    'depois de um refresh falho, o 401 seguinte não chama refresh de novo',
+    () async {
+      var refreshes = 0;
+      Future<String?> refresher() async {
+        refreshes++;
+        return null;
+      }
+
+      final first = _ScriptedAdapter([401]);
+      await expectLater(
+        dioWith(
+          first,
+          refreshIdToken: refresher,
+        ).get<Object?>('/playlists', options: auth('t')),
+        throwsA(isA<DioException>()),
+      );
+      expect(refreshes, 1);
+
+      // O refresher real marca a sessão como expirada ao falhar.
+      sessionExpired = true;
+
+      final second = _ScriptedAdapter([401]);
+      await expectLater(
+        dioWith(
+          second,
+          refreshIdToken: refresher,
+        ).get<Object?>('/playlists', options: auth('t')),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(refreshes, 1, reason: 'não pode tentar renovar de novo');
+    },
+  );
 
   test('POST autenticado também é repetido após refresh', () async {
     final adapter = _ScriptedAdapter([401, 200]);

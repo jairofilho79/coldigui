@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 /// Usuário autenticado via Google (sessão local + registro D1).
 class AuthUser {
   const AuthUser({
@@ -120,7 +122,8 @@ DateTime? _idTokenExpiry(String idToken) {
       (exp * 1000).round(),
       isUtc: true,
     );
-  } on Object {
+  } on Object catch (error) {
+    debugPrint('[auth] exp inválido no id_token: $error');
     return null;
   }
 }

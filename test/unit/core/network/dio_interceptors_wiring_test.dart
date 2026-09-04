@@ -123,6 +123,40 @@ void main() {
     },
   );
 
+  test(
+    'token idêntico do Google não vira laço de refresh (Critical 1)',
+    () async {
+      var refreshes = 0;
+      final container = buildContainer(
+        refresher: () async {
+          refreshes++;
+          return 'token-velho'; // o Google reemite o mesmo token
+        },
+      );
+      addTearDown(container.dispose);
+      await container.read(authStateProvider.future);
+
+      final adapter = _ScriptedAdapter([401]);
+      final dio = container.read(dioProvider)..httpClientAdapter = adapter;
+
+      Future<void> call() => expectLater(
+        dio.get<Object?>(
+          '/api/playlists',
+          options: Options(headers: {'Authorization': 'Bearer token-velho'}),
+        ),
+        throwsA(isA<DioException>()),
+      );
+
+      await call();
+      await call();
+      await call();
+
+      expect(container.read(sessionExpiredProvider), isTrue);
+      expect(refreshes, 1, reason: 'só a primeira request tenta renovar');
+      expect(adapter.calls, 3, reason: 'uma ida por chamada, sem repetição');
+    },
+  );
+
   test('401 com refresh impossível marca sessão expirada', () async {
     final container = buildContainer(refresher: () async => null);
     addTearDown(container.dispose);

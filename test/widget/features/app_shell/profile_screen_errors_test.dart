@@ -68,22 +68,6 @@ void main() {
     googleSignInInitializerProvider.overrideWithValue(noopInitializer),
   ];
 
-  testWidgets('erro de autenticação não mostra o toString da exceção', (
-    tester,
-  ) async {
-    await pumpProfile(
-      tester,
-      overrides: baseOverrides(
-        behavior: (_) async => throw StateError('detalhe_interno_feio'),
-      ),
-    );
-
-    // `build` engole exceções desconhecidas e volta deslogado; forçamos o
-    // ramo de erro via um estado de erro explícito.
-    expect(find.textContaining('detalhe_interno_feio'), findsNothing);
-    expect(find.textContaining('Erro de autenticação'), findsNothing);
-  });
-
   testWidgets('estado de erro do authStateProvider usa userMessageFor', (
     tester,
   ) async {

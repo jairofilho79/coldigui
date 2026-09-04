@@ -13,6 +13,7 @@ class AuthRefreshInterceptor extends Interceptor {
   AuthRefreshInterceptor({
     required this.dio,
     required this.refreshIdToken,
+    required this.isSessionExpired,
     required this.markSessionExpired,
   });
 
@@ -26,6 +27,10 @@ class AuthRefreshInterceptor extends Interceptor {
   /// Devolve um `id_token` novo, ou `null`/vazio quando não foi possível.
   final Future<String?> Function() refreshIdToken;
 
+  /// `true` quando um refresh já falhou nesta sessão — tentar de novo a cada
+  /// 401 só repetiria o laço.
+  final bool Function() isSessionExpired;
+
   final void Function() markSessionExpired;
 
   @override
@@ -36,6 +41,10 @@ class AuthRefreshInterceptor extends Interceptor {
     final options = err.requestOptions;
     if (err.response?.statusCode != 401) return handler.next(err);
     if (options.headers['Authorization'] == null) return handler.next(err);
+
+    // Sessão já marcada como expirada: o refresh não vai virar do avesso, e
+    // insistir a cada request realimentaria o laço 401 → refresh → 401.
+    if (isSessionExpired()) return handler.next(err);
 
     if (options.extra[retriedKey] == true) {
       // Já tentamos com token novo e o Worker recusou de novo.

@@ -31,6 +31,7 @@ final dioProvider = Provider<Dio>((ref) {
       // mudança de sessão, e a chamada só acontece dentro de um 401.
       refreshIdToken: () =>
           ref.read(authStateProvider.notifier).refreshIdToken(),
+      isSessionExpired: () => ref.read(sessionExpiredProvider),
       markSessionExpired: () =>
           ref.read(sessionExpiredProvider.notifier).markExpired(),
     ),

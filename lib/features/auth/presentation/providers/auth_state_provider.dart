@@ -94,7 +94,7 @@ final googleSilentIdTokenRefresherProvider =
 /// `true` quando a renovação silenciosa do `id_token` falhou: a sessão local
 /// segue existindo, mas o backend vai recusá-la até o usuário entrar de novo.
 ///
-/// Consumido pelo banner "Sessão expirada" no perfil e nas listas.
+/// Consumido pelo banner "Sessão expirada" no perfil.
 final sessionExpiredProvider = NotifierProvider<SessionExpiredNotifier, bool>(
   SessionExpiredNotifier.new,
 );
@@ -178,6 +178,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
         await _completeSignIn(user);
       case GoogleSignInAuthenticationEventSignOut():
         ref.read(authSessionStoreProvider).clear();
+        ref.read(sessionExpiredProvider.notifier).clear();
         state = const AsyncData(null);
     }
   }
@@ -222,7 +223,11 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       debugPrint('[auth] reautenticação silenciosa falhou: $error');
     }
 
-    if (idToken == null || idToken.isEmpty) {
+    // Token idêntico conta como falha: o Google não tem nada mais fresco para
+    // dar, e reemitir `AsyncData` aqui reconstruiria quem observa
+    // [authStateProvider] (AuthUser não tem `==`), gerando request nova → 401 →
+    // refresh → laço sem fim enquanto o Worker recusar esse token.
+    if (idToken == null || idToken.isEmpty || idToken == current.idToken) {
       ref.read(sessionExpiredProvider.notifier).markExpired();
       return null;
     }

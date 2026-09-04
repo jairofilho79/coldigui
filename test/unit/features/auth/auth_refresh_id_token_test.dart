@@ -205,6 +205,66 @@ void main() {
       },
     );
 
+    test('token idêntico conta como refresh falho (Critical 1)', () async {
+      final store = seededStore();
+      final container = buildContainer(
+        store: store,
+        refresher: () async => 'token-antigo',
+      );
+      addTearDown(container.dispose);
+      await container.read(authStateProvider.future);
+
+      final token = await container
+          .read(authStateProvider.notifier)
+          .refreshIdToken();
+
+      expect(token, isNull);
+      expect(container.read(sessionExpiredProvider), isTrue);
+      expect(store.read()?.idToken, 'token-antigo');
+    });
+
+    test(
+      'refresh com token idêntico não reemite estado (evita laço de 401)',
+      () async {
+        final container = buildContainer(
+          store: seededStore(),
+          refresher: () async => 'token-antigo',
+        );
+        addTearDown(container.dispose);
+        await container.read(authStateProvider.future);
+
+        var emissions = 0;
+        container.listen(
+          authStateProvider,
+          (_, _) => emissions++,
+          fireImmediately: false,
+        );
+
+        await container.read(authStateProvider.notifier).refreshIdToken();
+        await container.read(authStateProvider.notifier).refreshIdToken();
+
+        // Zero: quem observa authStateProvider e dispara request não pode ser
+        // reconstruído por um refresh que não trouxe token novo.
+        expect(emissions, 0);
+      },
+    );
+
+    test('token novo reemite estado normalmente', () async {
+      final container = buildContainer(
+        store: seededStore(),
+        refresher: () async => 'token-novo',
+      );
+      addTearDown(container.dispose);
+      await container.read(authStateProvider.future);
+
+      var emissions = 0;
+      container.listen(authStateProvider, (_, _) => emissions++);
+
+      await container.read(authStateProvider.notifier).refreshIdToken();
+
+      expect(emissions, 1);
+    });
+
     test('signOut limpa a marca de sessão expirada', () async {
       final container = buildContainer(
         store: seededStore(),
