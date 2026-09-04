@@ -17,12 +17,18 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// A tentativa **travada** dispara o watchdog só depois desse intervalo, mas a
 /// tentativa **que deve concluir** precisa caber dentro dele: armar o timer,
-/// `stat` do `.tmp`, resposta do adapter em memória e gravação de poucos bytes.
-/// 500 ms dá ~8x de folga sobre o custo real desse trecho — o suficiente para a
-/// classificação stall vs. sucesso não depender da carga da máquina. O backoff
-/// entre tentativas roda com o guard já descartado (`dispose()` no `finally`),
-/// então nunca é confundido com ausência de bytes.
-const _testStallTimeout = Duration(milliseconds: 500);
+/// `stat` do `.tmp`, uma sondagem HEAD (quando sobra `.tmp` parcial do stall
+/// anterior), apagar o `.tmp`, resposta do adapter em memória e gravação de
+/// poucos bytes. Com `flutter test` rodando os arquivos em paralelo (vários
+/// shards disputando CPU), 500 ms já foi visto sendo insuficiente — a máquina
+/// pode pausar o isolate tempo suficiente para essa sequência ultrapassar o
+/// watchdog e a retentativa boa ser lida como um segundo stall. 3 s dá folga
+/// suficiente para nenhuma classificação depender de jitter do scheduler sob
+/// carga, sem exigir mudança no adapter (que já responde instantâneo fora das
+/// tentativas listadas em `stallAfterFirstChunkAttempts`). O backoff entre
+/// tentativas roda com o guard já descartado (`dispose()` no `finally`), então
+/// nunca é confundido com ausência de bytes.
+const _testStallTimeout = Duration(seconds: 3);
 
 void main() {
   late Directory tempDir;
