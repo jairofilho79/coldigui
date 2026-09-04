@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
@@ -63,14 +65,19 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
 }
 
 /// Estado de sync fixo, sem `ref.listen` de auth nem rede.
+///
+/// [gate], quando informado, segura o `sync()` até o teste completá-lo — é
+/// assim que se descarta a tela no meio de um retry.
 class _FakeSyncNotifier extends PlaylistSyncNotifier {
   _FakeSyncNotifier([
     this.initial = const PlaylistSyncState(),
     this.result = const PlaylistSyncResult(),
+    this.gate,
   ]);
 
   final PlaylistSyncState initial;
   final PlaylistSyncResult result;
+  final Completer<void>? gate;
   var syncCalls = 0;
 
   @override
@@ -79,6 +86,7 @@ class _FakeSyncNotifier extends PlaylistSyncNotifier {
   @override
   Future<PlaylistSyncResult> sync() async {
     syncCalls++;
+    await gate?.future;
     return result;
   }
 }
@@ -355,6 +363,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(playlists.reloadCalls, before + 1);
+  });
+
+  testWidgets('sair da tela no meio do retry não explode', (tester) async {
+    final gate = Completer<void>();
+    final playlists = _FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+      const PlaylistSyncResult(pulled: 1),
+      gate,
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pump();
+
+    // Some com a tela (e com o ProviderScope) antes de a sync responder.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pumpAndSettle();
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('retry sem novidade não recarrega a lista', (tester) async {

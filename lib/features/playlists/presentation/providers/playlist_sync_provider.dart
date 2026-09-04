@@ -10,6 +10,8 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/datasources/playlist_remote_datasource.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/usecases/sync_playlists.dart';
+import 'playlist_sync_lifecycle.dart';
+import 'playlists_provider.dart';
 
 /// Último `sub` que passou pelo `syncAfterLogin` — persistido para o boot com a
 /// mesma conta não remarcar tudo como `pendingPush` (spec A.7).
@@ -141,6 +143,23 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     } finally {
       _inFlight = null;
     }
+  }
+
+  /// "Tentar novamente" do banner: sincroniza e recarrega a lista visível se
+  /// alguma linha se mexeu.
+  ///
+  /// Mora no notifier, e não no widget, porque o `WidgetRef` do banner não tem
+  /// `mounted`: sair da tela no meio do retry faria o `read` de depois do
+  /// `await` explodir num callback sem dono. O `Ref` daqui tem.
+  ///
+  /// A regra de recarregar é a mesma do [PlaylistSyncLifecycleMixin]:
+  /// `PlaylistsNotifier` não observa o banco, então uma sync que trouxe listas
+  /// novas apagaria o banner e deixaria a tela mostrando o estado velho.
+  Future<void> retryAndReload() async {
+    final result = await sync();
+    if (!ref.mounted || result.skipped) return;
+    if (result.pulled == 0 && result.pushed == 0 && result.deleted == 0) return;
+    await ref.read(playlistsProvider.notifier).reload();
   }
 
   Future<void> _run(String idToken) async {

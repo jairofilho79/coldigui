@@ -5,7 +5,6 @@ import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/playlist_sync_provider.dart';
-import '../providers/playlists_provider.dart';
 
 /// Aviso discreto de sync na tela de listas (spec A.7).
 ///
@@ -15,18 +14,6 @@ import '../providers/playlists_provider.dart';
 /// novamente" redispara a sync; um sucesso limpa o estado e o banner some.
 class PlaylistSyncErrorBanner extends ConsumerWidget {
   const PlaylistSyncErrorBanner({super.key});
-
-  /// Re-sincroniza e recarrega a lista visível se alguma linha se mexeu.
-  ///
-  /// `PlaylistsNotifier` não observa o banco: sem este `reload`, um retry que
-  /// puxa listas do servidor apaga o banner e deixa a tela mostrando o estado
-  /// velho (mesma regra do `PlaylistSyncLifecycleMixin`).
-  Future<void> _retry(WidgetRef ref) async {
-    final result = await ref.read(playlistSyncProvider.notifier).sync();
-    if (result.skipped) return;
-    if (result.pulled == 0 && result.pushed == 0 && result.deleted == 0) return;
-    await ref.read(playlistsProvider.notifier).reload();
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,7 +75,10 @@ class PlaylistSyncErrorBanner extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => _retry(ref),
+                // Todo o "sincroniza e recarrega" vive no notifier: o retry
+                // sobrevive a sair da tela, o que um `WidgetRef` não garante.
+                onPressed: () =>
+                    ref.read(playlistSyncProvider.notifier).retryAndReload(),
                 style: TextButton.styleFrom(foregroundColor: AppColors.title),
                 child: Text(l10n.retry),
               ),
