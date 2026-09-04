@@ -7,6 +7,15 @@ const _pdfB = PlaylistEntry(id: 'id-b', kind: MaterialKind.pdf);
 const _audio1 = PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio);
 const _chord1 = PlaylistEntry(id: 'cif-1', kind: MaterialKind.chord);
 
+/// `encodePdfId('assets/chords/a.chord')` — id cuja extensão diz `chord`.
+const _chordId = 'YXNzZXRzL2Nob3Jkcy9hLmNob3Jk';
+
+/// `encodePdfId('assets/gestures/a.gest')`.
+const _gestureId = 'YXNzZXRzL2dlc3R1cmVzL2EuZ2VzdA';
+
+/// `encodePdfId('assets/praises/a/001.mp3')` — extensão de áudio.
+const _audioExtId = 'YXNzZXRzL3ByYWlzZXMvYS8wMDEubXAz';
+
 void main() {
   group('encodeShareItems', () {
     test('emite prefixo:id na ordem única', () {
@@ -72,6 +81,23 @@ void main() {
 
     test('faz trim de cada token', () {
       expect(decodeShareItems(' p:id-a , a:aud-1 '), const [_pdfA, _audio1]);
+    });
+
+    test('kind genérico é refinado pela extensão (resolveWireKind)', () {
+      // `p:` num id de `.chord` — URL escrita à mão ou montada por quem só
+      // sabe dizer "partitura". Normaliza como o caminho de sync.
+      expect(decodeShareItems('p:$_chordId'), const [
+        PlaylistEntry(id: _chordId, kind: MaterialKind.chord),
+      ]);
+      expect(decodeShareItems('u:$_gestureId'), const [
+        PlaylistEntry(id: _gestureId, kind: MaterialKind.gesture),
+      ]);
+    });
+
+    test('audio declarado atravessa a extensão intocado (A8)', () {
+      expect(decodeShareItems('a:$_chordId'), const [
+        PlaylistEntry(id: _chordId, kind: MaterialKind.audio),
+      ]);
     });
   });
 
@@ -151,6 +177,19 @@ void main() {
         shareName: 'Lista',
       );
       expect(url, startsWith('https://plpcg.com/?'));
+    });
+
+    test('id com extensão de áudio em pdfIds cai na face de áudio', () {
+      // O que o dartdoc do wrapper avisa: `pdfIds` não declara tipo, então a
+      // extensão vence e o id sai em `a:`/`shareaudios`.
+      final url = buildPlaylistShareUrl(
+        origin: 'https://plpcg.com',
+        pdfIds: const [_audioExtId],
+        shareName: 'Lista',
+      );
+      expect(url, contains('shareitems=a%3A$_audioExtId'));
+      expect(url, contains('shareaudios=$_audioExtId'));
+      expect(url, isNot(contains('sharepdfs=')));
     });
 
     test('audioIds do wrapper viram entradas de áudio', () {

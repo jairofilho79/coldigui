@@ -1,4 +1,5 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -139,12 +140,70 @@ void main() {
 
     await tester.enterText(
       find.byType(TextField),
+      'shareitems=p:x,a:aud-1,p:y&sharename=Teste&sharepdfs=x,y'
+      '&shareaudios=aud-1',
+    );
+    await tester.tap(find.text('Importar'));
+    await tester.pumpAndSettle();
+
+    // O `shareitems` colado tem que atravessar diálogo → tela → notifier: é ele
+    // que carrega a ordem intercalada que `sharepdfs`/`shareaudios` perdem.
+    expect(notifier.lastImport?.shareItems, 'p:x,a:aud-1,p:y');
+    expect(notifier.lastImport?.sharePdfs, 'x,y');
+    expect(notifier.lastImport?.shareAudios, 'aud-1');
+    expect(notifier.lastImport?.shareName, 'Teste');
+    expect(
+      PlaylistShareParams(
+        sharePdfs: notifier.lastImport!.sharePdfs,
+        shareAudios: notifier.lastImport!.shareAudios,
+        shareItems: notifier.lastImport!.shareItems,
+        shareName: notifier.lastImport!.shareName,
+      ).entries,
+      const [
+        PlaylistEntry(id: 'x', kind: MaterialKind.pdf),
+        PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+        PlaylistEntry(id: 'y', kind: MaterialKind.pdf),
+      ],
+    );
+    expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  testWidgets('importar URL legada (sem shareitems) segue funcionando', (
+    tester,
+  ) async {
+    final notifier = _FakePlaylistsNotifier(const []);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => notifier),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier(const []),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const PlaylistsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Importar lista'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byType(TextField),
       'sharepdfs=x&sharename=Teste',
     );
     await tester.tap(find.text('Importar'));
     await tester.pumpAndSettle();
 
     expect(notifier.lastImport?.sharePdfs, 'x');
+    expect(notifier.lastImport?.shareItems, '');
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
   });

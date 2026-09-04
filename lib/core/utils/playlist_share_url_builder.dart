@@ -1,7 +1,8 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/safe_query_parameters.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+// `saved_playlist.dart` re-exporta `PlaylistEntry`/`MaterialKind`.
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 
 /// Prefixo de uma letra por [MaterialKind] no param `shareitems` (spec A.5).
 ///
@@ -38,6 +39,11 @@ String encodeShareItems(List<PlaylistEntry> entries) => entries
 /// mesma regra de [parsePdfIdsFromSharePdfs], para que a ordem única continue
 /// sem repetições.
 ///
+/// O tipo decodificado passa por [resolveWireKind], como no caminho de sync
+/// ([PlaylistEntry.fromJson]): uma URL escrita à mão (ou montada por um app
+/// que só sabe dizer `p`) com `p:<id de um .chord>` normaliza para
+/// [MaterialKind.chord]. Só [MaterialKind.audio] atravessa intocado.
+///
 /// Devolver `null` (e não uma lista parcial) é deliberado: quem chama cai nos
 /// params legados, que um app antigo sabe montar, em vez de importar uma
 /// playlist pela metade.
@@ -53,7 +59,7 @@ List<PlaylistEntry>? decodeShareItems(String raw) {
     if (kind == null) return null;
     final id = token.substring(separator + 1);
     if (!seen.add(id)) continue;
-    entries.add(PlaylistEntry(id: id, kind: kind));
+    entries.add(PlaylistEntry(id: id, kind: resolveWireKind(kind, id)));
   }
   return entries.isEmpty ? null : entries;
 }
@@ -94,10 +100,10 @@ class PlaylistShareParams {
       final decoded = decodeShareItems(raw);
       if (decoded != null) return decoded;
     }
-    return <PlaylistEntry>[
-      ...parsePdfIdsFromSharePdfs(sharePdfs).map(PlaylistEntry.classified),
-      ...parseAudioIdsFromShareAudios(shareAudios).map(PlaylistEntry.audio),
-    ];
+    return SavedPlaylist.entriesFromLegacyLists(
+      pdfIds: parsePdfIdsFromSharePdfs(sharePdfs),
+      audioIds: parseAudioIdsFromShareAudios(shareAudios),
+    );
   }
 }
 
@@ -157,9 +163,14 @@ String buildPlaylistShareUrlFromEntries({
 /// Wrapper legado por duas listas — monta [PlaylistEntry] e delega a
 /// [buildPlaylistShareUrlFromEntries].
 ///
-/// Perde a ordem intercalada (partituras primeiro, áudios depois) porque a
-/// entrada já vem separada em duas listas; quem tiver a ordem única deve
-/// chamar [buildPlaylistShareUrlFromEntries].
+/// Duas perdas, ambas inerentes a receber a entrada já separada em faces:
+///
+/// - **A ordem intercalada** vira partituras primeiro, áudios depois. Quem tem
+///   a ordem única deve chamar [buildPlaylistShareUrlFromEntries].
+/// - **O tipo é reclassificado pela extensão** ([PlaylistEntry.classified]):
+///   um id com extensão de áudio passado em [pdfIds] sai como `a:` no
+///   `shareitems` e em `shareaudios`, não em `sharepdfs` — o inverso do que o
+///   chamador declarou. `audioIds` não sofre disso (é declaração, A8).
 String buildPlaylistShareUrl({
   required String origin,
   required List<String> pdfIds,
