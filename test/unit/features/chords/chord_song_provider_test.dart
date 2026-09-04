@@ -170,10 +170,35 @@ void main() {
     expect(local.rows[_key]?.content, _content);
   });
 
-  test('sucesso fica quente: segunda leitura nao repete a rede', () async {
+  test('segunda leitura nao repete a rede — o cache responde', () async {
     final remote = _FakeRemote(body: _content);
     final local = _FakeLocal();
     final container = _container(remote: remote, local: local, online: false);
+
+    await _readWhileWatched(container, _key);
+    expect(remote.calls, 1);
+
+    final segunda = await _readWhileWatched(container, _key);
+
+    expect(remote.calls, 1);
+    expect(segunda.value?.title, 'Comigo');
+  });
+
+  test('sucesso fica quente sem Isar: keepAlive segura o elemento', () async {
+    // Datasource degradado de verdade (sem Isar): não persiste nada, então a
+    // única coisa que pode evitar o segundo GET é o `keepAlive` do sucesso.
+    // É o espelho do teste de erro acima — os dois lados podem falhar.
+    final remote = _FakeRemote(body: _content);
+    final container = ProviderContainer(
+      overrides: [
+        chordContentDatasourceProvider.overrideWithValue(remote),
+        chordContentLocalDatasourceProvider.overrideWithValue(
+          const ChordContentLocalDatasource(null),
+        ),
+        deviceConnectivityProvider.overrideWithValue(_FakeConnectivity(false)),
+      ],
+    );
+    addTearDown(container.dispose);
 
     await _readWhileWatched(container, _key);
     expect(remote.calls, 1);
