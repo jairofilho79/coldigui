@@ -146,6 +146,14 @@ class _ControllableAudioSession extends AudioPlayerSessionNotifier {
   void emitQueue(List<AudioTrack> tracks) {
     state = AudioPlayerSessionState(queue: tracks);
   }
+
+  /// Fila reidratada no boot (`restoreQueue`) — nada foi tocado ainda.
+  void emitRestoredQueue(List<AudioTrack> tracks) {
+    state = AudioPlayerSessionState(
+      queue: tracks,
+      restoredWithoutPlayback: true,
+    );
+  }
 }
 
 class _FakeColdigomAudioTracksCache extends ColdigomAudioTracksCacheNotifier {
@@ -949,7 +957,7 @@ void main() {
       final session = await pumpReader(tester, readerActions);
 
       // `restoreQueue` no boot: fila com faixa de outro louvor, sem tocar.
-      session.emitQueue([trackFor('p2')]);
+      session.emitRestoredQueue([trackFor('p2')]);
       await tester.pumpAndSettle();
 
       expect(readerActions.navigatedPdfIds, isEmpty);
@@ -971,6 +979,18 @@ void main() {
 
       expect(readerActions.navigatedPdfIds, isEmpty);
       expect(find.text('aberto:$chordP1Id'), findsOneWidget);
+    });
+
+    testWidgets('primeira faixa da sessão segue (A6)', (tester) async {
+      final readerActions = _FakeReaderCarouselActions();
+      final session = await pumpReader(tester, readerActions);
+
+      // Cifra de p1 aberta e o usuário dá play no áudio de p2: é a primeira
+      // faixa da sessão, mas não veio de restauração.
+      session.emitQueue([trackFor('p2')]);
+      await tester.pumpAndSettle();
+
+      expect(readerActions.navigatedPdfIds, [pdfP2Id]);
     });
 
     testWidgets('segue o áudio quando o louvor muda de verdade', (

@@ -68,6 +68,7 @@ void main() {
     test('segue quando a faixa muda numa rota de leitura', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',
@@ -82,6 +83,7 @@ void main() {
     test('não segue com o toggle desligado', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: false,
           isReaderRoute: true,
           previousGroupId: 'p1',
@@ -96,6 +98,7 @@ void main() {
     test('não navega fora das rotas de leitura', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: false,
           previousGroupId: 'p1',
@@ -107,9 +110,10 @@ void main() {
       );
     });
 
-    test('não navega na restauração da sessão (sem faixa anterior)', () {
+    test('não navega na restauração da sessão (fila restaurada sem play)', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: true,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: null,
@@ -121,9 +125,42 @@ void main() {
       );
     });
 
+    test('primeira faixa da sessão segue (A6)', () {
+      // Louvor p1 aberto no leitor, usuário dá play no áudio de p2: não há
+      // faixa anterior, mas a fila não veio de restauração.
+      expect(
+        shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
+          enabled: true,
+          isReaderRoute: true,
+          previousGroupId: null,
+          nextGroupId: 'p2',
+          currentMaterialGroupId: 'p1',
+          targetMaterialPdfId: 'pdf-p2',
+        ),
+        isTrue,
+      );
+    });
+
+    test('troca de faixa depois de uma restauração ainda parada não segue', () {
+      expect(
+        shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: true,
+          enabled: true,
+          isReaderRoute: true,
+          previousGroupId: 'p1',
+          nextGroupId: 'p2',
+          currentMaterialGroupId: 'p1',
+          targetMaterialPdfId: 'pdf-p2',
+        ),
+        isFalse,
+      );
+    });
+
     test('não navega quando o grupo não mudou', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',
@@ -138,6 +175,7 @@ void main() {
     test('não navega sem material para o grupo', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',
@@ -152,6 +190,7 @@ void main() {
     test('não troca a cifra aberta pela partitura do mesmo louvor', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',
@@ -167,6 +206,7 @@ void main() {
     test('não navega com faixa sem grupo', () {
       expect(
         shouldFollowAudioInReader(
+          sessionRestoredWithoutPlayback: false,
           enabled: true,
           isReaderRoute: true,
           previousGroupId: 'p1',

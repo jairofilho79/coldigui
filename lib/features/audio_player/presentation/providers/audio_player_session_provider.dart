@@ -24,6 +24,7 @@ class AudioPlayerSessionState {
     this.duration = Duration.zero,
     this.buffering = false,
     this.errorMessage,
+    this.restoredWithoutPlayback = false,
   });
 
   final List<AudioTrack> queue;
@@ -33,6 +34,14 @@ class AudioPlayerSessionState {
   final Duration duration;
   final bool buffering;
   final String? errorMessage;
+
+  /// A fila veio de [AudioPlayerSessionNotifier.restoreQueue] e o usuário ainda
+  /// não comandou nenhuma reprodução.
+  ///
+  /// Sinal explícito de "restauração de sessão" para "Seguir o áudio": antes,
+  /// a ausência de faixa anterior servia de proxy e engolia a **primeira**
+  /// faixa de uma sessão nova (A6).
+  final bool restoredWithoutPlayback;
 
   AudioTrack? get currentTrack {
     if (queue.isEmpty) return null;
@@ -52,6 +61,7 @@ class AudioPlayerSessionState {
     bool? buffering,
     String? errorMessage,
     bool clearError = false,
+    bool? restoredWithoutPlayback,
   }) {
     return AudioPlayerSessionState(
       queue: queue ?? this.queue,
@@ -61,6 +71,8 @@ class AudioPlayerSessionState {
       duration: duration ?? this.duration,
       buffering: buffering ?? this.buffering,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      restoredWithoutPlayback:
+          restoredWithoutPlayback ?? this.restoredWithoutPlayback,
     );
   }
 }
@@ -205,6 +217,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       position: Duration.zero,
       duration: Duration.zero,
       clearError: true,
+      restoredWithoutPlayback: !autoplay,
     );
     _persistFocusedAudioId(tracks[safeIndex].audioId);
 
@@ -260,9 +273,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
   Future<void> playTrack(AudioTrack track) => playQueue([track]);
 
+  /// Marca que o usuário comandou a reprodução, encerrando a restauração.
+  void _markUserPlaybackIntent() {
+    if (!state.restoredWithoutPlayback) return;
+    state = state.copyWith(restoredWithoutPlayback: false);
+  }
+
   Future<void> playPause() async {
     final player = _player;
     if (player == null || state.queue.isEmpty) return;
+    _markUserPlaybackIntent();
     if (player.playing) {
       await player.pause();
     } else {
@@ -277,6 +297,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   Future<void> skipToPrevious() async {
     final player = _player;
     if (player == null) return;
+    _markUserPlaybackIntent();
     if (state.position > const Duration(seconds: 3) || !state.hasPrevious) {
       await player.seek(Duration.zero);
       return;
@@ -286,11 +307,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
   Future<void> skipToNext() async {
     if (!state.hasNext) return;
+    _markUserPlaybackIntent();
     await _player?.seekToNext();
   }
 
   Future<void> skipToIndex(int index) async {
     if (index < 0 || index >= state.queue.length) return;
+    _markUserPlaybackIntent();
     await _player?.seek(Duration.zero, index: index);
     await _player?.play();
   }

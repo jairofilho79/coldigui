@@ -51,15 +51,18 @@ final audioFollowReaderProvider =
 ///
 /// Regra pura de [listenAudioFollowReader]. Nunca navega:
 /// - fora de `/leitor` e `/cifra`;
-/// - sem faixa anterior ([previousGroupId] `null`) — é a restauração da sessão
-///   no boot ([hydratePlaylistSession] chama `restoreQueue` sem tocar nada), e
-///   um reload ou deep link no leitor não pode ser sequestrado por ela;
+/// - enquanto [sessionRestoredWithoutPlayback] — a fila veio de `restoreQueue`
+///   no boot ([hydratePlaylistSession]) e o usuário ainda não deu play, então
+///   um reload ou deep link no leitor não pode ser sequestrado por ela. É um
+///   sinal explícito da sessão: "sem faixa anterior" servia de proxy e engolia
+///   a primeira faixa de uma sessão nova (A6);
 /// - quando o louvor **aberto** já é o da faixa ([currentMaterialGroupId]): a
 ///   entrada é louvor + material escolhido (PRODUCT §4), então uma cifra aberta
 ///   não vira a partitura do mesmo louvor.
 bool shouldFollowAudioInReader({
   required bool enabled,
   required bool isReaderRoute,
+  required bool sessionRestoredWithoutPlayback,
   required String? previousGroupId,
   required String? nextGroupId,
   required String? currentMaterialGroupId,
@@ -67,7 +70,7 @@ bool shouldFollowAudioInReader({
 }) {
   if (!enabled || !isReaderRoute) return false;
   if (nextGroupId == null || nextGroupId.isEmpty) return false;
-  if (previousGroupId == null) return false;
+  if (sessionRestoredWithoutPlayback) return false;
   if (nextGroupId == previousGroupId) return false;
   if (targetMaterialPdfId == null || targetMaterialPdfId.isEmpty) return false;
   if (nextGroupId == currentMaterialGroupId) return false;
@@ -205,6 +208,9 @@ void listenAudioFollowReader(WidgetRef ref, BuildContext context) {
       if (!shouldFollowAudioInReader(
         enabled: ref.read(audioFollowReaderProvider),
         isReaderRoute: isReaderRoute(context),
+        sessionRestoredWithoutPlayback: ref
+            .read(audioPlayerSessionProvider)
+            .restoredWithoutPlayback,
         previousGroupId: previousGroupId,
         nextGroupId: nextGroupId,
         currentMaterialGroupId: resolveGroupIdForMaterial(
