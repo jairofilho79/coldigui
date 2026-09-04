@@ -11,6 +11,12 @@ import 'package:isar_plus/isar_plus.dart';
 
 import 'offline_test_helpers.dart';
 
+/// Desembrulha um [ReconcileOutcome] esperado como concluído.
+ReconcileDone _done(ReconcileOutcome outcome) {
+  expect(outcome, isA<ReconcileDone>());
+  return outcome as ReconcileDone;
+}
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
@@ -57,7 +63,7 @@ void main() {
     );
     expect(await File(entry.absolutePath).exists(), isTrue);
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 1);
     expect(await repository.lookup(pdfId), isNull);
@@ -84,9 +90,8 @@ void main() {
       totalParts: 1,
     );
 
-    final result = await useCase(
-      materialPackage: package,
-      materialCategory: 'Partitura',
+    final result = _done(
+      await useCase(materialPackage: package, materialCategory: 'Partitura'),
     );
 
     expect(result.removedFromIndex, 1);
@@ -100,7 +105,7 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 0);
     expect(await repository.lookup(pdfId), isNotNull);
@@ -119,7 +124,7 @@ void main() {
       'ColAdultos/orphan-only.pdf',
     );
 
-    final result = await useCase();
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 0);
     expect(result.orphanFiles, 1);
@@ -134,11 +139,133 @@ void main() {
       category: 'ColAdultos',
     );
 
-    final first = await useCase();
-    final second = await useCase();
+    final first = _done(await useCase());
+    final second = _done(await useCase());
 
     expect(first.removedFromIndex, 0);
     expect(second.removedFromIndex, 0);
     expect(second.orphanFiles, 0);
   });
+
+  test(
+    'reconcile completo com índice indisponível é pulado sem apagar nada',
+    () async {
+      final orphanPath = await store.writeAtomic(
+        pdfBytes,
+        'ColAdultos/001.pdf',
+      );
+
+      final outcome = await useCase(isIndexAvailable: false);
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.indexUnavailable,
+      );
+      expect(await File(orphanPath).exists(), isTrue);
+    },
+  );
+
+  test(
+    'reconcile completo com índice vazio e arquivos no disco é pulado',
+    () async {
+      final aPath = await store.writeAtomic(pdfBytes, 'ColAdultos/001.pdf');
+      final bPath = await store.writeAtomic(pdfBytes, 'ColAdultos/002.pdf');
+
+      final outcome = await useCase();
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.emptyIndexWithFiles,
+      );
+      expect(await File(aPath).exists(), isTrue);
+      expect(await File(bPath).exists(), isTrue);
+    },
+  );
+
+  test('reconcile completo com índice vazio e disco vazio conclui', () async {
+    final outcome = await useCase();
+
+    expect(outcome, isA<ReconcileDone>());
+    expect((outcome as ReconcileDone).orphanFiles, 0);
+  });
+
+  test(
+    'reconcile escopado preserva PDF indexado fora do escopo na mesma pasta',
+    () async {
+      final outOfScopeId = encodePdfId('ColAdultos/002.pdf');
+      final inScope = await repository.upsert(
+        pdfId: pdfId,
+        bytes: pdfBytes,
+        category: 'ColAdultos',
+      );
+      final outOfScope = await repository.upsert(
+        pdfId: outOfScopeId,
+        bytes: pdfBytes,
+        category: 'ColAdultos',
+      );
+
+      final package = OfflineMaterialPackage(
+        parts: [
+          OfflinePackagePart(
+            filename: 'Partitura-1.zip',
+            size: 100,
+            url: '/packages/Partitura-1.zip',
+            pdfs: [pdfId],
+          ),
+        ],
+        totalSize: 100,
+        totalParts: 1,
+      );
+
+      final outcome = _done(
+        await useCase(materialPackage: package, materialCategory: 'Partitura'),
+      );
+
+      expect(outcome.orphanFiles, 0);
+      expect(await File(inScope.absolutePath).exists(), isTrue);
+      expect(await File(outOfScope.absolutePath).exists(), isTrue);
+      expect(await repository.lookup(outOfScopeId), isNotNull);
+    },
+  );
+
+  test(
+    'reconcile escopado com índice vazio só apaga órfãos do escopo',
+    () async {
+      final scopedOrphan = await store.writeAtomic(
+        pdfBytes,
+        'Partitura/001.pdf',
+      );
+      final outOfScope = await store.writeAtomic(
+        pdfBytes,
+        'ColAdultos/001.pdf',
+      );
+
+      final package = OfflineMaterialPackage(
+        parts: [
+          OfflinePackagePart(
+            filename: 'Partitura-1.zip',
+            size: 100,
+            url: '/packages/Partitura-1.zip',
+            pdfs: [encodePdfId('Partitura/999.pdf')],
+          ),
+        ],
+        totalSize: 100,
+        totalParts: 1,
+      );
+
+      final outcome = _done(
+        await useCase(
+          materialPackage: package,
+          materialCategory: 'Partitura',
+          isIndexAvailable: false,
+        ),
+      );
+
+      expect(outcome.orphanFiles, 1);
+      expect(await File(scopedOrphan).exists(), isFalse);
+      expect(await File(outOfScope).exists(), isTrue);
+    },
+  );
 }

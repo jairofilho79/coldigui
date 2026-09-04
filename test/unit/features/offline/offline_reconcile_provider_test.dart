@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
@@ -9,10 +11,11 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
-import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,9 +33,13 @@ class _CountingMigrate extends MigrateOfflineStorage {
   );
 
   int callCount = 0;
+  bool throwStorageUnavailable = false;
 
   @override
   Future<void> call() async {
+    if (throwStorageUnavailable) {
+      throw const StorageUnavailableException('offline.clearAll');
+    }
     callCount++;
   }
 }
@@ -41,11 +48,23 @@ class _CountingReconcile extends ReconcileOfflineIndex {
   _CountingReconcile(super.repository, super.store);
 
   int callCount = 0;
+  bool? lastIsIndexAvailable;
+  OfflineMaterialPackage? lastPackage;
 
   @override
-  Future<ReconcileResult> call({materialPackage, materialCategory}) async {
+  Future<ReconcileOutcome> call({
+    OfflineMaterialPackage? materialPackage,
+    String? materialCategory,
+    bool isIndexAvailable = true,
+  }) async {
     callCount++;
-    return const ReconcileResult(removedFromIndex: 0, orphanFiles: 0);
+    lastIsIndexAvailable = isIndexAvailable;
+    lastPackage = materialPackage;
+    return const ReconcileDone(
+      removedFromIndex: 0,
+      orphanFiles: 0,
+      keptFiles: 0,
+    );
   }
 }
 
@@ -153,12 +172,13 @@ void main() {
     isar.close(deleteFromDisk: true);
   });
 
-  ProviderContainer createContainer() {
+  ProviderContainer createContainer({bool isarAvailable = true}) {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         migrateOfflineStorageProvider.overrideWith((ref) => migrate),
         reconcileOfflineIndexProvider.overrideWith((ref) => reconcile),
+        isarAvailableProvider.overrideWithValue(isarAvailable),
       ],
     );
     addTearDown(container.dispose);
@@ -248,5 +268,79 @@ void main() {
     expect(migrate.callCount, 1);
     expect(reconcile.callCount, 1);
     expect(container.read(offlineReconcileProvider).lastRunAt, isNotNull);
+  });
+
+  test('reconcile repassa isIndexAvailable do isarAvailableProvider', () async {
+    final container = createContainer(isarAvailable: false);
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(reconcile.lastIsIndexAvailable, isFalse);
+  });
+
+  test('lock ocupado por outro dono não chama o usecase', () async {
+    final container = createContainer();
+    container
+        .read(offlineMaintenanceLockProvider.notifier)
+        .tryAcquire(OfflineMaintenanceOwner.bulk);
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(migrate.callCount, 0);
+    expect(reconcile.callCount, 0);
+    expect(
+      container.read(offlineReconcileProvider).lastSkipReason,
+      ReconcileSkipReason.locked,
+    );
+    expect(prefs.getInt(StorageKeys.lastReconcileAt), isNull);
+  });
+
+  test('reconcile libera o lock ao terminar', () async {
+    final container = createContainer();
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
+  });
+
+  test(
+    'reconcile escopado ignora o throttle e não persiste timestamp',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.lastReconcileAt: DateTime.now().millisecondsSinceEpoch,
+      });
+      prefs = await SharedPreferences.getInstance();
+
+      final container = createContainer();
+      final package = OfflineMaterialPackage(
+        parts: const [],
+        totalSize: 0,
+        totalParts: 0,
+      );
+
+      await container
+          .read(offlineReconcileProvider.notifier)
+          .requestReconcile(
+            materialPackage: package,
+            materialCategory: 'Partitura',
+          );
+
+      expect(reconcile.callCount, 1);
+      expect(reconcile.lastPackage, same(package));
+    },
+  );
+
+  test('StorageUnavailableException na migração não escapa', () async {
+    migrate.throwStorageUnavailable = true;
+    final container = createContainer();
+
+    await container.read(offlineReconcileProvider.notifier).requestReconcile();
+
+    expect(reconcile.callCount, 0);
+    expect(
+      container.read(offlineReconcileProvider).lastSkipReason,
+      ReconcileSkipReason.indexUnavailable,
+    );
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
 }

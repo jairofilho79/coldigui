@@ -13,7 +13,6 @@ import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_excepti
 import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
-import 'package:coldigui/features/offline/domain/entities/reconcile_result.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -156,15 +155,17 @@ class _CountingReconcile extends ReconcileOfflineIndex {
   final scopedCalls = <String?>[];
 
   @override
-  Future<ReconcileResult> call({
+  Future<ReconcileOutcome> call({
     OfflineMaterialPackage? materialPackage,
     String? materialCategory,
+    bool isIndexAvailable = true,
   }) async {
     callCount++;
     scopedCalls.add(materialCategory);
     return super.call(
       materialPackage: materialPackage,
       materialCategory: materialCategory,
+      isIndexAvailable: isIndexAvailable,
     );
   }
 }
@@ -827,89 +828,84 @@ void main() {
     expect(extractingDonePdfs.any((d) => d >= 25), isTrue);
   });
 
-  test(
-    'bulk de múltiplas categorias executa reconcile único ao final',
-    () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
+  test('bulk de múltiplas categorias executa um reconcile escopado por pacote '
+      'ao final (spec C.1)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
 
-      final pdfId3 = encodePdfId('ColAdultos/012.pdf');
-      final multiCategoryZipPath = await createSampleZip(
-        dir: tempDir,
-        pdfEntries: {
-          'ColAdultos/010.pdf': pdfBytes,
-          'ColAdultos/011.pdf': pdfBytes,
-          'ColAdultos/012.pdf': pdfBytes,
-        },
-      );
+    final pdfId3 = encodePdfId('ColAdultos/012.pdf');
+    final multiCategoryZipPath = await createSampleZip(
+      dir: tempDir,
+      pdfEntries: {
+        'ColAdultos/010.pdf': pdfBytes,
+        'ColAdultos/011.pdf': pdfBytes,
+        'ColAdultos/012.pdf': pdfBytes,
+      },
+    );
 
-      final manifest = OfflineManifest(
-        version: '1.0.0',
-        packages: {
-          'Partitura': OfflineMaterialPackage(
-            parts: [
-              OfflinePackagePart(
-                filename: 'Partitura-1.zip',
-                size: 1000,
-                url: '/packages/Partitura-1.zip',
-                pdfs: [pdfId1, pdfId2],
-              ),
-            ],
-            totalSize: 1000,
-            totalParts: 1,
-          ),
-          'Cifra': OfflineMaterialPackage(
-            parts: [
-              OfflinePackagePart(
-                filename: 'Cifra-1.zip',
-                size: 500,
-                url: '/packages/Cifra-1.zip',
-                pdfs: [pdfId3],
-              ),
-            ],
-            totalSize: 500,
-            totalParts: 1,
-          ),
-        },
-      );
+    final manifest = OfflineManifest(
+      version: '1.0.0',
+      packages: {
+        'Partitura': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Partitura-1.zip',
+              size: 1000,
+              url: '/packages/Partitura-1.zip',
+              pdfs: [pdfId1, pdfId2],
+            ),
+          ],
+          totalSize: 1000,
+          totalParts: 1,
+        ),
+        'Cifra': OfflineMaterialPackage(
+          parts: [
+            OfflinePackagePart(
+              filename: 'Cifra-1.zip',
+              size: 500,
+              url: '/packages/Cifra-1.zip',
+              pdfs: [pdfId3],
+            ),
+          ],
+          totalSize: 500,
+          totalParts: 1,
+        ),
+      },
+    );
 
-      final reconcile = _CountingReconcile(
+    final reconcile = _CountingReconcile(repository, pdfStoragePortFor(store));
+    final retainedZipDownloader = _RetainedZipDownloader(
+      store,
+      multiCategoryZipPath,
+    );
+    final dualUseCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(manifest, prefs),
+      zipDownloader: retainedZipDownloader,
+      extractAndStorePdfs: ExtractAndStorePdfs(
         repository,
         pdfStoragePortFor(store),
-      );
-      final retainedZipDownloader = _RetainedZipDownloader(
-        store,
-        multiCategoryZipPath,
-      );
-      final dualUseCase = DownloadOfflinePackages(
-        manifestDatasource: _FakeManifestDatasource(manifest, prefs),
-        zipDownloader: retainedZipDownloader,
-        extractAndStorePdfs: ExtractAndStorePdfs(
-          repository,
-          pdfStoragePortFor(store),
-          retainedZipDownloader,
-        ),
-        reconcileOfflineIndex: reconcile,
-        checkpointStore: OfflineBulkCheckpointStore(prefs),
-      );
+        retainedZipDownloader,
+      ),
+      reconcileOfflineIndex: reconcile,
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
 
-      final syncingPhases = <OfflineDownloadPhase>[];
-      await dualUseCase.call(
-        categories: const ['Partitura', 'Cifra'],
-        onProgress: (progress) {
-          if (progress.phase == OfflineDownloadPhase.syncing) {
-            syncingPhases.add(progress.phase);
-          }
-        },
-      );
+    final syncingPhases = <OfflineDownloadPhase>[];
+    await dualUseCase.call(
+      categories: const ['Partitura', 'Cifra'],
+      onProgress: (progress) {
+        if (progress.phase == OfflineDownloadPhase.syncing) {
+          syncingPhases.add(progress.phase);
+        }
+      },
+    );
 
-      expect(reconcile.callCount, 1);
-      expect(reconcile.scopedCalls, [null]);
-      expect(syncingPhases.length, 1);
-      expect(await repository.lookup(pdfId1), isNotNull);
-      expect(await repository.lookup(pdfId2), isNotNull);
-      expect(await repository.lookup(pdfId3), isNotNull);
-      expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
-    },
-  );
+    expect(reconcile.callCount, 2);
+    expect(reconcile.scopedCalls, ['Partitura', 'Cifra']);
+    expect(syncingPhases.length, 1);
+    expect(await repository.lookup(pdfId1), isNotNull);
+    expect(await repository.lookup(pdfId2), isNotNull);
+    expect(await repository.lookup(pdfId3), isNotNull);
+    expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
+  });
 }

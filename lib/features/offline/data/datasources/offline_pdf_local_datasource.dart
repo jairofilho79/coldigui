@@ -1,8 +1,13 @@
 import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/offline_pdf_index.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 
 /// CRUD Isar para [OfflinePdfIndex] — sem validação de disco (Fase 3.1).
+///
+/// Em modo degradado (`_isar == null`) as **leituras** devolvem vazio e as
+/// **escritas** lançam [StorageUnavailableException] — nunca fingem sucesso
+/// (spec C.1 / B5).
 class OfflinePdfLocalDatasource {
   const OfflinePdfLocalDatasource(this._isar);
 
@@ -56,8 +61,7 @@ class OfflinePdfLocalDatasource {
 
   /// Upsert por `pdfId` único em transação Isar.
   Future<void> put(OfflinePdfIndex index) async {
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('put');
     await isar.write((isar) {
       _putByPdfId(isar.offlinePdfIndexs, index);
     });
@@ -65,8 +69,7 @@ class OfflinePdfLocalDatasource {
 
   /// Remove entrada por [pdfId] — idempotente se ausente.
   Future<void> deleteByPdfId(String pdfId) async {
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('deleteByPdfId');
     await isar.write((isar) {
       final coll = isar.offlinePdfIndexs;
       final existing = coll.where().pdfIdEqualTo(pdfId).findFirst();
@@ -107,8 +110,7 @@ class OfflinePdfLocalDatasource {
   /// Atualiza [OfflinePdfIndex.lastAccessedAt] em lote — uma write txn.
   Future<void> touchLastAccessedBatch(Map<String, DateTime> touches) async {
     if (touches.isEmpty) return;
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('touchLastAccessedBatch');
 
     await isar.write((isar) {
       final coll = isar.offlinePdfIndexs;
@@ -127,8 +129,7 @@ class OfflinePdfLocalDatasource {
   /// Upsert em lote por `pdfId` em uma única transação (bulk UC-09).
   Future<void> putAllByPdfId(List<OfflinePdfIndex> indexes) async {
     if (indexes.isEmpty) return;
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('putAllByPdfId');
     await isar.write((isar) {
       final coll = isar.offlinePdfIndexs;
       for (final index in indexes) {
@@ -139,8 +140,7 @@ class OfflinePdfLocalDatasource {
 
   /// Marca todas as entradas como persistentes — migração v2 (bulk legado).
   Future<void> markAllPersistent() async {
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('markAllPersistent');
     await isar.write((isar) {
       final coll = isar.offlinePdfIndexs;
       final all = coll.where().findAll();
@@ -154,8 +154,7 @@ class OfflinePdfLocalDatasource {
 
   /// Remove todas as entradas do índice offline (UC-10 clear cache).
   Future<void> clearAll() async {
-    final isar = _isar;
-    if (isar == null) return;
+    final isar = _requireIsar('clearAll');
     await isar.write((isar) {
       isar.offlinePdfIndexs.clear();
     });
@@ -164,8 +163,7 @@ class OfflinePdfLocalDatasource {
   /// Remove entradas cujo [pdfId] está em [pdfIds].
   Future<int> deleteByPdfIds(Set<String> pdfIds) async {
     if (pdfIds.isEmpty) return 0;
-    final isar = _isar;
-    if (isar == null) return 0;
+    final isar = _requireIsar('deleteByPdfIds');
 
     var removed = 0;
     await isar.write((isar) {
@@ -181,6 +179,15 @@ class OfflinePdfLocalDatasource {
       }
     });
     return removed;
+  }
+
+  /// Isar obrigatório nas escritas — [StorageUnavailableException] se ausente.
+  Isar _requireIsar(String operation) {
+    final isar = _isar;
+    if (isar == null) {
+      throw StorageUnavailableException('offline.$operation');
+    }
+    return isar;
   }
 
   void _putByPdfId(

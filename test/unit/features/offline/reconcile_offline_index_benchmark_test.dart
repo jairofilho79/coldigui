@@ -46,9 +46,11 @@ void main() {
       await seedOfflineEntries(repository: repository, count: 5000);
 
       final stopwatch = Stopwatch()..start();
-      final result = await useCase();
+      final outcome = await useCase();
       stopwatch.stop();
 
+      expect(outcome, isA<ReconcileDone>());
+      final result = outcome as ReconcileDone;
       expect(result.removedFromIndex, 0);
       expect(result.orphanFiles, 0);
       expect(

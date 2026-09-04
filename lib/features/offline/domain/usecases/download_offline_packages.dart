@@ -291,7 +291,17 @@ class DownloadOfflinePackages {
         ),
       );
 
-      await _reconcileOfflineIndex();
+      // Spec C.1: reconcile **escopado** por pacote baixado. Um reconcile
+      // completo aqui trataria como órfão todo PDF fora deste bulk que ainda
+      // não estivesse no índice.
+      for (final category in checkpoint.categories) {
+        final package = manifest.packageFor(category);
+        if (package == null) continue;
+        await _reconcileOfflineIndex(
+          materialPackage: package,
+          materialCategory: category,
+        );
+      }
     }
 
     await _checkpointStore.clear();
