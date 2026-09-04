@@ -368,7 +368,7 @@ conjunto é lido como `unknown` — nunca derruba a leitura da playlist.
   | payload | leitura |
   | --- | --- |
   | sem `schemaVersion` nem `items` | v1: `pdfIds` classificado pela extensão do id, `audioIds` declarado como áudio |
-  | `items` de **strings** (rascunho v2 da fatia 1; só existiu em Isar local, nunca no Worker) | classifica pela extensão, com `audioIds` do mesmo payload como veredito de áudio |
+  | `items` de **strings** (rascunho v2 da fatia 1; nunca foi *gravado* pelo Worker, mas é aceito num PUT) | classifica pela extensão, com `audioIds` do mesmo payload como veredito de áudio |
   | `items` de **objetos** | usa o `kind` do wire, normalizado por `resolveWireKind` |
 
 - `items`, quando presente, **manda**: `pdfIds`/`audioIds` recebidos são
@@ -391,15 +391,31 @@ O Worker **persiste** `items` na coluna homônima (§6) — ele não a descarta 
 
 - `validatePutBody`: `schemaVersion` opcional (inteiro ≥ 1); `items` opcional,
   validado por `parseItems` (400 quando `kind` está fora do conjunto, `id` é
-  vazio, uma entrada não é objeto ou o valor não é array). `pdfIds` continua
-  **obrigatório só quando `items` está ausente** (cliente v1).
-- `upsertPlaylist`: `items = parseItems(body.items) ?? itemsFromLegacy(pdfIds,
-  audioIds)`; grava `items` (JSON) e `pdf_ids`/`audio_ids` =
-  `listsFromItems(items)`. **`items` manda:** as listas que o cliente enviar
-  junto são ignoradas e recalculadas.
+  vazio, uma entrada não é objeto **nem string**, ou o valor não é array).
+  `pdfIds` continua **obrigatório só quando `items` está ausente** (cliente v1).
+- **`items` de strings é aceito, não rejeitado.** O rascunho v2 da fatia 1
+  mandava ids soltos; um PUT assim é lido como legado — a ordem vem de `items`,
+  e o tipo de cada id sai do pertencimento a `audioIds` do mesmo body (dentro →
+  `audio`, fora → `pdf`), a mesma regra do cliente Dart. Objetos e strings podem
+  vir na mesma lista.
+- `upsertPlaylist`: `items = parseItems(body.items, audioIds) ??
+  itemsFromLegacyPreservingKinds(pdfIds, audioIds, itemsGravados)`; grava
+  `items` (JSON) e `pdf_ids`/`audio_ids` = `listsFromItems(items)`.
+  **`items` manda:** as listas que o cliente enviar junto são ignoradas e
+  recalculadas.
+- **PUT v1 sobre linha v2 não rebaixa tipo.** Um cliente v1 (sem `items`) manda
+  só as duas listas: pertencimento e ordem são last-write-wins do request, mas o
+  `kind` já gravado é **reaproveitado** para todo id que continua na playlist e
+  que ficou na mesma face. Sem isso, um cliente antigo mexendo no nome da lista
+  transformaria toda cifra, gesto e vídeo em `pdf` — perda permanente. Id novo,
+  ou id que trocou de face, recebe o tipo genérico da face do request
+  (`pdf`/`audio`).
 - `rowToJson`: devolve sempre `schemaVersion: 2`, `items` e as duas listas.
   Coluna `items` vazia (linha legada) ou corrompida cai em
-  `itemsFromLegacy(pdf_ids, audio_ids)` — nunca 500.
+  `itemsFromLegacy(pdf_ids, audio_ids)` — nunca 500. A leitura da **coluna**
+  (`parseItemsColumn`) é de propósito mais estrita que a do body: só objetos.
+  Uma coluna com ids soltos não diz o tipo de nada, e as colunas
+  `pdf_ids`/`audio_ids` sabem quem é áudio — cair nelas dá um resultado melhor.
 - O Worker **não interpreta** `kind`: não classifica por extensão nem decide
   face. Toda partitura derivada de uma lista v1 sai como `pdf`; quem recupera
   `chord`/`gesture` é o cliente, em `resolveWireKind`.

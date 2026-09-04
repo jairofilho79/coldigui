@@ -196,6 +196,136 @@ test('LIST devolve schemaVersion 2 em cada playlist', async () => {
   assert.deepEqual(json[0].items, v2Items);
 });
 
+test('PUT com items de strings é tolerado como legado, não 400', async () => {
+  const db = new FakeD1Database();
+
+  const { status, json } = await put(db, {
+    schemaVersion: 2,
+    items: ['p-a', 'a-a', 'c-a'],
+    audioIds: ['a-a'],
+  });
+
+  assert.equal(status, 200);
+  // Ordem do `items` preservada; `audioIds` decide quem é áudio.
+  assert.deepEqual(json.items, [
+    { id: 'p-a', kind: 'pdf' },
+    { id: 'a-a', kind: 'audio' },
+    { id: 'c-a', kind: 'pdf' },
+  ]);
+  assert.deepEqual(json.pdfIds, ['p-a', 'c-a']);
+  assert.deepEqual(json.audioIds, ['a-a']);
+  assert.equal(
+    db.get('u1', 'p1')?.items,
+    JSON.stringify([
+      { id: 'p-a', kind: 'pdf' },
+      { id: 'a-a', kind: 'audio' },
+      { id: 'c-a', kind: 'pdf' },
+    ]),
+  );
+});
+
+test('PUT com items de strings e objetos misturados é aceito', async () => {
+  const db = new FakeD1Database();
+
+  const { status, json } = await put(db, {
+    items: [{ id: 'c-a', kind: 'chord' }, 'a-a'],
+    audioIds: ['a-a'],
+  });
+
+  assert.equal(status, 200);
+  assert.deepEqual(json.items, [
+    { id: 'c-a', kind: 'chord' },
+    { id: 'a-a', kind: 'audio' },
+  ]);
+});
+
+test('PUT v1 sobre linha v2 preserva o kind dos ids que ficaram', async () => {
+  const stored = [
+    { id: 'c-a', kind: 'chord' },
+    { id: 'y-a', kind: 'youtube' },
+    { id: 'a-a', kind: 'audio' },
+  ];
+  const db = new FakeD1Database().seed(
+    playlistRow({
+      items: JSON.stringify(stored),
+      pdf_ids: JSON.stringify(['c-a', 'y-a']),
+      audio_ids: JSON.stringify(['a-a']),
+    }),
+  );
+
+  // Cliente v1 mexeu só no nome: manda as duas listas, sem `items`.
+  const { status, json } = await put(db, {
+    nome: 'Outro nome',
+    pdfIds: ['c-a', 'y-a'],
+    audioIds: ['a-a'],
+  });
+
+  assert.equal(status, 200);
+  // `chord` e `youtube` não podem ter virado `pdf`.
+  assert.deepEqual(json.items, stored);
+  assert.equal(db.get('u1', 'p1')?.items, JSON.stringify(stored));
+});
+
+test('PUT v1 sobre linha v2: id novo entra com o kind da face', async () => {
+  const db = new FakeD1Database().seed(
+    playlistRow({
+      items: JSON.stringify([{ id: 'c-a', kind: 'chord' }]),
+      pdf_ids: JSON.stringify(['c-a']),
+    }),
+  );
+
+  const { json } = await put(db, { pdfIds: ['c-a', 'novo'] });
+
+  assert.deepEqual(json.items, [
+    { id: 'c-a', kind: 'chord' },
+    { id: 'novo', kind: 'pdf' },
+  ]);
+});
+
+test('PUT v1 sobre linha v2: remoção e reordenação mandam', async () => {
+  const db = new FakeD1Database().seed(
+    playlistRow({
+      items: JSON.stringify([
+        { id: 'a', kind: 'chord' },
+        { id: 'b', kind: 'youtube' },
+        { id: 'c', kind: 'gesture' },
+      ]),
+      pdf_ids: JSON.stringify(['a', 'b', 'c']),
+    }),
+  );
+
+  const { json } = await put(db, { pdfIds: ['c', 'a'] });
+
+  assert.deepEqual(json.items, [
+    { id: 'c', kind: 'gesture' },
+    { id: 'a', kind: 'chord' },
+  ]);
+});
+
+test('PUT v1 sobre linha v2: mudar de face segue o request', async () => {
+  const db = new FakeD1Database().seed(
+    playlistRow({
+      items: JSON.stringify([{ id: 'x', kind: 'chord' }]),
+      pdf_ids: JSON.stringify(['x']),
+    }),
+  );
+
+  const { json } = await put(db, { pdfIds: [], audioIds: ['x'] });
+
+  assert.deepEqual(json.items, [{ id: 'x', kind: 'audio' }]);
+  assert.deepEqual(json.audioIds, ['x']);
+});
+
+test('PUT v2 com items ignora os kinds gravados (o request manda)', async () => {
+  const db = new FakeD1Database().seed(
+    playlistRow({ items: JSON.stringify([{ id: 'c-a', kind: 'chord' }]) }),
+  );
+
+  const { json } = await put(db, { items: [{ id: 'c-a', kind: 'pdf' }] });
+
+  assert.deepEqual(json.items, [{ id: 'c-a', kind: 'pdf' }]);
+});
+
 test('items com kind inválido é 400 e não escreve nada', async () => {
   const db = new FakeD1Database();
 

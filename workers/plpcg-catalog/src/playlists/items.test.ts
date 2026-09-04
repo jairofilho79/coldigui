@@ -3,9 +3,11 @@ import { test } from 'node:test';
 import {
   MATERIAL_KINDS,
   itemsFromLegacy,
+  itemsFromLegacyPreservingKinds,
   listsFromItems,
   parseItems,
   parseItemsColumn,
+  type PlaylistItem,
 } from './items.ts';
 
 test('MATERIAL_KINDS é exatamente o enum MaterialKind do cliente', () => {
@@ -53,9 +55,46 @@ test('parseItems devolve null para kind ausente', () => {
   assert.equal(parseItems([{ id: 'a' }]), null);
 });
 
-test('parseItems devolve null para entrada que não é objeto', () => {
-  assert.equal(parseItems(['a']), null);
+test('parseItems devolve null para entrada que não é objeto nem string', () => {
   assert.equal(parseItems([null]), null);
+  assert.equal(parseItems([7]), null);
+  assert.equal(parseItems([['a']]), null);
+});
+
+test('parseItems tolera items de strings (rascunho v2 da fatia 1)', () => {
+  // Sem `declaredAudio`, toda string é partitura genérica.
+  assert.deepEqual(parseItems(['p-a', 'c-a']), [
+    { id: 'p-a', kind: 'pdf' },
+    { id: 'c-a', kind: 'pdf' },
+  ]);
+});
+
+test('parseItems usa declaredAudio para tipar as strings', () => {
+  assert.deepEqual(parseItems(['p-a', 'a-a'], ['a-a']), [
+    { id: 'p-a', kind: 'pdf' },
+    { id: 'a-a', kind: 'audio' },
+  ]);
+});
+
+test('parseItems aceita objetos e strings na mesma lista', () => {
+  assert.deepEqual(
+    parseItems([{ id: 'c-a', kind: 'chord' }, 'a-a'], ['a-a']),
+    [
+      { id: 'c-a', kind: 'chord' },
+      { id: 'a-a', kind: 'audio' },
+    ],
+  );
+});
+
+test('parseItems: declaredAudio não mexe no kind de um objeto', () => {
+  // O `kind` explícito manda; a lista só resolve string solta.
+  assert.deepEqual(parseItems([{ id: 'a-a', kind: 'pdf' }], ['a-a']), [
+    { id: 'a-a', kind: 'pdf' },
+  ]);
+});
+
+test('parseItems devolve null para string vazia', () => {
+  assert.equal(parseItems(['']), null);
 });
 
 test('parseItems devolve null para não-array', () => {
@@ -108,6 +147,68 @@ test('itemsFromLegacy → listsFromItems é round-trip das duas listas', () => {
     pdfIds,
     audioIds,
   });
+});
+
+test('itemsFromLegacyPreservingKinds reusa o kind gravado na mesma face', () => {
+  const stored: PlaylistItem[] = [
+    { id: 'c-a', kind: 'chord' },
+    { id: 'y-a', kind: 'youtube' },
+    { id: 'g-a', kind: 'gesture' },
+    { id: 'a-a', kind: 'audio' },
+  ];
+
+  assert.deepEqual(
+    itemsFromLegacyPreservingKinds(['c-a', 'y-a', 'g-a'], ['a-a'], stored),
+    stored,
+  );
+});
+
+test('itemsFromLegacyPreservingKinds tipa id novo pela face do request', () => {
+  const stored: PlaylistItem[] = [{ id: 'c-a', kind: 'chord' }];
+
+  assert.deepEqual(
+    itemsFromLegacyPreservingKinds(['c-a', 'novo'], ['a-novo'], stored),
+    [
+      { id: 'c-a', kind: 'chord' },
+      { id: 'novo', kind: 'pdf' },
+      { id: 'a-novo', kind: 'audio' },
+    ],
+  );
+});
+
+test('itemsFromLegacyPreservingKinds: mudar de face segue o request', () => {
+  const stored: PlaylistItem[] = [
+    { id: 'x', kind: 'chord' },
+    { id: 'y', kind: 'audio' },
+  ];
+
+  // `x` vai para a face de áudio e `y` para a de partituras: o kind gravado
+  // discorda da face nova, então o request ganha.
+  assert.deepEqual(itemsFromLegacyPreservingKinds(['y'], ['x'], stored), [
+    { id: 'y', kind: 'pdf' },
+    { id: 'x', kind: 'audio' },
+  ]);
+});
+
+test('itemsFromLegacyPreservingKinds respeita a ordem e a remoção do request', () => {
+  const stored: PlaylistItem[] = [
+    { id: 'a', kind: 'chord' },
+    { id: 'b', kind: 'youtube' },
+    { id: 'c', kind: 'gesture' },
+  ];
+
+  // `b` foi removido e a ordem inverteu: last-write-wins de pertencimento.
+  assert.deepEqual(itemsFromLegacyPreservingKinds(['c', 'a'], [], stored), [
+    { id: 'c', kind: 'gesture' },
+    { id: 'a', kind: 'chord' },
+  ]);
+});
+
+test('itemsFromLegacyPreservingKinds sem linha gravada == itemsFromLegacy', () => {
+  assert.deepEqual(
+    itemsFromLegacyPreservingKinds(['p-a'], ['a-a'], []),
+    itemsFromLegacy(['p-a'], ['a-a']),
+  );
 });
 
 test('parseItemsColumn lê a coluna JSON gravada', () => {

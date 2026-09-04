@@ -8,6 +8,7 @@ import {
 } from './publication_rules.ts';
 import {
   itemsFromLegacy,
+  itemsFromLegacyPreservingKinds,
   listsFromItems,
   parseItems,
   parseItemsColumn,
@@ -162,8 +163,10 @@ function validatePutBody(body: PutBody, pathId: string): string | null {
   ) {
     return 'schemaVersion must be an integer >= 1';
   }
+  // Aceita objetos `{id, kind}` e ids soltos (rascunho v2 legado); o
+  // `declaredAudio` não muda a validade, só o `kind` que sai.
   if (body.items !== undefined && parseItems(body.items) === null) {
-    return 'items must be an array of {id, kind}';
+    return 'items must be an array of {id, kind} or of ids';
   }
   // `pdfIds` é obrigatório só para o cliente v1: em v2 a ordem única basta e as
   // duas listas são derivadas aqui. Quando vem, tem que ter a forma certa.
@@ -273,13 +276,19 @@ export async function upsertPlaylist(
   }
 
   const nome = (body.nome as string).trim();
+  const bodyPdfIds = isStringArray(body.pdfIds) ? body.pdfIds : [];
+  const bodyAudioIds = isStringArray(body.audioIds) ? body.audioIds : [];
   // `items` manda: quando vem, as listas do body são ignoradas e recalculadas.
-  // Sem `items` (cliente v1), a ordem única é derivada das duas listas.
+  // Sem `items` (cliente v1), a ordem única é derivada das duas listas, mas
+  // **reaproveitando o `kind` já gravado** dos ids que continuam na playlist —
+  // senão um cliente v1 rebaixaria toda cifra/gesto/vídeo a `pdf` de forma
+  // permanente só por ter mexido no nome da lista.
   const items =
-    parseItems(body.items) ??
-    itemsFromLegacy(
-      isStringArray(body.pdfIds) ? body.pdfIds : [],
-      isStringArray(body.audioIds) ? body.audioIds : [],
+    parseItems(body.items, bodyAudioIds) ??
+    itemsFromLegacyPreservingKinds(
+      bodyPdfIds,
+      bodyAudioIds,
+      existing ? parseItemsColumn(existing.items) : [],
     );
   const { pdfIds, audioIds } = listsFromItems(items);
   const itemsJson = JSON.stringify(items);

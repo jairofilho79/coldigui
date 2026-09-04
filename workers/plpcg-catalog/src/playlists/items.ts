@@ -40,12 +40,44 @@ export const MATERIAL_KINDS: ReadonlySet<string> = new Set([
  *
  * Devolve `null` quando o valor é inválido — **`null` significa "rejeite com
  * 400"**, e é diferente de `[]` (uma playlist legitimamente vazia).
+ *
+ * Aceita duas formas de entrada, na mesma lista:
+ *
+ * - **objeto** `{id, kind}` — o formato v2 definitivo;
+ * - **string** solta — o rascunho v2 da fatia 1. O tipo dela não vem no wire,
+ *   então é decidido por pertencimento a [declaredAudio] (o `audioIds` do mesmo
+ *   body): dentro → `audio`, fora → `pdf`. Mesma regra do cliente Dart
+ *   (`PlaylistEntry.fromJson` com `declaredAudio`), para os dois lados lerem um
+ *   payload legado igual.
  */
-export function parseItems(raw: unknown): PlaylistItem[] | null {
+export function parseItems(
+  raw: unknown,
+  declaredAudio: Iterable<string> = [],
+): PlaylistItem[] | null {
+  return parseEntries(raw, new Set(declaredAudio), true);
+}
+
+/**
+ * @param allowLooseIds aceita string solta como entrada (só o body do PUT; a
+ *   coluna do D1 é sempre objeto — ver [parseItemsColumn]).
+ */
+function parseEntries(
+  raw: unknown,
+  declaredAudio: ReadonlySet<string>,
+  allowLooseIds: boolean,
+): PlaylistItem[] | null {
   if (!Array.isArray(raw)) return null;
 
   const items: PlaylistItem[] = [];
   for (const entry of raw) {
+    if (typeof entry === 'string') {
+      if (!allowLooseIds || entry.length === 0) return null;
+      items.push({
+        id: entry,
+        kind: declaredAudio.has(entry) ? 'audio' : 'pdf',
+      });
+      continue;
+    }
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
       return null;
     }
@@ -71,6 +103,41 @@ export function itemsFromLegacy(
   return [
     ...pdfIds.map((id): PlaylistItem => ({ id, kind: 'pdf' })),
     ...audioIds.map((id): PlaylistItem => ({ id, kind: 'audio' })),
+  ];
+}
+
+/**
+ * Como [itemsFromLegacy], mas **reaproveitando o `kind` já gravado** para os
+ * ids que continuam na playlist.
+ *
+ * Um PUT v1 (sem `items`) sobre uma linha v2 é last-write-wins **de
+ * pertencimento e ordem** — quem manda são as duas listas do request. O que ele
+ * não pode fazer é *rebaixar o tipo*: sem isto, um cliente v1 mexendo no nome
+ * da playlist transformaria toda cifra (`chord`), gesto (`gesture`) e vídeo
+ * (`youtube`) gravados em `pdf`, e a perda seria permanente.
+ *
+ * O `kind` gravado só é reaproveitado quando **concorda com a face** em que o
+ * request pôs o id: um id que sai de `pdfIds` para `audioIds` (ou o contrário)
+ * segue o request, porque aí a informação nova é mais recente que a antiga.
+ */
+export function itemsFromLegacyPreservingKinds(
+  pdfIds: string[],
+  audioIds: string[],
+  stored: PlaylistItem[],
+): PlaylistItem[] {
+  const storedKinds = new Map(stored.map((item) => [item.id, item.kind]));
+
+  const resolve = (id: string, face: 'pdf' | 'audio'): PlaylistItem => {
+    const previous = storedKinds.get(id);
+    const sameFace = (previous === 'audio') === (face === 'audio');
+    return previous !== undefined && sameFace
+      ? { id, kind: previous }
+      : { id, kind: face };
+  };
+
+  return [
+    ...pdfIds.map((id) => resolve(id, 'pdf')),
+    ...audioIds.map((id) => resolve(id, 'audio')),
   ];
 }
 
@@ -102,6 +169,12 @@ export function listsFromItems(items: PlaylistItem[]): {
  * Coluna ausente, JSON quebrado ou com forma inesperada devolve `[]` — uma
  * linha corrompida não pode derrubar o `GET` da lista inteira. O chamador trata
  * `[]` como "sem ordem única gravada" e cai nas duas listas v1.
+ *
+ * **Mais estrita que [parseItems] de propósito:** esta coluna é escrita só por
+ * este Worker, sempre como objetos. Uma coluna que contivesse ids soltos
+ * (`["p1","a1"]`) não traz o tipo de nada, e aceitá-la marcaria todo áudio como
+ * `pdf`; devolver `[]` é melhor, porque o chamador então deriva das colunas
+ * `pdf_ids`/`audio_ids`, que **sabem** quem é áudio.
  */
 export function parseItemsColumn(text: string | null): PlaylistItem[] {
   if (!text) return [];
@@ -111,5 +184,5 @@ export function parseItemsColumn(text: string | null): PlaylistItem[] {
   } catch {
     return [];
   }
-  return parseItems(parsed) ?? [];
+  return parseEntries(parsed, new Set(), false) ?? [];
 }
