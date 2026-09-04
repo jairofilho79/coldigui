@@ -1,13 +1,48 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_plus/isar_plus.dart';
 
 import 'isar_bootstrap.dart';
 
+/// Tempo máximo aceitável para abrir o Isar antes de degradar (spec C.9).
+const isarOpenTimeout = Duration(seconds: 15);
+
+/// Indireção sobre [openAppIsar] só para permitir simular travamentos em
+/// teste (ver `test/unit/core/database/isar_provider_timeout_test.dart`).
+@visibleForTesting
+final isarOpenerProvider = Provider<Future<Isar> Function()>(
+  (ref) => openAppIsar,
+);
+
 /// Abre Isar em background após o primeiro frame (Fase B web perf).
 ///
+/// Se a abertura travar (ex.: lock de OPFS preso), falha após
+/// [isarOpenTimeout] em vez de deixar o app preso no spinner para sempre;
 /// [BootstrapApp] monta [ColdiguiApp] mesmo em erro (modo degradado sem storage).
+///
+/// O timer do timeout é sempre cancelado via [Ref.onDispose] — evita deixar
+/// um `Timer` real pendente quando o provider é descartado antes da
+/// abertura terminar (ex.: fim de um teste de widget que não espera o Isar
+/// abrir; usar `Future.timeout` puro deixaria esse timer pendente).
 final isarInitializerProvider = FutureProvider<Isar>((ref) async {
-  final isar = await openAppIsar();
+  final opener = ref.watch(isarOpenerProvider);
+
+  final timeoutCompleter = Completer<Isar>();
+  final timer = Timer(isarOpenTimeout, () {
+    debugPrint('[isar] abertura excedeu 15 s; modo degradado');
+    timeoutCompleter.completeError(
+      TimeoutException(
+        'Abertura do Isar excedeu $isarOpenTimeout',
+        isarOpenTimeout,
+      ),
+    );
+  });
+  ref.onDispose(timer.cancel);
+
+  final isar = await Future.any([opener(), timeoutCompleter.future]);
+  timer.cancel();
   ref.onDispose(isar.close);
   return isar;
 });
