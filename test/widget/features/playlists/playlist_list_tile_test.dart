@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
@@ -42,6 +43,16 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<bool> loadIntoCarousel(String playlistId) async {
     lastLoadedPlaylistId = playlistId;
     return true;
+  }
+}
+
+/// Modo degradado (Isar fechado): as escritas da lista lançam.
+class _StorelessPlaylistsNotifier extends _FakePlaylistsNotifier {
+  _StorelessPlaylistsNotifier(super.initial);
+
+  @override
+  Future<bool> loadIntoCarousel(String playlistId) async {
+    throw const StorageUnavailableException('playlists.update');
   }
 }
 
@@ -242,6 +253,29 @@ void main() {
 
     expect(notifier.lastLoadedPlaylistId, 'p1');
     expect(find.text('Lista carregada no carousel'), findsOneWidget);
+  });
+
+  // B5: ação da lista sem storage vira aviso, não erro solto no callback.
+  testWidgets('ação sem armazenamento mostra o aviso de storage', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSubject(playlistsNotifier: _StorelessPlaylistsNotifier([item])),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Carregar no carousel'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.text(
+        'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('confirma substituição quando carousel não vazio', (

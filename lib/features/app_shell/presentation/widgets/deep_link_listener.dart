@@ -113,10 +113,16 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
           _markProcessed(fingerprint);
           _reportFailure(result.reason);
       }
+      // Exceção também consome o link: sem `_markProcessed` o mesmo URI
+      // reentraria a cada evento do stream, repetindo a snackbar de erro sem
+      // nenhuma chance a mais de dar certo. Passada a janela de dedupe, o
+      // usuário ainda pode abrir o link de novo.
     } on StorageUnavailableException catch (e) {
+      _markProcessed(fingerprint);
       debugPrint('[deep-link] armazenamento indisponível: $e');
       _showSnackbar((l10n) => l10n.offlineStorageUnavailable);
     } on Object catch (e) {
+      _markProcessed(fingerprint);
       debugPrint('[deep-link] falha ao importar: $e');
       _showSnackbar((l10n) => l10n.deepLinkImportFailed);
     } finally {

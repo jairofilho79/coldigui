@@ -66,6 +66,22 @@ class _CountingSyncDeepLinkState extends SyncDeepLinkState {
   }
 }
 
+/// Sempre lança, contando as chamadas — o dedupe tem que valer aqui também.
+class _ThrowingCountingSyncDeepLinkState extends SyncDeepLinkState {
+  _ThrowingCountingSyncDeepLinkState(super.import);
+
+  var callCount = 0;
+
+  @override
+  Future<SyncDeepLinkResult> call({
+    Uri? uri,
+    Map<String, String>? queryParams,
+  }) async {
+    callCount++;
+    throw const StorageUnavailableException('playlists.insert');
+  }
+}
+
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   var refreshCalled = false;
 
@@ -362,5 +378,64 @@ void main() {
     await state.handleUriForTest(uri);
     await tester.pumpAndSettle();
     expect(countingUseCase.callCount, 2);
+  });
+
+  // B4: exceção também marca o link como processado. Sem isso, o mesmo link
+  // que estourou reentrava a cada evento do stream, repetindo a snackbar de
+  // erro sem nenhuma chance de dar certo.
+  testWidgets('link que lançou também entra no dedupe de 3s', (tester) async {
+    final router = GoRouter(
+      navigatorKey: rootNavigatorKey,
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+        ),
+      ],
+    );
+    var currentTime = DateTime(2026, 1, 1);
+    final throwingUseCase = _ThrowingCountingSyncDeepLinkState(importUseCase);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          syncDeepLinkStateProvider.overrideWithValue(throwingUseCase),
+          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        ],
+        child: DeepLinkListener(
+          now: () => currentTime,
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tester.state<DeepLinkListenerState>(
+      find.byType(DeepLinkListener),
+    );
+    final uri = Uri.parse('/?sharepdfs=a&sharename=Teste');
+
+    await state.handleUriForTest(uri);
+    await tester.pumpAndSettle();
+    expect(throwingUseCase.callCount, 1);
+    expect(tester.takeException(), isNull);
+
+    currentTime = currentTime.add(const Duration(seconds: 1));
+    await state.handleUriForTest(uri);
+    await tester.pumpAndSettle();
+    expect(throwingUseCase.callCount, 1, reason: 'dentro da janela de dedupe');
+
+    currentTime = currentTime.add(const Duration(seconds: 3));
+    await state.handleUriForTest(uri);
+    await tester.pumpAndSettle();
+    expect(throwingUseCase.callCount, 2, reason: 'passada a janela, retenta');
   });
 }

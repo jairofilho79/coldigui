@@ -147,17 +147,24 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     );
   }
 
+  /// [icon] só é passado quando a `categoria` decide o ícone — o caso do PDF,
+  /// cujo tipo real (Partitura/Cifra/Gestos) o manifest só diz por texto.
+  /// Cifra, áudio e YouTube têm [CatalogMaterial.kind] confiável e caem em
+  /// [LouvorMaterialIcons.forMaterial].
   Widget _materialTile({
     required CatalogMaterial material,
-    required IconData icon,
     required Color iconColor,
     required Set<String> carouselPdfIds,
+    IconData? icon,
     String? subtitle,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
     return ListTile(
-      leading: Icon(icon, color: iconColor),
+      leading: Icon(
+        icon ?? LouvorMaterialIcons.forMaterial(material),
+        color: iconColor,
+      ),
       title: Text(
         material.categoria,
         style: AppTypography.body.copyWith(color: AppColors.textDark),
@@ -251,9 +258,6 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                     for (final chord in availableChords)
                       _materialTile(
                         material: ChordMaterialRef(chord),
-                        icon: LouvorMaterialIcons.forKind(
-                          LouvorMaterialIcons.kindForCategory(chord.categoria),
-                        ),
                         iconColor: AppColors.title,
                         carouselPdfIds: carouselPdfIds,
                       ),
@@ -285,7 +289,6 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                     for (final track in audioTracks)
                       _materialTile(
                         material: AudioMaterial(track),
-                        icon: LouvorMaterialIcons.audio,
                         iconColor: AppColors.title,
                         carouselPdfIds: carouselPdfIds,
                         subtitle: track.author,
@@ -296,7 +299,6 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                     for (final item in youtubeMaterials)
                       _materialTile(
                         material: YoutubeMaterialRef(item),
-                        icon: LouvorMaterialIcons.youtube,
                         iconColor: AppColors.youtube,
                         carouselPdfIds: carouselPdfIds,
                       ),

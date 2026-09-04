@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
@@ -392,8 +393,29 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     return true;
   }
 
+  /// Porteira única de storage das ações do menu.
+  ///
+  /// Carregar, renomear, publicar e excluir acabam todos numa escrita; sem
+  /// Isar elas lançam [StorageUnavailableException] de dentro do callback do
+  /// menu, onde viraria erro solto e nenhum aviso. Um `catch` só no topo, com
+  /// a mesma mensagem que a tela de listas já usa.
   Future<void> _handleAction(BuildContext context, String action) async {
     final l10n = AppLocalizations.of(context)!;
+    try {
+      await _runAction(context, l10n, action);
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] ação "$action" sem storage: $e');
+      if (context.mounted) {
+        showAppSnackbar(context, l10n.offlineStorageUnavailable);
+      }
+    }
+  }
+
+  Future<void> _runAction(
+    BuildContext context,
+    AppLocalizations l10n,
+    String action,
+  ) async {
     final playlist = widget.item.playlist;
 
     switch (action) {

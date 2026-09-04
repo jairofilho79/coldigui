@@ -9,6 +9,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
@@ -396,6 +397,25 @@ void main() {
       await _pumpSheet(tester, group: groupWithChords(const []));
 
       expect(find.text('Cifras'), findsNothing);
+    });
+
+    // B3: o `kind` da cifra é confiável; a `categoria` é texto livre do Worker.
+    // Uma cifra rotulada "Gestos CIAs" continua com ícone de cifra.
+    testWidgets('ícone vem do kind, não da categoria livre', (tester) async {
+      await _pumpSheet(
+        tester,
+        group: groupWithChords([_chord('Gestos CIAs', 'k1')]),
+        overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
+      );
+
+      expect(
+        find.byIcon(LouvorMaterialIcons.forKind(MaterialKind.chord)),
+        findsOneWidget,
+      );
+      expect(
+        find.byIcon(LouvorMaterialIcons.forKind(MaterialKind.gesture)),
+        findsNothing,
+      );
     });
 
     testWidgets('toque na cifra abre pelo opener', (tester) async {
