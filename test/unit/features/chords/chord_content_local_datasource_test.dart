@@ -39,26 +39,30 @@ void main() {
     test('write persiste o conteudo e read devolve de volta', () {
       datasource.write(key, content);
 
-      expect(datasource.read(key), content);
+      expect(datasource.read(key)?.content, content);
     });
 
     test('write duas vezes na mesma chave nao duplica linha', () {
       datasource.write(key, content);
       datasource.write(key, 'novo conteudo\n');
 
-      expect(datasource.read(key), 'novo conteudo\n');
+      expect(datasource.read(key)?.content, 'novo conteudo\n');
       expect(isar.chordContentCaches.where().findAll().length, 1);
     });
 
-    test('write registra fetchedAt', () {
+    test('read devolve o fetchedAt gravado (base do TTL)', () {
       final before = DateTime.now().subtract(const Duration(seconds: 1));
       datasource.write(key, content);
 
-      final row = isar.chordContentCaches
-          .where()
-          .r2KeyEqualTo(key)
-          .findFirst()!;
-      expect(row.fetchedAt.isAfter(before), isTrue);
+      expect(datasource.read(key)!.fetchedAt.isAfter(before), isTrue);
+    });
+
+    test('marcador negativo (conteudo vazio) e uma entrada valida', () {
+      datasource.write(key, '');
+
+      final entry = datasource.read(key);
+      expect(entry, isNotNull);
+      expect(entry!.content, isEmpty);
     });
 
     test('chave vazia nao escreve nem le', () {

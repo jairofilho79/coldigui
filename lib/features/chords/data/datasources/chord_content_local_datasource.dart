@@ -3,6 +3,28 @@ import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/chord_content_cache.dart';
 
+/// Entrada do cache: o corpo cru e quando ele foi buscado.
+///
+/// [content] vazio é o **marcador negativo** — o Worker respondeu 404, a cifra
+/// não existe. Guardar isso evita um GET por abertura de sheet no caso mais
+/// comum (louvor sem cifra), e o [fetchedAt] deixa a revalidação recuperar uma
+/// cifra publicada depois.
+class ChordCacheEntry {
+  const ChordCacheEntry({required this.content, required this.fetchedAt});
+
+  final String content;
+  final DateTime fetchedAt;
+
+  /// `true` quando a entrada passou de [kChordCacheTtl].
+  bool isStaleAt(DateTime now) => now.difference(fetchedAt) > kChordCacheTtl;
+}
+
+/// Idade a partir da qual uma entrada do cache é revalidada em background.
+///
+/// Cifras mudam raramente; o que importa é não disparar um GET a cada abertura
+/// de sheet, já que o `chordSongProvider` é `autoDispose`.
+const kChordCacheTtl = Duration(hours: 24);
+
 /// Cache Isar do conteúdo `.chord`, indexado por `r2Key`.
 ///
 /// Best-effort de propósito: sem Isar (modo degradado web) a leitura devolve
@@ -13,17 +35,18 @@ class ChordContentLocalDatasource {
 
   final Isar? _isar;
 
-  /// Conteúdo cru guardado para [r2Key], ou `null` se não houver.
-  String? read(String r2Key) {
+  /// Entrada guardada para [r2Key], ou `null` quando não há nenhuma.
+  ///
+  /// `null` significa "nunca buscamos"; uma entrada com [ChordCacheEntry.content]
+  /// vazio significa "buscamos e não existe".
+  ChordCacheEntry? read(String r2Key) {
     final isar = _isar;
     final key = r2Key.trim();
     if (isar == null || key.isEmpty) return null;
     try {
-      return isar.chordContentCaches
-          .where()
-          .r2KeyEqualTo(key)
-          .findFirst()
-          ?.content;
+      final row = isar.chordContentCaches.where().r2KeyEqualTo(key).findFirst();
+      if (row == null) return null;
+      return ChordCacheEntry(content: row.content, fetchedAt: row.fetchedAt);
     } on Object catch (error) {
       debugPrint('[cifras] leitura do cache de $key falhou: $error');
       return null;
