@@ -38,6 +38,11 @@ final homeSearchColdigomPageProvider = StateProvider<int>((ref) => 1);
 /// Heurística: última página coldigom veio cheia (`length >= limit`).
 final homeSearchColdigomHasNextProvider = StateProvider<bool>((ref) => false);
 
+/// `true` quando a última busca coldigom falhou (rede/servidor) — o sliver
+/// mostra uma linha de erro com retry em vez de esconder silenciosamente os
+/// resultados (C.8).
+final homeSearchColdigomErrorProvider = StateProvider<bool>((ref) => false);
+
 /// Grupos PLPCG da query atual (sempre no topo da lista).
 final homeSearchPlpcgGroupsDataProvider = StateProvider<List<LouvorGroup>>(
   (ref) => const [],
@@ -141,11 +146,18 @@ class HomeSearchPipelineDriver extends Notifier<int> {
     Future.microtask(() => unawaited(_runSearch()));
   }
 
+  /// Re-dispara a busca atual — usado pelo retry da linha "Coldigom
+  /// indisponível" no sliver de resultados (C.8).
+  void retry() {
+    _scheduleSearch();
+  }
+
   void _clearResults() {
     ref.read(homeSearchPlpcgGroupsDataProvider.notifier).state = const [];
     ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
     ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
     ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
+    ref.read(homeSearchColdigomErrorProvider.notifier).state = false;
   }
 
   Future<void> _runSearch() async {
@@ -183,6 +195,7 @@ class HomeSearchPipelineDriver extends Notifier<int> {
     ref.read(homeSearchColdigomLoadingProvider.notifier).state = true;
     // Evita mostrar página anterior enquanto a nova chega.
     ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
+    ref.read(homeSearchColdigomErrorProvider.notifier).state = false;
 
     try {
       final coldigomResult = await ref
@@ -205,11 +218,14 @@ class HomeSearchPipelineDriver extends Notifier<int> {
           coldigomResult.groups;
       ref.read(homeSearchColdigomHasNextProvider.notifier).state =
           coldigomResult.hasNextPage;
-    } on Object {
+    } on Object catch (error) {
       if (generation != _generation) return;
-      // Mantém resultados PLPCG já exibidos; limpa coldigom desta página.
+      debugPrint('[catalog] busca coldigom falhou: $error');
+      // Mantém resultados PLPCG já exibidos; limpa coldigom desta página e
+      // sinaliza o erro para o sliver mostrar a linha de retry (C.8).
       ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
       ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
+      ref.read(homeSearchColdigomErrorProvider.notifier).state = true;
     } finally {
       if (generation == _generation) {
         ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;

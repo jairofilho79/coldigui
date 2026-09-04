@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Material de um louvor (PDF, áudio, YouTube, etc.).
 class MaterialDto {
   const MaterialDto({
@@ -20,7 +22,9 @@ class MaterialDto {
     return MaterialDto(
       // API PLPCG envia id null no placeholder de letra.
       id: json['id'] as String? ?? '',
-      type: json['type'] as String,
+      // `type` ausente ou de tipo inesperado não deve derrubar o material —
+      // vira 'unknown' em vez de lançar (C.8).
+      type: json['type'] is String ? json['type'] as String : 'unknown',
       r2Key: json['r2_key'] as String?,
       url: json['url'] as String?,
       materialKindName: json['material_kind_name'] as String?,
@@ -112,11 +116,22 @@ class PraiseDetailDto {
       category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
       tagNames: splitColdigomCsv(json['tag_names']),
-      materials: [
-        for (final item in materialsJson)
-          MaterialDto.fromJson(item as Map<String, dynamic>),
-      ],
+      materials: _parseMaterials(materialsJson),
     );
+  }
+
+  /// Descarta, individualmente, materiais cujo `fromJson` lance — um item
+  /// corrompido não pode derrubar o louvor inteiro (C.8).
+  static List<MaterialDto> _parseMaterials(List<dynamic> materialsJson) {
+    final materials = <MaterialDto>[];
+    for (final item in materialsJson) {
+      try {
+        materials.add(MaterialDto.fromJson(item as Map<String, dynamic>));
+      } on Object catch (error) {
+        debugPrint('[coldigom] material descartado: $error');
+      }
+    }
+    return materials;
   }
 }
 

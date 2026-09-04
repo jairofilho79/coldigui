@@ -1,3 +1,4 @@
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
@@ -179,6 +180,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
 
+    // Reconexão (C.8): volta a rede com o manifest em erro → tenta de novo
+    // sozinho, sem esperar o usuário tocar em "Tentar de novo".
+    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
+      if (next.value != true) return;
+      if (ref.read(louvoresManifestProvider).hasError) {
+        ref.invalidate(louvoresManifestProvider);
+      }
+    });
+
     final horizontalPadding = MediaQuery.sizeOf(context).width > 600
         ? 24.0
         : 16.0;
@@ -223,11 +233,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (manifestAsync.hasError) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   SliverToBoxAdapter(
-                    child: Text(
-                      l10n.catalogLoadError,
-                      style: AppTypography.body.copyWith(
-                        color: AppColors.textLight,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.catalogLoadError,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () =>
+                              ref.invalidate(louvoresManifestProvider),
+                          child: Text(l10n.retry),
+                        ),
+                      ],
                     ),
                   ),
                 ],

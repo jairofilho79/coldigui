@@ -18,6 +18,16 @@ Override louvoresManifestLoadingOverride() {
   );
 }
 
+/// Override de [louvoresManifestProvider] que sempre falha — usado para
+/// testar o estado de erro + retry (C.8). [onBuild] é chamado a cada
+/// tentativa (inclusive a primeira), útil para contar quantas vezes o
+/// provider foi (re)construído (`ref.invalidate` a cada retry).
+Override louvoresManifestErrorOverride({void Function()? onBuild}) {
+  return louvoresManifestProvider.overrideWith(
+    () => _ErrorLouvoresManifestNotifier(onBuild),
+  );
+}
+
 class _FixedLouvoresManifestNotifier extends LouvoresManifestNotifier {
   _FixedLouvoresManifestNotifier(this._manifest);
 
@@ -32,4 +42,20 @@ class _LoadingLouvoresManifestNotifier extends LouvoresManifestNotifier {
 
   @override
   Future<LouvoresManifest> build() => _never.future;
+}
+
+class _ErrorLouvoresManifestNotifier extends LouvoresManifestNotifier {
+  _ErrorLouvoresManifestNotifier(this._onBuild);
+
+  final void Function()? _onBuild;
+
+  @override
+  Future<LouvoresManifest> build() async {
+    _onBuild?.call();
+    // `StateError` (um `Error`, não `Exception`) evita o auto-retry padrão
+    // do Riverpod 3 (`ProviderContainer.defaultRetry` só recua para
+    // exceptions) — assim os testes de retry manual/reconexão (C.8) contam
+    // builds determinísticos, sem ruído de um retry automático concorrente.
+    throw StateError('catálogo indisponível (teste)');
+  }
 }

@@ -308,6 +308,12 @@ abstract class AppLocalizations {
   /// **'Não foi possível carregar o catálogo'**
   String get catalogLoadError;
 
+  /// No description provided for @retry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get retry;
+
   /// No description provided for @libraryResultsSummary.
   ///
   /// In pt, this message translates to:
@@ -373,6 +379,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível carregar o catálogo Coldigom'**
   String get coldigomLoadError;
+
+  /// No description provided for @coldigomUnavailableRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coldigom indisponível · tentar de novo'**
+  String get coldigomUnavailableRetry;
 
   /// No description provided for @offlineTitle.
   ///

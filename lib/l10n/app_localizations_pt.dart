@@ -124,6 +124,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get catalogLoadError => 'Não foi possível carregar o catálogo';
 
   @override
+  String get retry => 'Tentar de novo';
+
+  @override
   String libraryResultsSummary(int from, int to, int total) {
     return 'Mostrando $from–$to de $total louvores';
   }
@@ -159,6 +162,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get coldigomLoadError =>
       'Não foi possível carregar o catálogo Coldigom';
+
+  @override
+  String get coldigomUnavailableRetry =>
+      'Coldigom indisponível · tentar de novo';
 
   @override
   String get offlineTitle => 'Offline';

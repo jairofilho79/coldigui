@@ -3,6 +3,7 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_coldigom_pagination_controls.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,15 +59,22 @@ class HomeSearchResultsSliver extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final results = ref.watch(homeSearchGroupResultsProvider);
     final coldigomLoading = ref.watch(homeSearchColdigomLoadingProvider);
+    final coldigomError = ref.watch(homeSearchColdigomErrorProvider);
     final page = ref.watch(homeSearchColdigomPageProvider);
     final hasNext = ref.watch(homeSearchColdigomHasNextProvider);
     final coldigomCount = ref
         .watch(homeSearchColdigomGroupsDataProvider)
         .length;
 
+    // Busca coldigom falhando é visível (linha com retry) em vez de lista
+    // vazia silenciosa (C.8).
+    final showError = !coldigomLoading && coldigomError;
     final showPager =
-        !coldigomLoading && (page > 1 || hasNext || coldigomCount > 0);
-    final trailingCount = (coldigomLoading ? 1 : 0) + (showPager ? 1 : 0);
+        !coldigomLoading &&
+        !coldigomError &&
+        (page > 1 || hasNext || coldigomCount > 0);
+    final trailingCount =
+        (coldigomLoading ? 1 : 0) + (showError ? 1 : 0) + (showPager ? 1 : 0);
 
     if (results.isEmpty && trailingCount == 0) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -98,11 +106,39 @@ class HomeSearchResultsSliver extends ConsumerWidget {
           }
           trailingIndex -= 1;
         }
+        if (showError && trailingIndex == 0) {
+          return _ColdigomUnavailableRow(
+            onRetry: () =>
+                ref.read(homeSearchPipelineDriverProvider.notifier).retry(),
+          );
+        }
         if (showPager && trailingIndex == 0) {
           return const HomeColdigomPaginationControls();
         }
         return const SizedBox.shrink();
       }, childCount: results.length + trailingCount),
+    );
+  }
+}
+
+/// Linha "Coldigom indisponível · tentar de novo" — toque re-dispara a
+/// busca coldigom da query atual (C.8).
+class _ColdigomUnavailableRow extends StatelessWidget {
+  const _ColdigomUnavailableRow({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: TextButton(
+          onPressed: onRetry,
+          child: Text(l10n.coldigomUnavailableRetry),
+        ),
+      ),
     );
   }
 }

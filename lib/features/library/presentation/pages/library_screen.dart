@@ -1,3 +1,4 @@
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
@@ -291,6 +292,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
+    // Reconexão (C.8): volta a rede com o catálogo em erro (PLPCG ou
+    // Coldigom, conforme o modo atual) → tenta de novo sozinho.
+    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
+      if (next.value != true) return;
+      if (ref.read(libraryCatalogModeProvider) == LibraryCatalogMode.coldigom) {
+        if (ref.read(libraryColdigomBrowseProvider).hasError) {
+          ref.invalidate(libraryColdigomBrowseProvider);
+        }
+      } else {
+        if (ref.read(louvoresManifestProvider).hasError) {
+          ref.invalidate(louvoresManifestProvider);
+        }
+      }
+    });
+
     final hasInitialFilters = isColdigom
         ? (widget.initialTonality != null ||
               widget.initialRhythm != null ||
@@ -353,6 +369,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             color: AppColors.offlineMissing,
                           ),
                           textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: FilledButton(
+                            onPressed: () => isColdigom
+                                ? ref.invalidate(libraryColdigomBrowseProvider)
+                                : ref.invalidate(louvoresManifestProvider),
+                            child: Text(l10n.retry),
+                          ),
                         ),
                       ],
                     ],

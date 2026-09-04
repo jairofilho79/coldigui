@@ -123,6 +123,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get catalogLoadError => 'Could not load the catalog';
 
   @override
+  String get retry => 'Try again';
+
+  @override
   String libraryResultsSummary(int from, int to, int total) {
     return 'Showing $from–$to of $total hymns';
   }
@@ -156,6 +159,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coldigomLoadError => 'Could not load the Coldigom catalog';
+
+  @override
+  String get coldigomUnavailableRetry => 'Coldigom unavailable · try again';
 
   @override
   String get offlineTitle => 'Offline';
