@@ -124,7 +124,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get catalogLoadError => 'Não foi possível carregar o catálogo';
 
   @override
-  String get retry => 'Tentar de novo';
+  String get retry => 'Tentar novamente';
 
   @override
   String libraryResultsSummary(int from, int to, int total) {

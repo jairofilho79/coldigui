@@ -94,7 +94,7 @@ void main() {
   });
 
   testWidgets(
-    'LibraryScreen (PLPCG) em erro mostra "Tentar de novo" que invalida o manifest',
+    'LibraryScreen (PLPCG) em erro mostra "Tentar novamente" que invalida o manifest',
     (tester) async {
       final prefs = await SharedPreferences.getInstance();
       var buildCount = 0;
@@ -115,11 +115,11 @@ void main() {
       expect(buildCount, 1);
       expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
       expect(
-        find.widgetWithText(FilledButton, 'Tentar de novo'),
+        find.widgetWithText(FilledButton, 'Tentar novamente'),
         findsOneWidget,
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Tentar de novo'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Tentar novamente'));
       await _settle(tester);
 
       expect(buildCount, 2);
@@ -127,7 +127,7 @@ void main() {
   );
 
   testWidgets(
-    'LibraryScreen (Coldigom) em erro mostra "Tentar de novo" que invalida o browse',
+    'LibraryScreen (Coldigom) em erro mostra "Tentar novamente" que invalida o browse',
     (tester) async {
       final prefs = await SharedPreferences.getInstance();
       var buildCount = 0;
@@ -157,11 +157,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(FilledButton, 'Tentar de novo'),
+        find.widgetWithText(FilledButton, 'Tentar novamente'),
         findsOneWidget,
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Tentar de novo'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Tentar novamente'));
       await _settle(tester);
 
       expect(buildCount, 2);

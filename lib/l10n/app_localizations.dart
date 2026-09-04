@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @retry.
   ///
   /// In pt, this message translates to:
-  /// **'Tentar de novo'**
+  /// **'Tentar novamente'**
   String get retry;
 
   /// No description provided for @libraryResultsSummary.

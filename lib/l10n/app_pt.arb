@@ -67,7 +67,7 @@
   "catalogRefreshError": "Não foi possível atualizar o catálogo",
   "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
   "catalogLoadError": "Não foi possível carregar o catálogo",
-  "retry": "Tentar de novo",
+  "retry": "Tentar novamente",
   "libraryResultsSummary": "Mostrando {from}–{to} de {total} louvores",
   "@libraryResultsSummary": {
     "placeholders": {
