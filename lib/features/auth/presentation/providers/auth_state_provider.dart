@@ -71,8 +71,48 @@ class GoogleSignInUnavailableNotifier extends Notifier<bool> {
   void report({required bool unavailable}) => state = unavailable;
 }
 
+/// Reautenticação silenciosa: devolve um `id_token` novo sem abrir UI.
+///
+/// `null` = não deu (SDK bloqueado, sessão Google encerrada, sem `id_token`).
+typedef GoogleSilentIdTokenRefresher = Future<String?> Function();
+
+/// Costura de teste sobre `attemptLightweightAuthentication` (nada do plugin
+/// roda na VM).
+final googleSilentIdTokenRefresherProvider =
+    Provider<GoogleSilentIdTokenRefresher>((ref) {
+      return () async {
+        // Na web o plugin devolve `null` (e não um Future) quando o SDK não
+        // está disponível — precisa ser sessão expirada, nunca um crash.
+        final attempt = GoogleSignIn.instance
+            .attemptLightweightAuthentication();
+        if (attempt == null) return null;
+        final account = await attempt;
+        return account?.authentication.idToken;
+      };
+    });
+
+/// `true` quando a renovação silenciosa do `id_token` falhou: a sessão local
+/// segue existindo, mas o backend vai recusá-la até o usuário entrar de novo.
+///
+/// Consumido pelo banner "Sessão expirada" no perfil e nas listas.
+final sessionExpiredProvider = NotifierProvider<SessionExpiredNotifier, bool>(
+  SessionExpiredNotifier.new,
+);
+
+class SessionExpiredNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void markExpired() => state = true;
+
+  void clear() => state = false;
+}
+
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
+
+  /// Refresh em voo — vários 401 simultâneos compartilham uma só tentativa.
+  Future<String?>? _refreshInFlight;
 
   @override
   Future<AuthUser?> build() async {
@@ -158,6 +198,42 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     }
   }
 
+  /// Renova o `id_token` sem UI e devolve o token novo, ou `null`.
+  ///
+  /// `null` marca [sessionExpiredProvider] (o usuário precisa entrar de novo) e
+  /// **preserva** a sessão local: quem decide deslogar é o Worker, via
+  /// [AuthUnauthorizedException]. Nunca propaga exceção — é chamado de dentro de
+  /// um interceptor do Dio.
+  Future<String?> refreshIdToken() {
+    return _refreshInFlight ??= _refreshIdToken().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<String?> _refreshIdToken() async {
+    final current = state.asData?.value;
+    // Sem sessão não há o que renovar — e não é uma sessão "expirada".
+    if (current == null) return null;
+
+    String? idToken;
+    try {
+      idToken = await ref.read(googleSilentIdTokenRefresherProvider)();
+    } on Object catch (error) {
+      debugPrint('[auth] reautenticação silenciosa falhou: $error');
+    }
+
+    if (idToken == null || idToken.isEmpty) {
+      ref.read(sessionExpiredProvider.notifier).markExpired();
+      return null;
+    }
+
+    final updated = current.copyWith(idToken: idToken);
+    ref.read(authSessionStoreProvider).write(updated);
+    ref.read(sessionExpiredProvider.notifier).clear();
+    state = AsyncData(updated);
+    return idToken;
+  }
+
   Future<void> _completeSignIn(GoogleSignInAccount account) async {
     final idToken = account.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
@@ -170,6 +246,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
           .read(authRemoteDatasourceProvider)
           .establishSession(idToken);
       ref.read(authSessionStoreProvider).write(user);
+      ref.read(sessionExpiredProvider.notifier).clear();
       state = AsyncData(user);
     } on Object catch (error, stack) {
       state = AsyncError(error, stack);
@@ -179,6 +256,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
   Future<void> signOut() async {
     ref.read(authSessionStoreProvider).clear();
+    ref.read(sessionExpiredProvider.notifier).clear();
     state = const AsyncData(null);
     try {
       await GoogleSignIn.instance.signOut();
