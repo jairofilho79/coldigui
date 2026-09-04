@@ -31,15 +31,19 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
 }
 
 class _QueuedAudioSession extends AudioPlayerSessionNotifier {
-  _QueuedAudioSession(this.track, {this.errorMessage});
+  _QueuedAudioSession(this.track, {this.errorMessage, this.emptyQueue = false});
 
   final AudioTrack track;
   final String? errorMessage;
+  final bool emptyQueue;
   int retryCalls = 0;
 
   @override
   AudioPlayerSessionState build() {
-    return AudioPlayerSessionState(queue: [track], errorMessage: errorMessage);
+    return AudioPlayerSessionState(
+      queue: emptyQueue ? const [] : [track],
+      errorMessage: errorMessage,
+    );
   }
 
   @override
@@ -194,7 +198,7 @@ void main() {
     expect(prefs.getBool(kAudioFollowReaderPrefsKey), isFalse);
   });
 
-  testWidgets('erro do player mostra a mensagem e "Tentar de novo"', (
+  testWidgets('erro do player mostra a mensagem e "Tentar novamente"', (
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -208,22 +212,41 @@ void main() {
       find.text('Não foi possível reproduzir este áudio.'),
       findsOneWidget,
     );
-    expect(find.text('Tentar de novo'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Tentar de novo'));
+    await tester.tap(find.text('Tentar novamente'));
     await tester.pumpAndSettle();
 
     expect(session.retryCalls, 1);
-    expect(find.text('Tentar de novo'), findsNothing);
+    expect(find.text('Tentar novamente'), findsNothing);
   });
 
-  testWidgets('sem erro não aparece "Tentar de novo"', (tester) async {
+  testWidgets('erro sem faixa não oferece retry (seria no-op)', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      buildSubject(
+        prefs: prefs,
+        items: const [pdfItem],
+        session: _QueuedAudioSession(
+          track,
+          errorMessage: '(1) decode',
+          emptyQueue: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tentar novamente'), findsNothing);
+    expect(find.text('Não foi possível reproduzir este áudio.'), findsNothing);
+  });
+
+  testWidgets('sem erro não aparece "Tentar novamente"', (tester) async {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(buildSubject(prefs: prefs, items: const [pdfItem]));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tentar de novo'), findsNothing);
+    expect(find.text('Tentar novamente'), findsNothing);
     expect(find.text('Não foi possível reproduzir este áudio.'), findsNothing);
   });
 

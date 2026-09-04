@@ -1370,7 +1370,7 @@ abstract class AppLocalizations {
   /// Ação genérica de repetir a última tentativa (erro de reprodução de áudio, C.6)
   ///
   /// In pt, this message translates to:
-  /// **'Tentar de novo'**
+  /// **'Tentar novamente'**
   String get retry;
 
   /// No description provided for @audioWebBackgroundNotice.

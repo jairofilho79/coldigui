@@ -773,7 +773,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioPlaybackError => 'Não foi possível reproduzir este áudio.';
 
   @override
-  String get retry => 'Tentar de novo';
+  String get retry => 'Tentar novamente';
 
   @override
   String get audioWebBackgroundNotice =>

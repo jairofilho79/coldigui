@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// completa quando o teste manda (é assim que duas `playQueue` se sobrepõem).
 class _ControllablePlayer extends AudioPlayer {
   final errors = StreamController<PlayerException>.broadcast();
+  final indexes = StreamController<int?>.broadcast();
   final setSourcesCalls = <List<AudioSource>>[];
   final pendingSetSources = <Completer<Duration?>>[];
 
@@ -22,6 +23,9 @@ class _ControllablePlayer extends AudioPlayer {
 
   @override
   Stream<PlayerException> get errorStream => errors.stream;
+
+  @override
+  Stream<int?> get currentIndexStream => indexes.stream;
 
   @override
   Future<Duration?> setAudioSources(
@@ -67,6 +71,7 @@ class _ControllablePlayer extends AudioPlayer {
   @override
   Future<void> dispose() async {
     await errors.close();
+    await indexes.close();
   }
 }
 
@@ -76,6 +81,18 @@ AudioTrack _track(String id) => AudioTrack(
   nome: id.toUpperCase(),
   numero: '001',
   groupId: 'p1',
+  categoria: 'Áudio',
+  classificacao: 'Coro',
+);
+
+/// `r2Key` absoluto e malformado: `Uri.parse` estoura em `_playbackUriForTrack`
+/// — antes de `_applyQueue` marcar que está trocando as fontes.
+AudioTrack _unparseableTrack(String id) => AudioTrack(
+  audioId: id,
+  r2Key: 'https://[::malformado',
+  nome: id.toUpperCase(),
+  numero: '002',
+  groupId: 'p2',
   categoria: 'Áudio',
   classificacao: 'Coro',
 );
@@ -129,6 +146,74 @@ void main() {
       player.playCalls,
       1,
       reason: 'a chamada superada não pode disparar play',
+    );
+  });
+
+  test('carga que falha cedo não trava o índice da sessão', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    // A: prende dentro de `setAudioSources`, já marcada como trocando fontes.
+    player.blockSetSources = true;
+    final callA = notifier.playQueue([_track('a1'), _track('a2')]);
+    await Future<void>.delayed(Duration.zero);
+    expect(player.pendingSetSources.length, 1);
+
+    // B: supera A e estoura **antes** de marcar a troca de fontes.
+    await notifier.playQueue([
+      _unparseableTrack('b1'),
+      _unparseableTrack('b2'),
+    ]);
+    expect(container.read(audioPlayerSessionProvider).errorMessage, isNotNull);
+
+    // A termina depois de superada: não pode deixar a marca presa.
+    player.pendingSetSources.single.complete(null);
+    await callA;
+
+    player.indexes.add(1);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container.read(audioPlayerSessionProvider).currentIndex,
+      1,
+      reason: 'a sessão precisa voltar a seguir o currentIndexStream',
+    );
+  });
+
+  test('erro de fonte superada não pinta sobre a fila nova', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    player.blockSetSources = true;
+    final pending = notifier.playQueue([_track('a1')]);
+    await Future<void>.delayed(Duration.zero);
+
+    // Erro atrasado da fonte anterior, enquanto a nova ainda carrega.
+    player.errors.add(PlayerException(1, 'MEDIA_ERR_ABORTED', 0));
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(audioPlayerSessionProvider).errorMessage, isNull);
+
+    player.pendingSetSources.single.complete(null);
+    await pending;
+    expect(container.read(audioPlayerSessionProvider).errorMessage, isNull);
+  });
+
+  test('intenção de reprodução do usuário limpa o erro visível', () async {
+    final container = await makeContainer();
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    await notifier.playQueue([_track('a1'), _track('a2')]);
+    player.errors.add(PlayerException(1, 'MEDIA_ERR_NETWORK', 0));
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(audioPlayerSessionProvider).errorMessage, isNotNull);
+
+    await notifier.playPause();
+
+    expect(
+      container.read(audioPlayerSessionProvider).errorMessage,
+      isNull,
+      reason:
+          'tocar de novo com sucesso tem que devolver o seek no lugar do erro',
     );
   });
 

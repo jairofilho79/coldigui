@@ -93,7 +93,9 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                   ),
                   // Erro ocupa a linha do seek: em 360 px não cabe uma
                   // terceira linha e o seek não serve para nada parado.
-                  if (session.errorMessage != null)
+                  // Sem faixa não há o que retentar — `retryCurrent` é no-op
+                  // com a fila vazia, então nem mostra o botão.
+                  if (session.errorMessage != null && track != null)
                     Row(
                       children: [
                         Expanded(

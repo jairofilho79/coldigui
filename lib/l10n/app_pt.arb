@@ -390,7 +390,7 @@
   "audioFlagListEmpty": "Nenhum marcador. Pause e toque no botão de bandeira.",
   "audioFlagDelete": "Remover marcador",
   "audioPlaybackError": "Não foi possível reproduzir este áudio.",
-  "retry": "Tentar de novo",
+  "retry": "Tentar novamente",
   "@retry": {
     "description": "Ação genérica de repetir a última tentativa (erro de reprodução de áudio, C.6)"
   },

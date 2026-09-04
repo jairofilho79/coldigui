@@ -107,11 +107,22 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   WebAudioSourceResolver? _sourceResolver;
   AudioPlayer Function() _playerFactory = AudioPlayer.new;
   bool _mediaSessionAttached = false;
-  bool _applyingSources = false;
 
   /// Geração da fila em vigor: cada `_applyQueue` incrementa e descarta o
   /// próprio resultado se outra chamada tiver começado depois (toque duplo).
   int _generation = 0;
+
+  /// Geração **dona** da troca de fontes em curso, ou `null` se ninguém está
+  /// trocando.
+  ///
+  /// A posse é por geração, e não um `bool`, porque uma chamada superada não
+  /// tem como devolver a marca: se a chamada nova estourasse antes de marcar
+  /// (`Uri.parse`, `unlockWebAudioIfNeeded`), a antiga terminava, via o `gen`
+  /// desatualizado e deixava a marca presa em `true` — a sessão parava de
+  /// seguir o `currentIndexStream` para sempre.
+  int? _applyingSourcesGen;
+
+  bool get _applyingSources => _applyingSourcesGen == _generation;
 
   AudioPlayer get _ensurePlayer {
     final existing = _player;
@@ -158,6 +169,9 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       // Erro do player (decode/rede/CORS) não chega pelo `playerStateStream`:
       // sem isto a faixa simplesmente parava em silêncio.
       player.errorStream.listen((error) {
+        // Erro atrasado de uma fonte já superada não pode pintar por cima da
+        // fila que está entrando.
+        if (_applyingSources) return;
         debugPrint('[audio] erro do player: $error');
         state = state.copyWith(
           errorMessage: error.toString(),
@@ -279,7 +293,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         );
       }
 
-      _applyingSources = true;
+      _applyingSourcesGen = gen;
       try {
         await player.setAudioSources(
           sources,
@@ -293,12 +307,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           await player.play();
         }
       } finally {
-        // Só a geração vigente libera a flag: uma chamada superada terminando
-        // depois não pode destravar o índice de quem ainda está carregando.
-        if (gen == _generation) _applyingSources = false;
+        // Só quem ainda é a geração vigente devolve a marca: uma chamada
+        // superada terminando depois não pode destravar o índice de quem
+        // ainda está carregando.
+        if (gen == _generation) _applyingSourcesGen = null;
       }
     } on Object catch (e) {
+      // Chamada superada: quem venceu já cuidou do estado (e um
+      // `PlayerInterruptedException` daqui é justamente o esperado).
       if (gen != _generation) return;
+      _applyingSourcesGen = null;
       debugPrint('[audio] falha ao aplicar a fila: $e');
       state = state.copyWith(errorMessage: e.toString(), playing: false);
     }
@@ -318,9 +336,12 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   }
 
   /// Marca que o usuário comandou a reprodução, encerrando a restauração.
+  ///
+  /// Também apaga o erro visível: se o comando der certo, a face volta a
+  /// mostrar o seek; se falhar de novo, o `catch` repõe a mensagem.
   void _markUserPlaybackIntent() {
-    if (!state.restoredWithoutPlayback) return;
-    state = state.copyWith(restoredWithoutPlayback: false);
+    if (!state.restoredWithoutPlayback && state.errorMessage == null) return;
+    state = state.copyWith(clearError: true, restoredWithoutPlayback: false);
   }
 
   /// Nenhum comando de transporte pode estourar para o widget: registra e
@@ -404,7 +425,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     // depois do fechamento. Como ninguém mais roda o `finally` dela, a flag
     // de troca de fonte é liberada aqui.
     _generation++;
-    _applyingSources = false;
+    _applyingSourcesGen = null;
     try {
       await _player?.stop();
     } on Object catch (e) {
