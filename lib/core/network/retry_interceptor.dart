@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../features/offline/domain/utils/download_retry.dart';
+import 'download_retry.dart';
 
 /// Retenta requests **idempotentes** que falharam por motivo transitório.
 ///
