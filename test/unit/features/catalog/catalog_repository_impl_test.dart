@@ -414,6 +414,40 @@ void main() {
       },
     );
 
+    test(
+      'ETag do corpo vence o /checksum quando os dois divergem (A1)',
+      () async {
+        // `/checksum` e `/louvores` têm caches de browser independentes: o
+        // checksum pode vir fresco (Z) com o corpo ainda em cache (Y). Persistir
+        // Z sobre o corpo Y congelaria o catálogo em Y.
+        final remote = _TestRemote(
+          louvores: [_louvor('corpo-Y')],
+          manifestEtag: 'checksum-do-corpo-Y',
+          checksumResult: const ManifestChecksumResult(
+            ManifestChecksumStatus.changed,
+            checksum: 'checksum-fresco-Z',
+          ),
+        );
+        final local = _TestLocal()..store.add(_louvor('cached-1'));
+        final prefs = await SharedPreferences.getInstance();
+
+        final repo = _repo(remote: remote, local: local, prefs: prefs);
+        final cached = await repo.loadCachedLouvores();
+
+        final outcome = await repo.syncManifest(
+          cached: cached,
+          knownChecksum: 'antigo',
+        );
+
+        expect(outcome.cacheReplaced, isTrue);
+        expect(
+          outcome.checksum,
+          'checksum-do-corpo-Y',
+          reason: 'o checksum salvo tem que descrever o corpo que ficou',
+        );
+      },
+    );
+
     test('falha de rede mantém o cache em memória sem gravar', () async {
       final remote = _TestRemote(error: Exception('offline'));
       final local = _TestLocal()..store.add(_louvor('cached-1'));

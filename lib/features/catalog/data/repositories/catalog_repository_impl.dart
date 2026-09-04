@@ -82,7 +82,18 @@ class CatalogRepositoryImpl implements CatalogRepository {
         );
       }
 
-      final checksum = freshChecksum ?? fetched.etag;
+      // O ETag do corpo tem prioridade sobre o `/checksum`: os dois endpoints
+      // têm caches de browser independentes (`max-age=300`), então um checksum
+      // fresco (Z) pode chegar com um corpo ainda em cache (Y). Salvar Z sobre o
+      // corpo Y congelaria o catálogo em Y até o servidor mudar de novo.
+      final checksum = fetched.etag ?? freshChecksum;
+
+      if (fetched.etag == null) {
+        debugPrint(
+          '[catalog] resposta sem ETag — gate condicional desligado '
+          'para este corpo',
+        );
+      }
 
       if (_isSameManifest(cached, remoteLouvores)) {
         debugPrint('[catalog] manifest idêntico ao cache — gravação evitada');
