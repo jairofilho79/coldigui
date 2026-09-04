@@ -349,4 +349,228 @@ void main() {
     expect(local.publicationReach, PlaylistReach.pontual);
     expect(local.publicationCategory, PlaylistCategory.evangelizacao);
   });
+
+  test('pull falhando não bloqueia push nem tombstones', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Local',
+        pdfIds: const ['x'],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        updatedAt: DateTime.utc(2026, 3, 1),
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'gone',
+        nome: 'X',
+        pdfIds: const [],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        deletedAt: DateTime.utc(2026, 6, 1),
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    final failure = StateError('pull caiu');
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => throw failure,
+      ({required idToken, required playlist}) async => playlist,
+      ({required idToken, required playlistId}) async {},
+    );
+
+    final result = await sync(idToken: 'token');
+    expect(result.pullError, same(failure));
+    expect(result.pushed, 1);
+    expect(result.deleted, 1);
+    expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+  });
+
+  test('409 com remoto mais novo sobrescreve o local como synced', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Local',
+        pdfIds: const ['x'],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        updatedAt: DateTime.utc(2026, 3, 1),
+        version: 2,
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    var attempts = 0;
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async {
+        attempts++;
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto',
+            pdfIds: const ['y'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
+        );
+      },
+      ({required idToken, required playlistId}) async {},
+    );
+
+    final result = await sync(idToken: 'token');
+    expect(attempts, 1, reason: 'remoto mais novo não é re-enviado');
+    expect(result.conflicts, 0);
+    expect(repo.map['p1']?.nome, 'Remoto');
+    expect(repo.map['p1']?.version, 7);
+    expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+  });
+
+  test('409 com local mais novo re-envia com a versão do remoto', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Local',
+        pdfIds: const ['x'],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        updatedAt: DateTime.utc(2026, 5, 1),
+        version: 2,
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    final sentVersions = <int>[];
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async {
+        sentVersions.add(playlist.version);
+        if (sentVersions.length == 1) {
+          throw PlaylistConflictException(
+            RemotePlaylist.fromLegacyLists(
+              id: 'p1',
+              nome: 'Remoto',
+              pdfIds: const ['y'],
+              salva: true,
+              favorita: false,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+              version: 7,
+            ),
+          );
+        }
+        return RemotePlaylist.fromLegacyLists(
+          id: playlist.id,
+          nome: playlist.nome,
+          pdfIds: playlist.pdfIds,
+          salva: true,
+          favorita: playlist.favorita,
+          createdAt: playlist.createdAt,
+          updatedAt: playlist.updatedAt,
+          version: playlist.version + 1,
+        );
+      },
+      ({required idToken, required playlistId}) async {},
+    );
+
+    final result = await sync(idToken: 'token');
+    expect(sentVersions, [2, 7]);
+    expect(result.pushed, 1);
+    expect(result.conflicts, 0);
+    expect(repo.map['p1']?.nome, 'Local');
+    expect(repo.map['p1']?.version, 8);
+    expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+  });
+
+  test('segunda falha no re-envio marca a lista como conflict', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Local',
+        pdfIds: const ['x'],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        updatedAt: DateTime.utc(2026, 5, 1),
+        version: 2,
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    var attempts = 0;
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async {
+        attempts++;
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto',
+            pdfIds: const ['y'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
+        );
+      },
+      ({required idToken, required playlistId}) async {},
+    );
+
+    final result = await sync(idToken: 'token');
+    expect(attempts, 2, reason: 're-envio acontece uma única vez');
+    expect(result.conflicts, 1);
+    expect(result.pushed, 0);
+    expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.conflict);
+  });
+
+  test('tombstone falho desiste após 3 tentativas no mesmo boot', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'gone',
+        nome: 'X',
+        pdfIds: const [],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        deletedAt: DateTime.utc(2026, 6, 1),
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    var deleteCalls = 0;
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async => playlist,
+      ({required idToken, required playlistId}) async {
+        deleteCalls++;
+        throw StateError('delete caiu');
+      },
+    );
+
+    for (var i = 0; i < 5; i++) {
+      await sync(idToken: 'token');
+    }
+
+    expect(deleteCalls, SyncPlaylists.maxTombstoneAttemptsPerBoot);
+    expect(
+      repo.map.containsKey('gone'),
+      isTrue,
+      reason: 'tombstone preservado',
+    );
+  });
 }

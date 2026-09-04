@@ -25,6 +25,22 @@ import 'saved_playlist.dart';
 /// são projeções derivadas, não uma segunda fonte da verdade.
 const int kPlaylistSchemaVersion = 2;
 
+/// `409` do Worker: a linha remota é mais nova que a `updatedAt` enviada.
+///
+/// Mora aqui, junto de [RemotePlaylist], porque carrega uma: o caso de uso de
+/// sync (domínio) precisa dela sem enxergar a camada `data`.
+class PlaylistConflictException implements Exception {
+  const PlaylistConflictException(this.remote);
+
+  /// Linha atual do servidor, que veio no corpo do 409.
+  final RemotePlaylist remote;
+
+  @override
+  String toString() =>
+      'PlaylistConflictException(${remote.id} v${remote.version} '
+      '@ ${remote.updatedAt.toIso8601String()})';
+}
+
 /// Playlist remota (payload Worker `/api/playlists`).
 class RemotePlaylist {
   /// [entries] é a ordem única tipada — fonte da verdade do payload.

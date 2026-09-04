@@ -815,6 +815,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistImportConfirm => 'Importar';
 
   @override
+  String get playlistSyncFailed => 'Não foi possível sincronizar suas listas';
+
+  @override
+  String playlistSyncConflicts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count listas em conflito',
+      one: '1 lista em conflito',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get playlistImported => 'Lista importada';
 
   @override

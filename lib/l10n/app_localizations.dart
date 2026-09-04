@@ -1445,6 +1445,18 @@ abstract class AppLocalizations {
   /// **'Importar'**
   String get playlistImportConfirm;
 
+  /// No description provided for @playlistSyncFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível sincronizar suas listas'**
+  String get playlistSyncFailed;
+
+  /// No description provided for @playlistSyncConflicts.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 lista em conflito} other{{count} listas em conflito}}'**
+  String playlistSyncConflicts(int count);
+
   /// No description provided for @playlistImported.
   ///
   /// In pt, this message translates to:

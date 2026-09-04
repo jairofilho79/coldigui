@@ -807,6 +807,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistImportConfirm => 'Import';
 
   @override
+  String get playlistSyncFailed => 'Could not sync your playlists';
+
+  @override
+  String playlistSyncConflicts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists in conflict',
+      one: '1 playlist in conflict',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get playlistImported => 'Playlist imported';
 
   @override

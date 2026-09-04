@@ -406,6 +406,13 @@
   "playlistImportUrlLabel": "URL ou link compartilhado",
   "playlistImportPaste": "Colar",
   "playlistImportConfirm": "Importar",
+  "playlistSyncFailed": "Não foi possível sincronizar suas listas",
+  "playlistSyncConflicts": "{count, plural, one{1 lista em conflito} other{{count} listas em conflito}}",
+  "@playlistSyncConflicts": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImported": "Lista importada",
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",

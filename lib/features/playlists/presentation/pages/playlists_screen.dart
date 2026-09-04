@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
@@ -14,6 +15,7 @@ import '../providers/playlists_ui_provider.dart';
 import '../widgets/import_playlist_dialog.dart';
 import '../widgets/playlist_list_tile.dart';
 import '../widgets/playlist_media_face_toggle.dart';
+import '../widgets/playlist_sync_error_banner.dart';
 
 /// UC-06/07 — Gestão de playlists com abas [PlaylistTab] (Fase 4.8 + UC-15 sync).
 ///
@@ -109,14 +111,23 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
       if (confirmed != true || !context.mounted) return;
     }
 
-    final playlistId = await ref
-        .read(playlistsProvider.notifier)
-        .importSharedFromUrl(
-          sharePdfs: result.sharePdfs,
-          shareAudios: result.shareAudios,
-          shareItems: result.shareItems,
-          shareName: result.shareName,
-        );
+    final String? playlistId;
+    try {
+      playlistId = await ref
+          .read(playlistsProvider.notifier)
+          .importSharedFromUrl(
+            sharePdfs: result.sharePdfs,
+            shareAudios: result.shareAudios,
+            shareItems: result.shareItems,
+            shareName: result.shareName,
+          );
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] import sem armazenamento: $e');
+      if (context.mounted) {
+        showAppSnackbar(context, l10n.offlineStorageUnavailable);
+      }
+      return;
+    }
     if (!context.mounted) return;
 
     if (playlistId == null) {
@@ -137,7 +148,17 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     );
     if (confirmed != true || !context.mounted) return;
 
-    await ref.read(playlistsProvider.notifier).deleteAllUnsaved();
+    try {
+      await ref.read(playlistsProvider.notifier).deleteAllUnsaved();
+    } on StorageUnavailableException catch (e) {
+      // Isar fechado (web em modo degradado): a escrita não pode fingir
+      // sucesso, e o usuário precisa saber por que a lista continua aí.
+      debugPrint('[playlists] limpeza sem armazenamento: $e');
+      if (context.mounted) {
+        showAppSnackbar(context, l10n.offlineStorageUnavailable);
+      }
+      return;
+    }
     if (context.mounted) {
       showAppSnackbar(context, l10n.playlistDeleteAllUnsavedDone);
     }
@@ -205,6 +226,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
               ],
             ),
           ),
+          const PlaylistSyncErrorBanner(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Align(

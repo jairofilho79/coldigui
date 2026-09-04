@@ -1,3 +1,4 @@
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -6,7 +7,10 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
+import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/import_playlist_dialog.dart';
+import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -20,13 +24,20 @@ class _LoggedOutAuth extends AuthNotifier {
 }
 
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier(this.initial);
+  _FakePlaylistsNotifier(this.initial, {this.deleteAllUnsavedThrows});
 
   final List<PlaylistViewItem> initial;
+  final Object? deleteAllUnsavedThrows;
   ImportPlaylistDialogResult? lastImport;
 
   @override
   List<PlaylistViewItem> build() => initial;
+
+  @override
+  Future<void> deleteAllUnsaved() async {
+    final error = deleteAllUnsavedThrows;
+    if (error != null) throw error;
+  }
 
   @override
   Future<String?> importSharedFromUrl({
@@ -42,6 +53,23 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
       shareName: shareName,
     );
     return 'imported-id';
+  }
+}
+
+/// Estado de sync fixo, sem `ref.listen` de auth nem rede.
+class _FakeSyncNotifier extends PlaylistSyncNotifier {
+  _FakeSyncNotifier([this.initial = const PlaylistSyncState()]);
+
+  final PlaylistSyncState initial;
+  var syncCalls = 0;
+
+  @override
+  PlaylistSyncState build() => initial;
+
+  @override
+  Future<PlaylistSyncResult> sync() async {
+    syncCalls++;
+    return const PlaylistSyncResult();
   }
 }
 
@@ -206,5 +234,101 @@ void main() {
     expect(notifier.lastImport?.shareItems, '');
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  Widget buildWithSync(
+    PlaylistSyncNotifier syncNotifier, {
+    PlaylistsNotifier? playlists,
+  }) {
+    return ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        authStateProvider.overrideWith(_LoggedOutAuth.new),
+        playlistsProvider.overrideWith(
+          () => playlists ?? _FakePlaylistsNotifier(const []),
+        ),
+        playlistSyncProvider.overrideWith(() => syncNotifier),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: const PlaylistsScreen(),
+      ),
+    );
+  }
+
+  testWidgets('sync sem problema não mostra banner', (tester) async {
+    await tester.pumpWidget(buildWithSync(_FakeSyncNotifier()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlaylistSyncErrorBanner), findsOneWidget);
+    expect(find.text('Não foi possível sincronizar suas listas'), findsNothing);
+    expect(find.text('Tentar novamente'), findsNothing);
+  });
+
+  testWidgets('erro de sync vira banner traduzido com Tentar novamente', (
+    tester,
+  ) async {
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível sincronizar suas listas'),
+      findsOneWidget,
+    );
+    // Mensagem do `userMessageFor`, não o `toString()` da exceção.
+    expect(
+      find.text(
+        'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+      ),
+      findsOneWidget,
+    );
+
+    // A tela já sincroniza sozinha ao montar (lifecycle): o que importa é o
+    // toque somar mais uma.
+    final before = syncNotifier.syncCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+    expect(syncNotifier.syncCalls, before + 1);
+  });
+
+  testWidgets('conflitos aparecem no banner', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(_FakeSyncNotifier(const PlaylistSyncState(conflicts: 1))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 lista em conflito'), findsOneWidget);
+  });
+
+  testWidgets('storage indisponível ao limpar rascunhos vira snackbar', (
+    tester,
+  ) async {
+    final playlists = _FakePlaylistsNotifier(
+      const [],
+      deleteAllUnsavedThrows: StorageUnavailableException('sem storage'),
+    );
+    await tester.pumpWidget(
+      buildWithSync(_FakeSyncNotifier(), playlists: playlists),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmar'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Armazenamento local indisponível. Recarregue a página ou libere espaço.',
+      ),
+      findsOneWidget,
+    );
   });
 }

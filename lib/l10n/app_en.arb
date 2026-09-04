@@ -394,6 +394,13 @@
   "playlistImportUrlLabel": "Shared URL or link",
   "playlistImportPaste": "Paste",
   "playlistImportConfirm": "Import",
+  "playlistSyncFailed": "Could not sync your playlists",
+  "playlistSyncConflicts": "{count, plural, one{1 playlist in conflict} other{{count} playlists in conflict}}",
+  "@playlistSyncConflicts": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImported": "Playlist imported",
   "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
   "deepLinkImportFailed": "Could not import the shared playlist.",
