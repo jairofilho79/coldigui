@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 
@@ -43,13 +42,15 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por
   /// [navigateAdjacent] (setas no leitor).
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
-    final chordLocation = chordReaderLocationFor(
+    // Este notifier devolve uma **rota** para quem chama navegar e não tem
+    // `BuildContext`, então o desvio de cifra continua resolvido por rota aqui
+    // em vez de passar pelo `openMaterialProvider` (que abre, não roteia).
+    // Cifra com cache frio não tem para onde ir — não vira busca de PDF.
+    final chordRoute = chordRouteFor(
       targetPdfId,
       ref.read(coldigomChordMaterialsCacheProvider),
     );
-    if (chordLocation != null) return chordLocation;
-    // Cifra com cache frio não tem para onde ir — não vira busca de PDF.
-    if (materialIdKindOf(targetPdfId) == MaterialKind.chord) return null;
+    if (chordRoute.isChord) return chordRoute.location;
 
     final louvor = findLouvorByPdfIdWithColdigom(
       ref.read(louvoresManifestProvider).value?.louvores,

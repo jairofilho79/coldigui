@@ -23,8 +23,8 @@ import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../catalog/domain/usecases/resolve_catalog_material.dart';
 import '../../../catalog/presentation/providers/open_material_provider.dart';
-import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
@@ -275,26 +275,29 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       final loaded = await _loadPlaylist(l10n);
       if (!loaded || !mounted) return;
 
-      // Cifra e PDF dividem o mesmo espaço de ids, então a entrada da lista só
-      // se revela cifra ao ser decodificada. Sem este desvio ela cairia no
-      // findLouvorByPdfId (que só conhece PDFs) e viraria erro genérico.
-      final chordLocation = chordReaderLocationFor(
-        pdfId,
-        ref.read(coldigomChordMaterialsCacheProvider),
-      );
-      if (chordLocation != null) {
-        playlistOpenDebugLog('_openPdfInReader: cifra → $chordLocation');
+      // Cifra, áudio e PDF dividem o mesmo espaço de ids, então a entrada da
+      // lista só se revela ao ser decodificada. O que não é PDF vai pelo ponto
+      // único de abertura; sem este desvio a cifra cairia no findLouvorByPdfId
+      // (que só conhece PDFs) e viraria erro genérico. O caminho de PDF fica
+      // abaixo porque ele tem pré-fetch e skeleton próprios.
+      if (materialIdKindOf(pdfId) != MaterialKind.pdf) {
+        final material = await resolveCatalogMaterialFromWidget(ref, pdfId);
         if (!mounted) return;
-        await context.push(chordLocation);
-        playlistOpenDebugLog('_openPdfInReader: concluído');
-        return;
-      }
-      if (materialIdKindOf(pdfId) == MaterialKind.chord) {
-        // Cache frio: segue para o caminho de erro comum abaixo.
-        playlistOpenDebugLogFailure(
-          '_openPdfInReader',
-          'cifra $pdfId fora do cache',
-        );
+        if (material != null) {
+          playlistOpenDebugLog(
+            '_openPdfInReader: material ${material.kind.name} → opener',
+          );
+          await ref.read(openMaterialProvider).open(context, ref, material);
+          playlistOpenDebugLog('_openPdfInReader: concluído');
+          return;
+        }
+        if (materialIdKindOf(pdfId) == MaterialKind.chord) {
+          // Cache frio: segue para o caminho de erro comum abaixo.
+          playlistOpenDebugLogFailure(
+            '_openPdfInReader',
+            'cifra $pdfId fora do cache',
+          );
+        }
       }
 
       final louvor = ref

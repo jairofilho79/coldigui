@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
+import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -100,6 +103,29 @@ class _FakeChordCacheNotifier extends ColdigomChordMaterialsCacheNotifier {
 
   @override
   Map<String, ChordMaterial> build() => initial;
+}
+
+/// Registra o material que chegou ao ponto único de abertura.
+///
+/// A cifra passa a ser aberta pelo `openMaterialProvider`, então o teste
+/// verifica o material que ele recebe e deixa o fake navegar para `/cifra`.
+class _OpenMaterialSpy {
+  CatalogMaterial? opened;
+
+  OpenMaterial build() {
+    return OpenMaterial(
+      openChord: ({required ref, required context, required chord}) async {
+        opened = ChordMaterialRef(chord);
+        await context.push(
+          buildChordReaderLocation(
+            chordId: chord.chordId,
+            titulo: chord.nome,
+            subtitulo: chord.numero,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
@@ -311,6 +337,7 @@ void main() {
     );
 
     final notifier = _LouvorFindingPlaylistsNotifier([chordItem]);
+    final openSpy = _OpenMaterialSpy();
     final router = GoRouter(
       initialLocation: RoutePaths.playlists,
       routes: [
@@ -349,6 +376,7 @@ void main() {
           resolvePdfForReaderProvider.overrideWithValue(
             _FakeResolvePdfForReader(),
           ),
+          openMaterialProvider.overrideWithValue(openSpy.build()),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -366,6 +394,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(openSpy.opened, isA<ChordMaterialRef>());
+    expect(openSpy.opened!.id, chordId);
     expect(find.text('cifra:$chordId'), findsOneWidget);
     expect(find.textContaining('Não foi possível'), findsNothing);
   });

@@ -18,10 +18,13 @@ void main() {
     classificacao: 'Coletânea',
   );
 
-  group('chordReaderLocationFor', () {
-    test('devolve rota /cifra quando o id é cifra e está no cache', () {
+  group('chordRouteFor', () {
+    test('id de cifra no cache: isChord com rota /cifra', () {
+      final route = chordRouteFor(chordId, {chordId: chord});
+
+      expect(route.isChord, isTrue);
       expect(
-        chordReaderLocationFor(chordId, {chordId: chord}),
+        route.location,
         buildChordReaderLocation(
           chordId: chordId,
           titulo: 'Grande Deus',
@@ -30,16 +33,25 @@ void main() {
       );
     });
 
-    test('devolve null para id de PDF', () {
-      expect(chordReaderLocationFor(pdfId, {chordId: chord}), isNull);
+    test('id de PDF: não é cifra e não tem rota', () {
+      final route = chordRouteFor(pdfId, {chordId: chord});
+
+      expect(route.isChord, isFalse);
+      expect(route.location, isNull);
     });
 
-    test('devolve null quando a cifra não está no cache', () {
-      expect(chordReaderLocationFor(chordId, const {}), isNull);
+    test('cifra fora do cache: isChord sem rota', () {
+      final route = chordRouteFor(chordId, const {});
+
+      expect(route.isChord, isTrue);
+      expect(route.location, isNull);
     });
 
-    test('devolve null para id inválido sem lançar', () {
-      expect(chordReaderLocationFor('nao-e-base64!!!', const {}), isNull);
+    test('id inválido não lança e não é cifra', () {
+      final route = chordRouteFor('nao-e-base64!!!', const {});
+
+      expect(route.isChord, isFalse);
+      expect(route.location, isNull);
     });
   });
 }
