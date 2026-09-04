@@ -57,7 +57,7 @@ void main() {
     });
   });
 
-  group('findLouvorGroupByPdfIdWithColdigom', () {
+  group('findLouvorGroupByPdfId', () {
     final sharedGroupId = LouvorGroupId.compute(
       numero: '001',
       nome: 'Grande Deus',
@@ -83,96 +83,28 @@ void main() {
       groupId: sharedGroupId,
     );
 
-    final coldigomPartitura = Louvor.fromManifest(
-      nome: 'Grande Deus',
-      numero: '001',
-      categoria: 'Partitura',
-      classificacao: 'Country',
-      pdf: 'm1.pdf',
-      pdfId: encodePdfId('assets/praises/p1/m1.pdf'),
-      groupId: 'p1',
-      source: LouvorDataSource.coldigom,
-    );
-
-    final coldigomCifra = Louvor.fromManifest(
-      nome: 'Grande Deus',
-      numero: '001',
-      categoria: 'Cifra I',
-      classificacao: 'Country',
-      pdf: 'm2.pdf',
-      pdfId: encodePdfId('assets/praises/p1/m2.pdf'),
-      groupId: 'p1',
-      source: LouvorDataSource.coldigom,
-    );
-
-    test('agrupa irmãos coldigom no cache', () {
-      final group = findLouvorGroupByPdfIdWithColdigom(
-        const [],
-        coldigomPartitura.pdfId,
-        coldigomCache: {
-          coldigomPartitura.pdfId: coldigomPartitura,
-          coldigomCifra.pdfId: coldigomCifra,
-        },
-      );
-
-      expect(group, isNotNull);
-      expect(group!.totalMaterials, 2);
-      expect(group.groupId, 'p1');
-    });
-
     test('agrupa irmãos PLPCG no manifest', () {
-      final group = findLouvorGroupByPdfIdWithColdigom([
+      final group = findLouvorGroupByPdfId([
         plpcgPartitura,
         plpcgCifra,
       ], plpcgPartitura.pdfId);
 
       expect(group, isNotNull);
       expect(group!.totalMaterials, 2);
-    });
-
-    test('não mistura PLPCG e coldigom com mesmo groupId', () {
-      final plpcgGroup = findLouvorGroupByPdfIdWithColdigom(
-        [plpcgPartitura, plpcgCifra],
-        plpcgPartitura.pdfId,
-        coldigomCache: {
-          coldigomPartitura.pdfId: coldigomPartitura,
-          coldigomCifra.pdfId: coldigomCifra,
-        },
-      );
-
-      expect(plpcgGroup!.totalMaterials, 2);
       expect(
-        plpcgGroup.sections
+        group.sections
             .expand((s) => s.materials)
             .every((m) => m.louvor.source == LouvorDataSource.plpcg),
-        isTrue,
-      );
-
-      final coldigomGroup = findLouvorGroupByPdfIdWithColdigom(
-        [plpcgPartitura, plpcgCifra],
-        coldigomPartitura.pdfId,
-        coldigomCache: {
-          coldigomPartitura.pdfId: coldigomPartitura,
-          coldigomCifra.pdfId: coldigomCifra,
-        },
-      );
-
-      expect(coldigomGroup!.totalMaterials, 2);
-      expect(
-        coldigomGroup.sections
-            .expand((s) => s.materials)
-            .every((m) => m.louvor.source == LouvorDataSource.coldigom),
         isTrue,
       );
     });
 
     test('retorna null para material único', () {
-      expect(
-        findLouvorGroupByPdfIdWithColdigom([
-          plpcgPartitura,
-        ], plpcgPartitura.pdfId),
-        isNull,
-      );
+      expect(findLouvorGroupByPdfId([plpcgPartitura], 'plpcg-part'), isNull);
+    });
+
+    test('retorna null para id órfão', () {
+      expect(findLouvorGroupByPdfId([plpcgPartitura], 'nao-existe'), isNull);
     });
   });
 

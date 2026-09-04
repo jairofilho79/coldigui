@@ -1,68 +1,24 @@
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
+import '../../data/sources/plpcg_catalog_source.dart';
 import '../entities/louvor.dart';
 import '../entities/louvor_data_source.dart';
 import '../entities/louvor_group.dart';
 import 'find_louvor_by_pdf_id.dart';
 
-/// Grupo lógico do louvor com [pdfId], ou `null` se órfão ou material único.
+/// Grupo lógico PLPCG do louvor com [pdfId], ou `null` se órfão ou único.
+///
+/// A variante que também olhava o cache Coldigom virou
+/// `CompositeCatalogSource.groupForMaterial`: o despacho entre os dois acervos
+/// vive na porta, não aqui.
 LouvorGroup? findLouvorGroupByPdfId(List<Louvor>? catalog, String pdfId) {
-  final louvor = findLouvorByPdfId(catalog, pdfId);
-  if (louvor == null) return null;
-  return _groupFromSiblings(
-    louvor,
-    catalog!.where((l) => l.source == louvor.source),
-  );
-}
-
-/// Grupo lógico — manifest PLPCG + cache coldigom, sem misturar fontes.
-LouvorGroup? findLouvorGroupByPdfIdWithColdigom(
-  List<Louvor>? plpcgCatalog,
-  String pdfId, {
-  Map<String, Louvor>? coldigomCache,
-}) {
-  final louvor = findLouvorByPdfIdWithColdigom(
-    plpcgCatalog,
-    pdfId,
-    coldigomCache: coldigomCache,
-  );
-  if (louvor == null) return null;
-
-  final siblings = <Louvor>[];
-  if (louvor.source == LouvorDataSource.plpcg && plpcgCatalog != null) {
-    siblings.addAll(
-      plpcgCatalog.where((l) => l.source == LouvorDataSource.plpcg),
-    );
-  } else if (louvor.source == LouvorDataSource.coldigom &&
-      coldigomCache != null) {
-    siblings.addAll(coldigomCache.values);
-  }
-
-  return _groupFromSiblings(louvor, siblings);
-}
-
-LouvorGroup? _groupFromSiblings(Louvor louvor, Iterable<Louvor> candidates) {
-  if (louvor.source == LouvorDataSource.coldigom) {
-    final praiseId = coldigomPraiseIdFromPdfId(louvor.pdfId);
-    if (praiseId == null) return null;
-    final samePraise = candidates
-        .where(
-          (l) =>
-              l.source == LouvorDataSource.coldigom &&
-              coldigomPraiseIdFromPdfId(l.pdfId) == praiseId,
-        )
-        .toList();
-    if (samePraise.length <= 1) return null;
-    return LouvorGroup.fromLouvores(samePraise).first;
-  }
-
-  final gid = louvor.effectiveGroupId;
-  final sameGroup = candidates
-      .where((l) => l.source == louvor.source && l.effectiveGroupId == gid)
-      .toList();
-  if (sameGroup.length <= 1) return null;
-  return LouvorGroup.fromLouvores(sameGroup).first;
+  final group = PlpcgCatalogSource(
+    catalog: catalog,
+  ).findGroupForMaterial(pdfId);
+  if (group == null || group.totalMaterials <= 1) return null;
+  return group;
 }
 
 /// Grupo para o botão layers da barra: inclui áudios/cifras do cache e aceita
@@ -72,6 +28,10 @@ LouvorGroup? _groupFromSiblings(Louvor louvor, Iterable<Louvor> candidates) {
 /// tocando ([audioId]) se o [pdfId] for de **outro** louvor — o chip focado no
 /// carousel não tem relação com o que está tocando. Com os dois no mesmo
 /// grupo o [pdfId] segue mandando, para não perder PDFs PLPCG do grupo.
+///
+/// Continua síncrono (a UI decide se mostra o botão durante o build) e por isso
+/// usa os métodos síncronos das fontes em vez da porta assíncrona — os caches e
+/// o manifest já estão em memória nos dois casos.
 LouvorGroup? findSwapMaterialGroup({
   String? pdfId,
   String? audioId,
@@ -80,8 +40,15 @@ LouvorGroup? findSwapMaterialGroup({
   Map<String, AudioTrack>? audioCache,
   Map<String, ChordMaterial>? chordCache,
 }) {
+  final plpcg = PlpcgCatalogSource(catalog: plpcgCatalog);
+  final coldigom = ColdigomCatalogSource(
+    louvores: coldigomCache ?? const {},
+    audioTracks: audioCache ?? const {},
+    chords: chordCache ?? const {},
+  );
   final tracks = audioCache?.values.toList() ?? const <AudioTrack>[];
   final chords = chordCache?.values.toList() ?? const <ChordMaterial>[];
+
   Louvor? louvor;
   if (pdfId != null && pdfId.isNotEmpty) {
     louvor = findLouvorByPdfIdWithColdigom(
@@ -94,47 +61,33 @@ LouvorGroup? findSwapMaterialGroup({
   final playingGroupId = _playingTrackGroupId(audioId, audioCache);
   if (playingGroupId != null &&
       playingGroupId != _pdfIdGroupKey(pdfId, louvor, chordCache)) {
-    return _groupIfMultiple(
-      _coldigomSiblingPdfs(coldigomCache, playingGroupId),
-      tracks,
-      chords,
-      playingGroupId,
-    );
+    return _multipleOnly(coldigom.findGroupById(playingGroupId));
   }
 
   if (louvor != null) {
-    final pdfs = _pdfSiblings(
-      louvor,
-      _siblingCatalog(louvor, plpcgCatalog, coldigomCache),
+    final groupKey = _groupKey(louvor);
+    if (louvor.source == LouvorDataSource.coldigom) {
+      return _multipleOnly(coldigom.findGroupById(groupKey));
+    }
+    return _groupIfMultiple(
+      plpcg.louvoresOfGroup(groupKey),
+      tracks,
+      chords,
+      groupKey,
     );
-    return _groupIfMultiple(pdfs, tracks, chords, _groupKey(louvor));
   }
 
   // Cifra: o id decodifica para `.chord`, então nenhum [Louvor] casa com ele.
   // O praiseId sai do próprio id — é o mesmo `assets/praises/{id}/…` do PDF.
-  if (pdfId != null && pdfId.isNotEmpty) {
-    final chordGid = coldigomPraiseIdFromPdfId(pdfId);
-    if (chordGid != null && chordCache?[pdfId] != null) {
-      return _groupIfMultiple(
-        _coldigomSiblingPdfs(coldigomCache, chordGid),
-        tracks,
-        chords,
-        chordGid,
-      );
-    }
+  if (pdfId != null && pdfId.isNotEmpty && chordCache?[pdfId] != null) {
+    return _multipleOnly(coldigom.findGroupForMaterial(pdfId));
   }
 
   if (audioId == null || audioId.isEmpty) return null;
   final track = audioCache?[audioId];
   if (track == null || track.groupId.isEmpty) return null;
 
-  final gid = track.groupId;
-  return _groupIfMultiple(
-    _coldigomSiblingPdfs(coldigomCache, gid),
-    tracks,
-    chords,
-    gid,
-  );
+  return _multipleOnly(coldigom.findGroupById(track.groupId));
 }
 
 /// `groupId` da faixa tocando, ou `null` sem faixa/sem grupo.
@@ -161,28 +114,6 @@ String? _pdfIdGroupKey(
   return coldigomPraiseIdFromPdfId(pdfId);
 }
 
-List<Louvor> _coldigomSiblingPdfs(
-  Map<String, Louvor>? coldigomCache,
-  String groupId,
-) {
-  return <Louvor>[
-    if (coldigomCache != null)
-      for (final item in coldigomCache.values)
-        if (item.effectiveGroupId == groupId) item,
-  ];
-}
-
-Iterable<Louvor> _siblingCatalog(
-  Louvor louvor,
-  List<Louvor>? plpcgCatalog,
-  Map<String, Louvor>? coldigomCache,
-) {
-  if (louvor.source == LouvorDataSource.plpcg) {
-    return plpcgCatalog ?? const [];
-  }
-  return coldigomCache?.values ?? const [];
-}
-
 String _groupKey(Louvor louvor) {
   if (louvor.source == LouvorDataSource.coldigom) {
     return coldigomPraiseIdFromPdfId(louvor.pdfId) ?? louvor.effectiveGroupId;
@@ -190,29 +121,17 @@ String _groupKey(Louvor louvor) {
   return louvor.effectiveGroupId;
 }
 
-List<Louvor> _pdfSiblings(Louvor louvor, Iterable<Louvor> candidates) {
-  if (louvor.source == LouvorDataSource.coldigom) {
-    final praiseId = coldigomPraiseIdFromPdfId(louvor.pdfId);
-    if (praiseId == null) return [louvor];
-    return [
-      for (final item in candidates)
-        if (item.source == LouvorDataSource.coldigom &&
-            coldigomPraiseIdFromPdfId(item.pdfId) == praiseId)
-          item,
-    ];
-  }
-  final gid = louvor.effectiveGroupId;
-  return [
-    for (final item in candidates)
-      if (item.source == louvor.source && item.effectiveGroupId == gid) item,
-  ];
+/// Descarta o grupo que sobrou com um material só — não há o que trocar.
+LouvorGroup? _multipleOnly(LouvorGroup? group) {
+  if (group == null || group.totalMaterials <= 1) return null;
+  return group;
 }
 
-/// Monta o grupo de [groupId] e devolve `null` se sobrar um material só.
+/// Monta o grupo PLPCG de [groupId] e devolve `null` se sobrar um material só.
 ///
 /// [tracks] e [chords] chegam inteiros e são filtrados aqui pelo mesmo
-/// [groupId] usado nos PDFs — é o que impede a aba Cifras de sumir por um
-/// filtro esquecido em um dos três ramos de [findSwapMaterialGroup].
+/// [groupId] usado nos PDFs — o acervo PLPCG não tem cifra nem áudio próprios,
+/// mas um louvor PLPCG pode ter faixa Coldigom com o mesmo `groupId`.
 LouvorGroup? _groupIfMultiple(
   List<Louvor> pdfs,
   List<AudioTrack> tracks,
@@ -236,7 +155,5 @@ LouvorGroup? _groupIfMultiple(
     chordMaterials: matchingChords,
   );
   if (groups.isEmpty) return null;
-  final group = groups.first;
-  if (group.totalMaterials <= 1) return null;
-  return group;
+  return _multipleOnly(groups.first);
 }
