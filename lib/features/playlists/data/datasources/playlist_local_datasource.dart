@@ -2,6 +2,7 @@ import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/playlist.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
+import '../../../../core/utils/material_id_kind.dart';
 
 /// CRUD Isar para [Playlist] (UC-06 + UC-15 sync).
 ///
@@ -115,26 +116,43 @@ class PlaylistLocalDatasource {
     return _migrated(isar.playlists.where().salvaEqualTo(true).findAll());
   }
 
-  /// Migração lazy para a ordem única (D2): preenche [Playlist.items] a partir
-  /// das duas listas legadas e persiste, numa única transação.
+  /// Migração lazy para a ordem única tipada (D2), numa única transação:
   ///
-  /// Idempotente — registros que já têm [Playlist.items] passam intocados.
+  /// 1. registros pré-fatia-1 chegam com [Playlist.items] vazio — preenche com
+  ///    `[...pdfIds, ...audioIds]`;
+  /// 2. registros sem a lista paralela de tipos (`itemKinds.length !=
+  ///    items.length`) — recomputa `kind` por entrada, com [Playlist.audioIds]
+  ///    vencendo a extensão (é o veredito de quem gravou a linha, A8).
+  ///
+  /// Idempotente e não toca `updatedAt`/`version`/`syncStatus`: é migração de
+  /// formato, não mutação de conteúdo — não pode virar um push de sync.
   List<Playlist> _migrated(List<Playlist> rows) {
     final isar = _isar;
     if (isar == null) return rows;
 
-    final pending = rows
-        .where(
-          (row) =>
-              row.items.isEmpty &&
-              (row.pdfIds.isNotEmpty || row.audioIds.isNotEmpty),
-        )
-        .toList(growable: false);
+    final pending = <Playlist>[];
+    for (final row in rows) {
+      var dirty = false;
+      if (row.items.isEmpty &&
+          (row.pdfIds.isNotEmpty || row.audioIds.isNotEmpty)) {
+        row.items = <String>[...row.pdfIds, ...row.audioIds];
+        dirty = true;
+      }
+      if (row.itemKinds.length != row.items.length) {
+        final declaredAudio = row.audioIds.toSet();
+        row.itemKinds = <String>[
+          for (final id in row.items)
+            (declaredAudio.contains(id)
+                    ? MaterialKind.audio
+                    : materialIdKindOf(id))
+                .name,
+        ];
+        dirty = true;
+      }
+      if (dirty) pending.add(row);
+    }
     if (pending.isEmpty) return rows;
 
-    for (final row in pending) {
-      row.items = <String>[...row.pdfIds, ...row.audioIds];
-    }
     isar.write((isar) {
       final coll = isar.playlists;
       for (final row in pending) {
@@ -152,12 +170,13 @@ class PlaylistLocalDatasource {
     });
   }
 
-  /// [items] é a ordem única; [pdfIds]/[audioIds] são as projeções gravadas
-  /// junto para o schema v1 continuar legível.
+  /// [items]+[itemKinds] são a ordem única tipada; [pdfIds]/[audioIds] são as
+  /// projeções gravadas junto para o schema v1 continuar legível.
   Future<void> updateFields(
     String playlistId, {
     String? nome,
     List<String>? items,
+    List<String>? itemKinds,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,
@@ -187,6 +206,9 @@ class PlaylistLocalDatasource {
 
       if (nome != null) existing.nome = nome;
       if (items != null) existing.items = List<String>.from(items);
+      if (itemKinds != null) {
+        existing.itemKinds = List<String>.from(itemKinds);
+      }
       if (pdfIds != null) existing.pdfIds = List<String>.from(pdfIds);
       if (audioIds != null) existing.audioIds = List<String>.from(audioIds);
       if (salva != null) existing.salva = salva;

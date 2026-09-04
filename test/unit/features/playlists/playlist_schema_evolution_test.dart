@@ -13,6 +13,9 @@ final pdfA = encodePdfId('ColAdultos/001.pdf');
 final pdfB = encodePdfId('ColAdultos/002.pdf');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 
+/// Áudio do Worker com container fora de `kAudioMaterialExtensions`.
+final audioMisfiled = encodePdfId('assets/praises/a/001.mid');
+
 /// Schema `Playlist` **anterior** à coluna `items` (propriedade 18).
 ///
 /// Espelha `playlist.g.dart` sem a última propriedade: é a base que um build
@@ -58,6 +61,59 @@ final _legacyPlaylistSchema = IsarGeneratedSchema(
   ),
   getEmbeddedSchemas: () => [],
 );
+
+/// Schema `Playlist` da **fatia 1**: já tem `items` (propriedade 18), ainda não
+/// tem `itemKinds` (propriedade 19).
+final _sliceOnePlaylistSchema = IsarGeneratedSchema(
+  schema: IsarSchema(
+    name: 'Playlist',
+    idName: 'id',
+    embedded: false,
+    properties: [
+      IsarPropertySchema(name: 'playlistId', type: IsarType.string),
+      IsarPropertySchema(name: 'nome', type: IsarType.string),
+      IsarPropertySchema(name: 'pdfIds', type: IsarType.stringList),
+      IsarPropertySchema(name: 'audioIds', type: IsarType.stringList),
+      IsarPropertySchema(name: 'createdAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'salva', type: IsarType.bool),
+      IsarPropertySchema(name: 'savedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'favoritedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'favorita', type: IsarType.bool),
+      IsarPropertySchema(name: 'updatedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'version', type: IsarType.long),
+      IsarPropertySchema(name: 'syncStatusIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'deletedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'isPublished', type: IsarType.bool),
+      IsarPropertySchema(name: 'publicationReachIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'publicationCategoryIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'publishedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'items', type: IsarType.stringList),
+    ],
+    indexes: [
+      IsarIndexSchema(
+        name: 'playlistId',
+        properties: ['playlistId'],
+        unique: true,
+        hash: false,
+      ),
+    ],
+  ),
+  converter: IsarObjectConverter<int, Playlist>(
+    serialize: _serializeSliceOnePlaylist,
+    deserialize: _deserializeSliceOnePlaylist,
+    deserializeProperty: _deserializeLegacyPlaylistProp,
+  ),
+  getEmbeddedSchemas: () => [],
+);
+
+int _serializeSliceOnePlaylist(IsarWriter writer, Playlist object) {
+  _serializeLegacyPlaylist(writer, object);
+  _writeStringList(writer, 18, object.items);
+  return object.id;
+}
+
+Playlist _deserializeSliceOnePlaylist(IsarReader reader) =>
+    _deserializeLegacyPlaylist(reader)..items = _readStringList(reader, 18);
 
 const _nullLong = -9223372036854775808;
 
@@ -244,6 +300,72 @@ void main() {
         [pdfA, pdfB, audioA],
         reason: 'a migração lazy preenche a ordem única na primeira leitura',
       );
+      expect(row.itemKinds, [
+        'pdf',
+        'pdf',
+        'audio',
+      ], reason: 'a mesma leitura já deixa a ordem única tipada');
+    },
+  );
+
+  test(
+    'base da fatia 1 (com items, sem itemKinds) sobrevive ao schema novo (A9)',
+    () async {
+      // Build da fatia 1: escreve a linha com `items` e sem `itemKinds`.
+      final sliceOne = Isar.open(
+        schemas: [_sliceOnePlaylistSchema],
+        directory: tempDir.path,
+        name: 'fatia1',
+        engine: IsarEngine.sqlite,
+      );
+      sliceOne.write((isar) {
+        isar.playlists.put(
+          Playlist()
+            ..id = 1
+            ..playlistId = 'fatia1'
+            ..nome = 'Ensaio'
+            ..pdfIds = [pdfA, pdfB]
+            ..audioIds = [audioMisfiled]
+            ..items = [pdfA, audioMisfiled, pdfB]
+            ..createdAt = DateTime.utc(2026, 8, 1)
+            ..salva = true
+            ..savedAt = DateTime.utc(2026, 8, 1)
+            ..updatedAt = DateTime.utc(2026, 8, 1)
+            ..version = 5,
+        );
+      });
+      sliceOne.close();
+
+      // Build novo: mesmo diretório/nome, schema com a coluna `itemKinds`.
+      final upgraded = Isar.open(
+        schemas: [PlaylistSchema],
+        directory: tempDir.path,
+        name: 'fatia1',
+        engine: IsarEngine.sqlite,
+      );
+      addTearDown(() => upgraded.close());
+
+      // Controle: a coluna nova nasce vazia na base da fatia 1.
+      final raw = upgraded.playlists
+          .where()
+          .playlistIdEqualTo('fatia1')
+          .findFirst();
+      expect(raw, isNotNull);
+      expect(raw!.itemKinds, isEmpty);
+
+      final row = await PlaylistLocalDatasource(
+        upgraded,
+      ).findByPlaylistId('fatia1');
+
+      expect(row, isNotNull, reason: 'a lista do usuário não pode sumir');
+      expect(row!.items, [pdfA, audioMisfiled, pdfB]);
+      expect(row.itemKinds, [
+        'pdf',
+        'audio',
+        'pdf',
+      ], reason: 'audioIds é o veredito de quem gravou a linha (A8)');
+      expect(row.version, 5, reason: 'a migração não bumpa a versão');
+      expect(row.updatedAt.toUtc(), DateTime.utc(2026, 8, 1));
     },
   );
 }

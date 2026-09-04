@@ -49,6 +49,7 @@ void main() {
       required String playlistId,
       required List<String> pdfIds,
       List<String> audioIds = const [],
+      List<String> items = const [],
     }) {
       isar.write((isar) {
         final row = Playlist()
@@ -57,7 +58,8 @@ void main() {
           ..nome = 'Legada'
           ..pdfIds = pdfIds
           ..audioIds = audioIds
-          ..items = const []
+          ..items = items
+          ..itemKinds = const []
           ..createdAt = DateTime.utc(2026, 8, 1)
           ..salva = true
           ..savedAt = DateTime.utc(2026, 8, 1)
@@ -65,6 +67,9 @@ void main() {
         isar.playlists.put(row);
       });
     }
+
+    Playlist rawRow(String playlistId) =>
+        isar.playlists.where().playlistIdEqualTo(playlistId).findFirst()!;
 
     test('leitura preenche items com pdfIds + audioIds e persiste', () async {
       writeLegacyRow(
@@ -77,11 +82,7 @@ void main() {
       expect(migrated?.items, [pdfA, pdfB, audioA]);
 
       // Persistido: uma leitura crua (sem passar pela migração) já vê items.
-      final raw = isar.playlists
-          .where()
-          .playlistIdEqualTo('legacy')
-          .findFirst();
-      expect(raw?.items, [pdfA, pdfB, audioA]);
+      expect(rawRow('legacy').items, [pdfA, pdfB, audioA]);
     });
 
     test('findAll migra em lote', () async {
@@ -148,6 +149,295 @@ void main() {
       expect(playlist?.items, [pdfA, chordA, audioA]);
       expect(playlist?.pdfIds, [pdfA, chordA]);
       expect(playlist?.audioIds, [audioA]);
+    });
+  });
+
+  group('Migração lazy de itemKinds no Isar', () {
+    late Directory tempDir;
+    late Isar isar;
+    late PlaylistLocalDatasource datasource;
+    late PlaylistRepositoryImpl repository;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('playlist_kinds_');
+      isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
+      datasource = PlaylistLocalDatasource(isar);
+      repository = PlaylistRepositoryImpl(datasource);
+    });
+
+    tearDown(() async {
+      isar.close(deleteFromDisk: true);
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// Linha da fatia 1: já tem `items`, ainda não tem `itemKinds`.
+    void writeRowWithoutKinds({
+      required String playlistId,
+      required List<String> items,
+      List<String> pdfIds = const [],
+      List<String> audioIds = const [],
+    }) {
+      isar.write((isar) {
+        final row = Playlist()
+          ..id = isar.playlists.autoIncrement()
+          ..playlistId = playlistId
+          ..nome = 'Fatia 1'
+          ..pdfIds = pdfIds
+          ..audioIds = audioIds
+          ..items = items
+          ..itemKinds = const []
+          ..createdAt = DateTime.utc(2026, 8, 1)
+          ..salva = true
+          ..savedAt = DateTime.utc(2026, 8, 1)
+          ..updatedAt = DateTime.utc(2026, 8, 1)
+          ..version = 4
+          ..syncStatus = PlaylistSyncStatus.synced;
+        isar.playlists.put(row);
+      });
+    }
+
+    Playlist rawRow(String playlistId) =>
+        isar.playlists.where().playlistIdEqualTo(playlistId).findFirst()!;
+
+    test(
+      'preenche itemKinds a partir de items + audioIds e persiste',
+      () async {
+        writeRowWithoutKinds(
+          playlistId: 'p1',
+          items: [pdfA, audioA],
+          pdfIds: [pdfA],
+          audioIds: [audioA],
+        );
+
+        await datasource.findByPlaylistId('p1');
+
+        expect(rawRow('p1').itemKinds, ['pdf', 'audio']);
+      },
+    );
+
+    test('audioIds vence a extensão na hora de derivar o kind (A8)', () async {
+      writeRowWithoutKinds(
+        playlistId: 'p1',
+        items: [chordA, audioMisfiled],
+        pdfIds: [chordA],
+        audioIds: [audioMisfiled],
+      );
+
+      await datasource.findByPlaylistId('p1');
+
+      expect(rawRow('p1').itemKinds, ['chord', 'audio']);
+    });
+
+    test('a migração não toca updatedAt, version nem syncStatus', () async {
+      writeRowWithoutKinds(
+        playlistId: 'p1',
+        items: [pdfA, audioA],
+        audioIds: [audioA],
+      );
+
+      await datasource.findByPlaylistId('p1');
+
+      final raw = rawRow('p1');
+      expect(raw.updatedAt.toUtc(), DateTime.utc(2026, 8, 1));
+      expect(raw.version, 4);
+      expect(raw.syncStatus, PlaylistSyncStatus.synced);
+    });
+
+    test('segunda leitura não regrava itemKinds', () async {
+      writeRowWithoutKinds(
+        playlistId: 'p1',
+        items: [pdfA, audioA],
+        audioIds: [audioA],
+      );
+      await datasource.findByPlaylistId('p1');
+
+      // Marca a linha: se a migração rodar de novo, este valor é sobrescrito.
+      isar.write((isar) {
+        final row = isar.playlists.where().playlistIdEqualTo('p1').findFirst()!;
+        row.itemKinds = ['audio', 'pdf'];
+        isar.playlists.put(row);
+      });
+
+      await datasource.findByPlaylistId('p1');
+
+      expect(
+        rawRow('p1').itemKinds,
+        ['audio', 'pdf'],
+        reason: 'itemKinds.length == items.length ⇒ nada a migrar',
+      );
+    });
+
+    test('linha vazia não vira escrita', () async {
+      writeRowWithoutKinds(playlistId: 'vazia', items: const []);
+
+      await datasource.findByPlaylistId('vazia');
+
+      expect(rawRow('vazia').itemKinds, isEmpty);
+    });
+
+    test('a linha migrada de items ganha itemKinds na mesma leitura', () async {
+      // Linha pré-fatia-1: sem `items` e sem `itemKinds`.
+      isar.write((isar) {
+        isar.playlists.put(
+          Playlist()
+            ..id = isar.playlists.autoIncrement()
+            ..playlistId = 'antiga'
+            ..nome = 'Legada'
+            ..pdfIds = [pdfA, chordA]
+            ..audioIds = [audioA]
+            ..items = const []
+            ..itemKinds = const []
+            ..createdAt = DateTime.utc(2026, 8, 1)
+            ..salva = true
+            ..updatedAt = DateTime.utc(2026, 8, 1),
+        );
+      });
+
+      await datasource.findByPlaylistId('antiga');
+
+      final raw = rawRow('antiga');
+      expect(raw.items, [pdfA, chordA, audioA]);
+      expect(raw.itemKinds, ['pdf', 'chord', 'audio']);
+    });
+
+    test('entries da entidade saem de items + itemKinds', () async {
+      writeRowWithoutKinds(
+        playlistId: 'p1',
+        items: [pdfA, audioMisfiled, chordA],
+        audioIds: [audioMisfiled],
+      );
+
+      final playlist = await repository.getById('p1');
+
+      expect(playlist?.entries.map((e) => e.kind), [
+        MaterialKind.pdf,
+        MaterialKind.audio,
+        MaterialKind.chord,
+      ]);
+      expect(playlist?.audioIds, [audioMisfiled]);
+      expect(playlist?.pdfIds, [pdfA, chordA]);
+    });
+
+    test('itemKinds gravado vence a extensão na releitura', () async {
+      // Grava explicitamente `unknown` para um id que a extensão diria `pdf`.
+      isar.write((isar) {
+        isar.playlists.put(
+          Playlist()
+            ..id = isar.playlists.autoIncrement()
+            ..playlistId = 'p1'
+            ..nome = 'Tipada'
+            ..pdfIds = [pdfA]
+            ..audioIds = const []
+            ..items = [pdfA]
+            ..itemKinds = ['youtube']
+            ..createdAt = DateTime.utc(2026, 8, 1)
+            ..salva = true
+            ..updatedAt = DateTime.utc(2026, 8, 1),
+        );
+      });
+
+      final playlist = await repository.getById('p1');
+
+      expect(playlist?.entries.single.kind, MaterialKind.youtube);
+      expect(playlist?.pdfIds, [
+        pdfA,
+      ], reason: 'youtube fica na face de leitura');
+    });
+  });
+
+  group('PlaylistRepositoryImpl — escrita de itemKinds', () {
+    late Directory tempDir;
+    late Isar isar;
+    late PlaylistRepositoryImpl repository;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('playlist_write_kinds_');
+      isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
+      repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+    });
+
+    tearDown(() async {
+      isar.close(deleteFromDisk: true);
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    Playlist rawRow(String playlistId) =>
+        isar.playlists.where().playlistIdEqualTo(playlistId).findFirst()!;
+
+    test('create grava items, itemKinds e as duas projeções', () async {
+      await repository.create(
+        nome: 'Nova',
+        pdfIds: [pdfA, chordA],
+        audioIds: [audioMisfiled],
+        playlistId: 'p1',
+      );
+
+      final raw = rawRow('p1');
+      expect(raw.items, [pdfA, chordA, audioMisfiled]);
+      expect(raw.itemKinds, ['pdf', 'chord', 'audio']);
+      expect(raw.pdfIds, [pdfA, chordA]);
+      expect(
+        raw.audioIds,
+        [audioMisfiled],
+        reason: 'as colunas de compat são reprojetadas de entries no create',
+      );
+    });
+
+    test('upsert grava itemKinds coerentes com entries', () async {
+      await repository.upsert(
+        SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
+          entries: [
+            PlaylistEntry.classified(pdfA),
+            PlaylistEntry.audio(audioMisfiled),
+          ],
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      );
+
+      final raw = rawRow('p1');
+      expect(raw.itemKinds, ['pdf', 'audio']);
+      expect(raw.pdfIds, [pdfA]);
+      expect(raw.audioIds, [audioMisfiled]);
+    });
+
+    test('update reescreve itemKinds junto com a ordem única', () async {
+      await repository.upsert(
+        SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Ensaio',
+          entries: [
+            PlaylistEntry.classified(pdfA),
+            PlaylistEntry.audio(audioA),
+          ],
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      );
+
+      await repository.update('p1', pdfIds: [chordA, pdfA]);
+
+      final raw = rawRow('p1');
+      expect(raw.items, [chordA, pdfA, audioA]);
+      expect(raw.itemKinds, ['chord', 'pdf', 'audio']);
+    });
+
+    test('round-trip pelo Isar preserva o kind declarado (A8)', () async {
+      await repository.create(
+        nome: 'Nova',
+        pdfIds: [pdfA],
+        audioIds: [audioMisfiled],
+        playlistId: 'p1',
+      );
+
+      final reloaded = await repository.getById('p1');
+
+      expect(reloaded?.audioIds, [audioMisfiled]);
+      expect(reloaded?.entries.last.kind, MaterialKind.audio);
     });
   });
 

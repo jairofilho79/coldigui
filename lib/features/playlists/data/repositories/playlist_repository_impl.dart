@@ -52,9 +52,6 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final row = Playlist()
       ..playlistId = id
       ..nome = nome
-      ..items = <String>[...pdfIds, ...audioIds]
-      ..pdfIds = List<String>.from(pdfIds)
-      ..audioIds = List<String>.from(audioIds)
       ..createdAt = now
       ..salva = salva
       ..savedAt = savedAt ?? (salva ? now : null)
@@ -64,6 +61,12 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..syncStatus = salva && syncStatus == PlaylistSyncStatus.synced
           ? PlaylistSyncStatus.pendingPush
           : syncStatus;
+    // Também no `create`: as colunas de compat são projeção de `entries`,
+    // nunca as listas cruas que o chamador passou.
+    _writeEntries(
+      row,
+      SavedPlaylist.entriesFromLegacyLists(pdfIds: pdfIds, audioIds: audioIds),
+    );
 
     await _local.insert(row);
     return id;
@@ -113,6 +116,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       playlistId,
       nome: nome,
       items: next?.items,
+      itemKinds: next == null ? null : _kindsOf(next.entries),
       pdfIds: next?.pdfIds ?? pdfIds,
       audioIds: next?.audioIds ?? audioIds,
       salva: salva,
@@ -193,9 +197,6 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final row = Playlist()
       ..playlistId = playlist.playlistId
       ..nome = playlist.nome
-      ..items = List<String>.from(playlist.items)
-      ..pdfIds = List<String>.from(playlist.pdfIds)
-      ..audioIds = List<String>.from(playlist.audioIds)
       ..createdAt = playlist.createdAt
       ..salva = playlist.salva
       ..savedAt = playlist.savedAt
@@ -209,8 +210,30 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..publicationReach = playlist.publicationReach
       ..publicationCategory = playlist.publicationCategory
       ..publishedAt = playlist.publishedAt;
+    _writeEntries(row, playlist.entries);
     await _local.insert(row);
   }
+
+  /// Grava a ordem única tipada e reprojeta as colunas de compatibilidade
+  /// (`pdfIds`/`audioIds`, lidas por builds antigos do mesmo dispositivo e pelo
+  /// Worker v1) — sempre a partir de [entries], nunca de listas soltas.
+  static void _writeEntries(Playlist row, List<PlaylistEntry> entries) {
+    row
+      ..items = <String>[for (final e in entries) e.id]
+      ..itemKinds = _kindsOf(entries)
+      ..pdfIds = <String>[
+        for (final e in entries)
+          if (!e.isAudio) e.id,
+      ]
+      ..audioIds = <String>[
+        for (final e in entries)
+          if (e.isAudio) e.id,
+      ];
+  }
+
+  static List<String> _kindsOf(List<PlaylistEntry> entries) => <String>[
+    for (final e in entries) e.kind.name,
+  ];
 
   @override
   Future<void> markAllSavedPendingPush() => _local.markAllSavedPendingPush();
@@ -236,17 +259,29 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     publishedAt: row.publishedAt,
   );
 
-  /// Ordem única tipada da linha.
+  /// Ordem única tipada da linha: `items` + `itemKinds`.
   ///
-  /// `row.items` já vem migrado do datasource; o fallback cobre a lista vazia.
-  /// `row.audioIds` é o veredito de quem gravou a linha: sem ele, um áudio com
+  /// As duas listas já vêm migradas e alinhadas do datasource; o fallback (uma
+  /// linha lida fora dele, ou com a invariante quebrada) reclassifica pela
+  /// extensão com `row.audioIds` como veredito — sem ele, um áudio com
   /// container fora de `kAudioMaterialExtensions` migraria para a face de
   /// partituras e o próximo sync do carousel o consumiria (A8).
-  static List<PlaylistEntry> _entriesOf(Playlist row) =>
-      SavedPlaylist.entriesFromLegacyLists(
-        items: row.items.isNotEmpty
-            ? List<String>.from(row.items)
-            : <String>[...row.pdfIds, ...row.audioIds],
+  static List<PlaylistEntry> _entriesOf(Playlist row) {
+    final items = row.items.isNotEmpty
+        ? row.items
+        : <String>[...row.pdfIds, ...row.audioIds];
+    if (row.itemKinds.length != items.length) {
+      return SavedPlaylist.entriesFromLegacyLists(
+        items: items,
         audioIds: row.audioIds,
       );
+    }
+    return <PlaylistEntry>[
+      for (var i = 0; i < items.length; i++)
+        PlaylistEntry(
+          id: items[i],
+          kind: materialKindFromName(row.itemKinds[i]),
+        ),
+    ];
+  }
 }

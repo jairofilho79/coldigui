@@ -65,6 +65,16 @@ class Playlist {
   /// `PlaylistLocalDatasource` faz a migração lazy
   /// (`items = [...pdfIds, ...audioIds]`) e persiste.
   List<String> items = const [];
+
+  /// Tipo de cada entrada de [items] (`MaterialKind.name`), lista paralela —
+  /// invariante `itemKinds.length == items.length` (D2 fatia 2).
+  ///
+  /// Declarado por último pelo mesmo motivo de [items]: o índice de
+  /// propriedade das colunas anteriores não muda, então bases já gravadas
+  /// continuam legíveis. Vazio em registros anteriores à migração; a leitura em
+  /// `PlaylistLocalDatasource` recomputa (`audioIds` vence a extensão) e
+  /// persiste, sem tocar `updatedAt`/`version`/`syncStatus`.
+  List<String> itemKinds = const [];
 }
 
 extension PlaylistSyncStatusX on Playlist {
