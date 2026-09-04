@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -108,25 +109,18 @@ void main() {
     await tmp.writeAsBytes(zipBytes.sublist(0, partial));
 
     final dio = Dio();
-    final adapter = _FakeDownloadAdapter(
-      zipBytes,
-      acceptRanges: true,
-    );
+    final adapter = _FakeDownloadAdapter(zipBytes, acceptRanges: true);
     dio.httpClientAdapter = adapter;
 
-    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
-      url: 'http://example.invalid/packages/Partitura-1.zip',
-      filename: 'Partitura-1.zip',
-      expectedSize: zipBytes.length,
-    );
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+        .download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+          expectedSize: zipBytes.length,
+        );
 
     expect(await File(path).length(), zipBytes.length);
-    expect(
-      adapter.requests.any(
-        (options) => options.method == 'HEAD',
-      ),
-      isTrue,
-    );
+    expect(adapter.requests.any((options) => options.method == 'HEAD'), isTrue);
     expect(
       adapter.requests.any(
         (options) => options.headers['Range'] == 'bytes=$partial-',
@@ -154,11 +148,12 @@ void main() {
     );
     dio.httpClientAdapter = adapter;
 
-    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
-      url: 'http://example.invalid/packages/Partitura-1.zip',
-      filename: 'Partitura-1.zip',
-      expectedSize: zipBytes.length,
-    );
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+        .download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+          expectedSize: zipBytes.length,
+        );
 
     expect(await File(path).readAsBytes(), zipBytes);
   });
@@ -195,17 +190,17 @@ void main() {
       onFetch: (options) => captured = options,
     );
 
-    final capturingDownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
+    final capturingDownloader = ZipPackageDownloader(
+      dio,
+      pdfStoragePortFor(store),
+    );
     await capturingDownloader.download(
       url: 'http://example.invalid/packages/Partitura-1.zip',
       filename: 'Partitura-1.zip',
     );
 
     expect(captured, isNotNull);
-    expect(
-      captured!.receiveTimeout,
-      OfflineConfig.zipDownloadReceiveTimeout,
-    );
+    expect(captured!.receiveTimeout, OfflineConfig.zipDownloadReceiveTimeout);
     expect(captured!.sendTimeout, OfflineConfig.zipDownloadSendTimeout);
   });
 
@@ -223,7 +218,10 @@ void main() {
       zipBytes.sublist(0, zipBytes.length ~/ 2),
     );
 
-    final mismatchDownloader = ZipPackageDownloader(dio, pdfStoragePortFor(store));
+    final mismatchDownloader = ZipPackageDownloader(
+      dio,
+      pdfStoragePortFor(store),
+    );
 
     await expectLater(
       mismatchDownloader.download(
@@ -258,10 +256,176 @@ void main() {
 
     expect(path, target.path);
     expect(await target.length(), zipBytes.length);
-    expect(
-      (dio.httpClientAdapter as _RetryOnFirstTimeoutAdapter).attempts,
-      2,
+    expect((dio.httpClientAdapter as _RetryOnFirstTimeoutAdapter).attempts, 2);
+  });
+
+  test('cancelamento do usuário lança ZipDownloadCancelledException', () async {
+    final dio = Dio();
+    final adapter = _StallingDownloadAdapter(stallAfterFirstChunkAttempts: {1});
+    dio.httpClientAdapter = adapter;
+
+    final cancelToken = CancelToken();
+    final cancellable = ZipPackageDownloader(dio, pdfStoragePortFor(store));
+
+    final future = cancellable.download(
+      url: 'http://example.invalid/packages/Partitura-1.zip',
+      filename: 'Partitura-1.zip',
+      expectedSize: 4096,
+      cancelToken: cancelToken,
+      onReceiveProgress: (received, total) {
+        if (!cancelToken.isCancelled) {
+          cancelToken.cancel('cancelled by user');
+        }
+      },
     );
+
+    await expectLater(future, throwsA(isA<ZipDownloadCancelledException>()));
+    expect(adapter.attempts, 1, reason: 'cancel do usuário não retenta');
+  });
+
+  test('stall sem bytes vira ZipDownloadStalledException retryável', () async {
+    final zipBytes = await _createZipBytes();
+    final dio = Dio();
+    final adapter = _StallingDownloadAdapter(
+      stallAfterFirstChunkAttempts: {1},
+      bytes: zipBytes,
+    );
+    dio.httpClientAdapter = adapter;
+
+    final stallDownloader = ZipPackageDownloader(
+      dio,
+      pdfStoragePortFor(store),
+      stallTimeout: const Duration(milliseconds: 60),
+    );
+
+    final path = await stallDownloader.download(
+      url: 'http://example.invalid/packages/Partitura-1.zip',
+      filename: 'Partitura-1.zip',
+      expectedSize: zipBytes.length,
+    );
+
+    expect(await File(path).length(), zipBytes.length);
+    expect(adapter.attempts, 2, reason: 'stall conta como tentativa retryável');
+  });
+
+  test(
+    'stall em todas as tentativas propaga ZipDownloadStalledException',
+    () async {
+      final dio = Dio();
+      final adapter = _StallingDownloadAdapter(
+        stallAfterFirstChunkAttempts: const {1, 2, 3},
+      );
+      dio.httpClientAdapter = adapter;
+
+      final stallDownloader = ZipPackageDownloader(
+        dio,
+        pdfStoragePortFor(store),
+        stallTimeout: const Duration(milliseconds: 30),
+      );
+
+      await expectLater(
+        stallDownloader.download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+          expectedSize: 4096,
+        ),
+        throwsA(isA<ZipDownloadStalledException>()),
+      );
+      expect(adapter.attempts, OfflineConfig.maxRetryAttempts);
+    },
+  );
+
+  test('ZIP cacheado sem assinatura PK é apagado e baixado de novo', () async {
+    final zipBytes = await _createZipBytes();
+    final zipDir = Directory(
+      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+    );
+    await zipDir.create(recursive: true);
+    final cached = File('${zipDir.path}/Partitura-1.zip');
+    // Tamanho correto, conteúdo lixo (ex.: HTML de erro do proxy).
+    await cached.writeAsBytes(List<int>.filled(zipBytes.length, 0x41));
+
+    final dio = Dio();
+    final adapter = _FakeDownloadAdapter(zipBytes);
+    dio.httpClientAdapter = adapter;
+
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+        .download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+          expectedSize: zipBytes.length,
+        );
+
+    expect(await File(path).readAsBytes(), zipBytes);
+    expect(
+      adapter.requests,
+      isNotEmpty,
+      reason: 'cache inválido foi rebaixado',
+    );
+  });
+
+  test('ZIP cacheado sem expectedSize também exige assinatura PK', () async {
+    final zipBytes = await _createZipBytes();
+    final zipDir = Directory(
+      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+    );
+    await zipDir.create(recursive: true);
+    final cached = File('${zipDir.path}/Partitura-1.zip');
+    await cached.writeAsString('<html>404</html>');
+
+    final dio = Dio();
+    dio.httpClientAdapter = _FakeDownloadAdapter(zipBytes);
+
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+        .download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+        );
+
+    expect(await File(path).readAsBytes(), zipBytes);
+  });
+
+  test('cleanOrphanedTempFiles preserva os .tmp listados em keep', () async {
+    final zipDir = Directory(
+      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+    );
+    await zipDir.create(recursive: true);
+
+    final keptTmp = File('${zipDir.path}/Partitura-2.zip.tmp');
+    final orphanTmp = File('${zipDir.path}/Cifra-9.zip.tmp');
+    await keptTmp.writeAsString('checkpoint ativo');
+    await orphanTmp.writeAsString('órfão');
+
+    await downloader.cleanOrphanedTempFiles(keep: {'Partitura-2.zip'});
+
+    expect(await keptTmp.exists(), isTrue);
+    expect(await orphanTmp.exists(), isFalse);
+  });
+
+  test('download limpa órfãos mas preserva o .tmp do checkpoint ativo', () async {
+    final zipBytes = await _createZipBytes();
+    final zipDir = Directory(
+      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+    );
+    await zipDir.create(recursive: true);
+
+    final checkpointTmp = File('${zipDir.path}/Partitura-2.zip.tmp');
+    final orphanTmp = File('${zipDir.path}/Cifra-9.zip.tmp');
+    await checkpointTmp.writeAsString('checkpoint ativo');
+    await orphanTmp.writeAsString('órfão');
+
+    final dio = Dio();
+    dio.httpClientAdapter = _FakeDownloadAdapter(zipBytes);
+
+    await ZipPackageDownloader(dio, pdfStoragePortFor(store)).download(
+      url: 'http://example.invalid/packages/Partitura-1.zip',
+      filename: 'Partitura-1.zip',
+      expectedSize: zipBytes.length,
+      activeCheckpointName: 'Partitura-2.zip',
+    );
+
+    expect(await checkpointTmp.exists(), isTrue);
+    expect(await orphanTmp.exists(), isFalse);
   });
 
   test('ZipDecoder lança mensagem informativa para ZIP corrompido', () {
@@ -332,7 +496,7 @@ class _FakeDownloadAdapter implements HttpClientAdapter {
         200,
         headers: acceptRanges
             ? {
-                'accept-ranges': ['bytes']
+                'accept-ranges': ['bytes'],
               }
             : {},
       );
@@ -355,25 +519,58 @@ class _FakeDownloadAdapter implements HttpClientAdapter {
         206,
         headers: {
           'content-range': [
-            'bytes $start-${_bytes.length - 1}/${_bytes.length}'
+            'bytes $start-${_bytes.length - 1}/${_bytes.length}',
           ],
         },
       );
     }
 
-    return ResponseBody.fromBytes(
-      Uint8List.fromList(_bytes),
-      200,
-      headers: {},
-    );
+    return ResponseBody.fromBytes(Uint8List.fromList(_bytes), 200, headers: {});
+  }
+}
+
+/// Emite um chunk e trava (sem mais bytes, sem fechar) nas tentativas listadas.
+class _StallingDownloadAdapter implements HttpClientAdapter {
+  _StallingDownloadAdapter({
+    required this.stallAfterFirstChunkAttempts,
+    List<int>? bytes,
+  }) : _bytes = bytes ?? List<int>.filled(4096, 0x50);
+
+  final Set<int> stallAfterFirstChunkAttempts;
+  final List<int> _bytes;
+  var attempts = 0;
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    attempts++;
+    final headers = {
+      'content-length': ['${_bytes.length}'],
+    };
+
+    if (!stallAfterFirstChunkAttempts.contains(attempts)) {
+      return ResponseBody.fromBytes(
+        Uint8List.fromList(_bytes),
+        200,
+        headers: headers,
+      );
+    }
+
+    final controller = StreamController<Uint8List>();
+    controller.onCancel = () {};
+    controller.add(Uint8List.fromList(_bytes.sublist(0, 1)));
+    return ResponseBody(controller.stream, 200, headers: headers);
   }
 }
 
 class _CapturingDownloadAdapter implements HttpClientAdapter {
-  _CapturingDownloadAdapter({
-    required this.bytes,
-    required this.onFetch,
-  });
+  _CapturingDownloadAdapter({required this.bytes, required this.onFetch});
 
   final List<int> bytes;
   final void Function(RequestOptions options) onFetch;
@@ -388,11 +585,7 @@ class _CapturingDownloadAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     onFetch(options);
-    return ResponseBody.fromBytes(
-      Uint8List.fromList(bytes),
-      200,
-      headers: {},
-    );
+    return ResponseBody.fromBytes(Uint8List.fromList(bytes), 200, headers: {});
   }
 }
 
@@ -418,10 +611,6 @@ class _RetryOnFirstTimeoutAdapter implements HttpClientAdapter {
         type: DioExceptionType.receiveTimeout,
       );
     }
-    return ResponseBody.fromBytes(
-      Uint8List.fromList(_bytes),
-      200,
-      headers: {},
-    );
+    return ResponseBody.fromBytes(Uint8List.fromList(_bytes), 200, headers: {});
   }
 }

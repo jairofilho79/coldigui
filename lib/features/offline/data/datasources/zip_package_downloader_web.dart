@@ -17,12 +17,16 @@ class ZipPackageDownloader {
   late final PdfBytesDatasource _bytesDatasource = PdfBytesDatasource(_dio);
 
   /// Retorna chave lógica da part sem baixar o ZIP (web baixa PDFs individualmente).
+  ///
+  /// [activeCheckpointName] existe só para paridade com o nativo (limpeza de
+  /// `.tmp`): não há ZIP nem arquivo transitório na web.
   Future<String> download({
     required String url,
     required String filename,
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
   }) async {
     return _zipKey(filename);
   }

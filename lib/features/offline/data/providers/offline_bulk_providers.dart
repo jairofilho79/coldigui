@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/dio_provider.dart';
@@ -9,13 +7,15 @@ import '../datasources/zip_package_downloader.dart';
 import 'offline_core_providers.dart';
 
 /// DI — download de ZIPs transitórios (UC-09 bulk).
+///
+/// A limpeza de `.tmp` órfãos roda no início de cada `download()`, com o
+/// parcial em curso e o do checkpoint ativo preservados (spec C.2) — fazê-la
+/// aqui apagaria às cegas o parcial de um download já em andamento.
 final zipPackageDownloaderProvider = Provider<ZipPackageDownloader>((ref) {
-  final downloader = ZipPackageDownloader(
+  return ZipPackageDownloader(
     ref.watch(dioProvider),
     ref.watch(pdfStoragePortProvider),
   );
-  unawaited(downloader.cleanOrphanedTempFiles());
-  return downloader;
 });
 
 /// DI — [ExtractAndStorePdfs] (Fase 3.5) — puxa `package:archive` via extractors.

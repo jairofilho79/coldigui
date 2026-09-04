@@ -38,6 +38,7 @@ class _FakeZipDownloader extends ZipPackageDownloader {
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
   }) async {
     if (cancelToken?.isCancelled == true) {
       throw const OfflineBulkCancelledException();
@@ -59,6 +60,7 @@ class _ProgressZipDownloader extends ZipPackageDownloader {
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
   }) async {
     onReceiveProgress?.call(500, 1000);
     onReceiveProgress?.call(1000, 1000);
@@ -79,6 +81,7 @@ class _RetainedZipDownloader extends ZipPackageDownloader {
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
   }) async {
     if (cancelToken?.isCancelled == true) {
       throw const OfflineBulkCancelledException();
@@ -101,6 +104,7 @@ class _EnospcZipDownloader extends ZipPackageDownloader {
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
   }) async {
     throw FileSystemException(
       'No space left on device',
@@ -132,6 +136,90 @@ class _EnospcExtractAndStorePdfs extends ExtractAndStorePdfs {
       'No space left on device',
       zipPath,
       const OSError('No space left on device', 28),
+    );
+  }
+}
+
+class _CancelledZipDownloader extends ZipPackageDownloader {
+  _CancelledZipDownloader(PdfLocalStore store)
+    : super(Dio(), pdfStoragePortFor(store));
+
+  @override
+  Future<String> download({
+    required String url,
+    required String filename,
+    int? expectedSize,
+    CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
+  }) async {
+    throw const ZipDownloadCancelledException();
+  }
+}
+
+/// Registra cada chamada de download e devolve sempre o mesmo ZIP de teste.
+class _CountingZipDownloader extends ZipPackageDownloader {
+  _CountingZipDownloader(PdfLocalStore store, this._zipPath)
+    : super(Dio(), pdfStoragePortFor(store));
+
+  final String _zipPath;
+  final downloads = <String>[];
+  final checkpointNames = <String?>[];
+
+  @override
+  Future<String> download({
+    required String url,
+    required String filename,
+    int? expectedSize,
+    CancelToken? cancelToken,
+    void Function(int received, int total)? onReceiveProgress,
+    String? activeCheckpointName,
+  }) async {
+    downloads.add(filename);
+    checkpointNames.add(activeCheckpointName);
+    return _zipPath;
+  }
+
+  @override
+  Future<void> deleteZip(String zipPath) async {}
+}
+
+/// Falha com [ZipCorruptedException] nas primeiras [failures] extrações.
+class _CorruptedZipExtractAndStorePdfs extends ExtractAndStorePdfs {
+  _CorruptedZipExtractAndStorePdfs(
+    super.repository,
+    super.store,
+    super.zipDownloader, {
+    required this.failures,
+  });
+
+  final int failures;
+  int calls = 0;
+
+  @override
+  Future<ExtractResult> call({
+    required String zipPath,
+    required List<String> expectedPdfIds,
+    required String materialCategory,
+    int startFromPdfIndex = 0,
+    CancelToken? cancelToken,
+    void Function(int extracted, int total)? onExtractProgress,
+    void Function(int done, int total)? onProgress,
+    Future<void> Function(int extractedPdfCount)? onProgressCheckpoint,
+  }) async {
+    calls++;
+    if (calls <= failures) {
+      throw ZipCorruptedException(zipPath);
+    }
+    return super.call(
+      zipPath: zipPath,
+      expectedPdfIds: expectedPdfIds,
+      materialCategory: materialCategory,
+      startFromPdfIndex: startFromPdfIndex,
+      cancelToken: cancelToken,
+      onExtractProgress: onExtractProgress,
+      onProgress: onProgress,
+      onProgressCheckpoint: onProgressCheckpoint,
     );
   }
 }
@@ -907,5 +995,128 @@ void main() {
     expect(await repository.lookup(pdfId2), isNotNull);
     expect(await repository.lookup(pdfId3), isNotNull);
     expect(await OfflineBulkCheckpointStore(prefs).load(), isNull);
+  });
+
+  test(
+    'ZipDownloadCancelledException vira OfflineBulkCancelledException',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final useCase = DownloadOfflinePackages(
+        manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+        zipDownloader: _CancelledZipDownloader(store),
+        extractAndStorePdfs: ExtractAndStorePdfs(
+          repository,
+          pdfStoragePortFor(store),
+          _FakeZipDownloader(store, zipPath),
+        ),
+        reconcileOfflineIndex: ReconcileOfflineIndex(
+          repository,
+          pdfStoragePortFor(store),
+        ),
+        checkpointStore: OfflineBulkCheckpointStore(prefs),
+      );
+
+      await expectLater(
+        useCase.call(categories: const ['Partitura']),
+        throwsA(isA<OfflineBulkCancelledException>()),
+      );
+    },
+  );
+
+  test('ZIP corrompido na extração é baixado de novo uma vez', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final downloader = _CountingZipDownloader(store, zipPath);
+    final extractor = _CorruptedZipExtractAndStorePdfs(
+      repository,
+      pdfStoragePortFor(store),
+      downloader,
+      failures: 1,
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+      zipDownloader: downloader,
+      extractAndStorePdfs: extractor,
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    final result = await useCase.call(categories: const ['Partitura']);
+
+    expect(downloader.downloads, ['Partitura-1.zip', 'Partitura-1.zip']);
+    expect(extractor.calls, 2);
+    expect(result.failedPdfIds, isEmpty);
+    expect(await repository.lookup(pdfId1), isNotNull);
+  });
+
+  test('ZIP corrompido duas vezes propaga ZipCorruptedException', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final downloader = _CountingZipDownloader(store, zipPath);
+    final extractor = _CorruptedZipExtractAndStorePdfs(
+      repository,
+      pdfStoragePortFor(store),
+      downloader,
+      failures: 2,
+    );
+
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+      zipDownloader: downloader,
+      extractAndStorePdfs: extractor,
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    await expectLater(
+      useCase.call(categories: const ['Partitura']),
+      throwsA(isA<ZipCorruptedException>()),
+    );
+    expect(downloader.downloads.length, 2, reason: 'uma única retentativa');
+  });
+
+  test('download recebe o nome da part do checkpoint ativo', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    final downloader = _CountingZipDownloader(store, zipPath);
+    final useCase = DownloadOfflinePackages(
+      manifestDatasource: _FakeManifestDatasource(buildManifest(), prefs),
+      zipDownloader: downloader,
+      extractAndStorePdfs: ExtractAndStorePdfs(
+        repository,
+        pdfStoragePortFor(store),
+        downloader,
+      ),
+      reconcileOfflineIndex: ReconcileOfflineIndex(
+        repository,
+        pdfStoragePortFor(store),
+      ),
+      checkpointStore: OfflineBulkCheckpointStore(prefs),
+    );
+
+    await useCase.call(
+      categories: const ['Partitura'],
+      resumeCheckpoint: OfflineBulkCheckpoint(
+        categories: const ['Partitura'],
+        categoryIndex: 0,
+        partIndex: 0,
+        extractedPdfCount: 1,
+        startedAt: DateTime.now(),
+      ),
+    );
+
+    expect(downloader.checkpointNames, ['Partitura-1.zip']);
   });
 }

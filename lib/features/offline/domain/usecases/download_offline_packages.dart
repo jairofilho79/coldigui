@@ -80,6 +80,10 @@ class DownloadOfflinePackages {
 
     await _checkpointStore.save(checkpoint);
 
+    // Nome do ZIP da part apontada pelo checkpoint: o `.tmp` dele precisa
+    // sobreviver à limpeza de órfãos feita no início de cada download.
+    final activeCheckpointName = _activeCheckpointZipName(manifest, checkpoint);
+
     var donePdfsGlobal = _countDonePdfs(manifest, checkpoint);
     final totalPdfsGlobal = _countTotalPdfs(manifest, categories);
     final unmatchedAccumulator = <String>[];
@@ -129,11 +133,12 @@ class DownloadOfflinePackages {
           );
         }
 
-        final zipPath = await _downloadZip(
+        Future<String> downloadPart() => _downloadZip(
           url: part.url,
           filename: part.filename,
           expectedSize: part.size,
           cancelToken: cancelToken,
+          activeCheckpointName: activeCheckpointName,
           onReceiveProgress: kIsWeb
               ? null
               : (received, total) {
@@ -154,6 +159,8 @@ class DownloadOfflinePackages {
                 },
         );
 
+        var zipPath = await downloadPart();
+
         if (!kIsWeb) {
           onProgress?.call(
             _buildProgress(
@@ -169,8 +176,8 @@ class DownloadOfflinePackages {
           );
         }
 
-        final extractResult = await _extractPdfs(
-          zipPath: zipPath,
+        Future<ExtractResult> extractPart(String path) => _extractPdfs(
+          zipPath: path,
           expectedPdfIds: part.pdfs,
           materialCategory: materialCategory,
           startFromPdfIndex: startPdfIdx,
@@ -213,6 +220,22 @@ class DownloadOfflinePackages {
             ),
           ),
         );
+
+        // ZIP corrompido já foi apagado pelo runner: uma única retentativa
+        // completa (baixar de novo + extrair) antes de propagar.
+        ExtractResult extractResult;
+        try {
+          extractResult = await extractPart(zipPath);
+        } on ZipCorruptedException catch (e) {
+          developer.log(
+            'Part ${part.filename}: ZIP corrompido (${e.path}) — '
+            'baixando de novo uma vez',
+            name: 'DownloadOfflinePackages',
+            level: 900,
+          );
+          zipPath = await downloadPart();
+          extractResult = await extractPart(zipPath);
+        }
 
         if (extractResult.unmatchedPdfIds.isNotEmpty) {
           developer.log(
@@ -318,6 +341,7 @@ class DownloadOfflinePackages {
     required String filename,
     required int expectedSize,
     CancelToken? cancelToken,
+    String? activeCheckpointName,
     void Function(int received, int total)? onReceiveProgress,
   }) async {
     try {
@@ -327,7 +351,11 @@ class DownloadOfflinePackages {
         expectedSize: expectedSize,
         cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
+        activeCheckpointName: activeCheckpointName,
       );
+    } on ZipDownloadCancelledException {
+      // Parar a pedido do usuário não é falha — vira o estado `cancelled`.
+      throw const OfflineBulkCancelledException();
     } on FileSystemException catch (e) {
       if (_isEnospc(e)) {
         throw const InsufficientDiskSpaceException(
@@ -372,6 +400,21 @@ class DownloadOfflinePackages {
   }
 
   bool _isEnospc(FileSystemException e) => e.osError?.errorCode == 28;
+
+  /// ZIP da part em que [checkpoint] parou — seu `.tmp` é retomável.
+  String? _activeCheckpointZipName(
+    OfflineManifest manifest,
+    OfflineBulkCheckpoint checkpoint,
+  ) {
+    if (checkpoint.categoryIndex >= checkpoint.categories.length) return null;
+    final package = manifest.packageFor(
+      checkpoint.categories[checkpoint.categoryIndex],
+    );
+    if (package == null || checkpoint.partIndex >= package.parts.length) {
+      return null;
+    }
+    return package.parts[checkpoint.partIndex].filename;
+  }
 
   int _countTotalPdfs(OfflineManifest manifest, List<String> categories) {
     var total = 0;

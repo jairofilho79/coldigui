@@ -38,6 +38,13 @@ abstract final class OfflineConfig {
   /// `Duration.zero` = sem limite (recomendado para arquivos grandes).
   static const Duration zipDownloadReceiveTimeout = Duration.zero;
 
+  /// Watchdog inter-chunk do download bulk: sem bytes por esse intervalo, a
+  /// tentativa é cancelada internamente e conta como retryável (C.2).
+  ///
+  /// Complementa [zipDownloadReceiveTimeout] (`Duration.zero` = sem teto total):
+  /// o teto aqui é sobre o *intervalo entre chunks*, não sobre o download todo.
+  static const Duration zipDownloadStallTimeout = Duration(seconds: 90);
+
   /// Timeout de conexão por request em [ZipPackageDownloader.download].
   static const Duration zipDownloadConnectTimeout = Duration(seconds: 60);
 

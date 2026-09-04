@@ -1,14 +1,53 @@
 import 'dart:isolate';
 
+import 'package:archive/archive.dart' show ArchiveException;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../datasources/zip_package_downloader.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
+import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import '../utils/zip_pdf_extractor.dart';
 
+/// Extrai o ZIP; um ZIP ilegível é apagado para não ficar preso no cache.
+///
+/// [ArchiveException] é subtipo de [FormatException] — as duas viram
+/// [ZipCorruptedException] depois de remover o arquivo, e o usecase decide
+/// baixar de novo (uma vez).
 Future<ZipExtractResult> runZipExtraction({
+  required ZipExtractParams params,
+  required ZipPackageDownloader zipDownloader,
+  required PdfStoragePort store,
+  CancelToken? cancelToken,
+  void Function(int extracted, int total)? onExtractProgress,
+}) async {
+  try {
+    return await _runZipExtraction(
+      params: params,
+      zipDownloader: zipDownloader,
+      store: store,
+      cancelToken: cancelToken,
+      onExtractProgress: onExtractProgress,
+    );
+  } on ArchiveException catch (e) {
+    return _discardCorruptedZip(params.zipPath, zipDownloader, e);
+  } on FormatException catch (e) {
+    return _discardCorruptedZip(params.zipPath, zipDownloader, e);
+  }
+}
+
+Future<Never> _discardCorruptedZip(
+  String zipPath,
+  ZipPackageDownloader zipDownloader,
+  Object cause,
+) async {
+  debugPrint('[offline] ZIP corrompido descartado: $zipPath ($cause)');
+  await zipDownloader.deleteZip(zipPath);
+  throw ZipCorruptedException(zipPath, cause);
+}
+
+Future<ZipExtractResult> _runZipExtraction({
   required ZipExtractParams params,
   required ZipPackageDownloader zipDownloader,
   required PdfStoragePort store,

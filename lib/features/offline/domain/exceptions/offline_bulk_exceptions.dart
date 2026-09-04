@@ -31,6 +31,42 @@ class ZipDownloadSizeMismatchException implements Exception {
       'expected: $expected, actual: $actual)';
 }
 
+/// Download de ZIP interrompido por cancelamento do usuário (não é falha).
+///
+/// Distinto de [ZipDownloadStalledException]: nunca é retentado — o usuário
+/// pediu para parar. O usecase converte em [OfflineBulkCancelledException].
+class ZipDownloadCancelledException implements Exception {
+  const ZipDownloadCancelledException();
+
+  @override
+  String toString() => 'ZipDownloadCancelledException';
+}
+
+/// Conexão parada: nenhum byte recebido dentro do watchdog inter-chunk.
+///
+/// Conta como tentativa retryável — o cancelamento interno do request é
+/// detalhe de implementação, não um cancelamento do usuário.
+class ZipDownloadStalledException implements Exception {
+  const ZipDownloadStalledException(this.timeout);
+
+  final Duration timeout;
+
+  @override
+  String toString() =>
+      'ZipDownloadStalledException(sem bytes por ${timeout.inSeconds}s)';
+}
+
+/// ZIP baixado não pôde ser lido (corrompido/truncado) — arquivo já apagado.
+class ZipCorruptedException implements Exception {
+  const ZipCorruptedException(this.path, [this.cause]);
+
+  final String path;
+  final Object? cause;
+
+  @override
+  String toString() => 'ZipCorruptedException(path: $path, cause: $cause)';
+}
+
 /// Bulk download cancelado pelo usuário.
 class OfflineBulkCancelledException implements Exception {
   const OfflineBulkCancelledException();
