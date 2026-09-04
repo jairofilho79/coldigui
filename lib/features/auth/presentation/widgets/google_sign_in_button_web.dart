@@ -24,6 +24,16 @@ class GoogleSignInButton extends ConsumerWidget {
     }
 
     final auth = ref.watch(authStateProvider);
+    final signInUnavailable = ref.watch(googleSignInUnavailableProvider);
+
+    // O SDK não subiu (bloqueado, offline, CORS): o login fica indisponível,
+    // mas a sessão restaurada em [AuthNotifier.build] continua valendo (A5).
+    if (signInUnavailable) {
+      return Text(
+        l10n.authSignInUnavailable,
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
+    }
 
     return auth.when(
       loading: () => const SizedBox(

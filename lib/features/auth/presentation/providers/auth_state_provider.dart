@@ -33,6 +33,44 @@ final RetryableInit<void> _googleSignInInit = RetryableInit(
   () => GoogleSignIn.instance.initialize(clientId: AppConfig.googleClientIdWeb),
 );
 
+/// Inicializa o SDK do Google e devolve o stream de eventos de autenticação.
+typedef GoogleSignInInitializer =
+    Future<Stream<GoogleSignInAuthenticationEvent>> Function();
+
+/// Costura de teste sobre o SDK do Google — nada do plugin roda na VM.
+final googleSignInInitializerProvider = Provider<GoogleSignInInitializer>((
+  ref,
+) {
+  return () async {
+    if (AppConfig.isGoogleClientIdMissing) {
+      debugPrint(
+        '[auth] GOOGLE_CLIENT_ID_WEB ausente no build — '
+        'login com Google indisponível',
+      );
+      throw StateError('google_client_id_missing');
+    }
+    await _googleSignInInit();
+    return GoogleSignIn.instance.authenticationEvents;
+  };
+});
+
+/// `true` quando o SDK do Google não pôde ser inicializado — bloqueado por
+/// extensão/CORS, offline ou `GOOGLE_CLIENT_ID_WEB` ausente no build.
+///
+/// Desabilita **só o botão de login**: a sessão já armazenada continua valendo
+/// e o sync segue rodando, senão o usuário parece deslogado sem estar (A5).
+final googleSignInUnavailableProvider =
+    NotifierProvider<GoogleSignInUnavailableNotifier, bool>(
+      GoogleSignInUnavailableNotifier.new,
+    );
+
+class GoogleSignInUnavailableNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void report({required bool unavailable}) => state = unavailable;
+}
+
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
 
@@ -43,13 +81,15 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       _authSub = null;
     });
 
+    final unavailability = ref.read(googleSignInUnavailableProvider.notifier);
     try {
       await ensureGoogleInitialized();
+      unavailability.report(unavailable: false);
     } on Object catch (error) {
-      // Falha de inicialização do Google Sign-In não deve virar AsyncError
-      // permanente: trata como "deslogado, login indisponível".
+      // SDK bloqueado/ausente desabilita só o login — a sessão armazenada
+      // continua válida e o sync não pode parar por causa disso (A5).
       debugPrint('[auth] inicialização do Google Sign-In falhou: $error');
-      return null;
+      unavailability.report(unavailable: true);
     }
 
     final stored = ref.read(authSessionStoreProvider).read();
@@ -81,14 +121,14 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
   }
 
   /// Único ponto que chama [GoogleSignIn.initialize] (idempotente no processo).
+  ///
+  /// Lança quando o SDK não sobe (inclusive `GOOGLE_CLIENT_ID_WEB` ausente).
   Future<void> ensureGoogleInitialized() async {
-    if (AppConfig.isGoogleClientIdMissing) {
-      return;
-    }
-    await _googleSignInInit();
-    _authSub ??= GoogleSignIn.instance.authenticationEvents.listen(
+    final events = await ref.read(googleSignInInitializerProvider)();
+    _authSub ??= events.listen(
       _onGoogleAuthEvent,
-      onError: (_) {},
+      onError: (Object error) =>
+          debugPrint('[auth] evento do Google Sign-In em erro: $error'),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:coldigui/features/auth/presentation/providers/auth_state_provide
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Fake que substitui a chamada de rede real por um comportamento controlado
 /// pelo teste (sucesso, [AuthUnauthorizedException] ou [DioException]).
@@ -33,6 +34,7 @@ void main() {
   ProviderContainer buildContainer({
     required Future<AuthUser> Function(String) behavior,
     required AuthSessionStore store,
+    GoogleSignInInitializer? initializer,
   }) {
     return ProviderContainer(
       overrides: [
@@ -40,6 +42,8 @@ void main() {
         authRemoteDatasourceProvider.overrideWithValue(
           _FakeAuthRemoteDatasource(behavior),
         ),
+        if (initializer != null)
+          googleSignInInitializerProvider.overrideWithValue(initializer),
       ],
     );
   }
@@ -73,22 +77,25 @@ void main() {
       expect(store.read(), isNull);
     });
 
-    test('timeout de rede mantém a sessão armazenada (não verificada)', () async {
-      final store = seededStore();
-      final container = buildContainer(
-        store: store,
-        behavior: (_) async => throw DioException(
-          requestOptions: RequestOptions(path: '/api/auth/session'),
-          type: DioExceptionType.connectionTimeout,
-        ),
-      );
-      addTearDown(container.dispose);
+    test(
+      'timeout de rede mantém a sessão armazenada (não verificada)',
+      () async {
+        final store = seededStore();
+        final container = buildContainer(
+          store: store,
+          behavior: (_) async => throw DioException(
+            requestOptions: RequestOptions(path: '/api/auth/session'),
+            type: DioExceptionType.connectionTimeout,
+          ),
+        );
+        addTearDown(container.dispose);
 
-      final result = await container.read(authStateProvider.future);
+        final result = await container.read(authStateProvider.future);
 
-      expect(result, same(storedUser));
-      expect(store.read(), same(storedUser));
-    });
+        expect(result, same(storedUser));
+        expect(store.read(), same(storedUser));
+      },
+    );
 
     test('503 do Worker mantém a sessão armazenada (não verificada)', () async {
       final store = seededStore();
@@ -99,10 +106,7 @@ void main() {
           throw DioException(
             requestOptions: requestOptions,
             type: DioExceptionType.badResponse,
-            response: Response(
-              requestOptions: requestOptions,
-              statusCode: 503,
-            ),
+            response: Response(requestOptions: requestOptions, statusCode: 503),
           );
         },
       );
@@ -132,24 +136,77 @@ void main() {
       expect(called, isFalse);
     });
 
-    test('sucesso atualiza a sessão armazenada com a resposta do Worker', () async {
+    test(
+      'sucesso atualiza a sessão armazenada com a resposta do Worker',
+      () async {
+        final store = seededStore();
+        const refreshed = AuthUser(
+          googleSub: 'sub-1',
+          idToken: 'token-1',
+          email: 'a@b.com',
+          username: 'joao',
+        );
+        final container = buildContainer(
+          store: store,
+          behavior: (_) async => refreshed,
+        );
+        addTearDown(container.dispose);
+
+        final result = await container.read(authStateProvider.future);
+
+        expect(result, same(refreshed));
+        expect(store.read(), same(refreshed));
+      },
+    );
+  });
+
+  group('AuthNotifier.build — SDK do Google indisponível (A5)', () {
+    test('falha de init não apaga a sessão armazenada', () async {
       final store = seededStore();
-      const refreshed = AuthUser(
-        googleSub: 'sub-1',
-        idToken: 'token-1',
-        email: 'a@b.com',
-        username: 'joao',
-      );
       final container = buildContainer(
         store: store,
-        behavior: (_) async => refreshed,
+        behavior: (_) async => storedUser,
+        initializer: () async => throw StateError('gis bloqueado'),
       );
       addTearDown(container.dispose);
 
       final result = await container.read(authStateProvider.future);
 
-      expect(result, same(refreshed));
-      expect(store.read(), same(refreshed));
+      expect(
+        result,
+        same(storedUser),
+        reason: 'SDK bloqueado não pode fazer o usuário parecer deslogado',
+      );
+      expect(store.read(), same(storedUser));
+    });
+
+    test('falha de init marca o login como indisponível', () async {
+      final container = buildContainer(
+        store: seededStore(),
+        behavior: (_) async => storedUser,
+        initializer: () async => throw StateError('gis bloqueado'),
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(googleSignInUnavailableProvider), isFalse);
+
+      await container.read(authStateProvider.future);
+
+      expect(container.read(googleSignInUnavailableProvider), isTrue);
+    });
+
+    test('init bem-sucedido mantém o login disponível', () async {
+      final container = buildContainer(
+        store: seededStore(),
+        behavior: (_) async => storedUser,
+        initializer: () async =>
+            const Stream<GoogleSignInAuthenticationEvent>.empty(),
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+
+      expect(container.read(googleSignInUnavailableProvider), isFalse);
     });
   });
 }
