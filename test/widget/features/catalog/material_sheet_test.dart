@@ -11,12 +11,15 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -24,6 +27,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------- fixtures
 
@@ -123,6 +127,16 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
   }
 }
 
+/// Cache de metadados Coldigom pré-carregado (o card só lê, nunca busca).
+class _SeededPraiseMetaCache extends ColdigomPraiseMetaCacheNotifier {
+  _SeededPraiseMetaCache(this.seed);
+
+  final Map<String, ColdigomPraiseMetadata> seed;
+
+  @override
+  Map<String, ColdigomPraiseMetadata> build() => seed;
+}
+
 Future<void> _pumpSheet(
   WidgetTester tester, {
   required LouvorGroup group,
@@ -174,6 +188,8 @@ Future<void> _pumpSheet(
 
 void main() {
   final song = parseChordPro('{title: X}\n\nA [Bb]noite vem,\n');
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('PDF por seção', () {
     testWidgets('duas seções mostram rótulo, entradas e abrem pelo opener', (
@@ -494,6 +510,84 @@ void main() {
       );
 
       expect(find.byType(CarouselLouvorAddButton), findsNothing);
+    });
+  });
+
+  group('LouvorGroupCard abre o mesmo sheet nos dois acervos', () {
+    Future<void> pumpCard(
+      WidgetTester tester, {
+      required LouvorGroup group,
+      Map<String, ColdigomPraiseMetadata> praiseMeta = const {},
+    }) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            isarAvailableProvider.overrideWithValue(true),
+            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+            playlistsProvider.overrideWith(_RecordingPlaylistsNotifier.new),
+            coldigomPraiseMetaCacheProvider.overrideWith(
+              () => _SeededPraiseMetaCache(praiseMeta),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(body: LouvorGroupCard(group: group)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Comigo habita').first);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('grupo PLPCG abre o MaterialSheet', (tester) async {
+      await pumpCard(
+        tester,
+        group: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+          _pdf(categoria: 'Cifra', pdfId: 'pdf2'),
+        ]).first,
+      );
+
+      expect(find.byType(MaterialSheet), findsOneWidget);
+      expect(find.text('Partitura'), findsOneWidget);
+      expect(find.text('Tom'), findsNothing);
+    });
+
+    testWidgets('grupo Coldigom abre o mesmo sheet, com o cabeçalho de meta', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        group: LouvorGroup.fromLouvores([
+          _pdf(
+            categoria: 'Partitura',
+            pdfId: 'pdf1',
+            source: LouvorDataSource.coldigom,
+          ),
+          _pdf(
+            categoria: 'Cifra I',
+            pdfId: 'pdf2',
+            source: LouvorDataSource.coldigom,
+          ),
+        ]).first,
+        // Grupo sem coldigomMeta: groupWithColdigomMeta anexa o do cache.
+        praiseMeta: const {
+          'g1': ColdigomPraiseMetadata(name: 'Comigo habita', tonality: 'Dm'),
+        },
+      );
+
+      expect(find.byType(MaterialSheet), findsOneWidget);
+      expect(find.text('Tom'), findsOneWidget);
+      expect(find.text('Dm'), findsOneWidget);
     });
   });
 }

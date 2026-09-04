@@ -261,4 +261,44 @@ void main() {
       expect(group.isColdigom, isTrue);
     });
   });
+
+  // Migrado de test/widget/features/coldigom/coldigom_material_sheet_test.dart.
+  group('LouvorGroup.fromLouvores com meta Coldigom', () {
+    test('anexa coldigomMeta e flatPdfMaterials ordena', () {
+      final a = Louvor.fromManifest(
+        nome: 'Hino',
+        numero: '1',
+        categoria: 'Cifra',
+        classificacao: 'Básico',
+        pdf: 'a.pdf',
+        pdfId: 'a',
+        groupId: 'g1',
+        source: LouvorDataSource.coldigom,
+      );
+      final b = Louvor.fromManifest(
+        nome: 'Hino',
+        numero: '1',
+        categoria: 'Partitura',
+        classificacao: 'Básico',
+        pdf: 'b.pdf',
+        pdfId: 'b',
+        groupId: 'g1',
+        source: LouvorDataSource.coldigom,
+      );
+
+      final group = LouvorGroup.fromLouvores(
+        [a, b],
+        coldigomMetaByGroupId: const {
+          'g1': ColdigomPraiseMetadata(name: 'Hino', rhythm: 'Básico'),
+        },
+      ).first;
+
+      expect(group.coldigomMeta?.rhythm, 'Básico');
+      expect(group.isColdigom, isTrue);
+      expect(group.flatPdfMaterials.map((e) => e.categoria), [
+        'Partitura',
+        'Cifra',
+      ]);
+    });
+  });
 }

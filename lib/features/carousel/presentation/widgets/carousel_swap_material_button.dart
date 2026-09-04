@@ -3,16 +3,16 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
-import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
-import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/coldigom/presentation/widgets/coldigom_material_sheet.dart';
+import 'package:coldigui/features/coldigom/presentation/utils/group_with_coldigom_meta.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,44 +69,31 @@ Future<void> showCarouselSwapMaterialSheet({
   required WidgetRef ref,
   required LouvorGroup group,
   String? currentPdfId,
-}) {
-  final resolved = _resolveSwapGroup(ref, group);
-  if (resolved.isColdigom) {
-    return showColdigomMaterialSheet(
-      context: context,
-      group: resolved,
-      onMaterialSelected: (selected) => _onPdfMaterialSelected(
-        ref: ref,
-        context: context,
-        currentPdfId: currentPdfId,
-        selected: selected,
-      ),
-      onYoutubeSelected: (item) => openYoutubeMaterial(item),
-      onChordSelected: (chord) =>
-          openChordInReader(ref: ref, context: context, chord: chord),
-    );
-  }
+}) async {
+  final resolved = await groupWithColdigomMeta(ref, group);
+  if (!context.mounted) return;
 
-  return showLouvorMaterialSheet(
-    context: context,
-    group: resolved,
-    onMaterialSelected: (selected) => _onPdfMaterialSelected(
-      ref: ref,
-      context: context,
-      currentPdfId: currentPdfId,
-      selected: selected,
-    ),
-    onYoutubeSelected: (item) => openYoutubeMaterial(item),
-    onChordSelected: (chord) =>
-        openChordInReader(ref: ref, context: context, chord: chord),
+  await showMaterialSheet(
+    context,
+    ref,
+    resolved,
+    // O louvor já está na lista: o `+` de cada material não faz sentido aqui.
+    canAddToPlaylist: false,
+    // PDF aqui **troca** o material da entrada do carousel em vez de empilhar
+    // uma rota nova; os outros tipos seguem pelo opener único.
+    onMaterialSelected: (material) async {
+      if (material is PdfMaterial) {
+        await _onPdfMaterialSelected(
+          ref: ref,
+          context: context,
+          currentPdfId: currentPdfId,
+          selected: material.louvor,
+        );
+        return;
+      }
+      await ref.read(openMaterialProvider).open(context, ref, material);
+    },
   );
-}
-
-LouvorGroup _resolveSwapGroup(WidgetRef ref, LouvorGroup group) {
-  if (!group.isColdigom || group.coldigomMeta != null) return group;
-  final meta = ref.read(coldigomPraiseMetaCacheProvider)[group.groupId];
-  if (meta == null) return group;
-  return group.withColdigomMeta(meta);
 }
 
 Future<void> _onPdfMaterialSelected({

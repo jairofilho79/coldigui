@@ -9,16 +9,11 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
-import 'package:coldigui/features/catalog/presentation/utils/open_youtube_material.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_material_sheet.dart';
-import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
-import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/coldigom/presentation/widgets/coldigom_material_sheet.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
+import 'package:coldigui/features/coldigom/presentation/utils/group_with_coldigom_meta.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
@@ -98,16 +93,6 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
   }
 
-  Future<void> _openYoutube(YoutubeMaterial material) async {
-    final opened = await openYoutubeMaterial(material);
-    if (!opened && mounted) {
-      showAppSnackbar(context, AppLocalizations.of(context)!.youtubeOpenError);
-    }
-  }
-
-  Future<void> _openChord(ChordMaterial chord) =>
-      openChordInReader(ref: ref, context: context, chord: chord);
-
   Future<void> _handleTap() async {
     final singleAudio = _singleAudio;
     if (singleAudio != null) {
@@ -122,39 +107,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
 
     // YouTube (mesmo único) sempre via sheet — ícone vermelho e abertura externa.
-    final group = _sheetGroup;
-    if (group.isColdigom) {
-      await showColdigomMaterialSheet(
-        context: context,
-        group: group,
-        onMaterialSelected: _openLouvor,
-        onAudioSelected: (track) => pushAudioPlayerRoute(context, track),
-        onYoutubeSelected: _openYoutube,
-        onMaterialAdd: _handleAddMaterialToCarousel,
-        onAudioAdd: _handleAddAudioToPlaylist,
-        onChordSelected: _openChord,
-      );
-      return;
-    }
-
-    await showLouvorMaterialSheet(
-      context: context,
-      group: group,
-      onMaterialSelected: _openLouvor,
-      onAudioSelected: (track) => pushAudioPlayerRoute(context, track),
-      onYoutubeSelected: _openYoutube,
-      onMaterialAdd: _handleAddMaterialToCarousel,
-      onAudioAdd: _handleAddAudioToPlaylist,
-      onChordSelected: _openChord,
-    );
-  }
-
-  LouvorGroup get _sheetGroup {
-    final group = widget.group;
-    if (!group.isColdigom || group.coldigomMeta != null) return group;
-    final meta = ref.read(coldigomPraiseMetaCacheProvider)[group.groupId];
-    if (meta == null) return group;
-    return group.withColdigomMeta(meta);
+    final group = await groupWithColdigomMeta(ref, widget.group);
+    if (!mounted) return;
+    await showMaterialSheet(context, ref, group);
   }
 
   Future<void> _handleAddToCarousel() async {
@@ -165,7 +120,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       if (!mounted) return;
       showAppSnackbar(
         context,
-        'Armazenamento local indisponível. Listas não podem ser salvas.',
+        AppLocalizations.of(context)!.playlistStorageUnavailable,
       );
       return;
     }
@@ -174,50 +129,6 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final added = await ref
         .read(playlistsProvider.notifier)
         .addLouvorToActivePlaylist(louvor.pdfId);
-
-    if (!mounted) return;
-    showAppSnackbar(
-      context,
-      added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
-    );
-  }
-
-  Future<void> _handleAddMaterialToCarousel(Louvor louvor) async {
-    if (!ref.read(isarAvailableProvider)) {
-      if (!mounted) return;
-      showAppSnackbar(
-        context,
-        'Armazenamento local indisponível. Listas não podem ser salvas.',
-      );
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context)!;
-    final added = await ref
-        .read(playlistsProvider.notifier)
-        .addLouvorToActivePlaylist(louvor.pdfId);
-
-    if (!mounted) return;
-    showAppSnackbar(
-      context,
-      added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
-    );
-  }
-
-  Future<void> _handleAddAudioToPlaylist(AudioTrack track) async {
-    if (!ref.read(isarAvailableProvider)) {
-      if (!mounted) return;
-      showAppSnackbar(
-        context,
-        'Armazenamento local indisponível. Listas não podem ser salvas.',
-      );
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context)!;
-    final added = await ref
-        .read(playlistsProvider.notifier)
-        .addAudioToActivePlaylist(track.audioId);
 
     if (!mounted) return;
     showAppSnackbar(

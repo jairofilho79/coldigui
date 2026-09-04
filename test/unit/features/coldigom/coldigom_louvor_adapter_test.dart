@@ -139,4 +139,28 @@ void main() {
       expect(ColdigomLouvorAdapter.toYoutubeMaterials(praise), isEmpty);
     });
   });
+
+  // Migrado de test/widget/features/coldigom/coldigom_material_sheet_test.dart
+  // (o sheet Coldigom virou o MaterialSheet único).
+  test('toMetadata e DetailDto parseiam tag_names', () {
+    final detail = PraiseDetailDto.fromJson({
+      'id': 'p1',
+      'name': 'Hino',
+      'number': '001',
+      'rhythm': 'Fox',
+      'tonality': 'G',
+      'category': 'Clamor',
+      'author': 'Autor',
+      'tag_names': 'PES,Coletânea',
+      'materials': const [],
+    });
+
+    expect(detail.tagNames, ['PES', 'Coletânea']);
+
+    final meta = ColdigomLouvorAdapter.toMetadata(detail);
+    expect(meta.tonality, 'G');
+    expect(meta.rhythm, 'Fox');
+    expect(meta.tagNames, ['PES', 'Coletânea']);
+    expect(meta.hasAnyField, isTrue);
+  });
 }
