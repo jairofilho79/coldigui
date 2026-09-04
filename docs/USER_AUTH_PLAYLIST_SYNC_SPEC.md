@@ -313,7 +313,11 @@ CREATE INDEX idx_user_playlists_user_deleted
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "nome": "Culto domingo",
   "schemaVersion": 2,
-  "items": ["Q29s...", "YXNz...", "QXZ1..."],
+  "items": [
+    { "id": "Q29s...", "kind": "pdf" },
+    { "id": "YXNz...", "kind": "audio" },
+    { "id": "QXZ1...", "kind": "chord" }
+  ],
   "pdfIds": ["Q29s...", "QXZ1..."],
   "audioIds": ["YXNz..."],
   "salva": true,
@@ -331,27 +335,37 @@ CREATE INDEX idx_user_playlists_user_deleted
 | Versão | Formato | Quem escreve |
 | --- | --- | --- |
 | v1 | só `pdfIds` + `audioIds`, duas listas independentes | clientes antigos |
-| v2 | `items` (ordem única de ids de material) + `pdfIds`/`audioIds` **derivados** | cliente atual |
+| v2 | `items` = **objetos** `{id, kind}` (ordem única tipada) + `pdfIds`/`audioIds` **derivados** | cliente atual, Worker atual |
+
+`kind` é o `MaterialKind.name` do cliente:
+`pdf | chord | audio | youtube | gesture | unknown`. Um valor fora desse
+conjunto é lido como `unknown` — nunca derruba a leitura da playlist.
 
 - O cliente **sempre envia v2**, e envia junto as duas listas derivadas de
-  `items` — o Worker `plpcg-catalog` ainda lê os campos v1, então nada quebra.
-- O cliente **aceita as duas**: payload sem `schemaVersion` e sem `items` é
-  tratado como v1 e vira `items = [...pdfIds, ...audioIds]`.
-- Em v2 `items` manda: `pdfIds`/`audioIds` recebidos são ignorados na leitura e
-  recalculados a partir de `items` por `materialIdKindOf` (PDF, cifra e
-  desconhecido na face de partituras; áudio na face de áudio).
+  `items`, para um leitor v1 continuar funcionando. `pdfIds` = tudo que **não**
+  é áudio (PDF, cifra, gesto, YouTube e ids legados `unknown`); `audioIds` =
+  `kind == audio`.
+- O cliente **aceita os três formatos** em `RemotePlaylist.fromJson`:
 
-> ⚠️ **`items` é client-local hoje.** O Worker em produção
-> (`workers/plpcg-catalog/src/playlists/handlers.ts`) só tem as colunas
-> `pdf_ids`/`audio_ids`: ele **descarta** `items` e `schemaVersion` no PUT e
-> **todo GET responde v1**. Ou seja, a v2 do wire já existe no cliente, mas o
-> servidor ainda não a persiste.
+  | payload | leitura |
+  | --- | --- |
+  | sem `schemaVersion` nem `items` | v1: `pdfIds` classificado pela extensão do id, `audioIds` declarado como áudio |
+  | `items` de **strings** (rascunho v2 da fatia 1; só existiu em Isar local, nunca no Worker) | classifica pela extensão, com `audioIds` do mesmo payload como veredito de áudio |
+  | `items` de **objetos** | usa o `kind` do wire, normalizado por `resolveWireKind` |
 
-- Consequência prática: a ordem intercalada (partitura, áudio, partitura…)
-  sobrevive **localmente** e num push→pull no mesmo dispositivo (a base Isar
-  mantém `items`); **qualquer pull do Worker atual achata** a lista para
-  "PDFs primeiro, áudios depois", porque `_fromRemote` reconstrói `items` a
-  partir das duas listas v1 devolvidas. O mesmo vale para um cliente v1.
+- `items`, quando presente, **manda**: `pdfIds`/`audioIds` recebidos são
+  projeções derivadas, não uma segunda fonte da verdade.
+- **Normalização `resolveWireKind(kind, id)`** (`playlist_entry.dart`) — o
+  `kind` do wire não é preservado literalmente:
+  - `audio` é intocável (é o veredito de quem gravou);
+  - `pdf` e `unknown` são genéricos: quando a extensão do id diz `chord` ou
+    `gesture` (mais específico), a extensão ganha. É isso que recupera as
+    cifras de um Worker que tenha derivado `items` das duas listas v1, onde
+    toda partitura vira `pdf`;
+  - `chord`, `gesture` e `youtube` ficam como vieram.
+- `RemotePlaylist.fromJson` lança `FormatException` **nomeando o campo** quando
+  `id`, `nome`, `createdAt` ou `updatedAt` falta ou tem tipo inesperado, e
+  quando `items`/`pdfIds`/`audioIds` não têm a forma esperada.
 
 ### PUT — versionamento otimista
 
