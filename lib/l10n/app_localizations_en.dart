@@ -817,10 +817,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deepLinkImportFailed => 'Could not import the shared playlist.';
 
   @override
-  String get offlineStorageUnavailable =>
-      'Local storage is unavailable. Reload the page or free up space.';
-
-  @override
   String get playlistShareError => 'Could not share the playlist.';
 
   @override
@@ -1098,10 +1094,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorGeneric => 'Could not complete the action. Try again.';
-
-  @override
-  String get offlineStorageUnavailable =>
-      'Local storage is unavailable. Reload the page or free up space.';
 
   @override
   String get sessionExpiredBanner => 'Session expired';

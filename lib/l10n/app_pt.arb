@@ -534,10 +534,6 @@
   "@errorGeneric": {
     "description": "userMessageFor: fallback para erro não classificado (C.5)"
   },
-  "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
-  "@offlineStorageUnavailable": {
-    "description": "userMessageFor: StorageUnavailableException (Isar não abriu)"
-  },
   "sessionExpiredBanner": "Sessão expirada",
   "@sessionExpiredBanner": {
     "description": "Título do banner de sessão expirada no perfil e nas listas"

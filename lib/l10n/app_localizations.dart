@@ -1463,12 +1463,6 @@ abstract class AppLocalizations {
   /// **'Não foi possível importar a lista compartilhada.'**
   String get deepLinkImportFailed;
 
-  /// No description provided for @offlineStorageUnavailable.
-  ///
-  /// In pt, this message translates to:
-  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
-  String get offlineStorageUnavailable;
-
   /// No description provided for @playlistShareError.
   ///
   /// In pt, this message translates to:
@@ -1936,12 +1930,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível concluir a ação. Tente de novo.'**
   String get errorGeneric;
-
-  /// userMessageFor: StorageUnavailableException (Isar não abriu)
-  ///
-  /// In pt, this message translates to:
-  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
-  String get offlineStorageUnavailable;
 
   /// Título do banner de sessão expirada no perfil e nas listas
   ///

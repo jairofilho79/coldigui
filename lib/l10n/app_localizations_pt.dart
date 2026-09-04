@@ -826,10 +826,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível importar a lista compartilhada.';
 
   @override
-  String get offlineStorageUnavailable =>
-      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
-
-  @override
   String get playlistShareError => 'Não foi possível compartilhar a lista.';
 
   @override
@@ -1114,10 +1110,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get errorGeneric => 'Não foi possível concluir a ação. Tente de novo.';
-
-  @override
-  String get offlineStorageUnavailable =>
-      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
 
   @override
   String get sessionExpiredBanner => 'Sessão expirada';

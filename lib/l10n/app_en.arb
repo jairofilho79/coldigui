@@ -507,7 +507,6 @@
   "errorServer": "The server is unavailable right now. Try again in a moment.",
   "errorSessionExpired": "Your session has expired. Sign in again to continue.",
   "errorGeneric": "Could not complete the action. Try again.",
-  "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
   "sessionExpiredBanner": "Session expired",
   "sessionExpiredSignInAgain": "Sign in again"
 }
