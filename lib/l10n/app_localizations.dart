@@ -1169,6 +1169,18 @@ abstract class AppLocalizations {
   /// **'Cifras'**
   String get chordMaterialSection;
 
+  /// No description provided for @chordUnavailableRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifra indisponível · tentar de novo'**
+  String get chordUnavailableRetry;
+
+  /// No description provided for @playlistStorageUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Listas não podem ser salvas.'**
+  String get playlistStorageUnavailable;
+
   /// No description provided for @chordReaderUnavailable.
   ///
   /// In pt, this message translates to:

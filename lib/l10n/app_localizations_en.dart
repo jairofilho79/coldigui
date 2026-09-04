@@ -665,6 +665,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chordMaterialSection => 'Chords';
 
   @override
+  String get chordUnavailableRetry => 'Chord sheet unavailable · try again';
+
+  @override
+  String get playlistStorageUnavailable =>
+      'Local storage is unavailable. Playlists can\'t be saved.';
+
+  @override
   String get chordReaderUnavailable => 'Chord chart not available yet';
 
   @override

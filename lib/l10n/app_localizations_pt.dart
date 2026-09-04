@@ -673,6 +673,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordMaterialSection => 'Cifras';
 
   @override
+  String get chordUnavailableRetry => 'Cifra indisponível · tentar de novo';
+
+  @override
+  String get playlistStorageUnavailable =>
+      'Armazenamento local indisponível. Listas não podem ser salvas.';
+
+  @override
   String get chordReaderUnavailable => 'Cifra ainda não disponível';
 
   @override

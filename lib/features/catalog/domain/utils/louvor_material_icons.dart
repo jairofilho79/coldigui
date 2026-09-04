@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/material_id_kind.dart';
+import '../entities/catalog_material.dart';
+import '../entities/louvor_group.dart';
 
 /// Ícone Material por [MaterialKind] de louvor (Partitura, Cifra, Gestos…).
 ///
@@ -48,6 +50,27 @@ abstract final class LouvorMaterialIcons {
   @Deprecated('Use MaterialKind; removed next wave')
   static IconData forCategory(String categoria) =>
       forKind(kindForCategory(categoria));
+
+  /// Ícone da entrada PDF de uma seção do sheet.
+  ///
+  /// PDF é o único material cujo tipo real está na `categoria` (o manifest
+  /// mistura Partitura, Cifra e Gestos no mesmo `type: pdf`), por isso a
+  /// heurística de [kindForCategory] continua valendo aqui.
+  static IconData forEntry(LouvorMaterialEntry entry) =>
+      forKind(kindForCategory(entry.categoria));
+
+  /// Ícone de qualquer [CatalogMaterial].
+  ///
+  /// Cifra, áudio e YouTube já chegam com [CatalogMaterial.kind] confiável — a
+  /// categoria deles é texto livre do Worker e não decide mais o ícone.
+  static IconData forMaterial(CatalogMaterial material) {
+    return switch (material) {
+      PdfMaterial(:final louvor) => forKind(kindForCategory(louvor.categoria)),
+      ChordMaterialRef() ||
+      AudioMaterial() ||
+      YoutubeMaterialRef() => forKind(material.kind),
+    };
+  }
 
   /// Ícone dedicado a materiais de áudio (cards / sheet).
   static const IconData audio = Icons.library_music;

@@ -348,6 +348,8 @@
   "audioMaterialSection": "Áudio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Cifras",
+  "chordUnavailableRetry": "Cifra indisponível · tentar de novo",
+  "playlistStorageUnavailable": "Armazenamento local indisponível. Listas não podem ser salvas.",
   "chordReaderUnavailable": "Cifra ainda não disponível",
   "chordReaderToggleTheme": "Alternar tema do leitor",
   "chordReaderIncreaseFont": "Aumentar letra",

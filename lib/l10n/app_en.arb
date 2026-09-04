@@ -345,6 +345,8 @@
   "audioMaterialSection": "Audio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Chords",
+  "chordUnavailableRetry": "Chord sheet unavailable · try again",
+  "playlistStorageUnavailable": "Local storage is unavailable. Playlists can't be saved.",
   "chordReaderUnavailable": "Chord chart not available yet",
   "chordReaderToggleTheme": "Toggle reader theme",
   "chordReaderIncreaseFont": "Increase text size",
