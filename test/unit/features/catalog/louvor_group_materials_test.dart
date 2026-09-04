@@ -7,6 +7,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dar
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Louvor _louvor({
@@ -145,6 +146,119 @@ void main() {
 
       final group = groups.single;
       expect(group.materials, hasLength(group.totalMaterials));
+    });
+  });
+
+  group('LouvorGroup.extras', () {
+    final pdf = _louvor(
+      categoria: 'Partitura',
+      classificacao: 'Coletânea',
+      pdfId: 'pdf1',
+    );
+
+    test('getters por tipo saem de extras', () {
+      final group = LouvorGroup(
+        groupId: 'praise-1',
+        numero: '001',
+        nome: 'Grande Deus',
+        sections: const [],
+        extras: const [
+          ChordMaterialRef(_chord),
+          AudioMaterial(_track),
+          YoutubeMaterialRef(_youtube),
+        ],
+      );
+
+      expect(group.chordMaterials, const [_chord]);
+      expect(group.audioTracks, const [_track]);
+      expect(group.youtubeMaterials, const [_youtube]);
+    });
+
+    test('materials = PDFs por seção + extras na ordem canônica', () {
+      final group = LouvorGroup(
+        groupId: 'praise-1',
+        numero: '001',
+        nome: 'Grande Deus',
+        sections: [
+          LouvorMaterialSection(
+            classificacao: 'Coletânea',
+            displayLabel: 'Coletânea',
+            materials: [
+              LouvorMaterialEntry(
+                categoria: pdf.categoria,
+                pdfId: pdf.pdfId,
+                louvor: pdf,
+              ),
+            ],
+          ),
+        ],
+        extras: const [
+          ChordMaterialRef(_chord),
+          AudioMaterial(_track),
+          YoutubeMaterialRef(_youtube),
+        ],
+      );
+
+      expect(group.materials.map((m) => m.id).toList(), const [
+        'pdf1',
+        'chord1',
+        'audio1',
+        'yt1',
+      ]);
+      expect(group.totalMaterials, 4);
+      expect(group.totalPdfs, 1);
+    });
+
+    test('construtor legado converte as três listas em extras', () {
+      final group = LouvorGroup(
+        groupId: 'praise-1',
+        numero: '001',
+        nome: 'Grande Deus',
+        sections: const [],
+        chordMaterials: const [_chord],
+        audioTracks: const [_track],
+        youtubeMaterials: const [_youtube],
+      );
+
+      expect(group.extras.map((m) => m.kind).toList(), const [
+        MaterialKind.chord,
+        MaterialKind.audio,
+        MaterialKind.youtube,
+      ]);
+      expect(group.chordMaterials, const [_chord]);
+      expect(group.audioTracks, const [_track]);
+      expect(group.youtubeMaterials, const [_youtube]);
+    });
+
+    test('withColdigomMeta preserva extras', () {
+      final group = LouvorGroup(
+        groupId: 'praise-1',
+        numero: '001',
+        nome: 'Grande Deus',
+        sections: const [],
+        extras: const [ChordMaterialRef(_chord), AudioMaterial(_track)],
+      );
+
+      final withMeta = group.withColdigomMeta(
+        const ColdigomPraiseMetadata(name: 'Grande Deus'),
+      );
+
+      expect(withMeta.extras, group.extras);
+      expect(withMeta.chordMaterials, const [_chord]);
+      expect(withMeta.audioTracks, const [_track]);
+      expect(withMeta.coldigomMeta?.name, 'Grande Deus');
+    });
+
+    test('isColdigom continua verdadeiro por cifra em extras', () {
+      final group = LouvorGroup(
+        groupId: 'praise-1',
+        numero: '001',
+        nome: 'Grande Deus',
+        sections: const [],
+        extras: const [ChordMaterialRef(_chord)],
+      );
+
+      expect(group.isColdigom, isTrue);
     });
   });
 }

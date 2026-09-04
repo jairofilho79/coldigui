@@ -37,33 +37,63 @@ class LouvorMaterialSection {
 
 /// Louvor lógico — um card na Home/Biblioteca (vários PDFs/áudios possíveis).
 class LouvorGroup {
+  /// [extras] é a lista canônica dos materiais que não são PDF de seção.
+  ///
+  /// Os parâmetros [chordMaterials]/[audioTracks]/[youtubeMaterials] continuam
+  /// aceitos por compatibilidade: quando [extras] não vem, eles são convertidos
+  /// em [CatalogMaterial] na ordem canônica (cifras, áudios, YouTube) — a mesma
+  /// que [materials] sempre expôs. Passar [extras] tem precedência: ele já é o
+  /// vocabulário único e define a ordem.
   LouvorGroup({
     required this.groupId,
     required this.numero,
     required this.nome,
     required this.sections,
-    this.audioTracks = const [],
-    this.youtubeMaterials = const [],
-    this.chordMaterials = const [],
+    List<CatalogMaterial>? extras,
+    List<AudioTrack> audioTracks = const [],
+    List<YoutubeMaterial> youtubeMaterials = const [],
+    List<ChordMaterial> chordMaterials = const [],
     this.coldigomMeta,
-  }) : numeroSortKey = _parseNumeroSortKey(numero);
+  }) : extras =
+           extras ??
+           [
+             for (final chord in chordMaterials) ChordMaterialRef(chord),
+             for (final track in audioTracks) AudioMaterial(track),
+             for (final item in youtubeMaterials) YoutubeMaterialRef(item),
+           ],
+       numeroSortKey = _parseNumeroSortKey(numero);
 
   final String groupId;
   final String numero;
   final String nome;
   final List<LouvorMaterialSection> sections;
 
-  /// Faixas Coldigom associadas ao mesmo [groupId].
-  final List<AudioTrack> audioTracks;
-
-  /// Links YouTube Coldigom associados ao mesmo [groupId].
-  final List<YoutubeMaterial> youtubeMaterials;
-
-  /// Cifras ChordPro Coldigom associadas ao mesmo [groupId].
-  final List<ChordMaterial> chordMaterials;
+  /// Materiais do grupo que não são PDF de seção — cifras, áudios e YouTube.
+  ///
+  /// Guardado como [CatalogMaterial] para que o grupo tenha um vocabulário só;
+  /// os getters por tipo abaixo continuam servindo os consumidores antigos.
+  final List<CatalogMaterial> extras;
 
   /// Metadados Coldigom (tom, autor, ritmo…) — null no PLPCG.
   final ColdigomPraiseMetadata? coldigomMeta;
+
+  /// Faixas Coldigom associadas ao mesmo [groupId] — derivado de [extras].
+  List<AudioTrack> get audioTracks => [
+    for (final material in extras)
+      if (material is AudioMaterial) material.track,
+  ];
+
+  /// Links YouTube Coldigom associados ao mesmo [groupId] — de [extras].
+  List<YoutubeMaterial> get youtubeMaterials => [
+    for (final item in extras)
+      if (item is YoutubeMaterialRef) item.material,
+  ];
+
+  /// Cifras ChordPro Coldigom associadas ao mesmo [groupId] — de [extras].
+  List<ChordMaterial> get chordMaterials => [
+    for (final material in extras)
+      if (material is ChordMaterialRef) material.chord,
+  ];
 
   /// Chave numérica para ordenação — parse feito uma vez no construtor.
   final int numeroSortKey;
@@ -73,13 +103,18 @@ class LouvorGroup {
     if (coldigomMeta != null) return true;
     final primary = primaryLouvor;
     if (primary?.source == LouvorDataSource.coldigom) return true;
-    if (audioTracks.any((t) => t.source == LouvorDataSource.coldigom)) {
-      return true;
+    for (final material in extras) {
+      switch (material) {
+        case AudioMaterial(:final track):
+          if (track.source == LouvorDataSource.coldigom) return true;
+        case YoutubeMaterialRef(material: final item):
+          if (item.source == LouvorDataSource.coldigom) return true;
+        case ChordMaterialRef():
+          return true;
+        case PdfMaterial():
+          break;
+      }
     }
-    if (youtubeMaterials.any((y) => y.source == LouvorDataSource.coldigom)) {
-      return true;
-    }
-    if (chordMaterials.isNotEmpty) return true;
     return false;
   }
 
@@ -90,9 +125,7 @@ class LouvorGroup {
       numero: numero,
       nome: nome,
       sections: sections,
-      audioTracks: audioTracks,
-      youtubeMaterials: youtubeMaterials,
-      chordMaterials: chordMaterials,
+      extras: extras,
       coldigomMeta: meta,
     );
   }
@@ -107,20 +140,17 @@ class LouvorGroup {
   }
 
   /// Todos os materiais do grupo num vocabulário único, na ordem de exibição:
-  /// PDFs por seção, cifras, áudios, YouTube.
+  /// PDFs por seção seguidos de [extras] (cifras, áudios, YouTube).
   ///
   /// Os PDFs saem na ordem das [sections] (classificação, depois categoria
   /// dentro da seção) — diferente de [flatPdfMaterials], que reordena todas as
   /// seções juntas por [LouvorCategoryOrder].
   ///
-  /// Derivado das listas existentes — nada é armazenado e nenhum consumidor
-  /// atual muda de comportamento. É o insumo do `openMaterialProvider`.
+  /// É o insumo do `openMaterialProvider`.
   List<CatalogMaterial> get materials => [
     for (final section in sections)
       for (final entry in section.materials) PdfMaterial(entry.louvor),
-    for (final chord in chordMaterials) ChordMaterialRef(chord),
-    for (final track in audioTracks) AudioMaterial(track),
-    for (final youtube in youtubeMaterials) YoutubeMaterialRef(youtube),
+    ...extras,
   ];
 
   /// Total de PDFs no grupo.
@@ -128,11 +158,7 @@ class LouvorGroup {
       sections.fold(0, (sum, section) => sum + section.materials.length);
 
   /// Total de entradas (PDFs + áudios + YouTube + cifras) no grupo.
-  int get totalMaterials =>
-      totalPdfs +
-      audioTracks.length +
-      youtubeMaterials.length +
-      chordMaterials.length;
+  int get totalMaterials => totalPdfs + extras.length;
 
   /// Classificações distintas no grupo (uma seção por arranjo PDF).
   int get totalArrangements => sections.length;
