@@ -49,9 +49,7 @@ class ZipPackageDownloader {
     final target = File('${zipDir.path}/$filename');
     final tmp = File('${target.path}.tmp');
 
-    await cleanOrphanedTempFiles(
-      keep: {filename, ?activeCheckpointName},
-    );
+    await cleanOrphanedTempFiles(keep: {filename, ?activeCheckpointName});
 
     if (await target.exists()) {
       if (await _isUsableCachedZip(target, expectedSize)) {
@@ -140,7 +138,10 @@ class ZipPackageDownloader {
         onReceiveProgress: onReceiveProgress,
       );
     } on DioException catch (e) {
-      throw guard.translate(e);
+      final translated = guard.translate(e);
+      // Erro não relacionado a cancelamento: `rethrow` preserva o stack trace.
+      if (identical(translated, e)) rethrow;
+      throw translated;
     } finally {
       guard.dispose();
     }

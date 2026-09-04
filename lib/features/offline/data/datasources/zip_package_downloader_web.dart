@@ -46,8 +46,9 @@ class ZipPackageDownloader {
     );
   }
 
-  /// No-op na web — não há ZIP em cache.
-  Future<void> cleanOrphanedTempFiles() async {}
+  /// No-op na web — não há ZIP nem `.tmp`; [keep] existe só para paridade
+  /// de assinatura com o gêmeo nativo do export condicional.
+  Future<void> cleanOrphanedTempFiles({Set<String> keep = const {}}) async {}
 
   /// No-op na web — não há ZIP em cache.
   Future<void> deleteZip(String zipPath) async {}

@@ -13,6 +13,17 @@ import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_excepti
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Watchdog injetado nos testes de stall.
+///
+/// A tentativa **travada** dispara o watchdog só depois desse intervalo, mas a
+/// tentativa **que deve concluir** precisa caber dentro dele: armar o timer,
+/// `stat` do `.tmp`, resposta do adapter em memória e gravação de poucos bytes.
+/// 500 ms dá ~8x de folga sobre o custo real desse trecho — o suficiente para a
+/// classificação stall vs. sucesso não depender da carga da máquina. O backoff
+/// entre tentativas roda com o guard já descartado (`dispose()` no `finally`),
+/// então nunca é confundido com ausência de bytes.
+const _testStallTimeout = Duration(milliseconds: 500);
+
 void main() {
   late Directory tempDir;
   late Directory docsDir;
@@ -295,7 +306,7 @@ void main() {
     final stallDownloader = ZipPackageDownloader(
       dio,
       pdfStoragePortFor(store),
-      stallTimeout: const Duration(milliseconds: 60),
+      stallTimeout: _testStallTimeout,
     );
 
     final path = await stallDownloader.download(
@@ -320,7 +331,7 @@ void main() {
       final stallDownloader = ZipPackageDownloader(
         dio,
         pdfStoragePortFor(store),
-        stallTimeout: const Duration(milliseconds: 30),
+        stallTimeout: _testStallTimeout,
       );
 
       await expectLater(
@@ -530,6 +541,10 @@ class _FakeDownloadAdapter implements HttpClientAdapter {
 }
 
 /// Emite um chunk e trava (sem mais bytes, sem fechar) nas tentativas listadas.
+///
+/// [attempts] conta só requests de download: um `HEAD` de sondagem de Range
+/// (que aparece se o `.tmp` parcial ainda não tiver sido apagado pelo dio) não
+/// desloca a numeração das tentativas nem a asserção dos testes.
 class _StallingDownloadAdapter implements HttpClientAdapter {
   _StallingDownloadAdapter({
     required this.stallAfterFirstChunkAttempts,
@@ -549,10 +564,16 @@ class _StallingDownloadAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    attempts++;
     final headers = {
       'content-length': ['${_bytes.length}'],
     };
+
+    // Sem `accept-ranges`: o downloader cai no download completo.
+    if (options.method == 'HEAD') {
+      return ResponseBody.fromString('', 200, headers: {});
+    }
+
+    attempts++;
 
     if (!stallAfterFirstChunkAttempts.contains(attempts)) {
       return ResponseBody.fromBytes(
