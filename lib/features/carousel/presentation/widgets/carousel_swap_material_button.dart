@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
@@ -80,18 +81,26 @@ Future<void> showCarouselSwapMaterialSheet({
     // O louvor já está na lista: o `+` de cada material não faz sentido aqui.
     canAddToPlaylist: false,
     // PDF aqui **troca** o material da entrada do carousel em vez de empilhar
-    // uma rota nova; os outros tipos seguem pelo opener único.
+    // uma rota nova; áudio toca sem tirar o usuário da partitura (ouvir
+    // enquanto lê); o resto segue pelo opener único.
     onMaterialSelected: (material) async {
-      if (material is PdfMaterial) {
-        await _onPdfMaterialSelected(
-          ref: ref,
-          context: context,
-          currentPdfId: currentPdfId,
-          selected: material.louvor,
-        );
-        return;
+      switch (material) {
+        case PdfMaterial(:final louvor):
+          await _onPdfMaterialSelected(
+            ref: ref,
+            context: context,
+            currentPdfId: currentPdfId,
+            selected: louvor,
+          );
+        case AudioMaterial(:final track):
+          await playAudioInSession(
+            ref: ref,
+            track: track,
+            queue: resolved.audioTracks,
+          );
+        case ChordMaterialRef() || YoutubeMaterialRef():
+          await ref.read(openMaterialProvider).open(context, ref, material);
       }
-      await ref.read(openMaterialProvider).open(context, ref, material);
     },
   );
 }

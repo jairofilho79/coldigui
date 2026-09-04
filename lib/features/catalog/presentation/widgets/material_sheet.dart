@@ -42,10 +42,14 @@ Future<void> showMaterialSheet(
 }) {
   // O `context`/`ref` capturados aqui são os de quem abriu o sheet: eles
   // sobrevivem ao pop do modal, o `BuildContext` do sheet não.
+  //
+  // `audioQueue` é a fila do grupo: tocar um arranjo enfileira os irmãos, como
+  // os dois sheets antigos faziam com `playAudioInSession(queue: ...)`.
   final open =
       onMaterialSelected ??
-      (CatalogMaterial material) =>
-          ref.read(openMaterialProvider).open(context, ref, material);
+      (CatalogMaterial material) => ref
+          .read(openMaterialProvider)
+          .open(context, ref, material, audioQueue: group.audioTracks);
 
   return showModalBottomSheet<void>(
     context: context,
@@ -100,14 +104,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   }
 
   void _handleTap(CatalogMaterial material) {
+    Navigator.of(context).pop();
+
     if (material is AudioMaterial) {
-      // play() no mesmo tap — post-frame perde o gesto no iOS Safari.
+      // Pop primeiro (o modal sai do stack antes de qualquer push), mas ainda
+      // no mesmo tap: `play()` num post-frame perde o gesto no iOS Safari.
       unawaited(widget.onMaterialSelected(material));
-      Navigator.of(context).pop();
       return;
     }
 
-    Navigator.of(context).pop();
     // Pós-frame: evita race push vs pop (modal ainda no stack).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(widget.onMaterialSelected(material));

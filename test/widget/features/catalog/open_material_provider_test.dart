@@ -59,6 +59,7 @@ class _OpenerSpy {
   final calls = <String>[];
   bool youtubeResult = true;
   Object? pdfError;
+  List<AudioTrack>? audioQueue;
 
   OpenMaterial build() {
     return OpenMaterial(
@@ -70,9 +71,16 @@ class _OpenerSpy {
       openChord: ({required ref, required context, required chord}) async {
         calls.add('chord:${chord.chordId}');
       },
-      openAudio: ({required ref, required context, required track}) async {
-        calls.add('audio:${track.audioId}');
-      },
+      openAudio:
+          ({
+            required ref,
+            required context,
+            required track,
+            List<AudioTrack>? queue,
+          }) async {
+            calls.add('audio:${track.audioId}');
+            audioQueue = queue;
+          },
       openYoutube: (material) async {
         calls.add('youtube:${material.id}');
         return youtubeResult;
@@ -82,11 +90,10 @@ class _OpenerSpy {
 }
 
 /// Monta um app mínimo e devolve `open(context, ref, material)` pronto.
-Future<Future<void> Function(CatalogMaterial)> _mount(
-  WidgetTester tester,
-  OpenMaterial opener,
-) async {
-  late Future<void> Function(CatalogMaterial) open;
+Future<Future<void> Function(CatalogMaterial, {List<AudioTrack>? audioQueue})>
+_mount(WidgetTester tester, OpenMaterial opener) async {
+  late Future<void> Function(CatalogMaterial, {List<AudioTrack>? audioQueue})
+  open;
 
   await tester.pumpWidget(
     ProviderScope(
@@ -97,8 +104,9 @@ Future<Future<void> Function(CatalogMaterial)> _mount(
         locale: const Locale('pt'),
         home: Consumer(
           builder: (context, ref, _) {
-            open = (material) =>
-                ref.read(openMaterialProvider).open(context, ref, material);
+            open = (material, {audioQueue}) => ref
+                .read(openMaterialProvider)
+                .open(context, ref, material, audioQueue: audioQueue);
             return const Scaffold(body: SizedBox.shrink());
           },
         ),
@@ -136,6 +144,32 @@ void main() {
       await open(const AudioMaterial(_track));
 
       expect(spy.calls, ['audio:audio1']);
+      // Sem fila explícita o opener não inventa uma — quem tem o grupo passa.
+      expect(spy.audioQueue, isNull);
+    });
+
+    testWidgets('AudioMaterial repassa a fila de quem tem o grupo', (
+      tester,
+    ) async {
+      const other = AudioTrack(
+        audioId: 'audio2',
+        r2Key: 'assets/praises/praise-1/b.mp3',
+        nome: 'Grande Deus',
+        numero: '001',
+        groupId: 'praise-1',
+        categoria: 'Playback',
+        classificacao: 'Coletânea',
+      );
+      final spy = _OpenerSpy();
+      final open = await _mount(tester, spy.build());
+
+      await open(
+        const AudioMaterial(_track),
+        audioQueue: const [_track, other],
+      );
+
+      expect(spy.calls, ['audio:audio1']);
+      expect(spy.audioQueue, const [_track, other]);
     });
 
     testWidgets('YoutubeMaterialRef abre o link externo', (tester) async {
@@ -172,6 +206,21 @@ void main() {
       await tester.pump();
 
       expect(find.text('sem rede aqui'), findsOneWidget);
+      // O PDF offline mantém a ação "Baixar" que o card já mostrava.
+      expect(find.widgetWithText(SnackBarAction, 'Baixar'), findsOneWidget);
+    });
+
+    testWidgets('erro de PDF sem mensagem própria não ganha ação Baixar', (
+      tester,
+    ) async {
+      final spy = _OpenerSpy()..pdfError = const PdfFetchFailedException('x');
+      final open = await _mount(tester, spy.build());
+
+      await open(PdfMaterial(_louvor));
+      await tester.pump();
+
+      expect(find.text('x'), findsOneWidget);
+      expect(find.byType(SnackBarAction), findsNothing);
     });
 
     testWidgets('erro sem mensagem própria cai no genérico', (tester) async {

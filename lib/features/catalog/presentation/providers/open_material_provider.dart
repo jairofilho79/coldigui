@@ -8,6 +8,7 @@ import '../../../audio_player/presentation/utils/open_audio_in_player.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import '../../../offline/presentation/utils/pdf_offline_error_ui.dart';
 import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor.dart';
@@ -32,11 +33,16 @@ typedef ChordMaterialOpener =
     });
 
 /// Toca uma faixa e abre `/audio` (`openAudioInPlayer` em produção).
+///
+/// [queue] é a fila em que a faixa toca — quem tem o grupo (o sheet de
+/// materiais) passa `group.audioTracks` para o playback não parar no fim do
+/// primeiro arranjo. Sem fila, toca só a faixa.
 typedef AudioMaterialOpener =
     Future<void> Function({
       required WidgetRef ref,
       required BuildContext context,
       required AudioTrack track,
+      List<AudioTrack>? queue,
     });
 
 /// Abre o YouTube externo; `false` quando a URL é inválida ou o launch falha.
@@ -65,13 +71,18 @@ class OpenMaterial {
 
   /// Abre [material] pelo caminho do seu [CatalogMaterial.kind].
   ///
+  /// [audioQueue] só vale para [AudioMaterial]: é a fila em que a faixa toca.
+  /// Quem tem o grupo passa `group.audioTracks`; sem isso o player pararia no
+  /// fim do arranjo tocado.
+  ///
   /// Falhas viram snackbar por [presentMaterialOpenError] — a escada de
   /// exceções de abertura vive num lugar só.
   Future<void> open(
     BuildContext context,
     WidgetRef ref,
-    CatalogMaterial material,
-  ) async {
+    CatalogMaterial material, {
+    List<AudioTrack>? audioQueue,
+  }) async {
     final l10n = AppLocalizations.of(context);
     try {
       switch (material) {
@@ -80,7 +91,12 @@ class OpenMaterial {
         case ChordMaterialRef(:final chord):
           await openChord(ref: ref, context: context, chord: chord);
         case AudioMaterial(:final track):
-          await openAudio(ref: ref, context: context, track: track);
+          await openAudio(
+            ref: ref,
+            context: context,
+            track: track,
+            queue: audioQueue,
+          );
         case YoutubeMaterialRef(:final material):
           final opened = await openYoutube(material);
           if (!opened && context.mounted) {
@@ -159,14 +175,21 @@ MaterialOpenFailure classifyMaterialOpenFailure(
 
 /// Mostra a snackbar da falha [error] ao abrir material.
 ///
-/// Erros com mensagem própria (offline, apagado, download) mostram a mensagem;
-/// o resto cai no genérico [AppLocalizations.pdfActionError].
+/// PDF que não está offline continua ganhando a snackbar **com ação** para a
+/// tela offline ("Baixar"), como o card já fazia antes do sheet único — a
+/// mensagem sem saída seria uma regressão de UX. Os demais erros com mensagem
+/// própria (apagado, download) mostram a mensagem; o resto cai no genérico
+/// [AppLocalizations.pdfActionError].
 void presentMaterialOpenError(
   BuildContext context,
   AppLocalizations? l10n,
   Object error,
 ) {
   if (!context.mounted) return;
+  if (error is PdfOfflineUnavailableException) {
+    showPdfOfflineUnavailableSnackbar(context, message: error.message);
+    return;
+  }
   final failure = classifyMaterialOpenFailure(error);
   showAppSnackbar(
     context,

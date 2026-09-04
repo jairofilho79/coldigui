@@ -91,14 +91,17 @@ class _OpenMaterialSpy extends OpenMaterial {
   _OpenMaterialSpy();
 
   CatalogMaterial? opened;
+  List<AudioTrack>? openedQueue;
 
   @override
   Future<void> open(
     BuildContext context,
     WidgetRef ref,
-    CatalogMaterial material,
-  ) async {
+    CatalogMaterial material, {
+    List<AudioTrack>? audioQueue,
+  }) async {
     opened = material;
+    openedQueue = audioQueue;
   }
 }
 
@@ -467,6 +470,59 @@ void main() {
 
       expect(opener.opened, isA<AudioMaterial>());
       expect(opener.opened!.id, 'audio1');
+    });
+
+    testWidgets('toque leva a fila inteira do grupo, não só a faixa', (
+      tester,
+    ) async {
+      const segunda = AudioTrack(
+        audioId: 'audio2',
+        r2Key: 'audio-key-2',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'g1',
+        categoria: 'Instrumental',
+        classificacao: 'Básico',
+        source: LouvorDataSource.coldigom,
+      );
+      const terceira = AudioTrack(
+        audioId: 'audio3',
+        r2Key: 'audio-key-3',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'g1',
+        categoria: 'Coral',
+        classificacao: 'Básico',
+        source: LouvorDataSource.coldigom,
+      );
+      final opener = _OpenMaterialSpy();
+      final group = LouvorGroup.fromLouvores(
+        [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+        audioTracks: const [_track, segunda, terceira],
+      ).first;
+
+      await _pumpSheet(tester, group: group, opener: opener);
+
+      await tester.tap(find.text('Instrumental'));
+      await tester.pumpAndSettle();
+
+      expect(opener.opened!.id, 'audio2');
+      expect(opener.openedQueue?.map((t) => t.audioId).toList(), [
+        'audio1',
+        'audio2',
+        'audio3',
+      ]);
+    });
+
+    testWidgets('grupo sem áudio não mostra o cabeçalho Áudio', (tester) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        _pdf(categoria: 'Cifra', pdfId: 'pdf2'),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Áudio'), findsNothing);
     });
   });
 

@@ -127,9 +127,15 @@ class _OpenMaterialSpy {
           ),
         );
       },
-      openAudio: ({required ref, required context, required track}) async {
-        opened = AudioMaterial(track);
-      },
+      openAudio:
+          ({
+            required ref,
+            required context,
+            required track,
+            List<AudioTrack>? queue,
+          }) async {
+            opened = AudioMaterial(track);
+          },
     );
   }
 }
