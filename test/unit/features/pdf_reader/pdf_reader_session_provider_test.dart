@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -27,7 +28,7 @@ import '../offline/offline_test_helpers.dart';
 import 'pdf_reader_test_helpers.dart';
 
 class _SessionTestAdapter extends PdfrxViewerAdapter {
-  _SessionTestAdapter()
+  _SessionTestAdapter({this._openGate})
     : super(
         PdfBytesDatasource(
           _NoOpDio(),
@@ -36,12 +37,19 @@ class _SessionTestAdapter extends PdfrxViewerAdapter {
         resolver: const PdfSourceResolver(apiBaseUrl: 'https://example.com'),
       );
 
+  /// Trava `openDocument` até o teste completar este gate — usado para
+  /// forçar a corrida com `container.dispose()` durante o `await` (C.3/B6).
+  final Completer<void>? _openGate;
+
   TrackablePdfReaderViewerHandle? created;
   var openDocumentCallCount = 0;
 
   @override
   Future<PdfReaderViewerHandle> openDocument(String filePath) async {
     openDocumentCallCount++;
+    if (_openGate != null) {
+      await _openGate.future;
+    }
     created = createTrackableHandle();
     return created!;
   }
@@ -99,6 +107,47 @@ void main() {
 
     expect(adapter.created!.wasDisposed, isFalse);
     expect(container.read(pdfSessionCacheProvider).length, 1);
+  });
+
+  test('provider descartado durante o await de openDocument libera o handle '
+      'e não chama bindHandle (C.3 / B6)', () async {
+    final openGate = Completer<void>();
+    final adapter = _SessionTestAdapter(openGate: openGate);
+    final container = ProviderContainer(
+      overrides: [pdfViewerAdapterProvider.overrideWithValue(adapter)],
+    );
+    addTearDown(container.dispose);
+
+    container.listen(
+      pdfReaderSessionProvider(filePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    expect(adapter.openDocumentCallCount, 1);
+
+    // Descarta o container enquanto `openDocument` ainda está em voo —
+    // simula navegação rápida / troca no carousel.
+    container.dispose();
+
+    // Só agora o `await adapter.openDocument(...)` completa — a build
+    // retoma depois do provider já ter sido descartado.
+    openGate.complete();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(adapter.created, isNotNull);
+    expect(
+      adapter.created!.wasDisposed,
+      isTrue,
+      reason:
+          'handle deve ser liberado quando o provider já foi '
+          'descartado durante o await',
+    );
+    expect(
+      adapter.activeHandle,
+      isNull,
+      reason: 'bindHandle não deve ser chamado após o provider descartado',
+    );
   });
 
   test('sair do leitor limpa cache e descarta handles', () async {
@@ -278,101 +327,91 @@ void main() {
     );
   }
 
-  test(
-    'pdfrx sinaliza erro de formato (bytes válidos) -> remove e lança '
-    'PdfLocalCorruptedException (B3 evidência b)',
-    () async {
-      final fixture = await setUpIndexedLocalPdf(
-        Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
-      );
-      addTearDown(() async {
-        fixture.isar.close(deleteFromDisk: true);
-        if (fixture.tempDir.existsSync()) {
-          await fixture.tempDir.delete(recursive: true);
-        }
-      });
+  test('pdfrx sinaliza erro de formato (bytes válidos) -> remove e lança '
+      'PdfLocalCorruptedException (B3 evidência b)', () async {
+    final fixture = await setUpIndexedLocalPdf(
+      Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
+    );
+    addTearDown(() async {
+      fixture.isar.close(deleteFromDisk: true);
+      if (fixture.tempDir.existsSync()) {
+        await fixture.tempDir.delete(recursive: true);
+      }
+    });
 
-      // Bytes lidos e com magic `%PDF` válido, mas o pdfrx recusa o formato.
-      final adapter = _CorruptLocalAdapter(
-        errorBuilder: () => const PdfLocalOpenFailure(
-          cause: 'FPDF_ERR_FORMAT: bad header',
-          hasValidMagicBytes: true,
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          pdfViewerAdapterProvider.overrideWithValue(adapter),
-          offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
-        ],
-      );
-      addTearDown(container.dispose);
+    // Bytes lidos e com magic `%PDF` válido, mas o pdfrx recusa o formato.
+    final adapter = _CorruptLocalAdapter(
+      errorBuilder: () => const PdfLocalOpenFailure(
+        cause: 'FPDF_ERR_FORMAT: bad header',
+        hasValidMagicBytes: true,
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        pdfViewerAdapterProvider.overrideWithValue(adapter),
+        offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      final sub = container.listen(
-        pdfReaderSessionProvider(fixture.absolutePath),
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(sub.close);
+    final sub = container.listen(
+      pdfReaderSessionProvider(fixture.absolutePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
 
-      await expectLater(
-        container.read(
-          pdfReaderSessionProvider(fixture.absolutePath).future,
-        ),
-        throwsA(isA<PdfLocalCorruptedException>()),
-      );
+    await expectLater(
+      container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
+      throwsA(isA<PdfLocalCorruptedException>()),
+    );
 
-      expect(await fixture.repository.lookup(fixture.pdfId), isNull);
-    },
-  );
+    expect(await fixture.repository.lookup(fixture.pdfId), isNull);
+  });
 
-  test(
-    'bytes lidos sem magic %PDF -> remove e lança '
-    'PdfLocalCorruptedException (B3 evidência a)',
-    () async {
-      // HTML de erro salvo no lugar do PDF — cenário real de corrupção.
-      final fixture = await setUpIndexedLocalPdf(
-        Uint8List.fromList('<html>erro</html>'.codeUnits),
-      );
-      addTearDown(() async {
-        fixture.isar.close(deleteFromDisk: true);
-        if (fixture.tempDir.existsSync()) {
-          await fixture.tempDir.delete(recursive: true);
-        }
-      });
+  test('bytes lidos sem magic %PDF -> remove e lança '
+      'PdfLocalCorruptedException (B3 evidência a)', () async {
+    // HTML de erro salvo no lugar do PDF — cenário real de corrupção.
+    final fixture = await setUpIndexedLocalPdf(
+      Uint8List.fromList('<html>erro</html>'.codeUnits),
+    );
+    addTearDown(() async {
+      fixture.isar.close(deleteFromDisk: true);
+      if (fixture.tempDir.existsSync()) {
+        await fixture.tempDir.delete(recursive: true);
+      }
+    });
 
-      // Bytes lidos com sucesso pelo adapter e SEM o magic `%PDF` — única
-      // evidência (a) aceita para remover o PDF offline.
-      final adapter = _CorruptLocalAdapter(
-        errorBuilder: () => PdfLocalOpenFailure(
-          cause: StateError('PDF sem páginas'),
-          hasValidMagicBytes: false,
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          pdfViewerAdapterProvider.overrideWithValue(adapter),
-          offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
-        ],
-      );
-      addTearDown(container.dispose);
+    // Bytes lidos com sucesso pelo adapter e SEM o magic `%PDF` — única
+    // evidência (a) aceita para remover o PDF offline.
+    final adapter = _CorruptLocalAdapter(
+      errorBuilder: () => PdfLocalOpenFailure(
+        cause: StateError('PDF sem páginas'),
+        hasValidMagicBytes: false,
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        pdfViewerAdapterProvider.overrideWithValue(adapter),
+        offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      final sub = container.listen(
-        pdfReaderSessionProvider(fixture.absolutePath),
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(sub.close);
+    final sub = container.listen(
+      pdfReaderSessionProvider(fixture.absolutePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
 
-      await expectLater(
-        container.read(
-          pdfReaderSessionProvider(fixture.absolutePath).future,
-        ),
-        throwsA(isA<PdfLocalCorruptedException>()),
-      );
+    await expectLater(
+      container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
+      throwsA(isA<PdfLocalCorruptedException>()),
+    );
 
-      expect(await fixture.repository.lookup(fixture.pdfId), isNull);
-    },
-  );
+    expect(await fixture.repository.lookup(fixture.pdfId), isNull);
+  });
 
   test(
     'erro genérico com bytes válidos -> preserva o PDF e lança '
@@ -410,9 +449,7 @@ void main() {
       addTearDown(sub.close);
 
       await expectLater(
-        container.read(
-          pdfReaderSessionProvider(fixture.absolutePath).future,
-        ),
+        container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
         throwsA(isA<PdfLocalReadFailedException>()),
       );
 
@@ -421,113 +458,100 @@ void main() {
     },
   );
 
-  test(
-    'arquivo removido externamente (bytes não encontrados) -> preserva '
-    'índice e lança PdfLocalReadFailedException',
-    () async {
-      final fixture = await setUpIndexedLocalPdf(
-        Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
-      );
-      addTearDown(() async {
-        fixture.isar.close(deleteFromDisk: true);
-        if (fixture.tempDir.existsSync()) {
-          await fixture.tempDir.delete(recursive: true);
-        }
-      });
-      // Simula exclusão externa do arquivo (fora do controle do app).
-      await File(fixture.absolutePath).delete();
+  test('arquivo removido externamente (bytes não encontrados) -> preserva '
+      'índice e lança PdfLocalReadFailedException', () async {
+    final fixture = await setUpIndexedLocalPdf(
+      Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
+    );
+    addTearDown(() async {
+      fixture.isar.close(deleteFromDisk: true);
+      if (fixture.tempDir.existsSync()) {
+        await fixture.tempDir.delete(recursive: true);
+      }
+    });
+    // Simula exclusão externa do arquivo (fora do controle do app).
+    await File(fixture.absolutePath).delete();
 
-      final adapter = _CorruptLocalAdapter(
-        errorBuilder: () => Exception('Timeout ao ler arquivo'),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          pdfViewerAdapterProvider.overrideWithValue(adapter),
-          offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
-        ],
-      );
-      addTearDown(container.dispose);
+    final adapter = _CorruptLocalAdapter(
+      errorBuilder: () => Exception('Timeout ao ler arquivo'),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        pdfViewerAdapterProvider.overrideWithValue(adapter),
+        offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      final sub = container.listen(
-        pdfReaderSessionProvider(fixture.absolutePath),
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(sub.close);
+    final sub = container.listen(
+      pdfReaderSessionProvider(fixture.absolutePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
 
-      await expectLater(
-        container.read(
-          pdfReaderSessionProvider(fixture.absolutePath).future,
-        ),
-        throwsA(isA<PdfLocalReadFailedException>()),
-      );
+    await expectLater(
+      container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
+      throwsA(isA<PdfLocalReadFailedException>()),
+    );
 
-      // `lookup` valida a presença física do arquivo (ausente de propósito
-      // neste teste); o que importa aqui é que o índice NÃO foi removido —
-      // ou seja, B3 não tratou a ausência do arquivo como corrupção.
-      expect(
-        await fixture.repository.findPdfIdByAbsolutePath(
-          fixture.absolutePath,
-        ),
-        fixture.pdfId,
-      );
-    },
-  );
+    // `lookup` valida a presença física do arquivo (ausente de propósito
+    // neste teste); o que importa aqui é que o índice NÃO foi removido —
+    // ou seja, B3 não tratou a ausência do arquivo como corrupção.
+    expect(
+      await fixture.repository.findPdfIdByAbsolutePath(fixture.absolutePath),
+      fixture.pdfId,
+    );
+  });
 
-  test(
-    'arquivo existe mas não pode ser lido (permissão/storage) -> preserva '
-    'arquivo e índice e lança PdfLocalReadFailedException (B3 R1)',
-    () async {
-      final fixture = await setUpIndexedLocalPdf(
-        Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
-      );
-      addTearDown(() async {
-        // Devolve a permissão antes de limpar o diretório temporário.
-        Process.runSync('chmod', ['600', fixture.absolutePath]);
-        fixture.isar.close(deleteFromDisk: true);
-        if (fixture.tempDir.existsSync()) {
-          await fixture.tempDir.delete(recursive: true);
-        }
-      });
+  test('arquivo existe mas não pode ser lido (permissão/storage) -> preserva '
+      'arquivo e índice e lança PdfLocalReadFailedException (B3 R1)', () async {
+    final fixture = await setUpIndexedLocalPdf(
+      Uint8List.fromList([0x25, 0x50, 0x44, 0x46, 0x00]),
+    );
+    addTearDown(() async {
+      // Devolve a permissão antes de limpar o diretório temporário.
+      Process.runSync('chmod', ['600', fixture.absolutePath]);
+      fixture.isar.close(deleteFromDisk: true);
+      if (fixture.tempDir.existsSync()) {
+        await fixture.tempDir.delete(recursive: true);
+      }
+    });
 
-      // Arquivo presente no disco, porém ilegível (permissão negada / erro de
-      // storage / scoped storage). NÃO é evidência de corrupção.
-      final chmod = Process.runSync('chmod', ['000', fixture.absolutePath]);
-      expect(chmod.exitCode, 0, reason: 'chmod 000 falhou: ${chmod.stderr}');
-      expect(File(fixture.absolutePath).existsSync(), isTrue);
+    // Arquivo presente no disco, porém ilegível (permissão negada / erro de
+    // storage / scoped storage). NÃO é evidência de corrupção.
+    final chmod = Process.runSync('chmod', ['000', fixture.absolutePath]);
+    expect(chmod.exitCode, 0, reason: 'chmod 000 falhou: ${chmod.stderr}');
+    expect(File(fixture.absolutePath).existsSync(), isTrue);
 
-      final adapter = _CorruptLocalAdapter(
-        errorBuilder: () =>
-            const FileSystemException('Permission denied', 'open'),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          pdfViewerAdapterProvider.overrideWithValue(adapter),
-          offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
-        ],
-      );
-      addTearDown(container.dispose);
+    final adapter = _CorruptLocalAdapter(
+      errorBuilder: () =>
+          const FileSystemException('Permission denied', 'open'),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        pdfViewerAdapterProvider.overrideWithValue(adapter),
+        offlinePdfRepositoryProvider.overrideWithValue(fixture.repository),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      final sub = container.listen(
-        pdfReaderSessionProvider(fixture.absolutePath),
-        (_, _) {},
-        fireImmediately: true,
-      );
-      addTearDown(sub.close);
+    final sub = container.listen(
+      pdfReaderSessionProvider(fixture.absolutePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(sub.close);
 
-      await expectLater(
-        container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
-        throwsA(isA<PdfLocalReadFailedException>()),
-      );
+    await expectLater(
+      container.read(pdfReaderSessionProvider(fixture.absolutePath).future),
+      throwsA(isA<PdfLocalReadFailedException>()),
+    );
 
-      expect(
-        await fixture.repository.findPdfIdByAbsolutePath(
-          fixture.absolutePath,
-        ),
-        fixture.pdfId,
-      );
-      expect(File(fixture.absolutePath).existsSync(), isTrue);
-    },
-    skip: Platform.isWindows ? 'chmod indisponível no Windows' : null,
-  );
+    expect(
+      await fixture.repository.findPdfIdByAbsolutePath(fixture.absolutePath),
+      fixture.pdfId,
+    );
+    expect(File(fixture.absolutePath).existsSync(), isTrue);
+  }, skip: Platform.isWindows ? 'chmod indisponível no Windows' : null);
 }

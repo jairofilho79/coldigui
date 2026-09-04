@@ -64,6 +64,13 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
         try {
           if (handle == null) {
             handle = await adapter.openDocument(filePath);
+            if (!ref.mounted) {
+              // Provider descartado (navegação rápida / troca no carousel)
+              // enquanto `openDocument` estava em voo: o handle acabou de
+              // abrir sem ninguém para exibi-lo. Libera abaixo (catch) e
+              // nunca chega a `bindHandle`/`onDispose` (C.3 / B6).
+              throw const _PdfReaderSessionDisposedException();
+            }
             if (source.kind == PdfSourceKind.localFile) {
               // Garante documento válido antes de exibir (detecta corrupção cedo).
               if (handle.document.pages.isEmpty) {
@@ -74,6 +81,12 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
         } on Object catch (error, stackTrace) {
           handle?.dispose();
           cache.remove(filePath);
+          if (error is _PdfReaderSessionDisposedException) {
+            // Handle já liberado acima; o Riverpod descarta o resultado de
+            // um `build` cujo provider não está mais montado — só propaga
+            // para encerrar a função sem religar nada.
+            Error.throwWithStackTrace(error, stackTrace);
+          }
           // O adapter embrulha a falha de abertura em [PdfLocalOpenFailure]
           // com o veredito do magic `%PDF` sobre os bytes que ele leu; se a
           // leitura em si falhou, o erro chega cru e não há evidência.
@@ -122,6 +135,21 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
       // até ~30s antes do erro aparecer.
       retry: (_, _) => null,
     );
+
+/// Sinaliza que [pdfReaderSessionProvider] foi descartado enquanto o
+/// `build` aguardava [PdfrxViewerAdapter.openDocument] (C.3 / B6).
+///
+/// Nunca é exposto à UI: quando `!ref.mounted`, o Riverpod já descarta
+/// silenciosamente o resultado (ou erro) do `build` — esta exceção só existe
+/// para desviar do fluxo normal de classificação de falha e encerrar a
+/// função sem chamar `bindHandle`/`ref.onDispose`.
+class _PdfReaderSessionDisposedException implements Exception {
+  const _PdfReaderSessionDisposedException();
+
+  @override
+  String toString() =>
+      'pdfReaderSessionProvider descartado durante o await de openDocument';
+}
 
 Future<String?> _findLocalPdfId(Ref ref, String absolutePath) => ref
     .read(offlinePdfRepositoryProvider)
