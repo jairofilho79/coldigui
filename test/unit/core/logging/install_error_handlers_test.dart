@@ -34,4 +34,26 @@ void main() {
       expect(reporter.reportedContexts.single, 'FlutterError');
     },
   );
+
+  test(
+    'installErrorHandlers encaminha PlatformDispatcher.instance.onError para o reporter',
+    () {
+      final reporter = _FakeErrorReporter();
+      final previousOnError = PlatformDispatcher.instance.onError;
+      addTearDown(() => PlatformDispatcher.instance.onError = previousOnError);
+
+      installErrorHandlers(reporter);
+
+      final exception = Exception('falha de plataforma');
+      final handled = PlatformDispatcher.instance.onError!(
+        exception,
+        StackTrace.current,
+      );
+
+      expect(handled, isTrue);
+      expect(reporter.reportedErrors, hasLength(1));
+      expect(reporter.reportedErrors.single, exception);
+      expect(reporter.reportedContexts.single, 'PlatformDispatcher');
+    },
+  );
 }

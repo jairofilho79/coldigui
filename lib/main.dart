@@ -12,12 +12,13 @@ import 'core/providers/shared_prefs_provider.dart';
 import 'features/audio_player/data/audio_background_bootstrap.dart';
 
 final _log = AppLogger.of('main');
+const _errorReporter = NoopErrorReporter();
 
 Future<void> main() async {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-      installErrorHandlers(const NoopErrorReporter());
+      installErrorHandlers(_errorReporter);
       await ensureAudioBackgroundInitialized();
 
       final prefs = await SharedPreferences.getInstance();
@@ -32,11 +33,7 @@ Future<void> main() async {
     },
     (error, stackTrace) {
       _log.error('erro nao tratado na zona raiz', error, stackTrace);
-      const NoopErrorReporter().report(
-        error,
-        stackTrace,
-        context: 'runZonedGuarded',
-      );
+      _errorReporter.report(error, stackTrace, context: 'runZonedGuarded');
     },
   );
 }

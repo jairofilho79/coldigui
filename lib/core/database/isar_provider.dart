@@ -26,11 +26,19 @@ final isarOpenerProvider = Provider<Future<Isar> Function()>(
 /// um `Timer` real pendente quando o provider é descartado antes da
 /// abertura terminar (ex.: fim de um teste de widget que não espera o Isar
 /// abrir; usar `Future.timeout` puro deixaria esse timer pendente).
+///
+/// `Future.any` não cancela o "perdedor" da corrida: se o timeout vencer e
+/// [opener] só resolver depois, essa instância chegaria tarde demais e
+/// ninguém mais a fecharia. Por isso guardamos [opener] numa variável e, se
+/// ela resolver (ou falhar) depois que [timedOut] já for `true`, fechamos a
+/// instância tardia (ou só logamos a falha tardia) em vez de vazá-la.
 final isarInitializerProvider = FutureProvider<Isar>((ref) async {
   final opener = ref.watch(isarOpenerProvider);
 
+  var timedOut = false;
   final timeoutCompleter = Completer<Isar>();
   final timer = Timer(isarOpenTimeout, () {
+    timedOut = true;
     debugPrint('[isar] abertura excedeu 15 s; modo degradado');
     timeoutCompleter.completeError(
       TimeoutException(
@@ -41,7 +49,21 @@ final isarInitializerProvider = FutureProvider<Isar>((ref) async {
   });
   ref.onDispose(timer.cancel);
 
-  final isar = await Future.any([opener(), timeoutCompleter.future]);
+  final openerFuture = opener();
+  unawaited(
+    openerFuture.then(
+      (isar) {
+        if (timedOut) isar.close();
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (timedOut) {
+          debugPrint('[isar] abertura tardia falhou após o timeout: $error');
+        }
+      },
+    ),
+  );
+
+  final isar = await Future.any([openerFuture, timeoutCompleter.future]);
   timer.cancel();
   ref.onDispose(isar.close);
   return isar;
