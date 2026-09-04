@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../presentation/providers/catalog_source_provider.dart';
+import '../../data/providers/catalog_source_provider.dart';
 import '../entities/catalog_material.dart';
 
 /// Material endereçável por [materialId], ou `null` se não houver.

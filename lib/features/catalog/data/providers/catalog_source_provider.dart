@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
-import '../../data/sources/composite_catalog_source.dart';
-import '../../data/sources/plpcg_catalog_source.dart';
 import '../../domain/ports/catalog_source.dart';
-import 'louvores_manifest_provider.dart';
+import '../../presentation/providers/louvores_manifest_provider.dart';
+import '../sources/composite_catalog_source.dart';
+import '../sources/plpcg_catalog_source.dart';
 
 /// Porta única de leitura do catálogo por id (PLPCG + Coldigom).
 ///

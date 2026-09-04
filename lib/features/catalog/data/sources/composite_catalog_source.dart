@@ -26,6 +26,17 @@ class CompositeCatalogSource implements CatalogSource {
   Future<CatalogMaterial?> materialById(String materialId) =>
       sourceForMaterial(materialId).materialById(materialId);
 
+  /// Grupo de [materialId], **sem** a regra "material único → `null`".
+  ///
+  /// A porta devolve o grupo mesmo quando ele tem um material só; quem quer
+  /// esconder o grupo sem alternativa é que aplica o corte (é o que
+  /// `findLouvorGroupByPdfId` e `findSwapMaterialGroup` fazem).
+  ///
+  /// O grupo Coldigom montado aqui sai dos caches de PDF, cifra e áudio, que
+  /// são os únicos que existem: **não há cache de YouTube**, então
+  /// [LouvorGroup.youtubeMaterials] vem sempre vazio por esta porta, mesmo que
+  /// o praise tenha links. Quem precisa dos links continua vindo do resultado
+  /// de busca/browse do repositório Coldigom.
   @override
   Future<LouvorGroup?> groupForMaterial(String materialId) =>
       sourceForMaterial(materialId).groupForMaterial(materialId);

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -107,8 +109,9 @@ class _FakeChordCacheNotifier extends ColdigomChordMaterialsCacheNotifier {
 
 /// Registra o material que chegou ao ponto único de abertura.
 ///
-/// A cifra passa a ser aberta pelo `openMaterialProvider`, então o teste
-/// verifica o material que ele recebe e deixa o fake navegar para `/cifra`.
+/// Tudo que não é PDF passa a ser aberto pelo `openMaterialProvider`, então o
+/// teste verifica o material que ele recebe; no caso da cifra o fake ainda
+/// navega para `/cifra`.
 class _OpenMaterialSpy {
   CatalogMaterial? opened;
 
@@ -124,8 +127,20 @@ class _OpenMaterialSpy {
           ),
         );
       },
+      openAudio: ({required ref, required context, required track}) async {
+        opened = AudioMaterial(track);
+      },
     );
   }
+}
+
+class _FakeAudioCacheNotifier extends ColdigomAudioTracksCacheNotifier {
+  _FakeAudioCacheNotifier(this.initial);
+
+  final Map<String, AudioTrack> initial;
+
+  @override
+  Map<String, AudioTrack> build() => initial;
 }
 
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
@@ -397,6 +412,84 @@ void main() {
     expect(openSpy.opened, isA<ChordMaterialRef>());
     expect(openSpy.opened!.id, chordId);
     expect(find.text('cifra:$chordId'), findsOneWidget);
+    expect(find.textContaining('Não foi possível'), findsNothing);
+  });
+
+  testWidgets('Abrir no leitor com id de áudio na face de partituras toca', (
+    tester,
+  ) async {
+    // O desvio não é mais só de cifra: `kind != pdf` manda qualquer material
+    // resolvível para o opener. Um id de áudio só chega aqui quando o `kind`
+    // gravado na entrada discorda da extensão do id (a face de partituras é
+    // projetada por `PlaylistEntry.kind`, o desvio decide por
+    // `materialIdKindOf`); sem este caminho ele cairia no findLouvorByPdfId e
+    // viraria erro genérico.
+    final audioId = _pdfId('assets/praises/p1/m1.mp3');
+    expect(materialIdKindOf(audioId), MaterialKind.audio);
+
+    final audioItem = PlaylistViewItem(
+      playlist: SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Ensaio com áudio',
+        entries: [
+          PlaylistEntry(id: audioId, kind: MaterialKind.pdf),
+          PlaylistEntry(id: pdfIdB, kind: MaterialKind.pdf),
+        ],
+        createdAt: DateTime(2026, 6, 8),
+      ),
+      pdfLabels: ['Áudio — A', '002 — B'],
+    );
+    expect(audioItem.playlist.pdfIds.first, audioId);
+
+    final track = AudioTrack(
+      audioId: audioId,
+      r2Key: 'assets/praises/p1/m1.mp3',
+      nome: 'Comigo habita',
+      numero: '001',
+      groupId: 'p1',
+      categoria: 'Áudio',
+      classificacao: 'ColAdultos',
+    );
+
+    final notifier = _LouvorFindingPlaylistsNotifier([audioItem]);
+    final openSpy = _OpenMaterialSpy();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(() => notifier),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([]),
+          ),
+          coldigomAudioTracksCacheProvider.overrideWith(
+            () => _FakeAudioCacheNotifier({audioId: track}),
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _FakeResolvePdfForReader(),
+          ),
+          openMaterialProvider.overrideWithValue(openSpy.build()),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: PlaylistListTile(item: audioItem, tab: PlaylistTab.saved),
+          ),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abrir no leitor'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(openSpy.opened, isA<AudioMaterial>());
+    expect(openSpy.opened!.id, audioId);
     expect(find.textContaining('Não foi possível'), findsNothing);
   });
 

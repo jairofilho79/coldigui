@@ -43,6 +43,11 @@ class ColdigomCatalogSource implements CatalogSource {
   }
 
   /// Versão síncrona de [groupById] — os caches já estão em memória.
+  ///
+  /// O grupo sai dos caches de PDF, cifra e áudio; **não existe cache de
+  /// YouTube**, então `LouvorGroup.youtubeMaterials` vem sempre vazio daqui.
+  /// Devolve o grupo mesmo com um material só — o corte "sem alternativa" é de
+  /// quem chama.
   LouvorGroup? findGroupById(String groupId) {
     if (groupId.isEmpty) return null;
     final pdfs = louvoresOfGroup(groupId);
