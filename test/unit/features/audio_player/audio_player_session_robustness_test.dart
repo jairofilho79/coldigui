@@ -180,6 +180,74 @@ void main() {
     );
   });
 
+  test(
+    'troca em voo ignora o índice do player mesmo com carga superada',
+    () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+      // A: genuinamente dentro de `setAudioSources`.
+      player.blockSetSources = true;
+      final callA = notifier.playQueue([_track('a1'), _track('a2')]);
+      await Future<void>.delayed(Duration.zero);
+
+      // B: supera A e estoura antes de qualquer mexida no player.
+      await notifier.playQueue([
+        _unparseableTrack('b1'),
+        _unparseableTrack('b2'),
+      ]);
+
+      // A troca de fontes de A continua em voo: o índice que o player cospe no
+      // meio da troca é lixo e não pode mexer na sessão.
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(audioPlayerSessionProvider).currentIndex,
+        0,
+        reason: 'com setAudioSources em voo, o currentIndexStream é ruído',
+      );
+
+      // Terminou a troca: o próximo índice vale de novo.
+      player.pendingSetSources.single.complete(null);
+      await callA;
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(audioPlayerSessionProvider).currentIndex, 1);
+    },
+  );
+
+  test(
+    'duas cargas sobrepostas seguram a marca até as duas terminarem',
+    () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+      player.blockSetSources = true;
+      final callA = notifier.playQueue([_track('a1'), _track('a2')]);
+      await Future<void>.delayed(Duration.zero);
+      final callB = notifier.playQueue([_track('b1'), _track('b2')]);
+      await Future<void>.delayed(Duration.zero);
+      expect(player.pendingSetSources.length, 2);
+
+      // Só a primeira terminou: ainda há troca em voo (a segunda).
+      player.pendingSetSources[0].complete(null);
+      await callA;
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(audioPlayerSessionProvider).currentIndex,
+        0,
+        reason: 'a segunda troca ainda está em voo',
+      );
+
+      player.pendingSetSources[1].complete(null);
+      await callB;
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(audioPlayerSessionProvider).currentIndex, 1);
+    },
+  );
+
   test('erro de fonte superada não pinta sobre a fila nova', () async {
     final container = await makeContainer();
     final notifier = container.read(audioPlayerSessionProvider.notifier);

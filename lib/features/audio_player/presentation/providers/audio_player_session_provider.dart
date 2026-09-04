@@ -112,17 +112,17 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   /// próprio resultado se outra chamada tiver começado depois (toque duplo).
   int _generation = 0;
 
-  /// Geração **dona** da troca de fontes em curso, ou `null` se ninguém está
-  /// trocando.
+  /// Quantas trocas de fonte estão em voo **no player**.
   ///
-  /// A posse é por geração, e não um `bool`, porque uma chamada superada não
-  /// tem como devolver a marca: se a chamada nova estourasse antes de marcar
-  /// (`Uri.parse`, `unlockWebAudioIfNeeded`), a antiga terminava, via o `gen`
-  /// desatualizado e deixava a marca presa em `true` — a sessão parava de
-  /// seguir o `currentIndexStream` para sempre.
-  int? _applyingSourcesGen;
+  /// A marca é do player ("tem algum `setAudioSources` rodando?"), não da
+  /// geração: o `currentIndexStream` cospe lixo enquanto o player troca de
+  /// fonte, e quem sabe disso é o player, não a fila mais recente. Por isso o
+  /// contador sobe e desce sem checar geração e abraça só a chamada ao player
+  /// — uma carga superada que estourou antes de mexer no player nunca contou,
+  /// e nada consegue deixar o contador preso.
+  int _sourcesInFlight = 0;
 
-  bool get _applyingSources => _applyingSourcesGen == _generation;
+  bool get _applyingSources => _sourcesInFlight > 0;
 
   AudioPlayer get _ensurePlayer {
     final existing = _player;
@@ -293,30 +293,30 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         );
       }
 
-      _applyingSourcesGen = gen;
+      // O contador abraça só a mexida no player: entra antes e sai depois,
+      // sem checar geração, para não haver caminho que o deixe preso.
+      _sourcesInFlight++;
       try {
         await player.setAudioSources(
           sources,
           initialIndex: safeIndex,
           preload: autoplay && !kIsWeb,
         );
-        if (gen != _generation) return;
-        state = state.copyWith(currentIndex: safeIndex, playing: false);
-        _mediaSession?.updateTrack(tracks[safeIndex]);
-        if (autoplay) {
-          await player.play();
-        }
       } finally {
-        // Só quem ainda é a geração vigente devolve a marca: uma chamada
-        // superada terminando depois não pode destravar o índice de quem
-        // ainda está carregando.
-        if (gen == _generation) _applyingSourcesGen = null;
+        _sourcesInFlight--;
+      }
+
+      // Daqui para baixo é escrita de estado: só a geração vigente escreve.
+      if (gen != _generation) return;
+      state = state.copyWith(currentIndex: safeIndex, playing: false);
+      _mediaSession?.updateTrack(tracks[safeIndex]);
+      if (autoplay) {
+        await player.play();
       }
     } on Object catch (e) {
       // Chamada superada: quem venceu já cuidou do estado (e um
       // `PlayerInterruptedException` daqui é justamente o esperado).
       if (gen != _generation) return;
-      _applyingSourcesGen = null;
       debugPrint('[audio] falha ao aplicar a fila: $e');
       state = state.copyWith(errorMessage: e.toString(), playing: false);
     }
@@ -422,10 +422,9 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   /// Encerra o player: para e limpa fila/posição (diferente de [stop]).
   Future<void> close() async {
     // Descarta uma `_applyQueue` em voo: sem isto ela repovoava a sessão
-    // depois do fechamento. Como ninguém mais roda o `finally` dela, a flag
-    // de troca de fonte é liberada aqui.
+    // depois do fechamento. O contador de trocas de fonte não se mexe aqui —
+    // é do player, e quem o incrementou devolve no próprio `finally`.
     _generation++;
-    _applyingSourcesGen = null;
     try {
       await _player?.stop();
     } on Object catch (e) {
