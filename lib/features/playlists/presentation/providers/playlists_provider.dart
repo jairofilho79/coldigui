@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -176,7 +178,21 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
+  ///
+  /// Sem storage (Isar não abriu / degradado) devolve `false` em vez de
+  /// propagar: os chamadores disparam isto de futuros não aguardados
+  /// (`playAudioInSession`, `openLouvorInReader`), onde a exceção viraria erro
+  /// assíncrono não tratado sem nenhum retorno visível ao usuário.
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {
+    try {
+      return await _addLouvorToActivePlaylist(pdfId);
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] sem storage ao adicionar louvor à lista: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _addLouvorToActivePlaylist(String pdfId) async {
     var activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) {
       activeId = await ensurePlaylistForLouvor(pdfId);
@@ -628,7 +644,19 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 
   /// Adiciona áudio à lista ativa (cria rascunho se necessário).
+  ///
+  /// Mesmo contrato de [addLouvorToActivePlaylist]: sem storage devolve
+  /// `false` em vez de propagar.
   Future<bool> addAudioToActivePlaylist(String audioId) async {
+    try {
+      return await _addAudioToActivePlaylist(audioId);
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] sem storage ao adicionar áudio à lista: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _addAudioToActivePlaylist(String audioId) async {
     var activeId = ref.read(activePlaylistIdProvider);
     final repo = ref.read(playlistRepositoryProvider);
 

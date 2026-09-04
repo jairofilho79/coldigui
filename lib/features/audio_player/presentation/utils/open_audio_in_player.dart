@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -63,11 +64,17 @@ Future<void> playAudioInSession({
         .read(playlistMediaFaceProvider.notifier)
         .setFace(PlaylistMediaFace.audio),
   );
-  unawaited(
-    ref
-        .read(playlistsProvider.notifier)
-        .addAudioToActivePlaylist(track.audioId),
-  );
+  // Mesma porteira de `addMaterialToActivePlaylist`: sem Isar a escrita na
+  // lista ativa não tem para onde ir, e aqui ela sai de um future não
+  // aguardado — falhar viraria erro assíncrono sem nenhum retorno. Tocar
+  // continua valendo (o áudio vem da rede).
+  if (ref.read(isarAvailableProvider)) {
+    unawaited(
+      ref
+          .read(playlistsProvider.notifier)
+          .addAudioToActivePlaylist(track.audioId),
+    );
+  }
   return ref
       .read(audioPlayerSessionProvider.notifier)
       .playQueue(tracks, startIndex: index);
