@@ -1,4 +1,5 @@
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/errors/user_message_for.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
@@ -81,6 +82,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   }
 
   Future<void> _openAudio(AudioTrack track) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await openAudioInPlayer(
         ref: ref,
@@ -89,8 +91,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         queue: widget.group.audioTracks,
       );
     } on Object catch (e) {
+      debugPrint('[audio] falha ao abrir ${track.audioId}: $e');
       if (mounted) {
-        showAppSnackbar(context, e.toString());
+        showAppSnackbar(context, userMessageFor(l10n, e));
       }
     }
   }

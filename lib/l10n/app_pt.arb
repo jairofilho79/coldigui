@@ -513,5 +513,37 @@
   "deferredLoaderError": "Não foi possível carregar esta seção.",
   "deferredLoaderRetry": "Tentar novamente",
   "authSignInUnavailable": "Login indisponível no momento.",
-  "authSignInRetry": "Tentar novamente"
+  "authSignInRetry": "Tentar novamente",
+  "errorNoConnection": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
+  "@errorNoConnection": {
+    "description": "userMessageFor: DioException de conexão (C.5)"
+  },
+  "errorTimeout": "A conexão demorou demais. Tente de novo.",
+  "@errorTimeout": {
+    "description": "userMessageFor: DioException de timeout (C.5)"
+  },
+  "errorServer": "O servidor está indisponível no momento. Tente de novo em instantes.",
+  "@errorServer": {
+    "description": "userMessageFor: resposta 5xx do Worker (C.5)"
+  },
+  "errorSessionExpired": "Sua sessão expirou. Entre novamente para continuar.",
+  "@errorSessionExpired": {
+    "description": "userMessageFor: 401/403 ou AuthUnauthorizedException (C.5)"
+  },
+  "errorGeneric": "Não foi possível concluir a ação. Tente de novo.",
+  "@errorGeneric": {
+    "description": "userMessageFor: fallback para erro não classificado (C.5)"
+  },
+  "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
+  "@offlineStorageUnavailable": {
+    "description": "userMessageFor: StorageUnavailableException (Isar não abriu)"
+  },
+  "sessionExpiredBanner": "Sessão expirada",
+  "@sessionExpiredBanner": {
+    "description": "Título do banner de sessão expirada no perfil e nas listas"
+  },
+  "sessionExpiredSignInAgain": "Entrar de novo",
+  "@sessionExpiredSignInAgain": {
+    "description": "Ação do banner de sessão expirada"
+  }
 }

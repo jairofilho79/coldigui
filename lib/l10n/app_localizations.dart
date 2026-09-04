@@ -1906,6 +1906,54 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Tentar novamente'**
   String get authSignInRetry;
+
+  /// userMessageFor: DioException de conexão (C.5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Verifique sua rede e tente de novo.'**
+  String get errorNoConnection;
+
+  /// userMessageFor: DioException de timeout (C.5)
+  ///
+  /// In pt, this message translates to:
+  /// **'A conexão demorou demais. Tente de novo.'**
+  String get errorTimeout;
+
+  /// userMessageFor: resposta 5xx do Worker (C.5)
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor está indisponível no momento. Tente de novo em instantes.'**
+  String get errorServer;
+
+  /// userMessageFor: 401/403 ou AuthUnauthorizedException (C.5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sessão expirou. Entre novamente para continuar.'**
+  String get errorSessionExpired;
+
+  /// userMessageFor: fallback para erro não classificado (C.5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível concluir a ação. Tente de novo.'**
+  String get errorGeneric;
+
+  /// userMessageFor: StorageUnavailableException (Isar não abriu)
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
+  String get offlineStorageUnavailable;
+
+  /// Título do banner de sessão expirada no perfil e nas listas
+  ///
+  /// In pt, this message translates to:
+  /// **'Sessão expirada'**
+  String get sessionExpiredBanner;
+
+  /// Ação do banner de sessão expirada
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar de novo'**
+  String get sessionExpiredSignInAgain;
 }
 
 class _AppLocalizationsDelegate

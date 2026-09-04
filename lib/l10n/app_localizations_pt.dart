@@ -1096,4 +1096,32 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get authSignInRetry => 'Tentar novamente';
+
+  @override
+  String get errorNoConnection =>
+      'Sem conexão com a internet. Verifique sua rede e tente de novo.';
+
+  @override
+  String get errorTimeout => 'A conexão demorou demais. Tente de novo.';
+
+  @override
+  String get errorServer =>
+      'O servidor está indisponível no momento. Tente de novo em instantes.';
+
+  @override
+  String get errorSessionExpired =>
+      'Sua sessão expirou. Entre novamente para continuar.';
+
+  @override
+  String get errorGeneric => 'Não foi possível concluir a ação. Tente de novo.';
+
+  @override
+  String get offlineStorageUnavailable =>
+      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
+
+  @override
+  String get sessionExpiredBanner => 'Sessão expirada';
+
+  @override
+  String get sessionExpiredSignInAgain => 'Entrar de novo';
 }
