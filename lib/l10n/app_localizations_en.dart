@@ -765,6 +765,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioPlaybackError => 'Could not play this audio.';
 
   @override
+  String get retry => 'Try again';
+
+  @override
   String get audioWebBackgroundNotice =>
       'On the web, background playback and system controls depend on the browser — this is not an app bug.';
 

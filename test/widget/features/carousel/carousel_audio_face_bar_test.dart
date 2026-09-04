@@ -31,14 +31,32 @@ class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
 }
 
 class _QueuedAudioSession extends AudioPlayerSessionNotifier {
-  _QueuedAudioSession(this.track);
+  _QueuedAudioSession(this.track, {this.errorMessage});
 
   final AudioTrack track;
+  final String? errorMessage;
+  int retryCalls = 0;
 
   @override
   AudioPlayerSessionState build() {
-    return AudioPlayerSessionState(queue: [track]);
+    return AudioPlayerSessionState(queue: [track], errorMessage: errorMessage);
   }
+
+  @override
+  Future<void> retryCurrent() async {
+    retryCalls++;
+    state = state.copyWith(clearError: true);
+  }
+}
+
+/// Quantos pixels a barra estourou (0 quando não houve `RenderFlex` overflow).
+double _overflowPixels(Object? exception) {
+  if (exception == null) return 0;
+  final match = RegExp(
+    r'overflowed by ([\d.]+) pixels',
+  ).firstMatch(exception.toString());
+  if (match == null) throw exception;
+  return double.parse(match.group(1)!);
 }
 
 class _FakeColdigomLouvoresCache extends ColdigomLouvoresCacheNotifier {
@@ -95,6 +113,8 @@ void main() {
     required SharedPreferences prefs,
     required List<CarouselItem> items,
     Map<String, Louvor> coldigomCache = const {},
+    _QueuedAudioSession? session,
+    double? width,
   }) {
     return ProviderScope(
       overrides: [
@@ -107,14 +127,16 @@ void main() {
           () => _FakeColdigomLouvoresCache(coldigomCache),
         ),
         audioPlayerSessionProvider.overrideWith(
-          () => _QueuedAudioSession(track),
+          () => session ?? _QueuedAudioSession(track),
         ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('pt'),
-        home: const Scaffold(body: CarouselAudioFaceBar()),
+        home: Scaffold(
+          body: SizedBox(width: width, child: const CarouselAudioFaceBar()),
+        ),
       ),
     );
   }
@@ -170,6 +192,76 @@ void main() {
 
     expect(find.byIcon(Icons.link_off), findsOneWidget);
     expect(prefs.getBool(kAudioFollowReaderPrefsKey), isFalse);
+  });
+
+  testWidgets('erro do player mostra a mensagem e "Tentar de novo"', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final session = _QueuedAudioSession(track, errorMessage: '(1) decode');
+    await tester.pumpWidget(
+      buildSubject(prefs: prefs, items: const [pdfItem], session: session),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível reproduzir este áudio.'),
+      findsOneWidget,
+    );
+    expect(find.text('Tentar de novo'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(session.retryCalls, 1);
+    expect(find.text('Tentar de novo'), findsNothing);
+  });
+
+  testWidgets('sem erro não aparece "Tentar de novo"', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(buildSubject(prefs: prefs, items: const [pdfItem]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tentar de novo'), findsNothing);
+    expect(find.text('Não foi possível reproduzir este áudio.'), findsNothing);
+  });
+
+  testWidgets('linha de erro não aumenta a barra nem o estouro em 360 px', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      buildSubject(prefs: prefs, items: const [pdfItem], width: 360),
+    );
+    await tester.pumpAndSettle();
+    final baselineHeight = tester
+        .getSize(find.byType(CarouselAudioFaceBar))
+        .height;
+    // A fileira de ícones já estoura em 360 px desde a onda 1 (revisão da face
+    // de áudio); o que este teste protege é o erro **não piorar** isso.
+    final baselineOverflow = _overflowPixels(tester.takeException());
+
+    // Árvore nova: o `RenderFlex` só relata o estouro uma vez por instância.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      buildSubject(
+        prefs: prefs,
+        items: const [pdfItem],
+        session: _QueuedAudioSession(track, errorMessage: '(1) decode'),
+        width: 360,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSize(find.byType(CarouselAudioFaceBar)).height,
+      lessThanOrEqualTo(baselineHeight),
+    );
+    expect(_overflowPixels(tester.takeException()), baselineOverflow);
   });
 
   testWidgets('oculta partitura quando o louvor tocando não tem material', (

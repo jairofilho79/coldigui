@@ -91,7 +91,45 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  if (track != null)
+                  // Erro ocupa a linha do seek: em 360 px não cabe uma
+                  // terceira linha e o seek não serve para nada parado.
+                  if (session.errorMessage != null)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.audioPlaybackError,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.label.copyWith(
+                              color: AppColors.offlineMissing,
+                              fontSize: 10,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .retryCurrent(),
+                          icon: const Icon(Icons.refresh, size: 13),
+                          label: Text(l10n.retry),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.title,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            textStyle: AppTypography.label.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else if (track != null)
                     AudioSeekBar(
                       position: session.position,
                       duration: session.duration,

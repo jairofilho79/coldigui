@@ -90,19 +90,33 @@ int resolveSessionQueueIndex({
   return playerIndex;
 }
 
+/// Fábrica do [AudioPlayer] da sessão.
+///
+/// Existe para os testes trocarem o player real por um duplo com
+/// `errorStream`/`setAudioSources` controláveis — o `just_audio` não expõe
+/// nenhuma outra costura para simular erro de reprodução.
+final audioSessionPlayerFactoryProvider = Provider<AudioPlayer Function()>(
+  (ref) => AudioPlayer.new,
+);
+
 /// Sessão única de áudio — fonte de verdade para page e playlist face.
 class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   AudioPlayer? _player;
   final _subscriptions = <StreamSubscription<dynamic>>[];
   AudioMediaSessionController? _mediaSession;
   WebAudioSourceResolver? _sourceResolver;
+  AudioPlayer Function() _playerFactory = AudioPlayer.new;
   bool _mediaSessionAttached = false;
   bool _applyingSources = false;
+
+  /// Geração da fila em vigor: cada `_applyQueue` incrementa e descarta o
+  /// próprio resultado se outra chamada tiver começado depois (toque duplo).
+  int _generation = 0;
 
   AudioPlayer get _ensurePlayer {
     final existing = _player;
     if (existing != null) return existing;
-    final player = AudioPlayer();
+    final player = _playerFactory();
     _player = player;
     _subscriptions.addAll([
       player.playerStateStream.listen((playerState) {
@@ -141,12 +155,23 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         _mediaSession?.updateTrack(state.currentTrack);
         _persistFocusedAudioId(state.currentTrack?.audioId);
       }),
+      // Erro do player (decode/rede/CORS) não chega pelo `playerStateStream`:
+      // sem isto a faixa simplesmente parava em silêncio.
+      player.errorStream.listen((error) {
+        debugPrint('[audio] erro do player: $error');
+        state = state.copyWith(
+          errorMessage: error.toString(),
+          playing: false,
+          buffering: false,
+        );
+      }),
     ]);
     return player;
   }
 
   @override
   AudioPlayerSessionState build() {
+    _playerFactory = ref.read(audioSessionPlayerFactoryProvider);
     if (kIsWeb) {
       _sourceResolver = ref.read(webAudioSourceResolverProvider);
       _mediaSession = ref.read(audioMediaSessionControllerProvider);
@@ -209,6 +234,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     required bool autoplay,
   }) async {
     if (tracks.isEmpty) return;
+    final gen = ++_generation;
     final safeIndex = startIndex.clamp(0, tracks.length - 1);
     state = state.copyWith(
       queue: List<AudioTrack>.from(tracks),
@@ -228,6 +254,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           player,
           immediateUrl: AudioTrackUrl.fetchUrlForTrack(tracks[safeIndex]),
         );
+        if (gen != _generation) return;
       }
 
       _ensureMediaSessionAttached();
@@ -235,6 +262,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       final sources = <AudioSource>[];
       for (final track in tracks) {
         final uri = await _playbackUriForTrack(track);
+        if (gen != _generation) return;
         sources.add(
           AudioSource.uri(
             uri,
@@ -258,20 +286,36 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           initialIndex: safeIndex,
           preload: autoplay && !kIsWeb,
         );
+        if (gen != _generation) return;
         state = state.copyWith(currentIndex: safeIndex, playing: false);
         _mediaSession?.updateTrack(tracks[safeIndex]);
         if (autoplay) {
           await player.play();
         }
       } finally {
-        _applyingSources = false;
+        // Só a geração vigente libera a flag: uma chamada superada terminando
+        // depois não pode destravar o índice de quem ainda está carregando.
+        if (gen == _generation) _applyingSources = false;
       }
     } on Object catch (e) {
+      if (gen != _generation) return;
+      debugPrint('[audio] falha ao aplicar a fila: $e');
       state = state.copyWith(errorMessage: e.toString(), playing: false);
     }
   }
 
   Future<void> playTrack(AudioTrack track) => playQueue([track]);
+
+  /// "Tentar de novo": reaplica a fila atual a partir do índice em foco.
+  ///
+  /// Conta como intenção de reprodução do usuário (encerra a marca de
+  /// restauração, igual a `playPause`).
+  Future<void> retryCurrent() async {
+    final tracks = state.queue;
+    if (tracks.isEmpty) return;
+    _markUserPlaybackIntent();
+    await _applyQueue(tracks, startIndex: state.currentIndex, autoplay: true);
+  }
 
   /// Marca que o usuário comandou a reprodução, encerrando a restauração.
   void _markUserPlaybackIntent() {
@@ -279,53 +323,93 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     state = state.copyWith(restoredWithoutPlayback: false);
   }
 
+  /// Nenhum comando de transporte pode estourar para o widget: registra e
+  /// deixa o erro visível com "Tentar de novo".
+  void _reportTransportFailure(String action, Object error) {
+    debugPrint('[audio] $action falhou: $error');
+    state = state.copyWith(errorMessage: error.toString());
+  }
+
   Future<void> playPause() async {
     final player = _player;
     if (player == null || state.queue.isEmpty) return;
     _markUserPlaybackIntent();
-    if (player.playing) {
-      await player.pause();
-    } else {
-      await player.play();
+    try {
+      if (player.playing) {
+        await player.pause();
+      } else {
+        await player.play();
+      }
+    } on Object catch (e) {
+      _reportTransportFailure('playPause', e);
     }
   }
 
   Future<void> seek(Duration position) async {
-    await _player?.seek(position);
+    try {
+      await _player?.seek(position);
+    } on Object catch (e) {
+      _reportTransportFailure('seek', e);
+    }
   }
 
   Future<void> skipToPrevious() async {
     final player = _player;
     if (player == null) return;
     _markUserPlaybackIntent();
-    if (state.position > const Duration(seconds: 3) || !state.hasPrevious) {
-      await player.seek(Duration.zero);
-      return;
+    try {
+      if (state.position > const Duration(seconds: 3) || !state.hasPrevious) {
+        await player.seek(Duration.zero);
+        return;
+      }
+      await player.seekToPrevious();
+    } on Object catch (e) {
+      _reportTransportFailure('skipToPrevious', e);
     }
-    await player.seekToPrevious();
   }
 
   Future<void> skipToNext() async {
     if (!state.hasNext) return;
     _markUserPlaybackIntent();
-    await _player?.seekToNext();
+    try {
+      await _player?.seekToNext();
+    } on Object catch (e) {
+      _reportTransportFailure('skipToNext', e);
+    }
   }
 
   Future<void> skipToIndex(int index) async {
     if (index < 0 || index >= state.queue.length) return;
     _markUserPlaybackIntent();
-    await _player?.seek(Duration.zero, index: index);
-    await _player?.play();
+    try {
+      await _player?.seek(Duration.zero, index: index);
+      await _player?.play();
+    } on Object catch (e) {
+      _reportTransportFailure('skipToIndex', e);
+    }
   }
 
   Future<void> stop() async {
-    await _player?.stop();
+    try {
+      await _player?.stop();
+    } on Object catch (e) {
+      _reportTransportFailure('stop', e);
+    }
     state = state.copyWith(playing: false, position: Duration.zero);
   }
 
   /// Encerra o player: para e limpa fila/posição (diferente de [stop]).
   Future<void> close() async {
-    await _player?.stop();
+    // Descarta uma `_applyQueue` em voo: sem isto ela repovoava a sessão
+    // depois do fechamento. Como ninguém mais roda o `finally` dela, a flag
+    // de troca de fonte é liberada aqui.
+    _generation++;
+    _applyingSources = false;
+    try {
+      await _player?.stop();
+    } on Object catch (e) {
+      debugPrint('[audio] close falhou ao parar o player: $e');
+    }
     _sourceResolver?.revokeAll();
     _mediaSession?.updateTrack(null);
     state = const AudioPlayerSessionState();

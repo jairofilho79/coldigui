@@ -221,6 +221,19 @@ class AudioPlayerScreen extends ConsumerWidget {
                         color: AppColors.offlineMissing,
                       ),
                     ),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .retryCurrent(),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: Text(l10n.retry),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.goldLight,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),

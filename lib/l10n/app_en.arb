@@ -378,6 +378,7 @@
   "audioFlagListEmpty": "No flags yet. Pause and tap the flag button.",
   "audioFlagDelete": "Remove flag",
   "audioPlaybackError": "Could not play this audio.",
+  "retry": "Try again",
   "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",
   "audioWebPlatformHintTooltip": "About web playback",
   "@audioWebPlatformHintTooltip": {

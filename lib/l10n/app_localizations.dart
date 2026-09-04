@@ -1367,6 +1367,12 @@ abstract class AppLocalizations {
   /// **'Não foi possível reproduzir este áudio.'**
   String get audioPlaybackError;
 
+  /// Ação genérica de repetir a última tentativa (erro de reprodução de áudio, C.6)
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get retry;
+
   /// No description provided for @audioWebBackgroundNotice.
   ///
   /// In pt, this message translates to:
