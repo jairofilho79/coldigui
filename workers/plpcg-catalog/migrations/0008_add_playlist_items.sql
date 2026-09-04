@@ -1,0 +1,11 @@
+-- Ordem única tipada das playlists (wire v2, spec A.3/A.4).
+--
+-- JSON array de `{"id": "<material id>", "kind": "pdf|chord|audio|youtube|gesture|unknown"}`.
+-- `pdf_ids`/`audio_ids` continuam gravados como projeções derivadas desta
+-- coluna, para um cliente v1 continuar funcionando.
+--
+-- Linha antiga fica com o default `'[]'`; o handler deriva `items` das duas
+-- listas na leitura (`rowToJson`) e regrava na primeira escrita — não há
+-- backfill aqui, de propósito, para a migração não tocar `updated_at`/`version`
+-- e virar push de sync em todo cliente.
+ALTER TABLE user_playlists ADD COLUMN items TEXT NOT NULL DEFAULT '[]';

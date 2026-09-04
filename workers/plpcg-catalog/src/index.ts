@@ -21,6 +21,7 @@ import {
   socialUsernameFromPath,
 } from './social/handlers';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
+import { matchesEtag } from './etag';
 
 export interface Env {
   DB: D1Database;
@@ -88,8 +89,12 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
       );
       headers.set(
         'Access-Control-Allow-Headers',
-        'Authorization, Content-Type',
+        'Authorization, Content-Type, If-None-Match',
       );
+      // Fecha a assimetria com o modo catálogo (A.4): as rotas de playlist não
+      // dependem do `ETag` hoje, mas um leitor no browser não consegue lê-lo
+      // sem isto, e a revalidação condicional é o próximo passo natural.
+      headers.set('Access-Control-Expose-Headers', 'ETag');
     } else if (mode === 'social') {
       headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
       headers.set(
@@ -177,14 +182,13 @@ async function readChecksum(db: D1Database): Promise<string | null> {
 }
 
 /**
- * `true` quando o `If-None-Match` do cliente corresponde ao checksum atual.
+ * `true` quando o `If-None-Match` do request corresponde ao checksum atual.
  *
- * Aceita o formato ETag (`"<checksum>"`) e o checksum cru, que é o que o
- * cliente Dart persiste em `ManifestChecksumStore`.
+ * A comparação em si mora em `./etag` (lista separada por vírgula, `*`, `W/`),
+ * onde é testável sem montar um `Request`.
  */
-function matchesEtag(request: Request, checksum: string): boolean {
-  const ifNoneMatch = request.headers.get('If-None-Match');
-  return ifNoneMatch === `"${checksum}"` || ifNoneMatch === checksum;
+function requestMatchesChecksum(request: Request, checksum: string): boolean {
+  return matchesEtag(request.headers.get('If-None-Match'), `"${checksum}"`);
 }
 
 async function fetchLouvores(
@@ -194,7 +198,7 @@ async function fetchLouvores(
   const checksum = await readChecksum(db);
 
   // ETag do manifest = checksum do catálogo: evita baixar ~4600 itens sem mudança.
-  if (checksum && matchesEtag(request, checksum)) {
+  if (checksum && requestMatchesChecksum(request, checksum)) {
     return new Response(null, {
       status: 304,
       headers: {
@@ -230,7 +234,7 @@ async function fetchChecksum(
   }
 
   const etag = `"${checksum}"`;
-  if (matchesEtag(request, checksum)) {
+  if (requestMatchesChecksum(request, checksum)) {
     return new Response(null, {
       status: 204,
       headers: {

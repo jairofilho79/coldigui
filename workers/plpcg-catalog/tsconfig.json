@@ -3,6 +3,11 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "Bundler",
+    // `node --experimental-strip-types` (o runner de `npm test`) só resolve
+    // specifiers relativos com extensão. Os testes já importavam `./x.ts`; os
+    // módulos que eles importam precisam fazer o mesmo para carregarem fora do
+    // bundler. Seguro com `noEmit`: quem empacota é o esbuild do wrangler.
+    "allowImportingTsExtensions": true,
     "lib": ["ES2022"],
     "types": ["@cloudflare/workers-types"],
     "strict": true,

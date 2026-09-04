@@ -274,6 +274,24 @@ CREATE INDEX idx_user_playlists_user_deleted
   ON user_playlists(user_id, deleted_at);
 ```
 
+Migrações posteriores acrescentaram, entre outras:
+
+```sql
+-- 0006_add_playlist_audio_ids.sql
+ALTER TABLE user_playlists ADD COLUMN audio_ids TEXT NOT NULL DEFAULT '[]';
+-- 0008_add_playlist_items.sql — ordem única tipada (wire v2)
+ALTER TABLE user_playlists ADD COLUMN items TEXT NOT NULL DEFAULT '[]';
+```
+
+- `items` é um JSON array de `{"id": "...", "kind": "..."}` — a **fonte da
+  verdade** da ordem e do tipo.
+- `pdf_ids`/`audio_ids` continuam gravados, agora como **projeções derivadas**
+  de `items` (`listsFromItems`), para um cliente v1 continuar funcionando.
+- Linha anterior à migração fica com o default `'[]'`. Não há backfill: o
+  handler deriva `items` das duas listas na leitura e regrava na primeira
+  escrita. Um `UPDATE` de backfill mexeria em `updated_at`/`version` e viraria
+  push de sync em todo cliente.
+
 ### Regras de isolamento
 
 - Toda query inclui `WHERE user_id = ?` com `?` = `sub` do JWT validado.
@@ -367,6 +385,29 @@ conjunto é lido como `unknown` — nunca derruba a leitura da playlist.
   `id`, `nome`, `createdAt` ou `updatedAt` falta ou tem tipo inesperado, e
   quando `items`/`pdfIds`/`audioIds` não têm a forma esperada.
 
+#### Lado Worker (`src/playlists/`)
+
+O Worker **persiste** `items` na coluna homônima (§6) — ele não a descarta mais.
+
+- `validatePutBody`: `schemaVersion` opcional (inteiro ≥ 1); `items` opcional,
+  validado por `parseItems` (400 quando `kind` está fora do conjunto, `id` é
+  vazio, uma entrada não é objeto ou o valor não é array). `pdfIds` continua
+  **obrigatório só quando `items` está ausente** (cliente v1).
+- `upsertPlaylist`: `items = parseItems(body.items) ?? itemsFromLegacy(pdfIds,
+  audioIds)`; grava `items` (JSON) e `pdf_ids`/`audio_ids` =
+  `listsFromItems(items)`. **`items` manda:** as listas que o cliente enviar
+  junto são ignoradas e recalculadas.
+- `rowToJson`: devolve sempre `schemaVersion: 2`, `items` e as duas listas.
+  Coluna `items` vazia (linha legada) ou corrompida cai em
+  `itemsFromLegacy(pdf_ids, audio_ids)` — nunca 500.
+- O Worker **não interpreta** `kind`: não classifica por extensão nem decide
+  face. Toda partitura derivada de uma lista v1 sai como `pdf`; quem recupera
+  `chord`/`gesture` é o cliente, em `resolveWireKind`.
+- Regra de conflito (409) e resurrect de tombstone **inalteradas**.
+- `matchesEtag(ifNoneMatch, etag)` (`src/etag.ts`) aceita lista separada por
+  vírgula, `*` e validador weak (`W/"…"`), além do checksum cru sem aspas que o
+  cliente Dart persiste.
+
 ### PUT — versionamento otimista
 
 ```text
@@ -398,7 +439,8 @@ O catálogo hoje permite apenas `GET` + `OPTIONS`. Playlists exigem **extensão 
 |-----------|---------|
 | Origens | Mesma allowlist: `https://v2.plpcg.com`, `https://plpcg-v2.pages.dev`, previews `*.plpcg-v2.pages.dev` |
 | Métodos | `GET, PUT, POST, DELETE, OPTIONS` |
-| Headers | `Authorization`, `Content-Type` |
+| Headers | `Authorization`, `Content-Type`, `If-None-Match` |
+| Expostos | `Access-Control-Expose-Headers: ETag` (simetria com o modo catálogo) |
 | Credentials | `Access-Control-Allow-Credentials: true` **somente** se usar cookies (fase 2); com Bearer, `false` |
 | **Proibido** | `Access-Control-Allow-Origin: *` com credentials |
 

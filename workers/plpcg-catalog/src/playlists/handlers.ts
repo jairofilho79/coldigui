@@ -1,16 +1,28 @@
-import { getUsername } from '../auth/session';
+import { getUsername } from '../auth/session.ts';
 import type { GoogleClaims } from '../auth/verify_google_token';
 import {
   resolvePublicationFields,
   validatePublication,
   type PublicationCategory,
   type PublicationReach,
-} from './publication_rules';
+} from './publication_rules.ts';
+import {
+  itemsFromLegacy,
+  listsFromItems,
+  parseItems,
+  parseItemsColumn,
+  type PlaylistItem,
+} from './items.ts';
+
+/** Versão do payload que este Worker responde (spec A.3). */
+const SCHEMA_VERSION = 2;
 
 interface PlaylistRow {
   id: string;
   user_id: string;
   nome: string;
+  /** JSON de `PlaylistItem[]` — a ordem única tipada. `'[]'` em linha legada. */
+  items: string;
   pdf_ids: string;
   audio_ids: string;
   salva: number;
@@ -30,6 +42,8 @@ interface PlaylistRow {
 export interface PlaylistJson {
   id: string;
   nome: string;
+  schemaVersion: number;
+  items: PlaylistItem[];
   pdfIds: string[];
   audioIds: string[];
   salva: boolean;
@@ -45,7 +59,7 @@ export interface PlaylistJson {
   publishedAt: string | null;
 }
 
-const SELECT_COLS = `id, user_id, nome, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
+const SELECT_COLS = `id, user_id, nome, items, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
               created_at, updated_at, version, deleted_at,
               is_published, publication_reach, publication_category, published_at`;
 
@@ -74,11 +88,21 @@ const parsePdfIds = parseIdList;
 const parseAudioIds = parseIdList;
 
 function rowToJson(row: PlaylistRow): PlaylistJson {
+  const pdfIds = parsePdfIds(row.pdf_ids);
+  const audioIds = parseAudioIds(row.audio_ids);
+  // Linha legada (gravada antes da coluna `items`) ou coluna corrompida: a
+  // ordem única é derivada das duas listas, com os tipos genéricos. O cliente
+  // recupera cifra/gesto pela extensão do id (`resolveWireKind`, A.3).
+  const stored = parseItemsColumn(row.items);
+  const items = stored.length > 0 ? stored : itemsFromLegacy(pdfIds, audioIds);
+
   return {
     id: row.id,
     nome: row.nome,
-    pdfIds: parsePdfIds(row.pdf_ids),
-    audioIds: parseAudioIds(row.audio_ids),
+    schemaVersion: SCHEMA_VERSION,
+    items,
+    pdfIds,
+    audioIds,
     salva: row.salva === 1,
     savedAt: row.saved_at,
     favorita: row.favorita === 1,
@@ -93,6 +117,10 @@ function rowToJson(row: PlaylistRow): PlaylistJson {
   };
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
+}
+
 function isIsoDate(value: unknown): value is string {
   return (
     typeof value === 'string' &&
@@ -104,6 +132,8 @@ function isIsoDate(value: unknown): value is string {
 interface PutBody {
   id?: unknown;
   nome?: unknown;
+  schemaVersion?: unknown;
+  items?: unknown;
   pdfIds?: unknown;
   audioIds?: unknown;
   salva?: unknown;
@@ -126,16 +156,24 @@ function validatePutBody(body: PutBody, pathId: string): string | null {
     return 'nome required';
   }
   if (
-    !Array.isArray(body.pdfIds) ||
-    !body.pdfIds.every((v) => typeof v === 'string')
+    body.schemaVersion !== undefined &&
+    (!Number.isInteger(body.schemaVersion) ||
+      (body.schemaVersion as number) < 1)
   ) {
+    return 'schemaVersion must be an integer >= 1';
+  }
+  if (body.items !== undefined && parseItems(body.items) === null) {
+    return 'items must be an array of {id, kind}';
+  }
+  // `pdfIds` é obrigatório só para o cliente v1: em v2 a ordem única basta e as
+  // duas listas são derivadas aqui. Quando vem, tem que ter a forma certa.
+  if (body.items === undefined && body.pdfIds === undefined) {
     return 'pdfIds must be string array';
   }
-  if (
-    body.audioIds !== undefined &&
-    (!Array.isArray(body.audioIds) ||
-      !body.audioIds.every((v) => typeof v === 'string'))
-  ) {
+  if (body.pdfIds !== undefined && !isStringArray(body.pdfIds)) {
+    return 'pdfIds must be string array';
+  }
+  if (body.audioIds !== undefined && !isStringArray(body.audioIds)) {
     return 'audioIds must be string array';
   }
   if (body.salva === false) {
@@ -235,10 +273,17 @@ export async function upsertPlaylist(
   }
 
   const nome = (body.nome as string).trim();
-  const pdfIdsJson = JSON.stringify(body.pdfIds);
-  const audioIds = Array.isArray(body.audioIds)
-    ? (body.audioIds as string[])
-    : [];
+  // `items` manda: quando vem, as listas do body são ignoradas e recalculadas.
+  // Sem `items` (cliente v1), a ordem única é derivada das duas listas.
+  const items =
+    parseItems(body.items) ??
+    itemsFromLegacy(
+      isStringArray(body.pdfIds) ? body.pdfIds : [],
+      isStringArray(body.audioIds) ? body.audioIds : [],
+    );
+  const { pdfIds, audioIds } = listsFromItems(items);
+  const itemsJson = JSON.stringify(items);
+  const pdfIdsJson = JSON.stringify(pdfIds);
   const audioIdsJson = JSON.stringify(audioIds);
   const favorita = body.favorita === true ? 1 : 0;
   const savedAt = isIsoDate(body.savedAt) ? body.savedAt : null;
@@ -246,7 +291,6 @@ export async function upsertPlaylist(
   const createdAt = body.createdAt as string;
   const clientUpdatedAt = body.updatedAt as string;
   const now = new Date().toISOString();
-  const pdfIds = body.pdfIds as string[];
 
   const pub = resolvePublicationFields(existing, body);
   if (pub.newlyPublished) {
@@ -263,15 +307,16 @@ export async function upsertPlaylist(
     await db
       .prepare(
         `INSERT INTO user_playlists
-          (id, user_id, nome, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
+          (id, user_id, nome, items, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
            created_at, updated_at, version, deleted_at,
            is_published, publication_reach, publication_category, published_at)
-         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 1, NULL, ?, ?, ?, ?)`,
       )
       .bind(
         id,
         claims.sub,
         nome,
+        itemsJson,
         pdfIdsJson,
         audioIdsJson,
         savedAt,
@@ -289,6 +334,8 @@ export async function upsertPlaylist(
     return json({
       id,
       nome,
+      schemaVersion: SCHEMA_VERSION,
+      items,
       pdfIds,
       audioIds,
       salva: true,
@@ -312,7 +359,7 @@ export async function upsertPlaylist(
     await db
       .prepare(
         `UPDATE user_playlists SET
-           nome = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
+           nome = ?, items = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
            favorited_at = ?, updated_at = ?, version = ?, deleted_at = NULL,
            is_published = ?, publication_reach = ?, publication_category = ?,
            published_at = ?
@@ -320,6 +367,7 @@ export async function upsertPlaylist(
       )
       .bind(
         nome,
+        itemsJson,
         pdfIdsJson,
         audioIdsJson,
         savedAt,
@@ -339,6 +387,8 @@ export async function upsertPlaylist(
     return json({
       id,
       nome,
+      schemaVersion: SCHEMA_VERSION,
+      items,
       pdfIds,
       audioIds,
       salva: true,
@@ -368,7 +418,7 @@ export async function upsertPlaylist(
   await db
     .prepare(
       `UPDATE user_playlists SET
-         nome = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
+         nome = ?, items = ?, pdf_ids = ?, audio_ids = ?, salva = 1, saved_at = ?, favorita = ?,
          favorited_at = ?, updated_at = ?, version = ?,
          is_published = ?, publication_reach = ?, publication_category = ?,
          published_at = ?
@@ -376,6 +426,7 @@ export async function upsertPlaylist(
     )
     .bind(
       nome,
+      itemsJson,
       pdfIdsJson,
       audioIdsJson,
       savedAt,
@@ -395,6 +446,8 @@ export async function upsertPlaylist(
   return json({
     id,
     nome,
+    schemaVersion: SCHEMA_VERSION,
+    items,
     pdfIds,
     audioIds,
     salva: true,
