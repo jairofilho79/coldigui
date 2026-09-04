@@ -56,7 +56,13 @@ String? _pdfMessage(AppLocalizations l10n, Object error) => switch (error) {
   _ => classifyMaterialOpenFailure(error).message,
 };
 
-String _dioMessage(AppLocalizations l10n, DioException error) {
+/// `null` quando o `DioException` não diz nada além de "deu ruim".
+///
+/// Devolver [AppLocalizations.errorGeneric] aqui fazia a causa embrulhada
+/// vencer o wrapper: `PdfFetchFailedException(cause: 404)` mostrava o texto
+/// genérico em vez de "Falha ao baixar o PDF". Com `null`, a cadeia de
+/// [userMessageFor] segue para `_pdfMessage` e só cai no genérico no fim.
+String? _dioMessage(AppLocalizations l10n, DioException error) {
   switch (error.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
@@ -68,9 +74,9 @@ String _dioMessage(AppLocalizations l10n, DioException error) {
       final status = error.response?.statusCode ?? 0;
       if (status == 401 || status == 403) return l10n.errorSessionExpired;
       if (status >= 500) return l10n.errorServer;
-      return l10n.errorGeneric;
+      return null;
     default:
       // cancel/badCertificate/transformTimeout/unknown não têm mensagem útil.
-      return l10n.errorGeneric;
+      return null;
   }
 }

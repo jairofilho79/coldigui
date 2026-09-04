@@ -167,6 +167,41 @@ void main() {
       expect(userMessageFor(pt, error), pt.offlineStorageUnavailable);
     });
 
+    // A3: a causa só ganha do wrapper quando diz algo. Um 404 (ou um
+    // `cancel`/`unknown`) dentro do `PdfFetchFailedException` não é mais
+    // informativo que "Falha ao baixar o PDF" — o genérico da causa não pode
+    // atropelar a mensagem específica do wrapper.
+    test('causa 404 não atropela a mensagem própria do wrapper', () {
+      final error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: _dio(DioExceptionType.badResponse, statusCode: 404),
+      );
+
+      expect(userMessageFor(pt, error), 'Falha ao baixar o PDF');
+    });
+
+    test('causa cancel/unknown não atropela a mensagem própria', () {
+      for (final type in [DioExceptionType.cancel, DioExceptionType.unknown]) {
+        expect(
+          userMessageFor(
+            pt,
+            PdfFetchFailedException('Falha ao baixar o PDF', cause: _dio(type)),
+          ),
+          'Falha ao baixar o PDF',
+          reason: '$type',
+        );
+      }
+    });
+
+    test('causa de rede continua ganhando do wrapper', () {
+      final error = PdfFetchFailedException(
+        'Falha ao baixar o PDF',
+        cause: _dio(DioExceptionType.connectionError),
+      );
+
+      expect(userMessageFor(pt, error), pt.errorNoConnection);
+    });
+
     test('PdfLocalOpenFailure desembrulha a causa de rede', () {
       final error = PdfLocalOpenFailure(
         cause: _dio(DioExceptionType.connectionError),
