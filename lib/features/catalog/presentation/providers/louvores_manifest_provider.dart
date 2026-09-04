@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
+import '../../data/datasources/manifest_checksum_store.dart';
 import '../../data/providers/catalog_providers.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvores_manifest.dart';
-import '../../domain/repositories/catalog_repository.dart';
-import '../../../../core/database/isar_provider.dart';
 
 /// Estado async do manifest carregado no boot da aplicação (UC-12).
 ///
@@ -42,12 +42,26 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
     return _loadFromRemote();
   }
 
+  /// Boot frio (sem cache) — baixa o manifest inteiro e **guarda o checksum**.
+  ///
+  /// Passa por `syncManifest` em vez do download direto só
+  /// para não descartar `outcome.checksum` (A3): sem ele o `If-None-Match` só
+  /// entraria em cena no terceiro boot, porque o segundo ainda não teria
+  /// checksum salvo para enviar.
   Future<LouvoresManifest> _loadFromRemote() async {
     final repository = ref.read(catalogRepositoryProvider);
-    final loadManifest = ref.read(loadLouvoresManifestProvider);
-    final louvores = await loadManifest();
+    final checksumStore = ref.read(manifestChecksumStoreProvider);
+    final knownChecksum = await checksumStore.getLastKnownChecksum();
+
+    final outcome = await repository.syncManifest(
+      cached: const [],
+      knownChecksum: knownChecksum,
+    );
+
+    await _persistChecksum(checksumStore, outcome.checksum, knownChecksum);
+
     final isStale = await repository.isCatalogStale();
-    return LouvoresManifest.fromLouvores(louvores, isStale: isStale);
+    return LouvoresManifest.fromLouvores(outcome.louvores, isStale: isStale);
   }
 
   /// Revalida o catálogo em background reaproveitando [cached] (A1).
@@ -56,39 +70,53 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
   /// não é baixado, o Isar não é reescrito (`clear()` + ~4600 `put`, síncronos na
   /// thread da UI na web) e **nenhum estado novo é emitido** — só o selo
   /// [LouvoresManifest.isStale] é reavaliado.
+  ///
+  /// A chamada é `unawaited`, então **todo** o corpo fica dentro do `try` e cada
+  /// retomada depois de um `await` confere [Ref.mounted]: o notifier é
+  /// descartado quando `isarAvailableProvider` vira, e escrever `state` depois
+  /// disso lança no Riverpod 3 sem ninguém para pegar o erro (A2).
   Future<void> _refreshFromRemote(List<Louvor> cached) async {
     final repository = ref.read(catalogRepositoryProvider);
 
-    final ManifestSyncOutcome outcome;
     try {
       final checksumStore = ref.read(manifestChecksumStoreProvider);
       final knownChecksum = await checksumStore.getLastKnownChecksum();
+      if (!ref.mounted) return;
 
-      outcome = await repository.syncManifest(
+      final outcome = await repository.syncManifest(
         cached: cached,
         knownChecksum: knownChecksum,
       );
+      if (!ref.mounted) return;
 
-      final checksum = outcome.checksum;
-      if (checksum != null && checksum != knownChecksum) {
-        await checksumStore.saveChecksum(checksum);
+      await _persistChecksum(checksumStore, outcome.checksum, knownChecksum);
+      if (!ref.mounted) return;
+
+      final isStale = await repository.isCatalogStale();
+      if (!ref.mounted) return;
+
+      if (!outcome.cacheReplaced) {
+        _updateStaleFlag(isStale);
+        return;
       }
+
+      state = AsyncData(
+        LouvoresManifest.fromLouvores(outcome.louvores, isStale: isStale),
+      );
     } on Object catch (error) {
       // Mantém cache em tela; erro silencioso no boot com rede parcial.
       debugPrint('[catalog] refresh em background falhou: $error');
-      return;
     }
+  }
 
-    final isStale = await repository.isCatalogStale();
-
-    if (!outcome.cacheReplaced) {
-      _updateStaleFlag(isStale);
-      return;
-    }
-
-    state = AsyncData(
-      LouvoresManifest.fromLouvores(outcome.louvores, isStale: isStale),
-    );
+  /// Grava o checksum do manifest recém-aceito, pulando regravação idêntica.
+  Future<void> _persistChecksum(
+    ManifestChecksumStore store,
+    String? checksum,
+    String? knownChecksum,
+  ) async {
+    if (checksum == null || checksum == knownChecksum) return;
+    await store.saveChecksum(checksum);
   }
 
   /// Atualiza só o selo de catálogo desatualizado, reaproveitando o snapshot.

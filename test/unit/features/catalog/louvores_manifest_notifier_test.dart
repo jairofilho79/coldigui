@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_providers.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/repositories/catalog_repository.dart';
-import 'package:coldigui/features/catalog/domain/usecases/load_louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,9 +105,6 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(isarAvailable),
         catalogRepositoryProvider.overrideWithValue(repository),
-        loadLouvoresManifestProvider.overrideWith(
-          (ref) => LoadLouvoresManifest(repository),
-        ),
       ],
     );
     addTearDown(container.dispose);
@@ -150,8 +148,12 @@ void main() {
     final manifest = await container.read(louvoresManifestProvider.future);
 
     expect(manifest.louvores.first.pdfId, 'remote-only');
-    expect(repository.loadManifestCalls, 1);
-    expect(repository.syncCalls, 0);
+    expect(
+      repository.syncCalls,
+      1,
+      reason: 'boot frio passa por syncManifest para guardar o checksum (A3)',
+    );
+    expect(repository.loadManifestCalls, 0);
   });
 
   test('sem Isar disponível ignora cache e busca remoto', () async {
@@ -165,7 +167,8 @@ void main() {
     final manifest = await container.read(louvoresManifestProvider.future);
 
     expect(manifest.louvores.first.pdfId, 'remote-1');
-    expect(repository.loadManifestCalls, 1);
+    expect(repository.syncCalls, 1);
+    expect(repository.lastSyncCached, isEmpty);
   });
 
   test('mantém cache quando refresh remoto falha', () async {
@@ -281,6 +284,24 @@ void main() {
       expect(prefs.getString(StorageKeys.manifestChecksum), 'novo');
     });
 
+    test('boot frio sem cache já persiste o checksum baixado (A3)', () async {
+      final repository = _FakeCatalogRepository(
+        remote: [_louvor('remote-only')],
+        syncedChecksum: 'checksum-do-boot-1',
+      );
+
+      final container = createContainer(repository);
+
+      final manifest = await container.read(louvoresManifestProvider.future);
+
+      expect(manifest.louvores.single.pdfId, 'remote-only');
+      expect(
+        prefs.getString(StorageKeys.manifestChecksum),
+        'checksum-do-boot-1',
+        reason: 'sem isso o gate condicional só armaria no boot 3',
+      );
+    });
+
     test('não regrava o checksum quando ele não mudou', () async {
       SharedPreferences.setMockInitialValues({
         StorageKeys.manifestChecksum: 'abc123',
@@ -300,6 +321,58 @@ void main() {
       expect(prefs.getString(StorageKeys.manifestChecksum), 'abc123');
     });
   });
+
+  test(
+    'refresh em background não toca no notifier depois do dispose (A2)',
+    () async {
+      final repository = _GatedSyncRepository(cached: [_louvor('cached-1')]);
+
+      final container = createContainer(repository);
+
+      await container.read(louvoresManifestProvider.future);
+      final staleCallsWhileMounted = repository.staleCalls;
+
+      container.dispose();
+      repository.releaseSync();
+      await pumpEventQueue();
+
+      expect(
+        repository.staleCalls,
+        staleCallsWhileMounted,
+        reason: 'o notifier descartado não pode voltar a ler nem gravar estado',
+      );
+    },
+  );
+}
+
+/// Repositório cujo `syncManifest` só termina quando o teste liberar.
+///
+/// Permite descartar o `ProviderContainer` com o refresh de background em voo.
+class _GatedSyncRepository extends _FakeCatalogRepository {
+  _GatedSyncRepository({required super.cached})
+    : super(remote: const [], syncedChecksum: 'novo');
+
+  final _gate = Completer<void>();
+  var staleCalls = 0;
+
+  void releaseSync() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
+
+  @override
+  Future<ManifestSyncOutcome> syncManifest({
+    required List<Louvor> cached,
+    String? knownChecksum,
+  }) async {
+    await _gate.future;
+    return super.syncManifest(cached: cached, knownChecksum: knownChecksum);
+  }
+
+  @override
+  Future<bool> isCatalogStale() async {
+    staleCalls++;
+    return false;
+  }
 }
 
 /// Repositório cujo `isStale` vira `false` depois do sync bem-sucedido.
