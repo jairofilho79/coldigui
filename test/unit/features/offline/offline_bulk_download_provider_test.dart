@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 
 import 'offline_test_helpers.dart';
@@ -21,6 +23,7 @@ import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_mode_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -210,6 +213,37 @@ class _ResultDownloadOfflinePackages extends DownloadOfflinePackages {
   }) async => result;
 }
 
+/// Usecase fake que só conta execuções — usado nos testes de lock (spec C.1).
+class _CountingDownloadOfflinePackages extends DownloadOfflinePackages {
+  _CountingDownloadOfflinePackages({
+    required PdfStoragePort store,
+    required SharedPreferences prefs,
+    required super.checkpointStore,
+  }) : super(
+         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
+         zipDownloader: ZipPackageDownloader(Dio(), store),
+         extractAndStorePdfs: ExtractAndStorePdfs(
+           _StubRepo(),
+           store,
+           ZipPackageDownloader(Dio(), store),
+         ),
+         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
+       );
+
+  int callCount = 0;
+
+  @override
+  Future<DownloadOfflinePackagesResult> call({
+    required List<String> categories,
+    void Function(OfflineDownloadProgress progress)? onProgress,
+    CancelToken? cancelToken,
+    OfflineBulkCheckpoint? resumeCheckpoint,
+  }) async {
+    callCount++;
+    return const DownloadOfflinePackagesResult();
+  }
+}
+
 class _IdleCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
   OfflineCacheStatus build() => OfflineCacheStatus.empty;
@@ -258,6 +292,7 @@ void main() {
         ),
         offlineModeProvider.overrideWith(_IdleOfflineModeNotifier.new),
         offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        isarAvailableProvider.overrideWithValue(true),
       ],
     );
     addTearDown(container.dispose);
@@ -417,6 +452,7 @@ void main() {
           ),
           offlineModeProvider.overrideWith(() => offlineMode),
           offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+          isarAvailableProvider.overrideWithValue(true),
         ],
       );
       addTearDown(container.dispose);
@@ -453,6 +489,7 @@ void main() {
         ),
         offlineModeProvider.overrideWith(() => offlineMode),
         offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        isarAvailableProvider.overrideWithValue(true),
       ],
     );
     addTearDown(container.dispose);
@@ -490,6 +527,7 @@ void main() {
           ),
           offlineModeProvider.overrideWith(() => offlineMode),
           offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+          isarAvailableProvider.overrideWithValue(true),
         ],
       );
       addTearDown(container.dispose);
@@ -505,4 +543,102 @@ void main() {
       expect(offlineMode.markConfiguredCallCount, 0);
     },
   );
+
+  test('offlineBulkDownloadErrorKey mapeia StorageUnavailableException', () {
+    expect(
+      offlineBulkDownloadErrorKey(
+        const StorageUnavailableException('offline.putAllByPdfId'),
+      ),
+      'offlineStorageUnavailable',
+    );
+  });
+
+  test('bulk com Isar indisponível falha antes de baixar', () async {
+    final useCase = _CountingDownloadOfflinePackages(
+      store: pdfStoragePortFor(store),
+      prefs: prefs,
+      checkpointStore: checkpointStore,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+        downloadOfflinePackagesProvider.overrideWith((ref) => useCase),
+        offlineModeProvider.overrideWith(_IdleOfflineModeNotifier.new),
+        offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        isarAvailableProvider.overrideWithValue(false),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpMicrotasks();
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    final state = container.read(offlineBulkDownloadProvider);
+    expect(state.status, OfflineBulkDownloadStatus.failed);
+    expect(state.errorMessage, 'offlineStorageUnavailable');
+    expect(useCase.callCount, 0);
+  });
+
+  test('bulk não roda com o lock de manutenção tomado', () async {
+    final useCase = _CountingDownloadOfflinePackages(
+      store: pdfStoragePortFor(store),
+      prefs: prefs,
+      checkpointStore: checkpointStore,
+    );
+    final container = createContainer(Object(), useCase: useCase);
+    await pumpMicrotasks();
+    container
+        .read(offlineMaintenanceLockProvider.notifier)
+        .tryAcquire(OfflineMaintenanceOwner.clear);
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    expect(useCase.callCount, 0);
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.idle,
+    );
+  });
+
+  test('bulk libera o lock de manutenção ao concluir', () async {
+    final useCase = _CountingDownloadOfflinePackages(
+      store: pdfStoragePortFor(store),
+      prefs: prefs,
+      checkpointStore: checkpointStore,
+    );
+    final container = createContainer(Object(), useCase: useCase);
+    await pumpMicrotasks();
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    expect(useCase.callCount, 1);
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
+  });
+
+  test('bulk libera o lock de manutenção ao falhar', () async {
+    final container = createContainer(
+      DioException(
+        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        type: DioExceptionType.connectionError,
+      ),
+    );
+    await pumpMicrotasks();
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
+
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.failed,
+    );
+    expect(container.read(offlineMaintenanceLockProvider), isNull);
+  });
 }

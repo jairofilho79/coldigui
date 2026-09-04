@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/byte_format.dart';
@@ -13,6 +15,7 @@ import '../../domain/entities/offline_stats.dart';
 import '../providers/offline_bulk_download_provider.dart';
 import '../providers/offline_cache_status_provider.dart';
 import '../providers/offline_category_selection_provider.dart';
+import '../providers/offline_maintenance_lock_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
@@ -120,20 +123,47 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
 
     if (confirmed != true || !mounted) return;
 
-    final wasFullClear = await ref
-        .read(clearOfflineCacheProvider)
-        .call(materials: materials);
-
-    if (wasFullClear) {
-      ref.read(offlineModeProvider.notifier).syncDisabled();
-      await ref.read(offlineCategorySelectionProvider.notifier).clearAll();
-    } else {
-      await ref
-          .read(offlineCategorySelectionProvider.notifier)
-          .unregisterBulkCompleted(materials);
+    // Spec C.1: limpar mexe em índice + disco — exige Isar e o lock de
+    // manutenção offline.
+    if (!ref.read(isarAvailableProvider)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.offlineStorageUnavailable)));
+      return;
     }
-    ref.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
-    await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
+
+    final lock = ref.read(offlineMaintenanceLockProvider.notifier);
+    if (!lock.tryAcquire(OfflineMaintenanceOwner.clear)) {
+      debugPrint('[offline] limpar adiado: manutenção offline em andamento');
+      return;
+    }
+
+    final bool wasFullClear;
+    try {
+      wasFullClear = await ref
+          .read(clearOfflineCacheProvider)
+          .call(materials: materials);
+
+      if (wasFullClear) {
+        ref.read(offlineModeProvider.notifier).syncDisabled();
+        await ref.read(offlineCategorySelectionProvider.notifier).clearAll();
+      } else {
+        await ref
+            .read(offlineCategorySelectionProvider.notifier)
+            .unregisterBulkCompleted(materials);
+      }
+      ref.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
+      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[offline] limpar falhou: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.offlineStorageUnavailable)));
+      return;
+    } finally {
+      lock.release(OfflineMaintenanceOwner.clear);
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -170,6 +200,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
         final message = switch (next.errorMessage) {
+          'offlineStorageUnavailable' => l10n.offlineStorageUnavailable,
           'offlineInsufficientDiskSpace' => l10n.offlineInsufficientDiskSpace,
           'offlineDownloadNoSpace' => l10n.offlineDownloadNoSpace,
           'offlineDownloadTimeout' => l10n.offlineDownloadTimeout,

@@ -228,6 +228,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not enough disk space for download';
 
   @override
+  String get offlineStorageUnavailable =>
+      'Local storage is unavailable. Reload the page or free up space.';
+
+  @override
   String get offlinePhaseFetching => 'downloading';
 
   @override

@@ -233,6 +233,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Espaço em disco insuficiente para o download';
 
   @override
+  String get offlineStorageUnavailable =>
+      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
+
+  @override
   String get offlinePhaseFetching => 'baixando';
 
   @override

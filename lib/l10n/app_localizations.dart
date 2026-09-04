@@ -488,6 +488,12 @@ abstract class AppLocalizations {
   /// **'Espaço em disco insuficiente para o download'**
   String get offlineInsufficientDiskSpace;
 
+  /// No description provided for @offlineStorageUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
+  String get offlineStorageUnavailable;
+
   /// No description provided for @offlinePhaseFetching.
   ///
   /// In pt, this message translates to:

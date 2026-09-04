@@ -115,6 +115,7 @@
   "offlineDownloadNoSpace": "Not enough space on this device. Free up space and try again.",
   "offlineKeepAppOpenDuringDownload": "Keep the app open while downloading.",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
+  "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
   "offlinePhaseFetching": "downloading",
   "offlinePhaseExtracting": "extracting",
   "offlinePhaseStoring": "storing",

@@ -1,19 +1,29 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../../core/database/isar_provider.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../data/providers/offline_bulk_providers.dart';
 import '../../data/providers/offline_core_providers.dart';
 import 'offline_cache_status_provider.dart';
 import 'offline_category_selection_provider.dart';
+import 'offline_maintenance_lock_provider.dart';
 import 'offline_mode_provider.dart';
 import '../../domain/entities/offline_bulk_checkpoint.dart';
 import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/usecases/download_offline_packages.dart';
 
+/// Chave l10n usada quando o índice offline (Isar) não está disponível.
+const offlineStorageUnavailableKey = 'offlineStorageUnavailable';
+
 /// Chave l10n para falhas de bulk mapeadas a partir de exceções concretas.
 String offlineBulkDownloadErrorKey(Object error) {
+  if (error is StorageUnavailableException) {
+    return offlineStorageUnavailableKey;
+  }
   if (error is InsufficientDiskSpaceException) {
     return 'offlineDownloadNoSpace';
   }
@@ -160,6 +170,8 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
   Future<void> start(List<String> categories) async {
     if (state.isRunning) return;
+    if (!_ensureStorageAvailable()) return;
+    if (!_acquireMaintenanceLock()) return;
 
     _lastStartedCategories = List<String>.from(categories);
     _cancelToken = CancelToken();
@@ -199,14 +211,20 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       await _failBulkDownload(e);
     } on Object catch (e) {
       await _failBulkDownload(e);
+    } finally {
+      _releaseMaintenanceLock();
     }
   }
 
   Future<void> resumeFromCheckpoint() async {
+    if (state.isRunning) return;
+    if (!_ensureStorageAvailable()) return;
+
     final checkpoint =
         state.checkpoint ??
         await ref.read(offlineBulkCheckpointStoreProvider).load();
     if (checkpoint == null) return;
+    if (!_acquireMaintenanceLock()) return;
 
     _lastStartedCategories = List<String>.from(checkpoint.categories);
     _cancelToken = CancelToken();
@@ -243,7 +261,38 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       await _failBulkDownload(e);
     } on Object catch (e) {
       await _failBulkDownload(e);
+    } finally {
+      _releaseMaintenanceLock();
     }
+  }
+
+  /// `false` (com estado `failed`) quando o Isar não abriu — spec C.1: não
+  /// baixar um byte sem ter onde indexar.
+  bool _ensureStorageAvailable() {
+    if (ref.read(isarAvailableProvider)) return true;
+    debugPrint('[offline] bulk abortado: índice offline indisponível');
+    state = state.copyWith(
+      status: OfflineBulkDownloadStatus.failed,
+      errorMessage: offlineStorageUnavailableKey,
+      progress: null,
+    );
+    return false;
+  }
+
+  bool _acquireMaintenanceLock() {
+    final acquired = ref
+        .read(offlineMaintenanceLockProvider.notifier)
+        .tryAcquire(OfflineMaintenanceOwner.bulk);
+    if (!acquired) {
+      debugPrint('[offline] bulk adiado: manutenção offline em andamento');
+    }
+    return acquired;
+  }
+
+  void _releaseMaintenanceLock() {
+    ref
+        .read(offlineMaintenanceLockProvider.notifier)
+        .release(OfflineMaintenanceOwner.bulk);
   }
 
   void _onDownloadProgress(OfflineDownloadProgress progress) {

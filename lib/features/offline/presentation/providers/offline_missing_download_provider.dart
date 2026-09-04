@@ -1,17 +1,16 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../data/providers/offline_providers.dart';
 import '../../domain/usecases/download_missing_pdfs.dart';
+import 'offline_bulk_download_provider.dart';
 import 'offline_cache_status_provider.dart';
 import 'offline_category_selection_provider.dart';
+import 'offline_maintenance_lock_provider.dart';
 
 /// Estado do download de PDFs faltantes UC-10 na UI (Fase 3.7).
-enum OfflineMissingDownloadStatus {
-  idle,
-  running,
-  completed,
-  failed,
-}
+enum OfflineMissingDownloadStatus { idle, running, completed, failed }
 
 /// Progresso e resultado de [DownloadMissingPdfs] na [OfflineSettingsScreen].
 class OfflineMissingDownloadState {
@@ -20,6 +19,7 @@ class OfflineMissingDownloadState {
     this.done = 0,
     this.total = 0,
     this.lastResult,
+    this.errorMessage,
   });
 
   final OfflineMissingDownloadStatus status;
@@ -33,6 +33,9 @@ class OfflineMissingDownloadState {
   /// Resultado da última execução concluída — usado pelo snackbar da tela.
   final DownloadMissingResult? lastResult;
 
+  /// Chave l10n da falha (ex.: `offlineStorageUnavailable`).
+  final String? errorMessage;
+
   bool get isRunning => status == OfflineMissingDownloadStatus.running;
 
   OfflineMissingDownloadState copyWith({
@@ -40,13 +43,16 @@ class OfflineMissingDownloadState {
     int? done,
     int? total,
     DownloadMissingResult? lastResult,
+    String? errorMessage,
     bool clearResult = false,
+    bool clearError = false,
   }) {
     return OfflineMissingDownloadState(
       status: status ?? this.status,
       done: done ?? this.done,
       total: total ?? this.total,
       lastResult: clearResult ? null : (lastResult ?? this.lastResult),
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }
@@ -54,10 +60,11 @@ class OfflineMissingDownloadState {
 /// Provider de download de PDFs faltantes UC-10 (Fase 3.7).
 ///
 /// Ao concluir: refresh [offlineCacheStatusProvider] e dismiss aviso removidos.
-final offlineMissingDownloadProvider = NotifierProvider<
-    OfflineMissingDownloadNotifier, OfflineMissingDownloadState>(
-  OfflineMissingDownloadNotifier.new,
-);
+final offlineMissingDownloadProvider =
+    NotifierProvider<
+      OfflineMissingDownloadNotifier,
+      OfflineMissingDownloadState
+    >(OfflineMissingDownloadNotifier.new);
 
 /// Orquestra [DownloadMissingPdfs] com progresso na UI.
 class OfflineMissingDownloadNotifier
@@ -71,15 +78,33 @@ class OfflineMissingDownloadNotifier
   Future<void> start() async {
     if (state.isRunning) return;
 
+    // Spec C.1: sem índice não se baixa um byte.
+    if (!ref.read(isarAvailableProvider)) {
+      debugPrint('[offline] faltantes abortado: índice offline indisponível');
+      state = state.copyWith(
+        status: OfflineMissingDownloadStatus.failed,
+        errorMessage: offlineStorageUnavailableKey,
+      );
+      return;
+    }
+
     final scope = ref.read(offlineCategorySelectionProvider).missingScope;
     if (scope.isEmpty) return;
+
+    final lock = ref.read(offlineMaintenanceLockProvider.notifier);
+    if (!lock.tryAcquire(OfflineMaintenanceOwner.missing)) {
+      debugPrint('[offline] faltantes adiado: manutenção offline em andamento');
+      return;
+    }
 
     state = const OfflineMissingDownloadState(
       status: OfflineMissingDownloadStatus.running,
     );
 
     try {
-      final result = await ref.read(downloadMissingPdfsProvider).call(
+      final result = await ref
+          .read(downloadMissingPdfsProvider)
+          .call(
             materialCategories: scope,
             onProgress: (done, total) {
               state = state.copyWith(
@@ -99,8 +124,14 @@ class OfflineMissingDownloadNotifier
 
       await ref.read(offlineCacheStatusProvider.notifier).refresh();
       ref.read(offlineCacheStatusProvider.notifier).dismissRemovedWarning();
-    } on Object {
-      state = state.copyWith(status: OfflineMissingDownloadStatus.failed);
+    } on Object catch (e) {
+      debugPrint('[offline] faltantes falhou: $e');
+      state = state.copyWith(
+        status: OfflineMissingDownloadStatus.failed,
+        errorMessage: offlineBulkDownloadErrorKey(e),
+      );
+    } finally {
+      lock.release(OfflineMaintenanceOwner.missing);
     }
   }
 }
