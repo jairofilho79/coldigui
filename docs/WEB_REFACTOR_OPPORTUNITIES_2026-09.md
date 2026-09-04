@@ -652,7 +652,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 - **Playlist:** `create.pdfIds` deixou de ser obrigatório; URL só com nome é pulada em silêncio; outros chamadores do `OpenMaterial` não passam fila.
 - **Teste:** `zip_package_downloader_test` custa ~18 s (watchdogs reais de 3 s); um smoke test de widget em modo degradado (Isar indisponível) pegaria o item A1 da onda final.
 - **Sobras da onda 1** (inalteradas): memoizar `resolveMaterialForGroup`; entradas órfãs na Cache API após abort por quota; `_activeKeyboardFocusNode` global; wakelock com `dispose()` em voo; `app_shortcuts.dart` faz quatro coisas; `_navigateLouvor` duplicado; tooltip de `Espaço`; `Espaço` não rola a cifra; `N`/`P` sem Shift; `PdfIntegrityValidator` importado entre features; ciclo `open_louvor_in_reader` ↔ `open_material_provider`.
-- **Deploy:** aplicar a migration D1 `0008` antes de publicar o Worker; recomendada a verificação manual de um banco Isar antigo (OPFS) abrindo com o build novo.
+- **Deploy (feito em 2026-09-04):** migration D1 `0008` aplicada no D1 remoto e Worker publicado (versão `22c480e5`). Verificação manual feita: banco Isar (OPFS) criado por um build da base `13c375a` (antes das migrações `items`/`itemKinds` e da coleção `ChordContentCache`), com uma lista salva de 3 entradas (partitura, partitura, cifra), abriu no build de `ba3801b` na mesma origem com a lista intacta e na mesma ordem.
 
 ### I.4 Próxima onda recomendada
 
