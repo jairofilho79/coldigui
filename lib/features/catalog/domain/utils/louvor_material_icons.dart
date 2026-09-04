@@ -46,11 +46,6 @@ abstract final class LouvorMaterialIcons {
     return MaterialKind.pdf;
   }
 
-  /// Retorna ícone Material para [categoria] do manifest.
-  @Deprecated('Use MaterialKind; removed next wave')
-  static IconData forCategory(String categoria) =>
-      forKind(kindForCategory(categoria));
-
   /// Ícone da entrada PDF de uma seção do sheet.
   ///
   /// PDF é o único material cujo tipo real está na `categoria` (o manifest

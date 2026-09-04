@@ -153,18 +153,4 @@ void main() {
       );
     });
   });
-
-  group('LouvorMaterialIcons.forCategory (deprecated)', () {
-    test('mantém o mapeamento por string da onda anterior', () {
-      // ignore: deprecated_member_use_from_same_package
-      IconData icon(String c) => LouvorMaterialIcons.forCategory(c);
-
-      expect(icon('Partitura'), Icons.piano);
-      expect(icon('Cifra II'), Icons.music_note);
-      expect(icon('Gestos'), Icons.pan_tool_outlined);
-      expect(icon('Áudio'), LouvorMaterialIcons.audio);
-      expect(icon('audio'), LouvorMaterialIcons.audio);
-      expect(icon('Desconhecido'), Icons.piano);
-    });
-  });
 }
