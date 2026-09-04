@@ -113,9 +113,12 @@ favorita
 - Feature `auth` (nova) em `lib/features/auth/`
 - Endpoints autenticados no Worker + **CORS para métodos mutáveis** (PUT/DELETE/POST)
 - Migration D1 `user_playlists`
-- **Ordem única (D2):** a tabela `playlists` precisa de coluna `items` +
-  leitura/escrita nos handlers (`rowToJson`, INSERT/PUT); até lá o pull do
-  Worker atual achata a ordem intercalada (ver §7 `schemaVersion`)
+- **Ordem única (D2):** feita — coluna `items` (migration `0008`) lida e
+  escrita pelos handlers (`rowToJson`, INSERT/PUT), ver §7 `schemaVersion`.
+  **Deploy:** aplicar a migration `0008` (`npm run db:migrate:remote`) **antes**
+  de publicar o Worker novo — `SELECT_COLS` já pede a coluna `items`.
+  Pendente: `social/handlers.ts` (`listPublicPlaylistsByUsername`) ainda
+  responde v1 (só `pdfIds`/`audioIds`, sem `items`/`schemaVersion`).
 - Interceptor Dio com `Authorization: Bearer <id_token>`
 - Script GIS / meta tag em `web/index.html` (se necessário para `google_sign_in` web)
 - Avaliar `Cross-Origin-Opener-Policy` vs popup Google (ver §12 W1)

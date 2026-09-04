@@ -17,6 +17,8 @@
  * | `SELECT username FROM users WHERE …` (via `getUsername`) | `FROM users` |
  *
  * O soft delete de `softDeletePlaylist` é um `UPDATE` e cai no mesmo caminho.
+ * A projeção do `SELECT` **não** é modelada: o fake devolve a linha inteira,
+ * então tirar uma coluna de `SELECT_COLS` não faz nenhum teste falhar aqui.
  * A lista de colunas do `INSERT`/`UPDATE` é lida do próprio SQL, então mudar a
  * **ordem** dos `?` no handler continua funcionando; **acrescentar uma consulta
  * nova** exige estender este arquivo (ele lança em vez de devolver algo errado
