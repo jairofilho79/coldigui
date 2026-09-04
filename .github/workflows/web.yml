@@ -61,3 +61,29 @@ jobs:
         env:
           CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: ./scripts/measure_web_boot.sh --check
+
+  # Testes do Worker `plpcg-catalog` (`node:test` sobre os módulos puros e os
+  # handlers de playlist com um D1 falso). Independente do job `web`: não
+  # compila Flutter e não aplica migração remota — deploy é do dono.
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: workers/plpcg-catalog
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Dependencies
+        run: npm ci
+
+      - name: Tests
+        run: npm test
