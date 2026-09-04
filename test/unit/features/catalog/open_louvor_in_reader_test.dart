@@ -222,7 +222,11 @@ void main() {
           _harness(router, [
             playlistsProvider.overrideWith(_RecordingPlaylistsNotifier.new),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
-              (Louvor _) => warmupNeverCompletes.future,
+              // O timeout mora dentro do provider real; a versão de teste o
+              // reproduz para o "nunca completa" virar falha registrada.
+              (Louvor _) => warmupNeverCompletes.future.timeout(
+                coldigomWarmupDefaultTimeout,
+              ),
             ),
             resolvePdfForReaderProvider.overrideWithValue(
               _ControllableResolvePdfForReader(() async => _source),

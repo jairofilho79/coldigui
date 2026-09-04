@@ -22,4 +22,18 @@ void main() {
     expect(message, l10n.offlineDownloadCompletedWithFailures(2));
     expect(message, contains('2'));
   });
+
+  test('failedCount == 1 usa o singular (B6)', () {
+    expect(
+      offlineBulkCompletionMessage(l10n, 1),
+      'Download concluído com 1 arquivo com falha',
+    );
+  });
+
+  test('failedCount > 1 usa o plural (B6)', () {
+    expect(
+      offlineBulkCompletionMessage(l10n, 3),
+      'Download concluído com 3 arquivos com falha',
+    );
+  });
 }

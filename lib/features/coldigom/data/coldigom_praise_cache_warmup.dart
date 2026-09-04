@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -60,6 +62,24 @@ Future<void> warmupColdigomPraiseIds(
       continue;
     }
   }
+}
+
+/// Dispara o warmup do praise em background, sem atrasar nem impedir a
+/// navegação (A3).
+///
+/// Recebe a função já lida do [ensureColdigomPraiseMaterialsCachedProvider]
+/// porque os dois chamadores têm refs de tipos diferentes (`WidgetRef` ao abrir
+/// da Home, `Ref` no provider do carousel). O timeout **não** é reaplicado
+/// aqui: ele já está dentro do provider, e duplicá-lo só dobraria a espera.
+void warmupColdigomInBackground(
+  Future<void> Function(Louvor) ensureMaterialsCached,
+  Louvor louvor,
+) {
+  unawaited(
+    ensureMaterialsCached(louvor).catchError((Object e) {
+      debugPrint('[coldigom] warmup falhou: $e');
+    }),
+  );
 }
 
 /// Busca sob demanda os materiais do praise ao abrir o leitor, se o cache

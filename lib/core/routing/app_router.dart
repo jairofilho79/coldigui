@@ -98,7 +98,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'leitor',
                     builder: (context, state) => DeferredRouteLoader(
-                      loadingMessage: 'Carregando leitor…',
                       load: ensurePdfrxInitialized,
                       builder: () => PdfReaderScreen(
                         queryParams: state.uri.queryParameters,

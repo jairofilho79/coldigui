@@ -85,7 +85,10 @@ void main() {
           overrides: [
             louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
-              (Louvor _) => neverCompletes.future,
+              // O timeout mora dentro do provider real; a versão de teste o
+              // reproduz para o "nunca completa" virar falha registrada.
+              (Louvor _) =>
+                  neverCompletes.future.timeout(coldigomWarmupDefaultTimeout),
             ),
             resolvePdfForReaderProvider.overrideWithValue(
               _FixedResolvePdfForReader(source),

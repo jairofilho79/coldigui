@@ -101,7 +101,7 @@
   "offlineResumeDownload": "Resume",
   "offlineDismissCheckpoint": "Dismiss",
   "offlineDownloadCompleted": "Offline download completed",
-  "offlineDownloadCompletedWithFailures": "Download completed with {failedCount} failed files",
+  "offlineDownloadCompletedWithFailures": "{failedCount, plural, one{Download completed with 1 failed file} other{Download completed with {failedCount} failed files}}",
   "@offlineDownloadCompletedWithFailures": {
     "placeholders": {
       "failedCount": { "type": "int" }

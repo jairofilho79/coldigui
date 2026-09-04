@@ -123,15 +123,15 @@ final pdfReaderSessionProvider = FutureProvider.autoDispose
       retry: (_, _) => null,
     );
 
-Future<String?> _findLocalPdfId(Ref ref, String absolutePath) {
-  final repository = ref.read(offlinePdfRepositoryProvider);
-  return repository.findPdfIdByAbsolutePath(absolutePath);
-}
+Future<String?> _findLocalPdfId(Ref ref, String absolutePath) => ref
+    .read(offlinePdfRepositoryProvider)
+    .findPdfIdByAbsolutePath(absolutePath);
 
 Future<String?> _removeCorruptedLocalPdf(Ref ref, String absolutePath) async {
-  final pdfId = await _findLocalPdfId(ref, absolutePath);
+  final repository = ref.read(offlinePdfRepositoryProvider);
+  final pdfId = await repository.findPdfIdByAbsolutePath(absolutePath);
   if (pdfId == null) return null;
-  await ref.read(offlinePdfRepositoryProvider).remove(pdfId);
+  await repository.remove(pdfId);
   return pdfId;
 }
 

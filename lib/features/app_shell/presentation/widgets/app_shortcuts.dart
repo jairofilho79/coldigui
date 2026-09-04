@@ -170,6 +170,20 @@ class AppShortcuts extends ConsumerWidget {
     });
   }
 
+  /// `true` quando há um sheet/diálogo aberto por cima — ele é o dono do `Esc`.
+  ///
+  /// Nenhum `showModalBottomSheet` do app pede `useRootNavigator`, então o
+  /// sheet sobe ora no Navigator raiz (acima daqui — a rota desta subárvore
+  /// deixa de ser a corrente), ora no Navigator aninhado do shell (dentro
+  /// desta subárvore, onde a tecla chega até os atalhos: aí o que denuncia o
+  /// modal é a rota que contém o foco ser um [PopupRoute]).
+  static bool _modalIsOpenAbove(BuildContext context) {
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return true;
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused == null) return false;
+    return ModalRoute.of(focused) is PopupRoute;
+  }
+
   bool _playPause(WidgetRef ref) {
     final session = ref.read(audioPlayerSessionProvider);
     if (session.currentTrack == null) return false;
@@ -185,9 +199,14 @@ class AppShortcuts extends ConsumerWidget {
     final commandModifier = pressed.isControlPressed || pressed.isMetaPressed;
 
     // Escape sai da tela cheia mesmo com foco em campo de texto: é a saída de
-    // emergência do modo imersivo.
+    // emergência do modo imersivo. Mas um sheet/diálogo aberto por cima é o
+    // dono legítimo do Esc — os sheets do app sobem no Navigator aninhado do
+    // shell, ou seja dentro desta subárvore, e a tecla chegaria aqui.
     if (key == LogicalKeyboardKey.escape) {
-      if (!_isReaderRoute || !ref.read(readerFullscreenProvider)) {
+      if (_modalIsOpenAbove(context) || !_isReaderRoute) {
+        return KeyEventResult.ignored;
+      }
+      if (!ref.read(readerFullscreenProvider)) {
         return KeyEventResult.ignored;
       }
       ref.read(readerFullscreenProvider.notifier).exit();

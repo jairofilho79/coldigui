@@ -180,6 +180,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.menu_book), findsNothing);
-    expect(find.byTooltip('Seguir o áudio'), findsNothing);
+    expect(
+      find.byTooltip('Seguir o áudio'),
+      findsOneWidget,
+      reason: 'o toggle é preferência global, não depende do material da faixa',
+    );
   });
 }

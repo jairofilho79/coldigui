@@ -47,6 +47,23 @@ final audioFollowReaderProvider =
       AudioFollowReaderNotifier.new,
     );
 
+/// Inverte o toggle a partir de um `onPressed`, sem descartar o `Future`.
+///
+/// O estado em memória já mudou de forma síncrona; o que pode falhar é a
+/// gravação em SharedPreferences, e isso precisa aparecer no console em vez de
+/// virar uma exceção não observada.
+void toggleAudioFollowReader(WidgetRef ref) {
+  unawaited(
+    ref
+        .read(audioFollowReaderProvider.notifier)
+        .toggle()
+        .catchError(
+          (Object error) =>
+              debugPrint('[audio] falha ao salvar "seguir o áudio": $error'),
+        ),
+  );
+}
+
 /// Decide se a troca de faixa deve trocar o material aberto no leitor.
 ///
 /// Regra pura de [listenAudioFollowReader]. Nunca navega:

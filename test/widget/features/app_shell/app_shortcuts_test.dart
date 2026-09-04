@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -14,6 +16,9 @@ import 'package:go_router/go_router.dart';
 /// Alvo de foco neutro: sem ele o evento de tecla não tem por onde subir até
 /// os atalhos globais.
 const _stage = Focus(autofocus: true, child: SizedBox.expand());
+
+/// Página do Navigator aninhado — dá o contexto de onde o sheet é aberto.
+const _innerNavigatorPageKey = Key('inner-navigator-page');
 
 const _track = AudioTrack(
   audioId: 'a1',
@@ -116,6 +121,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(readerFullscreenProvider), isFalse);
+  });
+
+  testWidgets('Esc não rouba o fechamento de um modal aberto (B10)', (
+    tester,
+  ) async {
+    final container = await _pumpShortcuts(
+      tester,
+      path: RoutePaths.reader,
+      child: Navigator(
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const Focus(
+            autofocus: true,
+            child: SizedBox.expand(key: _innerNavigatorPageKey),
+          ),
+        ),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pumpAndSettle();
+    expect(container.read(readerFullscreenProvider), isTrue);
+
+    // O sheet sobe no Navigator aninhado do shell (o padrão do app: nenhum
+    // `showModalBottomSheet` pede `useRootNavigator`), ou seja **dentro** da
+    // subárvore do AppShortcuts — é por isso que a tecla chega até aqui.
+    final innerContext = tester.element(find.byKey(_innerNavigatorPageKey));
+    unawaited(
+      showModalBottomSheet<void>(
+        context: innerContext,
+        builder: (_) => const SizedBox(height: 120),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(readerFullscreenProvider),
+      isTrue,
+      reason: 'o Esc é do modal em cima, não da tela cheia embaixo',
+    );
   });
 
   testWidgets('/ pede foco na busca', (tester) async {

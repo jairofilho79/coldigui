@@ -142,7 +142,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               icon: const Icon(Icons.open_in_full),
               onPressed: () => pushAudioPlayerRoute(context, track),
             ),
-          if (track != null && trackMaterialPdfId != null) ...[
+          if (track != null && trackMaterialPdfId != null)
             IconButton(
               style: carouselBarIconButtonStyle,
               tooltip: l10n.audioOpenSheetMusic,
@@ -153,14 +153,14 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                 groupId: track.groupId,
               ),
             ),
-            IconButton(
-              style: carouselBarIconButtonStyle,
-              tooltip: l10n.audioFollowReader,
-              icon: Icon(followingAudio ? Icons.link : Icons.link_off),
-              onPressed: () =>
-                  ref.read(audioFollowReaderProvider.notifier).toggle(),
-            ),
-          ],
+          // Preferência global: aparece sempre, mesmo quando a faixa tocando
+          // não tem material para abrir no leitor.
+          IconButton(
+            style: carouselBarIconButtonStyle,
+            tooltip: l10n.audioFollowReader,
+            icon: Icon(followingAudio ? Icons.link : Icons.link_off),
+            onPressed: () => toggleAudioFollowReader(ref),
+          ),
           if (pdfItems.isNotEmpty)
             IconButton(
               style: carouselBarIconButtonStyle,

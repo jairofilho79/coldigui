@@ -192,7 +192,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String offlineDownloadCompletedWithFailures(int failedCount) {
-    return 'Download concluído com $failedCount arquivos com falha';
+    String _temp0 = intl.Intl.pluralLogic(
+      failedCount,
+      locale: localeName,
+      other: 'Download concluído com $failedCount arquivos com falha',
+      one: 'Download concluído com 1 arquivo com falha',
+    );
+    return '$_temp0';
   }
 
   @override

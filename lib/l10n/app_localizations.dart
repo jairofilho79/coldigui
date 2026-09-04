@@ -437,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineDownloadCompletedWithFailures.
   ///
   /// In pt, this message translates to:
-  /// **'Download concluído com {failedCount} arquivos com falha'**
+  /// **'{failedCount, plural, one{Download concluído com 1 arquivo com falha} other{Download concluído com {failedCount} arquivos com falha}}'**
   String offlineDownloadCompletedWithFailures(int failedCount);
 
   /// No description provided for @offlineDownloadError.

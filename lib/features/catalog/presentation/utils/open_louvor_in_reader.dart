@@ -33,7 +33,10 @@ Future<void> openLouvorInReader({
   required BuildContext context,
   required Louvor louvor,
 }) async {
-  _warmupColdigomPraiseMaterialsInBackground(ref, louvor);
+  warmupColdigomInBackground(
+    ref.read(ensureColdigomPraiseMaterialsCachedProvider),
+    louvor,
+  );
 
   final remotePath = LouvorPdfPath.fromLouvor(louvor);
   LocalPdfSource? source;
@@ -58,18 +61,6 @@ Future<void> openLouvorInReader({
         titulo: louvor.nome,
       );
   unawaited(context.push(location));
-}
-
-/// Warmup Coldigom best-effort — nunca atrasa nem impede a navegação (A3).
-void _warmupColdigomPraiseMaterialsInBackground(WidgetRef ref, Louvor louvor) {
-  unawaited(
-    ref
-        .read(ensureColdigomPraiseMaterialsCachedProvider)(louvor)
-        .timeout(coldigomWarmupDefaultTimeout)
-        .catchError((Object e) {
-          debugPrint('[coldigom] warmup falhou: $e');
-        }),
-  );
 }
 
 /// Adicionar à playlist ativa nunca deve impedir abrir o PDF (A3).

@@ -135,9 +135,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         tooltip: l10n.audioFollowReader,
-                        onPressed: () => ref
-                            .read(audioFollowReaderProvider.notifier)
-                            .toggle(),
+                        onPressed: () => toggleAudioFollowReader(ref),
                         icon: Icon(
                           followingAudio ? Icons.link : Icons.link_off,
                           color: followingAudio
