@@ -77,7 +77,7 @@ void main() {
 
   group('RemotePlaylist.toJson', () {
     test('envia schemaVersion 2, items e as duas listas derivadas', () {
-      final remote = RemotePlaylist(
+      final remote = RemotePlaylist.fromLegacyLists(
         id: 'p1',
         nome: 'Ensaio',
         items: [pdfA, audioA, pdfB],
@@ -97,7 +97,7 @@ void main() {
     });
 
     test('payload montado com as listas antigas continua v2 no wire', () {
-      final remote = RemotePlaylist(
+      final remote = RemotePlaylist.fromLegacyLists(
         id: 'p1',
         nome: 'Ensaio',
         pdfIds: [pdfA, pdfB],
@@ -116,7 +116,7 @@ void main() {
     });
 
     test('round-trip v2 preserva a ordem única', () {
-      final original = RemotePlaylist(
+      final original = RemotePlaylist.fromLegacyLists(
         id: 'p1',
         nome: 'Ensaio',
         items: [audioA, pdfA, audioB, chordA],

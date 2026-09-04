@@ -17,8 +17,7 @@ const int kPlaylistSchemaVersion = 2;
 
 /// Playlist remota (payload Worker `/api/playlists`).
 class RemotePlaylist {
-  /// [items] é a ordem única; omiti-lo mantém a semântica v1
-  /// (`[...pdfIds, ...audioIds]`).
+  /// [entries] é a ordem única tipada — fonte da verdade do payload.
   RemotePlaylist({
     required this.id,
     required this.nome,
@@ -27,10 +26,7 @@ class RemotePlaylist {
     required this.createdAt,
     required this.updatedAt,
     required this.version,
-    List<String>? items,
-    List<String> pdfIds = const [],
-    List<String> audioIds = const [],
-    Set<String>? declaredAudioIds,
+    required List<PlaylistEntry> entries,
     this.schemaVersion = kPlaylistSchemaVersion,
     this.savedAt,
     this.favoritedAt,
@@ -38,12 +34,50 @@ class RemotePlaylist {
     this.publicationReach,
     this.publicationCategory,
     this.publishedAt,
-  }) : items = List<String>.unmodifiable(
-         items ?? <String>[...pdfIds, ...audioIds],
-       ),
-       declaredAudioIds = Set<String>.unmodifiable(
-         declaredAudioIds ??
-             audioIds.where((id) => !SavedPlaylist.isAudioFaceItem(id)),
+  }) : entries = List<PlaylistEntry>.unmodifiable(entries);
+
+  /// Compat com as listas do wire v1 e com o rascunho v2 (`items` de strings).
+  ///
+  /// Mesmas regras de [SavedPlaylist.fromLegacyLists]: `audioIds` é o veredito
+  /// de áudio do Worker (A8) e vence a extensão do id.
+  RemotePlaylist.fromLegacyLists({
+    required String id,
+    required String nome,
+    required bool salva,
+    required bool favorita,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    required int version,
+    List<String>? items,
+    List<String> pdfIds = const [],
+    List<String> audioIds = const [],
+    int schemaVersion = kPlaylistSchemaVersion,
+    DateTime? savedAt,
+    DateTime? favoritedAt,
+    bool isPublished = false,
+    PlaylistReach? publicationReach,
+    PlaylistCategory? publicationCategory,
+    DateTime? publishedAt,
+  }) : this(
+         id: id,
+         nome: nome,
+         salva: salva,
+         favorita: favorita,
+         createdAt: createdAt,
+         updatedAt: updatedAt,
+         version: version,
+         entries: SavedPlaylist.entriesFromLegacyLists(
+           items: items,
+           pdfIds: pdfIds,
+           audioIds: audioIds,
+         ),
+         schemaVersion: schemaVersion,
+         savedAt: savedAt,
+         favoritedAt: favoritedAt,
+         isPublished: isPublished,
+         publicationReach: publicationReach,
+         publicationCategory: publicationCategory,
+         publishedAt: publishedAt,
        );
 
   final String id;
@@ -52,29 +86,25 @@ class RemotePlaylist {
   /// Versão do schema do payload recebido/enviado.
   final int schemaVersion;
 
-  /// Ordem única de materiais — fonte da verdade a partir da v2.
-  final List<String> items;
+  /// Ordem única tipada — fonte da verdade a partir da v2.
+  final List<PlaylistEntry> entries;
 
-  /// Ids declarados áudio no payload que a extensão não classifica assim.
-  ///
-  /// Contraparte de `SavedPlaylist.declaredAudioIds`: preserva o veredito do
-  /// Worker na ida e na volta em vez de deixar a heurística de extensão
-  /// migrar a faixa para a face de partituras (A8).
-  final Set<String> declaredAudioIds;
-
-  /// Projeção PDF/cifra de [items] — enviada para o Worker v1 continuar
-  /// funcionando.
-  late final List<String> pdfIds = items
-      .where((id) => !_isAudioFace(id))
+  /// Ids de [entries], na ordem.
+  late final List<String> items = entries
+      .map((e) => e.id)
       .toList(growable: false);
 
-  /// Projeção de áudio de [items].
-  late final List<String> audioIds = items
-      .where(_isAudioFace)
+  /// Projeção PDF/cifra — enviada para o Worker v1 continuar funcionando.
+  late final List<String> pdfIds = entries
+      .where((e) => !e.isAudio)
+      .map((e) => e.id)
       .toList(growable: false);
 
-  bool _isAudioFace(String id) =>
-      SavedPlaylist.isAudioFaceItem(id) || declaredAudioIds.contains(id);
+  /// Projeção de áudio de [entries].
+  late final List<String> audioIds = entries
+      .where((e) => e.isAudio)
+      .map((e) => e.id)
+      .toList(growable: false);
 
   final bool salva;
   final bool favorita;
@@ -96,15 +126,14 @@ class RemotePlaylist {
     final rawItems = json['items'] as List<dynamic>?;
     final schemaVersion = json['schemaVersion'] as int?;
 
-    return RemotePlaylist(
+    return RemotePlaylist.fromLegacyLists(
       id: json['id'] as String,
       nome: json['nome'] as String,
       // Sem `schemaVersion`/`items` o payload é v1: a ordem única é a
       // concatenação das duas listas.
       schemaVersion: schemaVersion ?? (rawItems == null ? 1 : 2),
-      items: rawItems == null
-          ? <String>[...pdfIds, ...audioIds]
-          : rawItems.cast<String>(),
+      items: rawItems?.cast<String>(),
+      pdfIds: pdfIds,
       audioIds: audioIds,
       salva: json['salva'] as bool? ?? true,
       favorita: json['favorita'] as bool? ?? false,

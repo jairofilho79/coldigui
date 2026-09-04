@@ -1,8 +1,10 @@
 // test/unit/features/playlists/playlist_material_order_test.dart
+//
+// Ordem única no Isar e no repositório. Os casos de entidade (projeções,
+// `copyWith`, `replaceSubset`) vivem em `saved_playlist_entries_test.dart`.
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
-import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -18,199 +20,11 @@ final pdfC = encodePdfId('ColAdultos/003.pdf');
 final chordA = encodePdfId('ColAdultos/001.chord');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 final audioB = encodePdfId('assets/praises/b/002.mp3');
-final gestureA = encodePdfId('ColAdultos/001.gest');
 
-/// Áudio real do Worker com container fora de [kAudioMaterialExtensions].
+/// Áudio real do Worker com container fora de `kAudioMaterialExtensions`.
 final audioMisfiled = encodePdfId('assets/praises/a/001.mid');
 
-SavedPlaylist _playlist({
-  List<String>? items,
-  List<String> pdfIds = const [],
-  List<String> audioIds = const [],
-}) {
-  return SavedPlaylist(
-    playlistId: 'p1',
-    nome: 'Lista',
-    items: items,
-    pdfIds: pdfIds,
-    audioIds: audioIds,
-    createdAt: DateTime.utc(2026, 9, 1),
-  );
-}
-
 void main() {
-  group('SavedPlaylist — projeções derivadas', () {
-    test('pdfIds e audioIds derivam de items pela ordem única', () {
-      final playlist = _playlist(items: [pdfA, audioA, chordA, pdfB, audioB]);
-
-      expect(playlist.pdfIds, [pdfA, chordA, pdfB]);
-      expect(playlist.audioIds, [audioA, audioB]);
-    });
-
-    test('cifra entra em pdfIds e não em audioIds', () {
-      final playlist = _playlist(items: [chordA]);
-
-      expect(playlist.pdfIds, [chordA]);
-      expect(playlist.audioIds, isEmpty);
-    });
-
-    test('gesto entra em pdfIds e não some das duas faces (A7)', () {
-      final playlist = _playlist(items: [pdfA, gestureA, audioA]);
-
-      expect(
-        playlist.pdfIds,
-        [pdfA, gestureA],
-        reason: 'gesto é material de leitura — abre no leitor como PDF/cifra',
-      );
-      expect(playlist.audioIds, [audioA]);
-    });
-
-    test('id legado indecifrável fica com os PDFs', () {
-      final playlist = _playlist(items: ['legado-sem-base64!!!', audioA]);
-
-      expect(playlist.pdfIds, ['legado-sem-base64!!!']);
-      expect(playlist.audioIds, [audioA]);
-    });
-
-    test('round-trip: construtor de compat devolve as mesmas listas', () {
-      final playlist = _playlist(
-        pdfIds: [pdfA, chordA, pdfB],
-        audioIds: [audioA, audioB],
-      );
-
-      expect(playlist.items, [pdfA, chordA, pdfB, audioA, audioB]);
-      expect(playlist.pdfIds, [pdfA, chordA, pdfB]);
-      expect(playlist.audioIds, [audioA, audioB]);
-    });
-
-    test('audioIds declarados vencem a extensão do id (A8)', () {
-      final playlist = _playlist(
-        items: [pdfA, audioMisfiled, audioA],
-        audioIds: [audioMisfiled, audioA],
-      );
-
-      expect(
-        playlist.audioIds,
-        [audioMisfiled, audioA],
-        reason: 'quem gravou a lista já decidiu que este id é áudio',
-      );
-      expect(playlist.pdfIds, [pdfA]);
-    });
-
-    test('items tem precedência sobre pdfIds/audioIds', () {
-      final playlist = _playlist(
-        items: [audioA, pdfA],
-        pdfIds: [pdfB],
-        audioIds: [audioB],
-      );
-
-      expect(playlist.items, [audioA, pdfA]);
-    });
-  });
-
-  group('SavedPlaylist.copyWith — substituição parcial de face', () {
-    test('reorder de pdfIds preserva a posição dos áudios', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB, audioB, pdfC]);
-
-      final after = before.copyWith(pdfIds: [pdfC, pdfB, pdfA]);
-
-      expect(after.items, [pdfC, audioA, pdfB, audioB, pdfA]);
-      expect(after.audioIds, [audioA, audioB]);
-    });
-
-    test('remoção de PDF apaga o slot e não move os áudios', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB, audioB]);
-
-      final after = before.copyWith(pdfIds: [pdfB]);
-
-      expect(after.items, [pdfB, audioA, audioB]);
-    });
-
-    test('PDF novo entra logo depois do último slot PDF', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB, audioB]);
-
-      final after = before.copyWith(pdfIds: [pdfA, pdfB, pdfC]);
-
-      expect(after.items, [pdfA, audioA, pdfB, pdfC, audioB]);
-    });
-
-    test('sem slot PDF anterior, os novos PDFs vão para o fim', () {
-      final before = _playlist(items: [audioA, audioB]);
-
-      final after = before.copyWith(pdfIds: [pdfA]);
-
-      expect(after.items, [audioA, audioB, pdfA]);
-      expect(after.audioIds, [audioA, audioB]);
-    });
-
-    test('áudio novo entra depois do último slot de áudio', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB]);
-
-      final after = before.copyWith(audioIds: [audioA, audioB]);
-
-      expect(after.items, [pdfA, audioA, audioB, pdfB]);
-      expect(after.pdfIds, [pdfA, pdfB]);
-    });
-
-    test('remoção de áudio não move os PDFs', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB, audioB]);
-
-      final after = before.copyWith(audioIds: [audioB]);
-
-      expect(after.items, [pdfA, audioB, pdfB]);
-    });
-
-    test('items explícito ignora as duas projeções', () {
-      final before = _playlist(items: [pdfA, audioA]);
-
-      final after = before.copyWith(items: [audioA, pdfA], pdfIds: [pdfB]);
-
-      expect(after.items, [audioA, pdfA]);
-    });
-
-    test('copyWith sem listas mantém a ordem única', () {
-      final before = _playlist(items: [pdfA, audioA, pdfB]);
-
-      expect(before.copyWith(nome: 'Outro').items, [pdfA, audioA, pdfB]);
-    });
-
-    test('áudio com container não reconhecido fica na face de áudio', () {
-      // `type: mp3` no worker, extensão fora de kAudioMaterialExtensions: o id
-      // não classifica como áudio, mas o chamador o declarou em `audioIds:`.
-      expect(materialIdKindOf(audioMisfiled), isNot(MaterialKind.audio));
-
-      final before = _playlist(items: [pdfA, audioA]);
-      final after = before.copyWith(audioIds: [audioA, audioMisfiled]);
-
-      expect(after.items, [pdfA, audioA, audioMisfiled]);
-      expect(after.audioIds, [audioA, audioMisfiled]);
-      expect(after.pdfIds, [pdfA]);
-    });
-
-    test('reordenar a face de áudio com id estranho é estável', () {
-      final before = _playlist(items: [pdfA, audioA, audioMisfiled]);
-
-      // Idempotente: repassar a mesma face não move nada.
-      final after = before.copyWith(audioIds: [audioA, audioMisfiled]);
-
-      expect(after.items, [pdfA, audioA, audioMisfiled]);
-    });
-
-    test('sync do carousel na face PDF não engole o áudio declarado (A8)', () {
-      final before = _playlist(
-        items: [pdfA, audioA, audioMisfiled],
-        audioIds: [audioA, audioMisfiled],
-      );
-
-      // O carousel reescreve só a face de partituras.
-      final after = before.copyWith(pdfIds: [pdfA, pdfB]);
-
-      expect(after.items, [pdfA, pdfB, audioA, audioMisfiled]);
-      expect(after.audioIds, [audioA, audioMisfiled]);
-      expect(after.pdfIds, [pdfA, pdfB]);
-    });
-  });
-
   group('Migração lazy no Isar', () {
     late Directory tempDir;
     late Isar isar;
@@ -357,7 +171,7 @@ void main() {
 
     Future<void> seedInterleaved() async {
       await repository.upsert(
-        SavedPlaylist(
+        SavedPlaylist.fromLegacyLists(
           playlistId: 'p1',
           nome: 'Ensaio',
           items: [pdfA, audioA, pdfB, audioB],
@@ -379,7 +193,7 @@ void main() {
 
     test('update(pdfIds:) não consome o áudio misfiled (A8)', () async {
       await repository.upsert(
-        SavedPlaylist(
+        SavedPlaylist.fromLegacyLists(
           playlistId: 'p1',
           nome: 'Ensaio',
           items: [pdfA, audioMisfiled],
@@ -450,7 +264,7 @@ void main() {
       repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
       updatePlaylist = UpdatePlaylist(repository);
       await repository.upsert(
-        SavedPlaylist(
+        SavedPlaylist.fromLegacyLists(
           playlistId: 'p1',
           nome: 'Ensaio',
           items: [pdfA, audioA, pdfB, audioB],

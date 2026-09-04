@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakePlaylistRepository implements PlaylistRepository {
   @override
   Future<SavedPlaylist?> getById(String playlistId) async {
-    return SavedPlaylist(
+    return SavedPlaylist.fromLegacyLists(
       playlistId: playlistId,
       nome: 'Ensaio',
       pdfIds: const ['pdf-a'],

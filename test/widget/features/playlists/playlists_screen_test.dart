@@ -84,7 +84,7 @@ void main() {
 
   testWidgets('renderiza playlist salva', (tester) async {
     final item = PlaylistViewItem(
-      playlist: SavedPlaylist(
+      playlist: SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Ensaio domingo',
         pdfIds: ['a', 'b'],

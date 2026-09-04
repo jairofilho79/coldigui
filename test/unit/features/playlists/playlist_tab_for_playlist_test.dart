@@ -3,7 +3,7 @@ import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart'
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final base = SavedPlaylist(
+  final base = SavedPlaylist.fromLegacyLists(
     playlistId: 'p1',
     nome: 'Lista',
     pdfIds: const ['a'],

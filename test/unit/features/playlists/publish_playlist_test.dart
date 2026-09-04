@@ -99,7 +99,7 @@ class _Repo implements PlaylistRepository {
 void main() {
   test('publica com usual por padrão e marca pendingPush', () async {
     final repo = _Repo()
-      ..playlist = SavedPlaylist(
+      ..playlist = SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Culto',
         pdfIds: const ['a'],
@@ -120,7 +120,7 @@ void main() {
 
   test('rejeita republicar', () async {
     final repo = _Repo()
-      ..playlist = SavedPlaylist(
+      ..playlist = SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Culto',
         pdfIds: const ['a'],
@@ -143,7 +143,7 @@ void main() {
 
   test('rejeita rascunho', () async {
     final repo = _Repo()
-      ..playlist = SavedPlaylist(
+      ..playlist = SavedPlaylist.fromLegacyLists(
         playlistId: 'd1',
         nome: 'Draft',
         pdfIds: const ['a'],

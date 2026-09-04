@@ -217,14 +217,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
 
   SavedPlaylist _toEntity(Playlist row) => SavedPlaylist(
     playlistId: row.playlistId,
-    // `items` já vem migrado do datasource; o fallback cobre a lista vazia.
-    items: row.items.isNotEmpty
-        ? List<String>.from(row.items)
-        : <String>[...row.pdfIds, ...row.audioIds],
-    // `row.audioIds` é o veredito de quem gravou a linha: sem ele, um áudio com
-    // container fora de kAudioMaterialExtensions migraria para a face de
-    // partituras e o próximo sync do carousel o consumiria (A8).
-    audioIds: List<String>.from(row.audioIds),
+    entries: _entriesOf(row),
     nome: row.nome,
     createdAt: row.createdAt,
     salva: row.salva,
@@ -242,4 +235,18 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     publicationCategory: row.publicationCategory,
     publishedAt: row.publishedAt,
   );
+
+  /// Ordem única tipada da linha.
+  ///
+  /// `row.items` já vem migrado do datasource; o fallback cobre a lista vazia.
+  /// `row.audioIds` é o veredito de quem gravou a linha: sem ele, um áudio com
+  /// container fora de `kAudioMaterialExtensions` migraria para a face de
+  /// partituras e o próximo sync do carousel o consumiria (A8).
+  static List<PlaylistEntry> _entriesOf(Playlist row) =>
+      SavedPlaylist.entriesFromLegacyLists(
+        items: row.items.isNotEmpty
+            ? List<String>.from(row.items)
+            : <String>[...row.pdfIds, ...row.audioIds],
+        audioIds: row.audioIds,
+      );
 }

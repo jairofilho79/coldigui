@@ -23,7 +23,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   }) async {
     final id = playlistId ?? 'gen';
     final now = createdAt ?? DateTime.utc(2026, 1, 1);
-    map[id] = SavedPlaylist(
+    map[id] = SavedPlaylist.fromLegacyLists(
       playlistId: id,
       nome: nome,
       pdfIds: pdfIds,
@@ -186,7 +186,7 @@ void main() {
 
   test('pull insere remota ausente localmente', () async {
     final repo = _MemoryPlaylistRepository();
-    final remote = RemotePlaylist(
+    final remote = RemotePlaylist.fromLegacyLists(
       id: 'r1',
       nome: 'Culto',
       pdfIds: const ['a'],
@@ -214,7 +214,7 @@ void main() {
   test('pendingPush local mais novo não é sobrescrito no pull', () async {
     final repo = _MemoryPlaylistRepository();
     await repo.upsert(
-      SavedPlaylist(
+      SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Local',
         pdfIds: const ['x'],
@@ -228,7 +228,7 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => [
-        RemotePlaylist(
+        RemotePlaylist.fromLegacyLists(
           id: 'p1',
           nome: 'Remoto',
           pdfIds: const ['y'],
@@ -239,18 +239,19 @@ void main() {
           version: 5,
         ),
       ],
-      ({required idToken, required playlist}) async => RemotePlaylist(
-        id: playlist.id,
-        nome: playlist.nome,
-        pdfIds: playlist.pdfIds,
-        salva: true,
-        favorita: playlist.favorita,
-        createdAt: playlist.createdAt,
-        updatedAt: playlist.updatedAt,
-        version: playlist.version + 1,
-        savedAt: playlist.savedAt,
-        favoritedAt: playlist.favoritedAt,
-      ),
+      ({required idToken, required playlist}) async =>
+          RemotePlaylist.fromLegacyLists(
+            id: playlist.id,
+            nome: playlist.nome,
+            pdfIds: playlist.pdfIds,
+            salva: true,
+            favorita: playlist.favorita,
+            createdAt: playlist.createdAt,
+            updatedAt: playlist.updatedAt,
+            version: playlist.version + 1,
+            savedAt: playlist.savedAt,
+            favoritedAt: playlist.favoritedAt,
+          ),
       ({required idToken, required playlistId}) async {},
     );
 
@@ -289,7 +290,7 @@ void main() {
   test('tombstone dispara DELETE remoto e hard delete local', () async {
     final repo = _MemoryPlaylistRepository();
     await repo.upsert(
-      SavedPlaylist(
+      SavedPlaylist.fromLegacyLists(
         playlistId: 'gone',
         nome: 'X',
         pdfIds: const [],
@@ -318,7 +319,7 @@ void main() {
 
   test('pull preserva metadados de publicação', () async {
     final repo = _MemoryPlaylistRepository();
-    final remote = RemotePlaylist(
+    final remote = RemotePlaylist.fromLegacyLists(
       id: 'pub1',
       nome: 'Evangelismo',
       pdfIds: const ['a'],

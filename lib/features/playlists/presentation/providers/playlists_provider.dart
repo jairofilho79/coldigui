@@ -189,10 +189,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return true;
     }
 
-    // Dedupe contra `items` (fonte da verdade), não contra a projeção: um id
-    // que a heurística de extensão classificar na outra face continua sendo
-    // detectado como já presente.
-    if (active.items.contains(pdfId)) {
+    // Dedupe contra `entries` (fonte da verdade), não contra a projeção: um id
+    // que estiver na lista com o `kind` da outra face continua sendo detectado
+    // como já presente.
+    if (active.entries.any((e) => e.id == pdfId)) {
       ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
       return false;
     }
@@ -295,9 +295,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final current = state
         .firstWhere((item) => item.playlist.playlistId == playlistId)
         .playlist;
-    final nextIds = current.pdfIds
-        .where((id) => id != pdfId)
-        .toList(growable: false);
+    // Remove por id na ordem única e reprojeta a face de partituras.
+    final nextIds = <String>[
+      for (final entry in current.entries)
+        if (!entry.isAudio && entry.id != pdfId) entry.id,
+    ];
 
     await ref.read(updatePlaylistProvider)(
       playlistId: playlistId,
@@ -319,9 +321,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final current = state
         .firstWhere((item) => item.playlist.playlistId == playlistId)
         .playlist;
-    final nextIds = current.audioIds
-        .where((id) => id != audioId)
-        .toList(growable: false);
+    // Remove por id na ordem única e reprojeta a face de áudio.
+    final nextIds = <String>[
+      for (final entry in current.entries)
+        if (entry.isAudio && entry.id != audioId) entry.id,
+    ];
 
     await ref.read(updatePlaylistProvider)(
       playlistId: playlistId,
@@ -655,9 +659,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return true;
     }
 
-    // Dedupe contra `items`: se o id já estiver na lista — mesmo que a
-    // extensão o tenha jogado na face de partituras — não duplica.
-    if (active.items.contains(audioId)) return false;
+    // Dedupe contra `entries`: se o id já estiver na lista — mesmo com o `kind`
+    // da face de partituras — não duplica.
+    if (active.entries.any((e) => e.id == audioId)) return false;
 
     final next = [...active.audioIds, audioId];
     await ref.read(updatePlaylistProvider)(

@@ -98,7 +98,7 @@ void main() {
       'playlist_media_face': PlaylistMediaFace.audio.name,
     });
     final prefs = await SharedPreferences.getInstance();
-    final playlist = SavedPlaylist(
+    final playlist = SavedPlaylist.fromLegacyLists(
       playlistId: 'pl-1',
       nome: 'Ensaio',
       pdfIds: const [],

@@ -131,7 +131,7 @@ void main() {
   final pdfIdB = _pdfId('ColAdultos/002.pdf');
 
   final item = PlaylistViewItem(
-    playlist: SavedPlaylist(
+    playlist: SavedPlaylist.fromLegacyLists(
       playlistId: 'p1',
       nome: 'Ensaio domingo',
       pdfIds: [pdfIdA, pdfIdB],
@@ -292,7 +292,7 @@ void main() {
     // acha Louvor para qualquer id) mandaria a cifra para /leitor.
     final chordId = _pdfId('assets/praises/p1/m1.chord');
     final chordItem = PlaylistViewItem(
-      playlist: SavedPlaylist(
+      playlist: SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Ensaio com cifra',
         pdfIds: [chordId, pdfIdB],
@@ -406,7 +406,7 @@ void main() {
     tester,
   ) async {
     final published = PlaylistViewItem(
-      playlist: SavedPlaylist(
+      playlist: SavedPlaylist.fromLegacyLists(
         playlistId: 'p1',
         nome: 'Ensaio domingo',
         pdfIds: [pdfIdA, pdfIdB],

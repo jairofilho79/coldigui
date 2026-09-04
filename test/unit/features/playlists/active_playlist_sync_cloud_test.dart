@@ -45,7 +45,7 @@ class _RecordingRemote extends PlaylistRemoteDatasource {
     required RemotePlaylist playlist,
   }) async {
     upsertCalls++;
-    return RemotePlaylist(
+    return RemotePlaylist.fromLegacyLists(
       id: playlist.id,
       nome: playlist.nome,
       pdfIds: playlist.pdfIds,
@@ -94,7 +94,7 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   }) async {
     final id = playlistId ?? 'gen';
     final now = createdAt ?? DateTime.utc(2026, 1, 1);
-    map[id] = SavedPlaylist(
+    map[id] = SavedPlaylist.fromLegacyLists(
       playlistId: id,
       nome: nome,
       pdfIds: pdfIds,

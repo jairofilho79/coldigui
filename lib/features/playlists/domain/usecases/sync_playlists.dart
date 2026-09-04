@@ -121,9 +121,9 @@ class SyncPlaylists {
   static SavedPlaylist _fromRemote(RemotePlaylist r) => SavedPlaylist(
     playlistId: r.id,
     nome: r.nome,
-    items: List<String>.from(r.items),
-    // Veredito de áudio do Worker — ver `SavedPlaylist.declaredAudioIds` (A8).
-    audioIds: List<String>.from(r.audioIds),
+    // A ordem única já vem tipada do payload — o veredito de áudio do Worker
+    // viaja no `kind` de cada entrada (A8).
+    entries: List<PlaylistEntry>.from(r.entries),
     createdAt: r.createdAt,
     salva: true,
     savedAt: r.savedAt,
@@ -141,8 +141,7 @@ class SyncPlaylists {
   static RemotePlaylist _toRemote(SavedPlaylist p) => RemotePlaylist(
     id: p.playlistId,
     nome: p.nome,
-    items: p.items,
-    declaredAudioIds: p.declaredAudioIds,
+    entries: p.entries,
     salva: true,
     favorita: p.favorita,
     createdAt: p.createdAt,

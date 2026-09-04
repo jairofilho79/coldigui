@@ -1,32 +1,26 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../../core/database/collections/playlist_publication.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
-import '../../../../core/utils/material_id_kind.dart';
+import 'playlist_entry.dart';
 
 export '../../../../core/database/collections/playlist_publication.dart';
 export '../../../../core/database/collections/playlist_sync_status.dart';
+export 'playlist_entry.dart';
 
 /// Playlist do usuário (UC-06, Fase 4.2+ / UC-15 sync).
 ///
 /// Espelha o modelo persistido sem expor Isar.
 ///
-/// [items] é a **ordem única** de materiais (D2). [pdfIds] e [audioIds] são
-/// projeções derivadas por [materialIdKindOf] — a UI de "faces" continua vendo
-/// duas listas, mas a ordem real (com PDF e áudio intercalados) vive em
-/// [items].
+/// [entries] é a **única** fonte de verdade de conteúdo, ordem e tipo (D2 fatia
+/// 2). [items], [pdfIds] e [audioIds] são projeções: a UI de "faces" continua
+/// vendo duas listas, mas a ordem real (com partitura e áudio intercalados) e o
+/// tipo de cada entrada vivem em [entries].
 class SavedPlaylist {
-  /// Construtor de compatibilidade: aceita as duas listas antigas e monta
-  /// [items] concatenando (`[...pdfIds, ...audioIds]`) quando [items] é
-  /// omitido. Passar [items] tem precedência sobre [pdfIds]/[audioIds].
+  /// Construtor canônico: recebe a ordem única já tipada.
   SavedPlaylist({
     required this.playlistId,
     required this.nome,
     required this.createdAt,
-    List<String>? items,
-    List<String> pdfIds = const [],
-    List<String> audioIds = const [],
-    Set<String>? declaredAudioIds,
+    required List<PlaylistEntry> entries,
     this.salva = true,
     this.savedAt,
     this.favoritedAt,
@@ -40,12 +34,78 @@ class SavedPlaylist {
     this.publicationCategory,
     this.publishedAt,
   }) : updatedAt = updatedAt ?? createdAt,
-       items = List<String>.unmodifiable(
-         items ?? <String>[...pdfIds, ...warnIfNotAudio(audioIds)],
-       ),
-       declaredAudioIds = Set<String>.unmodifiable(
-         declaredAudioIds ?? audioIds.where((id) => !isAudioFaceItem(id)),
+       entries = List<PlaylistEntry>.unmodifiable(entries);
+
+  /// Construtor de compatibilidade: monta [entries] a partir das listas
+  /// legadas (Isar v1, wire v1, share URL v1).
+  ///
+  /// - [items] tem precedência: cada id é classificado pela extensão, salvo os
+  ///   que [audioIds] declara áudio (veredito de quem gravou, A8).
+  /// - Sem [items]: `[...pdfIds, ...audioIds]`, com [pdfIds] classificados pela
+  ///   extensão (nunca `audio`) e [audioIds] sempre [MaterialKind.audio].
+  SavedPlaylist.fromLegacyLists({
+    required String playlistId,
+    required String nome,
+    required DateTime createdAt,
+    List<String>? items,
+    List<String> pdfIds = const [],
+    List<String> audioIds = const [],
+    bool salva = true,
+    DateTime? savedAt,
+    DateTime? favoritedAt,
+    bool favorita = false,
+    DateTime? updatedAt,
+    int version = 1,
+    PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    DateTime? deletedAt,
+    bool isPublished = false,
+    PlaylistReach? publicationReach,
+    PlaylistCategory? publicationCategory,
+    DateTime? publishedAt,
+  }) : this(
+         playlistId: playlistId,
+         nome: nome,
+         createdAt: createdAt,
+         entries: entriesFromLegacyLists(
+           items: items,
+           pdfIds: pdfIds,
+           audioIds: audioIds,
+         ),
+         salva: salva,
+         savedAt: savedAt,
+         favoritedAt: favoritedAt,
+         favorita: favorita,
+         updatedAt: updatedAt,
+         version: version,
+         syncStatus: syncStatus,
+         deletedAt: deletedAt,
+         isPublished: isPublished,
+         publicationReach: publicationReach,
+         publicationCategory: publicationCategory,
+         publishedAt: publishedAt,
        );
+
+  /// Monta a ordem única tipada a partir das listas legadas — ver
+  /// [SavedPlaylist.fromLegacyLists].
+  static List<PlaylistEntry> entriesFromLegacyLists({
+    List<String>? items,
+    List<String> pdfIds = const [],
+    List<String> audioIds = const [],
+  }) {
+    if (items == null) {
+      return <PlaylistEntry>[
+        ...pdfIds.map(PlaylistEntry.classified),
+        ...audioIds.map(PlaylistEntry.audio),
+      ];
+    }
+    final declaredAudio = audioIds.toSet();
+    return <PlaylistEntry>[
+      for (final id in items)
+        declaredAudio.contains(id)
+            ? PlaylistEntry.audio(id)
+            : PlaylistEntry.classified(id),
+    ];
+  }
 
   /// Identificador estável (UUID-like, compatível com PWA).
   final String playlistId;
@@ -53,108 +113,57 @@ class SavedPlaylist {
   /// Nome exibido na lista — default `lista dd/MM/yyyy HH:mm:ss` na criação.
   final String nome;
 
-  /// Ordem única de materiais (PDF, cifra, áudio…) — fonte da verdade.
-  final List<String> items;
+  /// Ordem única tipada de materiais — fonte da verdade.
+  final List<PlaylistEntry> entries;
 
-  /// Ids que **quem gravou esta lista** declarou áudio e a extensão não
-  /// classifica assim (linha `audioIds` do Isar, `audioIds` do payload remoto).
-  ///
-  /// A fonte da verdade do tipo é o `type` do Worker, não o `r2_key`: um áudio
-  /// publicado com container fora de [kAudioMaterialExtensions] migraria para a
-  /// face de partituras e o próximo sync do carousel o consumiria como se fosse
-  /// um PDF removido. Guardar o veredito por instância evita essa perda (A8).
-  final Set<String> declaredAudioIds;
-
-  /// Projeção PDF/cifra de [items], na ordem em que aparecem.
-  ///
-  /// Inclui [MaterialKind.gesture] (gesto é material de leitura, abre no leitor
-  /// como PDF e cifra) e [MaterialKind.unknown], que é o balde de tudo que não
-  /// decodifica como path: ids legados **e ids de YouTube** (que vêm do Worker
-  /// e não são path nenhum). Assim nenhuma família some das duas faces (A7).
-  late final List<String> pdfIds = items
-      .where((id) => !belongsToAudioFace(id))
+  /// Ids de [entries], na ordem.
+  late final List<String> items = entries
+      .map((e) => e.id)
       .toList(growable: false);
 
-  /// Projeção de áudio de [items], na ordem em que aparecem.
-  late final List<String> audioIds = items
-      .where(belongsToAudioFace)
+  /// Projeção da face de partituras: tudo que **não** é áudio.
+  ///
+  /// Inclui [MaterialKind.gesture] (gesto é material de leitura),
+  /// [MaterialKind.youtube] e [MaterialKind.unknown] (ids legados). Assim
+  /// nenhuma família some das duas faces (A7).
+  late final List<String> pdfIds = entries
+      .where((e) => !e.isAudio)
+      .map((e) => e.id)
       .toList(growable: false);
 
-  /// `true` se [id] é da face de áudio **nesta** playlist.
-  ///
-  /// Extensão reconhecida ([isAudioFaceItem]) **ou** veredito de quem gravou a
-  /// lista ([declaredAudioIds]). As duas faces particionam [items]: o que não
-  /// é áudio abre no leitor.
-  bool belongsToAudioFace(String id) =>
-      isAudioFaceItem(id) || declaredAudioIds.contains(id);
-
-  /// `true` se [id] pertence à face de partituras/cifras.
-  ///
-  /// Tudo que não é áudio: o que sobra da face de áudio abre no leitor, e um
-  /// id que não entra em nenhuma das duas faces vira linha fantasma — visível
-  /// em `items`, invisível nas duas listas da UI (A7).
-  static bool isPdfFaceItem(String id) {
-    final kind = materialIdKindOf(id);
-    return kind == MaterialKind.pdf ||
-        kind == MaterialKind.chord ||
-        kind == MaterialKind.gesture ||
-        kind == MaterialKind.unknown;
-  }
-
-  /// `true` se [id] pertence à face de áudio.
-  static bool isAudioFaceItem(String id) =>
-      materialIdKindOf(id) == MaterialKind.audio;
-
-  /// Devolve [audioIds] avisando no console sobre ids que **não** classificam
-  /// como [MaterialKind.audio].
-  ///
-  /// A fonte da verdade do tipo é o `type` do Worker, mas a projeção de faces
-  /// usa a extensão do `r2_key` ([kAudioMaterialExtensions]). Quando as duas
-  /// discordam, a faixa migraria silenciosamente para a face de partituras —
-  /// este aviso faz o descompasso aparecer em vez de virar bug de UI.
-  static List<String> warnIfNotAudio(List<String> audioIds) {
-    for (final id in audioIds) {
-      if (isAudioFaceItem(id)) continue;
-      debugPrint(
-        '[playlists] id de áudio sem extensão reconhecida (mantido na face de '
-        'áudio pela declaração de quem gravou): $id — '
-        'ver kAudioMaterialExtensions',
-      );
-    }
-    return audioIds;
-  }
+  /// Projeção da face de áudio: [MaterialKind.audio].
+  late final List<String> audioIds = entries
+      .where((e) => e.isAudio)
+      .map((e) => e.id)
+      .toList(growable: false);
 
   /// Substitui em [current] o subconjunto que [belongs] seleciona por [next],
   /// **preservando a posição relativa dos demais materiais**.
   ///
   /// Regra (fixada por teste): percorre [current]; cada slot que [belongs]
-  /// aceita recebe, em ordem, o próximo id de [next]. Slots que sobram (porque
-  /// [next] é menor) desaparecem; ids de [next] que sobram são inseridos logo
-  /// depois do último slot preenchido — ou no fim, se [current] não tinha
-  /// nenhum slot desse tipo. Materiais fora do subconjunto nunca mudam de
-  /// ordem entre si e continuam ancorados aos vizinhos que sobreviveram.
-  static List<String> replaceSubset(
-    List<String> current,
-    List<String> next,
-    bool Function(String id) belongs,
+  /// aceita recebe, em ordem, a próxima entrada de [next]. Slots que sobram
+  /// (porque [next] é menor) desaparecem; entradas de [next] que sobram são
+  /// inseridas logo depois do último slot preenchido — ou no fim, se [current]
+  /// não tinha nenhum slot desse tipo. Materiais fora do subconjunto nunca
+  /// mudam de ordem entre si e continuam ancorados aos vizinhos que
+  /// sobreviveram.
+  static List<PlaylistEntry> replaceSubset(
+    List<PlaylistEntry> current,
+    List<PlaylistEntry> next,
+    bool Function(PlaylistEntry entry) belongs,
   ) {
-    assert(
-      next.every(belongs),
-      'replaceSubset: `next` só pode conter ids da face que `belongs` aceita; '
-      'recebido: ${next.where((id) => !belongs(id)).toList()}',
-    );
-    final result = <String>[];
+    final result = <PlaylistEntry>[];
     var cursor = 0;
     var afterLastSlot = -1;
-    for (final id in current) {
-      if (belongs(id)) {
+    for (final entry in current) {
+      if (belongs(entry)) {
         if (cursor < next.length) {
           result.add(next[cursor++]);
           afterLastSlot = result.length;
         }
         continue;
       }
-      result.add(id);
+      result.add(entry);
     }
     if (cursor < next.length) {
       result.insertAll(
@@ -196,13 +205,14 @@ class SavedPlaylist {
 
   /// Cópia com campos trocados.
   ///
-  /// [items] tem precedência. Sem ele, [pdfIds]/[audioIds] substituem apenas o
-  /// seu subconjunto de [items] via [replaceSubset] — é isso que faz
-  /// `update(pdfIds: …)` vindo do carousel preservar a posição dos áudios.
+  /// [entries] tem precedência e substitui tudo. Sem ele, [pdfIds]/[audioIds]
+  /// substituem apenas o seu subconjunto de [entries] via [replaceSubset] — é
+  /// isso que faz `update(pdfIds: …)` vindo do carousel preservar a posição dos
+  /// áudios.
   SavedPlaylist copyWith({
     String? playlistId,
     String? nome,
-    List<String>? items,
+    List<PlaylistEntry>? entries,
     List<String>? pdfIds,
     List<String>? audioIds,
     DateTime? createdAt,
@@ -224,13 +234,7 @@ class SavedPlaylist {
     return SavedPlaylist(
       playlistId: playlistId ?? this.playlistId,
       nome: nome ?? this.nome,
-      items: items ?? nextItemsWith(pdfIds: pdfIds, audioIds: audioIds),
-      declaredAudioIds: audioIds == null
-          ? declaredAudioIds
-          : <String>{
-              ...declaredAudioIds,
-              ...audioIds.where((id) => !isAudioFaceItem(id)),
-            },
+      entries: entries ?? nextEntriesWith(pdfIds: pdfIds, audioIds: audioIds),
       createdAt: createdAt ?? this.createdAt,
       salva: salva ?? this.salva,
       savedAt: savedAt ?? this.savedAt,
@@ -255,31 +259,42 @@ class SavedPlaylist {
   ///
   /// `null` em [pdfIds]/[audioIds] significa "não mexe nessa face".
   ///
-  /// A face de um slot é "o que [belongsToAudioFace] diz **ou** o que o
-  /// chamador declarou nesta chamada": um id passado em [audioIds] conta como
-  /// slot de áudio mesmo que a extensão não o classifique assim. Sem isso, um
-  /// áudio com container fora de [kAudioMaterialExtensions] seria descartado
-  /// por [replaceSubset] em vez de apenas cair na face errada — perda de dado.
-  /// [warnIfNotAudio] avisa quando isso acontece.
-  List<String> nextItemsWith({List<String>? pdfIds, List<String>? audioIds}) {
-    var next = items;
+  /// Antes de trocar os slots, os ids que o chamador listou **adotam** a face
+  /// declarada: passar um id em `audioIds:` é declará-lo áudio (A8), mesmo que
+  /// a extensão diga outra coisa e mesmo que ele já estivesse na lista com
+  /// outro `kind`. Sem isso a entrada antiga sobreviveria fora do subconjunto e
+  /// o id apareceria duas vezes na ordem única.
+  List<PlaylistEntry> nextEntriesWith({
+    List<String>? pdfIds,
+    List<String>? audioIds,
+  }) {
+    var next = entries;
     if (pdfIds != null) {
-      final declared = pdfIds.toSet();
       next = replaceSubset(
-        next,
-        pdfIds,
-        (id) => !belongsToAudioFace(id) || declared.contains(id),
+        _retagged(next, pdfIds.toSet(), PlaylistEntry.classified),
+        pdfIds.map(PlaylistEntry.classified).toList(growable: false),
+        (e) => !e.isAudio,
       );
     }
     if (audioIds != null) {
-      warnIfNotAudio(audioIds);
-      final declared = audioIds.toSet();
       next = replaceSubset(
-        next,
-        audioIds,
-        (id) => belongsToAudioFace(id) || declared.contains(id),
+        _retagged(next, audioIds.toSet(), PlaylistEntry.audio),
+        audioIds.map(PlaylistEntry.audio).toList(growable: false),
+        (e) => e.isAudio,
       );
     }
     return next;
+  }
+
+  static List<PlaylistEntry> _retagged(
+    List<PlaylistEntry> current,
+    Set<String> declared,
+    PlaylistEntry Function(String id) retag,
+  ) {
+    if (declared.isEmpty) return current;
+    return <PlaylistEntry>[
+      for (final entry in current)
+        declared.contains(entry.id) ? retag(entry.id) : entry,
+    ];
   }
 }

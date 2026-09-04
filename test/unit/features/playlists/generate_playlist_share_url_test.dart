@@ -89,7 +89,7 @@ void main() {
   test('gera URL com pdfIds e nome da playlist', () async {
     final useCase = GeneratePlaylistShareUrl(
       _FakePlaylistRepository({
-        'p1': SavedPlaylist(
+        'p1': SavedPlaylist.fromLegacyLists(
           playlistId: 'p1',
           nome: 'Ensaio',
           pdfIds: const ['a', 'b'],
@@ -119,7 +119,7 @@ void main() {
   test('lança EmptyPlaylistShareException quando pdfIds vazio', () async {
     final useCase = GeneratePlaylistShareUrl(
       _FakePlaylistRepository({
-        'p1': SavedPlaylist(
+        'p1': SavedPlaylist.fromLegacyLists(
           playlistId: 'p1',
           nome: 'Vazia',
           pdfIds: const [],
