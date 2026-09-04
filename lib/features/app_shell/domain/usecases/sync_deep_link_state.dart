@@ -1,3 +1,4 @@
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../playlists/domain/exceptions/invalid_share_playlist_exception.dart';
 import '../../../playlists/domain/usecases/import_shared_playlist_from_url.dart';
@@ -12,17 +13,28 @@ enum SyncDeepLinkOutcome {
 
   /// Params de share presentes porém inválidos.
   invalid,
+
+  /// Import falhou por [StorageUnavailableException] ou outra exceção —
+  /// ver [SyncDeepLinkResult.reason] (Tarefa 8, spec C.4).
+  failed,
 }
 
 /// Resultado tipado do sync de deep link (UC-14, Fase 4.5).
 class SyncDeepLinkResult {
-  const SyncDeepLinkResult({required this.outcome, this.playlistId});
+  const SyncDeepLinkResult({
+    required this.outcome,
+    this.playlistId,
+    this.reason,
+  });
 
   /// Desfecho do processamento da URI.
   final SyncDeepLinkOutcome outcome;
 
   /// ID da playlist criada quando [outcome] é [SyncDeepLinkOutcome.success].
   final String? playlistId;
+
+  /// Exceção capturada quando [outcome] é [SyncDeepLinkOutcome.failed].
+  final Object? reason;
 
   static const skipped = SyncDeepLinkResult(
     outcome: SyncDeepLinkOutcome.skipped,
@@ -35,6 +47,9 @@ class SyncDeepLinkResult {
     outcome: SyncDeepLinkOutcome.success,
     playlistId: playlistId,
   );
+
+  static SyncDeepLinkResult failed(Object reason) =>
+      SyncDeepLinkResult(outcome: SyncDeepLinkOutcome.failed, reason: reason);
 }
 
 /// UC-14 — Sincronizar deep link de playlist com estado local (Fase 4.5).
@@ -67,6 +82,10 @@ class SyncDeepLinkState {
       return SyncDeepLinkResult.success(playlistId);
     } on InvalidSharePlaylistException {
       return SyncDeepLinkResult.invalid;
+    } on StorageUnavailableException catch (e) {
+      return SyncDeepLinkResult.failed(e);
+    } on Object catch (e) {
+      return SyncDeepLinkResult.failed(e);
     }
   }
 }

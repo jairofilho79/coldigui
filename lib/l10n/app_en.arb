@@ -392,6 +392,8 @@
   "playlistImportConfirm": "Import",
   "playlistImported": "Playlist imported",
   "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
+  "deepLinkImportFailed": "Could not import the shared playlist.",
+  "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
   "playlistShareError": "Could not share the playlist.",
   "playlistShareSheetTitle": "Share",
   "playlistShareOptionLink": "Link only",

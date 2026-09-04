@@ -800,6 +800,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Invalid link. Use a URL with sharepdfs and sharename.';
 
   @override
+  String get deepLinkImportFailed => 'Could not import the shared playlist.';
+
+  @override
+  String get offlineStorageUnavailable =>
+      'Local storage is unavailable. Reload the page or free up space.';
+
+  @override
   String get playlistShareError => 'Could not share the playlist.';
 
   @override

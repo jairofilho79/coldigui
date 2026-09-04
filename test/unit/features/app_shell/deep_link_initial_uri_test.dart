@@ -32,5 +32,36 @@ void main() {
       final fromAppLinks = Uri.parse('https://plpcjf.org/');
       expect(resolveWebInitialDeepLinkUri(fromAppLinks), fromAppLinks);
     });
+
+    test(
+      'recupera sharepdfs/sharename quando um campo irrelevante da query base tem % malformado',
+      () {
+        final malformedBase = Uri.parse(
+          '/?sharepdfs=a&sharename=Lista&junk=%E0%A4%A',
+        );
+
+        final resolved = resolveWebInitialDeepLinkUri(
+          null,
+          browserUri: malformedBase,
+        );
+
+        expect(resolved, isNotNull);
+        expect(resolved?.queryParameters['sharepdfs'], 'a');
+        expect(resolved?.queryParameters['sharename'], 'Lista');
+      },
+    );
+
+    test(
+      'cai para fromAppLinks sem lançar quando query base malformada não recupera share params',
+      () {
+        final malformedBase = Uri.parse('/?sharename=%E0%A4%A&sharepdfs=a');
+        final fromAppLinks = Uri.parse('/?sharepdfs=x&sharename=Y');
+
+        expect(
+          resolveWebInitialDeepLinkUri(fromAppLinks, browserUri: malformedBase),
+          fromAppLinks,
+        );
+      },
+    );
   });
 }

@@ -404,6 +404,8 @@
   "playlistImportConfirm": "Importar",
   "playlistImported": "Lista importada",
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
+  "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
+  "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
   "playlistShareError": "Não foi possível compartilhar a lista.",
   "playlistShareSheetTitle": "Compartilhar",
   "playlistShareOptionLink": "Só o link",

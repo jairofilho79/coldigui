@@ -1433,6 +1433,18 @@ abstract class AppLocalizations {
   /// **'Link inválido. Use uma URL com sharepdfs e sharename.'**
   String get playlistImportInvalidUrl;
 
+  /// No description provided for @deepLinkImportFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível importar a lista compartilhada.'**
+  String get deepLinkImportFailed;
+
+  /// No description provided for @offlineStorageUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
+  String get offlineStorageUnavailable;
+
   /// No description provided for @playlistShareError.
   ///
   /// In pt, this message translates to:

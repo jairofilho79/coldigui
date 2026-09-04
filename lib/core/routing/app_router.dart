@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/utils/safe_query_parameters.dart';
 import '../../core/utils/url_sync_params.dart';
 import '../../core/widgets/deferred_route_loader.dart';
 import '../../core/widgets/storage_required_gate.dart';
@@ -55,30 +56,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.library,
-                builder: (context, state) => LibraryScreen(
-                  initialFonte: state.uri.queryParameters[UrlSyncParams.fonte],
-                  initialMateriais:
-                      state.uri.queryParameters[UrlSyncParams.materiais],
-                  initialArranjo:
-                      state.uri.queryParameters[UrlSyncParams.arranjo],
-                  initialArranjoEspecial:
-                      state.uri.queryParameters[UrlSyncParams.arranjoEspecial],
-                  initialTonality:
-                      state.uri.queryParameters[UrlSyncParams.tonality],
-                  initialRhythm:
-                      state.uri.queryParameters[UrlSyncParams.rhythm],
-                  initialCategory:
-                      state.uri.queryParameters[UrlSyncParams.category],
-                  initialTags: state.uri.queryParameters[UrlSyncParams.tags],
-                  initialMaterialKinds:
-                      state.uri.queryParameters[UrlSyncParams.materialKinds],
-                  initialOrdenar:
-                      state.uri.queryParameters[UrlSyncParams.ordenar],
-                  initialItensPorPagina:
-                      state.uri.queryParameters[UrlSyncParams.itensPorPagina],
-                  initialPagina:
-                      state.uri.queryParameters[UrlSyncParams.pagina],
-                ),
+                builder: (context, state) {
+                  final params = safeQueryParameters(state.uri);
+                  return LibraryScreen(
+                    initialFonte: params[UrlSyncParams.fonte],
+                    initialMateriais: params[UrlSyncParams.materiais],
+                    initialArranjo: params[UrlSyncParams.arranjo],
+                    initialArranjoEspecial:
+                        params[UrlSyncParams.arranjoEspecial],
+                    initialTonality: params[UrlSyncParams.tonality],
+                    initialRhythm: params[UrlSyncParams.rhythm],
+                    initialCategory: params[UrlSyncParams.category],
+                    initialTags: params[UrlSyncParams.tags],
+                    initialMaterialKinds: params[UrlSyncParams.materialKinds],
+                    initialOrdenar: params[UrlSyncParams.ordenar],
+                    initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
+                    initialPagina: params[UrlSyncParams.pagina],
+                  );
+                },
               ),
             ],
           ),
@@ -86,34 +81,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: RoutePaths.home,
-                builder: (context, state) => HomeScreen(
-                  initialSearchQuery:
-                      state.uri.queryParameters[UrlSyncParams.pesquisa] ?? '',
-                  initialMateriais:
-                      state.uri.queryParameters[UrlSyncParams.materiais],
-                  initialArranjo:
-                      state.uri.queryParameters[UrlSyncParams.arranjo],
-                ),
+                builder: (context, state) {
+                  final params = safeQueryParameters(state.uri);
+                  return HomeScreen(
+                    initialSearchQuery: params[UrlSyncParams.pesquisa] ?? '',
+                    initialMateriais: params[UrlSyncParams.materiais],
+                    initialArranjo: params[UrlSyncParams.arranjo],
+                  );
+                },
                 routes: [
                   GoRoute(
                     path: 'leitor',
                     builder: (context, state) => DeferredRouteLoader(
                       load: ensurePdfrxInitialized,
                       builder: () => PdfReaderScreen(
-                        queryParams: state.uri.queryParameters,
+                        queryParams: safeQueryParameters(state.uri),
                       ),
                     ),
                   ),
                   GoRoute(
                     path: 'audio',
                     builder: (context, state) => AudioPlayerScreen(
-                      queryParams: state.uri.queryParameters,
+                      queryParams: safeQueryParameters(state.uri),
                     ),
                   ),
                   GoRoute(
                     path: 'cifra',
                     builder: (context, state) => ChordReaderScreen(
-                      queryParams: state.uri.queryParameters,
+                      queryParams: safeQueryParameters(state.uri),
                     ),
                   ),
                 ],
