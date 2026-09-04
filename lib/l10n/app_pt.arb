@@ -390,10 +390,6 @@
   "audioFlagListEmpty": "Nenhum marcador. Pause e toque no botão de bandeira.",
   "audioFlagDelete": "Remover marcador",
   "audioPlaybackError": "Não foi possível reproduzir este áudio.",
-  "retry": "Tentar novamente",
-  "@retry": {
-    "description": "Ação genérica de repetir a última tentativa (erro de reprodução de áudio, C.6)"
-  },
   "audioWebBackgroundNotice": "Na Web, a reprodução em segundo plano e os controles do sistema dependem do navegador — isso não é um bug do app.",
   "audioWebPlatformHintTooltip": "Sobre reprodução na Web",
   "@audioWebPlatformHintTooltip": {
@@ -413,7 +409,6 @@
   "playlistImported": "Lista importada",
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
-  "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
   "playlistShareError": "Não foi possível compartilhar a lista.",
   "playlistShareSheetTitle": "Compartilhar",
   "playlistShareOptionLink": "Só o link",
