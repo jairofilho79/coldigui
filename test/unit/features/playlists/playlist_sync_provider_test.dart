@@ -103,9 +103,10 @@ class _CountingRepository implements PlaylistRepository {
   }) async {}
 }
 
-/// [SyncPlaylists] que devolve um resultado fixo (ou explode no pull).
+/// [SyncPlaylists] roteirizado: [throwsUntilCall] explode nas primeiras
+/// chamadas e as seguintes devolvem [result].
 class _ScriptedSync extends SyncPlaylists {
-  _ScriptedSync({this.result, this.throws})
+  _ScriptedSync({this.result, this.throws, this.throwsUntilCall})
     : super(
         _CountingRepository(),
         (_) async => const <RemotePlaylist>[],
@@ -115,13 +116,17 @@ class _ScriptedSync extends SyncPlaylists {
 
   final PlaylistSyncResult? result;
   final Object? throws;
+
+  /// Número da última chamada que ainda falha (`1` = só a primeira).
+  final int? throwsUntilCall;
   var calls = 0;
 
   @override
   Future<PlaylistSyncResult> call({required String? idToken}) async {
     calls++;
     final error = throws;
-    if (error != null) throw error;
+    final limit = throwsUntilCall;
+    if (error != null && (limit == null || calls <= limit)) throw error;
     return result ?? const PlaylistSyncResult();
   }
 }
@@ -253,8 +258,13 @@ void main() {
     expect(container.read(playlistSyncProvider).lastErrorCause, same(failure));
   });
 
-  test('sync bem-sucedida limpa o erro anterior', () async {
-    final sync = _ScriptedSync(throws: StateError('rede caiu'));
+  test('sync bem-sucedida limpa o erro anterior (mesmo container)', () async {
+    // O boot já gasta a chamada 1 (`syncAfterLogin`): a 2 é a que falha e a 3 é
+    // o "Tentar novamente" que dá certo — tudo no mesmo notifier.
+    final sync = _ScriptedSync(
+      throws: StateError('rede caiu'),
+      throwsUntilCall: 2,
+    );
     final container = buildContainer(
       repository: _CountingRepository(),
       sync: sync,
@@ -262,17 +272,19 @@ void main() {
     addTearDown(container.dispose);
 
     await container.read(authStateProvider.future);
-    await container.read(playlistSyncProvider.notifier).sync();
-    expect(container.read(playlistSyncProvider).lastErrorCause, isNotNull);
+    container.read(playlistSyncProvider);
+    await settle();
 
-    final ok = buildContainer(
-      repository: _CountingRepository(),
-      sync: _ScriptedSync(),
+    final notifier = container.read(playlistSyncProvider.notifier);
+    await notifier.sync();
+    expect(
+      container.read(playlistSyncProvider).lastErrorCause,
+      isNotNull,
+      reason: 'a sync que falhou deixa o erro no estado',
     );
-    addTearDown(ok.dispose);
-    await ok.read(authStateProvider.future);
-    await ok.read(playlistSyncProvider.notifier).sync();
-    expect(ok.read(playlistSyncProvider).lastErrorCause, isNull);
+
+    await notifier.sync();
+    expect(container.read(playlistSyncProvider).lastErrorCause, isNull);
   });
 
   test('conflitos do resultado chegam ao estado', () async {

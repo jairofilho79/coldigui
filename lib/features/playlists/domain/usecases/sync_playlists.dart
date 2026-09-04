@@ -209,13 +209,18 @@ class SyncPlaylists {
     required SavedPlaylist local,
     required RemotePlaylist remote,
   }) async {
-    if (remote.updatedAt.isAfter(local.updatedAt)) {
+    // `!remote.salva` é ignorado pelo pull (`_pull`), e o 409 segue a mesma
+    // regra: um rascunho remoto não ressuscita por cima de uma lista salva.
+    if (remote.salva && remote.updatedAt.isAfter(local.updatedAt)) {
       await _repository.upsert(_fromRemote(remote));
       debugPrint(
         '[playlists] conflito em ${local.playlistId}: remoto mais novo venceu',
       );
       return const _ConflictOutcome(pulled: 1);
     }
+    // Contra o Worker atual este ramo é inalcançável — ele só devolve 409
+    // quando o cliente é o mais **velho** —, mas o spec pede o re-envio e ele
+    // protege de um servidor que passe a recusar por versão.
     try {
       final pushed = await _push(
         idToken: idToken,

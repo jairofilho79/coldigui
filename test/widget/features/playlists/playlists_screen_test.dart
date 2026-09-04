@@ -29,9 +29,15 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   final List<PlaylistViewItem> initial;
   final Object? deleteAllUnsavedThrows;
   ImportPlaylistDialogResult? lastImport;
+  var reloadCalls = 0;
 
   @override
   List<PlaylistViewItem> build() => initial;
+
+  @override
+  Future<void> reload() async {
+    reloadCalls++;
+  }
 
   @override
   Future<void> deleteAllUnsaved() async {
@@ -58,9 +64,13 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
 
 /// Estado de sync fixo, sem `ref.listen` de auth nem rede.
 class _FakeSyncNotifier extends PlaylistSyncNotifier {
-  _FakeSyncNotifier([this.initial = const PlaylistSyncState()]);
+  _FakeSyncNotifier([
+    this.initial = const PlaylistSyncState(),
+    this.result = const PlaylistSyncResult(),
+  ]);
 
   final PlaylistSyncState initial;
+  final PlaylistSyncResult result;
   var syncCalls = 0;
 
   @override
@@ -69,7 +79,7 @@ class _FakeSyncNotifier extends PlaylistSyncNotifier {
   @override
   Future<PlaylistSyncResult> sync() async {
     syncCalls++;
-    return const PlaylistSyncResult();
+    return result;
   }
 }
 
@@ -305,6 +315,63 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('1 lista em conflito'), findsOneWidget);
+  });
+
+  testWidgets('erro e conflito convivem no mesmo banner', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(
+        _FakeSyncNotifier(
+          const PlaylistSyncState(
+            lastErrorCause: StorageUnavailableException('sem storage'),
+            conflicts: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Não foi possível sincronizar suas listas'),
+      findsOneWidget,
+    );
+    expect(find.text('2 listas em conflito'), findsOneWidget);
+  });
+
+  testWidgets('retry que move linhas recarrega a lista visível', (
+    tester,
+  ) async {
+    final playlists = _FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+      const PlaylistSyncResult(pulled: 1),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    final before = playlists.reloadCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+
+    expect(playlists.reloadCalls, before + 1);
+  });
+
+  testWidgets('retry sem novidade não recarrega a lista', (tester) async {
+    final playlists = _FakePlaylistsNotifier(const []);
+    final syncNotifier = _FakeSyncNotifier(
+      const PlaylistSyncState(
+        lastErrorCause: StorageUnavailableException('sem storage'),
+      ),
+    );
+    await tester.pumpWidget(buildWithSync(syncNotifier, playlists: playlists));
+    await tester.pumpAndSettle();
+
+    final before = playlists.reloadCalls;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+
+    expect(playlists.reloadCalls, before);
   });
 
   testWidgets('storage indisponível ao limpar rascunhos vira snackbar', (

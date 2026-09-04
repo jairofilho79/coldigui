@@ -5,6 +5,7 @@ import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/playlist_sync_provider.dart';
+import '../providers/playlists_provider.dart';
 
 /// Aviso discreto de sync na tela de listas (spec A.7).
 ///
@@ -15,6 +16,18 @@ import '../providers/playlist_sync_provider.dart';
 class PlaylistSyncErrorBanner extends ConsumerWidget {
   const PlaylistSyncErrorBanner({super.key});
 
+  /// Re-sincroniza e recarrega a lista visível se alguma linha se mexeu.
+  ///
+  /// `PlaylistsNotifier` não observa o banco: sem este `reload`, um retry que
+  /// puxa listas do servidor apaga o banner e deixa a tela mostrando o estado
+  /// velho (mesma regra do `PlaylistSyncLifecycleMixin`).
+  Future<void> _retry(WidgetRef ref) async {
+    final result = await ref.read(playlistSyncProvider.notifier).sync();
+    if (result.skipped) return;
+    if (result.pulled == 0 && result.pushed == 0 && result.deleted == 0) return;
+    await ref.read(playlistsProvider.notifier).reload();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -22,10 +35,16 @@ class PlaylistSyncErrorBanner extends ConsumerWidget {
     if (!sync.hasProblem) return const SizedBox.shrink();
 
     final cause = sync.lastErrorCause;
+    final conflicts = sync.conflicts;
+    // Erro e conflito não são o mesmo problema e podem coexistir: o erro vira
+    // título + detalhe, e a contagem de conflitos entra como linha própria.
     final title = cause != null
         ? l10n.playlistSyncFailed
-        : l10n.playlistSyncConflicts(sync.conflicts);
-    final detail = cause != null ? userMessageFor(l10n, cause) : null;
+        : l10n.playlistSyncConflicts(conflicts);
+    final details = <String>[
+      if (cause != null) userMessageFor(l10n, cause),
+      if (cause != null && conflicts > 0) l10n.playlistSyncConflicts(conflicts),
+    ];
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
@@ -58,7 +77,7 @@ class PlaylistSyncErrorBanner extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (detail != null)
+                    for (final detail in details)
                       Text(
                         detail,
                         style: textTheme.bodySmall?.copyWith(
@@ -69,7 +88,7 @@ class PlaylistSyncErrorBanner extends ConsumerWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => ref.read(playlistSyncProvider.notifier).sync(),
+                onPressed: () => _retry(ref),
                 style: TextButton.styleFrom(foregroundColor: AppColors.title),
                 child: Text(l10n.retry),
               ),

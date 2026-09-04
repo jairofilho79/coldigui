@@ -537,6 +537,63 @@ void main() {
     expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.conflict);
   });
 
+  test('409 com remoto não-salvo não sobrescreve o local', () async {
+    final repo = _MemoryPlaylistRepository();
+    await repo.upsert(
+      SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Local',
+        pdfIds: const ['x'],
+        createdAt: DateTime.utc(2026, 1, 1),
+        salva: true,
+        updatedAt: DateTime.utc(2026, 3, 1),
+        version: 2,
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      ),
+    );
+
+    final sentVersions = <int>[];
+    final sync = SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async {
+        sentVersions.add(playlist.version);
+        if (sentVersions.length == 1) {
+          throw PlaylistConflictException(
+            RemotePlaylist.fromLegacyLists(
+              id: 'p1',
+              nome: 'Remoto descartado',
+              pdfIds: const ['y'],
+              // O pull ignora remoto com `salva: false`; o 409 tem que seguir a
+              // mesma regra, senão o conflito ressuscita um rascunho remoto.
+              salva: false,
+              favorita: false,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+              version: 7,
+            ),
+          );
+        }
+        return RemotePlaylist.fromLegacyLists(
+          id: playlist.id,
+          nome: playlist.nome,
+          pdfIds: playlist.pdfIds,
+          salva: true,
+          favorita: playlist.favorita,
+          createdAt: playlist.createdAt,
+          updatedAt: playlist.updatedAt,
+          version: playlist.version + 1,
+        );
+      },
+      ({required idToken, required playlistId}) async {},
+    );
+
+    final result = await sync(idToken: 'token');
+    expect(sentVersions, [2, 7], reason: 're-envia em vez de puxar');
+    expect(result.pushed, 1);
+    expect(repo.map['p1']?.nome, 'Local');
+  });
+
   test('tombstone falho desiste após 3 tentativas no mesmo boot', () async {
     final repo = _MemoryPlaylistRepository();
     await repo.upsert(
