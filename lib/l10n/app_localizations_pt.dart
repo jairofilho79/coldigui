@@ -447,6 +447,14 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível ler o arquivo. Tente novamente.';
 
   @override
+  String get pdfExternallyDeleted =>
+      'O PDF foi removido do dispositivo. Conecte-se ou use Configurações Offline → Baixar faltantes.';
+
+  @override
+  String get pdfLocalCorrupted =>
+      'O PDF salvo no dispositivo está corrompido. Baixe de novo para continuar.';
+
+  @override
   String get pdfOfflineGoToSettings => 'Baixar';
 
   @override

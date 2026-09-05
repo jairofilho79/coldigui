@@ -397,16 +397,15 @@ void main() {
       );
     });
 
-    test('PDF removido do dispositivo mostra a mensagem própria', () {
+    test('PDF removido do dispositivo cai no genérico de quem chama', () {
+      // A exceção perdeu o literal PT (D.6): o texto traduzido sai de
+      // `userMessageFor`, e este helper sem l10n usa o genérico recebido.
       expect(
         louvorPdfErrorMessage(
-          const PdfExternallyDeletedException(
-            pdfId: 'pdf-1',
-            message: 'apagado do disco',
-          ),
+          const PdfExternallyDeletedException(pdfId: 'pdf-1'),
           generic,
         ),
-        'apagado do disco',
+        generic,
       );
     });
 

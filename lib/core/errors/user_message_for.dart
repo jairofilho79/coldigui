@@ -53,6 +53,8 @@ Object? _causeOf(Object error) => switch (error) {
 String? _pdfMessage(AppLocalizations l10n, Object error) => switch (error) {
   PdfOfflineUnavailableException() => l10n.pdfOfflineUnavailableMessage,
   PdfLocalReadFailedException() => l10n.pdfLocalReadFailedMessage,
+  PdfExternallyDeletedException() => l10n.pdfExternallyDeleted,
+  PdfLocalCorruptedException() => l10n.pdfLocalCorrupted,
   _ => classifyMaterialOpenFailure(error).message,
 };
 

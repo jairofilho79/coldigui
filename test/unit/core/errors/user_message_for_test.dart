@@ -111,10 +111,10 @@ void main() {
   });
 
   group('exceções de PDF já conhecidas', () {
-    test('PDF removido do dispositivo mantém a mensagem própria', () {
+    test('PDF removido do dispositivo vira texto traduzido', () {
       const error = PdfExternallyDeletedException(pdfId: 'p1');
 
-      expect(userMessageFor(pt, error), error.message);
+      expect(userMessageFor(pt, error), pt.pdfExternallyDeleted);
     });
 
     test('falha de download mantém a mensagem própria', () {
@@ -228,10 +228,18 @@ void main() {
       expect(userMessageFor(en, error), en.pdfLocalReadFailedMessage);
     });
 
-    test('sem chave l10n cai na mensagem da própria exceção', () {
+    test('PDF removido do dispositivo usa a chave própria (D.6)', () {
       const error = PdfExternallyDeletedException(pdfId: 'p1');
 
-      expect(userMessageFor(pt, error), error.message);
+      expect(userMessageFor(pt, error), pt.pdfExternallyDeleted);
+      expect(userMessageFor(en, error), en.pdfExternallyDeleted);
+    });
+
+    test('PDF local corrompido usa a chave própria (D.6)', () {
+      const error = PdfLocalCorruptedException(pdfId: 'p1');
+
+      expect(userMessageFor(pt, error), pt.pdfLocalCorrupted);
+      expect(userMessageFor(en, error), en.pdfLocalCorrupted);
     });
   });
 

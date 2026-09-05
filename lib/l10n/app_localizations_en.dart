@@ -439,6 +439,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not read the file. Please try again.';
 
   @override
+  String get pdfExternallyDeleted =>
+      'The PDF was removed from this device. Go online or use Offline Settings → Download missing.';
+
+  @override
+  String get pdfLocalCorrupted =>
+      'The PDF saved on this device is corrupted. Download it again to continue.';
+
+  @override
   String get pdfOfflineGoToSettings => 'Download';
 
   @override

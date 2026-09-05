@@ -177,9 +177,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       if (mounted) {
         showPdfOfflineUnavailableSnackbar(context, message: e.message);
       }
-    } on PdfExternallyDeletedException catch (e) {
+    } on PdfExternallyDeletedException {
       if (mounted) {
-        showPdfOfflineUnavailableSnackbar(context, message: e.message);
+        // A exceção não carrega mais literal PT: o texto vem do l10n (D.6).
+        showPdfOfflineUnavailableSnackbar(
+          context,
+          message: l10n?.pdfExternallyDeleted,
+        );
       }
     } on PdfFetchFailedException catch (e) {
       if (mounted) showAppSnackbar(context, e.message);
@@ -267,7 +271,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           final unwrapped = unwrapProviderError(error);
           if (unwrapped is PdfLocalCorruptedException) {
             return _ReaderMessage(
-              message: pdfReaderErrorMessage(unwrapped),
+              // Sem literal PT na exceção: o texto sai do l10n (D.6).
+              message:
+                  l10n?.pdfLocalCorrupted ?? pdfReaderErrorMessage(unwrapped),
               retryLabel: _redownloadLoading ? null : 'Baixar novamente',
               onRetry: _redownloadLoading
                   ? null
@@ -277,7 +283,10 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           if (unwrapped is PdfOfflineUnavailableException ||
               unwrapped is PdfExternallyDeletedException) {
             return _ReaderMessage(
-              message: pdfReaderErrorMessage(unwrapped),
+              message: unwrapped is PdfExternallyDeletedException
+                  ? (l10n?.pdfExternallyDeleted ??
+                        pdfReaderErrorMessage(unwrapped))
+                  : pdfReaderErrorMessage(unwrapped),
               retryLabel: l10n?.pdfOfflineGoToSettings ?? 'Baixar',
               onRetry: () => goToShellDestination(context, RoutePaths.offline),
             );

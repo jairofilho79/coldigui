@@ -341,8 +341,16 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       }
     } on PdfOfflineUnavailableException catch (e) {
       if (mounted) showAppSnackbar(context, e.message);
-    } on PdfExternallyDeletedException catch (e) {
-      if (mounted) showAppSnackbar(context, e.message);
+    } on PdfExternallyDeletedException {
+      // A exceção não carrega mais literal PT: o texto vem do l10n (D.6).
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          l10n?.pdfExternallyDeleted ??
+              'O PDF foi removido do dispositivo. Conecte-se ou use '
+                  'Configurações Offline → Baixar faltantes.',
+        );
+      }
     } on PdfFetchFailedException catch (e) {
       if (mounted) showAppSnackbar(context, e.message);
     } on Object {

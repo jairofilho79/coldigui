@@ -219,6 +219,11 @@ Object unwrapProviderError(Object error) {
 }
 
 /// Mensagem amigável para erros de abertura PDF na UI.
+///
+/// `PdfExternallyDeletedException` e `PdfLocalCorruptedException` não aparecem
+/// aqui: elas perderam o literal PT e o texto delas sai do l10n
+/// (`pdfExternallyDeleted` / `pdfLocalCorrupted`) em quem tem `context` — este
+/// fallback só cobre quem não tem (spec D.6).
 String pdfReaderErrorMessage(Object error) {
   error = unwrapProviderError(error);
   if (error is InvalidPdfPathException) {
@@ -227,13 +232,7 @@ String pdfReaderErrorMessage(Object error) {
   if (error is PdfOfflineUnavailableException) {
     return error.message;
   }
-  if (error is PdfExternallyDeletedException) {
-    return error.message;
-  }
   if (error is PdfFetchFailedException) {
-    return error.message;
-  }
-  if (error is PdfLocalCorruptedException) {
     return error.message;
   }
   if (error is PdfLocalReadFailedException) {

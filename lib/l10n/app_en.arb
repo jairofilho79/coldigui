@@ -256,6 +256,8 @@
   "offlineMissingError": "Could not download missing PDFs",
   "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.",
   "pdfLocalReadFailedMessage": "Could not read the file. Please try again.",
+  "pdfExternallyDeleted": "The PDF was removed from this device. Go online or use Offline Settings → Download missing.",
+  "pdfLocalCorrupted": "The PDF saved on this device is corrupted. Download it again to continue.",
   "pdfOfflineGoToSettings": "Download",
   "pdfOfflinePersistentTooltip": "Available offline (guaranteed download)",
   "pdfOfflineCachedLruTooltip": "Temporary cache — may be removed to free space",

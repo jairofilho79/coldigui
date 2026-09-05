@@ -767,6 +767,18 @@ abstract class AppLocalizations {
   /// **'Não foi possível ler o arquivo. Tente novamente.'**
   String get pdfLocalReadFailedMessage;
 
+  /// PDF indexado cujo arquivo sumiu do disco e não deu para rebaixar (D.6)
+  ///
+  /// In pt, this message translates to:
+  /// **'O PDF foi removido do dispositivo. Conecte-se ou use Configurações Offline → Baixar faltantes.'**
+  String get pdfExternallyDeleted;
+
+  /// PDF em cache passou na validação de disco mas não abre no leitor (D.6)
+  ///
+  /// In pt, this message translates to:
+  /// **'O PDF salvo no dispositivo está corrompido. Baixe de novo para continuar.'**
+  String get pdfLocalCorrupted;
+
   /// No description provided for @pdfOfflineGoToSettings.
   ///
   /// In pt, this message translates to:

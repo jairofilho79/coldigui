@@ -156,9 +156,17 @@ MaterialOpenFailure classifyMaterialOpenFailure(
       message: message,
       logWithStack: false,
     ),
-    PdfExternallyDeletedException(:final message) => MaterialOpenFailure(
+    // Sem `message`: as duas exceções abaixo não carregam mais literal PT, e o
+    // texto sai de `userMessageFor` (chaves `pdfExternallyDeleted` /
+    // `pdfLocalCorrupted`). O `stage` continua nomeando o caso nos logs.
+    PdfExternallyDeletedException() => const MaterialOpenFailure(
       stage: 'PDF removido externamente',
-      message: message,
+      message: null,
+      logWithStack: false,
+    ),
+    PdfLocalCorruptedException() => const MaterialOpenFailure(
+      stage: 'PDF local corrompido',
+      message: null,
       logWithStack: false,
     ),
     PdfFetchFailedException(:final message) => MaterialOpenFailure(

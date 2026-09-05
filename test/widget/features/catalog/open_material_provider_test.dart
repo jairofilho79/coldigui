@@ -299,12 +299,23 @@ void main() {
       expect(failure.logWithStack, isFalse);
     });
 
-    test('PdfExternallyDeletedException → mensagem própria sem stack', () {
+    test('PdfExternallyDeletedException → stage sem mensagem própria', () {
+      // Sem `message`: o texto sai do l10n (`pdfExternallyDeleted`, D.6) por
+      // `userMessageFor`; aqui sobra o rótulo de log.
       final failure = classifyMaterialOpenFailure(
-        const PdfExternallyDeletedException(pdfId: 'pdf1', message: 'apagado'),
+        const PdfExternallyDeletedException(pdfId: 'pdf1'),
       );
-      expect(failure.message, 'apagado');
+      expect(failure.message, isNull);
       expect(failure.stage, 'PDF removido externamente');
+      expect(failure.logWithStack, isFalse);
+    });
+
+    test('PdfLocalCorruptedException → stage sem mensagem própria', () {
+      final failure = classifyMaterialOpenFailure(
+        const PdfLocalCorruptedException(pdfId: 'pdf1'),
+      );
+      expect(failure.message, isNull);
+      expect(failure.stage, 'PDF local corrompido');
       expect(failure.logWithStack, isFalse);
     });
 

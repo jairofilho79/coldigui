@@ -259,6 +259,14 @@
   "@pdfLocalReadFailedMessage": {
     "description": "PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente"
   },
+  "pdfExternallyDeleted": "O PDF foi removido do dispositivo. Conecte-se ou use Configurações Offline → Baixar faltantes.",
+  "@pdfExternallyDeleted": {
+    "description": "PDF indexado cujo arquivo sumiu do disco e não deu para rebaixar (D.6)"
+  },
+  "pdfLocalCorrupted": "O PDF salvo no dispositivo está corrompido. Baixe de novo para continuar.",
+  "@pdfLocalCorrupted": {
+    "description": "PDF em cache passou na validação de disco mas não abre no leitor (D.6)"
+  },
   "pdfOfflineGoToSettings": "Baixar",
   "pdfOfflinePersistentTooltip": "Disponível offline (download garantido)",
   "pdfOfflineCachedLruTooltip": "Cache temporário — pode ser removido para liberar espaço",
