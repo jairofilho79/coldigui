@@ -1,14 +1,9 @@
-import type { PublicationCategory, PublicationReach } from '../playlists/publication_rules';
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  });
-}
+import { itemsFromLegacy, parseItemsColumn } from '../playlists/items.ts';
+import type {
+  PublicationCategory,
+  PublicationReach,
+} from '../playlists/publication_rules';
+import { json, parseIdList, SCHEMA_VERSION } from '../playlists/wire.ts';
 
 interface SocialUserRow {
   username: string;
@@ -18,22 +13,13 @@ interface SocialUserRow {
 interface PublicPlaylistRow {
   id: string;
   nome: string;
+  /** JSON de `PlaylistItem[]` — a ordem única tipada. `'[]'` em linha legada. */
+  items: string;
   pdf_ids: string;
   audio_ids: string;
   publication_reach: string | null;
   publication_category: string | null;
   published_at: string | null;
-}
-
-function parseIdList(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v): v is string => typeof v === 'string');
-  } catch {
-    return [];
-  }
 }
 
 function sanitizeLike(q: string): string {
@@ -103,7 +89,7 @@ export async function listPublicPlaylistsByUsername(
 
   const result = await db
     .prepare(
-      `SELECT id, nome, pdf_ids, audio_ids, publication_reach, publication_category, published_at
+      `SELECT id, nome, items, pdf_ids, audio_ids, publication_reach, publication_category, published_at
        FROM user_playlists
        WHERE user_id = ?
          AND is_published = 1
@@ -114,16 +100,29 @@ export async function listPublicPlaylistsByUsername(
     .all<PublicPlaylistRow>();
 
   return json(
-    (result.results ?? []).map((row) => ({
-      id: row.id,
-      nome: row.nome,
-      pdfIds: parseIdList(row.pdf_ids),
-      audioIds: parseIdList(row.audio_ids),
-      publicationReach: row.publication_reach as PublicationReach | null,
-      publicationCategory:
-        row.publication_category as PublicationCategory | null,
-      publishedAt: row.published_at,
-    })),
+    (result.results ?? []).map((row) => {
+      const pdfIds = parseIdList(row.pdf_ids);
+      const audioIds = parseIdList(row.audio_ids);
+      // Mesma projeção do `rowToJson` das playlists próprias (spec A.1): linha
+      // legada (ou coluna corrompida) tem a ordem única derivada das duas
+      // listas; as duas listas continuam no corpo para o cliente v1.
+      const stored = parseItemsColumn(row.items);
+      const items =
+        stored.length > 0 ? stored : itemsFromLegacy(pdfIds, audioIds);
+
+      return {
+        id: row.id,
+        nome: row.nome,
+        schemaVersion: SCHEMA_VERSION,
+        items,
+        pdfIds,
+        audioIds,
+        publicationReach: row.publication_reach as PublicationReach | null,
+        publicationCategory:
+          row.publication_category as PublicationCategory | null,
+        publishedAt: row.published_at,
+      };
+    }),
   );
 }
 
