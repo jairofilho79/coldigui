@@ -85,5 +85,8 @@ jobs:
       - name: Dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Tests
         run: npm test
