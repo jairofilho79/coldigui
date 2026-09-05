@@ -164,6 +164,28 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     }
   }
 
+  /// Avisa que listas sumiram porque alguém as apagou em outro aparelho.
+  ///
+  /// Não é erro (não vai para o banner), mas some da tela sem explicação seria
+  /// pior: vira snackbar informativo (spec A.2). Só quando a rodada terminou e
+  /// o resultado é novo — um rebuild não repete o aviso.
+  void _announceRemoteRemovals(
+    PlaylistSyncState? previous,
+    PlaylistSyncState next,
+  ) {
+    if (next.isSyncing) return;
+    final result = next.lastResult;
+    if (result == null || result.deletedRemotely == 0) return;
+    if (identical(previous?.lastResult, result)) return;
+    if (!mounted) return;
+    showAppSnackbar(
+      context,
+      AppLocalizations.of(
+        context,
+      )!.playlistsRemovedRemotely(result.deletedRemotely),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -171,6 +193,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     final ui = ref.watch(playlistsUiProvider);
     final syncing = ref.watch(playlistSyncProvider).isSyncing;
     ref.listen(playlistsUiProvider, (_, next) => _syncTabFromProvider(next));
+    ref.listen(playlistSyncProvider, _announceRemoteRemovals);
 
     final currentTab = ui.tab;
 

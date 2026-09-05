@@ -828,6 +828,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playlistsRemovedRemotely(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists removed on another device',
+      one: '1 playlist removed on another device',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get playlistImported => 'Playlist imported';
 
   @override

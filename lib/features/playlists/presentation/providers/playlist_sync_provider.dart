@@ -42,6 +42,7 @@ class PlaylistSyncState {
     this.lastResult,
     this.lastErrorCause,
     this.conflicts = 0,
+    this.deletedRemotely = 0,
   });
 
   final bool isSyncing;
@@ -56,6 +57,11 @@ class PlaylistSyncState {
   /// Listas que ficaram em conflito na última rodada.
   final int conflicts;
 
+  /// Listas apagadas aqui porque sumiram em outro aparelho (spec A.2).
+  ///
+  /// Não é problema — vira snackbar informativo, não banner.
+  final int deletedRemotely;
+
   /// `true` quando há algo a mostrar ao usuário na tela de listas.
   bool get hasProblem => lastErrorCause != null || conflicts > 0;
 
@@ -66,12 +72,14 @@ class PlaylistSyncState {
     PlaylistSyncResult? lastResult,
     Object? lastErrorCause,
     int? conflicts,
+    int? deletedRemotely,
   }) {
     return PlaylistSyncState(
       isSyncing: isSyncing ?? this.isSyncing,
       lastResult: lastResult ?? this.lastResult,
       lastErrorCause: lastErrorCause ?? this.lastErrorCause,
       conflicts: conflicts ?? this.conflicts,
+      deletedRemotely: deletedRemotely ?? this.deletedRemotely,
     );
   }
 }
@@ -158,7 +166,12 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
   Future<void> retryAndReload() async {
     final result = await sync();
     if (!ref.mounted || result.skipped) return;
-    if (result.pulled == 0 && result.pushed == 0 && result.deleted == 0) return;
+    if (result.pulled == 0 &&
+        result.pushed == 0 &&
+        result.deleted == 0 &&
+        result.deletedRemotely == 0) {
+      return;
+    }
     await ref.read(playlistsProvider.notifier).reload();
   }
 
@@ -174,6 +187,7 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
         lastResult: result,
         lastErrorCause: result.error,
         conflicts: result.conflicts,
+        deletedRemotely: result.deletedRemotely,
       );
     } on Object catch (e) {
       debugPrint('[playlists] sync falhou: $e');

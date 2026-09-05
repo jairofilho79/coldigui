@@ -18,9 +18,14 @@ class PlaylistRemoteDatasource {
   /// Um registro malformado (campo obrigatório ausente, data inválida, `items`
   /// com forma inesperada) é descartado com log em vez de derrubar o pull
   /// inteiro: uma linha ruim no D1 não pode custar todas as outras (spec A.7).
+  ///
+  /// `includeDeleted=1` traz também os tombstones (`deletedAt` não-nulo), para
+  /// o sync apagar aqui o que sumiu em outro aparelho (spec A.2). Um Worker que
+  /// ainda não conhece o parâmetro simplesmente o ignora e devolve só as vivas.
   Future<List<RemotePlaylist>> fetchAll(String idToken) async {
     final response = await _dio.get<List<dynamic>>(
       ApiEndpoints.playlists,
+      queryParameters: {'includeDeleted': '1'},
       options: _auth(idToken),
     );
     final data = response.data ?? const [];

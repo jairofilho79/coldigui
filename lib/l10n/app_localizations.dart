@@ -1469,6 +1469,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 lista em conflito} other{{count} listas em conflito}}'**
   String playlistSyncConflicts(int count);
 
+  /// No description provided for @playlistsRemovedRemotely.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 lista removida em outro aparelho} other{{count} listas removidas em outro aparelho}}'**
+  String playlistsRemovedRemotely(int count);
+
   /// No description provided for @playlistImported.
   ///
   /// In pt, this message translates to:

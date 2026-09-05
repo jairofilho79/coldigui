@@ -22,19 +22,27 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
   }) async {
-    final id = playlistId ?? 'gen';
+    final id = playlistId ?? 'gen-${map.length}';
     final now = createdAt ?? DateTime.utc(2026, 1, 1);
-    map[id] = SavedPlaylist.fromLegacyLists(
+    map[id] = SavedPlaylist(
       playlistId: id,
       nome: nome,
-      pdfIds: pdfIds,
-      audioIds: audioIds,
+      entries:
+          entries ??
+          SavedPlaylist.entriesFromLegacyLists(
+            pdfIds: pdfIds,
+            audioIds: audioIds,
+          ),
       createdAt: now,
       salva: salva,
       savedAt: savedAt ?? (salva ? now : null),
       updatedAt: updatedAt ?? now,
       version: version,
-      syncStatus: salva ? PlaylistSyncStatus.pendingPush : syncStatus,
+      // Mesma regra do repositório real: só o `synced` default de uma lista
+      // salva vira `pendingPush`; um status explícito é respeitado.
+      syncStatus: salva && syncStatus == PlaylistSyncStatus.synced
+          ? PlaylistSyncStatus.pendingPush
+          : syncStatus,
     );
     return id;
   }
@@ -629,5 +637,99 @@ void main() {
       isTrue,
       reason: 'tombstone preservado',
     );
+  });
+
+  group('exclusão em outro aparelho (A.2)', () {
+    /// Linha remota já apagada no servidor.
+    RemotePlaylist tombstone({
+      String id = 'p1',
+      DateTime? deletedAt,
+      DateTime? updatedAt,
+    }) => RemotePlaylist.fromLegacyLists(
+      id: id,
+      nome: 'Remoto',
+      pdfIds: const ['y'],
+      salva: true,
+      favorita: false,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: updatedAt ?? DateTime.utc(2026, 6, 1),
+      version: 4,
+      deletedAt: deletedAt ?? DateTime.utc(2026, 6, 1),
+    );
+
+    test('remota apagada e local synced vira hard delete local', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'p1',
+          nome: 'Local',
+          pdfIds: const ['x'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          updatedAt: DateTime.utc(2026, 3, 1),
+          syncStatus: PlaylistSyncStatus.synced,
+        ),
+      );
+
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => [tombstone()],
+        ({required idToken, required playlist}) async => playlist,
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token');
+      expect(result.deletedRemotely, 1);
+      expect(result.pulled, 0);
+      expect(repo.map.containsKey('p1'), isFalse);
+    });
+
+    test('remota apagada e local pendingPush mais nova é enviada', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'p1',
+          nome: 'Local',
+          pdfIds: const ['x'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          // Depois do `deletedAt` remoto: o push ressuscita a lista.
+          updatedAt: DateTime.utc(2026, 7, 1),
+          syncStatus: PlaylistSyncStatus.pendingPush,
+        ),
+      );
+
+      final pushed = <String>[];
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => [tombstone()],
+        ({required idToken, required playlist}) async {
+          pushed.add(playlist.id);
+          return playlist;
+        },
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token');
+      expect(result.deletedRemotely, 0);
+      expect(pushed, ['p1']);
+      expect(repo.map['p1']?.nome, 'Local');
+    });
+
+    test('remota apagada sem local não faz nada', () async {
+      final repo = _MemoryPlaylistRepository();
+
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => [tombstone(id: 'sumiu')],
+        ({required idToken, required playlist}) async => playlist,
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token');
+      expect(result.deletedRemotely, 0);
+      expect(result.pulled, 0);
+      expect(repo.map, isEmpty);
+    });
   });
 }

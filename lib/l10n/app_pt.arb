@@ -415,6 +415,12 @@
       "count": { "type": "int" }
     }
   },
+  "playlistsRemovedRemotely": "{count, plural, one{1 lista removida em outro aparelho} other{{count} listas removidas em outro aparelho}}",
+  "@playlistsRemovedRemotely": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImported": "Lista importada",
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",

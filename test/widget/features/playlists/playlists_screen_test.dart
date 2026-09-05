@@ -91,6 +91,18 @@ class _FakeSyncNotifier extends PlaylistSyncNotifier {
   }
 }
 
+/// Sync que o teste move de estado depois da montagem — é como se observa o
+/// `ref.listen` da tela, que só dispara em transição.
+class _MutableSyncNotifier extends PlaylistSyncNotifier {
+  @override
+  PlaylistSyncState build() => const PlaylistSyncState();
+
+  void emit(PlaylistSyncState next) => state = next;
+
+  @override
+  Future<PlaylistSyncResult> sync() async => const PlaylistSyncResult();
+}
+
 class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
   _FakeCarouselNotifier(this.initial);
 
@@ -343,6 +355,36 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('2 listas em conflito'), findsOneWidget);
+  });
+
+  testWidgets('remoção em outro aparelho vira snackbar (A.2)', (tester) async {
+    final syncNotifier = _MutableSyncNotifier();
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    syncNotifier.emit(
+      const PlaylistSyncState(
+        lastResult: PlaylistSyncResult(deletedRemotely: 2),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('2 listas removidas em outro aparelho'), findsOneWidget);
+  });
+
+  testWidgets('sync sem remoção remota não mostra snackbar', (tester) async {
+    final syncNotifier = _MutableSyncNotifier();
+    await tester.pumpWidget(buildWithSync(syncNotifier));
+    await tester.pumpAndSettle();
+
+    syncNotifier.emit(
+      const PlaylistSyncState(lastResult: PlaylistSyncResult(pulled: 3)),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   testWidgets('retry que move linhas recarrega a lista visível', (

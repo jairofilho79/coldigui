@@ -403,6 +403,12 @@
       "count": { "type": "int" }
     }
   },
+  "playlistsRemovedRemotely": "{count, plural, one{1 playlist removed on another device} other{{count} playlists removed on another device}}",
+  "@playlistsRemovedRemotely": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImported": "Playlist imported",
   "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
   "deepLinkImportFailed": "Could not import the shared playlist.",

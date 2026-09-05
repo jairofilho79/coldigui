@@ -56,6 +56,7 @@ class RemotePlaylist {
     this.schemaVersion = kPlaylistSchemaVersion,
     this.savedAt,
     this.favoritedAt,
+    this.deletedAt,
     this.isPublished = false,
     this.publicationReach,
     this.publicationCategory,
@@ -80,6 +81,7 @@ class RemotePlaylist {
     int schemaVersion = kPlaylistSchemaVersion,
     DateTime? savedAt,
     DateTime? favoritedAt,
+    DateTime? deletedAt,
     bool isPublished = false,
     PlaylistReach? publicationReach,
     PlaylistCategory? publicationCategory,
@@ -100,6 +102,7 @@ class RemotePlaylist {
          schemaVersion: schemaVersion,
          savedAt: savedAt,
          favoritedAt: favoritedAt,
+         deletedAt: deletedAt,
          isPublished: isPublished,
          publicationReach: publicationReach,
          publicationCategory: publicationCategory,
@@ -139,6 +142,14 @@ class RemotePlaylist {
   final int version;
   final DateTime? savedAt;
   final DateTime? favoritedAt;
+
+  /// Tombstone do servidor: quando não-nulo, a lista foi apagada em outro
+  /// aparelho (`GET /api/playlists?includeDeleted=1`, spec A.2).
+  ///
+  /// `null` também quando o Worker é antigo e nem manda o campo — a ausência
+  /// nunca é lida como exclusão.
+  final DateTime? deletedAt;
+
   final bool isPublished;
   final PlaylistReach? publicationReach;
   final PlaylistCategory? publicationCategory;
@@ -182,6 +193,10 @@ class RemotePlaylist {
       version: _optionalInt(json, 'version') ?? 1,
       savedAt: _parseOptionalDate(json['savedAt']),
       favoritedAt: _parseOptionalDate(json['favoritedAt']),
+      // Estrito, ao contrário dos outros opcionais: um tombstone ilegível não
+      // pode virar "lista viva" por silêncio — a linha inteira é descartada
+      // pela tolerância por item do pull.
+      deletedAt: _strictOptionalDate(json, 'deletedAt'),
       isPublished: json['isPublished'] as bool? ?? false,
       publicationReach: PlaylistReachWire.tryParse(
         json['publicationReach'] as String?,
@@ -214,6 +229,10 @@ class RemotePlaylist {
 
   /// Sempre v2: `items` como objetos `{id, kind}` mais as duas listas
   /// derivadas, para um leitor v1 continuar funcionando.
+  ///
+  /// **Sem `deletedAt`**: o tombstone é do servidor (`DELETE` cria, o `PUT`
+  /// ressuscita). Mandá-lo de volta num `PUT` daria ao cliente um jeito de
+  /// apagar uma lista sem passar pela rota de exclusão.
   Map<String, dynamic> toJson() => {
     'id': id,
     'nome': nome,
@@ -233,6 +252,22 @@ class RemotePlaylist {
     'publicationCategory': publicationCategory?.wireValue,
     'publishedAt': publishedAt?.toUtc().toIso8601String(),
   };
+
+  /// Data opcional que, **quando presente**, precisa ser válida.
+  static DateTime? _strictOptionalDate(
+    Map<String, Object?> json,
+    String field,
+  ) {
+    final value = json[field];
+    if (value == null) return null;
+    final parsed = value is String ? DateTime.tryParse(value) : null;
+    if (parsed == null) {
+      throw FormatException(
+        'RemotePlaylist: campo "$field" não é uma data ISO-8601 (veio $value)',
+      );
+    }
+    return parsed;
+  }
 
   static DateTime? _parseOptionalDate(Object? value) {
     if (value is! String || value.isEmpty) return null;

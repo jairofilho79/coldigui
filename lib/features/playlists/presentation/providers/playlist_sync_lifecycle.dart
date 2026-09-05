@@ -38,7 +38,10 @@ mixin PlaylistSyncLifecycleMixin<T extends ConsumerStatefulWidget>
       unawaited(
         ref.read(playlistSyncProvider.notifier).sync().then((result) async {
           if (!result.skipped &&
-              (result.pulled > 0 || result.pushed > 0 || result.deleted > 0)) {
+              (result.pulled > 0 ||
+                  result.pushed > 0 ||
+                  result.deleted > 0 ||
+                  result.deletedRemotely > 0)) {
             if (mounted) {
               await ref.read(playlistsProvider.notifier).reload();
             }

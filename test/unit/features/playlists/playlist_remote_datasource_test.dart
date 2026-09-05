@@ -13,12 +13,16 @@ class _FixedAdapter implements HttpClientAdapter {
   final int statusCode;
   final Object? body;
 
+  /// Última requisição vista — é como o teste inspeciona a query string.
+  RequestOptions? lastRequest;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    lastRequest = options;
     return ResponseBody.fromString(
       body == null ? '' : jsonEncode(body),
       statusCode,
@@ -56,6 +60,16 @@ Map<String, Object?> _row({
 };
 
 void main() {
+  test('fetchAll pede os tombstones com includeDeleted=1', () async {
+    final adapter = _FixedAdapter(200, [_row()]);
+    final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    dio.httpClientAdapter = adapter;
+
+    await PlaylistRemoteDatasource(dio).fetchAll('token');
+
+    expect(adapter.lastRequest?.queryParameters['includeDeleted'], '1');
+  });
+
   test('fetchAll ignora registro malformado e mantém os demais', () async {
     final datasource = _datasource(200, [
       _row(id: 'ok-1'),

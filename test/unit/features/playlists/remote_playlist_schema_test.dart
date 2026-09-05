@@ -417,4 +417,36 @@ void main() {
       expect(parsed.pdfIds, [pdfA]);
     });
   });
+
+  group('RemotePlaylist.fromJson — deletedAt (A.2)', () {
+    test('lê o tombstone do Worker', () {
+      final remote = RemotePlaylist.fromJson({
+        ..._baseJson(),
+        'deletedAt': '2026-09-03T10:00:00.000Z',
+      });
+
+      expect(remote.deletedAt, DateTime.utc(2026, 9, 3, 10));
+    });
+
+    test('Worker sem o campo (ou com null) vira deletedAt nulo', () {
+      expect(RemotePlaylist.fromJson(_baseJson()).deletedAt, isNull);
+      expect(
+        RemotePlaylist.fromJson({..._baseJson(), 'deletedAt': null}).deletedAt,
+        isNull,
+      );
+    });
+
+    test('deletedAt ilegível lança FormatException nomeando o campo', () {
+      expect(
+        () => RemotePlaylist.fromJson({..._baseJson(), 'deletedAt': 'ontem'}),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('deletedAt'),
+          ),
+        ),
+      );
+    });
+  });
 }

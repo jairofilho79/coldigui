@@ -10,6 +10,7 @@ class PlaylistSyncResult {
     this.pulled = 0,
     this.pushed = 0,
     this.deleted = 0,
+    this.deletedRemotely = 0,
     this.skipped = false,
     this.conflicts = 0,
     this.pullError,
@@ -18,7 +19,14 @@ class PlaylistSyncResult {
 
   final int pulled;
   final int pushed;
+
+  /// Tombstones locais que o servidor aceitou apagar nesta rodada.
   final int deleted;
+
+  /// Listas apagadas **aqui** por causa de um tombstone remoto — alguém as
+  /// excluiu em outro aparelho (spec A.2).
+  final int deletedRemotely;
+
   final bool skipped;
 
   /// Listas que ficaram em [PlaylistSyncStatus.conflict] nesta rodada.
@@ -81,13 +89,16 @@ class SyncPlaylists {
     var pulled = 0;
     var pushed = 0;
     var deleted = 0;
+    var deletedRemotely = 0;
     var conflicts = 0;
     Object? pullError;
     Object? pushError;
 
     // Fase A — Pull. Isolada: se cair, push e tombstones ainda rodam.
     try {
-      pulled = await _pull(idToken);
+      final outcome = await _pull(idToken);
+      pulled = outcome.pulled;
+      deletedRemotely = outcome.deletedRemotely;
     } on Object catch (e) {
       pullError = e;
       debugPrint('[playlists] pull falhou, seguindo com push: $e');
@@ -140,18 +151,27 @@ class SyncPlaylists {
       pulled: pulled,
       pushed: pushed,
       deleted: deleted,
+      deletedRemotely: deletedRemotely,
       conflicts: conflicts,
       pullError: pullError,
       pushError: pushError,
     );
   }
 
-  /// Fase A isolada — devolve quantas listas vieram do servidor.
-  Future<int> _pull(String idToken) async {
+  /// Fase A isolada — o que o servidor trouxe e o que ele mandou apagar.
+  Future<_PullOutcome> _pull(String idToken) async {
     var pulled = 0;
+    var deletedRemotely = 0;
     final remote = await _fetch(idToken);
 
     for (final r in remote) {
+      final remoteDeletedAt = r.deletedAt;
+      if (remoteDeletedAt != null) {
+        if (await _applyRemoteDeletion(r.id, remoteDeletedAt)) {
+          deletedRemotely++;
+        }
+        continue;
+      }
       if (!r.salva) continue;
       final local = await _repository.getById(r.id);
       if (local == null) {
@@ -174,7 +194,24 @@ class SyncPlaylists {
         pulled++;
       }
     }
-    return pulled;
+    return _PullOutcome(pulled: pulled, deletedRemotely: deletedRemotely);
+  }
+
+  /// Aplica um tombstone remoto (spec A.2). `true` se a lista sumiu daqui.
+  ///
+  /// A exclusão nunca é deduzida por ausência — só por um `deletedAt` explícito
+  /// do servidor —, e uma edição local **posterior** à exclusão ganha: ela fica
+  /// e o push a ressuscita no ramo `deleted_at IS NOT NULL` do Worker.
+  Future<bool> _applyRemoteDeletion(String id, DateTime deletedAt) async {
+    final local = await _repository.getById(id);
+    if (local == null) return false;
+    final localWins =
+        local.syncStatus == PlaylistSyncStatus.pendingPush &&
+        local.updatedAt.isAfter(deletedAt);
+    if (localWins) return false;
+    await _repository.hardDelete(local.playlistId);
+    debugPrint('[playlists] $id apagada em outro aparelho: hard delete local');
+    return true;
   }
 
   /// `PUT` de uma lista e gravação do que o servidor devolveu. Devolve `1`.
@@ -291,4 +328,12 @@ class _ConflictOutcome {
   final int pulled;
   final int pushed;
   final int conflicts;
+}
+
+/// O que a fase de pull produziu.
+class _PullOutcome {
+  const _PullOutcome({required this.pulled, required this.deletedRemotely});
+
+  final int pulled;
+  final int deletedRemotely;
 }
