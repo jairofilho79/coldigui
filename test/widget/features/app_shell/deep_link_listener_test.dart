@@ -202,6 +202,53 @@ void main() {
     expect(find.textContaining('Link inválido'), findsOneWidget);
   });
 
+  testWidgets('deep link só com sharename avisa em vez de sumir (D.6)', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      navigatorKey: rootNavigatorKey,
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          // Sem stub: a URL passa pelo parser e pelo use case de verdade — é
+          // exatamente ali que o caso era engolido.
+          syncDeepLinkStateProvider.overrideWithValue(
+            SyncDeepLinkState(importUseCase),
+          ),
+          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        ],
+        child: DeepLinkListener(
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tester.state<DeepLinkListenerState>(
+      find.byType(DeepLinkListener),
+    );
+    await state.handleUriForTest(Uri.parse('/?sharename=Ensaio'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Link inválido'), findsOneWidget);
+  });
+
   testWidgets(
     'sincronização lançando PlaylistNotFoundException exibe snackbar sem propagar exceção',
     (tester) async {

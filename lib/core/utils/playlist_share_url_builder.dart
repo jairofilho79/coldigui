@@ -203,21 +203,25 @@ Uri stripPlaylistShareParams(Uri uri) {
   return uri.replace(queryParameters: query);
 }
 
-/// Extrai params de share de [uri] quando `sharename` e ao menos uma entrada
-/// (por `shareitems` ou pelos legados) estão presentes.
+/// Extrai params de share de [uri] quando `sharename` está presente.
+///
+/// `null` significa **"não é uma URL de share"** — sem `sharename` não há nada a
+/// importar, e todo link comum do app passa por aqui. Um `sharename` sem
+/// material devolve params com [PlaylistShareParams.entries] vazio: é um share,
+/// só que inválido, e quem decide o aviso é `ImportSharedPlaylistFromUrl`
+/// (`InvalidSharePlaylistException` → snackbar `playlistImportInvalidUrl`).
+/// Devolver `null` aqui fazia o link sumir sem nenhuma mensagem (spec D.6).
 PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
   final query = safeQueryParameters(uri);
   final shareName = query[UrlSyncParams.shareName];
   if (shareName == null || shareName.isEmpty) return null;
 
-  final params = PlaylistShareParams(
+  return PlaylistShareParams(
     sharePdfs: query[UrlSyncParams.sharePdfs] ?? '',
     shareAudios: query[UrlSyncParams.shareAudios] ?? '',
     shareName: shareName,
     shareItems: query[UrlSyncParams.shareItems],
   );
-  if (params.entries.isEmpty) return null;
-  return params;
 }
 
 /// Parse CSV de IDs — preserva ordem, dedupe (primeira ocorrência).
@@ -243,18 +247,36 @@ List<String> _parseCsvIds(String raw) {
 }
 
 /// Aceita URL completa, query string ou fragmento colado pelo usuário (UC-07 UI).
+///
+/// Um texto colado pode ser lido de três formas (URL, query crua, trecho depois
+/// do `?`), e só uma delas costuma achar os materiais — «abre isto:
+/// plpcg.com/?shareitems=…» vira uma chave lixo nas outras duas. Por isso um
+/// resultado **sem entradas** fica guardado como último recurso, e a primeira
+/// leitura com material vence. Quando nenhuma acha material, o params sem
+/// entradas ainda é devolvido: aí é um share inválido, que precisa de aviso
+/// (`playlistImportInvalidUrl`), não de silêncio (spec D.6).
 PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
 
+  PlaylistShareParams? named;
+  PlaylistShareParams? withEntries(PlaylistShareParams? params) {
+    if (params == null) return null;
+    if (params.entries.isNotEmpty) return params;
+    named ??= params;
+    return null;
+  }
+
   final uri = Uri.tryParse(trimmed);
   if (uri != null && uri.hasQuery) {
-    final fromUri = parsePlaylistShareParams(uri);
+    final fromUri = withEntries(parsePlaylistShareParams(uri));
     if (fromUri != null) return fromUri;
   }
 
   final queryOnly = trimmed.startsWith('?') ? trimmed.substring(1) : trimmed;
-  final fromQuery = parsePlaylistShareParams(Uri(query: queryOnly));
+  final fromQuery = withEntries(
+    parsePlaylistShareParams(Uri(query: queryOnly)),
+  );
   if (fromQuery != null) return fromQuery;
 
   final hasShareName = trimmed.contains('${UrlSyncParams.shareName}=');
@@ -267,8 +289,11 @@ PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
     final queryPart = questionIndex >= 0
         ? trimmed.substring(questionIndex + 1)
         : trimmed;
-    return parsePlaylistShareParams(Uri(query: queryPart));
+    final fromFragment = withEntries(
+      parsePlaylistShareParams(Uri(query: queryPart)),
+    );
+    if (fromFragment != null) return fromFragment;
   }
 
-  return null;
+  return named;
 }

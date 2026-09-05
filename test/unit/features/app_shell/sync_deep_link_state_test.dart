@@ -148,13 +148,19 @@ void main() {
     expect(result.outcome, SyncDeepLinkOutcome.invalid);
   });
 
-  test('retorna skipped quando nenhuma lista tem entrada', () async {
-    // `sharepdfs= , ` não rende nenhuma entrada, então
-    // `parsePlaylistShareParams` já devolve null (spec A.5) e nem chega ao
-    // import — mesmo caminho de uma URI sem params de share.
+  test('retorna invalid quando nenhuma lista tem entrada', () async {
+    // `sharepdfs= , ` não rende nenhuma entrada, mas o `sharename` está lá:
+    // é um share inválido, não "não é share". `parsePlaylistShareParams`
+    // devolve params com `entries` vazio e o import lança
+    // `InvalidSharePlaylistException` — o usuário vê o aviso (spec D.6).
     final result = await useCase(
       uri: Uri.parse('/?sharepdfs= , &sharename=Nome'),
     );
+    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+  });
+
+  test('retorna skipped quando a URI não tem sharename', () async {
+    final result = await useCase(uri: Uri.parse('/?sharepdfs=a%2Cb'));
     expect(result.outcome, SyncDeepLinkOutcome.skipped);
   });
 

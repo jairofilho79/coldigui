@@ -286,9 +286,28 @@ void main() {
       ]);
     });
 
-    test('shareitems inválido sem legados devolve null', () {
+    test('shareitems inválido sem legados devolve entries vazio', () {
       final uri = Uri.parse('/?shareitems=lixo&sharename=Ensaio');
-      expect(parsePlaylistShareParams(uri), isNull);
+      final params = parsePlaylistShareParams(uri);
+      expect(
+        params,
+        isNotNull,
+        reason: 'há sharename: é um share, só que ruim',
+      );
+      expect(params!.entries, isEmpty);
+    });
+
+    test('URL só com sharename devolve params com entries vazio (D.6)', () {
+      // "Não é share" (null) e "share sem materiais" são coisas diferentes: a
+      // segunda tem que virar aviso, não sumiço silencioso.
+      final params = parsePlaylistShareParams(Uri.parse('/?sharename=Ensaio'));
+      expect(params, isNotNull);
+      expect(params!.shareName, 'Ensaio');
+      expect(params.entries, isEmpty);
+    });
+
+    test('URL sem nenhum param de share continua devolvendo null', () {
+      expect(parsePlaylistShareParams(Uri.parse('/?pesquisa=x')), isNull);
     });
 
     test('não lança com "%" malformado em outro param', () {

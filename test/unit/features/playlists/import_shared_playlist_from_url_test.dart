@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -53,6 +54,28 @@ void main() {
       throwsA(isA<InvalidSharePlaylistException>()),
     );
   });
+
+  test(
+    'URL só com sharename chega ao use case e lança InvalidShare... (D.6)',
+    () async {
+      final params = parsePlaylistShareParams(
+        Uri.parse('https://plpcg.com/?sharename=Ensaio'),
+      );
+      // O parser não pode mais engolir o caso: quem avisa o usuário é a
+      // exceção daqui, via snackbar `playlistImportInvalidUrl`.
+      expect(params, isNotNull);
+
+      expect(
+        () => useCase(
+          sharePdfs: params!.sharePdfs,
+          shareAudios: params.shareAudios,
+          shareItems: params.shareItems ?? '',
+          shareName: params.shareName,
+        ),
+        throwsA(isA<InvalidSharePlaylistException>()),
+      );
+    },
+  );
 
   test('lança InvalidSharePlaylistException se shareName vazio', () async {
     expect(
