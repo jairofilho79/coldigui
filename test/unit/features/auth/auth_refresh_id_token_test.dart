@@ -114,10 +114,11 @@ void main() {
     });
 
     test(
-      'refresh que lança não propaga a exceção e marca sessionExpired',
+      'refresh que lança não propaga a exceção nem marca sessionExpired (D.4)',
       () async {
+        final store = seededStore();
         final container = buildContainer(
-          store: seededStore(),
+          store: store,
           refresher: () async => throw StateError('sdk bloqueado'),
         );
         addTearDown(container.dispose);
@@ -127,7 +128,14 @@ void main() {
           await container.read(authStateProvider.notifier).refreshIdToken(),
           isNull,
         );
-        expect(container.read(sessionExpiredProvider), isTrue);
+        // Exceção é falha transitória: o token corrente segue em uso e o
+        // próximo request tenta de novo, em vez de exigir login manual.
+        expect(container.read(sessionExpiredProvider), isFalse);
+        expect(store.read()?.idToken, 'token-antigo');
+        expect(
+          container.read(authStateProvider).value?.idToken,
+          'token-antigo',
+        );
       },
     );
 

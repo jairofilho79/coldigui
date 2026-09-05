@@ -201,8 +201,11 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
   /// Renova o `id_token` sem UI e devolve o token novo, ou `null`.
   ///
-  /// `null` marca [sessionExpiredProvider] (o usuário precisa entrar de novo) e
-  /// **preserva** a sessão local: quem decide deslogar é o Worker, via
+  /// `null` **conclusivo** (o refresher devolveu nada, vazio ou o mesmo token,
+  /// sem lançar) marca [sessionExpiredProvider] — o usuário precisa entrar de
+  /// novo. `null` por falha **transitória** (o refresher lançou) não marca nada:
+  /// o token corrente segue em uso (spec D.4). Em qualquer caso a sessão local é
+  /// **preservada**: quem decide deslogar é o Worker, via
   /// [AuthUnauthorizedException]. Nunca propaga exceção — é chamado de dentro de
   /// um interceptor do Dio.
   Future<String?> refreshIdToken() {
@@ -216,17 +219,24 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     // Sem sessão não há o que renovar — e não é uma sessão "expirada".
     if (current == null) return null;
 
-    String? idToken;
+    final String? idToken;
     try {
       idToken = await ref.read(googleSilentIdTokenRefresherProvider)();
     } on Object catch (error) {
+      // Exceção é falha **transitória** (offline, timeout, extensão travando o
+      // GIS): o Google não disse que a sessão morreu, só não deu para
+      // perguntar. Marcar expirada aqui prendia o usuário num login manual por
+      // causa de uma piscada de rede (spec D.4). O token corrente segue valendo
+      // e o próximo request tenta de novo — o 401, se vier, é conclusivo.
       debugPrint('[auth] reautenticação silenciosa falhou: $error');
+      return null;
     }
 
-    // Token idêntico conta como falha: o Google não tem nada mais fresco para
-    // dar, e reemitir `AsyncData` aqui reconstruiria quem observa
-    // [authStateProvider] (AuthUser não tem `==`), gerando request nova → 401 →
-    // refresh → laço sem fim enquanto o Worker recusar esse token.
+    // Resultado sem exceção é conclusivo. Token idêntico conta como falha: o
+    // Google não tem nada mais fresco para dar, e reemitir `AsyncData` aqui
+    // reconstruiria quem observa [authStateProvider] (AuthUser não tem `==`),
+    // gerando request nova → 401 → refresh → laço sem fim enquanto o Worker
+    // recusar esse token.
     if (idToken == null || idToken.isEmpty || idToken == current.idToken) {
       ref.read(sessionExpiredProvider.notifier).markExpired();
       return null;

@@ -329,6 +329,46 @@ void main() {
         // atalho, nunca um bloqueio.
         expect(response.statusCode, 200);
         expect(adapter.authHeaders, ['Bearer token-velho']);
+        expect(
+          events,
+          isEmpty,
+          reason: 'falha transitória do preventivo não expira a sessão (D.4)',
+        );
+      },
+    );
+
+    test(
+      'preventivo transitório não impede o refresh do 401 na mesma request',
+      () async {
+        var attempts = 0;
+        final adapter = _ScriptedAdapter([401, 200]);
+        final dio = dioWith(
+          adapter,
+          tokenExpiresSoon: () => true,
+          refreshIdToken: () async {
+            attempts++;
+            // 1ª chamada é o preventivo (falha transitória); a 2ª é a do 401.
+            if (attempts == 1) throw StateError('sdk bloqueado');
+            return 'token-novo';
+          },
+        );
+
+        final response = await dio.get<Object?>(
+          '/playlists',
+          options: auth('token-velho'),
+        );
+
+        expect(response.statusCode, 200);
+        expect(
+          attempts,
+          greaterThanOrEqualTo(2),
+          reason: 'o 401 ainda tem direito à sua tentativa de refresh',
+        );
+        expect(adapter.authHeaders, [
+          'Bearer token-velho',
+          'Bearer token-novo',
+        ]);
+        expect(events, isEmpty);
       },
     );
 

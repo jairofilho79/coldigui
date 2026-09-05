@@ -35,6 +35,7 @@ void main() {
     required Future<AuthUser> Function(String) behavior,
     required AuthSessionStore store,
     GoogleSignInInitializer? initializer,
+    GoogleSilentIdTokenRefresher? refresher,
   }) {
     return ProviderContainer(
       overrides: [
@@ -44,6 +45,8 @@ void main() {
         ),
         if (initializer != null)
           googleSignInInitializerProvider.overrideWithValue(initializer),
+        if (refresher != null)
+          googleSilentIdTokenRefresherProvider.overrideWithValue(refresher),
       ],
     );
   }
@@ -207,6 +210,59 @@ void main() {
       await container.read(authStateProvider.future);
 
       expect(container.read(googleSignInUnavailableProvider), isFalse);
+    });
+  });
+
+  group('AuthNotifier.refreshIdToken — transitório vs conclusivo (D.4)', () {
+    Future<ProviderContainer> containerWithSession({
+      required GoogleSilentIdTokenRefresher refresher,
+    }) async {
+      final container = buildContainer(
+        store: seededStore(),
+        behavior: (_) async => storedUser,
+        refresher: refresher,
+      );
+      addTearDown(container.dispose);
+      await container.read(authStateProvider.future);
+      return container;
+    }
+
+    test(
+      'refresher que lança não marca sessão expirada e mantém o token',
+      () async {
+        final container = await containerWithSession(
+          refresher: () async => throw StateError('gis bloqueado'),
+        );
+
+        final token = await container
+            .read(authStateProvider.notifier)
+            .refreshIdToken();
+
+        expect(token, isNull, reason: 'não houve token novo para dar');
+        expect(
+          container.read(sessionExpiredProvider),
+          isFalse,
+          reason: 'falha transitória não pode exigir login manual',
+        );
+        expect(
+          container.read(authStateProvider).value?.idToken,
+          storedUser.idToken,
+          reason: 'o token corrente segue em uso até um 401 conclusivo',
+        );
+      },
+    );
+
+    test('refresher que devolve o mesmo token marca expirada', () async {
+      final container = await containerWithSession(
+        refresher: () async => storedUser.idToken,
+      );
+
+      final token = await container
+          .read(authStateProvider.notifier)
+          .refreshIdToken();
+
+      expect(token, isNull);
+      expect(container.read(sessionExpiredProvider), isTrue);
     });
   });
 }
