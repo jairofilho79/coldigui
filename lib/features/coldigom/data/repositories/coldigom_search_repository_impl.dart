@@ -1,23 +1,44 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
+import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../adapters/coldigom_louvor_adapter.dart';
+import '../coldigom_cache_writer.dart';
 import '../datasources/coldigom_remote_datasource.dart';
 import '../models/praise_dto.dart';
 
 /// Orquestra busca/browse coldigom via endpoint PLPCG (1 request com materials).
+///
+/// Antes de devolver, funde o que veio nos caches Coldigom pelo [cache] — é
+/// aqui, e não na presentation, que os caches são escritos (C.3). Sem [cache]
+/// (testes de mapeamento puro) o repositório só mapeia.
 class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
-  const ColdigomSearchRepositoryImpl(this._remote, {this.searchLimit = 20});
+  const ColdigomSearchRepositoryImpl(
+    this._remote, {
+    this.searchLimit = 20,
+    this.cache,
+  });
 
   final ColdigomRemoteDatasource _remote;
   final int searchLimit;
 
+  /// Escritor dos caches Coldigom; `null` desliga a escrita.
+  final ColdigomCacheWriter? cache;
+
   @override
-  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
     final trimmed = query.trim();
     final safePage = page < 1 ? 1 : page;
     if (trimmed.isEmpty) {
@@ -28,8 +49,9 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       );
     }
 
-    final pageDto = await _remote.listPlpcgPraises(
+    final pageDto = await _listCancellable(
       ColdigomPraisesQuery(q: trimmed, limit: searchLimit, page: safePage),
+      cancellation,
     );
     if (pageDto.data.isEmpty) {
       return ColdigomSearchResult(
@@ -48,7 +70,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       coldigomMetaByGroupId: fetched.metaByGroupId,
       sortByNumber: false,
     );
-    return ColdigomSearchResult(
+    final result = ColdigomSearchResult(
       groups: groups,
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
@@ -58,6 +80,36 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
     );
+    cache?.mergeSearchResult(result);
+    return result;
+  }
+
+  /// `listPlpcgPraises` com [SearchCancellation] traduzida para `CancelToken`.
+  ///
+  /// O cancelamento vira [SearchCancelledException] para o chamador não
+  /// confundir "chegou tecla nova" com "a rede caiu".
+  Future<PlpcgPraisesPageDto> _listCancellable(
+    ColdigomPraisesQuery query,
+    SearchCancellation? cancellation,
+  ) async {
+    if (cancellation == null) return _remote.listPlpcgPraises(query);
+    if (cancellation.isCancelled) throw const SearchCancelledException();
+
+    final cancelToken = CancelToken();
+    unawaited(
+      cancellation.whenCancelled.then((_) {
+        if (!cancelToken.isCancelled) cancelToken.cancel();
+      }),
+    );
+
+    try {
+      return await _remote.listPlpcgPraises(query, cancelToken: cancelToken);
+    } on DioException catch (error) {
+      if (error.type == DioExceptionType.cancel) {
+        throw const SearchCancelledException();
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -106,7 +158,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       sortByNumber: !hasQuery,
     );
 
-    return ColdigomBrowseResult(
+    final result = ColdigomBrowseResult(
       groups: groups,
       louvores: fetched.louvores,
       audioTracks: fetched.audioTracks,
@@ -118,6 +170,8 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       totalItems: pageDto.pagination.total,
       totalPages: totalPages,
     );
+    cache?.mergeBrowseResult(result);
+    return result;
   }
 
   static ({

@@ -1,8 +1,10 @@
 import '../../../../core/utils/pdf_id_codec.dart';
 import '../../domain/entities/catalog_material.dart';
+import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_data_source.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/ports/catalog_source.dart';
+import '../../domain/ports/search_cancellation.dart';
 
 /// [CatalogSource] dos dois acervos — despacha por id.
 ///
@@ -32,11 +34,8 @@ class CompositeCatalogSource implements CatalogSource {
   /// esconder o grupo sem alternativa é que aplica o corte (é o que
   /// `findLouvorGroupByPdfId` e `findSwapMaterialGroup` fazem).
   ///
-  /// O grupo Coldigom montado aqui sai dos caches de PDF, cifra e áudio, que
-  /// são os únicos que existem: **não há cache de YouTube**, então
-  /// [LouvorGroup.youtubeMaterials] vem sempre vazio por esta porta, mesmo que
-  /// o praise tenha links. Quem precisa dos links continua vindo do resultado
-  /// de busca/browse do repositório Coldigom.
+  /// O grupo Coldigom montado aqui sai dos caches por tipo — PDF, cifra,
+  /// áudio e YouTube —, todos alimentados pelo repositório Coldigom.
   @override
   Future<LouvorGroup?> groupForMaterial(String materialId) =>
       sourceForMaterial(materialId).groupForMaterial(materialId);
@@ -47,4 +46,15 @@ class CompositeCatalogSource implements CatalogSource {
   Future<LouvorGroup?> groupById(String groupId) async {
     return await plpcg.groupById(groupId) ?? await coldigom.groupById(groupId);
   }
+
+  /// Só o PLPCG tem índice local; o Coldigom devolveria `[]` de qualquer jeito.
+  @override
+  List<LouvorGroup> searchLocal(CatalogQuery query) => plpcg.searchLocal(query);
+
+  /// Só o Coldigom tem página remota; o PLPCG devolveria `empty`.
+  @override
+  Future<CatalogSearchPage> search(
+    CatalogQuery query, {
+    SearchCancellation? cancellation,
+  }) => coldigom.search(query, cancellation: cancellation);
 }

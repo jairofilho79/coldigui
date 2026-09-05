@@ -1,11 +1,15 @@
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/catalog_material.dart';
+import '../../../catalog/domain/entities/catalog_query.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
+import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../catalog/domain/ports/catalog_source.dart';
+import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
+import '../../domain/repositories/coldigom_search_repository.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
 
 /// [CatalogSource] do acervo Coldigom sobre os caches em memória por tipo.
@@ -13,12 +17,17 @@ import '../../domain/utils/coldigom_praise_id.dart';
 /// O `groupId` Coldigom é o praise id, que também está no path de todo id do
 /// praise (`assets/praises/{praiseId}/…`) — é por ele que [groupForMaterial]
 /// acha o grupo sem consultar a rede.
+///
+/// É a fonte **remota**: [searchLocal] é sempre vazio (não há índice do acervo
+/// Coldigom no cliente) e [search] vai ao [searchRepository].
 class ColdigomCatalogSource implements CatalogSource {
   const ColdigomCatalogSource({
     this.louvores = const {},
     this.audioTracks = const {},
     this.chords = const {},
     this.praiseMeta = const {},
+    this.youtube = const {},
+    this.searchRepository,
   });
 
   /// PDFs Coldigom em cache, por `pdfId`.
@@ -33,6 +42,12 @@ class ColdigomCatalogSource implements CatalogSource {
   /// Metadados do praise em cache, por `groupId`.
   final Map<String, ColdigomPraiseMetadata> praiseMeta;
 
+  /// Links de YouTube em cache, por `groupId`.
+  final Map<String, List<YoutubeMaterial>> youtube;
+
+  /// Porta de busca remota; `null` desliga [search] (fontes de teste).
+  final ColdigomSearchRepository? searchRepository;
+
   /// PDFs Coldigom em cache pertencentes a [groupId].
   List<Louvor> louvoresOfGroup(String groupId) {
     if (groupId.isEmpty) return const [];
@@ -44,10 +59,10 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Versão síncrona de [groupById] — os caches já estão em memória.
   ///
-  /// O grupo sai dos caches de PDF, cifra e áudio; **não existe cache de
-  /// YouTube**, então `LouvorGroup.youtubeMaterials` vem sempre vazio daqui.
-  /// Devolve o grupo mesmo com um material só — o corte "sem alternativa" é de
-  /// quem chama.
+  /// O grupo sai dos caches de PDF, cifra, áudio e YouTube. Devolve o grupo
+  /// mesmo com um material só — o corte "sem alternativa" é de quem chama.
+  /// Um praise que só tem link de YouTube continua `null`: YouTube não é
+  /// endereçável e não sustenta um grupo sozinho.
   LouvorGroup? findGroupById(String groupId) {
     if (groupId.isEmpty) return null;
     final pdfs = louvoresOfGroup(groupId);
@@ -65,6 +80,7 @@ class ColdigomCatalogSource implements CatalogSource {
       pdfs,
       audioTracks: tracks,
       chordMaterials: groupChords,
+      youtubeMaterials: youtube[groupId] ?? const [],
       coldigomMetaByGroupId: praiseMeta,
     );
     return groups.isEmpty ? null : groups.first;
@@ -109,4 +125,32 @@ class ColdigomCatalogSource implements CatalogSource {
   @override
   Future<LouvorGroup?> groupForMaterial(String materialId) async =>
       findGroupForMaterial(materialId);
+
+  /// Não há índice local do acervo Coldigom — a busca é sempre remota.
+  @override
+  List<LouvorGroup> searchLocal(CatalogQuery query) => const [];
+
+  /// Uma página de `/api/plpcg/praises`, com cancelamento.
+  ///
+  /// Lança [SearchCancelledException] quando [cancellation] cancela antes da
+  /// resposta chegar; o repositório também grava os materiais nos caches.
+  @override
+  Future<CatalogSearchPage> search(
+    CatalogQuery query, {
+    SearchCancellation? cancellation,
+  }) async {
+    final repository = searchRepository;
+    if (repository == null || query.isEmpty) return CatalogSearchPage.empty;
+
+    final result = await repository.search(
+      query.text.trim(),
+      page: query.page,
+      cancellation: cancellation,
+    );
+    return CatalogSearchPage(
+      groups: result.groups,
+      page: result.page,
+      hasNextPage: result.hasNextPage,
+    );
+  }
 }

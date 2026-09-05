@@ -2,6 +2,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
+import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../entities/coldigom_praise_metadata.dart';
 
@@ -9,8 +10,14 @@ import '../entities/coldigom_praise_metadata.dart';
 abstract interface class ColdigomSearchRepository {
   /// Busca via `/api/plpcg/praises` → grupos para exibição na Home.
   ///
-  /// Query vazia → listas vazias (comportamento Home).
-  Future<ColdigomSearchResult> search(String query, {int page = 1});
+  /// Query vazia → listas vazias (comportamento Home). [cancellation] aborta
+  /// a requisição HTTP em curso; nesse caso o future termina com
+  /// [SearchCancelledException] em vez de um erro de rede.
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  });
 
   /// Browse filtrado via `/api/plpcg/praises` (biblioteca); [q] opcional.
   Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query);

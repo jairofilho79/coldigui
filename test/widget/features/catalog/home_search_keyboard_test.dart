@@ -5,6 +5,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
@@ -57,7 +58,11 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
 
 class _EmptyColdigomRepo implements ColdigomSearchRepository {
   @override
-  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
     return const ColdigomSearchResult(
       groups: [],
       louvores: [],

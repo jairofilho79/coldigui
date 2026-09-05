@@ -1,5 +1,6 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -19,7 +20,11 @@ class _ScriptedColdigomRepo implements ColdigomSearchRepository {
   var callCount = 0;
 
   @override
-  Future<ColdigomSearchResult> search(String query, {int page = 1}) {
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) {
     final index = callCount < _behaviors.length
         ? callCount
         : _behaviors.length - 1;

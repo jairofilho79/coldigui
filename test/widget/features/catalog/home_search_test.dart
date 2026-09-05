@@ -5,6 +5,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
@@ -60,7 +61,11 @@ class _FakeColdigomRepo implements ColdigomSearchRepository {
   final List<Louvor> catalog;
 
   @override
-  Future<ColdigomSearchResult> search(String query, {int page = 1}) async {
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
     final q = query.trim().toLowerCase();
     final matched = catalog
         .where(
@@ -108,7 +113,8 @@ List<Override> _homeSearchTestOverrides({
     ),
     // Pipeline PLPCG síncrono: `compute` roda em isolate e não assenta sob pump.
     homeSearchPipelineExecutorProvider.overrideWith(
-      (ref) => (input) async => runHomeSearchPipeline(input),
+      (ref) =>
+          (input) async => runHomeSearchPipeline(input),
     ),
   ];
 }

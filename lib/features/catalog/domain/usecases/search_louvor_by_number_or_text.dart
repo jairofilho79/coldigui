@@ -1,5 +1,6 @@
 import '../entities/louvor.dart';
 import '../../../../core/utils/louvor_search_tokens.dart';
+import '../search/plpcg_search_index.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
 /// UC-01 — Buscar louvor por número ou texto na Home.
@@ -9,14 +10,64 @@ import '../utils/louvor_numero_normalizer.dart';
 class SearchLouvorByNumberOrText {
   const SearchLouvorByNumberOrText();
 
-  /// Filtra [catalog] pela [query] digitada na Home.
+  /// Filtra [catalog] pela [query] digitada — variante sem índice.
+  ///
+  /// Normaliza o número de cada item a cada chamada; usada pela Biblioteca,
+  /// que roda uma vez por navegação, não por tecla. A Home usa
+  /// [callIndexed].
   List<Louvor> call(List<Louvor> catalog, String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    final exactNumber = catalog
-        .where((l) => _matchesNumero(l.numero, trimmed))
-        .toList(growable: false);
+    final normalizedQuery = LouvorNumeroNormalizer.normalize(trimmed);
+    final exactNumber = [
+      for (final louvor in catalog)
+        if (_matchesNumero(
+          louvor.numero,
+          LouvorNumeroNormalizer.normalize(louvor.numero),
+          trimmed,
+          normalizedQuery,
+        ))
+          louvor,
+    ];
+
+    return _rankByTitle(catalog, trimmed, exactNumber);
+  }
+
+  /// Mesma busca e mesmo ranking de [call], sobre um [PlpcgSearchIndex].
+  ///
+  /// A única diferença é a origem do número normalizado: `index.numeroNorm[i]`
+  /// em vez de normalizar `louvores[i].numero` na hora (A10).
+  List<Louvor> callIndexed(PlpcgSearchIndex index, String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final louvores = index.louvores;
+    final numeroNorm = index.numeroNorm;
+    final normalizedQuery = LouvorNumeroNormalizer.normalize(trimmed);
+    final exactNumber = <Louvor>[];
+    for (var i = 0; i < louvores.length; i++) {
+      final louvor = louvores[i];
+      if (_matchesNumero(
+        louvor.numero,
+        numeroNorm[i],
+        trimmed,
+        normalizedQuery,
+      )) {
+        exactNumber.add(louvor);
+      }
+    }
+
+    return _rankByTitle(louvores, trimmed, exactNumber);
+  }
+
+  /// Completa o ranking: título exato e depois título parcial, sem repetir os
+  /// que já entraram por número.
+  List<Louvor> _rankByTitle(
+    List<Louvor> catalog,
+    String trimmed,
+    List<Louvor> exactNumber,
+  ) {
     final seen = exactNumber.map((l) => l.pdfId).toSet();
 
     final queryTokens = LouvorSearchTokens.tokenize(trimmed);
@@ -57,10 +108,14 @@ class SearchLouvorByNumberOrText {
         louvor.searchCompactContent == queryCompact;
   }
 
-  bool _matchesNumero(String louvorNumero, String query) {
+  bool _matchesNumero(
+    String louvorNumero,
+    String louvorNumeroNorm,
+    String query,
+    String normalizedQuery,
+  ) {
     if (louvorNumero == query) return true;
-    final normalizedQuery = LouvorNumeroNormalizer.normalize(query);
     if (normalizedQuery.isEmpty) return false;
-    return LouvorNumeroNormalizer.normalize(louvorNumero) == normalizedQuery;
+    return louvorNumeroNorm == normalizedQuery;
   }
 }

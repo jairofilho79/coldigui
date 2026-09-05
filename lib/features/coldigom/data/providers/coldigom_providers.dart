@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
+import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
+import '../coldigom_cache_writer.dart';
 import '../datasources/coldigom_remote_datasource.dart';
 import '../providers/coldigom_dio_provider.dart';
 import '../repositories/coldigom_search_repository_impl.dart';
@@ -103,10 +105,59 @@ final coldigomPraiseMetaCacheProvider =
       Map<String, ColdigomPraiseMetadata>
     >(ColdigomPraiseMetaCacheNotifier.new);
 
+/// Cache de links de YouTube indexados por praise/`groupId` (sobra 6a).
+///
+/// É o único cache Coldigom por **lista**: um praise pode ter vários vídeos, e
+/// YouTube não tem id endereçável no espaço de ids do app.
+class ColdigomYoutubeCacheNotifier
+    extends Notifier<Map<String, List<YoutubeMaterial>>> {
+  @override
+  Map<String, List<YoutubeMaterial>> build() => const {};
+
+  /// Funde por `groupId`, sem repetir o mesmo vídeo (dedupe por `id`).
+  void mergeYoutube(Iterable<YoutubeMaterial> materials) {
+    final incoming = <String, List<YoutubeMaterial>>{};
+    for (final material in materials) {
+      final groupId = material.groupId.trim();
+      if (groupId.isEmpty) continue;
+      incoming.putIfAbsent(groupId, () => []).add(material);
+    }
+    if (incoming.isEmpty) return;
+
+    final next = Map<String, List<YoutubeMaterial>>.from(state);
+    for (final entry in incoming.entries) {
+      final merged = [...?next[entry.key]];
+      final seen = merged.map((m) => m.id).toSet();
+      for (final material in entry.value) {
+        if (seen.add(material.id)) merged.add(material);
+      }
+      next[entry.key] = List<YoutubeMaterial>.unmodifiable(merged);
+    }
+    state = next;
+  }
+
+  List<YoutubeMaterial> findByGroupId(String groupId) =>
+      state[groupId] ?? const [];
+}
+
+final coldigomYoutubeCacheProvider =
+    NotifierProvider<
+      ColdigomYoutubeCacheNotifier,
+      Map<String, List<YoutubeMaterial>>
+    >(ColdigomYoutubeCacheNotifier.new);
+
 final coldigomRemoteDatasourceProvider = Provider<ColdigomRemoteDatasource>((
   ref,
 ) {
   return ColdigomRemoteDatasource(ref.watch(coldigomDioProvider));
+});
+
+/// Ponto único de escrita nos caches acima — ver [ColdigomCacheWriter].
+///
+/// Não observa nada: a instância vive enquanto o container viver, e não
+/// invalida quem a lê a cada merge.
+final coldigomCacheWriterProvider = Provider<ColdigomCacheWriter>((ref) {
+  return ColdigomCacheWriter(ref);
 });
 
 final coldigomSearchRepositoryProvider = Provider<ColdigomSearchRepository>((
@@ -114,5 +165,6 @@ final coldigomSearchRepositoryProvider = Provider<ColdigomSearchRepository>((
 ) {
   return ColdigomSearchRepositoryImpl(
     ref.watch(coldigomRemoteDatasourceProvider),
+    cache: ref.watch(coldigomCacheWriterProvider),
   );
 });
