@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../catalog/domain/entities/louvor.dart';
 import '../../catalog/domain/entities/louvor_data_source.dart';
 import '../domain/utils/coldigom_praise_id.dart';
-import 'adapters/coldigom_louvor_adapter.dart';
+import 'coldigom_cache_writer.dart';
+import 'datasources/coldigom_remote_datasource.dart';
 import 'providers/coldigom_providers.dart';
 
 /// Tempo máximo padrão para o warmup Coldigom aguardar a rede (A3).
@@ -15,11 +16,19 @@ import 'providers/coldigom_providers.dart';
 /// e [ensureColdigomPraiseMaterialsCachedProvider].
 const Duration coldigomWarmupDefaultTimeout = Duration(seconds: 5);
 
-/// Preenche caches Coldigom (PDF + áudio) para os [praiseIds] do reload.
+/// Quantos `fetchDetail` de warmup podem estar em voo ao mesmo tempo (A12).
 ///
-/// [timeout] limita cada busca de detalhe — nunca propaga falha de rede
-/// (timeout incluído) para o chamador; apenas registra e segue para o
-/// próximo id.
+/// O warmup do boot era serial: N ids × até 5 s cada, um depois do outro, com
+/// a lista ativa esperando. Três em paralelo cortam a espera sem virar uma
+/// rajada de N requisições contra a API.
+const int coldigomWarmupConcurrency = 3;
+
+/// Preenche caches Coldigom (PDF, áudio, cifra, meta e YouTube) para os
+/// [praiseIds] do reload, com no máximo [coldigomWarmupConcurrency] em voo.
+///
+/// [timeout] limita **cada** busca de detalhe (não o conjunto) e nunca propaga
+/// falha de rede para o chamador: um id que falha só registra e sai — os
+/// concorrentes seguem.
 Future<void> warmupColdigomPraiseIds(
   Ref ref,
   Iterable<String> praiseIds, {
@@ -32,6 +41,9 @@ Future<void> warmupColdigomPraiseIds(
   if (unique.isEmpty) return;
 
   final datasource = ref.read(coldigomRemoteDatasourceProvider);
+  final writer = ref.read(coldigomCacheWriterProvider);
+
+  final inFlight = <Future<void>>[];
   for (final praiseId in unique) {
     final hasPdf = ref
         .read(coldigomLouvoresCacheProvider)
@@ -43,24 +55,40 @@ Future<void> warmupColdigomPraiseIds(
         .any((t) => t.groupId == praiseId);
     if (hasPdf && hasAudio) continue;
 
-    try {
-      final detail = await datasource.fetchDetail(praiseId).timeout(timeout);
-      ref
-          .read(coldigomLouvoresCacheProvider.notifier)
-          .mergeLouvores(ColdigomLouvorAdapter.toLouvores(detail));
-      ref
-          .read(coldigomAudioTracksCacheProvider.notifier)
-          .mergeTracks(ColdigomLouvorAdapter.toAudioTracks(detail));
-      ref
-          .read(coldigomChordMaterialsCacheProvider.notifier)
-          .mergeChords(ColdigomLouvorAdapter.toChordMaterials(detail));
-      ref
-          .read(coldigomPraiseMetaCacheProvider.notifier)
-          .put(praiseId, ColdigomLouvorAdapter.toMetadata(detail));
-    } on Object catch (e) {
-      debugPrint('[coldigom] warmup falhou para $praiseId: $e');
-      continue;
+    late Future<void> task;
+    task = _warmupOnePraise(
+      datasource,
+      writer,
+      praiseId,
+      timeout,
+    ).whenComplete(() => inFlight.remove(task));
+    inFlight.add(task);
+
+    // `Future.any` volta assim que o primeiro termina — e como `whenComplete`
+    // já tirou o concluído da lista, a vaga está livre para o próximo id.
+    if (inFlight.length >= coldigomWarmupConcurrency) {
+      await Future.any(inFlight);
     }
+  }
+
+  await Future.wait(inFlight);
+}
+
+/// Um id do warmup: busca com timeout e funde; falha é registrada, não lançada.
+///
+/// Nunca completa com erro — é o que permite `Future.any`/`Future.wait` sobre o
+/// pool sem que um id derrube os outros.
+Future<void> _warmupOnePraise(
+  ColdigomRemoteDatasource datasource,
+  ColdigomCacheWriter writer,
+  String praiseId,
+  Duration timeout,
+) async {
+  try {
+    final detail = await datasource.fetchDetail(praiseId).timeout(timeout);
+    writer.mergePraiseDetail(praiseId, detail);
+  } on Object catch (e) {
+    debugPrint('[coldigom] warmup falhou para $praiseId: $e');
   }
 }
 
@@ -110,25 +138,11 @@ final ensureColdigomPraiseMaterialsCachedProvider =
             .length;
         if (siblingsInCache > 1 || audioSiblings > 0) return;
 
-        try {
-          final detail = await ref
-              .read(coldigomRemoteDatasourceProvider)
-              .fetchDetail(praiseId)
-              .timeout(coldigomWarmupDefaultTimeout);
-          ref
-              .read(coldigomLouvoresCacheProvider.notifier)
-              .mergeLouvores(ColdigomLouvorAdapter.toLouvores(detail));
-          ref
-              .read(coldigomAudioTracksCacheProvider.notifier)
-              .mergeTracks(ColdigomLouvorAdapter.toAudioTracks(detail));
-          ref
-              .read(coldigomChordMaterialsCacheProvider.notifier)
-              .mergeChords(ColdigomLouvorAdapter.toChordMaterials(detail));
-          ref
-              .read(coldigomPraiseMetaCacheProvider.notifier)
-              .put(praiseId, ColdigomLouvorAdapter.toMetadata(detail));
-        } on Object catch (e) {
-          debugPrint('[coldigom] warmup falhou para $praiseId: $e');
-        }
+        await _warmupOnePraise(
+          ref.read(coldigomRemoteDatasourceProvider),
+          ref.read(coldigomCacheWriterProvider),
+          praiseId,
+          coldigomWarmupDefaultTimeout,
+        );
       };
     });

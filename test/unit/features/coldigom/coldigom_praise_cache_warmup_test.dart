@@ -59,6 +59,27 @@ PraiseDetailDto _detailFor(String praiseId) {
   );
 }
 
+PraiseDetailDto _detailWithYoutube(String praiseId) {
+  return PraiseDetailDto(
+    id: praiseId,
+    name: 'Comigo habita',
+    number: '692',
+    rhythm: 'Balada',
+    materials: [
+      MaterialDto(
+        id: '$praiseId-m1',
+        type: 'pdf',
+        r2Key: 'assets/praises/$praiseId/m1.pdf',
+      ),
+      MaterialDto(
+        id: '$praiseId-m2',
+        type: 'youtube',
+        url: 'https://youtu.be/abc',
+      ),
+    ],
+  );
+}
+
 Louvor _coldigomLouvor({required String praiseId, String pdf = 'm1.pdf'}) {
   final relPath = 'assets/praises/$praiseId/$pdf';
   return Louvor.fromManifest(
@@ -130,9 +151,9 @@ void main() {
 
         var completed = false;
         unawaited(
-          container.read(ensureColdigomPraiseMaterialsCachedProvider)(louvor).then(
-            (_) => completed = true,
-          ),
+          container
+              .read(ensureColdigomPraiseMaterialsCachedProvider)(louvor)
+              .then((_) => completed = true),
         );
 
         async.elapse(const Duration(seconds: 4));
@@ -171,9 +192,10 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      await container
-          .read(_warmupRunnerProvider.notifier)
-          .run(['p-falha', 'p-ok']);
+      await container.read(_warmupRunnerProvider.notifier).run([
+        'p-falha',
+        'p-ok',
+      ]);
 
       expect(datasource.calls, ['p-falha', 'p-ok']);
       expect(
@@ -204,10 +226,7 @@ void main() {
         unawaited(
           container
               .read(_warmupRunnerProvider.notifier)
-              .run(
-                ['p1'],
-                timeout: const Duration(milliseconds: 200),
-              )
+              .run(['p1'], timeout: const Duration(milliseconds: 200))
               .then((_) => completed = true),
         );
 
@@ -217,6 +236,108 @@ void main() {
         async.elapse(const Duration(milliseconds: 200));
         expect(completed, isTrue);
       });
+    });
+
+    test('roda no máximo 3 em paralelo e aquece todos os ids', () async {
+      final pending = <String, Completer<PraiseDetailDto>>{};
+      var inFlight = 0;
+      var maxInFlight = 0;
+
+      final datasource = _ControllableColdigomDatasource((praiseId) {
+        inFlight++;
+        if (inFlight > maxInFlight) maxInFlight = inFlight;
+        final completer = Completer<PraiseDetailDto>();
+        pending[praiseId] = completer;
+        return completer.future.whenComplete(() => inFlight--);
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final ids = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+      final done = container.read(_warmupRunnerProvider.notifier).run(ids);
+
+      // Liberação em cascata: a cada resolução o pool puxa o próximo id.
+      for (var resolved = 0; resolved < ids.length; resolved++) {
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          inFlight,
+          lessThanOrEqualTo(3),
+          reason: 'nunca mais de 3 fetchDetail em voo',
+        );
+        final next = pending.entries.firstWhere((e) => !e.value.isCompleted);
+        next.value.complete(_detailFor(next.key));
+      }
+
+      await done;
+
+      expect(maxInFlight, 3);
+      expect(datasource.calls.toSet(), ids.toSet());
+      expect(
+        container.read(coldigomLouvoresCacheProvider).values.length,
+        ids.length,
+      );
+    });
+
+    test('uma falha no pool não impede os ids concorrentes', () async {
+      final logs = <String>[];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) =>
+          logs.add(message ?? '');
+      addTearDown(() => debugPrint = originalDebugPrint);
+
+      final datasource = _ControllableColdigomDatasource((praiseId) async {
+        if (praiseId == 'p2') {
+          throw DioException(
+            requestOptions: RequestOptions(),
+            message: 'network down',
+          );
+        }
+        return _detailFor(praiseId);
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(_warmupRunnerProvider.notifier).run([
+        'p1',
+        'p2',
+        'p3',
+        'p4',
+      ]);
+
+      final cached = container
+          .read(coldigomLouvoresCacheProvider)
+          .values
+          .map((l) => l.groupId)
+          .toSet();
+      expect(cached, {'p1', 'p3', 'p4'});
+      expect(logs.any((l) => l.contains('p2')), isTrue);
+    });
+
+    test('warmup também alimenta o cache de YouTube', () async {
+      final datasource = _ControllableColdigomDatasource(
+        (praiseId) async => _detailWithYoutube(praiseId),
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(_warmupRunnerProvider.notifier).run(['p1']);
+
+      expect(container.read(coldigomYoutubeCacheProvider)['p1'], hasLength(1));
     });
   });
 }
