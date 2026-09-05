@@ -1,41 +1,35 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/database/isar_provider.dart';
-import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
-import '../../../carousel/data/providers/carousel_providers.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
+import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
-import '../../domain/exceptions/empty_carousel_exception.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/invalid_share_playlist_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
-import '../../domain/utils/playlist_defaults.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
+import 'active_playlist_editor.dart';
 import 'active_playlist_provider.dart';
-import 'active_playlist_sync.dart' as active_sync;
 import 'playlist_media_face_provider.dart';
 import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
 
-/// Playlist ativa alinhada ao carousel — retorno de
+/// Lista ativa resolvida — retorno de
 /// [PlaylistsNotifier.resolveActivePlaylistFromCarousel].
 ///
 /// Usado por [CarouselBarTrailingActions._sharePlaylist] e
@@ -60,9 +54,9 @@ class PlaylistViewItem {
 
 /// Estado reativo das playlists — UC-06 (CRUD, load, abas) e UC-07 (share/import).
 ///
-/// Expõe [resolveActivePlaylistFromCarousel] para alinhar carousel Isar com
-/// playlist ativa antes de compartilhar; [findLouvorByPdfId] e
-/// [loadIntoCarousel] com instrumentação [playlistOpenDebugLog*] em debug.
+/// Toda mutação da **seleção** passa pelo [ActivePlaylistEditor] (D3): os
+/// métodos daqui que ainda falam em carousel são invólucros de compatibilidade
+/// até a Tarefa 16.
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   var _sessionHydrated = false;
 
@@ -81,20 +75,16 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return const [];
   }
 
-  Map<String, String> _buildLabelMap(List<Louvor>? catalog) {
-    if (catalog == null) return const {};
-    return {
-      for (final louvor in catalog)
-        louvor.pdfId: '${louvor.numero} — ${louvor.nome}',
-    };
-  }
-
   List<String> _labelsForPdfIds(
     List<String> pdfIds,
-    Map<String, String> labelMap,
+    Map<String, Louvor> byPdfId,
   ) {
     return pdfIds
-        .map((id) => labelMap[id] ?? _fallbackLabel(id))
+        .map((id) {
+          final louvor = byPdfId[id];
+          if (louvor == null) return _fallbackLabel(id);
+          return '${louvor.numero} — ${louvor.nome}';
+        })
         .toList(growable: false);
   }
 
@@ -105,16 +95,14 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
-    final labelMap = _buildLabelMap(
-      ref.read(louvoresManifestProvider).value?.louvores,
-    );
+    final byPdfId = ref.read(louvoresByPdfIdProvider);
     final playlists = await repository.getAll();
 
     state = playlists
         .map(
           (playlist) => PlaylistViewItem(
             playlist: playlist,
-            pdfLabels: _labelsForPdfIds(playlist.pdfIds, labelMap),
+            pdfLabels: _labelsForPdfIds(playlist.pdfIds, byPdfId),
           ),
         )
         .toList(growable: false);
@@ -175,22 +163,17 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     );
   }
 
-  /// Sincroniza [pdfIds] da playlist ativa com o carousel atual.
-  Future<void> syncActivePlaylistFromCarousel() async {
-    await active_sync.syncActivePlaylistFromCarousel(ref);
-    await _reload();
-  }
-
-  /// Garante playlist ativa com [pdfId] e retorna o ID.
+  /// Garante lista ativa contendo [pdfId] e retorna o id da lista.
+  ///
+  /// Invólucro de [EnsureActivePlaylist] (D3).
   Future<String> ensurePlaylistForLouvor(String pdfId) async {
-    final result = await ref.read(ensurePlaylistForLouvorProvider)(
-      pdfId: pdfId,
+    final result = await ref.read(ensureActivePlaylistProvider)(
+      entry: PlaylistEntry.classified(pdfId),
       activePlaylistId: ref.read(activePlaylistIdProvider),
     );
     ref.read(activePlaylistIdProvider.notifier).set(result.playlistId);
-    await ref.read(carouselLouvoresProvider.notifier).reload();
-    ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
     await _reload();
+    ref.read(carouselFocusedKeyProvider.notifier).focus(entryKeyFor(pdfId, 0));
     return result.playlistId;
   }
 
@@ -201,52 +184,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   /// (`playAudioInSession`, `openLouvorInReader`), onde a exceção viraria erro
   /// assíncrono não tratado sem nenhum retorno visível ao usuário.
   Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    try {
-      return await _addLouvorToActivePlaylist(pdfId);
-    } on StorageUnavailableException catch (e) {
-      debugPrint('[playlists] sem storage ao adicionar louvor à lista: $e');
-      return false;
-    }
-  }
-
-  Future<bool> _addLouvorToActivePlaylist(String pdfId) async {
-    var activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) {
-      activeId = await ensurePlaylistForLouvor(pdfId);
-      return true;
-    }
-
-    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active == null) {
-      activeId = await ensurePlaylistForLouvor(pdfId);
-      return true;
-    }
-
-    // Dedupe contra `entries` (fonte da verdade), não contra a projeção: um id
-    // que estiver na lista com o `kind` da outra face continua sendo detectado
-    // como já presente.
-    if (active.entries.any((e) => e.id == pdfId)) {
-      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
-      return false;
-    }
-
-    final added = await ref.read(carouselLouvoresProvider.notifier).add(pdfId);
-    if (added) {
-      await syncActivePlaylistFromCarousel();
-      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
-    }
-    return added;
-  }
-
-  /// Cria playlist a partir do carousel. Retorna [playlistId] ou `null` se vazio.
-  Future<String?> createFromCarousel({String? nome}) async {
-    try {
-      final id = await ref.read(createPlaylistFromCarouselProvider)(nome: nome);
-      await _reload();
-      return id;
-    } on EmptyCarouselException {
-      return null;
-    }
+    final outcome = await ref
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(pdfId);
+    return outcome == AddToActiveOutcome.added;
   }
 
   /// Salva a playlist ativa (ou renomeia se já salva).
@@ -256,9 +197,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
     final active = await ref.read(playlistRepositoryProvider).getById(activeId);
     if (active == null) return false;
-    if (active.pdfIds.isEmpty && active.audioIds.isEmpty) return false;
-
-    await syncActivePlaylistFromCarousel();
+    if (active.entries.isEmpty) return false;
 
     if (active.salva) {
       await ref.read(updatePlaylistProvider)(playlistId: activeId, nome: nome);
@@ -410,7 +349,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref.read(deleteAllUnsavedPlaylistsProvider)();
     if (active != null && !active.salva) {
       ref.read(activePlaylistIdProvider.notifier).clear();
-      await ref.read(carouselLouvoresProvider.notifier).clear();
     }
     await _reload();
   }
@@ -421,77 +359,59 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref
         .read(playlistMediaFaceProvider.notifier)
         .setFace(PlaylistMediaFace.pdf);
-    ref.read(carouselFocusedIndexProvider.notifier).clearFocus();
+    ref.read(carouselFocusedKeyProvider.notifier).clear();
   }
 
-  /// Desanexa a lista ativa e limpa o carousel, sem apagar a playlist.
+  /// Desanexa a lista ativa, sem apagar a playlist.
   Future<void> startNewEmptySelection() async {
     await _releaseMediaSelectionViews();
-    ref.read(activePlaylistIdProvider.notifier).clear();
-    await ref.read(carouselLouvoresProvider.notifier).clear();
-    await _reload();
+    await ref.read(activePlaylistEditorProvider.notifier).detachActive();
   }
 
-  /// Apaga a lista ativa não salva e limpa o carousel.
+  /// Apaga a lista ativa não salva; lista salva só é desanexada.
   Future<void> deleteActiveUnsavedPlaylist() async {
     await _releaseMediaSelectionViews();
-    final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) {
-      await ref.read(carouselLouvoresProvider.notifier).clear();
-      return;
-    }
-
-    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active != null && !active.salva) {
-      await ref.read(deletePlaylistProvider)(playlistId: activeId);
-    }
-    ref.read(activePlaylistIdProvider.notifier).clear();
-    await ref.read(carouselLouvoresProvider.notifier).clear();
-    await _reload();
+    await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 
-  /// Carrega playlist no carousel e define como ativa.
+  /// Torna [playlistId] a lista ativa (D6 — «Tornar lista ativa»).
   ///
-  /// Delega [LoadPlaylistIntoCarousel], atualiza [activePlaylistIdProvider],
-  /// recarrega [carouselLouvoresProvider] e reseta [carouselFocusedIndexProvider].
-  /// Retorna `false` se a playlist não existir ou ocorrer erro — instrumentação
-  /// via [playlistOpenDebugLog*] em [kDebugMode].
+  /// Retorna `false` se a playlist não existir — instrumentação via
+  /// [playlistOpenDebugLog*] em [kDebugMode].
   Future<bool> loadIntoCarousel(String playlistId) async {
-    playlistOpenDebugLog('loadIntoCarousel: início playlistId=$playlistId');
+    playlistOpenDebugLog('activate: início playlistId=$playlistId');
     try {
-      await ref.read(loadPlaylistIntoCarouselProvider)(playlistId: playlistId);
-      ref.read(activePlaylistIdProvider.notifier).set(playlistId);
-      await ref.read(carouselLouvoresProvider.notifier).reload();
-      ref.read(carouselFocusedIndexProvider.notifier).reset();
-      final carouselIds = await ref
-          .read(carouselRepositoryProvider)
-          .getOrderedPdfIds();
+      final existing = await ref
+          .read(playlistRepositoryProvider)
+          .getById(playlistId);
+      if (existing == null) {
+        playlistOpenDebugLogFailure('activate', 'playlist $playlistId ausente');
+        return false;
+      }
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlistId);
       playlistOpenDebugLog(
-        'loadIntoCarousel: ok — carousel pdfIds (${carouselIds.length}): '
-        '${carouselIds.join(', ')}',
+        'activate: ok — ${existing.entries.length} entradas na lista ativa',
       );
       return true;
     } on PlaylistNotFoundException catch (error, stackTrace) {
-      playlistOpenDebugLogError(
-        'loadIntoCarousel playlist não encontrada',
-        error,
-        stackTrace,
-      );
+      playlistOpenDebugLogError('activate: lista ausente', error, stackTrace);
       return false;
     } on Object catch (error, stackTrace) {
-      playlistOpenDebugLogError('loadIntoCarousel', error, stackTrace);
+      playlistOpenDebugLogError('activate', error, stackTrace);
       return false;
     }
   }
 
   /// Busca louvor no manifest carregado — usado ao abrir PDF de playlist no leitor.
   ///
-  /// Lookup O(n) em [louvoresManifestProvider]. Retorna `null` se o manifest
-  /// ainda não carregou ou o [pdfId] for órfão. Em debug, registra estado do
-  /// manifest e falhas via [playlistOpenDebugLog*].
+  /// Lookup O(1) em [louvoresByPdfIdProvider] (A4). Retorna `null` se o
+  /// manifest ainda não carregou ou o [pdfId] for órfão. Em debug, registra
+  /// estado do manifest e falhas via [playlistOpenDebugLog*].
   Louvor? findLouvorByPdfId(String pdfId) {
     final manifestAsync = ref.read(louvoresManifestProvider);
-    final catalog = manifestAsync.value?.louvores;
+    final byPdfId = ref.read(louvoresByPdfIdProvider);
     final coldigomCache = ref.read(coldigomLouvoresCacheProvider);
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
@@ -499,16 +419,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
           ? 'loading'
           : manifestAsync.hasError
           ? 'error'
-          : catalog == null
-          ? 'null'
-          : '${catalog.length} itens'} '
+          : '${byPdfId.length} itens'} '
       'coldigomCache=${coldigomCache.length}',
     );
-    final louvor = findLouvorByPdfIdWithColdigom(
-      catalog,
-      pdfId,
-      coldigomCache: coldigomCache,
-    );
+    final louvor = byPdfId[pdfId] ?? coldigomCache[pdfId];
     if (louvor != null) {
       playlistOpenDebugLog(
         'findLouvorByPdfId: encontrado numero=${louvor.numero} '
@@ -523,92 +437,23 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return null;
   }
 
-  /// Garante playlist com os [pdfIds] do carousel para ações como compartilhar.
+  /// Lista ativa para ações como compartilhar (invólucro até a Tarefa 16).
   ///
-  /// Recupera rascunho existente quando [activePlaylistIdProvider] foi perdido
-  /// (ex.: restart do app) ou sincroniza a playlist ativa com o carousel Isar.
-  /// Retorna `null` se a seleção estiver vazia.
+  /// Não existe mais carousel a reconciliar: a lista ativa **é** a seleção.
+  /// Retorna `null` quando não há lista ativa ou ela está vazia.
+  @Deprecated('use activePlaylistProvider')
   Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async {
-    playlistShareDebugLog('resolveActivePlaylistFromCarousel: início');
-    final carouselPdfIds = await ref
-        .read(carouselRepositoryProvider)
-        .getOrderedPdfIds();
-    playlistShareDebugLog(
-      'resolve: carousel Isar pdfIds (${carouselPdfIds.length}): '
-      '${carouselPdfIds.join(', ')}',
-    );
-    if (carouselPdfIds.isEmpty) {
-      playlistShareDebugLog('resolve: carousel vazio — abortando');
+    final activeId = ref.read(activePlaylistIdProvider);
+    if (activeId == null) {
+      playlistShareDebugLog('resolve: sem lista ativa — abortando');
       return null;
     }
-
-    final repository = ref.read(playlistRepositoryProvider);
-    final activeId = ref.read(activePlaylistIdProvider);
-    playlistShareDebugLog('resolve: activePlaylistId em memória=$activeId');
-
-    if (activeId != null) {
-      final active = await repository.getById(activeId);
-      if (active != null) {
-        playlistShareDebugLog(
-          'resolve: playlist ativa encontrada nome="${active.nome}" '
-          'pdfIds (${active.pdfIds.length})',
-        );
-        if (!_pdfIdsMatch(active.pdfIds, carouselPdfIds)) {
-          playlistShareDebugLog(
-            'resolve: pdfIds divergentes — sincronizando carousel → playlist',
-          );
-          await syncActivePlaylistFromCarousel();
-        }
-        final updated = await repository.getById(activeId);
-        if (updated != null && updated.pdfIds.isNotEmpty) {
-          playlistShareDebugLog(
-            'resolve: reutilizando playlist ativa id=$activeId',
-          );
-          return ResolvedActivePlaylist(
-            playlistId: activeId,
-            nome: updated.nome,
-          );
-        }
-        playlistShareDebugLog(
-          'resolve: playlist ativa id=$activeId sem pdfIds após sync',
-        );
-      } else {
-        playlistShareDebugLog(
-          'resolve: activePlaylistId=$activeId não existe no Isar',
-        );
-      }
+    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
+    if (active == null || active.entries.isEmpty) {
+      playlistShareDebugLog('resolve: lista ativa ausente ou vazia');
+      return null;
     }
-
-    final allPlaylists = await repository.getAll();
-    playlistShareDebugLog(
-      'resolve: buscando match entre ${allPlaylists.length} playlists',
-    );
-    final matching = _findPlaylistWithPdfIds(allPlaylists, carouselPdfIds);
-    if (matching != null) {
-      playlistShareDebugLog(
-        'resolve: match encontrado id=${matching.playlistId} '
-        'salva=${matching.salva}',
-      );
-      ref.read(activePlaylistIdProvider.notifier).set(matching.playlistId);
-      return ResolvedActivePlaylist(
-        playlistId: matching.playlistId,
-        nome: matching.nome,
-      );
-    }
-
-    playlistShareDebugLog('resolve: sem match — criando rascunho');
-    final nome = defaultPlaylistName();
-    final playlistId = await repository.create(
-      nome: nome,
-      pdfIds: carouselPdfIds,
-      salva: false,
-    );
-    ref.read(activePlaylistIdProvider.notifier).set(playlistId);
-    await _reload();
-    playlistShareDebugLog(
-      'resolve: rascunho criado id=$playlistId nome="$nome"',
-    );
-    return ResolvedActivePlaylist(playlistId: playlistId, nome: nome);
+    return ResolvedActivePlaylist(playlistId: activeId, nome: active.nome);
   }
 
   /// Compartilha playlist via URL PWA (`/?sharepdfs=…&sharename=…`).
@@ -657,65 +502,18 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> refreshAfterImport() async {
     await _reload();
-    await ref.read(carouselLouvoresProvider.notifier).reload();
   }
 
   /// Adiciona áudio à lista ativa (cria rascunho se necessário).
   ///
   /// Mesmo contrato de [addLouvorToActivePlaylist]: sem storage devolve
-  /// `false` em vez de propagar.
+  /// `false` em vez de propagar. O `kind` é **declarado** (A8) — a extensão do
+  /// id não decide.
   Future<bool> addAudioToActivePlaylist(String audioId) async {
-    try {
-      return await _addAudioToActivePlaylist(audioId);
-    } on StorageUnavailableException catch (e) {
-      debugPrint('[playlists] sem storage ao adicionar áudio à lista: $e');
-      return false;
-    }
-  }
-
-  Future<bool> _addAudioToActivePlaylist(String audioId) async {
-    var activeId = ref.read(activePlaylistIdProvider);
-    final repo = ref.read(playlistRepositoryProvider);
-
-    if (activeId == null) {
-      final nome = defaultPlaylistName();
-      activeId = await repo.create(
-        nome: nome,
-        pdfIds: const [],
-        audioIds: [audioId],
-        salva: false,
-      );
-      ref.read(activePlaylistIdProvider.notifier).set(activeId);
-      await _reload();
-      return true;
-    }
-
-    final active = await repo.getById(activeId);
-    if (active == null) {
-      final nome = defaultPlaylistName();
-      activeId = await repo.create(
-        nome: nome,
-        pdfIds: const [],
-        audioIds: [audioId],
-        salva: false,
-      );
-      ref.read(activePlaylistIdProvider.notifier).set(activeId);
-      await _reload();
-      return true;
-    }
-
-    // Dedupe contra `entries`: se o id já estiver na lista — mesmo com o `kind`
-    // da face de partituras — não duplica.
-    if (active.entries.any((e) => e.id == audioId)) return false;
-
-    final next = [...active.audioIds, audioId];
-    await ref.read(updatePlaylistProvider)(
-      playlistId: activeId,
-      audioIds: next,
-    );
-    await _reload();
-    if (active.salva) _syncCloudIfAuthed();
-    return true;
+    final outcome = await ref
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(audioId, kind: MaterialKind.audio);
+    return outcome == AddToActiveOutcome.added;
   }
 
   Future<String?> importSharedFromUrl({
@@ -733,8 +531,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       );
       ref.read(activePlaylistIdProvider.notifier).set(playlistId);
       await _reload();
-      await ref.read(carouselLouvoresProvider.notifier).reload();
-      ref.read(carouselFocusedIndexProvider.notifier).reset();
+      ref.read(carouselFocusedKeyProvider.notifier).clear();
       return playlistId;
     } on InvalidSharePlaylistException {
       return null;
@@ -743,31 +540,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   PlaylistShareParams? parseShareInput(String raw) =>
       extractShareParamsFromUserInput(raw);
-
-  static SavedPlaylist? _findPlaylistWithPdfIds(
-    List<SavedPlaylist> playlists,
-    List<String> pdfIds,
-  ) {
-    SavedPlaylist? unsavedMatch;
-    SavedPlaylist? anyMatch;
-    for (final playlist in playlists) {
-      if (!_pdfIdsMatch(playlist.pdfIds, pdfIds)) continue;
-      if (!playlist.salva) {
-        unsavedMatch = playlist;
-        break;
-      }
-      anyMatch ??= playlist;
-    }
-    return unsavedMatch ?? anyMatch;
-  }
-
-  static bool _pdfIdsMatch(List<String> a, List<String> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
 }
 
 Future<void> _defaultSharePlaylistUrl(

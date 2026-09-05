@@ -1,157 +1,67 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../playlists/presentation/providers/active_playlist_sync.dart';
-import '../../data/providers/carousel_providers.dart';
+import '../../../playlists/domain/entities/playlist_entry.dart';
+import '../../../playlists/domain/entities/playlist_media_face.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/carousel_item.dart';
-import '../utils/build_carousel_metadata_map.dart';
+import 'carousel_items_provider.dart';
 
-/// Debounce entre reordenações consecutivas antes de persistir no Isar.
-const carouselReorderPersistDebounce = Duration(milliseconds: 100);
-
-/// Estado reativo do carousel enriquecido com labels do manifest (UC-05).
+/// Debounce entre reordenações consecutivas antes de persistir.
 ///
-/// Cold start: lista vazia até `_reload()` via microtask. Reage a updates do
-/// manifest para refrescar labels de chips existentes.
+/// Apelido de [activeReorderPersistDebounce] — o debounce mudou de lugar junto
+/// com a persistência.
+const carouselReorderPersistDebounce = activeReorderPersistDebounce;
+
+/// Adaptador de compatibilidade sobre a lista ativa (some na Tarefa 16).
+///
+/// O carousel não tem mais estado próprio: [build] é a face de partituras da
+/// lista ativa ([carouselItemsProvider]) e cada método delega ao
+/// [ActivePlaylistEditor]. Como a API antiga fala em `pdfId` e não em chave,
+/// todas as mutações miram a **primeira ocorrência** do id.
 class CarouselLouvoresNotifier extends Notifier<List<CarouselItem>> {
-  Timer? _reorderPersistTimer;
-  List<String>? _pendingReorderPdfIds;
-  int _reloadGeneration = 0;
-
   @override
-  List<CarouselItem> build() {
-    ref.listen(louvoresManifestProvider, (_, _) {
-      unawaited(_reload());
-    });
-    ref.listen(coldigomLouvoresCacheProvider, (_, _) {
-      unawaited(_reload());
-    });
-    ref.listen(coldigomChordMaterialsCacheProvider, (_, _) {
-      unawaited(_reload());
-    });
-    ref.onDispose(() => _reorderPersistTimer?.cancel());
-    Future.microtask(_reload);
-    return const [];
-  }
+  List<CarouselItem> build() => ref.watch(carouselItemsProvider);
 
-  Future<void> _reload() async {
-    final generation = ++_reloadGeneration;
-    final repository = ref.read(carouselRepositoryProvider);
-    final metadata = buildCarouselMetadataMap(
-      plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
-      coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-      chordCache: ref.read(coldigomChordMaterialsCacheProvider),
-    );
-    final items = await repository.getOrderedItems(pdfIdToMetadata: metadata);
-    if (generation != _reloadGeneration) return;
-    state = items;
-  }
+  ActivePlaylistEditor get _editor =>
+      ref.read(activePlaylistEditorProvider.notifier);
 
-  List<CarouselItem> _reorderItemsLocally(
-    List<CarouselItem> items,
-    List<String> orderedPdfIds,
-  ) {
-    final byId = {for (final item in items) item.pdfId: item};
-    return [
-      for (var i = 0; i < orderedPdfIds.length; i++)
-        CarouselItem(
-          pdfId: orderedPdfIds[i],
-          sortOrder: i,
-          numero: byId[orderedPdfIds[i]]!.numero,
-          nome: byId[orderedPdfIds[i]]!.nome,
-          categoria: byId[orderedPdfIds[i]]!.categoria,
-          classificacao: byId[orderedPdfIds[i]]!.classificacao,
-          source: byId[orderedPdfIds[i]]!.source,
-        ),
-    ];
-  }
+  /// No-op: a lista já é derivada — não há o que recarregar.
+  Future<void> reload() async {}
 
-  Future<void> _flushPendingReorder() async {
-    final orderedPdfIds = _pendingReorderPdfIds;
-    if (orderedPdfIds == null) return;
-    _pendingReorderPdfIds = null;
-
-    await ref.read(reorderCarouselProvider)(orderedPdfIds: orderedPdfIds);
-    await syncActivePlaylistFromCarousel(ref);
-  }
-
-  /// Recarrega estado após mutação externa (ex.: [LoadPlaylistIntoCarousel]).
-  Future<void> reload() => _reload();
-
-  /// Adiciona [pdfId] ao carousel. Retorna `false` se já existia.
+  /// Adiciona [pdfId] à lista ativa. Retorna `false` se já existia.
   Future<bool> add(String pdfId) async {
-    final added = await ref.read(addLouvorToCarouselProvider)(pdfId: pdfId);
-    if (added) {
-      await _reload();
-      await syncActivePlaylistFromCarousel(ref);
-    }
-    return added;
+    final outcome = await _editor.addToActive(pdfId);
+    return outcome == AddToActiveOutcome.added;
   }
 
-  /// Remove [pdfId] da seleção.
-  Future<void> remove(String pdfId) async {
-    await ref.read(removeLouvorFromCarouselProvider)(pdfId: pdfId);
-    await _reload();
-    await syncActivePlaylistFromCarousel(ref);
-  }
+  /// Remove a primeira ocorrência de [pdfId] da seleção.
+  Future<void> remove(String pdfId) =>
+      _editor.removeByKey(entryKeyFor(pdfId, 0));
 
-  /// Troca material na mesma posição do carousel (leitor PDF).
-  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
-    final replaced = await ref
-        .read(carouselRepositoryProvider)
-        .replacePdfId(oldPdfId, newPdfId);
-    if (replaced) {
-      await _reload();
-      await syncActivePlaylistFromCarousel(ref);
-    }
-    return replaced;
-  }
+  /// Troca material na mesma posição da primeira ocorrência de [oldPdfId].
+  Future<bool> replacePdfId(String oldPdfId, String newPdfId) =>
+      _editor.replaceByKey(
+        entryKeyFor(oldPdfId, 0),
+        PlaylistEntry.classified(newPdfId),
+      );
 
-  /// Persiste nova ordem após drag-and-drop na UI.
-  ///
-  /// Atualiza [state] de forma otimista (sem `_reload`) e agrupa persistências
-  /// Isar + sync da playlist ativa em [carouselReorderPersistDebounce].
-  Future<void> reorder(List<String> orderedPdfIds) async {
-    state = _reorderItemsLocally(state, orderedPdfIds);
-    _pendingReorderPdfIds = orderedPdfIds;
+  /// Persiste nova ordem da face de partituras após drag-and-drop.
+  Future<void> reorder(List<String> orderedPdfIds) => _editor.reorderFace(
+    PlaylistMediaFace.pdf,
+    [for (final id in orderedPdfIds) entryKeyFor(id, 0)],
+  );
 
-    _reorderPersistTimer?.cancel();
-    _reorderPersistTimer = Timer(carouselReorderPersistDebounce, () {
-      unawaited(_flushPendingReorder());
-    });
-  }
-
-  /// Limpa toda a seleção.
-  Future<void> clear() async {
-    await ref.read(clearCarouselProvider)();
-    await _reload();
-  }
+  /// Limpa toda a seleção — rascunho ativo é apagado, lista salva só desanexa.
+  Future<void> clear() => _editor.deleteActiveDraft();
 }
 
-/// Lista ordenada de louvores no carousel temporário (UC-05) — fonte de verdade.
-///
-/// Consumido por [LouvorGroupCard] (`isAdded` via [carouselPdfIdsProvider]),
-/// [showCarouselSelectionSheet] (modal),
-/// [PlaylistListTile] (confirmação de substituição) e navegação via
-/// [carouselFocusedIndexProvider].
-///
-/// A barra [CarouselChips] renderiza via [carouselLouvoresDisplayProvider]
-/// (debounce de reordenação). [CarouselLouvoresNotifier.reorder] atualiza
-/// [state] de forma otimista e persiste no Isar após
-/// [carouselReorderPersistDebounce].
+/// Face de partituras da lista ativa — adaptador dos consumidores antigos.
 final carouselLouvoresProvider =
     NotifierProvider<CarouselLouvoresNotifier, List<CarouselItem>>(
       CarouselLouvoresNotifier.new,
     );
 
-/// Conjunto de [CarouselItem.pdfId] no carousel — membership O(1).
-///
-/// Derivado de [carouselLouvoresProvider]. Consumido por [LouvorGroupCard]
-/// (`isAdded`) via [carouselPdfIdsProvider.select].
+/// Apelido de [activeMaterialIdsProvider] — membership O(1) por id.
 final carouselPdfIdsProvider = Provider<Set<String>>((ref) {
-  final items = ref.watch(carouselLouvoresProvider);
-  return {for (final item in items) item.pdfId};
+  return ref.watch(activeMaterialIdsProvider);
 });

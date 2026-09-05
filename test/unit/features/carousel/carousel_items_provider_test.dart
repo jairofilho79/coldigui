@@ -1,0 +1,232 @@
+import 'dart:io';
+
+import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
+import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
+import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
+import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/louvores_manifest_test_helpers.dart';
+
+final _pdfA = encodePdfId('ColAdultos/001.pdf');
+final _pdfB = encodePdfId('ColAdultos/002.pdf');
+final _audioA = encodePdfId('ColAdultos/001.mp3');
+
+Louvor _louvor(String pdfId, String numero, String nome) => Louvor(
+  pdfId: pdfId,
+  pdf: '$numero.pdf',
+  groupId: numero,
+  numero: numero,
+  nome: nome,
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  searchTitleNorm: nome.toLowerCase(),
+  searchContentTokens: const [],
+  searchCompactContent: '',
+  source: LouvorDataSource.plpcg,
+);
+
+Future<void> _flush() async {
+  await Future<void>.delayed(Duration.zero);
+  await Future<void>.delayed(Duration.zero);
+  await Future<void>.delayed(Duration.zero);
+}
+
+void main() {
+  late Directory tempDir;
+  late Isar isar;
+  late PlaylistRepositoryImpl repository;
+
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('carousel_items_');
+    isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
+    repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+  });
+
+  tearDown(() async {
+    isar.close(deleteFromDisk: true);
+    if (tempDir.existsSync()) await tempDir.delete(recursive: true);
+  });
+
+  Future<ProviderContainer> boot({
+    required List<PlaylistEntry> entries,
+    Map<String, Object> extraPrefs = const {},
+  }) async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: entries,
+      playlistId: 'p1',
+      salva: false,
+    );
+    SharedPreferences.setMockInitialValues({
+      kActivePlaylistIdPrefsKey: 'p1',
+      ...extraPrefs,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        playlistRepositoryProvider.overrideWithValue(repository),
+        carouselLocalDatasourceProvider.overrideWithValue(
+          const CarouselLocalDatasource.unavailable(),
+        ),
+        louvoresManifestOverride(
+          LouvoresManifest.fromLouvores([
+            _louvor(_pdfA, '001', 'Santo'),
+            _louvor(_pdfB, '002', 'Aleluia'),
+          ]),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(playlistsProvider);
+    await _flush();
+    return container;
+  }
+
+  test(
+    'carouselItemsProvider filtra a face de partituras e enriquece pelo manifest',
+    () async {
+      final c = await boot(
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+        ],
+      );
+
+      final items = c.read(carouselItemsProvider);
+
+      expect(items.map((i) => i.materialId), [_pdfA, _pdfB]);
+      expect(items.map((i) => i.index), [0, 1]);
+      expect(items.map((i) => i.key), [_pdfA, _pdfB]);
+      expect(items.first.numero, '001');
+      expect(items.first.nome, 'Santo');
+      expect(items.last.label, '002 — Aleluia');
+    },
+  );
+
+  test('audioFaceItemsProvider só áudio', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+      ],
+    );
+
+    final items = c.read(audioFaceItemsProvider);
+
+    expect(items.map((i) => i.materialId), [_audioA]);
+    expect(items.single.kind, MaterialKind.audio);
+    expect(items.single.index, 0);
+  });
+
+  test('activeMaterialIdsProvider junta as duas faces', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+      ],
+    );
+
+    expect(c.read(activeMaterialIdsProvider), {_pdfA, _audioA});
+  });
+
+  test('material sem metadado cai no fallback de nome truncado', () async {
+    const orfao = 'idmuitolongodemais';
+    final c = await boot(
+      entries: [PlaylistEntry(id: orfao, kind: MaterialKind.pdf)],
+    );
+
+    final item = c.read(carouselItemsProvider).single;
+
+    expect(item.numero, '');
+    expect(item.nome, 'idmuitolongo…');
+  });
+
+  test('repetição do mesmo louvor gera duas chaves distintas', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+      ],
+    );
+
+    expect(c.read(carouselItemsProvider).map((i) => i.key), [
+      _pdfA,
+      '$_pdfA#1',
+    ]);
+  });
+
+  test(
+    'carouselFocusedIndexProvider foca por chave e sobrevive a reorder',
+    () async {
+      final c = await boot(
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+        ],
+      );
+
+      c.read(carouselFocusedIndexProvider.notifier).focusKey(_pdfB);
+      expect(c.read(carouselFocusedIndexProvider), 1);
+
+      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
+        PlaylistMediaFace.pdf,
+        [_pdfB, _pdfA],
+      );
+      await _flush();
+
+      expect(c.read(carouselItemsProvider).map((i) => i.materialId), [
+        _pdfB,
+        _pdfA,
+      ]);
+      expect(c.read(carouselFocusedIndexProvider), 0);
+    },
+  );
+
+  test(
+    'foco persistido na pref antiga é lido como chave da primeira ocorrência',
+    () async {
+      final c = await boot(
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+        ],
+        extraPrefs: {kCarouselFocusedPdfIdPrefsKey: _pdfB},
+      );
+
+      expect(c.read(carouselFocusedIndexProvider), 1);
+    },
+  );
+
+  test('focusedCarouselItemProvider devolve o item focado', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+    );
+
+    c.read(carouselFocusedIndexProvider.notifier).focusKey(_pdfB);
+
+    expect(c.read(focusedCarouselItemProvider)!.materialId, _pdfB);
+  });
+}

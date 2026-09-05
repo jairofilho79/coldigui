@@ -77,13 +77,14 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     return id;
   }
 
-  /// [pdfIds]/[audioIds] substituem apenas o seu subconjunto da ordem única —
-  /// ver [SavedPlaylist.replaceSubset]. Um reorder da face de partituras
-  /// vindo do carousel não move os áudios de lugar.
+  /// [entries] vence tudo: grava a ordem única literal (repetições inclusive).
+  /// Sem ele, [pdfIds]/[audioIds] substituem apenas o seu subconjunto da ordem
+  /// única — ver [SavedPlaylist.replaceSubset].
   @override
   Future<void> update(
     String playlistId, {
     String? nome,
+    List<PlaylistEntry>? entries,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,
@@ -101,6 +102,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     final becomesSaved = salva == true || (existing?.salva ?? false);
     final touchSync =
         nome != null ||
+        entries != null ||
         pdfIds != null ||
         audioIds != null ||
         salva != null ||
@@ -112,18 +114,30 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
 
     // Reprojeta a ordem única antes de escrever: as duas listas gravadas em
     // disco continuam sendo projeções coerentes de `items`.
-    SavedPlaylist? next;
-    if ((pdfIds != null || audioIds != null) && existing != null) {
-      next = existing.copyWith(pdfIds: pdfIds, audioIds: audioIds);
+    List<PlaylistEntry>? next;
+    if (entries != null) {
+      next = List<PlaylistEntry>.unmodifiable(entries);
+    } else if ((pdfIds != null || audioIds != null) && existing != null) {
+      next = existing.nextEntriesWith(pdfIds: pdfIds, audioIds: audioIds);
     }
 
     await _local.updateFields(
       playlistId,
       nome: nome,
-      items: next?.items,
-      itemKinds: next == null ? null : _kindsOf(next.entries),
-      pdfIds: next?.pdfIds ?? pdfIds,
-      audioIds: next?.audioIds ?? audioIds,
+      items: next == null ? null : <String>[for (final e in next) e.id],
+      itemKinds: next == null ? null : _kindsOf(next),
+      pdfIds: next == null
+          ? pdfIds
+          : <String>[
+              for (final e in next)
+                if (!e.isAudio) e.id,
+            ],
+      audioIds: next == null
+          ? audioIds
+          : <String>[
+              for (final e in next)
+                if (e.isAudio) e.id,
+            ],
       salva: salva,
       savedAt: savedAt,
       favoritedAt: favoritedAt,

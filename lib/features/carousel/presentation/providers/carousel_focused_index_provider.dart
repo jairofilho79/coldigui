@@ -3,114 +3,126 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../playlists/domain/entities/active_entry.dart';
 import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../domain/entities/carousel_item.dart';
-import 'carousel_louvores_provider.dart';
+import 'carousel_items_provider.dart';
 
-/// Índice do louvor visível na barra do carousel (shell).
+/// Chave da entrada focada na face de partituras — `null` = «a primeira».
 ///
-/// Persiste o [pdfId] focado em SharedPreferences (reload) e entre mutações
-/// da lista (remove/reorder/reload). Recua o índice quando o item focado
-/// deixa de existir. Sincroniza com [carouselLouvoresProvider] (fonte de
-/// verdade); [CarouselChips] resolve o chip exibido pelo `pdfId` na lista
-/// debounced ([carouselLouvoresDisplayProvider]).
+/// Vive **separada** do índice de propósito: quem foca (o
+/// `ActivePlaylistEditor`, o `PlaylistsNotifier`) está a montante da lista
+/// derivada, e um provider que dependesse de [carouselItemsProvider] fecharia
+/// um ciclo. Este aqui só depende de SharedPreferences.
+///
+/// Persistida na mesma pref de sempre (`carousel_focused_pdf_id`): os valores
+/// gravados por builds anteriores são ids, e um id é a chave da primeira
+/// ocorrência ([entryKeyFor]).
+class CarouselFocusedKeyNotifier extends Notifier<String?> {
+  @override
+  String? build() {
+    final raw = ref
+        .read(sharedPreferencesProvider)
+        .getString(kCarouselFocusedPdfIdPrefsKey);
+    if (raw == null || raw.isEmpty) return null;
+    return raw;
+  }
+
+  /// Foca a entrada de chave [key].
+  void focus(String key) {
+    if (state == key) return;
+    state = key;
+    unawaited(_persist(key));
+  }
+
+  /// Volta ao começo da face — o índice resolve para 0.
+  void clear() {
+    if (state == null) return;
+    state = null;
+    unawaited(_persist(null));
+  }
+
+  Future<void> _persist(String? key) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (key == null || key.isEmpty) {
+      await prefs.remove(kCarouselFocusedPdfIdPrefsKey);
+    } else {
+      await prefs.setString(kCarouselFocusedPdfIdPrefsKey, key);
+    }
+  }
+}
+
+/// Chave focada na face de partituras — ver [CarouselFocusedKeyNotifier].
+final carouselFocusedKeyProvider =
+    NotifierProvider<CarouselFocusedKeyNotifier, String?>(
+      CarouselFocusedKeyNotifier.new,
+    );
+
+/// Índice do louvor visível na barra do carousel (face de partituras).
+///
+/// Resolve [carouselFocusedKeyProvider] contra [carouselItemsProvider]:
+/// chave nula → primeiro item; chave que não existe mais → o índice anterior,
+/// preso ao intervalo válido (o vizinho de quem saiu).
 class CarouselFocusedIndexNotifier extends Notifier<int> {
-  String? _focusedPdfId;
   int _currentIndex = 0;
-  var _didReadPrefs = false;
 
   @override
   int build() {
-    if (!_didReadPrefs) {
-      _didReadPrefs = true;
-      final raw = ref
-          .read(sharedPreferencesProvider)
-          .getString(kCarouselFocusedPdfIdPrefsKey);
-      if (raw != null && raw.isNotEmpty) {
-        _focusedPdfId = raw;
-      }
-    }
-    final synced = _syncIndex(ref.watch(carouselLouvoresProvider));
-    _currentIndex = synced;
-    return synced;
+    return _resolve(
+      ref.watch(carouselItemsProvider),
+      ref.watch(carouselFocusedKeyProvider),
+    );
   }
 
-  int _syncIndex(List<CarouselItem> items) {
-    if (items.isEmpty) {
-      // ponytail: keep persisted pdfId across the empty cold-start reload
+  int _resolve(List<CarouselItem> items, String? focusedKey) {
+    if (items.isEmpty || focusedKey == null) {
       _currentIndex = 0;
       return 0;
     }
 
-    if (_focusedPdfId != null) {
-      final index = items.indexWhere((item) => item.pdfId == _focusedPdfId);
-      if (index >= 0) {
-        _currentIndex = index;
-        return index;
-      }
+    final index = items.indexWhere((item) => item.key == focusedKey);
+    if (index >= 0) {
+      _currentIndex = index;
+      return index;
     }
 
     final clamped = _currentIndex.clamp(0, items.length - 1);
     _currentIndex = clamped;
-    _focusedPdfId = items[clamped].pdfId;
     return clamped;
   }
 
   void goPrevious() {
-    final items = ref.read(carouselLouvoresProvider);
+    final items = ref.read(carouselItemsProvider);
     if (items.isEmpty || _currentIndex <= 0) return;
-    _currentIndex = _currentIndex - 1;
-    state = _currentIndex;
-    _setFocusedPdfId(items[_currentIndex].pdfId);
+    ref
+        .read(carouselFocusedKeyProvider.notifier)
+        .focus(items[_currentIndex - 1].key);
   }
 
   void goNext() {
-    final items = ref.read(carouselLouvoresProvider);
+    final items = ref.read(carouselItemsProvider);
     if (items.isEmpty || _currentIndex >= items.length - 1) return;
-    _currentIndex = _currentIndex + 1;
-    state = _currentIndex;
-    _setFocusedPdfId(items[_currentIndex].pdfId);
+    ref
+        .read(carouselFocusedKeyProvider.notifier)
+        .focus(items[_currentIndex + 1].key);
   }
 
-  /// Foca o item com [pdfId] — usado ao selecionar louvor no modal do carousel.
-  void focusPdfId(String pdfId) {
-    if (_focusedPdfId == pdfId) return;
-    final items = ref.read(carouselLouvoresProvider);
-    final index = items.indexWhere((item) => item.pdfId == pdfId);
-    if (index < 0) return;
-    _currentIndex = index;
-    state = index;
-    _setFocusedPdfId(pdfId);
+  /// Foca a ocorrência de chave [key], se ela existir na face.
+  void focusKey(String key) {
+    final items = ref.read(carouselItemsProvider);
+    if (!items.any((item) => item.key == key)) return;
+    ref.read(carouselFocusedKeyProvider.notifier).focus(key);
   }
 
-  /// Volta ao primeiro item — usado ao carregar playlist no carousel.
-  void reset() {
-    final items = ref.read(carouselLouvoresProvider);
-    _currentIndex = 0;
-    state = 0;
-    _setFocusedPdfId(items.isEmpty ? null : items.first.pdfId);
-  }
+  /// Foca a **primeira** ocorrência de [pdfId].
+  @Deprecated('use focusKey')
+  void focusPdfId(String pdfId) => focusKey(entryKeyFor(pdfId, 0));
 
-  /// Esquece o PDF focado — usado ao limpar a seleção.
-  void clearFocus() {
-    _currentIndex = 0;
-    state = 0;
-    _setFocusedPdfId(null);
-  }
+  /// Volta ao primeiro item — usado ao trocar de lista ativa.
+  void reset() => ref.read(carouselFocusedKeyProvider.notifier).clear();
 
-  void _setFocusedPdfId(String? pdfId) {
-    _focusedPdfId = pdfId;
-    unawaited(_persist(pdfId));
-  }
-
-  Future<void> _persist(String? pdfId) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    if (pdfId == null || pdfId.isEmpty) {
-      await prefs.remove(kCarouselFocusedPdfIdPrefsKey);
-    } else {
-      await prefs.setString(kCarouselFocusedPdfIdPrefsKey, pdfId);
-    }
-  }
+  /// Esquece a entrada focada — usado ao limpar a seleção.
+  void clearFocus() => ref.read(carouselFocusedKeyProvider.notifier).clear();
 }
 
 /// Índice 0-based do louvor exibido na [CarouselNavigatorBar] do shell.

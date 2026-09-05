@@ -5,7 +5,6 @@ import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
-import '../../../carousel/data/providers/carousel_providers.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
@@ -14,6 +13,7 @@ import '../../domain/entities/playlist_media_face.dart';
 import 'active_playlist_provider.dart';
 import 'playlist_media_face_provider.dart';
 import 'playlist_session_prefs.dart';
+import 'playlists_provider.dart';
 
 /// Praise IDs Coldigom embutidos em pdfIds/audioIds (mesmo codec Base64).
 Set<String> collectColdigomPraiseIds({
@@ -60,13 +60,26 @@ int restoreQueueStartIndex(List<AudioTrack> tracks, String? focusedAudioId) {
 /// como "a playlist não existe mais" apagaria de vez o id ativo das
 /// SharedPreferences e derrubaria a face para pdf. Quem chama usa o retorno
 /// para saber se pode considerar a sessão hidratada.
+///
+/// Com storage, começa pela migração única do carousel Isar (D3): a coleção
+/// antiga vira a lista ativa quando não havia nenhuma, e é esvaziada em seguida.
 Future<bool> hydratePlaylistSession(Ref ref) async {
   if (await awaitIsarSettled(ref) != IsarStatus.available) {
     debugPrint('[playlists] hidratação adiada: storage indisponível');
     return false;
   }
 
+  final outcome = await ref.read(migrateCarouselStoreProvider)(
+    activePlaylistId: ref.read(activePlaylistIdProvider),
+  );
+  final createdByMigration = outcome.createdPlaylistId;
+  if (createdByMigration != null) {
+    ref.read(activePlaylistIdProvider.notifier).set(createdByMigration);
+    await ref.read(playlistsProvider.notifier).reload();
+  }
+
   final activeId = ref.read(activePlaylistIdProvider);
+  var pdfIds = const <String>[];
   var audioIds = const <String>[];
 
   if (activeId != null) {
@@ -76,11 +89,11 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
     if (playlist == null) {
       ref.read(activePlaylistIdProvider.notifier).clear();
     } else {
+      pdfIds = playlist.pdfIds;
       audioIds = playlist.audioIds;
     }
   }
 
-  final pdfIds = await ref.read(carouselRepositoryProvider).getOrderedPdfIds();
   await warmupColdigomPraiseIds(
     ref,
     collectColdigomPraiseIds(pdfIds: pdfIds, audioIds: audioIds),

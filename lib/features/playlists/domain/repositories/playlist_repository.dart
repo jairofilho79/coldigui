@@ -33,9 +33,14 @@ abstract class PlaylistRepository {
   });
 
   /// Atualização parcial — lança [StateError] se playlist ausente.
+  ///
+  /// [entries] é a ordem única tipada e **vence** [pdfIds]/[audioIds]: é o
+  /// único jeito de gravar repetição do mesmo id e de mover uma entrada entre
+  /// faces sem passar pelas projeções.
   Future<void> update(
     String playlistId, {
     String? nome,
+    List<PlaylistEntry>? entries,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,

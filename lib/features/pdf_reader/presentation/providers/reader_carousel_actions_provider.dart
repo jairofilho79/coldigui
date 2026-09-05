@@ -11,36 +11,20 @@ import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
-import '../../data/providers/carousel_reader_providers.dart';
-import '../../domain/entities/carousel_reader_position.dart';
 
 /// Orquestra navegação carousel no leitor (UC-11, Fase 4.7).
 ///
 /// [navigateToPdfId] é o ponto único de troca de PDF — usado por setas/modal
-/// em [CarouselChips] e por [openCarouselPdfInReader] no shell.
-/// [navigateAdjacent] permanece para lookup via [NavigateCarouselInReader]
-/// (repositório Isar); a UI do leitor prefere ids de [readerCarouselPositionProvider].
+/// em [CarouselChips] e por [openCarouselPdfInReader] no shell. O lookup por
+/// repositório Isar saiu com o carousel (D3): a UI do leitor resolve os
+/// vizinhos por [readerCarouselPositionProvider].
 class ReaderCarouselActionsNotifier extends Notifier<void> {
   @override
   void build() {}
 
-  /// Resolve rota `/leitor` para o louvor adjacente ou `null` se indisponível.
-  Future<String?> navigateAdjacent({
-    required String currentPdfId,
-    required CarouselReaderDirection direction,
-  }) async {
-    final targetPdfId = await ref
-        .read(navigateCarouselInReaderProvider)
-        .resolveTarget(currentPdfId: currentPdfId, direction: direction);
-    if (targetPdfId == null) return null;
-
-    return navigateToPdfId(targetPdfId: targetPdfId);
-  }
-
   /// Resolve rota `/leitor` para [targetPdfId] ou `null` se indisponível.
   ///
-  /// Usado por [openCarouselPdfInReader] (shell/modal) e por
-  /// [navigateAdjacent] (setas no leitor).
+  /// Usado por [openCarouselPdfInReader] (shell/modal) e pelas setas do leitor.
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
     // Este notifier devolve uma **rota** para quem chama navegar e não tem
     // `BuildContext`, então o desvio de cifra continua resolvido por rota aqui

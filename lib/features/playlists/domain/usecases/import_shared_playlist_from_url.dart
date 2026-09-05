@@ -1,26 +1,19 @@
 import '../../../../core/utils/playlist_share_url_builder.dart';
-import '../entities/playlist_entry.dart';
 import '../exceptions/invalid_share_playlist_exception.dart';
 import '../repositories/playlist_repository.dart';
-import 'load_playlist_into_carousel.dart';
 
 /// UC-07 — Importar playlist compartilhada (Fase 4.4).
 class ImportSharedPlaylistFromUrl {
-  const ImportSharedPlaylistFromUrl(
-    this._playlistRepository,
-    this._loadIntoCarousel,
-  );
+  const ImportSharedPlaylistFromUrl(this._playlistRepository);
 
   final PlaylistRepository _playlistRepository;
-  final LoadPlaylistIntoCarousel _loadIntoCarousel;
 
-  /// Persiste nova playlist e carrega o carousel. Retorna [playlistId].
+  /// Persiste a nova playlist e devolve o [playlistId].
   ///
   /// [shareItems] (v2, spec A.5) preserva a ordem intercalada e o tipo de cada
   /// material; quando ausente ou inválido, [sharePdfs]/[shareAudios] valem como
-  /// antes. O carousel é carregado sempre que houver **qualquer** entrada de
-  /// partitura (PDF, cifra, gesto, YouTube ou id legado) — não só quando
-  /// `sharepdfs` estiver preenchido.
+  /// antes. Quem chama torna a lista ativa (D3) — não existe mais carousel a
+  /// carregar.
   ///
   /// Lança [InvalidSharePlaylistException] se params inválidos.
   Future<String> call({
@@ -48,9 +41,6 @@ class ImportSharedPlaylistFromUrl {
       salva: true,
       savedAt: now,
     );
-    if (entries.any((PlaylistEntry e) => !e.isAudio)) {
-      await _loadIntoCarousel(playlistId: playlistId);
-    }
     return playlistId;
   }
 }

@@ -1,8 +1,8 @@
+import '../entities/playlist_entry.dart';
 import '../repositories/playlist_repository.dart';
 import '../utils/playlist_defaults.dart';
-import 'load_playlist_into_carousel.dart';
 
-/// Resultado de [EnsurePlaylistForLouvor].
+/// Resultado de [EnsureActivePlaylist].
 class EnsurePlaylistResult {
   const EnsurePlaylistResult({
     required this.playlistId,
@@ -16,31 +16,33 @@ class EnsurePlaylistResult {
   final bool createdNew;
 }
 
-/// UC-06 — Garante playlist ativa contendo [pdfId] (Fase 4.8).
+/// UC-06 — Garante uma lista ativa contendo [entry] (D3).
 ///
-/// Se [activePlaylistId] existe e contém [pdfId], reutiliza.
-/// Caso contrário, cria lista não salva com nome padrão.
-class EnsurePlaylistForLouvor {
-  const EnsurePlaylistForLouvor(
-    this._playlistRepository,
-    this._loadIntoCarousel,
-  );
+/// Substitui `EnsurePlaylistForLouvor`: não existe mais carousel para carregar,
+/// e a entrada chega **tipada** (o `kind` do chamador vence a extensão, A8).
+///
+/// - Sem lista ativa (ou id órfão): cria rascunho `entries: [entry]` com
+///   [defaultPlaylistName].
+/// - Com lista ativa que já tem o id: reutiliza sem escrever.
+/// - Com lista ativa sem o id: acrescenta a entrada ao fim.
+class EnsureActivePlaylist {
+  const EnsureActivePlaylist(this._playlistRepository);
 
   final PlaylistRepository _playlistRepository;
-  final LoadPlaylistIntoCarousel _loadIntoCarousel;
 
-  /// Garante carousel carregado com playlist contendo [pdfId].
-  ///
-  /// Reutiliza [activePlaylistId] quando o louvor já está na lista;
-  /// caso contrário cria rascunho com [defaultPlaylistName] e `[pdfId]`.
   Future<EnsurePlaylistResult> call({
-    required String pdfId,
+    required PlaylistEntry entry,
     String? activePlaylistId,
   }) async {
     if (activePlaylistId != null) {
       final active = await _playlistRepository.getById(activePlaylistId);
-      if (active != null && active.pdfIds.contains(pdfId)) {
-        await _loadIntoCarousel(playlistId: activePlaylistId);
+      if (active != null) {
+        if (!active.entries.any((e) => e.id == entry.id)) {
+          await _playlistRepository.update(
+            activePlaylistId,
+            entries: [...active.entries, entry],
+          );
+        }
         return EnsurePlaylistResult(
           playlistId: activePlaylistId,
           createdNew: false,
@@ -50,10 +52,9 @@ class EnsurePlaylistForLouvor {
 
     final playlistId = await _playlistRepository.create(
       nome: defaultPlaylistName(),
-      pdfIds: [pdfId],
+      entries: [entry],
       salva: false,
     );
-    await _loadIntoCarousel(playlistId: playlistId);
     return EnsurePlaylistResult(playlistId: playlistId, createdNew: true);
   }
 }
