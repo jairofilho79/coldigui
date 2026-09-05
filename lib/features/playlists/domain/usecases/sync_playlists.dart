@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../entities/remote_playlist.dart';
 import '../entities/saved_playlist.dart';
 import '../repositories/playlist_repository.dart';
+import '../utils/playlist_defaults.dart';
 
 /// Resultado de [SyncPlaylists].
 class PlaylistSyncResult {
@@ -13,6 +14,7 @@ class PlaylistSyncResult {
     this.deletedRemotely = 0,
     this.skipped = false,
     this.conflicts = 0,
+    this.conflictCopies = const [],
     this.pullError,
     this.pushError,
   });
@@ -31,6 +33,10 @@ class PlaylistSyncResult {
 
   /// Listas que ficaram em [PlaylistSyncStatus.conflict] nesta rodada.
   final int conflicts;
+
+  /// Nomes das cópias criadas nesta rodada para não perder edições locais num
+  /// `409` (spec A.3) — já no formato de [conflictCopyName].
+  final List<String> conflictCopies;
 
   /// Erro **cru** da fase de pull, se ela falhou (a sync seguiu mesmo assim).
   ///
@@ -91,6 +97,7 @@ class SyncPlaylists {
     var deleted = 0;
     var deletedRemotely = 0;
     var conflicts = 0;
+    final conflictCopies = <String>[];
     Object? pullError;
     Object? pushError;
 
@@ -119,6 +126,8 @@ class SyncPlaylists {
         pulled += outcome.pulled;
         pushed += outcome.pushed;
         conflicts += outcome.conflicts;
+        final copy = outcome.copyName;
+        if (copy != null) conflictCopies.add(copy);
       } on Object catch (e) {
         // Mantém pendingPush; próxima sync tenta de novo.
         pushError = e;
@@ -153,6 +162,7 @@ class SyncPlaylists {
       deleted: deleted,
       deletedRemotely: deletedRemotely,
       conflicts: conflicts,
+      conflictCopies: List<String>.unmodifiable(conflictCopies),
       pullError: pullError,
       pushError: pushError,
     );
@@ -237,7 +247,9 @@ class SyncPlaylists {
 
   /// Last-write-wins por `updatedAt` sobre um `409`.
   ///
-  /// Remoto mais novo → a linha do servidor vence e o local vira `synced`.
+  /// Remoto mais novo → a linha do servidor vence e o local vira `synced`, mas
+  /// as edições locais pendentes não somem: viram uma lista nova em
+  /// [PlaylistSyncStatus.conflict] (spec A.3).
   /// Local mais novo → **uma** nova tentativa com a `version` do remoto; se ela
   /// também falhar, a lista fica em [PlaylistSyncStatus.conflict] (o banner
   /// conta) e a sync segue para as outras.
@@ -249,11 +261,12 @@ class SyncPlaylists {
     // `!remote.salva` é ignorado pelo pull (`_pull`), e o 409 segue a mesma
     // regra: um rascunho remoto não ressuscita por cima de uma lista salva.
     if (remote.salva && remote.updatedAt.isAfter(local.updatedAt)) {
+      final copyName = await _saveConflictCopy(local: local, remote: remote);
       await _repository.upsert(_fromRemote(remote));
       debugPrint(
         '[playlists] conflito em ${local.playlistId}: remoto mais novo venceu',
       );
-      return const _ConflictOutcome(pulled: 1);
+      return _ConflictOutcome(pulled: 1, copyName: copyName);
     }
     // Contra o Worker atual este ramo é inalcançável — ele só devolve 409
     // quando o cliente é o mais **velho** —, mas o spec pede o re-envio e ele
@@ -274,6 +287,53 @@ class SyncPlaylists {
       );
       return const _ConflictOutcome(conflicts: 1);
     }
+  }
+
+  /// Guarda as edições locais que o remoto está prestes a sobrescrever.
+  ///
+  /// Só quando havia mesmo edição pendente (`pendingPush`) **e** ela difere do
+  /// remoto em `entries` ou `nome` — reenviar a mesma coisa não vira lixo. A
+  /// cópia nasce em [PlaylistSyncStatus.conflict], que o push ignora: ela só
+  /// sobe se o usuário a editar (qualquer `update` a marca `pendingPush`).
+  ///
+  /// Devolve o nome da cópia, ou `null` se não houve o que guardar.
+  Future<String?> _saveConflictCopy({
+    required SavedPlaylist local,
+    required RemotePlaylist remote,
+  }) async {
+    if (local.syncStatus != PlaylistSyncStatus.pendingPush) return null;
+    if (!_entriesDiffer(local.entries, remote.entries) &&
+        local.nome == remote.nome) {
+      return null;
+    }
+    final copyName = conflictCopyName(local.nome);
+    // Sem `playlistId`: o repositório gera um novo, e a cópia é uma lista
+    // independente — o id remoto continua sendo o da original.
+    await _repository.create(
+      nome: copyName,
+      entries: local.entries,
+      salva: true,
+      syncStatus: PlaylistSyncStatus.conflict,
+      updatedAt: local.updatedAt,
+      createdAt: local.createdAt,
+    );
+    debugPrint(
+      '[playlists] edições locais de ${local.playlistId} guardadas em '
+      '"$copyName"',
+    );
+    return copyName;
+  }
+
+  /// Igualdade de lista elemento a elemento ([PlaylistEntry] já tem `==`).
+  ///
+  /// À mão em vez de `ListEquality`: `package:collection` é dependência
+  /// transitiva, e importá-la aqui exigiria declará-la no `pubspec`.
+  static bool _entriesDiffer(List<PlaylistEntry> a, List<PlaylistEntry> b) {
+    if (a.length != b.length) return true;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return true;
+    }
+    return false;
   }
 
   static SavedPlaylist _fromRemote(RemotePlaylist r) => SavedPlaylist(
@@ -323,11 +383,15 @@ class _ConflictOutcome {
     this.pulled = 0,
     this.pushed = 0,
     this.conflicts = 0,
+    this.copyName,
   });
 
   final int pulled;
   final int pushed;
   final int conflicts;
+
+  /// Nome da cópia local criada, se as edições pendentes foram guardadas.
+  final String? copyName;
 }
 
 /// O que a fase de pull produziu.

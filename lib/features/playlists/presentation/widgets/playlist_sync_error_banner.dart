@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/utils/playlist_defaults.dart';
 import '../providers/playlist_sync_provider.dart';
 
 /// Aviso discreto de sync na tela de listas (spec A.7).
@@ -23,15 +24,18 @@ class PlaylistSyncErrorBanner extends ConsumerWidget {
 
     final cause = sync.lastErrorCause;
     final conflicts = sync.conflicts;
-    // Erro e conflito não são o mesmo problema e podem coexistir: o erro vira
-    // título + detalhe, e a contagem de conflitos entra como linha própria.
-    final title = cause != null
-        ? l10n.playlistSyncFailed
-        : l10n.playlistSyncConflicts(conflicts);
-    final details = <String>[
+    // Erro, conflito e cópia guardada não são o mesmo problema e podem
+    // coexistir. Com erro, ele é o título e o resto vira detalhe; sem erro, a
+    // primeira linha sobe para o título.
+    final lines = <String>[
       if (cause != null) userMessageFor(l10n, cause),
-      if (cause != null && conflicts > 0) l10n.playlistSyncConflicts(conflicts),
+      if (conflicts > 0) l10n.playlistSyncConflicts(conflicts),
+      for (final copy in sync.conflictCopies)
+        l10n.playlistConflictCopySaved(conflictCopySourceName(copy), copy),
     ];
+    if (lines.isEmpty) return const SizedBox.shrink();
+    final title = cause != null ? l10n.playlistSyncFailed : lines.first;
+    final details = cause != null ? lines : lines.skip(1).toList();
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(

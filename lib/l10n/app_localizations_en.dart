@@ -828,6 +828,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playlistConflictCopySaved(String nome, String copia) {
+    return 'Local edits to “$nome” saved in “$copia”';
+  }
+
+  @override
   String playlistsRemovedRemotely(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

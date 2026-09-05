@@ -415,6 +415,13 @@
       "count": { "type": "int" }
     }
   },
+  "playlistConflictCopySaved": "Edições locais de «{nome}» guardadas em «{copia}»",
+  "@playlistConflictCopySaved": {
+    "placeholders": {
+      "nome": { "type": "String" },
+      "copia": { "type": "String" }
+    }
+  },
   "playlistsRemovedRemotely": "{count, plural, one{1 lista removida em outro aparelho} other{{count} listas removidas em outro aparelho}}",
   "@playlistsRemovedRemotely": {
     "placeholders": {

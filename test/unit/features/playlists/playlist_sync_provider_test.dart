@@ -299,4 +299,29 @@ void main() {
 
     expect(container.read(playlistSyncProvider).conflicts, 2);
   });
+
+  test('cópias de conflito e remoções remotas chegam ao estado', () async {
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(
+        result: const PlaylistSyncResult(
+          deletedRemotely: 2,
+          conflictCopies: ['Culto (cópia local)'],
+        ),
+      ),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    await container.read(playlistSyncProvider.notifier).sync();
+
+    final state = container.read(playlistSyncProvider);
+    expect(state.deletedRemotely, 2);
+    expect(state.conflictCopies, ['Culto (cópia local)']);
+    expect(
+      state.hasProblem,
+      isTrue,
+      reason: 'a cópia guardada precisa aparecer no banner',
+    );
+  });
 }

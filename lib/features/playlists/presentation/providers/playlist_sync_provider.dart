@@ -42,6 +42,7 @@ class PlaylistSyncState {
     this.lastResult,
     this.lastErrorCause,
     this.conflicts = 0,
+    this.conflictCopies = const [],
     this.deletedRemotely = 0,
   });
 
@@ -57,13 +58,17 @@ class PlaylistSyncState {
   /// Listas que ficaram em conflito na última rodada.
   final int conflicts;
 
+  /// Nomes das cópias que guardaram edições locais num `409` (spec A.3).
+  final List<String> conflictCopies;
+
   /// Listas apagadas aqui porque sumiram em outro aparelho (spec A.2).
   ///
   /// Não é problema — vira snackbar informativo, não banner.
   final int deletedRemotely;
 
   /// `true` quando há algo a mostrar ao usuário na tela de listas.
-  bool get hasProblem => lastErrorCause != null || conflicts > 0;
+  bool get hasProblem =>
+      lastErrorCause != null || conflicts > 0 || conflictCopies.isNotEmpty;
 
   /// Sem `clearError`: quem limpa o erro é a sync que deu certo, montando um
   /// [PlaylistSyncState] novo — não há caso de apagar o erro sem outra rodada.
@@ -72,6 +77,7 @@ class PlaylistSyncState {
     PlaylistSyncResult? lastResult,
     Object? lastErrorCause,
     int? conflicts,
+    List<String>? conflictCopies,
     int? deletedRemotely,
   }) {
     return PlaylistSyncState(
@@ -79,6 +85,7 @@ class PlaylistSyncState {
       lastResult: lastResult ?? this.lastResult,
       lastErrorCause: lastErrorCause ?? this.lastErrorCause,
       conflicts: conflicts ?? this.conflicts,
+      conflictCopies: conflictCopies ?? this.conflictCopies,
       deletedRemotely: deletedRemotely ?? this.deletedRemotely,
     );
   }
@@ -187,6 +194,7 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
         lastResult: result,
         lastErrorCause: result.error,
         conflicts: result.conflicts,
+        conflictCopies: result.conflictCopies,
         deletedRemotely: result.deletedRemotely,
       );
     } on Object catch (e) {

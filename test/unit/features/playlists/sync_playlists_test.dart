@@ -3,6 +3,7 @@ import 'package:coldigui/features/playlists/domain/entities/remote_playlist.dart
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
+import 'package:coldigui/features/playlists/domain/utils/playlist_defaults.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MemoryPlaylistRepository implements PlaylistRepository {
@@ -730,6 +731,97 @@ void main() {
       expect(result.deletedRemotely, 0);
       expect(result.pulled, 0);
       expect(repo.map, isEmpty);
+    });
+  });
+
+  group('cópia local no 409 (A.3)', () {
+    SavedPlaylist localPending({
+      required List<String> pdfIds,
+      String nome = 'Local',
+    }) => SavedPlaylist.fromLegacyLists(
+      playlistId: 'p1',
+      nome: nome,
+      pdfIds: pdfIds,
+      createdAt: DateTime.utc(2026, 1, 1),
+      salva: true,
+      updatedAt: DateTime.utc(2026, 3, 1),
+      version: 2,
+      syncStatus: PlaylistSyncStatus.pendingPush,
+    );
+
+    SyncPlaylists syncConflicting(
+      _MemoryPlaylistRepository repo, {
+      required List<String> remotePdfIds,
+      String remoteNome = 'Remoto',
+    }) => SyncPlaylists(
+      repo,
+      (_) async => <RemotePlaylist>[],
+      ({required idToken, required playlist}) async {
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: remoteNome,
+            pdfIds: remotePdfIds,
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
+        );
+      },
+      ({required idToken, required playlistId}) async {},
+    );
+
+    test('remoto mais novo guarda a edição local numa cópia', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(localPending(pdfIds: const ['x']));
+
+      final result = await syncConflicting(repo, remotePdfIds: const ['y'])(
+        idToken: 'token',
+      );
+
+      final copyName = conflictCopyName('Local');
+      expect(result.conflictCopies, [copyName]);
+
+      final copy = repo.map.values.firstWhere((p) => p.playlistId != 'p1');
+      expect(copy.nome, copyName);
+      expect(copy.syncStatus, PlaylistSyncStatus.conflict);
+      expect(copy.pdfIds, ['x'], reason: 'a cópia guarda o que era local');
+      expect(copy.updatedAt, DateTime.utc(2026, 3, 1));
+
+      // A original recebe o remoto.
+      expect(repo.map['p1']?.nome, 'Remoto');
+      expect(repo.map['p1']?.pdfIds, ['y']);
+      expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+    });
+
+    test('edição local idêntica ao remoto não gera cópia', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(localPending(pdfIds: const ['x'], nome: 'Mesmo'));
+
+      final result = await syncConflicting(
+        repo,
+        remotePdfIds: const ['x'],
+        remoteNome: 'Mesmo',
+      )(idToken: 'token');
+
+      expect(result.conflictCopies, isEmpty);
+      expect(repo.map.keys, ['p1']);
+      expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+    });
+
+    test('só o nome diferente já guarda a cópia', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(localPending(pdfIds: const ['x'], nome: 'Local'));
+
+      final result = await syncConflicting(
+        repo,
+        remotePdfIds: const ['x'],
+        remoteNome: 'Renomeada no outro aparelho',
+      )(idToken: 'token');
+
+      expect(result.conflictCopies, [conflictCopyName('Local')]);
     });
   });
 }

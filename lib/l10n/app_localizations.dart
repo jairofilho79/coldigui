@@ -1469,6 +1469,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 lista em conflito} other{{count} listas em conflito}}'**
   String playlistSyncConflicts(int count);
 
+  /// No description provided for @playlistConflictCopySaved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Edições locais de «{nome}» guardadas em «{copia}»'**
+  String playlistConflictCopySaved(String nome, String copia);
+
   /// No description provided for @playlistsRemovedRemotely.
   ///
   /// In pt, this message translates to:

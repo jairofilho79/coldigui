@@ -357,6 +357,22 @@ void main() {
     expect(find.text('2 listas em conflito'), findsOneWidget);
   });
 
+  testWidgets('cópia guardada no 409 aparece no banner (A.3)', (tester) async {
+    await tester.pumpWidget(
+      buildWithSync(
+        _FakeSyncNotifier(
+          const PlaylistSyncState(conflictCopies: ['Culto (cópia local)']),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Edições locais de «Culto» guardadas em «Culto (cópia local)»'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('remoção em outro aparelho vira snackbar (A.2)', (tester) async {
     final syncNotifier = _MutableSyncNotifier();
     await tester.pumpWidget(buildWithSync(syncNotifier));

@@ -836,6 +836,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String playlistConflictCopySaved(String nome, String copia) {
+    return 'Edições locais de «$nome» guardadas em «$copia»';
+  }
+
+  @override
   String playlistsRemovedRemotely(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

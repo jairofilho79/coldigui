@@ -403,6 +403,13 @@
       "count": { "type": "int" }
     }
   },
+  "playlistConflictCopySaved": "Local edits to “{nome}” saved in “{copia}”",
+  "@playlistConflictCopySaved": {
+    "placeholders": {
+      "nome": { "type": "String" },
+      "copia": { "type": "String" }
+    }
+  },
   "playlistsRemovedRemotely": "{count, plural, one{1 playlist removed on another device} other{{count} playlists removed on another device}}",
   "@playlistsRemovedRemotely": {
     "placeholders": {
