@@ -97,9 +97,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     // "setState during build" nos ouvintes do cache.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref
-          .read(coldigomChordMaterialsCacheProvider.notifier)
-          .mergeChords(chords);
+      ref.read(coldigomCacheWriterProvider).mergeChords(chords);
     });
   }
 

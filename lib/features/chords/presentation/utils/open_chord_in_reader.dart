@@ -58,7 +58,7 @@ Future<void> openChordInReader({
   required BuildContext context,
   required ChordMaterial chord,
 }) async {
-  ref.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords([chord]);
+  ref.read(coldigomCacheWriterProvider).mergeChords([chord]);
 
   await ref
       .read(playlistsProvider.notifier)

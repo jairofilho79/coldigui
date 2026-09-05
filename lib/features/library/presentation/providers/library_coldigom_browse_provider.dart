@@ -40,15 +40,10 @@ class LibraryColdigomBrowseNotifier
       ),
     );
 
-    ref
-        .read(coldigomLouvoresCacheProvider.notifier)
-        .mergeLouvores(result.louvores);
-    ref
-        .read(coldigomAudioTracksCacheProvider.notifier)
-        .mergeTracks(result.audioTracks);
-    ref
-        .read(coldigomPraiseMetaCacheProvider.notifier)
-        .mergeMeta(result.praiseMetaByGroupId);
+    // Os caches Coldigom já foram escritos pelo repositório (C.3) — aqui só
+    // sobra o resultado. Depois do await o provider pode ter sido descartado
+    // (troca de modo/página), e aí não há estado a produzir.
+    if (!ref.mounted) return PaginatedLouvorGroups.empty;
 
     return PaginatedLouvorGroups(
       items: result.groups,
