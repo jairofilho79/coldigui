@@ -267,6 +267,9 @@ class ZipPackageDownloader {
       cancelToken: cancelToken,
       onReceiveProgress: onReceiveProgress,
       options: _downloadOptions(),
+      // O `.tmp` parcial é o insumo da retomada por Range na próxima
+      // tentativa: apagá-lo no stall zeraria o progresso (spec D.3).
+      deleteOnError: false,
     );
   }
 
@@ -295,6 +298,9 @@ class ZipPackageDownloader {
         cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
         options: _downloadOptions(headers: {'Range': 'bytes=$partialSize-'}),
+        // O `.part` é apagado no `finally` de qualquer jeito; o que não pode
+        // sumir por erro é o `.tmp` acumulado, e o dio não distingue os dois.
+        deleteOnError: false,
       );
 
       final statusCode = response.statusCode ?? 0;

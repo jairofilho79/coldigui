@@ -17,6 +17,10 @@ enum ReconcileSkipReason {
   /// Índice vazio com arquivos no disco — apagar tudo seria perda de dados.
   emptyIndexWithFiles,
 
+  /// Índice pequeno demais para o disco (menos da metade dos arquivos): um
+  /// Isar truncado transformaria o acervo inteiro em "órfão" (spec D.3).
+  indexTooSmall,
+
   /// Outro dono segura o lock de manutenção offline.
   locked,
 }
@@ -61,8 +65,10 @@ class ReconcileSkipped extends ReconcileOutcome {
 /// Remove entradas Isar sem arquivo válido; opcionalmente remove PDFs órfãos
 /// no disco. Validação de disco em isolate via [compute].
 ///
-/// Reconcile **completo** nunca apaga arquivos quando o índice é indisponível
-/// ou está vazio com arquivos no disco (spec C.1 / B5).
+/// Reconcile **completo** nunca apaga arquivos quando o índice é indisponível,
+/// está vazio com arquivos no disco, ou cobre menos da metade do que está no
+/// disco (spec C.1 / B5 / D.3). Reconcile **escopado** não passa por essas
+/// guardas: ali o índice não precisa cobrir o acervo inteiro.
 class ReconcileOfflineIndex {
   ReconcileOfflineIndex(this._repository, this._store);
 
@@ -89,14 +95,29 @@ class ReconcileOfflineIndex {
         ? allEntries
         : allEntries.where((e) => scopedPdfIds.contains(e.pdfId)).toList();
 
-    if (isFullReconcile && entries.isEmpty) {
+    if (isFullReconcile) {
+      // Um `listOrphans` com proteção vazia é a contagem de tudo que está no
+      // disco — a mesma chamada serve às duas guardas.
       final filesOnDisk = await _store.listOrphans(const <String>{});
       if (filesOnDisk.isNotEmpty) {
-        debugPrint(
-          '[offline] reconcile pulado: índice vazio com '
-          '${filesOnDisk.length} arquivos no disco',
-        );
-        return const ReconcileSkipped(ReconcileSkipReason.emptyIndexWithFiles);
+        if (entries.isEmpty) {
+          debugPrint(
+            '[offline] reconcile pulado: índice vazio com '
+            '${filesOnDisk.length} arquivos no disco',
+          );
+          return const ReconcileSkipped(
+            ReconcileSkipReason.emptyIndexWithFiles,
+          );
+        }
+        // Índice cobrindo menos da metade do disco é índice truncado, não
+        // acervo órfão: apagar a diferença seria perda de dados (spec D.3).
+        if (entries.length * 2 < filesOnDisk.length) {
+          debugPrint(
+            '[offline] reconcile pulado: índice com ${entries.length} '
+            'entradas para ${filesOnDisk.length} arquivos no disco',
+          );
+          return const ReconcileSkipped(ReconcileSkipReason.indexTooSmall);
+        }
       }
     }
 

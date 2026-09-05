@@ -352,6 +352,56 @@ void main() {
     },
   );
 
+  test(
+    'stall no primeiro download mantém o .tmp e a retomada usa Range',
+    () async {
+      final zipBytes = await _createZipBytes();
+      final zipDir = Directory(
+        '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+      );
+      await zipDir.create(recursive: true);
+      final tmp = File('${zipDir.path}/Partitura-1.zip.tmp');
+
+      int? tmpSizeAtProbe;
+      final dio = Dio();
+      final adapter = _StallThenRangeAdapter(
+        zipBytes,
+        // A sondagem HEAD só acontece na retomada: se o `.tmp` tivesse sido
+        // apagado pelo `deleteOnError` do dio, nem HEAD nem Range existiriam.
+        onProbe: () =>
+            tmpSizeAtProbe = tmp.existsSync() ? tmp.lengthSync() : null,
+      );
+      dio.httpClientAdapter = adapter;
+
+      final stallDownloader = ZipPackageDownloader(
+        dio,
+        pdfStoragePortFor(store),
+        stallTimeout: _testStallTimeout,
+      );
+
+      final path = await stallDownloader.download(
+        url: 'http://example.invalid/packages/Partitura-1.zip',
+        filename: 'Partitura-1.zip',
+        expectedSize: zipBytes.length,
+      );
+
+      expect(
+        tmpSizeAtProbe,
+        adapter.stalledChunk,
+        reason: '.tmp parcial sobreviveu ao stall',
+      );
+      expect(
+        adapter.requests.any(
+          (options) =>
+              options.headers['Range'] == 'bytes=${adapter.stalledChunk}-',
+        ),
+        isTrue,
+        reason: 'a retomada pediu só o que faltava',
+      );
+      expect(await File(path).length(), zipBytes.length);
+    },
+  );
+
   test('ZIP cacheado sem assinatura PK é apagado e baixado de novo', () async {
     final zipBytes = await _createZipBytes();
     final zipDir = Directory(
@@ -593,6 +643,79 @@ class _StallingDownloadAdapter implements HttpClientAdapter {
     controller.onCancel = () {};
     controller.add(Uint8List.fromList(_bytes.sublist(0, 1)));
     return ResponseBody(controller.stream, 200, headers: headers);
+  }
+}
+
+/// Trava a 1ª tentativa depois de meio arquivo e serve o resto por Range.
+///
+/// O `HEAD` responde `accept-ranges: bytes` para o downloader escolher a
+/// retomada; [onProbe] é o gancho que mede o `.tmp` exatamente entre o stall e
+/// a requisição com `Range`.
+class _StallThenRangeAdapter implements HttpClientAdapter {
+  _StallThenRangeAdapter(this._bytes, {required this.onProbe});
+
+  final List<int> _bytes;
+  final void Function() onProbe;
+  final List<RequestOptions> requests = [];
+  var attempts = 0;
+
+  /// Bytes entregues antes de a 1ª tentativa travar.
+  int get stalledChunk => _bytes.length ~/ 2;
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+
+    if (options.method == 'HEAD') {
+      onProbe();
+      return ResponseBody.fromString(
+        '',
+        200,
+        headers: {
+          'accept-ranges': ['bytes'],
+        },
+      );
+    }
+
+    attempts++;
+
+    final rangeHeader = options.headers['Range'] as String?;
+    if (rangeHeader != null) {
+      final start = int.parse(rangeHeader.split('=')[1].split('-')[0]);
+      return ResponseBody.fromBytes(
+        Uint8List.fromList(_bytes.sublist(start)),
+        206,
+        headers: {
+          'content-range': [
+            'bytes $start-${_bytes.length - 1}/${_bytes.length}',
+          ],
+        },
+      );
+    }
+
+    final headers = {
+      'content-length': ['${_bytes.length}'],
+    };
+
+    if (attempts == 1) {
+      final controller = StreamController<Uint8List>();
+      controller.onCancel = () {};
+      controller.add(Uint8List.fromList(_bytes.sublist(0, stalledChunk)));
+      return ResponseBody(controller.stream, 200, headers: headers);
+    }
+
+    return ResponseBody.fromBytes(
+      Uint8List.fromList(_bytes),
+      200,
+      headers: headers,
+    );
   }
 }
 

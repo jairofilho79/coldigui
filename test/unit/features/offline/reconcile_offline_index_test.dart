@@ -184,6 +184,80 @@ void main() {
     },
   );
 
+  test(
+    'reconcile completo com 1 linha e muitos arquivos é pulado (indexTooSmall)',
+    () async {
+      // Índice com uma entrada só (a linha que sobrou de um Isar truncado) e
+      // um disco cheio: seguir apagaria tudo como "órfão".
+      final indexed = await repository.upsert(
+        pdfId: pdfId,
+        bytes: pdfBytes,
+        category: 'ColAdultos',
+      );
+      final onDisk = <String>[indexed.absolutePath];
+      for (var i = 2; i <= 8; i++) {
+        onDisk.add(
+          await store.writeAtomic(
+            pdfBytes,
+            'ColAdultos/${i.toString().padLeft(3, '0')}.pdf',
+          ),
+        );
+      }
+
+      final outcome = await useCase();
+
+      expect(outcome, isA<ReconcileSkipped>());
+      expect(
+        (outcome as ReconcileSkipped).reason,
+        ReconcileSkipReason.indexTooSmall,
+      );
+      for (final path in onDisk) {
+        expect(await File(path).exists(), isTrue);
+      }
+      expect(await repository.lookup(pdfId), isNotNull);
+    },
+  );
+
+  test(
+    'reconcile escopado não é pulado por índice menor que o disco',
+    () async {
+      final indexed = await repository.upsert(
+        pdfId: pdfId,
+        bytes: pdfBytes,
+        category: 'ColAdultos',
+      );
+      final orphan = await store.writeAtomic(pdfBytes, 'ColAdultos/002.pdf');
+      for (var i = 3; i <= 8; i++) {
+        await store.writeAtomic(
+          pdfBytes,
+          'ColAdultos/${i.toString().padLeft(3, '0')}.pdf',
+        );
+      }
+
+      final package = OfflineMaterialPackage(
+        parts: [
+          OfflinePackagePart(
+            filename: 'Partitura-1.zip',
+            size: 100,
+            url: '/packages/Partitura-1.zip',
+            pdfs: [pdfId],
+          ),
+        ],
+        totalSize: 100,
+        totalParts: 1,
+      );
+
+      final outcome = await useCase(
+        materialPackage: package,
+        materialCategory: 'Partitura',
+      );
+
+      expect(outcome, isA<ReconcileDone>());
+      expect(await File(indexed.absolutePath).exists(), isTrue);
+      expect(await File(orphan).exists(), isFalse);
+    },
+  );
+
   test('reconcile completo com índice vazio e disco vazio conclui', () async {
     final outcome = await useCase();
 
