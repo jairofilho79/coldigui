@@ -14,9 +14,12 @@ import {
   parseItemsColumn,
   type PlaylistItem,
 } from './items.ts';
-
-/** Versão do payload que este Worker responde (spec A.3). */
-const SCHEMA_VERSION = 2;
+import {
+  json,
+  parseIdList,
+  SCHEMA_VERSION,
+  type ListOptions,
+} from './wire.ts';
 
 interface PlaylistRow {
   id: string;
@@ -54,6 +57,8 @@ export interface PlaylistJson {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Tombstone: `null` nas vivas, ISO-8601 nas apagadas (spec A.2). */
+  deletedAt: string | null;
   isPublished: boolean;
   publicationReach: PublicationReach | null;
   publicationCategory: PublicationCategory | null;
@@ -63,27 +68,6 @@ export interface PlaylistJson {
 const SELECT_COLS = `id, user_id, nome, items, pdf_ids, audio_ids, salva, saved_at, favorita, favorited_at,
               created_at, updated_at, version, deleted_at,
               is_published, publication_reach, publication_category, published_at`;
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  });
-}
-
-function parseIdList(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v): v is string => typeof v === 'string');
-  } catch {
-    return [];
-  }
-}
 
 const parsePdfIds = parseIdList;
 const parseAudioIds = parseIdList;
@@ -111,6 +95,7 @@ function rowToJson(row: PlaylistRow): PlaylistJson {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     version: row.version,
+    deletedAt: row.deleted_at,
     isPublished: row.is_published === 1,
     publicationReach: row.publication_reach as PublicationReach | null,
     publicationCategory: row.publication_category as PublicationCategory | null,
@@ -211,16 +196,20 @@ function publicationJson(
 export async function listPlaylists(
   db: D1Database,
   claims: GoogleClaims,
+  opts: ListOptions = {},
 ): Promise<Response> {
-  const result = await db
-    .prepare(
-      `SELECT ${SELECT_COLS}
+  // Com `includeDeleted`, o cliente também recebe os tombstones e apaga o que
+  // sumiu em outro aparelho; sem ele, a listagem antiga (spec A.2).
+  const sql = opts.includeDeleted
+    ? `SELECT ${SELECT_COLS}
+       FROM user_playlists
+       WHERE user_id = ?
+       ORDER BY updated_at DESC`
+    : `SELECT ${SELECT_COLS}
        FROM user_playlists
        WHERE user_id = ? AND deleted_at IS NULL
-       ORDER BY updated_at DESC`,
-    )
-    .bind(claims.sub)
-    .all<PlaylistRow>();
+       ORDER BY updated_at DESC`;
+  const result = await db.prepare(sql).bind(claims.sub).all<PlaylistRow>();
 
   return json((result.results ?? []).map(rowToJson));
 }
@@ -354,6 +343,7 @@ export async function upsertPlaylist(
       createdAt,
       updatedAt: clientUpdatedAt,
       version: 1,
+      deletedAt: null,
       ...publicationJson(
         pub.isPublished,
         pub.publicationReach,
@@ -407,6 +397,7 @@ export async function upsertPlaylist(
       createdAt: existing.created_at,
       updatedAt: clientUpdatedAt,
       version,
+      deletedAt: null,
       ...publicationJson(
         pub.isPublished,
         pub.publicationReach,
@@ -466,6 +457,7 @@ export async function upsertPlaylist(
     createdAt: existing.created_at,
     updatedAt,
     version,
+    deletedAt: null,
     ...publicationJson(
       pub.isPublished,
       pub.publicationReach,

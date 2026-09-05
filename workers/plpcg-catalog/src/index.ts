@@ -329,8 +329,11 @@ async function handlePlaylists(
 ): Promise<Response> {
   if (pathname === '/api/playlists') {
     if (request.method === 'GET') {
+      // `?includeDeleted=1` traz também os tombstones (spec A.2).
+      const includeDeleted =
+        new URL(request.url).searchParams.get('includeDeleted') === '1';
       return withAuth(request, env, (_req, e, claims) =>
-        listPlaylists(e.DB, claims),
+        listPlaylists(e.DB, claims, { includeDeleted }),
       );
     }
     return jsonResponse({ error: 'method not allowed' }, { status: 405 });
@@ -367,8 +370,11 @@ async function handleAudioFlags(
 ): Promise<Response> {
   if (pathname === '/api/audio-flags') {
     if (request.method === 'GET') {
+      // `?includeDeleted=1` traz também os tombstones (spec A.2).
+      const includeDeleted =
+        new URL(request.url).searchParams.get('includeDeleted') === '1';
       return withAuth(request, env, (_req, e, claims) =>
-        listAudioFlags(e.DB, claims),
+        listAudioFlags(e.DB, claims, { includeDeleted }),
       );
     }
     return jsonResponse({ error: 'method not allowed' }, { status: 405 });

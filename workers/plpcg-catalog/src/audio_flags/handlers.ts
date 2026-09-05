@@ -1,4 +1,5 @@
 import type { GoogleClaims } from '../auth/verify_google_token';
+import { json, type ListOptions } from '../playlists/wire.ts';
 
 interface AudioFlagRow {
   id: string;
@@ -20,20 +21,12 @@ export interface AudioFlagJson {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Tombstone: `null` nos vivos, ISO-8601 nos apagados (spec A.2). */
+  deletedAt: string | null;
 }
 
 const SELECT_COLS = `id, user_id, audio_id, position_ms, label,
               created_at, updated_at, version, deleted_at`;
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  });
-}
 
 function rowToJson(row: AudioFlagRow): AudioFlagJson {
   return {
@@ -44,6 +37,7 @@ function rowToJson(row: AudioFlagRow): AudioFlagJson {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     version: row.version,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -91,16 +85,20 @@ function validatePutBody(body: PutBody, pathId: string): string | null {
 export async function listAudioFlags(
   db: D1Database,
   claims: GoogleClaims,
+  opts: ListOptions = {},
 ): Promise<Response> {
-  const result = await db
-    .prepare(
-      `SELECT ${SELECT_COLS}
+  // Mesma regra das playlists (spec A.2): com `includeDeleted` os tombstones
+  // vêm junto, para o cliente apagar o que sumiu em outro aparelho.
+  const sql = opts.includeDeleted
+    ? `SELECT ${SELECT_COLS}
+       FROM user_audio_flags
+       WHERE user_id = ?
+       ORDER BY updated_at DESC`
+    : `SELECT ${SELECT_COLS}
        FROM user_audio_flags
        WHERE user_id = ? AND deleted_at IS NULL
-       ORDER BY updated_at DESC`,
-    )
-    .bind(claims.sub)
-    .all<AudioFlagRow>();
+       ORDER BY updated_at DESC`;
+  const result = await db.prepare(sql).bind(claims.sub).all<AudioFlagRow>();
 
   return json((result.results ?? []).map(rowToJson));
 }
@@ -165,6 +163,7 @@ export async function upsertAudioFlag(
       createdAt,
       updatedAt: clientUpdatedAt,
       version: 1,
+      deletedAt: null,
     } satisfies AudioFlagJson);
   }
 
@@ -196,6 +195,7 @@ export async function upsertAudioFlag(
       createdAt: existing.created_at,
       updatedAt: clientUpdatedAt,
       version,
+      deletedAt: null,
     } satisfies AudioFlagJson);
   }
 
@@ -232,6 +232,7 @@ export async function upsertAudioFlag(
     createdAt: existing.created_at,
     updatedAt,
     version,
+    deletedAt: null,
   } satisfies AudioFlagJson);
 }
 

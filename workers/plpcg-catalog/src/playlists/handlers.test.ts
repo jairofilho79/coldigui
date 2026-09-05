@@ -1,7 +1,13 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import { FakeD1Database, fakeDb, playlistRow } from '../test/fake_d1.ts';
-import { getPlaylist, listPlaylists, upsertPlaylist } from './handlers.ts';
+import {
+  getPlaylist,
+  listPlaylists,
+  softDeletePlaylist,
+  upsertPlaylist,
+  type PlaylistJson,
+} from './handlers.ts';
 import type { PlaylistItem } from './items.ts';
 
 const claims = { sub: 'u1', email: 'a@b.c' } as never;
@@ -194,6 +200,51 @@ test('LIST devolve schemaVersion 2 em cada playlist', async () => {
   assert.equal(json.length, 1);
   assert.equal(json[0].schemaVersion, 2);
   assert.deepEqual(json[0].items, v2Items);
+});
+
+test('listPlaylists omite tombstones por padrão e os inclui com includeDeleted', async () => {
+  const db = new FakeD1Database([
+    playlistRow({ id: 'viva' }),
+    playlistRow({
+      id: 'morta',
+      deleted_at: '2026-09-01T00:00:00.000Z',
+      updated_at: '2026-09-01T00:00:00.000Z',
+    }),
+  ]);
+
+  const plain = (await (
+    await listPlaylists(fakeDb(db), claims)
+  ).json()) as PlaylistJson[];
+  assert.deepEqual(
+    plain.map((p) => p.id),
+    ['viva'],
+  );
+  assert.equal(plain[0].deletedAt, null);
+
+  const all = (await (
+    await listPlaylists(fakeDb(db), claims, { includeDeleted: true })
+  ).json()) as PlaylistJson[];
+  assert.deepEqual(
+    all.map((p) => p.id).sort(),
+    ['morta', 'viva'],
+  );
+  assert.equal(
+    all.find((p) => p.id === 'morta')?.deletedAt,
+    '2026-09-01T00:00:00.000Z',
+  );
+});
+
+test('PUT devolve deletedAt null na criação e ao ressuscitar', async () => {
+  const db = new FakeD1Database();
+
+  const created = await put(db, { schemaVersion: 2, items: v2Items });
+  assert.equal(created.status, 200);
+  assert.equal(created.json.deletedAt, null);
+
+  await softDeletePlaylist(fakeDb(db), claims, 'p1');
+  const resurrected = await put(db, { schemaVersion: 2, items: v2Items });
+  assert.equal(resurrected.status, 200);
+  assert.equal(resurrected.json.deletedAt, null);
 });
 
 test('PUT com items de strings é tolerado como legado, não 400', async () => {

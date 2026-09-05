@@ -4,19 +4,27 @@
  * ## Limitações — leia antes de usar
  *
  * **Isto não é um SQLite.** Não há parser de SQL: cada consulta é reconhecida
- * por **prefixo/palavra-chave** do texto e executada à mão sobre um `Map` em
- * memória, chaveado por `${user_id}|${id}`. Só as consultas que
- * `src/playlists/handlers.ts` emite são suportadas:
+ * por **prefixo/palavra-chave** do texto e executada à mão sobre `Map`s em
+ * memória, chaveados por `${user_id}|${id}`. Só as consultas que
+ * `src/playlists/handlers.ts`, `src/audio_flags/handlers.ts`,
+ * `src/social/handlers.ts` e `src/auth/session.ts` emitem são suportadas:
  *
  * | consulta | reconhecida por |
  * | --- | --- |
- * | `SELECT … FROM user_playlists WHERE user_id = ? AND id = ?` | `SELECT` + `AND id = ?` |
- * | `SELECT … FROM user_playlists WHERE user_id = ? AND deleted_at IS NULL ORDER BY …` | `SELECT` sem `AND id = ?` |
+ * | `SELECT … FROM user_playlists WHERE user_id = ? AND id = ?` | `FROM user_playlists` + `AND id = ?` |
+ * | `SELECT … FROM user_playlists WHERE user_id = ? AND deleted_at IS NULL ORDER BY …` | `FROM user_playlists` sem `AND id = ?` |
+ * | `SELECT … FROM user_playlists WHERE user_id = ? ORDER BY …` (`includeDeleted`) | idem, sem `deleted_at IS NULL` — devolve tombstones |
+ * | `SELECT … FROM user_playlists WHERE user_id = ? AND is_published = 1 AND deleted_at IS NULL ORDER BY published_at DESC` (rota social) | idem + `is_published = 1` |
  * | `INSERT INTO user_playlists (…) VALUES (…)` | `INSERT` |
  * | `UPDATE user_playlists SET … WHERE user_id = ? AND id = ?` | `UPDATE` |
- * | `SELECT username FROM users WHERE …` (via `getUsername`) | `FROM users` |
+ * | `SELECT … FROM user_audio_flags …` | as mesmas quatro formas do `user_playlists` (sem `is_published`) |
+ * | `INSERT INTO user_audio_flags (…) VALUES (…)` | `INSERT` |
+ * | `UPDATE user_audio_flags SET … WHERE user_id = ? AND id = ?` | `UPDATE` |
+ * | `SELECT username FROM users WHERE google_sub = ?` (via `getUsername`) | `FROM users` + `google_sub = ?` |
+ * | `SELECT google_sub FROM users WHERE username = ?` (rota social) | `FROM users` + `username = ?` |
  *
- * O soft delete de `softDeletePlaylist` é um `UPDATE` e cai no mesmo caminho.
+ * O soft delete de `softDeletePlaylist`/`softDeleteAudioFlag` é um `UPDATE` e
+ * cai no mesmo caminho.
  * A projeção do `SELECT` **não** é modelada: o fake devolve a linha inteira,
  * então tirar uma coluna de `SELECT_COLS` não faz nenhum teste falhar aqui.
  * A lista de colunas do `INSERT`/`UPDATE` é lida do próprio SQL, então mudar a
@@ -24,9 +32,10 @@
  * nova** exige estender este arquivo (ele lança em vez de devolver algo errado
  * em silêncio).
  *
- * Não implementa: `JOIN`, `LIMIT`, `ORDER BY` de verdade (a listagem ordena por
- * `updated_at` desc na mão), tipos, constraints, transações, `batch`, `exec`,
- * `dump` nem `withSession`.
+ * Não implementa: `JOIN` (logo, o `searchSocialUsers`), `LIMIT`, `ORDER BY` de
+ * verdade (a listagem ordena na mão por `updated_at` desc, ou por
+ * `published_at` desc quando o SQL pede), tipos, constraints, transações,
+ * `batch`, `exec`, `dump` nem `withSession`.
  */
 
 export interface PlaylistRow {
@@ -48,6 +57,34 @@ export interface PlaylistRow {
   publication_reach: string | null;
   publication_category: string | null;
   published_at: string | null;
+}
+
+export interface AudioFlagRow {
+  id: string;
+  user_id: string;
+  audio_id: string;
+  position_ms: number;
+  label: string;
+  created_at: string;
+  updated_at: string;
+  version: number;
+  deleted_at: string | null;
+}
+
+/** O que as duas tabelas têm em comum para o fake: chave e LWW. */
+interface StoredRow {
+  id: string;
+  user_id: string;
+  updated_at: string;
+  version: number;
+  deleted_at: string | null;
+}
+
+export interface FakeD1Options {
+  /** Linhas de `users` (a rota social resolve `username` → `google_sub`). */
+  users?: Array<{ google_sub: string; username: string }>;
+  /** Linhas de `user_audio_flags`. */
+  audioFlags?: AudioFlagRow[];
 }
 
 function key(userId: string, id: string): string {
@@ -79,7 +116,25 @@ export function playlistRow(overrides: Partial<PlaylistRow> = {}): PlaylistRow {
   };
 }
 
-/** Colunas do `INSERT INTO user_playlists (a, b, c) VALUES (?, ?, 1, …)`. */
+/** Uma linha de `user_audio_flags` com os defaults do schema já aplicados. */
+export function audioFlagRow(
+  overrides: Partial<AudioFlagRow> = {},
+): AudioFlagRow {
+  return {
+    id: 'f1',
+    user_id: 'u1',
+    audio_id: 'a1.mp3',
+    position_ms: 1000,
+    label: 'refrão',
+    created_at: '2026-09-01T10:00:00.000Z',
+    updated_at: '2026-09-01T10:00:00.000Z',
+    version: 1,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+/** Colunas do `INSERT INTO <tabela> (a, b, c) VALUES (?, ?, 1, …)`. */
 function insertPlan(sql: string): { columns: string[]; values: string[] } {
   const columnsMatch = /\(([^)]*)\)\s*VALUES\s*\(([^)]*)\)/is.exec(sql);
   if (!columnsMatch) throw new Error(`fake D1: INSERT não reconhecido: ${sql}`);
@@ -110,7 +165,7 @@ function resolveToken(
   token: string,
   bindings: unknown[],
   cursor: { next: number },
-  current: PlaylistRow | undefined,
+  current: { version: number } | undefined,
 ): unknown {
   if (token === '?') return bindings[cursor.next++];
   if (token === 'NULL') return null;
@@ -156,18 +211,40 @@ class FakeStatement {
 export class FakeD1Database {
   /** Linhas de `user_playlists`, por `user_id` + `id`. */
   readonly playlists = new Map<string, PlaylistRow>();
+  /** Linhas de `user_audio_flags`, por `user_id` + `id`. */
+  readonly audioFlags = new Map<string, AudioFlagRow>();
   /** `user_id` → `username`, para o `getUsername` da publicação. */
   readonly usernames = new Map<string, string>();
+  /** `username` → `user_id`, para a rota social. */
+  readonly usersByUsername = new Map<string, string>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
   readonly executed: string[] = [];
+
+  constructor(rows: PlaylistRow[] = [], options: FakeD1Options = {}) {
+    for (const row of rows) this.seed(row);
+    for (const row of options.audioFlags ?? []) this.seedAudioFlag(row);
+    for (const user of options.users ?? []) {
+      this.usernames.set(user.google_sub, user.username);
+      this.usersByUsername.set(user.username, user.google_sub);
+    }
+  }
 
   seed(row: PlaylistRow): this {
     this.playlists.set(key(row.user_id, row.id), row);
     return this;
   }
 
+  seedAudioFlag(row: AudioFlagRow): this {
+    this.audioFlags.set(key(row.user_id, row.id), row);
+    return this;
+  }
+
   get(userId: string, id: string): PlaylistRow | undefined {
     return this.playlists.get(key(userId, id));
+  }
+
+  getAudioFlag(userId: string, id: string): AudioFlagRow | undefined {
+    return this.audioFlags.get(key(userId, id));
   }
 
   prepare(sql: string): FakeStatement {
@@ -181,61 +258,110 @@ export class FakeD1Database {
 
     if (/^SELECT/i.test(normalized)) {
       if (/FROM users/i.test(normalized)) {
-        const username = this.usernames.get(bindings[0] as string);
-        return username === undefined ? [] : [{ username }];
+        return this.selectUsers(normalized, bindings);
       }
-      if (!/FROM user_playlists/i.test(normalized)) {
+      const table = this.tableFor(normalized);
+      if (!table) {
         throw new Error(`fake D1: SELECT não suportado: ${normalized}`);
       }
-      if (/AND id = \?/i.test(normalized)) {
-        const row = this.playlists.get(
-          key(bindings[0] as string, bindings[1] as string),
-        );
-        // `softDeletePlaylist` seleciona a linha mesmo já apagada, para
-        // distinguir 404 de "apagar de novo".
-        if (!row) return [];
-        if (/deleted_at IS NULL/i.test(normalized) && row.deleted_at !== null) {
-          return [];
-        }
-        return [row];
-      }
-      return [...this.playlists.values()]
-        .filter(
-          (row) => row.user_id === bindings[0] && row.deleted_at === null,
-        )
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      return selectRows(table, normalized, bindings);
     }
 
-    if (/^INSERT INTO user_playlists/i.test(normalized)) {
+    if (/^INSERT INTO/i.test(normalized)) {
+      const table = this.tableFor(normalized);
+      if (!table) {
+        throw new Error(`fake D1: INSERT não suportado: ${normalized}`);
+      }
       const { columns, values } = insertPlan(normalized);
       const cursor = { next: 0 };
       const row = {} as Record<string, unknown>;
       columns.forEach((column, i) => {
         row[column] = resolveToken(values[i], bindings, cursor, undefined);
       });
-      const built = row as unknown as PlaylistRow;
-      this.playlists.set(key(built.user_id, built.id), built);
+      const built = row as unknown as StoredRow;
+      table.set(key(built.user_id, built.id), built);
       return [];
     }
 
-    if (/^UPDATE user_playlists/i.test(normalized)) {
+    if (/^UPDATE /i.test(normalized)) {
+      const table = this.tableFor(normalized);
+      if (!table) {
+        throw new Error(`fake D1: UPDATE não suportado: ${normalized}`);
+      }
       const assignments = updatePlan(normalized);
       const cursor = { next: 0 };
       // O `WHERE user_id = ? AND id = ?` consome os dois últimos bindings.
       const userId = bindings[bindings.length - 2] as string;
       const id = bindings[bindings.length - 1] as string;
-      const current = this.playlists.get(key(userId, id));
+      const current = table.get(key(userId, id));
       if (!current) throw new Error(`fake D1: UPDATE em linha ausente: ${id}`);
       const next = { ...current } as Record<string, unknown>;
       for (const { column, value } of assignments) {
         next[column] = resolveToken(value, bindings, cursor, current);
       }
-      this.playlists.set(key(userId, id), next as unknown as PlaylistRow);
+      table.set(key(userId, id), next as unknown as StoredRow);
       return [];
     }
 
     throw new Error(`fake D1: consulta não suportada: ${normalized}`);
   }
+
+  /** `user_playlists` / `user_audio_flags` citada no SQL, ou `null`. */
+  private tableFor(normalized: string): Map<string, StoredRow> | null {
+    if (/user_playlists/i.test(normalized)) {
+      return this.playlists as unknown as Map<string, StoredRow>;
+    }
+    if (/user_audio_flags/i.test(normalized)) {
+      return this.audioFlags as unknown as Map<string, StoredRow>;
+    }
+    return null;
+  }
+
+  /** As duas leituras de `users`: por `google_sub` e por `username`. */
+  private selectUsers(normalized: string, bindings: unknown[]): unknown[] {
+    if (/username = \?/i.test(normalized)) {
+      const googleSub = this.usersByUsername.get(bindings[0] as string);
+      return googleSub === undefined ? [] : [{ google_sub: googleSub }];
+    }
+    const username = this.usernames.get(bindings[0] as string);
+    return username === undefined ? [] : [{ username }];
+  }
+}
+
+/** Aplica na mão o `WHERE`/`ORDER BY` das listagens e do `first` por id. */
+function selectRows(
+  table: Map<string, StoredRow>,
+  normalized: string,
+  bindings: unknown[],
+): unknown[] {
+  const keepDeleted = !/deleted_at IS NULL/i.test(normalized);
+
+  if (/AND id = \?/i.test(normalized)) {
+    const row = table.get(key(bindings[0] as string, bindings[1] as string));
+    // O soft delete seleciona a linha mesmo já apagada, para distinguir 404 de
+    // "apagar de novo".
+    if (!row) return [];
+    if (!keepDeleted && row.deleted_at !== null) return [];
+    return [row];
+  }
+
+  const onlyPublished = /is_published = 1/i.test(normalized);
+  const rows = [...table.values()].filter(
+    (row) =>
+      row.user_id === bindings[0] &&
+      (keepDeleted || row.deleted_at === null) &&
+      (!onlyPublished ||
+        (row as unknown as PlaylistRow).is_published === 1),
+  );
+
+  if (/ORDER BY published_at DESC/i.test(normalized)) {
+    return rows.sort((a, b) =>
+      ((b as unknown as PlaylistRow).published_at ?? '').localeCompare(
+        (a as unknown as PlaylistRow).published_at ?? '',
+      ),
+    );
+  }
+  return rows.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 }
 
 /** O `FakeD1Database` no formato que os handlers tipam (`D1Database`). */
