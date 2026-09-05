@@ -71,8 +71,15 @@ final chordSongProvider = FutureProvider.autoDispose
 
 /// Rebusca [key] quando há rede e troca o cache se o corpo mudou.
 ///
-/// Best-effort: qualquer falha aqui só apaga a chance de atualizar — a cifra
-/// já foi entregue do cache.
+/// `null` aqui é **conclusivo** — [ChordContentDatasource.fetchContent] só
+/// devolve `null` em 404/corpo vazio, e transforma qualquer falha transitória em
+/// [ChordFetchFailedException] (capturada abaixo). Cifra apagada no servidor
+/// vira o marcador negativo, senão a entrada positiva ficava para sempre: nunca
+/// era reescrita, o `fetchedAt` nunca era renovado, e cada abertura de sheet
+/// passada a TTL repetia o mesmo GET condenado (spec D.5).
+///
+/// Best-effort no resto: qualquer falha aqui só apaga a chance de atualizar — a
+/// cifra já foi entregue do cache.
 Future<void> _revalidate(
   Ref ref,
   String key,
@@ -84,7 +91,14 @@ Future<void> _revalidate(
     final fresh = await ref
         .read(chordContentDatasourceProvider)
         .fetchContent(key);
-    if (fresh == null || fresh == cached) return;
+    if (fresh == null) {
+      // Reescrever renova o `fetchedAt` mesmo quando o marcador já era
+      // negativo; invalidar só faz sentido se havia conteúdo a perder.
+      local.write(key, '');
+      if (cached.isNotEmpty) ref.invalidateSelf();
+      return;
+    }
+    if (fresh == cached) return;
     local.write(key, fresh);
     ref.invalidateSelf();
   } on Object catch (error) {
