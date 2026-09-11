@@ -38,6 +38,12 @@ abstract final class ApiEndpoints {
   static String audioFlag(String id) =>
       '/api/audio-flags/${Uri.encodeComponent(id)}';
 
+  /// Links curtos de compartilhamento — Worker + D1 `short_links` (D7).
+  ///
+  /// `POST` + Bearer + `{ query }` → `{ code, url }` (`201` novo, `200`
+  /// reuso). Ver [ShareLinkShortenerRemote.shorten].
+  static const String links = '/api/links';
+
   static const String offlineManifest = '/offline-manifest.json';
   static const String uploadLouvor = '/api/upload-louvor';
   static const String assetsPdf = '/assets';

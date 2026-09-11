@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
@@ -227,7 +228,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }
 
   Future<String> _generateUrl(String playlistId) {
-    return ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
+    // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
+    // longa, que não precisa de conta para ser resolvida no futuro.
+    final authed = ref.read(authStateProvider).asData?.value != null;
+    return ref.read(generatePlaylistShareUrlProvider)(
+      playlistId: playlistId,
+      short: authed,
+    );
   }
 
   Future<XFile> _captureLeafletXFile(
