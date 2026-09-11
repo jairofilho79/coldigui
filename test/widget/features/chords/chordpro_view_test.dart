@@ -277,22 +277,27 @@ void main() {
       expect(find.text('linha 39'), findsOneWidget);
     });
 
-    testWidgets('columns 2 com poucas linhas nao chega a dividir', (
-      tester,
-    ) async {
-      // splitLinesForColumns só divide a partir de 24 linhas — com menos, a
-      // segunda coluna fica vazia mesmo com columns: 2.
-      await tester.pumpWidget(
-        _host(
-          ChordProView(
-            song: parseChordPro('so uma linha\n'),
-            palette: ChordReaderMode.light.palette,
-            columns: 2,
+    testWidgets(
+      'columns 2 com poucas linhas cai para uma coluna cheia (sem SliverCrossAxisGroup)',
+      (tester) async {
+        // splitLinesForColumns só divide a partir de 24 linhas — com menos,
+        // a segunda coluna ficaria vazia mesmo com columns: 2. Sem o
+        // fallback, o conteúdo renderizaria preso à metade esquerda da
+        // largura, com a direita em branco — em vez disso cai para o
+        // SliverList de coluna única, ocupando a largura inteira.
+        await tester.pumpWidget(
+          _host(
+            ChordProView(
+              song: parseChordPro('so uma linha\n'),
+              palette: ChordReaderMode.light.palette,
+              columns: 2,
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('so uma linha'), findsOneWidget);
-    });
+        expect(find.text('so uma linha'), findsOneWidget);
+        expect(find.byType(SliverCrossAxisGroup), findsNothing);
+      },
+    );
   });
 }

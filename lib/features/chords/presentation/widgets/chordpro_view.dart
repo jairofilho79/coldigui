@@ -104,14 +104,19 @@ class ChordProView extends StatelessWidget {
       );
     }
 
-    if (columns != 2) {
+    final split = columns == 2 ? splitLinesForColumns(song.lines) : null;
+
+    // `columns == 2` pedido, mas splitLinesForColumns não achou linhas
+    // suficientes para dividir (< 24): sem este fallback o conteúdo ficaria
+    // preso à metade esquerda da largura, com a direita em branco — a coluna
+    // única cheia é o que a spec pede abaixo do mínimo.
+    if (split == null || split.right.isEmpty) {
       return SliverList.builder(
         itemCount: song.lines.length,
         itemBuilder: (context, index) => buildLineAt(index),
       );
     }
 
-    final split = splitLinesForColumns(song.lines);
     final leftCount = split.left.length;
     final rightCount = split.right.length;
 
