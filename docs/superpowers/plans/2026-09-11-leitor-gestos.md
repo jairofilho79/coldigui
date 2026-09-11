@@ -25,6 +25,7 @@
   Claude-Session: https://claude.ai/code/session_01DuSVKfiGsabi168JixJLB1
   ```
 - Nunca `git add -A` cego: adicione os arquivos da tarefa pelo nome (o repo tem `.claude/` e `tmp/` soltos).
+- **A branch recebe commits de outra sessão em paralelo.** Antes de cada tarefa, `git log --oneline -5` e releia os arquivos que vai modificar — números de linha e nomes citados aqui são de 2026-09-11 e podem ter andado. Se um arquivo citado não existir mais, procure para onde a responsabilidade foi (`grep -rn`) e siga o padrão novo; anote a divergência no relatório da tarefa.
 
 ## Mapa de arquivos
 
@@ -73,7 +74,7 @@ lib/core/utils/gesture_reader_url_builder.dart               T12
 test/fixtures/gestures/{182_quero_viver,181_jerusalem,sintetico_final_link,schema_v2,dictionary}.json  T1/T2
 ```
 
-Encaixes fora da feature: T4 (`material_id_kind`, `storage_keys`), T5 (`isar_app_schemas`), T12 (`route_paths`, `app_router`, `stage_wakelock`, `shell_scaffold`, `app_shortcuts`, l10n), T13 (`catalog_material`, `louvor_group`, `louvor_material_icons`, `material_sheet_actions`, `carousel_swap_material_button`, adapter, `coldigom_providers`, warmup, `coldigom_search_repository*`, `coldigom_catalog_source`, `catalog_source_provider`, `find_louvor_group_by_pdf_id`, `open_material_provider`, `reader_carousel_actions_provider`), T14 (`material_sheet`, l10n), T16 (docs).
+Encaixes fora da feature: T4 (`material_id_kind`, `storage_keys`), T5 (`isar_app_schemas`), T12 (`route_paths`, `app_router`, `stage_wakelock`, `shell_scaffold`, `app_shortcuts`, l10n), T13 (`catalog_material`, `louvor_group`, `louvor_material_icons`, `material_sheet_actions`, `carousel_swap_material_button`, adapter, `coldigom_providers`, `coldigom_cache_writer`, `coldigom_search_repository*`, `coldigom_catalog_source`, `coldigom_catalog_source_provider`, `find_louvor_group_by_pdf_id`, `open_material_provider`, `reader_carousel_actions_provider`), T14 (`material_sheet`, l10n), T16 (docs).
 
 ---
 
@@ -5642,12 +5643,12 @@ Claude-Session: https://claude.ai/code/session_01DuSVKfiGsabi168JixJLB1"
 - Modify: `lib/features/catalog/presentation/widgets/material_sheet_actions.dart:91`
 - Modify: `lib/features/carousel/presentation/widgets/carousel_swap_material_button.dart:101`
 - Modify: `lib/features/coldigom/data/adapters/coldigom_louvor_adapter.dart` (`toGestureMaterials`, `_kindOfType`)
-- Modify: `lib/features/coldigom/data/providers/coldigom_providers.dart` (novo notifier após o de cifras, ~linha 80)
-- Modify: `lib/features/coldigom/data/coldigom_praise_cache_warmup.dart:56,126` (merge de gestos nos dois pontos)
-- Modify: `lib/features/coldigom/domain/repositories/coldigom_search_repository.dart:55,78` (`gestureMaterials` nos dois resultados)
-- Modify: `lib/features/coldigom/data/repositories/coldigom_search_repository_impl.dart` (`_mapDetails` + 4 chamadas `fromLouvores` + 4 construtores de resultado)
+- Modify: `lib/features/coldigom/data/providers/coldigom_providers.dart` (novo notifier após o de cifras)
+- Modify: `lib/features/coldigom/data/coldigom_cache_writer.dart` (`_merge` + `mergeSearchResult`/`mergeBrowseResult`/`mergePraiseDetail` + novo `mergeGestures`) — é o **ponto único** de escrita nos caches; o warmup e a busca passam por ele, não os edite diretamente
+- Modify: `lib/features/coldigom/domain/repositories/coldigom_search_repository.dart` (`gestureMaterials` em `ColdigomSearchResult` e `ColdigomBrowseResult`, ao lado de `chordMaterials`)
+- Modify: `lib/features/coldigom/data/repositories/coldigom_search_repository_impl.dart` (`_mapDetails` + chamadas `fromLouvores` + construtores de resultado — siga cada ocorrência de `chordMaterials`)
 - Modify: `lib/features/coldigom/data/sources/coldigom_catalog_source.dart` (mapa `gestures`, `findGroupById`, `findMaterialById`)
-- Modify: `lib/features/catalog/data/providers/catalog_source_provider.dart:22` (`gestures:`)
+- Modify: `lib/features/coldigom/data/providers/coldigom_catalog_source_provider.dart` (`gestures:`)
 - Modify: `lib/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart` (`gestureCache` opcional em `findSwapMaterialGroup`; passa ao `ColdigomCatalogSource` e ao `_groupIfMultiple`)
 - Modify: `lib/features/catalog/presentation/providers/open_material_provider.dart` (typedef + caso)
 - Create: `lib/features/gestures/presentation/utils/open_gesture_in_reader.dart`
@@ -5655,8 +5656,10 @@ Claude-Session: https://claude.ai/code/session_01DuSVKfiGsabi168JixJLB1"
 - Test: `test/unit/features/gestures/gesture_material_adapter_test.dart`, `test/unit/features/gestures/coldigom_catalog_source_gesture_test.dart`, `test/unit/features/catalog/louvor_group_gestures_test.dart`, `test/widget/features/gestures/open_gesture_in_reader_test.dart`, `test/unit/features/catalog/open_material_gesture_test.dart`
 
 **Interfaces:**
-- Consumes: T4 (`GestureMaterial`), T12 (`buildGestureReaderLocation`), `MaterialKind.gesture`, `encodePdfId`.
-- Produces: `GestureMaterialRef(GestureMaterial gesture)` em `CatalogMaterial`; `LouvorGroup.gestureMaterials`; `ColdigomLouvorAdapter.toGestureMaterials(PraiseDetailDto)`; `coldigomGestureMaterialsCacheProvider` (`Notifier<Map<String, GestureMaterial>>` com `mergeGestures`, `findByGestureId`); `ColdigomCatalogSource({gestures})`; `GestureMaterialOpener` typedef + `OpenMaterial.openGesture`; `openGestureInReader({ref, context, gesture})`; `GestureRoute gestureRouteFor(String materialId, Map<String, GestureMaterial> cache)`.
+- Consumes: T4 (`GestureMaterial`), T12 (`buildGestureReaderLocation`), `MaterialKind.gesture`, `encodePdfId`, `coldigomCacheWriterProvider` (`lib/features/coldigom/data/providers/coldigom_providers.dart`).
+- Produces: `GestureMaterialRef(GestureMaterial gesture)` em `CatalogMaterial`; `LouvorGroup.gestureMaterials`; `ColdigomLouvorAdapter.toGestureMaterials(PraiseDetailDto)`; `coldigomGestureMaterialsCacheProvider` (`Notifier<Map<String, GestureMaterial>>` com `mergeGestures`, `findByGestureId`); `ColdigomCacheWriter.mergeGestures(Iterable<GestureMaterial>)`; `ColdigomCatalogSource({gestures})`; `GestureMaterialOpener` typedef + `OpenMaterial.openGesture`; `openGestureInReader({ref, context, gesture})`; `GestureRoute gestureRouteFor(String materialId, Map<String, GestureMaterial> cache)`.
+
+> O repo mudou em 2026-09-11 (commits `73f7392`, `40fceac`, `2f19870`): os merges nos caches passam por `ColdigomCacheWriter`, a fonte Coldigom vem de `coldigomCatalogSourceProvider`, e `ColdigomCatalogSource` tem também `youtube` e `searchRepository` (opcionais). Antes de editar, leia `coldigom_cache_writer.dart` inteiro e `grep -rn chordMaterials lib` — **toda** ocorrência de `chordMaterials` ganha um irmão `gestureMaterials`.
 
 - [ ] **Step 1: Testes (falhando)**
 
@@ -5833,7 +5836,7 @@ void main() {
 - import `chords/domain/entities/chord_material.dart` → `gestures/domain/entities/gesture_material.dart`; `chords/presentation/utils/open_chord_in_reader.dart` → `gestures/presentation/utils/open_gesture_in_reader.dart`;
 - `ChordMaterial(chordId: …)` → `GestureMaterial(gestureId: …)`; `.chord` → `.gestures` nas chaves; `Cifra` → `Gestos`;
 - `openChordInReader(… chord: _chord)` → `openGestureInReader(… gesture: _gesture)`;
-- `RoutePaths.chords` → `RoutePaths.gestos`; `coldigomChordMaterialsCacheProvider` → `coldigomGestureMaterialsCacheProvider`; `mergeChords`/`findByChordId` → `mergeGestures`/`findByGestureId`;
+- `RoutePaths.chords` → `RoutePaths.gestos`; `coldigomChordMaterialsCacheProvider` → `coldigomGestureMaterialsCacheProvider`; `mergeChords`/`findByChordId` → `mergeGestures`/`findByGestureId` (o `openChordInReader` atual funde pelo `coldigomCacheWriterProvider`; o de gestos faz o mesmo);
 - nomes de variáveis `_chord`/`_chordId` → `_gesture`/`_gestureId`.
 
 Playlist: `PlaylistListTile` já manda tudo que não é PDF para `resolveCatalogMaterialFromWidget` + `openMaterialProvider`, então não há código novo. Se `test/widget/features/playlists/playlist_list_tile_test.dart` tiver um caso "entrada de cifra abre pelo opener", duplique-o para uma entrada `.gestures` (mesma montagem, `GestureMaterial` no cache `coldigomGestureMaterialsCacheProvider`, esperar `GestureMaterialRef` no opener). Se não tiver, pule — o caminho é idêntico.
@@ -5958,15 +5961,18 @@ final coldigomGestureMaterialsCacheProvider =
     >(ColdigomGestureMaterialsCacheNotifier.new);
 ```
 
-`coldigom_praise_cache_warmup.dart`: nos dois blocos que fazem `mergeChords(...)`, adicionar logo abaixo:
+`coldigom_cache_writer.dart`: import `gesture_material.dart`; `_merge` ganha `required List<GestureMaterial> gestureMaterials` e chama `_ref.read(coldigomGestureMaterialsCacheProvider.notifier).mergeGestures(gestureMaterials)`; `mergeSearchResult`/`mergeBrowseResult` passam `gestureMaterials: result.gestureMaterials`; `mergePraiseDetail` passa `gestureMaterials: ColdigomLouvorAdapter.toGestureMaterials(detail)`; e um método novo ao lado de `mergeChords`:
 
 ```dart
-      ref
-          .read(coldigomGestureMaterialsCacheProvider.notifier)
-          .mergeGestures(ColdigomLouvorAdapter.toGestureMaterials(detail));
+  /// Funde só gestos — o sheet e o desvio de `/gestos` já têm o objeto pronto.
+  void mergeGestures(Iterable<GestureMaterial> gestures) {
+    _ref
+        .read(coldigomGestureMaterialsCacheProvider.notifier)
+        .mergeGestures(gestures);
+  }
 ```
 
-`coldigom_search_repository.dart`: `this.gestureMaterials = const [],` + `final List<GestureMaterial> gestureMaterials;` em `ColdigomSearchResult` e `ColdigomBrowseResult` (ao lado de `chordMaterials`). `coldigom_search_repository_impl.dart`: `_mapDetails` ganha `gestureMaterials` no record (preenchido com `toGestureMaterials`); as 4 chamadas `LouvorGroup.fromLouvores(...)` passam `gestureMaterials: fetched.gestureMaterials,`; os 4 construtores de resultado passam `gestureMaterials: …` (nas duas de lista vazia/erro, deixe o default).
+`coldigom_search_repository.dart`: `this.gestureMaterials = const [],` + `final List<GestureMaterial> gestureMaterials;` em `ColdigomSearchResult` e `ColdigomBrowseResult` (ao lado de `chordMaterials`). `coldigom_search_repository_impl.dart`: `_mapDetails` ganha `gestureMaterials` no record (preenchido com `toGestureMaterials`); toda chamada `LouvorGroup.fromLouvores(...)` que passa `chordMaterials:` passa também `gestureMaterials: fetched.gestureMaterials,`; todo construtor de resultado que passa `chordMaterials:` passa também `gestureMaterials:` (nos de lista vazia/erro, deixe o default).
 
 `coldigom_catalog_source.dart`: campo `final Map<String, GestureMaterial> gestures;` (`this.gestures = const {}`), `findGroupById` filtra `groupGestures` por `groupId`, inclui na condição de vazio e passa `gestureMaterials: groupGestures` ao `fromLouvores`; `findMaterialById`:
 
@@ -5980,7 +5986,7 @@ final coldigomGestureMaterialsCacheProvider =
         return null;
 ```
 
-`catalog_source_provider.dart`: `gestures: ref.watch(coldigomGestureMaterialsCacheProvider),`. `find_louvor_group_by_pdf_id.dart`: `Map<String, GestureMaterial>? gestureCache,` em `findSwapMaterialGroup`, passado ao `ColdigomCatalogSource(gestures: gestureCache ?? const {})`; `_groupIfMultiple` ganha `List<GestureMaterial> gestures` filtrado por `groupId` e passa `gestureMaterials:` ao `fromLouvores` (quem chama `findSwapMaterialGroup` hoje pode continuar sem passar o cache — o parâmetro é opcional).
+`coldigom_catalog_source_provider.dart`: `gestures: ref.watch(coldigomGestureMaterialsCacheProvider),`. `find_louvor_group_by_pdf_id.dart`: `Map<String, GestureMaterial>? gestureCache,` em `findSwapMaterialGroup`, passado ao `ColdigomCatalogSource(gestures: gestureCache ?? const {})`; `_groupIfMultiple` ganha `List<GestureMaterial> gestures` filtrado por `groupId` e passa `gestureMaterials:` ao `fromLouvores` (quem chama `findSwapMaterialGroup` hoje pode continuar sem passar o cache — o parâmetro é opcional).
 
 - [ ] **Step 6: `openGestureInReader` e `OpenMaterial`**
 
@@ -6039,7 +6045,7 @@ Future<void> openGestureInReader({
   required BuildContext context,
   required GestureMaterial gesture,
 }) async {
-  ref.read(coldigomGestureMaterialsCacheProvider.notifier).mergeGestures([gesture]);
+  ref.read(coldigomCacheWriterProvider).mergeGestures([gesture]);
 
   await ref
       .read(playlistsProvider.notifier)
@@ -6153,14 +6159,12 @@ Em `material_sheet.dart`:
     if (gestures.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ref
-            .read(coldigomGestureMaterialsCacheProvider.notifier)
-            .mergeGestures(gestures);
+        ref.read(coldigomCacheWriterProvider).mergeGestures(gestures);
       });
     }
 ```
 
-(Ajuste o `return` precoce do bloco de cifras para não pular o de gestos.)
+(O bloco de cifras hoje usa `ref.read(coldigomCacheWriterProvider).mergeChords(chords)` com um `return` precoce quando não há cifra — ajuste para não pular o de gestos.)
 
 No `build`, `final gestureMaterials = group.gestureMaterials;` e, no `ListView`, **entre** a seção de cifras e a de áudio:
 
