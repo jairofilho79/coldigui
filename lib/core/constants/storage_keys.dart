@@ -44,4 +44,7 @@ abstract final class StorageKeys {
 
   /// Filtros de material/arranjo do catálogo (JSON, UC-02) — C13.
   static const String catalogFilters = 'catalogFilters';
+
+  /// Itens por página da Biblioteca (UC-03) — C13.
+  static const String libraryItemsPerPage = 'libraryItemsPerPage';
 }

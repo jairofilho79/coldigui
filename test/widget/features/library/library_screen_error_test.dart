@@ -280,8 +280,10 @@ void main() {
   test(
     'libraryLastGoodResultsProvider guarda a última página boa mesmo com o browse em erro',
     () async {
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           libraryCatalogModeProvider.overrideWith(
             () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
           ),
@@ -316,8 +318,10 @@ void main() {
   test(
     'libraryGroupResultsProvider cai na última página boa quando o browse não tem valor',
     () async {
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           libraryCatalogModeProvider.overrideWith(
             () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
           ),
@@ -351,8 +355,10 @@ void main() {
   test(
     'libraryLastGoodResultsProvider esquece a página boa quando o filtro muda',
     () async {
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           libraryCatalogModeProvider.overrideWith(
             () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
           ),
@@ -388,8 +394,10 @@ void main() {
   test(
     'libraryLastGoodResultsProvider esquece a página boa quando a ordenação muda',
     () async {
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           libraryCatalogModeProvider.overrideWith(
             () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
           ),
