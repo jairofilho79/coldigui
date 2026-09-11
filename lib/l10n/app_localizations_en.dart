@@ -48,6 +48,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerExitFullscreenTooltip => 'Exit fullscreen (Esc)';
 
   @override
+  String get readerFitModeTooltip => 'Fit width/page (Z)';
+
+  @override
   String get louvorPdfDownloading => 'Downloading...';
 
   @override

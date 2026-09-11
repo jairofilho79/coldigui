@@ -12,6 +12,7 @@ import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_u
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
+import 'package:coldigui/features/pdf_reader/domain/entities/pdf_reader_preferences.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
@@ -244,6 +245,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       orElse: () => false,
     );
     final sessionLoading = sessionAsync.isLoading;
+    final fitMode = ref.watch(
+      pdfReaderViewSettingsProvider.select((settings) => settings.fitMode),
+    );
 
     return _ReaderScaffold(
       titulo: titulo,
@@ -251,6 +255,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       isFullscreen: isFullscreen,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
+      onToggleFitMode: () =>
+          ref.read(pdfReaderViewSettingsProvider.notifier).toggleFitMode(),
+      fitModeIsPageWidth: fitMode == PdfFitMode.pageWidth,
       onShare: sessionLoaded
           ? (origin) => _sharePdf(filePath, titulo, sharePositionOrigin: origin)
           : null,
@@ -259,6 +266,8 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       fullscreenTooltip: l10n?.readerFullscreenTooltip ?? 'Tela cheia (F)',
       exitFullscreenTooltip:
           l10n?.readerExitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
+      fitModeTooltip:
+          l10n?.readerFitModeTooltip ?? 'Ajustar largura/página (Z)',
       body: sessionAsync.when(
         loading: () => const PdfPageSkeleton(),
         error: (error, _) {
@@ -321,11 +330,14 @@ class _ReaderScaffold extends StatelessWidget {
     this.isFullscreen = false,
     this.filePath,
     this.onToggleFullscreen,
+    this.onToggleFitMode,
+    this.fitModeIsPageWidth = false,
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
     this.fullscreenTooltip,
     this.exitFullscreenTooltip,
+    this.fitModeTooltip,
   });
 
   final String titulo;
@@ -334,11 +346,18 @@ class _ReaderScaffold extends StatelessWidget {
   final Widget body;
   final String? filePath;
   final VoidCallback? onToggleFullscreen;
+
+  /// UC-11 — Ajustar à largura/página (spec A.3 C8, `Icons.fit_screen`).
+  final VoidCallback? onToggleFitMode;
+
+  /// `true` quando o fit atual é page-width — decide o ícone preenchido vs. contorno.
+  final bool fitModeIsPageWidth;
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
   final String? fullscreenTooltip;
   final String? exitFullscreenTooltip;
+  final String? fitModeTooltip;
 
   /// Roda a ação da barra 3 e devolve o foco ao handler de teclado do leitor.
   ///
@@ -391,6 +410,17 @@ class _ReaderScaffold extends StatelessWidget {
                             : const Icon(Icons.share),
                       );
                     },
+                  ),
+                if (onToggleFitMode != null)
+                  IconButton(
+                    tooltip: fitModeTooltip ?? 'Ajustar largura/página (Z)',
+                    icon: Icon(
+                      fitModeIsPageWidth
+                          ? Icons.fit_screen
+                          : Icons.fit_screen_outlined,
+                    ),
+                    onPressed: () =>
+                        _runAndRestoreKeyboardFocus(onToggleFitMode!),
                   ),
                 if (onToggleFullscreen != null)
                   IconButton(

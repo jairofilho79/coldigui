@@ -48,6 +48,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerExitFullscreenTooltip => 'Sair da tela cheia (Esc)';
 
   @override
+  String get readerFitModeTooltip => 'Ajustar largura/página (Z)';
+
+  @override
   String get louvorPdfDownloading => 'Baixando...';
 
   @override

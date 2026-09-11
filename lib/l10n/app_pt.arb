@@ -16,6 +16,7 @@
   "pdfActionError": "Não foi possível concluir a ação",
   "readerFullscreenTooltip": "Tela cheia (F)",
   "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
+  "readerFitModeTooltip": "Ajustar largura/página (Z)",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

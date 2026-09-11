@@ -16,6 +16,7 @@
   "pdfActionError": "Could not complete the action",
   "readerFullscreenTooltip": "Fullscreen (F)",
   "readerExitFullscreenTooltip": "Exit fullscreen (Esc)",
+  "readerFitModeTooltip": "Fit width/page (Z)",
   "louvorPdfDownloading": "Downloading...",
   "louvorPdfDownloadingWithProgress": "Downloading... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

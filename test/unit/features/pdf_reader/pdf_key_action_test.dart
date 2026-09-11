@@ -145,6 +145,16 @@ void main() {
     });
   });
 
+  group('PdfPageKeyboardPolicy.actionForKey — ajuste de página', () {
+    test('Z alterna o fit mode', () {
+      expect(act(LogicalKeyboardKey.keyZ), PdfKeyAction.toggleFit);
+    });
+
+    test('ctrl+Z fica para o atalho do navegador/OS, não do leitor', () {
+      expect(act(LogicalKeyboardKey.keyZ, ctrl: true), PdfKeyAction.none);
+    });
+  });
+
   group('PdfPageKeyboardPolicy.actionForKey — teclas não tratadas', () {
     test('ctrl+espaço fica para o play/pause global', () {
       expect(act(LogicalKeyboardKey.space, ctrl: true), PdfKeyAction.none);

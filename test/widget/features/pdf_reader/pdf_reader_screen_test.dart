@@ -429,4 +429,43 @@ void main() {
 
     expect(find.byType(PdfReaderScreen), findsOneWidget);
   });
+
+  testWidgets('botão de ajuste chama toggleFitMode (C8)', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+    expect(find.byTooltip(l10n.readerFitModeTooltip), findsOneWidget);
+    expect(find.byIcon(Icons.fit_screen_outlined), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.readerFitModeTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.fit_screen), findsOneWidget);
+  });
 }

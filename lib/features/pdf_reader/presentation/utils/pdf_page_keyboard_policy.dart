@@ -14,6 +14,9 @@ enum PdfKeyAction {
   lastPage,
   nextLouvor,
   previousLouvor,
+
+  /// `Z` — alterna page-fit ↔ page-width (spec A.3 C8).
+  toggleFit,
   none,
 }
 
@@ -51,6 +54,10 @@ abstract final class PdfPageKeyboardPolicy {
     }
     if (key == LogicalKeyboardKey.keyP) {
       return louvorModifier ? PdfKeyAction.none : PdfKeyAction.previousLouvor;
+    }
+
+    if (key == LogicalKeyboardKey.keyZ) {
+      return louvorModifier ? PdfKeyAction.none : PdfKeyAction.toggleFit;
     }
 
     if (key == LogicalKeyboardKey.space) {

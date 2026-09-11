@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'Sair da tela cheia (Esc)'**
   String get readerExitFullscreenTooltip;
 
+  /// No description provided for @readerFitModeTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajustar largura/página (Z)'**
+  String get readerFitModeTooltip;
+
   /// No description provided for @louvorPdfDownloading.
   ///
   /// In pt, this message translates to:

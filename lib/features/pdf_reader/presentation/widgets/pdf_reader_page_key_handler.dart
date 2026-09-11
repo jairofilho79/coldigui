@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
 import '../../domain/entities/carousel_reader_position.dart';
+import '../providers/pdf_reader_view_settings_provider.dart';
 import '../providers/reader_route_params_provider.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 
@@ -137,6 +138,9 @@ class _PdfReaderPageKeyHandlerState
         _navigateLouvor(CarouselReaderDirection.next);
       case PdfKeyAction.previousLouvor:
         _navigateLouvor(CarouselReaderDirection.previous);
+      case PdfKeyAction.toggleFit:
+        if (keyboardFocusIsInsideTextField()) return KeyEventResult.ignored;
+        ref.read(pdfReaderViewSettingsProvider.notifier).toggleFitMode();
     }
     return KeyEventResult.handled;
   }
