@@ -3,7 +3,7 @@ import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
-import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Louvor _louvor({
