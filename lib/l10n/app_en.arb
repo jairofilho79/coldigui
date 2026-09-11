@@ -439,6 +439,15 @@
     }
   },
   "playlistImported": "Playlist imported",
+  "playlistImportAlreadySaved": "Playlist was already saved: {nome}",
+  "@playlistImportAlreadySaved": {
+    "description": "Snackbar when importing a share link whose content is already a saved playlist (dedupe, D7)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
   "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
   "deepLinkImportFailed": "Could not import the shared playlist.",
   "playlistShareError": "Could not share the playlist.",

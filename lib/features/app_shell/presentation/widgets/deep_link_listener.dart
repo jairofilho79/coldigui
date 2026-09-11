@@ -104,7 +104,13 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
           await ref.read(playlistsProvider.notifier).refreshAfterImport();
           if (!mounted) return;
           _navigateAfterImport(sanitizedUri);
-          _showSnackbar((l10n) => l10n.playlistImported);
+          if (result.alreadyExisted) {
+            _showSnackbar(
+              (l10n) => l10n.playlistImportAlreadySaved(result.nome ?? ''),
+            );
+          } else {
+            _showSnackbar((l10n) => l10n.playlistImported);
+          }
         case SyncDeepLinkOutcome.invalid:
           _markProcessed(fingerprint);
           _navigateAfterImport(sanitizedUri);

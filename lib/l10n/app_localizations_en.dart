@@ -866,6 +866,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistImported => 'Playlist imported';
 
   @override
+  String playlistImportAlreadySaved(String nome) {
+    return 'Playlist was already saved: $nome';
+  }
+
+  @override
   String get playlistImportInvalidUrl =>
       'Invalid link. Use a URL with sharepdfs and sharename.';
 

@@ -457,6 +457,15 @@
     }
   },
   "playlistImported": "Lista importada",
+  "playlistImportAlreadySaved": "Lista já estava salva: {nome}",
+  "@playlistImportAlreadySaved": {
+    "description": "Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
   "playlistShareError": "Não foi possível compartilhar a lista.",

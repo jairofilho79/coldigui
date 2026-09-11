@@ -159,6 +159,69 @@ void main() {
     expect(fakePlaylists.refreshCalled, isTrue);
   });
 
+  testWidgets(
+    'deep link com alreadyExisted exibe snackbar com o nome da lista existente',
+    (tester) async {
+      final fakePlaylists = _FakePlaylistsNotifier();
+      final router = GoRouter(
+        navigatorKey: rootNavigatorKey,
+        initialLocation: RoutePaths.playlists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+          ),
+          GoRoute(
+            path: RoutePaths.playlists,
+            builder: (_, _) => const Scaffold(body: Text('Listas Screen')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appRouterProvider.overrideWithValue(router),
+            deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            syncDeepLinkStateProvider.overrideWithValue(
+              _StubSyncDeepLinkState(
+                SyncDeepLinkResult.success(
+                  'playlist-id',
+                  alreadyExisted: true,
+                  nome: 'Ensaio de sábado',
+                ),
+                importUseCase,
+              ),
+            ),
+            playlistsProvider.overrideWith(() => fakePlaylists),
+          ],
+          child: DeepLinkListener(
+            child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              routerConfig: router,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final state = tester.state<DeepLinkListenerState>(
+        find.byType(DeepLinkListener),
+      );
+      await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home Screen'), findsOneWidget);
+      expect(
+        find.text('Lista já estava salva: Ensaio de sábado'),
+        findsOneWidget,
+      );
+      expect(fakePlaylists.refreshCalled, isTrue);
+    },
+  );
+
   testWidgets('deep link inválido exibe snackbar de erro', (tester) async {
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,

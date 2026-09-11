@@ -42,7 +42,7 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
   Future<void> deleteAllUnsaved() => throw UnimplementedError();
 
   @override
-  Future<List<SavedPlaylist>> getAll() => throw UnimplementedError();
+  Future<List<SavedPlaylist>> getAll() async => const <SavedPlaylist>[];
 
   @override
   Future<SavedPlaylist?> getById(String playlistId) =>
@@ -200,6 +200,29 @@ void main() {
 
       expect(result.outcome, SyncDeepLinkOutcome.failed);
       expect(result.reason, isA<StorageUnavailableException>());
+    },
+  );
+
+  test(
+    'retorna alreadyExisted e o nome da lista existente quando o import dedupa',
+    () async {
+      final first = await useCase(
+        uri: Uri.parse('/?sharepdfs=a,b&sharename=Original'),
+      );
+      expect(first.outcome, SyncDeepLinkOutcome.success);
+      expect(first.alreadyExisted, isFalse);
+
+      final second = await useCase(
+        uri: Uri.parse('/?sharepdfs=a,b&sharename=Outro%20nome'),
+      );
+
+      expect(second.outcome, SyncDeepLinkOutcome.success);
+      expect(second.alreadyExisted, isTrue);
+      expect(second.playlistId, first.playlistId);
+      expect(second.nome, 'Original');
+
+      final playlists = isar.playlists.where().findAll();
+      expect(playlists, hasLength(1));
     },
   );
 

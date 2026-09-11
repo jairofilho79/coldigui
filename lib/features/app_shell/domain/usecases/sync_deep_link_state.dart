@@ -25,16 +25,28 @@ class SyncDeepLinkResult {
     required this.outcome,
     this.playlistId,
     this.reason,
+    this.alreadyExisted = false,
+    this.nome,
   });
 
   /// Desfecho do processamento da URI.
   final SyncDeepLinkOutcome outcome;
 
-  /// ID da playlist criada quando [outcome] é [SyncDeepLinkOutcome.success].
+  /// ID da playlist criada (ou reaproveitada) quando [outcome] é
+  /// [SyncDeepLinkOutcome.success].
   final String? playlistId;
 
   /// Exceção capturada quando [outcome] é [SyncDeepLinkOutcome.failed].
   final Object? reason;
+
+  /// `true` quando [outcome] é [SyncDeepLinkOutcome.success] e o import
+  /// reaproveitou uma lista salva já existente em vez de criar uma nova
+  /// (dedupe de conteúdo, spec C.2, Tarefa 8).
+  final bool alreadyExisted;
+
+  /// Nome da lista — só preenchido quando [alreadyExisted] (a UI usa para a
+  /// snackbar «Lista já estava salva: {nome}»).
+  final String? nome;
 
   static const skipped = SyncDeepLinkResult(
     outcome: SyncDeepLinkOutcome.skipped,
@@ -43,9 +55,15 @@ class SyncDeepLinkResult {
     outcome: SyncDeepLinkOutcome.invalid,
   );
 
-  static SyncDeepLinkResult success(String playlistId) => SyncDeepLinkResult(
+  static SyncDeepLinkResult success(
+    String playlistId, {
+    bool alreadyExisted = false,
+    String? nome,
+  }) => SyncDeepLinkResult(
     outcome: SyncDeepLinkOutcome.success,
     playlistId: playlistId,
+    alreadyExisted: alreadyExisted,
+    nome: nome,
   );
 
   static SyncDeepLinkResult failed(Object reason) =>
@@ -74,13 +92,17 @@ class SyncDeepLinkState {
     }
 
     try {
-      final playlistId = await _importSharedPlaylist(
+      final result = await _importSharedPlaylist(
         sharePdfs: params.sharePdfs,
         shareAudios: params.shareAudios,
         shareItems: params.shareItems ?? '',
         shareName: params.shareName,
       );
-      return SyncDeepLinkResult.success(playlistId);
+      return SyncDeepLinkResult.success(
+        result.playlist.playlistId,
+        alreadyExisted: result.alreadyExisted,
+        nome: result.playlist.nome,
+      );
     } on InvalidSharePlaylistException {
       return SyncDeepLinkResult.invalid;
     } on StorageUnavailableException catch (e) {

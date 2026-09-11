@@ -419,15 +419,18 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     String shareItems = '',
   }) async {
     try {
-      final playlistId = await ref.read(importSharedPlaylistFromUrlProvider)(
+      final result = await ref.read(importSharedPlaylistFromUrlProvider)(
         sharePdfs: sharePdfs,
         shareAudios: shareAudios,
         shareItems: shareItems,
         shareName: shareName,
       );
+      final playlistId = result.playlist.playlistId;
       // D6: a importada vira a ativa pelo mesmo caminho do «Tornar lista
       // ativa» — a lista que era ativa continua salva, com a ordem pendente
-      // dela levada a disco antes da troca.
+      // dela levada a disco antes da troca. Vale também quando a importada é
+      // a existente reaproveitada pela dedupe (spec C.2): ela também vira a
+      // ativa.
       await ref
           .read(activePlaylistEditorProvider.notifier)
           .activate(playlistId);

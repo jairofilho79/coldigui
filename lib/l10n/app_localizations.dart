@@ -1517,6 +1517,12 @@ abstract class AppLocalizations {
   /// **'Lista importada'**
   String get playlistImported;
 
+  /// Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista já estava salva: {nome}'**
+  String playlistImportAlreadySaved(String nome);
+
   /// No description provided for @playlistImportInvalidUrl.
   ///
   /// In pt, this message translates to:

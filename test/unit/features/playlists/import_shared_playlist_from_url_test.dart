@@ -31,12 +31,13 @@ void main() {
   });
 
   test('cria playlist salva a partir do share', () async {
-    final id = await useCase(
+    final result = await useCase(
       sharePdfs: 'pdf-a, pdf-b',
       shareName: 'Lista importada',
     );
 
-    final saved = await playlistRepository.getById(id);
+    expect(result.alreadyExisted, isFalse);
+    final saved = await playlistRepository.getById(result.playlist.playlistId);
     expect(saved?.nome, 'Lista importada');
     expect(saved?.pdfIds, ['pdf-a', 'pdf-b']);
   });
@@ -84,16 +85,78 @@ void main() {
     );
   });
 
+  group('dedupe por conteúdo (spec C.2)', () {
+    test(
+      'lista salva já existente com o mesmo conteúdo — alreadyExisted true, nenhuma create',
+      () async {
+        final first = await useCase(sharePdfs: 'a,b', shareName: 'Original');
+        expect(first.alreadyExisted, isFalse);
+
+        final second = await useCase(sharePdfs: 'a,b', shareName: 'Outro nome');
+
+        expect(second.alreadyExisted, isTrue);
+        expect(second.playlist.playlistId, first.playlist.playlistId);
+        // O nome não é atualizado — a lista existente não é tocada.
+        expect(second.playlist.nome, 'Original');
+
+        final all = await playlistRepository.getAll();
+        expect(all, hasLength(1));
+      },
+    );
+
+    test('a ordem das entradas importa — não deduplica', () async {
+      await useCase(shareItems: 'p:a,a:b', shareName: 'Ordem 1');
+
+      final result = await useCase(shareItems: 'a:b,p:a', shareName: 'Ordem 2');
+
+      expect(result.alreadyExisted, isFalse);
+      final all = await playlistRepository.getAll();
+      expect(all, hasLength(2));
+    });
+
+    test('lista não salva (rascunho) com o mesmo conteúdo não conta', () async {
+      await playlistRepository.create(
+        nome: 'Rascunho',
+        pdfIds: const ['a', 'b'],
+        salva: false,
+      );
+
+      final result = await useCase(sharePdfs: 'a,b', shareName: 'Importada');
+
+      expect(result.alreadyExisted, isFalse);
+      final all = await playlistRepository.getAll();
+      expect(all, hasLength(2));
+    });
+
+    test(
+      'lista salva apagada (tombstone) com o mesmo conteúdo não conta',
+      () async {
+        final id = await playlistRepository.create(
+          nome: 'Apagada',
+          pdfIds: const ['a', 'b'],
+          salva: true,
+        );
+        await playlistRepository.update(id, deletedAt: DateTime.now());
+
+        final result = await useCase(sharePdfs: 'a,b', shareName: 'Importada');
+
+        expect(result.alreadyExisted, isFalse);
+      },
+    );
+  });
+
   group('shareitems (v2)', () {
     test('cria a playlist com entries na ordem intercalada', () async {
-      final id = await useCase(
+      final result = await useCase(
         shareItems: 'p:pdf-a,a:aud-1,c:cif-1',
         sharePdfs: 'pdf-a,cif-1',
         shareAudios: 'aud-1',
         shareName: 'Lista v2',
       );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.entries, const [
         PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
         PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
@@ -105,43 +168,54 @@ void main() {
     });
 
     test('shareitems vence os legados quando divergem', () async {
-      final id = await useCase(
+      final result = await useCase(
         shareItems: 'a:aud-1,p:pdf-a',
         sharePdfs: 'pdf-a',
         shareAudios: 'aud-1',
         shareName: 'Ordem v2',
       );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.items, ['aud-1', 'pdf-a']);
     });
 
     test('shareitems inválido cai nos legados', () async {
-      final id = await useCase(
+      final result = await useCase(
         shareItems: 'lixo-sem-prefixo',
         sharePdfs: 'pdf-a',
         shareName: 'Fallback',
       );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.pdfIds, ['pdf-a']);
     });
 
     test('só áudio grava a lista inteira na face de áudio', () async {
-      final id = await useCase(
+      final result = await useCase(
         shareItems: 'a:aud-1,a:aud-2',
         shareName: 'Só áudio',
       );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.audioIds, ['aud-1', 'aud-2']);
       expect(saved.pdfIds, isEmpty);
     });
 
     test('só cifra grava a lista na face de partituras', () async {
-      final id = await useCase(shareItems: 'c:cif-1', shareName: 'Só cifra');
+      final result = await useCase(
+        shareItems: 'c:cif-1',
+        shareName: 'Só cifra',
+      );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.pdfIds, ['cif-1']);
     });
 
@@ -155,14 +229,16 @@ void main() {
     // A reunião de origem pode repetir um louvor («Adicionar de novo»); a
     // importada tem que repetir também — o link é a lista, não um conjunto.
     test('id repetido cria duas entradas', () async {
-      final id = await useCase(
+      final result = await useCase(
         shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
         sharePdfs: 'pdf-a,pdf-a',
         shareAudios: 'aud-1',
         shareName: 'Com repetição',
       );
 
-      final saved = await playlistRepository.getById(id);
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
       expect(saved!.entries, const [
         PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
         PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
