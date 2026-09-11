@@ -5,6 +5,8 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/presentation/shell_scaffold.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_bottom_nav_bar.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_navigation_rail.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/stage_wakelock.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -97,6 +99,10 @@ void main() {
     isar.close();
   });
 
+  // Branches na mesma ordem de `appTabsFor` com as flags padrão em teste
+  // (FF_EVENTS=false, FF_SOCIAL=true): library, home, social, profile — para
+  // exercitar `goBranch`/`selectedIndex` com o mesmo índice que
+  // `PlpcgBottomNavBar`/`PlpcgNavigationRail` recebem no shell real.
   GoRouter buildRouter({String initialLocation = RoutePaths.home}) {
     return GoRouter(
       initialLocation: initialLocation,
@@ -108,6 +114,14 @@ void main() {
             StatefulShellBranch(
               routes: [
                 GoRoute(
+                  path: RoutePaths.library,
+                  builder: (_, _) => const Scaffold(body: Text('Biblioteca')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
                   path: RoutePaths.home,
                   builder: (_, _) => const Scaffold(body: Text('Home')),
                   routes: [
@@ -116,6 +130,22 @@ void main() {
                       builder: (_, _) => const Scaffold(body: Text('Leitor')),
                     ),
                   ],
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.social,
+                  builder: (_, _) => const Scaffold(body: Text('Social')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.profile,
+                  builder: (_, _) => const Scaffold(body: Text('Perfil')),
                 ),
               ],
             ),
@@ -228,6 +258,66 @@ void main() {
       expect(find.byType(Stack), findsWidgets);
     },
   );
+
+  group('C6 — NavigationRail em tela larga', () {
+    testWidgets(
+      'em 1200 px, mostra PlpcgNavigationRail e esconde PlpcgBottomNavBar',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await pumpShell(tester, overrides: []);
+
+        expect(find.byType(PlpcgNavigationRail), findsOneWidget);
+        expect(find.byType(PlpcgBottomNavBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'em 400 px, mostra PlpcgBottomNavBar e esconde PlpcgNavigationRail',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await pumpShell(tester, overrides: []);
+
+        expect(find.byType(PlpcgBottomNavBar), findsOneWidget);
+        expect(find.byType(PlpcgNavigationRail), findsNothing);
+      },
+    );
+
+    testWidgets('selecionar a última destination do rail navega para a branch '
+        'correspondente (goBranch pelo índice da lista)', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await pumpShell(tester, overrides: []);
+      expect(find.text('Home'), findsOneWidget);
+
+      // Flags padrão de teste → tabs [library, home, social, profile];
+      // última destination = Perfil (índice 3).
+      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      expect(rail.destinations.length, 4);
+      expect(rail.selectedIndex, 1);
+
+      rail.onDestinationSelected!(3);
+      await tester.pumpAndSettle();
+
+      final updatedRail = tester.widget<NavigationRail>(
+        find.byType(NavigationRail),
+      );
+      expect(
+        updatedRail.selectedIndex,
+        3,
+        reason:
+            'goBranch(3) — a última posição de appTabsFor — tem que mover '
+            'o navigationShell para a branch Perfil',
+      );
+    });
+  });
 }
 
 /// Face fixa — sem depender de SharedPreferences.
