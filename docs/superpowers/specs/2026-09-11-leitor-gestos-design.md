@@ -113,6 +113,172 @@ type TextItem = { type: "text"; text: string };
 Blocos aninham livremente (há `repeat` dentro de `coro`, `link` dentro de
 `repeat`, `coro` dentro de `repeat` no acervo real). Profundidade prática ≤ 3.
 
+Exemplo real (182 — Quero viver pra sempre com Jesus), usado como fixture
+`test/fixtures/gestures/182_quero_viver.json`:
+
+```json
+{
+  "schema": "coldigom.gestures/1",
+  "title": "182 - QUERO VIVER PRA SEMPRE COM JESUS",
+  "dictionaryVersion": 1,
+  "items": [
+    {
+      "type": "coro",
+      "children": [
+        {
+          "type": "gesture",
+          "gestureId": "c687580e7682",
+          "lyrics": [
+            {
+              "trigger": "Quero",
+              "text": "viver para sempre"
+            }
+          ]
+        },
+        {
+          "type": "gesture",
+          "gestureId": "e7b821c9041a",
+          "lyrics": [
+            {
+              "trigger": "com",
+              "text": "Jesus."
+            }
+          ]
+        },
+        {
+          "type": "gesture",
+          "gestureId": "6d88501c6888",
+          "lyrics": [
+            {
+              "trigger": "Quero",
+              "text": "beber da água da vida."
+            }
+          ]
+        },
+        {
+          "type": "gesture",
+          "gestureId": "dd4ba6562f45",
+          "lyrics": [
+            {
+              "trigger": "Quero",
+              "text": "comer da árvore da vida."
+            }
+          ]
+        },
+        {
+          "type": "gesture",
+          "gestureId": "e7b821c9041a",
+          "lyrics": [
+            {
+              "trigger": "Com",
+              "text": "Jesus eternamente vou viver!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "c687580e7682",
+      "lyrics": [
+        {
+          "trigger": "Vou",
+          "text": "viver, sim, vou viver,"
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "a6a5eb350ad4",
+      "lyrics": [
+        {
+          "trigger": "Passear",
+          "text": "no jardim do meu Senhor."
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "fa2878588e54",
+      "lyrics": [
+        {
+          "trigger": "A árvore",
+          "text": "da vida"
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "5ef0073c9723",
+      "lyrics": [
+        {
+          "trigger": "no meio",
+          "text": "do jardim"
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "121dceda600f",
+      "lyrics": [
+        {
+          "trigger": "É certeza",
+          "text": "que Jesus me prometeu."
+        }
+      ]
+    },
+    {
+      "type": "instruction",
+      "kind": "back_to_chorus"
+    },
+    {
+      "type": "gesture",
+      "gestureId": "fff2698cc966",
+      "lyrics": [
+        {
+          "trigger": "Para",
+          "text": "trás o pecado ficará,"
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "81338f2f401e",
+      "lyrics": [
+        {
+          "trigger": "Seu",
+          "text": "domínio não me atingirá."
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "c687580e7682",
+      "lyrics": [
+        {
+          "trigger": "Escolhi",
+          "text": "muito bem:"
+        }
+      ]
+    },
+    {
+      "type": "gesture",
+      "gestureId": "e7b821c9041a",
+      "lyrics": [
+        {
+          "trigger": "Viver",
+          "text": "eternamente com Jesus!"
+        }
+      ]
+    },
+    {
+      "type": "instruction",
+      "kind": "back_to_chorus_and_finish"
+    }
+  ]
+}
+```
+
 ### 3.2 Dicionário (`coldigom.gesture-dictionary/1`)
 
 `GET {base}/api/gestures/dictionary` — público, `ETag`, 304 com `If-None-Match`,
