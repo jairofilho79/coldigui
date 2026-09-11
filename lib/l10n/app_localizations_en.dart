@@ -714,6 +714,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gestureNotFound => 'gesture not found';
 
   @override
+  String get gesturesMaterialLabel => 'Gestures';
+
+  @override
+  String get gesturesMaterialSection => 'Gestures';
+
+  @override
+  String get gesturesReaderTitle => 'Gesture reader';
+
+  @override
+  String get gesturesReaderEmpty => 'This hymn has no gestures yet';
+
+  @override
+  String get gesturesReaderUnavailable => 'Gestures unavailable · try again';
+
+  @override
+  String get gesturesReaderIncreaseFont => 'Increase gesture text';
+
+  @override
+  String get gesturesReaderDecreaseFont => 'Decrease gesture text';
+
+  @override
+  String get gesturesReaderFullscreen => 'Full screen';
+
+  @override
+  String get gesturesNewerSchemaWarning =>
+      'Document in a newer format; update the app.';
+
+  @override
+  String get gestureInstructionInstruments => 'Instruments';
+
+  @override
+  String get gestureInstructionRepeatPraise => 'Repeat the hymn';
+
+  @override
+  String get gestureInstructionBackToChorus => 'Back to chorus';
+
+  @override
+  String get gestureInstructionBackToChorusAndFinish =>
+      'Back to chorus and finish';
+
+  @override
+  String gestureContextRepeat(int count) {
+    return '${count}x';
+  }
+
+  @override
+  String get gestureContextChorus => 'CHORUS';
+
+  @override
+  String get gestureContextFinal => 'END';
+
+  @override
+  String get gestureContextLink => 'link';
+
+  @override
+  String get gestureFocusNext => 'next:';
+
+  @override
+  String get gestureFocusEnd => 'end';
+
+  @override
+  String get gestureFocusClose => 'Close';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override

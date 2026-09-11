@@ -1259,6 +1259,126 @@ abstract class AppLocalizations {
   /// **'gesto não encontrado'**
   String get gestureNotFound;
 
+  /// No description provided for @gesturesMaterialLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestos'**
+  String get gesturesMaterialLabel;
+
+  /// No description provided for @gesturesMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestos'**
+  String get gesturesMaterialSection;
+
+  /// No description provided for @gesturesReaderTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor de gestos'**
+  String get gesturesReaderTitle;
+
+  /// No description provided for @gesturesReaderEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este louvor ainda não tem gestos'**
+  String get gesturesReaderEmpty;
+
+  /// No description provided for @gesturesReaderUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestos indisponíveis · tentar de novo'**
+  String get gesturesReaderUnavailable;
+
+  /// No description provided for @gesturesReaderIncreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar letra dos gestos'**
+  String get gesturesReaderIncreaseFont;
+
+  /// No description provided for @gesturesReaderDecreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir letra dos gestos'**
+  String get gesturesReaderDecreaseFont;
+
+  /// No description provided for @gesturesReaderFullscreen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tela cheia'**
+  String get gesturesReaderFullscreen;
+
+  /// No description provided for @gesturesNewerSchemaWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Documento em formato mais novo; atualize o app.'**
+  String get gesturesNewerSchemaWarning;
+
+  /// No description provided for @gestureInstructionInstruments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Instrumentos'**
+  String get gestureInstructionInstruments;
+
+  /// No description provided for @gestureInstructionRepeatPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Repetir o louvor'**
+  String get gestureInstructionRepeatPraise;
+
+  /// No description provided for @gestureInstructionBackToChorus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao coro'**
+  String get gestureInstructionBackToChorus;
+
+  /// No description provided for @gestureInstructionBackToChorusAndFinish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao coro e finalizar'**
+  String get gestureInstructionBackToChorusAndFinish;
+
+  /// No description provided for @gestureContextRepeat.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count}x'**
+  String gestureContextRepeat(int count);
+
+  /// No description provided for @gestureContextChorus.
+  ///
+  /// In pt, this message translates to:
+  /// **'CORO'**
+  String get gestureContextChorus;
+
+  /// No description provided for @gestureContextFinal.
+  ///
+  /// In pt, this message translates to:
+  /// **'FINAL'**
+  String get gestureContextFinal;
+
+  /// No description provided for @gestureContextLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'ligação'**
+  String get gestureContextLink;
+
+  /// No description provided for @gestureFocusNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'próximo:'**
+  String get gestureFocusNext;
+
+  /// No description provided for @gestureFocusEnd.
+  ///
+  /// In pt, this message translates to:
+  /// **'fim'**
+  String get gestureFocusEnd;
+
+  /// No description provided for @gestureFocusClose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get gestureFocusClose;
+
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:
