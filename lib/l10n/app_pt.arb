@@ -461,6 +461,17 @@
   "@audioSeekForward10": {
     "description": "Tooltip do botão que avança 10 s no áudio (C12)"
   },
+  "audioSpeed": "Velocidade de reprodução",
+  "@audioSpeed": {
+    "description": "Tooltip do menu de velocidade de reprodução (C12)"
+  },
+  "audioSpeedValue": "{value}×",
+  "@audioSpeedValue": {
+    "description": "Rótulo de uma velocidade de reprodução no menu, ex.: 1,25× (C12)",
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
   "miniPlayerPrevious": "Faixa anterior",
   "@miniPlayerPrevious": {
     "description": "Tooltip do botão de faixa anterior no mini-player persistente (D5)"

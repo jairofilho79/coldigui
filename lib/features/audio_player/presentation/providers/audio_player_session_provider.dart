@@ -30,6 +30,7 @@ class AudioPlayerSessionState {
     this.buffering = false,
     this.errorMessage,
     this.restoredWithoutPlayback = false,
+    this.speed = 1.0,
   });
 
   final List<AudioTrack> queue;
@@ -37,6 +38,11 @@ class AudioPlayerSessionState {
   final bool playing;
   final bool buffering;
   final String? errorMessage;
+
+  /// Velocidade de reprodução (`0.75`, `1.0`, `1.25`, `1.5` na UI) — C12.
+  /// Reaplicada em [AudioPlayerSessionNotifier._applyQueue] porque trocar de
+  /// fonte no `just_audio` reseta a velocidade do player pro padrão.
+  final double speed;
 
   /// A fila veio de [AudioPlayerSessionNotifier.restoreQueue] e o usuário ainda
   /// não comandou nenhuma reprodução.
@@ -63,6 +69,7 @@ class AudioPlayerSessionState {
     String? errorMessage,
     bool clearError = false,
     bool? restoredWithoutPlayback,
+    double? speed,
   }) {
     return AudioPlayerSessionState(
       queue: queue ?? this.queue,
@@ -72,6 +79,7 @@ class AudioPlayerSessionState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       restoredWithoutPlayback:
           restoredWithoutPlayback ?? this.restoredWithoutPlayback,
+      speed: speed ?? this.speed,
     );
   }
 }
@@ -367,6 +375,12 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       // Daqui para baixo é escrita de estado: só a geração vigente escreve.
       if (gen != _generation) return;
       state = state.copyWith(currentIndex: safeIndex, playing: false);
+      // Trocar de fonte reseta a velocidade do player pro padrão — reaplica
+      // a escolhida pelo usuário (C12). Padrão (1.0) não precisa de chamada
+      // extra ao player — evita um `await` a mais em toda troca de faixa.
+      if (state.speed != 1.0) {
+        await player.setSpeed(state.speed);
+      }
       _mediaSession?.updateTrack(tracks[safeIndex]);
       if (autoplay) {
         await player.play();
@@ -447,6 +461,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       );
     } on Object catch (e) {
       _reportTransportFailure('seek', e);
+    }
+  }
+
+  /// Velocidade de reprodução (C12) — `0.75`, `1.0`, `1.25` ou `1.5` na UI.
+  Future<void> setSpeed(double speed) async {
+    state = state.copyWith(speed: speed);
+    try {
+      await _player?.setSpeed(speed);
+    } on Object catch (e) {
+      _reportTransportFailure('setSpeed', e);
     }
   }
 

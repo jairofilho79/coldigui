@@ -19,6 +19,7 @@ class _ControllablePlayer extends AudioPlayer {
   final setSourcesCalls = <List<AudioSource>>[];
   final pendingSetSources = <Completer<Duration?>>[];
   final seekCalls = <Duration?>[];
+  final setSpeedCalls = <double>[];
 
   /// Quando `true`, `setAudioSources` espera um `complete` explícito do teste.
   bool blockSetSources = false;
@@ -65,6 +66,11 @@ class _ControllablePlayer extends AudioPlayer {
   @override
   Future<void> seek(Duration? position, {int? index}) async {
     seekCalls.add(position);
+  }
+
+  @override
+  Future<void> setSpeed(double speed) async {
+    setSpeedCalls.add(speed);
   }
 
   @override
@@ -615,6 +621,45 @@ void main() {
       await notifier.seekBy(const Duration(seconds: 10));
 
       expect(player.seekCalls.single, const Duration(seconds: 20));
+    });
+  });
+
+  group('setSpeed (C12)', () {
+    test('sessão nasce com velocidade 1.0', () async {
+      final container = await makeContainer();
+      expect(container.read(audioPlayerSessionProvider).speed, 1.0);
+    });
+
+    test('atualiza o estado e chama o player', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      await notifier.setSpeed(1.5);
+
+      expect(container.read(audioPlayerSessionProvider).speed, 1.5);
+      expect(player.setSpeedCalls, contains(1.5));
+    });
+
+    test('é reaplicada em _applyQueue — troca de faixa não reseta', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      await notifier.setSpeed(1.25);
+      player.setSpeedCalls.clear();
+
+      await notifier.playQueue([_track('a2')]);
+
+      expect(
+        container.read(audioPlayerSessionProvider).speed,
+        1.25,
+        reason: 'a velocidade escolhida persiste entre faixas',
+      );
+      expect(
+        player.setSpeedCalls,
+        contains(1.25),
+        reason: '_applyQueue reaplica a velocidade na fonte nova',
+      );
     });
   });
 }

@@ -452,6 +452,17 @@
   "@audioSeekForward10": {
     "description": "Tooltip for the button that seeks forward 10 s in the audio (C12)"
   },
+  "audioSpeed": "Playback speed",
+  "@audioSpeed": {
+    "description": "Tooltip for the playback speed menu (C12)"
+  },
+  "audioSpeedValue": "{value}x",
+  "@audioSpeedValue": {
+    "description": "Label for one playback speed in the menu, e.g. 1.25x (C12)",
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
   "miniPlayerPrevious": "Previous track",
   "@miniPlayerPrevious": {
     "description": "Tooltip for the previous-track button in the persistent mini-player (D5)"

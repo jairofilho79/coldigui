@@ -1427,6 +1427,18 @@ abstract class AppLocalizations {
   /// **'Avançar 10 s'**
   String get audioSeekForward10;
 
+  /// Tooltip do menu de velocidade de reprodução (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade de reprodução'**
+  String get audioSpeed;
+
+  /// Rótulo de uma velocidade de reprodução no menu, ex.: 1,25× (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'{value}×'**
+  String audioSpeedValue(String value);
+
   /// Tooltip do botão de faixa anterior no mini-player persistente (D5)
   ///
   /// In pt, this message translates to:

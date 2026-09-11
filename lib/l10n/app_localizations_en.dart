@@ -807,6 +807,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioSeekForward10 => 'Forward 10 s';
 
   @override
+  String get audioSpeed => 'Playback speed';
+
+  @override
+  String audioSpeedValue(String value) {
+    return '${value}x';
+  }
+
+  @override
   String get miniPlayerPrevious => 'Previous track';
 
   @override

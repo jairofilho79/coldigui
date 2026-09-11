@@ -148,6 +148,38 @@ class AudioPlayerScreen extends ConsumerWidget {
                               : AppColors.textLight.withValues(alpha: 0.55),
                         ),
                       ),
+                      if (track != null)
+                        PopupMenuButton<double>(
+                          tooltip: l10n.audioSpeed,
+                          initialValue: session.speed,
+                          onSelected: (value) => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .setSpeed(value),
+                          itemBuilder: (context) => [
+                            for (final option in kAudioSpeedOptions)
+                              PopupMenuItem<double>(
+                                value: option,
+                                child: Text(
+                                  l10n.audioSpeedValue(
+                                    formatAudioSpeed(option),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Center(
+                              child: Text(
+                                l10n.audioSpeedValue(
+                                  formatAudioSpeed(session.speed),
+                                ),
+                                style: AppTypography.label.copyWith(
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -285,4 +317,15 @@ class AudioPlayerScreen extends ConsumerWidget {
           label: label,
         );
   }
+}
+
+/// Velocidades oferecidas no menu do `/audio` (C12).
+const List<double> kAudioSpeedOptions = [0.75, 1.0, 1.25, 1.5];
+
+/// Formata a velocidade pro rótulo do menu — vírgula decimal, sem zero à
+/// direita (`1.0` -> `1`, `1.25` -> `1,25`).
+@visibleForTesting
+String formatAudioSpeed(double speed) {
+  if (speed == speed.roundToDouble()) return speed.toInt().toString();
+  return speed.toString().replaceAll('.', ',');
 }
