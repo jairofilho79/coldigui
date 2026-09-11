@@ -585,5 +585,50 @@
   "sessionExpiredSignInAgain": "Entrar de novo",
   "@sessionExpiredSignInAgain": {
     "description": "Ação do banner de sessão expirada"
+  },
+  "homeEmptyHint": "Busque por título ou número",
+  "@homeEmptyHint": {
+    "description": "Hint da Home sem consulta nem lista ativa/recentes (C4)"
+  },
+  "homeEmptyActiveList": "Lista ativa: {nome} · {n, plural, one{1 louvor} other{{n} louvores}}",
+  "@homeEmptyActiveList": {
+    "description": "Cartão da lista ativa na Home sem consulta (C4)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyOpenActive": "Abrir no leitor",
+  "@homeEmptyOpenActive": {
+    "description": "Botão do cartão da lista ativa na Home sem consulta (C4)"
+  },
+  "homeEmptyRecent": "Abertos recentemente",
+  "@homeEmptyRecent": {
+    "description": "Título das chips de materiais recentes na Home sem consulta (C4)"
+  },
+  "homeNoResults": "Nenhum louvor para «{query}»",
+  "@homeNoResults": {
+    "description": "Título da Home quando a busca não encontrou nada (C4)",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoResultsTips": "Tente outro termo, ou confira o número e a grafia.",
+  "@homeNoResultsTips": {
+    "description": "Dicas da Home quando a busca não encontrou nada (C4)"
+  },
+  "homeClearFilters": "Limpar filtros",
+  "@homeClearFilters": {
+    "description": "Botão da Home sem resultado, visível só com filtro fora do padrão (C4)"
+  },
+  "homeColdigomOffline": "Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.",
+  "@homeColdigomOffline": {
+    "description": "Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)"
   }
 }

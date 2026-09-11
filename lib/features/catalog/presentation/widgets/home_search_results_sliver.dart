@@ -3,6 +3,7 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_coldigom_pagination_controls.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/home_empty_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -91,8 +92,22 @@ class HomeSearchResultsSliver extends ConsumerWidget {
     final results = state.groups;
     final trailing = homeSearchTrailingSlot(state);
 
-    if (results.isEmpty && trailing == null) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    // Sem grupo nenhum (local nem remoto) e nada em voo/paginável: o antigo
+    // `SizedBox.shrink()` vira o estado vazio da Home (C4). A linha de erro
+    // remoto continua — ela é o mecanismo genérico de retry (C.8), o estado
+    // vazio é só o texto amigável por cima.
+    if (results.isEmpty &&
+        trailing != HomeSearchTrailingSlot.loading &&
+        trailing != HomeSearchTrailingSlot.pager) {
+      return SliverToBoxAdapter(
+        child: Column(
+          children: [
+            HomeEmptyState(state: state),
+            if (trailing == HomeSearchTrailingSlot.error)
+              _ColdigomUnavailableRow(onRetry: () => retryRemoteSearch(ref)),
+          ],
+        ),
+      );
     }
 
     return SliverList(

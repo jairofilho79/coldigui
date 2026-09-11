@@ -1141,4 +1141,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionExpiredSignInAgain => 'Sign in again';
+
+  @override
+  String get homeEmptyHint => 'Search by title or number';
+
+  @override
+  String homeEmptyActiveList(String nome, int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n songs',
+      one: '1 song',
+    );
+    return 'Active list: $nome · $_temp0';
+  }
+
+  @override
+  String get homeEmptyOpenActive => 'Open in reader';
+
+  @override
+  String get homeEmptyRecent => 'Recently opened';
+
+  @override
+  String homeNoResults(String query) {
+    return 'No songs found for “$query”';
+  }
+
+  @override
+  String get homeNoResultsTips =>
+      'Try another term, or check the number and spelling.';
+
+  @override
+  String get homeClearFilters => 'Clear filters';
+
+  @override
+  String get homeColdigomOffline =>
+      'No connection — the Coldigom catalog may be incomplete for this search.';
 }

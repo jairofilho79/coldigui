@@ -1156,4 +1156,40 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get sessionExpiredSignInAgain => 'Entrar de novo';
+
+  @override
+  String get homeEmptyHint => 'Busque por título ou número';
+
+  @override
+  String homeEmptyActiveList(String nome, int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n louvores',
+      one: '1 louvor',
+    );
+    return 'Lista ativa: $nome · $_temp0';
+  }
+
+  @override
+  String get homeEmptyOpenActive => 'Abrir no leitor';
+
+  @override
+  String get homeEmptyRecent => 'Abertos recentemente';
+
+  @override
+  String homeNoResults(String query) {
+    return 'Nenhum louvor para «$query»';
+  }
+
+  @override
+  String get homeNoResultsTips =>
+      'Tente outro termo, ou confira o número e a grafia.';
+
+  @override
+  String get homeClearFilters => 'Limpar filtros';
+
+  @override
+  String get homeColdigomOffline =>
+      'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.';
 }

@@ -1,13 +1,16 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
+import 'package:coldigui/features/catalog/presentation/providers/recently_opened_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 LouvorGroup _group(String id) =>
     LouvorGroup(groupId: id, numero: '001', nome: id, sections: const []);
@@ -40,7 +43,76 @@ Widget _sliverTestApp(List<Override> overrides) {
   );
 }
 
+class _EmptyRecentlyOpened extends RecentlyOpenedNotifier {
+  @override
+  List<String> build() => const [];
+}
+
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('sem consulta e sem grupos mostra o estado vazio da Home (C4)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      _sliverTestApp([
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        recentlyOpenedProvider.overrideWith(_EmptyRecentlyOpened.new),
+        homeSearchStateProvider.overrideWithValue(
+          _state(query: '', remote: const AsyncData(CatalogSearchPage.empty)),
+        ),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Busque por título ou número'), findsOneWidget);
+  });
+
+  testWidgets(
+    'consulta sem resultado e remoto concluído mostra "Nenhum louvor" (C4)',
+    (tester) async {
+      await tester.pumpWidget(
+        _sliverTestApp([
+          homeSearchStateProvider.overrideWithValue(
+            _state(
+              query: 'zzz',
+              remote: const AsyncData(CatalogSearchPage.empty),
+            ),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nenhum louvor para «zzz»'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'remoto falho e sem grupos ainda mostra "Coldigom indisponível" (C.8 preservado)',
+    (tester) async {
+      await tester.pumpWidget(
+        _sliverTestApp([
+          homeSearchStateProvider.overrideWithValue(
+            _state(
+              query: 'zzz',
+              remote: AsyncError(Exception('boom'), StackTrace.empty),
+            ),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nenhum louvor para «zzz»'), findsOneWidget);
+      expect(
+        find.text('Coldigom indisponível · tentar de novo'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('remoto em erro mostra a linha "Coldigom indisponível"', (
     tester,
   ) async {

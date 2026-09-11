@@ -1978,6 +1978,54 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Entrar de novo'**
   String get sessionExpiredSignInAgain;
+
+  /// Hint da Home sem consulta nem lista ativa/recentes (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Busque por título ou número'**
+  String get homeEmptyHint;
+
+  /// Cartão da lista ativa na Home sem consulta (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista ativa: {nome} · {n, plural, one{1 louvor} other{{n} louvores}}'**
+  String homeEmptyActiveList(String nome, int n);
+
+  /// Botão do cartão da lista ativa na Home sem consulta (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no leitor'**
+  String get homeEmptyOpenActive;
+
+  /// Título das chips de materiais recentes na Home sem consulta (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Abertos recentemente'**
+  String get homeEmptyRecent;
+
+  /// Título da Home quando a busca não encontrou nada (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum louvor para «{query}»'**
+  String homeNoResults(String query);
+
+  /// Dicas da Home quando a busca não encontrou nada (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Tente outro termo, ou confira o número e a grafia.'**
+  String get homeNoResultsTips;
+
+  /// Botão da Home sem resultado, visível só com filtro fora do padrão (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar filtros'**
+  String get homeClearFilters;
+
+  /// Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.'**
+  String get homeColdigomOffline;
 }
 
 class _AppLocalizationsDelegate
