@@ -367,6 +367,10 @@
   "playlistDelete": "Delete",
   "playlistDeleteConfirmTitle": "Delete playlist?",
   "playlistDeleteConfirmMessage": "This playlist will be permanently removed.",
+  "playlistDraftLabel": "Draft",
+  "@playlistDraftLabel": {
+    "description": "Label for the unsaved active playlist on the carousel bar (C11)"
+  },
   "playlistFavoriteOn": "Mark as favorite",
   "playlistFavoriteOff": "Remove from favorites",
   "playlistPdfCount": "{count, plural, =1{1 song} other{{count} songs}}",

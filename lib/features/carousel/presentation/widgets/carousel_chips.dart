@@ -12,6 +12,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/utils/play_group_audio.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
@@ -415,6 +416,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required bool canGoPrevious,
     required bool canGoNext,
     required bool loading,
+    required bool showActivePlaylistName,
     VoidCallback? onPrevious,
     VoidCallback? onNext,
     VoidCallback? onChipTap,
@@ -425,29 +427,38 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }) {
     return CarouselBarShell(
       applySafeArea: false,
-      child: CarouselNavigatorBar(
-        item: item,
-        chipVariant: CarouselLouvorChipVariant.topBar,
-        canGoPrevious: canGoPrevious,
-        canGoNext: canGoNext,
-        loading: loading,
-        onPrevious: onPrevious,
-        onNext: onNext,
-        onChipTap: onChipTap,
-        onOpenPlayer: onOpenPlayer,
-        openPlayerIcon: openPlayerIcon,
-        openPlayerTooltip: openPlayerTooltip,
-        onOpenSelection: onOpenSelection,
-        swapMaterial: CarouselSwapMaterialButton(
-          materialId: item.materialId,
-          entryKey: item.key,
-        ),
-        trailingActions: const [CarouselBarTrailingActions()],
+      child: Row(
+        children: [
+          // C11: nome da lista ativa à esquerda — some abaixo de 480 px (a
+          // chip do louvor tem prioridade na largura).
+          if (showActivePlaylistName) const ActivePlaylistNameChip(),
+          Expanded(
+            child: CarouselNavigatorBar(
+              item: item,
+              chipVariant: CarouselLouvorChipVariant.topBar,
+              canGoPrevious: canGoPrevious,
+              canGoNext: canGoNext,
+              loading: loading,
+              onPrevious: onPrevious,
+              onNext: onNext,
+              onChipTap: onChipTap,
+              onOpenPlayer: onOpenPlayer,
+              openPlayerIcon: openPlayerIcon,
+              openPlayerTooltip: openPlayerTooltip,
+              onOpenSelection: onOpenSelection,
+              swapMaterial: CarouselSwapMaterialButton(
+                materialId: item.materialId,
+                entryKey: item.key,
+              ),
+              trailingActions: const [CarouselBarTrailingActions()],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildShellMode() {
+  Widget _buildShellMode({required bool showActivePlaylistName}) {
     final focusedIndex = ref
         .watch(carouselFocusedIndexProvider)
         .clamp(0, items.length - 1);
@@ -464,6 +475,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoPrevious: focusedIndex > 0,
       canGoNext: focusedIndex < items.length - 1,
       loading: _openingReader || _carouselNavLoading,
+      showActivePlaylistName: showActivePlaylistName,
       onPrevious: onReaderWithoutPdfId
           ? (focusedIndex > 0
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex - 1])
@@ -499,7 +511,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     );
   }
 
-  Widget _buildReaderMode(String materialId) {
+  Widget _buildReaderMode(
+    String materialId, {
+    required bool showActivePlaylistName,
+  }) {
     final position = ref.watch(readerCarouselPositionProvider(materialId));
     final item = _itemForMaterialId(materialId, _readerTitulo);
     final loading = _carouselNavLoading;
@@ -520,6 +535,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoPrevious: false,
         canGoNext: false,
         loading: loading,
+        showActivePlaylistName: showActivePlaylistName,
         onOpenSelection: _openReaderSelectionSheet,
         onOpenPlayer: playAudio,
         openPlayerIcon: Icons.play_circle_outline,
@@ -532,6 +548,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoPrevious: position.canGoPrevious,
       canGoNext: position.canGoNext,
       loading: loading,
+      showActivePlaylistName: showActivePlaylistName,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
               direction: CarouselReaderDirection.previous,
@@ -553,13 +570,28 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isReaderRoute) {
-      final materialId = _readerMaterialId;
-      if (materialId != null) {
-        return _buildReaderMode(materialId);
-      }
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // C11: a chip do nome da lista ativa some abaixo disto — a chip do
+        // louvor tem prioridade na largura da barra.
+        final showActivePlaylistName =
+            constraints.maxWidth >= _activePlaylistNameMinWidth;
 
-    return _buildShellMode();
+        if (_isReaderRoute) {
+          final materialId = _readerMaterialId;
+          if (materialId != null) {
+            return _buildReaderMode(
+              materialId,
+              showActivePlaylistName: showActivePlaylistName,
+            );
+          }
+        }
+
+        return _buildShellMode(showActivePlaylistName: showActivePlaylistName);
+      },
+    );
   }
 }
+
+/// Largura mínima da barra para mostrar [ActivePlaylistNameChip] (spec B.3).
+const _activePlaylistNameMinWidth = 480.0;

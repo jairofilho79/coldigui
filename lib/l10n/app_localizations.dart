@@ -1157,6 +1157,12 @@ abstract class AppLocalizations {
   /// **'Esta lista será removida permanentemente.'**
   String get playlistDeleteConfirmMessage;
 
+  /// Rótulo da lista ativa não salva na barra do carousel (C11)
+  ///
+  /// In pt, this message translates to:
+  /// **'Rascunho'**
+  String get playlistDraftLabel;
+
   /// No description provided for @playlistFavoriteOn.
   ///
   /// In pt, this message translates to:

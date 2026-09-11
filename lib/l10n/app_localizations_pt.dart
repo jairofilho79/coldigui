@@ -656,6 +656,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta lista será removida permanentemente.';
 
   @override
+  String get playlistDraftLabel => 'Rascunho';
+
+  @override
   String get playlistFavoriteOn => 'Marcar como favorita';
 
   @override
