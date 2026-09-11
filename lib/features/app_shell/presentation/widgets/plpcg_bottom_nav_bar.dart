@@ -329,6 +329,24 @@ class _NavLabelState extends State<_NavLabel> {
     return (painter.width * 1.35).clamp(36.0, 96.0);
   }
 
+  // A15: `TextPainter.layout()` só quando o rótulo muda de fato — nunca em
+  // `build()`, que roda a cada frame da animação de troca de aba.
+  late double _beamWidth;
+
+  @override
+  void initState() {
+    super.initState();
+    _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+  }
+
+  @override
+  void didUpdateWidget(_NavLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.label != oldWidget.label) {
+      _beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = widget.progress;
@@ -339,7 +357,7 @@ class _NavLabelState extends State<_NavLabel> {
       _NavLabel._activeStyle,
       t,
     )!;
-    final beamWidth = _computeBeamWidth(widget.label, _NavLabel._activeStyle);
+    final beamWidth = _beamWidth;
 
     return SizedBox(
       height: 20,
