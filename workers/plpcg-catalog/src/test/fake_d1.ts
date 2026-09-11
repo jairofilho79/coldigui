@@ -22,9 +22,16 @@
  * | `UPDATE user_audio_flags SET … WHERE user_id = ? AND id = ?` | `UPDATE` |
  * | `SELECT username FROM users WHERE google_sub = ?` (via `getUsername`) | `FROM users` + `google_sub = ?` |
  * | `SELECT google_sub FROM users WHERE username = ?` (rota social) | `FROM users` + `username = ?` |
+ * | `SELECT COUNT(*) … FROM short_links WHERE created_by = ? AND created_at >= ?` (teto de abuso, `links/handlers.ts`) | `SELECT COUNT` + `short_links` |
+ * | `SELECT code FROM short_links WHERE created_by = ? AND query = ?` (reuso) | `short_links` + `created_by = ?` + `query = ?` |
+ * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
+ * | `INSERT INTO short_links (…) VALUES (…) ON CONFLICT(code) DO NOTHING RETURNING code` | `INSERT INTO short_links` |
+ * | `UPDATE short_links SET hits = hits + 1 WHERE code = ?` | `UPDATE short_links` |
  *
  * O soft delete de `softDeletePlaylist`/`softDeleteAudioFlag` é um `UPDATE` e
- * cai no mesmo caminho.
+ * cai no mesmo caminho. `short_links` não segue o modelo `user_id`+`id`
+ * das outras duas tabelas — a chave é só `code` — por isso tem um caminho
+ * próprio em vez de reaproveitar `tableFor`/`selectRows`.
  * A projeção do `SELECT` **não** é modelada: o fake devolve a linha inteira,
  * então tirar uma coluna de `SELECT_COLS` não faz nenhum teste falhar aqui.
  * A lista de colunas do `INSERT`/`UPDATE` é lida do próprio SQL, então mudar a
@@ -59,6 +66,14 @@ export interface PlaylistRow {
   published_at: string | null;
 }
 
+export interface ShortLinkRow {
+  code: string;
+  query: string;
+  created_by: string;
+  created_at: number;
+  hits: number;
+}
+
 export interface AudioFlagRow {
   id: string;
   user_id: string;
@@ -85,6 +100,8 @@ export interface FakeD1Options {
   users?: Array<{ google_sub: string; username: string }>;
   /** Linhas de `user_audio_flags`. */
   audioFlags?: AudioFlagRow[];
+  /** Linhas de `short_links`. */
+  shortLinks?: ShortLinkRow[];
 }
 
 function key(userId: string, id: string): string {
@@ -112,6 +129,18 @@ export function playlistRow(overrides: Partial<PlaylistRow> = {}): PlaylistRow {
     publication_reach: null,
     publication_category: null,
     published_at: null,
+    ...overrides,
+  };
+}
+
+/** Uma linha de `short_links` com os defaults do schema já aplicados. */
+export function shortLinkRow(overrides: Partial<ShortLinkRow> = {}): ShortLinkRow {
+  return {
+    code: 'abc1234',
+    query: 'shareitems=p%3Aa',
+    created_by: 'u1',
+    created_at: Date.parse('2026-09-01T10:00:00.000Z'),
+    hits: 0,
     ...overrides,
   };
 }
@@ -217,12 +246,15 @@ export class FakeD1Database {
   readonly usernames = new Map<string, string>();
   /** `username` → `user_id`, para a rota social. */
   readonly usersByUsername = new Map<string, string>();
+  /** Linhas de `short_links`, por `code` — chave simples, não `user_id`+`id`. */
+  readonly shortLinks = new Map<string, ShortLinkRow>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
   readonly executed: string[] = [];
 
   constructor(rows: PlaylistRow[] = [], options: FakeD1Options = {}) {
     for (const row of rows) this.seed(row);
     for (const row of options.audioFlags ?? []) this.seedAudioFlag(row);
+    for (const row of options.shortLinks ?? []) this.seedShortLink(row);
     for (const user of options.users ?? []) {
       this.usernames.set(user.google_sub, user.username);
       this.usersByUsername.set(user.username, user.google_sub);
@@ -239,12 +271,21 @@ export class FakeD1Database {
     return this;
   }
 
+  seedShortLink(row: ShortLinkRow): this {
+    this.shortLinks.set(row.code, row);
+    return this;
+  }
+
   get(userId: string, id: string): PlaylistRow | undefined {
     return this.playlists.get(key(userId, id));
   }
 
   getAudioFlag(userId: string, id: string): AudioFlagRow | undefined {
     return this.audioFlags.get(key(userId, id));
+  }
+
+  getShortLink(code: string): ShortLinkRow | undefined {
+    return this.shortLinks.get(code);
   }
 
   prepare(sql: string): FakeStatement {
@@ -260,11 +301,18 @@ export class FakeD1Database {
       if (/FROM users/i.test(normalized)) {
         return this.selectUsers(normalized, bindings);
       }
+      if (/short_links/i.test(normalized)) {
+        return this.selectShortLinks(normalized, bindings);
+      }
       const table = this.tableFor(normalized);
       if (!table) {
         throw new Error(`fake D1: SELECT não suportado: ${normalized}`);
       }
       return selectRows(table, normalized, bindings);
+    }
+
+    if (/^INSERT INTO short_links/i.test(normalized)) {
+      return this.insertShortLink(normalized, bindings);
     }
 
     if (/^INSERT INTO/i.test(normalized)) {
@@ -280,6 +328,16 @@ export class FakeD1Database {
       });
       const built = row as unknown as StoredRow;
       table.set(key(built.user_id, built.id), built);
+      return [];
+    }
+
+    if (/^UPDATE short_links/i.test(normalized)) {
+      const code = bindings[bindings.length - 1] as string;
+      const current = this.shortLinks.get(code);
+      if (!current) {
+        throw new Error(`fake D1: UPDATE em short_links ausente: ${code}`);
+      }
+      this.shortLinks.set(code, { ...current, hits: current.hits + 1 });
       return [];
     }
 
@@ -325,6 +383,58 @@ export class FakeD1Database {
     }
     const username = this.usernames.get(bindings[0] as string);
     return username === undefined ? [] : [{ username }];
+  }
+
+  /**
+   * As três leituras de `short_links` (`links/handlers.ts`): teto de abuso
+   * (`COUNT`), reuso (`created_by` + `query`) e resolução pública (`code`).
+   */
+  private selectShortLinks(normalized: string, bindings: unknown[]): unknown[] {
+    if (/^SELECT COUNT/i.test(normalized)) {
+      const createdBy = bindings[0] as string;
+      const cutoff = bindings[1] as number;
+      const count = [...this.shortLinks.values()].filter(
+        (row) => row.created_by === createdBy && row.created_at >= cutoff,
+      ).length;
+      return [{ count }];
+    }
+
+    if (/created_by = \?/i.test(normalized) && /query = \?/i.test(normalized)) {
+      const createdBy = bindings[0] as string;
+      const query = bindings[1] as string;
+      const row = [...this.shortLinks.values()].find(
+        (r) => r.created_by === createdBy && r.query === query,
+      );
+      return row ? [row] : [];
+    }
+
+    if (/WHERE code = \?/i.test(normalized)) {
+      const row = this.shortLinks.get(bindings[0] as string);
+      return row ? [row] : [];
+    }
+
+    throw new Error(`fake D1: SELECT short_links não suportado: ${normalized}`);
+  }
+
+  /**
+   * `INSERT INTO short_links (…) VALUES (…) ON CONFLICT(code) DO NOTHING
+   * RETURNING code`: colisão de `code` devolve `[]` (nenhuma linha —
+   * `.first()` do chamador lê `null` e tenta outro código); sem colisão,
+   * grava e devolve a linha para o `RETURNING`.
+   */
+  private insertShortLink(normalized: string, bindings: unknown[]): unknown[] {
+    const { columns, values } = insertPlan(normalized);
+    const cursor = { next: 0 };
+    const row = {} as Record<string, unknown>;
+    columns.forEach((column, i) => {
+      row[column] = resolveToken(values[i], bindings, cursor, undefined);
+    });
+    const built = row as unknown as ShortLinkRow;
+    if (this.shortLinks.has(built.code)) {
+      return [];
+    }
+    this.shortLinks.set(built.code, built);
+    return [built];
   }
 }
 

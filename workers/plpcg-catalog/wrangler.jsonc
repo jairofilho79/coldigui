@@ -35,6 +35,14 @@
     {
       "pattern": "plpcg.com/api/coldigom/*",
       "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/l/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/links*",
+      "zone_name": "plpcg.com"
     }
   ]
 }
