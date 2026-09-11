@@ -10,6 +10,7 @@ import 'package:coldigui/features/catalog/domain/usecases/resolve_catalog_materi
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -104,25 +105,41 @@ Future<ProviderContainer> _container() async {
   return container;
 }
 
-/// `Ref` de um provider descartável só para chamar o use case.
-final _probeProvider = Provider<Ref>((ref) => ref);
+/// `WidgetRef` real — a única variante do use case que a produção usa.
+Future<WidgetRef> _widgetRef(WidgetTester tester) async {
+  final container = await _container();
+  late WidgetRef captured;
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: Consumer(
+        builder: (context, ref, child) {
+          captured = ref;
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+
+  return captured;
+}
 
 void main() {
-  test('resolve PDF do manifest PLPCG', () async {
-    final container = await _container();
-    final ref = container.read(_probeProvider);
+  testWidgets('resolve PDF do manifest PLPCG', (tester) async {
+    final ref = await _widgetRef(tester);
 
-    final material = await resolveCatalogMaterial(ref, _plpcgPdfId);
+    final material = await resolveCatalogMaterialFromWidget(ref, _plpcgPdfId);
 
     expect(material, isA<PdfMaterial>());
     expect(material!.id, _plpcgPdfId);
   });
 
-  test('resolve PDF do cache Coldigom', () async {
-    final container = await _container();
+  testWidgets('resolve PDF do cache Coldigom', (tester) async {
+    final ref = await _widgetRef(tester);
 
-    final material = await resolveCatalogMaterial(
-      container.read(_probeProvider),
+    final material = await resolveCatalogMaterialFromWidget(
+      ref,
       _coldigomPdfId,
     );
 
@@ -130,35 +147,28 @@ void main() {
     expect((material! as PdfMaterial).louvor.source, LouvorDataSource.coldigom);
   });
 
-  test('resolve cifra do cache', () async {
-    final container = await _container();
+  testWidgets('resolve cifra do cache', (tester) async {
+    final ref = await _widgetRef(tester);
 
-    final material = await resolveCatalogMaterial(
-      container.read(_probeProvider),
-      _chordId,
-    );
+    final material = await resolveCatalogMaterialFromWidget(ref, _chordId);
 
     expect(material, isA<ChordMaterialRef>());
     expect((material! as ChordMaterialRef).chord.chordId, _chordId);
   });
 
-  test('resolve áudio do cache', () async {
-    final container = await _container();
+  testWidgets('resolve áudio do cache', (tester) async {
+    final ref = await _widgetRef(tester);
 
-    final material = await resolveCatalogMaterial(
-      container.read(_probeProvider),
-      _audioId,
-    );
+    final material = await resolveCatalogMaterialFromWidget(ref, _audioId);
 
     expect(material, isA<AudioMaterial>());
   });
 
-  test('gesto e id de YouTube não são endereçáveis', () async {
-    final container = await _container();
-    final ref = container.read(_probeProvider);
+  testWidgets('gesto e id de YouTube não são endereçáveis', (tester) async {
+    final ref = await _widgetRef(tester);
 
-    expect(await resolveCatalogMaterial(ref, _gestureId), isNull);
-    expect(await resolveCatalogMaterial(ref, 'ADmqXpHmVIQ'), isNull);
+    expect(await resolveCatalogMaterialFromWidget(ref, _gestureId), isNull);
+    expect(await resolveCatalogMaterialFromWidget(ref, 'ADmqXpHmVIQ'), isNull);
   });
 
   test('catalogSourceProvider despacha os dois acervos', () async {

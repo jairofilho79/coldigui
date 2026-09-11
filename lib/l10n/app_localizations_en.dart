@@ -101,21 +101,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filtersSpecialArrangementTitle => 'Special arrangement';
 
   @override
-  String get catalogRefreshAction => 'Update list';
-
-  @override
-  String get catalogRefreshLabel => 'Catalog';
-
-  @override
-  String get catalogRefreshMessage => 'Download the latest catalog';
-
-  @override
-  String get catalogRefreshSuccess => 'Catalog updated';
-
-  @override
-  String get catalogRefreshError => 'Could not update the catalog';
-
-  @override
   String get catalogStaleBanner =>
       'Catalog last updated over 7 days ago. Connect to refresh.';
 
@@ -709,9 +694,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chordReaderResetTranspose => 'Back to original key';
-
-  @override
-  String get pdfMaterialSection => 'PDF';
 
   @override
   String get coldigomMetaTonality => 'Key';

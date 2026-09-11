@@ -5,7 +5,6 @@ import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../domain/usecases/filter_by_material_and_arranjo.dart';
 import '../../domain/usecases/filter_by_special_arrangement.dart';
-import '../../domain/usecases/force_refresh_catalog.dart';
 import '../../domain/usecases/group_louvores_by_material.dart';
 import '../../domain/usecases/load_louvores_manifest.dart';
 import '../../domain/usecases/poll_manifest_checksum.dart';
@@ -49,11 +48,6 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
 /// Use case UC-12 — carregar manifest com fallback offline.
 final loadLouvoresManifestProvider = Provider<LoadLouvoresManifest>((ref) {
   return LoadLouvoresManifest(ref.watch(catalogRepositoryProvider));
-});
-
-/// Use case UC-12 — refresh manual do catálogo (Fase 1.5).
-final forceRefreshCatalogProvider = Provider<ForceRefreshCatalog>((ref) {
-  return ForceRefreshCatalog(ref.watch(catalogRepositoryProvider));
 });
 
 /// Use case UC-12 — poll automático de checksum do manifest (Fase 5).

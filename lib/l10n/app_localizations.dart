@@ -266,36 +266,6 @@ abstract class AppLocalizations {
   /// **'Arranjo especial'**
   String get filtersSpecialArrangementTitle;
 
-  /// No description provided for @catalogRefreshAction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atualizar lista'**
-  String get catalogRefreshAction;
-
-  /// No description provided for @catalogRefreshLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Catálogo'**
-  String get catalogRefreshLabel;
-
-  /// No description provided for @catalogRefreshMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixar a versão mais recente do catálogo'**
-  String get catalogRefreshMessage;
-
-  /// No description provided for @catalogRefreshSuccess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Catálogo atualizado'**
-  String get catalogRefreshSuccess;
-
-  /// No description provided for @catalogRefreshError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível atualizar o catálogo'**
-  String get catalogRefreshError;
-
   /// No description provided for @catalogStaleBanner.
   ///
   /// In pt, this message translates to:
@@ -1252,12 +1222,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Voltar ao tom original'**
   String get chordReaderResetTranspose;
-
-  /// No description provided for @pdfMaterialSection.
-  ///
-  /// In pt, this message translates to:
-  /// **'PDF'**
-  String get pdfMaterialSection;
 
   /// No description provided for @coldigomMetaTonality.
   ///

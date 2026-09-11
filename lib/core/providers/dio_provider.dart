@@ -16,6 +16,15 @@ import '../network/retry_interceptor.dart';
 /// o [RetryInterceptor] ver o erro — repetir um 401 sem token novo só gastaria
 /// tentativa. Todos os datasources que passam por aqui (playlists, social,
 /// audio_flags, catálogo, PDFs) herdam os dois.
+///
+/// O [AuthRefreshInterceptor] age nas duas pontas da request:
+/// - **antes de sair** ([AuthRefreshInterceptor.onRequest]): request com
+///   `Authorization` e token às vésperas do vencimento (`tokenExpiresSoon`)
+///   renova primeiro e sai já com o token novo — o 401 (e a repetição da
+///   request) deixa de acontecer na maioria das vezes. Rota pública, sessão já
+///   expirada ou token fora da janela passam direto.
+/// - **depois do 401** ([AuthRefreshInterceptor.onError]): renova e repete a
+///   request uma vez; sem token novo, marca a sessão como expirada.
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(

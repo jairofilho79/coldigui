@@ -101,22 +101,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get filtersSpecialArrangementTitle => 'Arranjo especial';
 
   @override
-  String get catalogRefreshAction => 'Atualizar lista';
-
-  @override
-  String get catalogRefreshLabel => 'Catálogo';
-
-  @override
-  String get catalogRefreshMessage =>
-      'Baixar a versão mais recente do catálogo';
-
-  @override
-  String get catalogRefreshSuccess => 'Catálogo atualizado';
-
-  @override
-  String get catalogRefreshError => 'Não foi possível atualizar o catálogo';
-
-  @override
   String get catalogStaleBanner =>
       'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.';
 
@@ -717,9 +701,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chordReaderResetTranspose => 'Voltar ao tom original';
-
-  @override
-  String get pdfMaterialSection => 'PDF';
 
   @override
   String get coldigomMetaTonality => 'Tom';
