@@ -50,7 +50,7 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
       }
     } on Object catch (e) {
       if (context.mounted) {
-        showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
+        showAppSnackbar(context, louvorPdfErrorMessage(l10n, e));
       }
     }
   }

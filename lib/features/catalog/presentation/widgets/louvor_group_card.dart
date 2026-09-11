@@ -71,7 +71,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       }
     } on Object catch (e) {
       if (mounted) {
-        showAppSnackbar(context, louvorPdfErrorMessage(e, l10n.pdfActionError));
+        showAppSnackbar(context, louvorPdfErrorMessage(l10n, e));
       }
     }
   }

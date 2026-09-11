@@ -372,55 +372,58 @@ void main() {
   );
 
   group('louvorPdfErrorMessage', () {
-    const generic = 'Não foi possível concluir a ação';
+    late AppLocalizations pt;
+    late AppLocalizations en;
+
+    setUpAll(() async {
+      pt = await AppLocalizations.delegate.load(const Locale('pt'));
+      en = await AppLocalizations.delegate.load(const Locale('en'));
+    });
 
     test('caminho inválido cai na mensagem genérica', () {
       expect(
-        louvorPdfErrorMessage(
-          const InvalidPdfPathException('path ruim'),
-          generic,
-        ),
-        generic,
+        louvorPdfErrorMessage(pt, const InvalidPdfPathException('path ruim')),
+        pt.errorGeneric,
       );
     });
 
-    test('PDF indisponível offline mostra a mensagem própria', () {
-      expect(
-        louvorPdfErrorMessage(
-          const PdfOfflineUnavailableException(
-            pdfId: 'pdf-1',
-            message: 'não baixado',
-          ),
-          generic,
-        ),
-        'não baixado',
-      );
+    test('PDF indisponível offline usa a chave l10n', () {
+      const error = PdfOfflineUnavailableException(pdfId: 'pdf-1');
+
+      expect(louvorPdfErrorMessage(pt, error), pt.pdfOfflineUnavailableMessage);
+      expect(louvorPdfErrorMessage(en, error), en.pdfOfflineUnavailableMessage);
     });
 
-    test('PDF removido do dispositivo cai no genérico de quem chama', () {
-      // A exceção perdeu o literal PT (D.6): o texto traduzido sai de
-      // `userMessageFor`, e este helper sem l10n usa o genérico recebido.
-      expect(
-        louvorPdfErrorMessage(
-          const PdfExternallyDeletedException(pdfId: 'pdf-1'),
-          generic,
-        ),
-        generic,
-      );
+    test('PDF removido do dispositivo usa a chave l10n (r1 — achado 1)', () {
+      // Era o buraco do round 1: sem `message` na exceção, este helper
+      // mostrava o genérico em vez de dizer que o arquivo sumiu do aparelho.
+      const error = PdfExternallyDeletedException(pdfId: 'pdf-1');
+
+      expect(louvorPdfErrorMessage(pt, error), pt.pdfExternallyDeleted);
+      expect(louvorPdfErrorMessage(en, error), en.pdfExternallyDeleted);
+      expect(louvorPdfErrorMessage(pt, error), isNot(pt.errorGeneric));
+    });
+
+    test('PDF local corrompido usa a chave l10n', () {
+      const error = PdfLocalCorruptedException(pdfId: 'pdf-1');
+
+      expect(louvorPdfErrorMessage(pt, error), pt.pdfLocalCorrupted);
+      expect(louvorPdfErrorMessage(en, error), en.pdfLocalCorrupted);
     });
 
     test('falha de download mostra a mensagem própria', () {
       expect(
-        louvorPdfErrorMessage(
-          const PdfFetchFailedException('rede caiu'),
-          generic,
-        ),
+        louvorPdfErrorMessage(pt, const PdfFetchFailedException('rede caiu')),
         'rede caiu',
       );
     });
 
     test('erro desconhecido cai na mensagem genérica', () {
-      expect(louvorPdfErrorMessage(StateError('boom'), generic), generic);
+      expect(louvorPdfErrorMessage(pt, StateError('boom')), pt.errorGeneric);
+      expect(
+        louvorPdfErrorMessage(pt, StateError('boom')),
+        isNot(contains('boom')),
+      );
     });
   });
 }

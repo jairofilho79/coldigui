@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
@@ -342,7 +343,15 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         error,
         genericStage: '_openPdfInReader',
       );
-      final message = failure.message;
+      // A escada reconhece o erro quando ele traz mensagem própria (falha de
+      // download) ou quando é um caso esperado, sem stack (offline, apagado,
+      // corrompido). O texto vem de [userMessageFor]: essas exceções não
+      // carregam mais literal PT, e ler `failure.message` direto aqui faria o
+      // "PDF removido do dispositivo" virar o erro genérico da playlist (D.6).
+      // Sem reconhecimento — `InvalidPdfPathException`, erro desconhecido —
+      // segue valendo a snackbar de playlist, que em debug leva o diagnóstico.
+      final explained = failure.message != null || !failure.logWithStack;
+      final message = explained ? userMessageFor(l10n, error) : null;
       if (message != null && !failure.logWithStack) {
         playlistOpenDebugLogFailure(failure.stage, message);
       } else {

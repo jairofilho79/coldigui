@@ -15,6 +15,7 @@ import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
+import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -90,6 +91,18 @@ class _FakeResolvePdfForReader implements ResolvePdfForReader {
       absolutePath: '/tmp/$pdfId.pdf',
       fromCache: true,
     );
+  }
+}
+
+/// Resolve que encontra o índice apontando para um arquivo apagado do disco.
+class _DeletedPdfResolveForReader implements ResolvePdfForReader {
+  @override
+  Future<LocalPdfSource> call({
+    required String pdfId,
+    required String remotePath,
+    ProgressCallback? onProgress,
+  }) async {
+    throw PdfExternallyDeletedException(pdfId: pdfId);
   }
 }
 
@@ -364,6 +377,64 @@ void main() {
     expect(notifier.lastLoadedPlaylistId, 'p1');
     expect(find.text(pdfIdB), findsOneWidget);
   });
+
+  testWidgets(
+    'PDF removido do dispositivo mostra o texto do l10n, não o erro genérico',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final pt = await AppLocalizations.delegate.load(const Locale('pt'));
+      final notifier = _LouvorFindingPlaylistsNotifier([item]);
+      final router = GoRouter(
+        initialLocation: RoutePaths.playlists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.playlists,
+            builder: (_, _) => Scaffold(
+              body: PlaylistListTile(item: item, tab: PlaylistTab.saved),
+            ),
+          ),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, state) =>
+                Scaffold(body: Text(state.uri.queryParameters['pdfId'] ?? '')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            playlistsProvider.overrideWith(() => notifier),
+            carouselLouvoresProvider.overrideWith(
+              () => _FakeCarouselNotifier([]),
+            ),
+            resolvePdfForReaderProvider.overrideWithValue(
+              _DeletedPdfResolveForReader(),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ensaio domingo'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('002'));
+      await tester.pumpAndSettle();
+
+      // Antes da correção do round 1 este caminho caía na snackbar genérica
+      // da playlist, escondendo que o arquivo sumiu do aparelho.
+      expect(find.text(pt.pdfExternallyDeleted), findsOneWidget);
+      expect(find.text(pt.pdfActionError), findsNothing);
+    },
+  );
 
   testWidgets('Abrir no leitor com cifra na primeira posicao vai para /cifra', (
     tester,

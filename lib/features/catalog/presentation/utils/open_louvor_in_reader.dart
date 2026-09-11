@@ -7,9 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/louvor.dart';
+import '../../../../core/errors/user_message_for.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
-import '../providers/open_material_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 
@@ -88,7 +89,13 @@ Future<LocalPdfSource> resolveLouvorPdf({
 
 /// Mensagem amigável para falhas de abertura/compartilhamento.
 ///
-/// Delega à escada única ([classifyMaterialOpenFailure]): erros com mensagem
-/// própria mostram a mensagem, o resto cai em [genericMessage].
-String louvorPdfErrorMessage(Object error, String genericMessage) =>
-    classifyMaterialOpenFailure(error).message ?? genericMessage;
+/// Ponto único das três superfícies que chamam [openLouvorInReader] direto
+/// (card do grupo, sheet de faltantes e tile de playlist): elas mostram todas o
+/// mesmo texto para o mesmo erro.
+///
+/// Recebe o [l10n] em vez de um genérico já resolvido porque as exceções de PDF
+/// não carregam mais o texto em português — quem traduz é [userMessageFor], que
+/// conhece as chaves (`pdfExternallyDeleted`, `pdfLocalCorrupted`, …), desembrulha
+/// causa de rede e só então cai em `errorGeneric` (spec D.6).
+String louvorPdfErrorMessage(AppLocalizations l10n, Object error) =>
+    userMessageFor(l10n, error);
