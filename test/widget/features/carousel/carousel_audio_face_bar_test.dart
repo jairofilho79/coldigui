@@ -3,7 +3,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -71,21 +70,6 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
   @override
   Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
     playedQueues.add(tracks);
-  }
-}
-
-/// Registra `focusKey` em vez de resolver contra a face de partituras — as
-/// setas de louvor da face de áudio (D5) navegam por chave de ocorrência
-/// independente da face PDF.
-class _RecordingFocusedIndexNotifier extends CarouselFocusedIndexNotifier {
-  final focusedKeys = <String>[];
-
-  @override
-  int build() => 0;
-
-  @override
-  void focusKey(String key) {
-    focusedKeys.add(key);
   }
 }
 
@@ -427,6 +411,9 @@ void main() {
   });
 
   group('setas de louvor (D5)', () {
+    // Posição atual = a faixa TOCANDO (sessão), nunca o foco da face PDF
+    // (spec A.1 emendada — fix round 1): a face de áudio não chama
+    // `carouselFocusedIndexProvider.focusKey`.
     const trackA = AudioTrack(
       audioId: 'aud-a',
       r2Key: 'assets/praises/a/a.mp3',
@@ -445,80 +432,71 @@ void main() {
       categoria: 'Áudio',
       classificacao: 'Coro',
     );
+    const trackC = AudioTrack(
+      audioId: 'aud-c',
+      r2Key: 'assets/praises/c/a.mp3',
+      nome: 'Louvor C',
+      numero: '003',
+      groupId: 'gc',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
     const entryA = PlaylistEntry(id: 'aud-a', kind: MaterialKind.audio);
     const entryB = PlaylistEntry(id: 'aud-b', kind: MaterialKind.audio);
+    const entryC = PlaylistEntry(id: 'aud-c', kind: MaterialKind.audio);
+    final audioCache = {
+      trackA.audioId: trackA,
+      trackB.audioId: trackB,
+      trackC.audioId: trackC,
+    };
 
     testWidgets(
-      'focada na primeira: próximo habilitado, anterior desabilitado',
+      'tocando a segunda: anterior toca a primeira, próximo toca a terceira',
       (tester) async {
         final prefs = await SharedPreferences.getInstance();
+        final session = _RecordingAudioSession(
+          const AudioPlayerSessionState(queue: [trackB]),
+        );
+
         await tester.pumpWidget(
           buildSubject(
             prefs: prefs,
-            entries: const [entryA, entryB],
-            audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
-            session: _RecordingAudioSession(
-              const AudioPlayerSessionState(queue: [trackA]),
-            ),
+            entries: const [entryA, entryB, entryC],
+            audioCache: audioCache,
+            session: session,
           ),
         );
         await tester.pumpAndSettle();
 
-        final previous = tester.widget<IconButton>(
-          find.widgetWithIcon(IconButton, Icons.chevron_left),
+        await tester.tap(find.byTooltip('Louvor anterior'));
+        await tester.pumpAndSettle();
+        expect(session.playedQueues, hasLength(1));
+        expect(
+          session.playedQueues.single.any((t) => t.audioId == trackA.audioId),
+          isTrue,
         );
-        final next = tester.widget<IconButton>(
-          find.widgetWithIcon(IconButton, Icons.chevron_right),
+
+        await tester.tap(find.byTooltip('Próximo louvor'));
+        await tester.pumpAndSettle();
+        expect(session.playedQueues, hasLength(2));
+        expect(
+          session.playedQueues.last.any((t) => t.audioId == trackC.audioId),
+          isTrue,
         );
-        expect(previous.onPressed, isNull);
-        expect(next.onPressed, isNotNull);
       },
     );
 
-    testWidgets('tap em próximo foca e toca a faixa da segunda entrada', (
-      tester,
-    ) async {
-      final prefs = await SharedPreferences.getInstance();
-      final session = _RecordingAudioSession(
-        const AudioPlayerSessionState(queue: [trackA]),
-      );
-      final focusNotifier = _RecordingFocusedIndexNotifier();
-
-      await tester.pumpWidget(
-        buildSubject(
-          prefs: prefs,
-          entries: const [entryA, entryB],
-          audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
-          session: session,
-          extraOverrides: [
-            carouselFocusedIndexProvider.overrideWith(() => focusNotifier),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byTooltip('Próximo louvor'));
-      await tester.pumpAndSettle();
-
-      expect(focusNotifier.focusedKeys, ['aud-b']);
-      expect(session.playedQueues, hasLength(1));
-      expect(
-        session.playedQueues.single.any((t) => t.audioId == trackB.audioId),
-        isTrue,
-      );
-    });
-
-    testWidgets('focada na última: próximo desabilitado, anterior habilitado', (
+    testWidgets('tocando a última: próximo desabilitado, anterior habilitado', (
       tester,
     ) async {
       final prefs = await SharedPreferences.getInstance();
       await tester.pumpWidget(
         buildSubject(
           prefs: prefs,
-          entries: const [entryA, entryB],
-          audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
+          entries: const [entryA, entryB, entryC],
+          audioCache: audioCache,
           session: _RecordingAudioSession(
-            const AudioPlayerSessionState(queue: [trackB]),
+            const AudioPlayerSessionState(queue: [trackC]),
           ),
         ),
       );
@@ -533,5 +511,84 @@ void main() {
       expect(previous.onPressed, isNotNull);
       expect(next.onPressed, isNull);
     });
+
+    testWidgets('nada tocando: próximo toca a segunda entrada (índice 0)', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [], currentIndex: 0),
+      );
+
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          entries: const [entryA, entryB, entryC],
+          audioCache: audioCache,
+          session: session,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final previous = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.chevron_left),
+      );
+      expect(previous.onPressed, isNull);
+
+      await tester.tap(find.byTooltip('Próximo louvor'));
+      await tester.pumpAndSettle();
+
+      expect(session.playedQueues, hasLength(1));
+      expect(
+        session.playedQueues.single.any((t) => t.audioId == trackB.audioId),
+        isTrue,
+      );
+    });
+
+    testWidgets(
+      'faixa tocando fora da lista: cai no índice 0 (próximo habilitado)',
+      (tester) async {
+        // A sessão toca um áudio que não é nenhuma das três entradas da face
+        // — o foco da face PDF (que nunca existiu para chaves de áudio) não
+        // entra na conta: a posição cai no início da própria face de áudio.
+        const trackD = AudioTrack(
+          audioId: 'aud-d',
+          r2Key: 'assets/praises/d/a.mp3',
+          nome: 'Louvor D',
+          numero: '004',
+          groupId: 'gd',
+          categoria: 'Áudio',
+          classificacao: 'Coro',
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final session = _RecordingAudioSession(
+          const AudioPlayerSessionState(queue: [trackD]),
+        );
+
+        await tester.pumpWidget(
+          buildSubject(
+            prefs: prefs,
+            entries: const [entryA, entryB, entryC],
+            audioCache: audioCache,
+            session: session,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final previous = tester.widget<IconButton>(
+          find.widgetWithIcon(IconButton, Icons.chevron_left),
+        );
+        expect(previous.onPressed, isNull);
+
+        await tester.tap(find.byTooltip('Próximo louvor'));
+        await tester.pumpAndSettle();
+
+        expect(session.playedQueues, hasLength(1));
+        expect(
+          session.playedQueues.single.any((t) => t.audioId == trackB.audioId),
+          isTrue,
+        );
+      },
+    );
   });
 }

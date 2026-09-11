@@ -14,7 +14,6 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/utils/play_group_audio.dart';
@@ -73,15 +72,19 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     final trackMaterialId = resolveMaterialForGroup(ref, track?.groupId);
     final followingAudio = ref.watch(audioFollowReaderProvider);
 
-    // Setas de louvor (D5): posição da faixa exibida entre as entradas de
-    // áudio da lista ativa — `-1` quando ela não está nessa face (faixa
-    // solta, aberta fora da lista), o que desabilita as duas pontas.
-    final currentAudioIndex = track == null
+    // Setas de louvor (D5 — spec A.1 emendada, fix round 1): a posição atual
+    // é a faixa **tocando** (a sessão), nunca o foco da face PDF — chaves de
+    // áudio nunca existem em `carouselItemsProvider`, então
+    // `CarouselFocusedIndexNotifier.focusKey` seria sempre um no-op ali.
+    // Sem faixa tocando, ou tocando algo fora desta face, cai no índice 0.
+    final playingIndex = currentTrack == null
         ? -1
-        : audioItems.indexWhere((item) => item.materialId == track.audioId);
+        : audioItems.indexWhere(
+            (item) => item.materialId == currentTrack.audioId,
+          );
+    final currentAudioIndex = playingIndex < 0 ? 0 : playingIndex;
     final canGoPreviousLouvor = currentAudioIndex > 0;
-    final canGoNextLouvor =
-        currentAudioIndex >= 0 && currentAudioIndex < audioItems.length - 1;
+    final canGoNextLouvor = currentAudioIndex < audioItems.length - 1;
 
     // Sem flags: sobe o bloco para o seek alinhar aos IconButtons.
     // Com flags: sem translate — o eixo do seek já fica no centro.
@@ -96,7 +99,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
             icon: const Icon(Icons.chevron_left),
             onPressed: canGoPreviousLouvor
                 ? () => unawaited(
-                    _goToAudioFaceItem(ref, audioItems[currentAudioIndex - 1]),
+                    _playAudioFaceItem(ref, audioItems[currentAudioIndex - 1]),
                   )
                 : null,
           ),
@@ -200,7 +203,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
             icon: const Icon(Icons.chevron_right),
             onPressed: canGoNextLouvor
                 ? () => unawaited(
-                    _goToAudioFaceItem(ref, audioItems[currentAudioIndex + 1]),
+                    _playAudioFaceItem(ref, audioItems[currentAudioIndex + 1]),
                   )
                 : null,
           ),
@@ -313,12 +316,11 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     return null;
   }
 
-  /// Foca a ocorrência de [item] (D5 — só sincroniza a face PDF quando a
-  /// mesma chave existir nela; ver [CarouselFocusedIndexNotifier.focusKey])
-  /// e toca a faixa preferida do grupo dela.
-  Future<void> _goToAudioFaceItem(WidgetRef ref, CarouselItem item) async {
-    ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
-
+  /// Toca a faixa preferida do grupo de [item] (D5 — setas de louvor da
+  /// face de áudio). Não mexe no foco da face PDF: uma chave de áudio nunca
+  /// existe em `carouselItemsProvider`, e `focusKey` seria sempre um no-op
+  /// ali (spec A.1 emendada, fix round 1).
+  Future<void> _playAudioFaceItem(WidgetRef ref, CarouselItem item) async {
     final lookup = ref.read(catalogMaterialLookupProvider);
     final track = lookup.audioTrack(item.materialId);
     if (track == null) return;
