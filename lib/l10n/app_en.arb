@@ -1,6 +1,28 @@
 {
   "@@locale": "en",
   "appTitle": "PLPCG",
+  "browserTitleLouvor": "{numero} — {nome} · PLPCG",
+  "@browserTitleLouvor": {
+    "description": "Browser tab title in the reader/chords view with a number (C14)",
+    "placeholders": {
+      "numero": { "type": "String" },
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleLouvorSemNumero": "{nome} · PLPCG",
+  "@browserTitleLouvorSemNumero": {
+    "description": "Browser tab title in the reader/chords view without a number (C14)",
+    "placeholders": {
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleTab": "{label} · PLPCG",
+  "@browserTitleTab": {
+    "description": "Browser tab title outside the reader/chords/audio views (C14)",
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
   "searchHint": "Search by number or title",
   "searchLabel": "Search",
   "searchClear": "Clear search",

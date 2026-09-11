@@ -104,6 +104,24 @@ abstract class AppLocalizations {
   /// **'PLPCG'**
   String get appTitle;
 
+  /// Título da aba do navegador no leitor/cifra com número (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{numero} — {nome} · PLPCG'**
+  String browserTitleLouvor(String numero, String nome);
+
+  /// Título da aba do navegador no leitor/cifra sem número (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{nome} · PLPCG'**
+  String browserTitleLouvorSemNumero(String nome);
+
+  /// Título da aba do navegador fora do leitor/cifra/áudio (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{label} · PLPCG'**
+  String browserTitleTab(String label);
+
   /// No description provided for @searchHint.
   ///
   /// In pt, this message translates to:

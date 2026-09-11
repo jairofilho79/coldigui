@@ -12,6 +12,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'PLPCG';
 
   @override
+  String browserTitleLouvor(String numero, String nome) {
+    return '$numero — $nome · PLPCG';
+  }
+
+  @override
+  String browserTitleLouvorSemNumero(String nome) {
+    return '$nome · PLPCG';
+  }
+
+  @override
+  String browserTitleTab(String label) {
+    return '$label · PLPCG';
+  }
+
+  @override
   String get searchHint => 'Buscar por número ou título';
 
   @override

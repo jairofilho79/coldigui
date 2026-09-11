@@ -1,6 +1,28 @@
 {
   "@@locale": "pt",
   "appTitle": "PLPCG",
+  "browserTitleLouvor": "{numero} — {nome} · PLPCG",
+  "@browserTitleLouvor": {
+    "description": "Título da aba do navegador no leitor/cifra com número (C14)",
+    "placeholders": {
+      "numero": { "type": "String" },
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleLouvorSemNumero": "{nome} · PLPCG",
+  "@browserTitleLouvorSemNumero": {
+    "description": "Título da aba do navegador no leitor/cifra sem número (C14)",
+    "placeholders": {
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleTab": "{label} · PLPCG",
+  "@browserTitleTab": {
+    "description": "Título da aba do navegador fora do leitor/cifra/áudio (C14)",
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
   "searchHint": "Buscar por número ou título",
   "searchLabel": "Buscar",
   "searchClear": "Limpar busca",
