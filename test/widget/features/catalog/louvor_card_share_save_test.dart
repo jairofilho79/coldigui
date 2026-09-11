@@ -19,6 +19,8 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -215,29 +217,33 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
 }
 
-class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
+/// O `+` do sheet de materiais entra pelo editor da lista ativa (B.3).
+class _RecordingActiveEditor extends ActivePlaylistEditor {
   String? lastAddedPdfId;
 
   @override
-  List<PlaylistViewItem> build() => const [];
+  List<PlaylistEntry>? build() => null;
 
   @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    lastAddedPdfId = pdfId;
-    return true;
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    lastAddedPdfId = materialId;
+    return AddToActiveOutcome.added;
   }
 }
 
 List<Override> _commonOverrides({
   PlaylistsNotifier Function()? playlistsNotifier,
+  ActivePlaylistEditor Function()? editor,
 }) {
   return [
     isarAvailableProvider.overrideWithValue(true),
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
     carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+    if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
     playlistsProvider.overrideWith(
       playlistsNotifier ?? _FakePlaylistsNotifier.new,
     ),
@@ -347,14 +353,14 @@ void main() {
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final playlists = _RecordingPlaylistsNotifier();
+    final editor = _RecordingActiveEditor();
     final cifraPdfId = _pdfIdForPath('assets/ColAdultos/001-cifra.pdf');
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          ..._commonOverrides(playlistsNotifier: () => playlists),
+          ..._commonOverrides(editor: () => editor),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -375,7 +381,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
-    expect(playlists.lastAddedPdfId, cifraPdfId);
+    expect(editor.lastAddedPdfId, cifraPdfId);
     expect(find.text('Adicionado à seleção'), findsOneWidget);
   });
 }

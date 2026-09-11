@@ -815,6 +815,12 @@ abstract class AppLocalizations {
   /// **'Já está na seleção'**
   String get carouselAlreadyAdded;
 
+  /// Ação no trailing do sheet de materiais quando o material já está na lista ativa — adiciona uma segunda ocorrência
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar de novo'**
+  String get materialAddAgain;
+
   /// No description provided for @carouselRemoveTooltip.
   ///
   /// In pt, this message translates to:

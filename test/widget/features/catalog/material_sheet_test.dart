@@ -1,7 +1,7 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -106,22 +106,25 @@ class _OpenMaterialSpy extends OpenMaterial {
 }
 
 class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
-  final List<String> addedPdfIds = [];
-  final List<String> addedAudioIds = [];
-
   @override
   List<PlaylistViewItem> build() => const [];
+}
+
+/// Registra cada `addToActive` do sheet — o `+` passa pelo editor (B.3).
+class _RecordingActiveEditor extends ActivePlaylistEditor {
+  final List<({String id, MaterialKind? kind, bool allowDuplicate})> added = [];
 
   @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    addedPdfIds.add(pdfId);
-    return true;
-  }
+  List<PlaylistEntry>? build() => null;
 
   @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async {
-    addedAudioIds.add(audioId);
-    return true;
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
+    return AddToActiveOutcome.added;
   }
 }
 
@@ -140,6 +143,8 @@ Future<void> _pumpSheet(
   required LouvorGroup group,
   _OpenMaterialSpy? opener,
   PlaylistsNotifier Function()? playlists,
+  ActivePlaylistEditor Function()? editor,
+  List<ActiveEntry> activeEntries = const [],
   bool canAddToPlaylist = true,
   List<Override> overrides = const [],
 }) async {
@@ -153,7 +158,8 @@ Future<void> _pumpSheet(
     ProviderScope(
       overrides: [
         isarAvailableProvider.overrideWithValue(true),
-        activeEntriesProvider.overrideWithValue(const []),
+        activeEntriesProvider.overrideWithValue(activeEntries),
+        if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
         if (opener != null) openMaterialProvider.overrideWithValue(opener),
         ...overrides,
@@ -214,7 +220,7 @@ void main() {
       expect(opener.opened!.id, 'pdf2');
     });
 
-    testWidgets('seção única não mostra rótulo de classificação', (
+    testWidgets('seção única e nada mais não mostra rótulo nenhum', (
       tester,
     ) async {
       final group = LouvorGroup.fromLouvores([
@@ -227,6 +233,50 @@ void main() {
       expect(find.text('Básico'), findsNothing);
       expect(find.text('Partitura'), findsOneWidget);
       expect(find.text('Cifra'), findsOneWidget);
+    });
+
+    // D.6: um bloco não é uma seção de PDF. Uma seção **mais** o bloco de
+    // cifras já são dois blocos, e o rótulo é o que diz onde os PDFs acabam.
+    testWidgets('uma seção de PDF com cifras mostra os dois rótulos', (
+      tester,
+    ) async {
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        chordMaterials: [_chord('Cifra I', 'k1')],
+      );
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
+      );
+
+      expect(find.text('Básico'), findsOneWidget);
+      expect(find.text('Cifras'), findsOneWidget);
+    });
+
+    // Praise Coldigom de seção única sem cifra/áudio/YouTube: um bloco só.
+    testWidgets('praise de bloco único não mostra rótulo', (tester) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(
+          categoria: 'Partitura',
+          pdfId: 'pdf1',
+          source: LouvorDataSource.coldigom,
+        ),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Básico'), findsNothing);
+      expect(find.text('Cifras'), findsNothing);
+      expect(find.text('Áudio'), findsNothing);
+      expect(find.text('YouTube'), findsNothing);
+      expect(find.text('Partitura'), findsOneWidget);
     });
   });
 
@@ -309,7 +359,9 @@ void main() {
       // Duas vezes: autor no bloco de meta e subtítulo da faixa de áudio.
       expect(find.text('CIAS'), findsNWidgets(2));
       expect(find.text('Ritmo'), findsOneWidget);
-      expect(find.text('Básico'), findsOneWidget);
+      // Duas vezes: o ritmo no bloco de meta e o rótulo da seção de PDF, que
+      // agora aparece porque o grupo tem mais de um bloco (D.6).
+      expect(find.text('Básico'), findsNWidgets(2));
       expect(find.text('Categoria'), findsOneWidget);
       expect(find.text('Clamor'), findsOneWidget);
       expect(find.text('PES'), findsOneWidget);
@@ -548,29 +600,67 @@ void main() {
   });
 
   group('ações de trailing', () {
-    testWidgets('+ do PDF e do áudio chamam os providers de lista', (
+    testWidgets('+ do PDF e do áudio entram pelo editor com o kind certo', (
       tester,
     ) async {
-      final playlists = _RecordingPlaylistsNotifier();
+      final editor = _RecordingActiveEditor();
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
         audioTracks: const [_track],
       ).first;
 
-      await _pumpSheet(tester, group: group, playlists: () => playlists);
+      await _pumpSheet(tester, group: group, editor: () => editor);
 
       expect(find.byType(CarouselLouvorAddButton), findsNWidgets(2));
 
       await tester.tap(find.byType(CarouselLouvorAddButton).first);
       await tester.pumpAndSettle();
-      expect(playlists.addedPdfIds, ['pdf1']);
+      expect(editor.added, [
+        (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: false),
+      ]);
 
       await tester.tap(find.byType(CarouselLouvorAddButton).last);
       await tester.pumpAndSettle();
-      expect(playlists.addedAudioIds, ['audio1']);
+      expect(editor.added.last, (
+        id: 'audio1',
+        kind: MaterialKind.audio,
+        allowDuplicate: false,
+      ));
 
       // O + não fecha o sheet.
       expect(find.text('Partitura'), findsOneWidget);
+    });
+
+    testWidgets('material já na lista mostra «Adicionar de novo» e repete', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      expect(find.text('Adicionar de novo'), findsOneWidget);
+
+      await tester.tap(find.text('Adicionar de novo'));
+      await tester.pumpAndSettle();
+
+      expect(editor.added, [
+        (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: true),
+      ]);
     });
 
     testWidgets('canAddToPlaylist falso esconde todos os +', (tester) async {

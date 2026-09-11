@@ -4,7 +4,7 @@ import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
@@ -51,8 +51,8 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
 
   CarouselItem _toCarouselItem(Louvor louvor) {
     return CarouselItem(
-      pdfId: louvor.pdfId,
-      sortOrder: 0,
+      materialId: louvor.pdfId,
+      index: 0,
       numero: widget.group.numero,
       nome: widget.group.nome,
       categoria: louvor.categoria,
@@ -172,7 +172,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final singleAudio = _singleAudio;
     final isAdded = primary != null
         ? ref.watch(
-            carouselPdfIdsProvider.select((ids) => ids.contains(primary.pdfId)),
+            activeMaterialIdsProvider.select(
+              (ids) => ids.contains(primary.pdfId),
+            ),
           )
         : false;
     final isMultiMaterial = widget.group.totalMaterials > 1;
@@ -181,8 +183,11 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final chipItem = primary != null
         ? _toCarouselItem(primary)
         : CarouselItem(
-            pdfId: singleAudio?.audioId ?? widget.group.groupId,
-            sortOrder: 0,
+            materialId: singleAudio?.audioId ?? widget.group.groupId,
+            kind: singleAudio == null
+                ? MaterialKind.unknown
+                : MaterialKind.audio,
+            index: 0,
             numero: widget.group.numero,
             nome: widget.group.nome,
             categoria: hasAudio ? 'Áudio' : '',

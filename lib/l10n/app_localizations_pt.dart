@@ -475,6 +475,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselAlreadyAdded => 'Já está na seleção';
 
   @override
+  String get materialAddAgain => 'Adicionar de novo';
+
+  @override
   String get carouselRemoveTooltip => 'Remover';
 
   @override

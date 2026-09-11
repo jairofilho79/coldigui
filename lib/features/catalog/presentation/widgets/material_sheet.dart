@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
+import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
@@ -117,7 +117,10 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     });
   }
 
-  Future<void> _handleAdd(CatalogMaterial material) async {
+  Future<void> _handleAdd(
+    CatalogMaterial material, {
+    bool allowDuplicate = false,
+  }) async {
     if (_addingId != null) return;
 
     setState(() => _addingId = material.id);
@@ -126,6 +129,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         context: context,
         ref: ref,
         material: material,
+        allowDuplicate: allowDuplicate,
       );
     } finally {
       if (mounted) setState(() => _addingId = null);
@@ -152,12 +156,14 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   Widget _materialTile({
     required CatalogMaterial material,
     required Color iconColor,
-    required Set<String> carouselPdfIds,
+    required Set<String> activeMaterialIds,
+    required AppLocalizations l10n,
     IconData? icon,
     String? subtitle,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
+    final isAdded = activeMaterialIds.contains(material.id);
     return ListTile(
       leading: Icon(
         icon ?? LouvorMaterialIcons.forMaterial(material),
@@ -177,12 +183,12 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ),
       trailing: showAdd
           ? MaterialAddTrailing(
-              // Áudio nunca vira chip do carousel — o ✓ é só de PDF.
-              isAdded:
-                  material is PdfMaterial &&
-                  carouselPdfIds.contains(material.id),
+              // As duas faces são a mesma lista (B.1): áudio já adicionado
+              // também mostra o ✓ e «Adicionar de novo».
+              isAdded: isAdded,
               isAdding: _addingId == material.id,
-              onAdd: () => _handleAdd(material),
+              addAgainLabel: l10n.materialAddAgain,
+              onAdd: () => _handleAdd(material, allowDuplicate: isAdded),
             )
           : null,
       onTap: () => _handleTap(material),
@@ -196,7 +202,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = widget.group;
     final meta = group.coldigomMeta;
-    final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
+    final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
 
     // `.value ?? []` sozinho transformava `AsyncError` em "este louvor não tem
     // cifra"; o estado é lido inteiro para o erro virar uma linha de retry.
@@ -205,11 +211,19 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         : ref.watch(availableChordsProvider(group.groupId));
     final availableChords = chordsAsync.value ?? const <ChordMaterial>[];
 
-    // Um rótulo só não separa nada — grupos de um arranjo (todo praise
-    // Coldigom, por exemplo) mostram a lista direto.
-    final showSectionLabels = group.sections.length > 1;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
+
+    // D.6: um rótulo só não separa nada, mas «um bloco» não é «uma seção de
+    // PDF». Um louvor com uma seção **e** cifras já tem dois blocos, e o
+    // rótulo da seção é o que diz onde os PDFs acabam. Contam-se todos:
+    // seções de PDF + cifra + áudio + YouTube.
+    final blockCount =
+        group.sections.length +
+        (availableChords.isNotEmpty || chordsAsync.hasError ? 1 : 0) +
+        (audioTracks.isNotEmpty ? 1 : 0) +
+        (youtubeMaterials.isNotEmpty ? 1 : 0);
+    final showSectionLabels = blockCount > 1;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
@@ -248,7 +262,8 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         material: PdfMaterial(entry.louvor),
                         icon: LouvorMaterialIcons.forEntry(entry),
                         iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                       ),
                   ],
                   if (availableChords.isNotEmpty || chordsAsync.hasError) ...[
@@ -257,7 +272,8 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       _materialTile(
                         material: ChordMaterialRef(chord),
                         iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                       ),
                     // Defensivo: `availableChordsProvider` engole falha de rede
                     // por cifra (a cifra fica listada), então este ramo só é
@@ -288,7 +304,8 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       _materialTile(
                         material: AudioMaterial(track),
                         iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                         subtitle: track.author,
                       ),
                   ],
@@ -298,7 +315,8 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       _materialTile(
                         material: YoutubeMaterialRef(item),
                         iconColor: AppColors.youtube,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                       ),
                   ],
                 ],

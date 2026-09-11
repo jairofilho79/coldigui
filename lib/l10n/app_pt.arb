@@ -273,6 +273,10 @@
   "carouselClearDeleteList": "Apagar lista",
   "carouselAdded": "Adicionado à seleção",
   "carouselAlreadyAdded": "Já está na seleção",
+  "materialAddAgain": "Adicionar de novo",
+  "@materialAddAgain": {
+    "description": "Ação no trailing do sheet de materiais quando o material já está na lista ativa — adiciona uma segunda ocorrência"
+  },
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
   "carouselSavePlaylist": "Salvar como lista",
