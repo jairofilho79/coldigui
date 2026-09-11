@@ -61,6 +61,31 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
   }
 }
 
+/// Registra as remoções por posição pedidas ao notifier (lista não ativa).
+class _RemovalRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+  _RemovalRecordingPlaylistsNotifier(super.initial);
+
+  final removed = <(String, int)>[];
+
+  @override
+  Future<void> removeEntryAt({
+    required String playlistId,
+    required int index,
+  }) async {
+    removed.add((playlistId, index));
+  }
+}
+
+/// Editor que registra as remoções por chave (lista ativa).
+class _RemovalRecordingActiveEditor extends _RecordingActiveEditor {
+  final removedKeys = <String>[];
+
+  @override
+  Future<void> removeByKey(String key) async {
+    removedKeys.add(key);
+  }
+}
+
 /// Modo degradado (Isar fechado): ativar lança.
 class _StorelessActiveEditor extends _RecordingActiveEditor {
   @override
@@ -769,6 +794,81 @@ void main() {
     expect(openSpy.opened, isA<AudioMaterial>());
     expect(openSpy.opened!.id, audioId);
     expect(find.textContaining('Não foi possível'), findsNothing);
+  });
+
+  // B.1: a lista pode repetir um louvor. O «×» de um chip remove **aquela**
+  // ocorrência — pela posição —, nunca todas as do mesmo id.
+  group('«×» do chip remove uma ocorrência (#4)', () {
+    final repeated = PlaylistViewItem(
+      playlist: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Com repetição',
+        pdfIds: [pdfIdA, pdfIdB, pdfIdA],
+        createdAt: DateTime(2026, 6, 8),
+      ),
+      pdfLabels: const ['001 — A', '002 — B', '001 — A'],
+    );
+
+    Future<void> pumpRepeated(
+      WidgetTester tester, {
+      required PlaylistsNotifier notifier,
+      required _RecordingActiveEditor editor,
+    }) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            playlistsProvider.overrideWith(() => notifier),
+            playlistShareActionsProvider.overrideWith(
+              _FakePlaylistShareActionsNotifier.new,
+            ),
+            activePlaylistEditorProvider.overrideWith(() => editor),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(
+              body: PlaylistListTile(item: repeated, tab: PlaylistTab.saved),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Com repetição'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('lista ativa: remove pela chave da ocorrência', (tester) async {
+      await prefsWithActive('p1');
+      final editor = _RemovalRecordingActiveEditor();
+      await pumpRepeated(
+        tester,
+        notifier: _FakePlaylistsNotifier([repeated]),
+        editor: editor,
+      );
+
+      // Terceiro chip = segunda ocorrência de A.
+      await tester.tap(find.byIcon(Icons.close).at(2));
+      await tester.pumpAndSettle();
+
+      expect(editor.removedKeys, ['$pdfIdA#1']);
+    });
+
+    testWidgets('lista não ativa: remove pela posição na ordem única', (
+      tester,
+    ) async {
+      await prefsWithActive('outra');
+      final notifier = _RemovalRecordingPlaylistsNotifier([repeated]);
+      final editor = _RemovalRecordingActiveEditor();
+      await pumpRepeated(tester, notifier: notifier, editor: editor);
+
+      await tester.tap(find.byIcon(Icons.close).at(2));
+      await tester.pumpAndSettle();
+
+      expect(notifier.removed, [('p1', 2)]);
+      expect(editor.removedKeys, isEmpty);
+    });
   });
 
   testWidgets('Compartilhar abre sheet e dispara share', (tester) async {

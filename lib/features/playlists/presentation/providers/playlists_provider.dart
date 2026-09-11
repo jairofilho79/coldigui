@@ -136,15 +136,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     };
   }
 
+  /// Sync na nuvem se autenticado. A tela recarrega dentro do próprio
+  /// [PlaylistSyncNotifier] quando a rodada mexe em alguma linha.
   void _syncCloudIfAuthed() {
-    unawaited(
-      ref.read(playlistSyncProvider.notifier).sync().then((result) async {
-        if (!result.skipped &&
-            (result.pulled > 0 || result.pushed > 0 || result.deleted > 0)) {
-          await _reload();
-        }
-      }),
-    );
+    unawaited(ref.read(playlistSyncProvider.notifier).sync());
   }
 
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
@@ -230,54 +225,35 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     _syncCloudIfAuthed();
   }
 
-  Future<void> removePdf({
+  /// Remove a entrada na posição [index] de `entries` (ordem única) — **uma**
+  /// ocorrência, nunca todas as do mesmo id (B.1).
+  ///
+  /// A lista ativa passa pelo [ActivePlaylistEditor] (`removeByKey`), que
+  /// assenta a reordenação em voo antes de gravar e mantém o override até o
+  /// reload; qualquer outra vai direto a [UpdatePlaylist] com `entries:` — um
+  /// rascunho que fica vazio é apagado por ele. Posição fora da lista: no-op.
+  Future<void> removeEntryAt({
     required String playlistId,
-    required String pdfId,
+    required int index,
   }) async {
     final current = state
-        .firstWhere((item) => item.playlist.playlistId == playlistId)
-        .playlist;
-    // Remove por id na ordem única e reprojeta a face de partituras.
-    final nextIds = <String>[
-      for (final entry in current.entries)
-        if (!entry.isAudio && entry.id != pdfId) entry.id,
-    ];
+        .where((item) => item.playlist.playlistId == playlistId)
+        .map((item) => item.playlist)
+        .firstOrNull;
+    if (current == null) return;
+    if (index < 0 || index >= current.entries.length) return;
 
+    if (ref.read(activePlaylistIdProvider) == playlistId) {
+      final key = activeEntriesOf(current.entries)[index].key;
+      await ref.read(activePlaylistEditorProvider.notifier).removeByKey(key);
+      return;
+    }
+
+    final next = [...current.entries]..removeAt(index);
     await ref.read(updatePlaylistProvider)(
       playlistId: playlistId,
-      pdfIds: nextIds,
+      entries: next,
     );
-    if (nextIds.isEmpty &&
-        current.audioIds.isEmpty &&
-        ref.read(activePlaylistIdProvider) == playlistId) {
-      ref.read(activePlaylistIdProvider.notifier).clear();
-    }
-    await _reload();
-    if (current.salva) _syncCloudIfAuthed();
-  }
-
-  Future<void> removeAudio({
-    required String playlistId,
-    required String audioId,
-  }) async {
-    final current = state
-        .firstWhere((item) => item.playlist.playlistId == playlistId)
-        .playlist;
-    // Remove por id na ordem única e reprojeta a face de áudio.
-    final nextIds = <String>[
-      for (final entry in current.entries)
-        if (entry.isAudio && entry.id != audioId) entry.id,
-    ];
-
-    await ref.read(updatePlaylistProvider)(
-      playlistId: playlistId,
-      audioIds: nextIds,
-    );
-    if (nextIds.isEmpty &&
-        current.pdfIds.isEmpty &&
-        ref.read(activePlaylistIdProvider) == playlistId) {
-      ref.read(activePlaylistIdProvider.notifier).clear();
-    }
     await _reload();
     if (current.salva) _syncCloudIfAuthed();
   }

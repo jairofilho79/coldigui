@@ -571,7 +571,9 @@ void main() {
       }
     });
 
-    /// Espelha `PlaylistsNotifier.removePdf`.
+    /// Remoção **por id** na face de partituras — o caminho antigo, mantido
+    /// aqui só pela regra de `replaceSubset` (a UI remove por posição, via
+    /// `PlaylistsNotifier.removeEntryAt`).
     Future<void> removePdf(String pdfId) async {
       final current = (await repository.getById('p1'))!;
       await updatePlaylist(
@@ -580,7 +582,7 @@ void main() {
       );
     }
 
-    /// Espelha `PlaylistsNotifier.removeAudio`.
+    /// Remoção **por id** na face de áudio — idem.
     Future<void> removeAudio(String audioId) async {
       final current = (await repository.getById('p1'))!;
       await updatePlaylist(

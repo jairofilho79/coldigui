@@ -11,6 +11,7 @@ import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_b
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/active_entry.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -27,9 +28,17 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(audioFlagSyncProvider);
-    final tracks = ref
-        .watch(catalogMaterialLookupProvider)
-        .tracksFor(playlist.audioIds);
+    final lookup = ref.watch(catalogMaterialLookupProvider);
+    // Linhas da face de áudio com a posição na ordem única: o «×» remove
+    // **aquela** ocorrência (B.1). Ids sem faixa em cache ficam de fora, como
+    // em `tracksFor`, sem perder a posição das que ficam.
+    final rows = <_AudioRow>[
+      for (final entry in activeEntriesOf(playlist.entries))
+        if (entry.isAudio)
+          if (lookup.audioTrack(entry.id) case final track?)
+            _AudioRow(entry: entry, track: track),
+    ];
+    final tracks = [for (final row in rows) row.track];
     final session = ref.watch(audioPlayerSessionProvider);
     // A posição mora num provider à parte (A7).
     final positionState = ref.watch(audioPlayerPositionProvider);
@@ -172,9 +181,9 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
                   onPressed: () {
                     ref
                         .read(playlistsProvider.notifier)
-                        .removeAudio(
+                        .removeEntryAt(
                           playlistId: playlist.playlistId,
-                          audioId: tracks[i].audioId,
+                          index: rows[i].entry.index,
                         );
                   },
                   icon: const Icon(Icons.close, color: AppColors.title),
@@ -221,4 +230,12 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
     }
     return true;
   }
+}
+
+/// Uma linha do painel: a entrada (com posição na ordem única) e a faixa.
+class _AudioRow {
+  const _AudioRow({required this.entry, required this.track});
+
+  final ActiveEntry entry;
+  final AudioTrack track;
 }

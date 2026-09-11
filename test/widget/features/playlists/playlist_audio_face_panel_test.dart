@@ -57,6 +57,19 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   List<PlaylistViewItem> build() => const [];
 }
 
+/// Registra as remoções por posição pedidas ao notifier.
+class _RemovalRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+  final removed = <(String, int)>[];
+
+  @override
+  Future<void> removeEntryAt({
+    required String playlistId,
+    required int index,
+  }) async {
+    removed.add((playlistId, index));
+  }
+}
+
 class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
   _FakeAudioCache(this.initial);
 
@@ -101,6 +114,7 @@ void main() {
     required AudioPlayerSessionNotifier session,
     SavedPlaylist? list,
     List<CarouselItem>? activeFace,
+    PlaylistsNotifier Function()? playlists,
   }) async {
     final shown = list ?? playlist;
     final prefs = await SharedPreferences.getInstance();
@@ -109,7 +123,9 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(false),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(
+            playlists ?? _FakePlaylistsNotifier.new,
+          ),
           audioPlayerSessionProvider.overrideWith(() => session),
           coldigomAudioTracksCacheProvider.overrideWith(
             () => _FakeAudioCache(const {'aud-a': _trackA, 'aud-b': _trackB}),
@@ -235,5 +251,31 @@ void main() {
       'aud-a',
     ]);
     expect(session.playedIndex, 2);
+  });
+
+  // B.1: o «×» de uma linha remove **aquela** ocorrência, pela posição na
+  // ordem única (as partituras contam na posição), nunca todas as do id.
+  testWidgets('«×» remove a ocorrência pela posição na ordem única (#4)', (
+    tester,
+  ) async {
+    final notifier = _RemovalRecordingPlaylistsNotifier();
+    await pump(
+      tester,
+      session: _SessionAt(const [], 0),
+      list: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p3',
+        nome: 'Com repetição',
+        items: const ['pdf-x', 'aud-a', 'aud-b', 'aud-a'],
+        audioIds: const ['aud-a', 'aud-b'],
+        createdAt: DateTime(2026, 9, 4),
+      ),
+      playlists: () => notifier,
+    );
+
+    // Terceira linha de áudio = segunda ocorrência de aud-a = entries[3].
+    await tester.tap(find.byIcon(Icons.close).at(2));
+    await tester.pump();
+
+    expect(notifier.removed, [('p3', 3)]);
   });
 }

@@ -840,26 +840,35 @@ class _PlaylistDetailChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    // Face de partituras com posição na ordem única e chave por ocorrência:
+    // o «×» remove **aquela** ocorrência (B.1), e a chave dá identidade ao
+    // chip quando a lista repete um louvor.
+    final face = <ActiveEntry>[
+      for (final entry in activeEntriesOf(item.playlist.entries))
+        if (!entry.isAudio) entry,
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (var i = 0; i < item.playlist.pdfIds.length; i++) ...[
+          for (var i = 0; i < face.length; i++) ...[
             if (i > 0) const SizedBox(height: 8),
             CarouselLouvorChip(
+              key: ValueKey(face[i].key),
               item: _carouselItemFor(
-                pdfId: item.playlist.pdfIds[i],
+                entry: face[i],
+                // `pdfLabels` é a projeção desta mesma face, na mesma ordem.
                 label: item.pdfLabels[i],
-                index: i,
+                faceIndex: i,
                 findLouvor: ref.read(catalogMaterialLookupProvider).louvor,
               ),
-              onTap: loading ? null : () => onPdfTap(item.playlist.pdfIds[i]),
+              onTap: loading ? null : () => onPdfTap(face[i].id),
               onRemove: loading
                   ? null
                   : () async {
-                      if (item.playlist.pdfIds.length == 1) {
+                      if (face.length == 1) {
                         final confirmed = await showConfirmDialog(
                           context: context,
                           title: l10n.playlistDeleteLastPdfTitle,
@@ -870,9 +879,9 @@ class _PlaylistDetailChips extends ConsumerWidget {
 
                       await ref
                           .read(playlistsProvider.notifier)
-                          .removePdf(
+                          .removeEntryAt(
                             playlistId: item.playlist.playlistId,
-                            pdfId: item.playlist.pdfIds[i],
+                            index: face[i].index,
                           );
                     },
             ),
@@ -882,17 +891,21 @@ class _PlaylistDetailChips extends ConsumerWidget {
     );
   }
 
+  /// Item do chip para [entry], com a chave da ocorrência e o índice na face.
   static CarouselItem _carouselItemFor({
-    required String pdfId,
+    required ActiveEntry entry,
     required String label,
-    required int index,
+    required int faceIndex,
     required Louvor? Function(String pdfId) findLouvor,
   }) {
+    final pdfId = entry.id;
     final louvor = findLouvor(pdfId);
     if (louvor != null) {
       return CarouselItem(
         materialId: pdfId,
-        index: index,
+        kind: entry.kind,
+        index: faceIndex,
+        key: entry.key,
         numero: louvor.numero,
         nome: louvor.nome,
         categoria: louvor.categoria,
@@ -906,7 +919,9 @@ class _PlaylistDetailChips extends ConsumerWidget {
     if (dashIndex > 0) {
       return CarouselItem(
         materialId: pdfId,
-        index: index,
+        kind: entry.kind,
+        index: faceIndex,
+        key: entry.key,
         numero: label.substring(0, dashIndex).trim(),
         nome: label.substring(dashIndex + 3).trim(),
         categoria: '',
@@ -917,7 +932,9 @@ class _PlaylistDetailChips extends ConsumerWidget {
 
     return CarouselItem(
       materialId: pdfId,
-      index: index,
+      kind: entry.kind,
+      index: faceIndex,
+      key: entry.key,
       numero: '',
       nome: label,
       categoria: '',
