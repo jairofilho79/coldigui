@@ -12,6 +12,29 @@ import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/utils/download_retry.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 
+/// Resposta do HEAD de sondagem antes de retomar por Range.
+class _RangeProbe {
+  const _RangeProbe({
+    required this.supportsRange,
+    this.contentLength,
+    this.etag,
+  });
+
+  final bool supportsRange;
+
+  /// Tamanho declarado pelo servidor; `null` quando o header não veio.
+  final int? contentLength;
+
+  /// Versão do arquivo no servidor; `null` quando o header não veio.
+  final String? etag;
+}
+
+/// O que as tentativas de um mesmo `download()` lembram umas das outras.
+class _ResumeMemo {
+  /// ETag visto na primeira sondagem — muda se o pacote for republicado.
+  String? etag;
+}
+
 /// Baixa pacotes ZIP para diretório transitório sob `plpcg_pdfs/_bulk_zips/`.
 class ZipPackageDownloader {
   ZipPackageDownloader(this._dio, this._store, {Duration? stallTimeout})
@@ -62,6 +85,7 @@ class ZipPackageDownloader {
         ? url
         : '${AppConfig.apiBaseUrl}$url';
 
+    final memo = _ResumeMemo();
     Object? lastError;
     for (
       var attempt = 1;
@@ -77,6 +101,7 @@ class ZipPackageDownloader {
           expectedSize: expectedSize,
           cancelToken: cancelToken,
           onReceiveProgress: onReceiveProgress,
+          memo: memo,
         );
       } on ZipDownloadCancelledException {
         // Cancelamento do usuário não é falha — nunca retenta.
@@ -97,6 +122,12 @@ class ZipPackageDownloader {
         }
         await Future<void>.delayed(retryDelayForAttempt(attempt));
       } on ZipDownloadSizeMismatchException catch (e) {
+        lastError = e;
+        if (attempt >= OfflineConfig.maxRetryAttempts) rethrow;
+        await Future<void>.delayed(retryDelayForAttempt(attempt));
+      } on ZipCorruptedException catch (e) {
+        // Montagem inválida (parcial de outra versão): o `.tmp` já foi
+        // apagado, então a próxima tentativa baixa o arquivo inteiro.
         lastError = e;
         if (attempt >= OfflineConfig.maxRetryAttempts) rethrow;
         await Future<void>.delayed(retryDelayForAttempt(attempt));
@@ -122,6 +153,7 @@ class ZipPackageDownloader {
     required File target,
     required File tmp,
     required String filename,
+    required _ResumeMemo memo,
     int? expectedSize,
     CancelToken? cancelToken,
     void Function(int received, int total)? onReceiveProgress,
@@ -136,6 +168,7 @@ class ZipPackageDownloader {
         expectedSize: expectedSize,
         guard: guard,
         onReceiveProgress: onReceiveProgress,
+        memo: memo,
       );
     } on DioException catch (e) {
       final translated = guard.translate(e);
@@ -153,6 +186,7 @@ class ZipPackageDownloader {
     required File tmp,
     required String filename,
     required _ZipDownloadGuard guard,
+    required _ResumeMemo memo,
     int? expectedSize,
     void Function(int received, int total)? onReceiveProgress,
   }) async {
@@ -169,11 +203,33 @@ class ZipPackageDownloader {
         partialSize > 0 && expectedSize != null && partialSize < expectedSize;
 
     if (canResume) {
-      final supportsRange = await _serverSupportsRange(
-        absoluteUrl,
-        cancelToken: cancelToken,
-      );
-      if (supportsRange) {
+      final probe = await _probeRange(absoluteUrl, cancelToken: cancelToken);
+
+      // O `.tmp` só é prefixo válido se o arquivo no servidor ainda for o do
+      // manifest. Se o pacote mudou entre as tentativas, prefixo antigo +
+      // sufixo novo somariam exatamente `expectedSize` e passariam batido pela
+      // validação de tamanho — um ZIP quebrado entraria no cache com cara de
+      // íntegro. O `content-length` do HEAD (e o ETag, quando o servidor manda
+      // um diferente do que vimos antes) denuncia a troca antes de gravar.
+      final declared = probe.contentLength;
+      final changedSize = declared != null && declared != expectedSize;
+      final changedEtag =
+          memo.etag != null && probe.etag != null && probe.etag != memo.etag;
+      memo.etag ??= probe.etag;
+
+      if (changedSize || changedEtag) {
+        debugPrint(
+          '[offline] $filename mudou no servidor '
+          '(tamanho: $declared vs $expectedSize) — parcial descartado',
+        );
+        await tmp.delete();
+        await _downloadFull(
+          absoluteUrl,
+          tmp,
+          cancelToken,
+          onReceiveProgress: progress,
+        );
+      } else if (probe.supportsRange) {
         await _appendRangeDownload(
           absoluteUrl: absoluteUrl,
           tmp: tmp,
@@ -203,7 +259,7 @@ class ZipPackageDownloader {
     }
 
     guard.dispose();
-    await _validateTempSize(tmp, expectedSize, filename: filename);
+    await _validateTempFile(tmp, expectedSize, filename: filename);
     await tmp.rename(target.path);
     return target.path;
   }
@@ -240,18 +296,28 @@ class ZipPackageDownloader {
     return tmp.length();
   }
 
-  Future<bool> _serverSupportsRange(
+  /// O que o HEAD diz sobre retomar este download.
+  ///
+  /// [contentLength] e [etag] são `null` quando o servidor não os manda — aí a
+  /// retomada só pode confiar no `Range`.
+  Future<_RangeProbe> _probeRange(
     String url, {
     CancelToken? cancelToken,
   }) async {
     try {
       final response = await _dio.head(url, cancelToken: cancelToken);
       final acceptRanges = response.headers.value('accept-ranges');
-      return acceptRanges != null && acceptRanges.toLowerCase() == 'bytes';
+      final declared = response.headers.value('content-length');
+      return _RangeProbe(
+        supportsRange:
+            acceptRanges != null && acceptRanges.toLowerCase() == 'bytes',
+        contentLength: declared == null ? null : int.tryParse(declared),
+        etag: response.headers.value('etag'),
+      );
     } on DioException catch (e) {
       // Cancelamento (usuário ou watchdog) não pode virar "servidor sem Range".
       if (e.type == DioExceptionType.cancel) rethrow;
-      return false;
+      return const _RangeProbe(supportsRange: false);
     }
   }
 
@@ -328,21 +394,34 @@ class ZipPackageDownloader {
     }
   }
 
-  Future<void> _validateTempSize(
+  /// Barra o `.tmp` antes de ele virar o ZIP definitivo.
+  ///
+  /// Tamanho **e** assinatura: com a retomada por Range, um parcial de outra
+  /// versão do pacote pode somar exatamente [expectedSize] e ainda assim não
+  /// ser um ZIP. Sem o `PK` aqui, esse arquivo era renomeado para o cache e só
+  /// estourava lá na frente, na extração.
+  Future<void> _validateTempFile(
     File tmp,
     int? expectedSize, {
     required String filename,
   }) async {
-    if (expectedSize == null) return;
+    if (expectedSize != null) {
+      final size = await tmp.length();
+      if (size != expectedSize) {
+        await tmp.delete();
+        throw ZipDownloadSizeMismatchException(
+          expected: expectedSize,
+          actual: size,
+          filename: filename,
+        );
+      }
+    }
 
-    final size = await tmp.length();
-    if (size != expectedSize) {
+    if (!await _hasZipSignature(tmp)) {
+      final path = tmp.path;
       await tmp.delete();
-      throw ZipDownloadSizeMismatchException(
-        expected: expectedSize,
-        actual: size,
-        filename: filename,
-      );
+      debugPrint('[offline] $filename sem assinatura PK — parcial descartado');
+      throw ZipCorruptedException(path);
     }
   }
 

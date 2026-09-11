@@ -402,6 +402,117 @@ void main() {
     },
   );
 
+  test(
+    'HEAD com tamanho diferente do manifest descarta o .tmp e recomeça do zero',
+    () async {
+      final zipBytes = await _createZipBytes();
+      final zipDir = Directory(
+        '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+      );
+      await zipDir.create(recursive: true);
+
+      // Parcial de uma versão anterior do pacote.
+      final tmp = File('${zipDir.path}/Partitura-1.zip.tmp');
+      await tmp.writeAsBytes(zipBytes.sublist(0, zipBytes.length ~/ 2));
+
+      final dio = Dio();
+      final adapter = _ChangedPackageAdapter(
+        zipBytes,
+        // O servidor tem outro arquivo: o `.tmp` velho não pode ser prefixo
+        // dele, senão prefixo antigo + sufixo novo somariam `expectedSize` e
+        // passariam na validação de tamanho.
+        headContentLength: zipBytes.length + 512,
+      );
+      dio.httpClientAdapter = adapter;
+
+      final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+          .download(
+            url: 'http://example.invalid/packages/Partitura-1.zip',
+            filename: 'Partitura-1.zip',
+            expectedSize: zipBytes.length,
+          );
+
+      expect(
+        adapter.requests.any((options) => options.headers['Range'] != null),
+        isFalse,
+        reason: '.tmp obsoleto não pode virar prefixo da retomada',
+      );
+      expect(await File(path).readAsBytes(), zipBytes);
+      expect(await tmp.exists(), isFalse);
+    },
+  );
+
+  test('ETag novo entre tentativas descarta o .tmp e recomeça do zero', () async {
+    final zipBytes = await _createZipBytes();
+    final zipDir = Directory(
+      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+    );
+    await zipDir.create(recursive: true);
+
+    final partial = zipBytes.length ~/ 2;
+    final tmp = File('${zipDir.path}/Partitura-1.zip.tmp');
+    await tmp.writeAsBytes(zipBytes.sublist(0, partial));
+
+    final dio = Dio();
+    // Mesmo tamanho, conteúdo republicado: só o ETag denuncia a troca.
+    final adapter = _EtagChangeAdapter(zipBytes);
+    dio.httpClientAdapter = adapter;
+
+    final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+        .download(
+          url: 'http://example.invalid/packages/Partitura-1.zip',
+          filename: 'Partitura-1.zip',
+          expectedSize: zipBytes.length,
+        );
+
+    expect(adapter.heads, 2, reason: 'as duas tentativas sondaram o servidor');
+    expect(
+      adapter.rangeGets,
+      1,
+      reason: 'só a 1ª tentativa emendou; a 2ª viu o ETag novo e baixou tudo',
+    );
+    expect(await File(path).readAsBytes(), zipBytes);
+    expect(await tmp.exists(), isFalse);
+  });
+
+  test(
+    'retomada que monta o tamanho certo sem assinatura PK é descartada',
+    () async {
+      final zipBytes = await _createZipBytes();
+      final zipDir = Directory(
+        '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}/${OfflineConfig.zipTempSubdir}',
+      );
+      await zipDir.create(recursive: true);
+
+      final partial = zipBytes.length ~/ 2;
+      final tmp = File('${zipDir.path}/Partitura-1.zip.tmp');
+      // Prefixo lixo (proxy que respondeu HTML no meio do download): o
+      // tamanho final bate, mas o arquivo não é um ZIP.
+      await tmp.writeAsBytes(List<int>.filled(partial, 0x41));
+
+      final dio = Dio();
+      final adapter = _ChangedPackageAdapter(
+        zipBytes,
+        headContentLength: zipBytes.length,
+      );
+      dio.httpClientAdapter = adapter;
+
+      final path = await ZipPackageDownloader(dio, pdfStoragePortFor(store))
+          .download(
+            url: 'http://example.invalid/packages/Partitura-1.zip',
+            filename: 'Partitura-1.zip',
+            expectedSize: zipBytes.length,
+          );
+
+      expect(
+        await File(path).readAsBytes(),
+        zipBytes,
+        reason: 'a montagem sem PK é jogada fora e o download recomeça',
+      );
+      expect(await tmp.exists(), isFalse);
+    },
+  );
+
   test('ZIP cacheado sem assinatura PK é apagado e baixado de novo', () async {
     final zipBytes = await _createZipBytes();
     final zipDir = Directory(
@@ -716,6 +827,109 @@ class _StallThenRangeAdapter implements HttpClientAdapter {
       200,
       headers: headers,
     );
+  }
+}
+
+/// Servidor que republica o pacote entre as tentativas: mesmo tamanho, ETag
+/// novo.
+///
+/// A 1ª retomada por Range falha com timeout (retryável) e o `.tmp` sobrevive;
+/// na 2ª sondagem o ETag já mudou, então o parcial não serve mais de prefixo.
+class _EtagChangeAdapter implements HttpClientAdapter {
+  _EtagChangeAdapter(this._bytes);
+
+  final List<int> _bytes;
+  final List<RequestOptions> requests = [];
+  var heads = 0;
+  var rangeGets = 0;
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+
+    if (options.method == 'HEAD') {
+      heads++;
+      return ResponseBody.fromString(
+        '',
+        200,
+        headers: {
+          'accept-ranges': ['bytes'],
+          'content-length': ['${_bytes.length}'],
+          'etag': [heads == 1 ? '"v1"' : '"v2"'],
+        },
+      );
+    }
+
+    if (options.headers['Range'] != null) {
+      rangeGets++;
+      // Timeout é retryável: a tentativa seguinte sonda de novo e vê o ETag
+      // novo, em vez de emendar bytes de outra versão.
+      throw DioException(
+        requestOptions: options,
+        type: DioExceptionType.receiveTimeout,
+      );
+    }
+
+    return ResponseBody.fromBytes(Uint8List.fromList(_bytes), 200, headers: {});
+  }
+}
+
+/// Servidor que aceita Range e **declara** o tamanho no HEAD.
+///
+/// [headContentLength] é o que o servidor diz ter; quando diverge do
+/// `expectedSize` do manifest, o pacote mudou e o `.tmp` guardado é de outra
+/// versão.
+class _ChangedPackageAdapter implements HttpClientAdapter {
+  _ChangedPackageAdapter(this._bytes, {required this.headContentLength});
+
+  final List<int> _bytes;
+  final int headContentLength;
+  final List<RequestOptions> requests = [];
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+
+    if (options.method == 'HEAD') {
+      return ResponseBody.fromString(
+        '',
+        200,
+        headers: {
+          'accept-ranges': ['bytes'],
+          'content-length': ['$headContentLength'],
+        },
+      );
+    }
+
+    final rangeHeader = options.headers['Range'] as String?;
+    if (rangeHeader != null) {
+      final start = int.parse(rangeHeader.split('=')[1].split('-')[0]);
+      return ResponseBody.fromBytes(
+        Uint8List.fromList(_bytes.sublist(start)),
+        206,
+        headers: {
+          'content-range': [
+            'bytes $start-${_bytes.length - 1}/${_bytes.length}',
+          ],
+        },
+      );
+    }
+
+    return ResponseBody.fromBytes(Uint8List.fromList(_bytes), 200, headers: {});
   }
 }
 
