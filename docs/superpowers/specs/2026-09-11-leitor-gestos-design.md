@@ -475,11 +475,14 @@ Providers (`gesture_providers.dart`), espelhando `chord_providers.dart`:
   — cache-first; `keepAlive()` só no sucesso; 404 grava marcador negativo;
   revalidação em background quando `isStaleAt` e há conexão
   (`deviceConnectivityProvider`); `invalidateSelf` se o corpo mudou.
-- `gestureDictionaryProvider = FutureProvider<GestureDictionary?>` (keepAlive
-  natural) — cache-first; revalida com `If-None-Match` quando stale e online;
-  304 só atualiza `fetchedAt`. Sem cache e sem rede → `null` (a tela renderiza
-  com placeholders, não erro).
-- `gestureFigureProvider = FutureProvider.family<Uint8List?, String>` (keepAlive).
+- `gestureDictionaryProvider = FutureProvider.autoDispose<GestureDictionary?>`
+  com `keepAlive()` só em valor não nulo — cache-first; revalida com
+  `If-None-Match` quando stale e online; 304 só atualiza `fetchedAt`. Sem
+  cache e sem rede → `null` (a tela renderiza com placeholders, não erro) que
+  **não** fica retido: a próxima leitura tenta de novo.
+- `gestureFigureProvider = FutureProvider.autoDispose.family<Uint8List?, String>`,
+  `keepAlive()` só com bytes; o repositório deduplica downloads em voo da
+  mesma chave.
 - `prefetchGestureFigures(repository, document, dictionary)` — função pura de
   disparo: a tela chama uma vez por documento+dicionário carregados com as
   figuras (PNG e GIF) resolvidas dos ids do documento.
@@ -556,6 +559,12 @@ presentation/
 | 11 | `lib/core/database/isar_app_schemas.dart` | dois schemas novos |
 | 12 | `lib/l10n/app_pt.arb`, `app_en.arb` | `gesturesMaterialLabel`, `gesturesReaderTitle`, `gesturesReaderEmpty`, `gesturesReaderUnavailable`, `gestureInstructionInstruments`, `gestureInstructionRepeatPraise`, `gestureInstructionBackToChorus`, `gestureInstructionBackToChorusAndFinish`, `gestureNotFound`, `gestureFocusNext`, `gestureFocusEnd`, `gesturesNewerSchemaWarning`, `gestureContextRepeat` (`{count}x`), `gestureContextChorus`, `gestureContextFinal`, `gestureContextLink` |
 | 13 | `docs/features/FEATURE_INDEX.md`, `docs/use-cases/UC-17-leitor-gestos.md` | entrada `gestures` + UC curto |
+| 14 | `plpcg_primary_app_bar.dart`, `carousel_chips.dart`, `carousel_swap_material_button.dart`, `audio_follow_reader_provider.dart`, `shell_scaffold.dart`, `app_shortcuts.dart` | todo predicado "é rota de leitor" lista `RoutePaths.gestos` |
+| 15 | `find_material_for_group.dart`, `catalog_material_lookup_provider.dart`, `carousel_items_provider.dart`, `find_louvor_group_by_pdf_id.dart` | todo ponto que resolve um id de cifra (grupo, chip do carousel, troca de material) resolve também o id de gesto (`gesturesById`/`gestureCache`) |
+
+A regra geral que gerou as linhas 14–15 (descobertas na execução): **todo lugar
+que trata `ChordMaterial`/`chordId` como material de leitura precisa de um
+irmão para `GestureMaterial`/`gestureId`** — `grep -rn "chordMaterials\|ChordMaterialRef\|chordsById\|RoutePaths.chords" lib` é a lista.
 
 Onde a playlist e o sheet já funcionam sem código novo (ver §1), o plano só
 adiciona testes que pinam isso.
@@ -636,3 +645,10 @@ dicionário inteiro.
 - **Dicionário e documento fora de sincronia** (`dictionaryVersion` maior que
   a versão cacheada): ids novos viram placeholder até a revalidação. Aceitável;
   o placeholder mostra o id.
+- **`null` conclusivo não pode grudar na sessão.** `gestureDictionaryProvider` e
+  `gestureFigureProvider` são `autoDispose` com `keepAlive()` só em valor não
+  nulo (mesmo padrão do documento): uma primeira abertura sem sinal mostra
+  placeholders, mas a próxima tentativa — ou o "tentar de novo", que também
+  invalida o dicionário — busca de novo. Revalidação em background do
+  documento grava marcador negativo em 404 e nunca persiste corpo que não
+  parseia; linha ilegível no cache é tratada como miss.
