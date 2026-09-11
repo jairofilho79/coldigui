@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
 import '../providers/pdf_reader_view_settings_provider.dart';
@@ -16,6 +19,16 @@ import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
+
+/// Teto de escala de rasterização na web — `2×devicePixelRatio` (spec A.13).
+///
+/// Sem teto, `pdfrx` pode pedir escalas muito acima do necessário (zoom alto
+/// em telas de alto DPI), estourando memória de imagem decodificada no
+/// navegador.
+const kPdfWebRenderScaleDprMultiplier = 2;
+
+/// Teto de bytes de imagem cacheados em memória na web — 32 MiB (spec A.13).
+const kPdfWebMaxImageBytesCachedOnMemory = 32 << 20;
 
 /// Widget pdfrx encapsulado — pontos de import `pdfrx` na presentation
 /// restritos a este arquivo e a [spreadPageLayout]/[defaultPdfPageLayout]
@@ -359,6 +372,7 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
         (settings) => settings.spreadEnabled,
       ),
     );
+    final isWeb = ref.watch(platformCapabilitiesProvider).isWeb;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -391,6 +405,16 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
                           fallback: defaultPdfPageLayout,
                         )
                       : null,
+                  getPageRenderingScale: isWeb
+                      ? (context, page, controller, estimatedScale) => math.min(
+                          estimatedScale,
+                          kPdfWebRenderScaleDprMultiplier *
+                              MediaQuery.devicePixelRatioOf(context),
+                        )
+                      : null,
+                  maxImageBytesCachedOnMemory: isWeb
+                      ? kPdfWebMaxImageBytesCachedOnMemory
+                      : const PdfViewerParams().maxImageBytesCachedOnMemory,
                   loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
                     return const Center(
                       child: CircularProgressIndicator(color: AppColors.gold),
