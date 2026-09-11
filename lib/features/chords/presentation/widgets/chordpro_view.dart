@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/chordpro_song.dart';
 import '../../domain/usecases/transpose_chord.dart';
 import '../theme/chord_reader_theme.dart';
+import '../utils/split_lines_for_columns.dart';
+import '../utils/transpose_label_memo.dart';
 
 /// Key da barra vermelha da célula [cellIndex] na linha [lineIndex].
 ValueKey<String> chordBarKey(int lineIndex, int cellIndex) =>
@@ -20,6 +22,9 @@ ValueKey<String> chordStripeKey(int lyricIndex) =>
 /// Fixa para que o rótulo não descole da sílaba quando o usuário muda o tamanho.
 const _chordToLyricRatio = 13 / 16;
 
+/// Espaço entre as duas colunas, quando [ChordProView.columns] é 2.
+const _columnGap = 16.0;
+
 /// Renderiza [song] com acorde sobre sílaba e barra vermelha no ponto de troca.
 ///
 /// Cada [ChordCell] vira uma coluna — rótulo em cima, texto embaixo — e a linha
@@ -31,12 +36,26 @@ const _chordToLyricRatio = 13 / 16;
 ///
 /// [semitones] transpõe os rótulos na renderização — o modelo parseado continua
 /// com a grafia original, então voltar ao tom é só zerar o deslocamento.
+///
+/// A14: a view em si é um sliver (uma linha por item de [SliverList] em vez de
+/// um [Column] fixo de `song.lines.length` widgets) para não relayoutar a
+/// música inteira a cada transposição/tamanho de fonte — só as linhas visíveis
+/// (re)constroem. [memo] memoiza [transposeChordLabel] por célula; sem ele, cai
+/// para a chamada direta (é o caso dos testes de widget deste arquivo).
+///
+/// C9: com [columns] 2, `song.lines` é dividido por [splitLinesForColumns] e
+/// as duas metades viram [SliverList]s lado a lado via [SliverCrossAxisGroup].
+/// Este widget precisa estar dentro dos `slivers` de um [CustomScrollView]
+/// (nunca dentro de um [Column]/[Scaffold.body] direto) — é assim que
+/// [ChordReaderScreen] o usa.
 class ChordProView extends StatelessWidget {
   const ChordProView({
     required this.song,
     required this.palette,
     this.fontSize = 16,
     this.semitones = 0,
+    this.memo,
+    this.columns = 1,
     super.key,
   });
 
@@ -48,6 +67,13 @@ class ChordProView extends StatelessWidget {
 
   /// Semitons de transposição aplicados aos rótulos.
   final int semitones;
+
+  /// Memo opcional de [transposeChordLabel] (A14) — mora na tela, é
+  /// compartilhado entre rebuilds desta view.
+  final TransposeLabelMemo? memo;
+
+  /// 1 (padrão) ou 2 colunas lado a lado (C9, tela larga).
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -65,25 +91,57 @@ class ChordProView extends StatelessWidget {
 
     // Grafia do resultado vem do tom de destino: Sol subindo um é Láb, não Sol#.
     final preferFlats = preferFlatsForKey(song.key, semitones);
+    final lyricIndexes = _computeLyricIndexes(song.lines);
 
-    var lyricIndex = 0;
-    final rows = <Widget>[];
-    for (var i = 0; i < song.lines.length; i++) {
-      final line = song.lines[i];
-      rows.add(
-        _buildLine(
-          line: line,
-          index: i,
-          lyricIndex: line is ChordProLyricLine ? lyricIndex : -1,
-          lyricStyle: lyricStyle,
-          chordStyle: chordStyle,
-          preferFlats: preferFlats,
-        ),
+    Widget buildLineAt(int index) {
+      return _buildLine(
+        line: song.lines[index],
+        index: index,
+        lyricIndex: lyricIndexes[index],
+        lyricStyle: lyricStyle,
+        chordStyle: chordStyle,
+        preferFlats: preferFlats,
       );
-      if (line is ChordProLyricLine) lyricIndex++;
     }
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
+    if (columns != 2) {
+      return SliverList.builder(
+        itemCount: song.lines.length,
+        itemBuilder: (context, index) => buildLineAt(index),
+      );
+    }
+
+    final split = splitLinesForColumns(song.lines);
+    final leftCount = split.left.length;
+    final rightCount = split.right.length;
+
+    return SliverCrossAxisGroup(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.only(right: _columnGap / 2),
+          sliver: SliverList.builder(
+            itemCount: leftCount,
+            itemBuilder: (context, index) => buildLineAt(index),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(left: _columnGap / 2),
+          sliver: SliverList.builder(
+            itemCount: rightCount,
+            itemBuilder: (context, index) => buildLineAt(leftCount + index),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Índice da linha entre só as linhas de letra (zebra), ou -1 fora delas.
+  static List<int> _computeLyricIndexes(List<ChordProLine> lines) {
+    var lyricIndex = 0;
+    return [
+      for (final line in lines)
+        if (line is ChordProLyricLine) lyricIndex++ else -1,
+    ];
   }
 
   Widget _buildLine({
@@ -124,6 +182,7 @@ class ChordProView extends StatelessWidget {
                 chordStyle: chordStyle,
                 semitones: semitones,
                 preferFlats: preferFlats,
+                memo: memo,
               ),
           ],
         ),
@@ -141,6 +200,7 @@ class _ChordCellView extends StatelessWidget {
     required this.chordStyle,
     required this.semitones,
     required this.preferFlats,
+    required this.memo,
   });
 
   final ChordCell cell;
@@ -150,6 +210,7 @@ class _ChordCellView extends StatelessWidget {
   final TextStyle chordStyle;
   final int semitones;
   final bool preferFlats;
+  final TransposeLabelMemo? memo;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +227,8 @@ class _ChordCellView extends StatelessWidget {
     final chord = cell.chord;
     final label = chord == null
         ? ''
-        : transposeChordLabel(chord, semitones, preferFlats: preferFlats);
+        : (memo?.label(chord, semitones, preferFlats: preferFlats) ??
+              transposeChordLabel(chord, semitones, preferFlats: preferFlats));
 
     return Column(
       mainAxisSize: MainAxisSize.min,
