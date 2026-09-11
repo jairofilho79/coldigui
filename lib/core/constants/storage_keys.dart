@@ -41,4 +41,7 @@ abstract final class StorageKeys {
 
   /// Claro/escuro do leitor de cifras (`light` | `dark`).
   static const String chordReaderMode = 'chordReaderMode';
+
+  /// Filtros de material/arranjo do catálogo (JSON, UC-02) — C13.
+  static const String catalogFilters = 'catalogFilters';
 }
