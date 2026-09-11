@@ -13,6 +13,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -261,6 +262,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         : false;
     final isMultiMaterial = widget.group.totalMaterials > 1;
     final hasAudio = widget.group.audioTracks.isNotEmpty;
+    final highlightQuery = ref.watch(homeSearchDebouncedQueryProvider);
 
     final chipItem = primary != null
         ? _toCarouselItem(primary)
@@ -318,6 +320,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         metadataSummary: metadataSummary,
         materialKindsGroup: widget.group,
         onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
+        highlightQuery: highlightQuery,
         onTap: isLoading ? null : _handleTap,
         onAdd: onAdd,
         isAdded: isMultiMaterial ? false : isAdded,

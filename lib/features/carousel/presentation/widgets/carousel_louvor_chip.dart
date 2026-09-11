@@ -1,4 +1,5 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/core/presentation/widgets/highlighted_text.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -82,6 +83,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.metadataSummary,
     this.materialKindsGroup,
     this.onMaterialKindTap,
+    this.highlightQuery,
     this.showDragHandle = false,
     this.onTap,
     this.onRemove,
@@ -111,6 +113,10 @@ class CarouselLouvorChip extends StatelessWidget {
 
   /// Toque num ícone de [materialKindsGroup] — ex.: abrir o `MaterialSheet`.
   final void Function(MaterialKind kind)? onMaterialKindTap;
+
+  /// Termo buscado (Home) a destacar no título — cor ouro do tema (C5). Sem
+  /// termo ou sem match, o título renderiza normal.
+  final String? highlightQuery;
 
   /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
@@ -201,8 +207,9 @@ class CarouselLouvorChip extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _titleLine(item, _isTopBar),
+                      HighlightedText(
+                        text: _titleLine(item, _isTopBar),
+                        query: highlightQuery ?? '',
                         style: AppTypography.headline.copyWith(
                           fontSize: width < _compactWidth ? 12 : 14,
                           height: 1.1,
