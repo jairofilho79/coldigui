@@ -18,6 +18,7 @@ class _ControllablePlayer extends AudioPlayer {
   final durations = StreamController<Duration?>.broadcast();
   final setSourcesCalls = <List<AudioSource>>[];
   final pendingSetSources = <Completer<Duration?>>[];
+  final seekCalls = <Duration?>[];
 
   /// Quando `true`, `setAudioSources` espera um `complete` explícito do teste.
   bool blockSetSources = false;
@@ -62,7 +63,9 @@ class _ControllablePlayer extends AudioPlayer {
   Future<void> pause() async {}
 
   @override
-  Future<void> seek(Duration? position, {int? index}) async {}
+  Future<void> seek(Duration? position, {int? index}) async {
+    seekCalls.add(position);
+  }
 
   @override
   Future<void> seekToNext() async {
@@ -572,6 +575,46 @@ void main() {
       now = now.add(const Duration(milliseconds: 100));
       throttle.reset();
       expect(throttle.shouldSend(), isTrue);
+    });
+  });
+
+  group('seekBy (C12)', () {
+    test('clamp no início: não passa de zero', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.durations.add(const Duration(minutes: 1));
+      player.positions.add(const Duration(seconds: 10));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: -15));
+
+      expect(player.seekCalls.single, Duration.zero);
+    });
+
+    test('clamp no fim: não passa da duração', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.durations.add(const Duration(minutes: 1));
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: 10));
+
+      expect(player.seekCalls.single, const Duration(minutes: 1));
+    });
+
+    test('sem duração conhecida, +10s não trava em zero', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.positions.add(const Duration(seconds: 10));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: 10));
+
+      expect(player.seekCalls.single, const Duration(seconds: 20));
     });
   });
 }

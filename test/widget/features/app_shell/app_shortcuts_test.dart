@@ -37,13 +37,14 @@ const _track = AudioTrack(
   classificacao: '',
 );
 
-/// Sessão de áudio de mentira: conta os `playPause` sem instanciar o
+/// Sessão de áudio de mentira: conta os `playPause`/`seekBy` sem instanciar o
 /// `AudioPlayer` real (que a sessão de verdade cria no `build`).
 class _FakeAudioSession extends AudioPlayerSessionNotifier {
   _FakeAudioSession({this.hasTrack = true});
 
   final bool hasTrack;
   int playPauseCalls = 0;
+  final seekByCalls = <Duration>[];
 
   @override
   AudioPlayerSessionState build() =>
@@ -51,6 +52,9 @@ class _FakeAudioSession extends AudioPlayerSessionNotifier {
 
   @override
   Future<void> playPause() async => playPauseCalls++;
+
+  @override
+  Future<void> seekBy(Duration delta) async => seekByCalls.add(delta);
 }
 
 Future<ProviderContainer> _pumpShortcuts(
@@ -333,6 +337,80 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(session.playPauseCalls, 0);
+    });
+  });
+
+  group('J / L (±10 s) — C12', () {
+    testWidgets('J manda seekBy(-10s) e L manda seekBy(+10s)', (tester) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.pumpAndSettle();
+
+      expect(session.seekByCalls, [
+        const Duration(seconds: -10),
+        const Duration(seconds: 10),
+      ]);
+    });
+
+    testWidgets('sem faixa na sessão não chama o player', (tester) async {
+      final session = _FakeAudioSession(hasTrack: false);
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.pumpAndSettle();
+
+      expect(session.seekByCalls, isEmpty);
+    });
+
+    testWidgets('num campo de texto continua inerte', (tester) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: const TextField(autofocus: true),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.pumpAndSettle();
+
+      expect(session.seekByCalls, isEmpty);
+    });
+
+    testWidgets('com botão focado aciona o botão, não o seek', (tester) async {
+      final session = _FakeAudioSession();
+      var pressed = 0;
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+        child: Center(
+          child: ElevatedButton(
+            autofocus: true,
+            onPressed: () => pressed++,
+            child: const Text('Abrir'),
+          ),
+        ),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.pumpAndSettle();
+
+      expect(session.seekByCalls, isEmpty);
+      expect(pressed, 0, reason: 'J não é a tecla de ativar do botão');
     });
   });
 

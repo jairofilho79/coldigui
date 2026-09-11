@@ -424,6 +424,17 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     }
   }
 
+  /// ±10 s (C12) — clampado em `[0, duration]` (sem limite superior quando a
+  /// duração ainda não é conhecida).
+  Future<void> seekBy(Duration delta) async {
+    final positionState = ref.read(audioPlayerPositionProvider);
+    var target = positionState.position + delta;
+    if (target < Duration.zero) target = Duration.zero;
+    final duration = positionState.duration;
+    if (duration > Duration.zero && target > duration) target = duration;
+    await seek(target);
+  }
+
   Future<void> seek(Duration position) async {
     try {
       await _player?.seek(position);

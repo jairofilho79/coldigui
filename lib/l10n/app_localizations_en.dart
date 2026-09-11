@@ -801,6 +801,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioNext => 'Next';
 
   @override
+  String get audioSeekBack10 => 'Back 10 s';
+
+  @override
+  String get audioSeekForward10 => 'Forward 10 s';
+
+  @override
   String get miniPlayerPrevious => 'Previous track';
 
   @override

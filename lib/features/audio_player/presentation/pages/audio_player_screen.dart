@@ -185,6 +185,18 @@ class AudioPlayerScreen extends ConsumerWidget {
                           .read(audioPlayerSessionProvider.notifier)
                           .skipToNext();
                     },
+                    onSeekBack10: track == null
+                        ? null
+                        : () => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .seekBy(const Duration(seconds: -10)),
+                    onSeekForward10: track == null
+                        ? null
+                        : () => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .seekBy(const Duration(seconds: 10)),
+                    seekBack10Tooltip: l10n.audioSeekBack10,
+                    seekForward10Tooltip: l10n.audioSeekForward10,
                     playTooltip: l10n.audioPlay,
                     pauseTooltip: l10n.audioPause,
                     previousTooltip: l10n.audioPrevious,

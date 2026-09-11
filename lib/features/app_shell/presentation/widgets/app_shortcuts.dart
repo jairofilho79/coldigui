@@ -150,6 +150,7 @@ void _showReaderActionError(BuildContext context) {
 /// | `Ctrl+K` / `Cmd+K` / `/` | vai para a Home e foca a busca |
 /// | `Espaço` | play/pause (fora do leitor PDF, que consome a tecla) |
 /// | `Ctrl+Espaço` / `Cmd+Espaço` | play/pause também dentro do leitor |
+/// | `J` / `L` | ±10 s no áudio (mesma guarda de foco do Espaço) — C12 |
 /// | `F` | tela cheia no leitor PDF e no leitor de cifras |
 /// | `Esc` | sai da tela cheia |
 class AppShortcuts extends ConsumerWidget {
@@ -190,6 +191,14 @@ class AppShortcuts extends ConsumerWidget {
     final session = ref.read(audioPlayerSessionProvider);
     if (session.currentTrack == null) return false;
     ref.read(audioPlayerSessionProvider.notifier).playPause();
+    return true;
+  }
+
+  /// `J`/`L` (C12): ±10 s no áudio em foco.
+  bool _seekBy(WidgetRef ref, Duration delta) {
+    final session = ref.read(audioPlayerSessionProvider);
+    if (session.currentTrack == null) return false;
+    ref.read(audioPlayerSessionProvider.notifier).seekBy(delta);
     return true;
   }
 
@@ -236,6 +245,19 @@ class AppShortcuts extends ConsumerWidget {
         return KeyEventResult.ignored;
       }
       return _playPause(ref) ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (key == LogicalKeyboardKey.keyJ || key == LogicalKeyboardKey.keyL) {
+      // Mesma guarda do Espaço: um botão/campo com foco tem prioridade.
+      if (keyboardFocusIsOnSpaceActivatableControl()) {
+        return KeyEventResult.ignored;
+      }
+      final delta = key == LogicalKeyboardKey.keyJ
+          ? const Duration(seconds: -10)
+          : const Duration(seconds: 10);
+      return _seekBy(ref, delta)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
 
     if (key == LogicalKeyboardKey.keyF) {

@@ -808,6 +808,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioNext => 'Próximo';
 
   @override
+  String get audioSeekBack10 => 'Voltar 10 s';
+
+  @override
+  String get audioSeekForward10 => 'Avançar 10 s';
+
+  @override
   String get miniPlayerPrevious => 'Faixa anterior';
 
   @override

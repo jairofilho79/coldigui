@@ -453,6 +453,14 @@
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",
   "audioNext": "Próximo",
+  "audioSeekBack10": "Voltar 10 s",
+  "@audioSeekBack10": {
+    "description": "Tooltip do botão que volta 10 s no áudio (C12)"
+  },
+  "audioSeekForward10": "Avançar 10 s",
+  "@audioSeekForward10": {
+    "description": "Tooltip do botão que avança 10 s no áudio (C12)"
+  },
   "miniPlayerPrevious": "Faixa anterior",
   "@miniPlayerPrevious": {
     "description": "Tooltip do botão de faixa anterior no mini-player persistente (D5)"

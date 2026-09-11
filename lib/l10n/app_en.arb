@@ -444,6 +444,14 @@
   "audioPause": "Pause",
   "audioPrevious": "Previous",
   "audioNext": "Next",
+  "audioSeekBack10": "Back 10 s",
+  "@audioSeekBack10": {
+    "description": "Tooltip for the button that seeks back 10 s in the audio (C12)"
+  },
+  "audioSeekForward10": "Forward 10 s",
+  "@audioSeekForward10": {
+    "description": "Tooltip for the button that seeks forward 10 s in the audio (C12)"
+  },
   "miniPlayerPrevious": "Previous track",
   "@miniPlayerPrevious": {
     "description": "Tooltip for the previous-track button in the persistent mini-player (D5)"

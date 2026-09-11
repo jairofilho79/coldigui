@@ -1415,6 +1415,18 @@ abstract class AppLocalizations {
   /// **'Próximo'**
   String get audioNext;
 
+  /// Tooltip do botão que volta 10 s no áudio (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar 10 s'**
+  String get audioSeekBack10;
+
+  /// Tooltip do botão que avança 10 s no áudio (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançar 10 s'**
+  String get audioSeekForward10;
+
   /// Tooltip do botão de faixa anterior no mini-player persistente (D5)
   ///
   /// In pt, this message translates to:
