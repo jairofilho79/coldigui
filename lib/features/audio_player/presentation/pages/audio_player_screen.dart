@@ -5,6 +5,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/data/web_audio_environment.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
@@ -27,6 +28,9 @@ class AudioPlayerScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(audioFlagSyncProvider);
     final session = ref.watch(audioPlayerSessionProvider);
+    // A posição mora num provider à parte (A7): a sessão não muda mais de
+    // identidade a cada tick do `positionStream`.
+    final positionState = ref.watch(audioPlayerPositionProvider);
     final track = session.currentTrack;
     final audioId = track?.audioId ?? '';
     final flagsAsync = ref.watch(audioFlagsForTrackProvider(audioId));
@@ -124,7 +128,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                                 context,
                                 ref,
                                 audioId,
-                                session.position,
+                                positionState.position,
                               ),
                         icon: Icon(
                           Icons.flag,
@@ -147,8 +151,8 @@ class AudioPlayerScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   AudioSeekBar(
-                    position: session.position,
-                    duration: session.duration,
+                    position: positionState.position,
+                    duration: positionState.duration,
                     flags: flags,
                     onFlagTap: (flag) {
                       ref
@@ -164,7 +168,8 @@ class AudioPlayerScreen extends ConsumerWidget {
                     playing: session.playing,
                     buffering: session.buffering,
                     hasPrevious:
-                        session.hasPrevious || session.position > Duration.zero,
+                        session.hasPrevious ||
+                        positionState.position > Duration.zero,
                     hasNext: session.hasNext,
                     onPrevious: () {
                       ref

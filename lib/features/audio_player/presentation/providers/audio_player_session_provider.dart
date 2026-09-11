@@ -13,15 +13,19 @@ import '../../data/audio_web_unlock.dart';
 import '../../data/web_audio_source_resolver.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/utils/audio_track_url.dart';
+import 'audio_player_position_provider.dart';
 
 /// Estado da sessão global de áudio (página + face de playlist).
+///
+/// `position`/`duration` moraram aqui até a A7 — o `positionStream` do
+/// `just_audio` tica a ~5 Hz e trocava a identidade deste objeto inteiro a
+/// cada tick, derrubando tudo que observava a sessão (barra do shell,
+/// presente em toda rota). Ficaram em [audioPlayerPositionProvider].
 class AudioPlayerSessionState {
   const AudioPlayerSessionState({
     this.queue = const [],
     this.currentIndex = 0,
     this.playing = false,
-    this.position = Duration.zero,
-    this.duration = Duration.zero,
     this.buffering = false,
     this.errorMessage,
     this.restoredWithoutPlayback = false,
@@ -30,8 +34,6 @@ class AudioPlayerSessionState {
   final List<AudioTrack> queue;
   final int currentIndex;
   final bool playing;
-  final Duration position;
-  final Duration duration;
   final bool buffering;
   final String? errorMessage;
 
@@ -56,8 +58,6 @@ class AudioPlayerSessionState {
     List<AudioTrack>? queue,
     int? currentIndex,
     bool? playing,
-    Duration? position,
-    Duration? duration,
     bool? buffering,
     String? errorMessage,
     bool clearError = false,
@@ -67,13 +67,45 @@ class AudioPlayerSessionState {
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
       playing: playing ?? this.playing,
-      position: position ?? this.position,
-      duration: duration ?? this.duration,
       buffering: buffering ?? this.buffering,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       restoredWithoutPlayback:
           restoredWithoutPlayback ?? this.restoredWithoutPlayback,
     );
+  }
+}
+
+/// Decide quando reenviar a posição pra media session do sistema: no máximo
+/// uma vez por segundo, exceto quando `force` (troca de duração ou seek) —
+/// sem isto o listener de `positionStream` (~5 Hz) chamaria `updatePosition`
+/// a cada tick (A7).
+@visibleForTesting
+class MediaSessionPositionThrottle {
+  MediaSessionPositionThrottle({DateTime Function()? now})
+    : _now = now ?? DateTime.now;
+
+  final DateTime Function() _now;
+  DateTime? _lastSentAt;
+
+  static const _minInterval = Duration(seconds: 1);
+
+  /// `true` quando o chamador deve mandar a posição agora (e já registra o
+  /// envio, avançando a janela de 1 s).
+  bool shouldSend({bool force = false}) {
+    final now = _now();
+    final lastSentAt = _lastSentAt;
+    if (!force &&
+        lastSentAt != null &&
+        now.difference(lastSentAt) < _minInterval) {
+      return false;
+    }
+    _lastSentAt = now;
+    return true;
+  }
+
+  /// Troca de fila ou encerramento: a próxima posição tem que sair na hora.
+  void reset() {
+    _lastSentAt = null;
   }
 }
 
@@ -107,6 +139,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   WebAudioSourceResolver? _sourceResolver;
   AudioPlayer Function() _playerFactory = AudioPlayer.new;
   bool _mediaSessionAttached = false;
+  final _mediaSessionPositionThrottle = MediaSessionPositionThrottle();
 
   /// Geração da fila em vigor: cada `_applyQueue` incrementa e descarta o
   /// próprio resultado se outra chamada tiver começado depois (toque duplo).
@@ -140,18 +173,24 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         _mediaSession?.updatePlaybackState(playing: playerState.playing);
       }),
       player.positionStream.listen((position) {
-        state = state.copyWith(position: position);
-        _mediaSession?.updatePosition(
+        ref
+            .read(audioPlayerPositionProvider.notifier)
+            .update(position: position);
+        _sendMediaSessionPosition(
           position: position,
-          duration: state.duration,
+          duration: ref.read(audioPlayerPositionProvider).duration,
         );
       }),
       player.durationStream.listen((duration) {
         if (duration != null) {
-          state = state.copyWith(duration: duration);
-          _mediaSession?.updatePosition(
-            position: state.position,
+          ref
+              .read(audioPlayerPositionProvider.notifier)
+              .update(duration: duration);
+          // Duração nova (troca de faixa) não pode esperar a janela de 1 s.
+          _sendMediaSessionPosition(
+            position: ref.read(audioPlayerPositionProvider).position,
             duration: duration,
+            force: true,
           );
         }
       }),
@@ -204,6 +243,19 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     return const AudioPlayerSessionState();
   }
 
+  /// Manda a posição pra media session do sistema, no máximo 1x/segundo
+  /// (`force` ignora a janela — troca de duração ou seek).
+  void _sendMediaSessionPosition({
+    required Duration position,
+    required Duration duration,
+    bool force = false,
+  }) {
+    final mediaSession = _mediaSession;
+    if (mediaSession == null) return;
+    if (!_mediaSessionPositionThrottle.shouldSend(force: force)) return;
+    mediaSession.updatePosition(position: position, duration: duration);
+  }
+
   void _ensureMediaSessionAttached() {
     if (!kIsWeb || _mediaSessionAttached || _mediaSession == null) return;
     _mediaSession!.attach(
@@ -250,12 +302,12 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     if (tracks.isEmpty) return;
     final gen = ++_generation;
     final safeIndex = startIndex.clamp(0, tracks.length - 1);
+    ref.read(audioPlayerPositionProvider.notifier).reset();
+    _mediaSessionPositionThrottle.reset();
     state = state.copyWith(
       queue: List<AudioTrack>.from(tracks),
       currentIndex: safeIndex,
       playing: false,
-      position: Duration.zero,
-      duration: Duration.zero,
       clearError: true,
       restoredWithoutPlayback: !autoplay,
     );
@@ -369,6 +421,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   Future<void> seek(Duration position) async {
     try {
       await _player?.seek(position);
+      // Seek não pode esperar a janela de 1 s: o usuário mudou a posição na
+      // hora, a media session tem que refletir isso na hora.
+      _sendMediaSessionPosition(
+        position: position,
+        duration: ref.read(audioPlayerPositionProvider).duration,
+        force: true,
+      );
     } on Object catch (e) {
       _reportTransportFailure('seek', e);
     }
@@ -379,7 +438,8 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     if (player == null) return;
     _markUserPlaybackIntent();
     try {
-      if (state.position > const Duration(seconds: 3) || !state.hasPrevious) {
+      final position = ref.read(audioPlayerPositionProvider).position;
+      if (position > const Duration(seconds: 3) || !state.hasPrevious) {
         await player.seek(Duration.zero);
         return;
       }
@@ -416,7 +476,9 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     } on Object catch (e) {
       _reportTransportFailure('stop', e);
     }
-    state = state.copyWith(playing: false, position: Duration.zero);
+    ref.read(audioPlayerPositionProvider.notifier).reset();
+    _mediaSessionPositionThrottle.reset();
+    state = state.copyWith(playing: false);
   }
 
   /// Encerra o player: para e limpa fila/posição (diferente de [stop]).
@@ -432,6 +494,8 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     }
     _sourceResolver?.revokeAll();
     _mediaSession?.updateTrack(null);
+    ref.read(audioPlayerPositionProvider.notifier).reset();
+    _mediaSessionPositionThrottle.reset();
     state = const AudioPlayerSessionState();
     _persistFocusedAudioId(null);
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
@@ -47,7 +48,7 @@ void main() {
     final state = container.read(audioPlayerSessionProvider);
     expect(state.queue, isEmpty);
     expect(state.playing, isFalse);
-    expect(state.position, Duration.zero);
+    expect(container.read(audioPlayerPositionProvider).position, Duration.zero);
     expect(state.currentTrack, isNull);
   });
 

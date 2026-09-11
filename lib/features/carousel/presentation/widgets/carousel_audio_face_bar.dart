@@ -2,6 +2,7 @@ import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
@@ -33,8 +34,29 @@ class CarouselAudioFaceBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(audioFlagSyncProvider);
-    final session = ref.watch(audioPlayerSessionProvider);
-    final track = _resolveTrack(ref, session.currentTrack);
+    // Campos individuais (não a sessão inteira): esta barra é montada em toda
+    // rota do shell e não pode reconstruir a cada troca de posição — que
+    // agora mora num provider separado (A7).
+    final currentTrack = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.currentTrack),
+    );
+    final errorMessage = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.errorMessage),
+    );
+    final playing = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.playing),
+    );
+    final buffering = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.buffering),
+    );
+    final hasPrevious = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.hasPrevious),
+    );
+    final hasNext = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.hasNext),
+    );
+    final positionState = ref.watch(audioPlayerPositionProvider);
+    final track = _resolveTrack(ref, currentTrack);
     final flags = track == null
         ? const <SavedAudioFlag>[]
         : (ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
@@ -95,7 +117,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                   // terceira linha e o seek não serve para nada parado.
                   // Sem faixa não há o que retentar — `retryCurrent` é no-op
                   // com a fila vazia, então nem mostra o botão.
-                  if (session.errorMessage != null && track != null)
+                  if (errorMessage != null && track != null)
                     Row(
                       children: [
                         Expanded(
@@ -133,8 +155,8 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                     )
                   else if (track != null)
                     AudioSeekBar(
-                      position: session.position,
-                      duration: session.duration,
+                      position: positionState.position,
+                      duration: positionState.duration,
                       onLightBackground: true,
                       compact: true,
                       flags: flags,
@@ -155,10 +177,10 @@ class CarouselAudioFaceBar extends ConsumerWidget {
           ),
           if (track != null)
             AudioTransportControls(
-              playing: session.playing,
-              buffering: session.buffering,
-              hasPrevious: session.hasPrevious,
-              hasNext: session.hasNext,
+              playing: playing,
+              buffering: buffering,
+              hasPrevious: hasPrevious,
+              hasNext: hasNext,
               onLightBackground: true,
               compact: true,
               onPrevious: () {

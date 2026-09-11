@@ -60,8 +60,12 @@ class CarouselChips extends ConsumerWidget {
 
     final pdfItems = ref.watch(carouselLouvoresDisplayProvider);
     final face = ref.watch(playlistMediaFaceProvider);
-    final session = ref.watch(audioPlayerSessionProvider);
-    final hasSession = session.queue.isNotEmpty;
+    // Só isto: a barra é montada em toda rota do shell e não pode reconstruir
+    // a ~5 Hz com o resto do estado da sessão (posição, agora num provider
+    // separado — A7).
+    final hasSession = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
+    );
     final hasAudioPlaylist = _activeHasAudioIds(ref);
     final hasPdf = pdfItems.isNotEmpty;
 

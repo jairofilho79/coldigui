@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _ControllablePlayer extends AudioPlayer {
   final errors = StreamController<PlayerException>.broadcast();
   final indexes = StreamController<int?>.broadcast();
+  final positions = StreamController<Duration>.broadcast();
+  final durations = StreamController<Duration?>.broadcast();
   final setSourcesCalls = <List<AudioSource>>[];
   final pendingSetSources = <Completer<Duration?>>[];
 
@@ -26,6 +29,12 @@ class _ControllablePlayer extends AudioPlayer {
 
   @override
   Stream<int?> get currentIndexStream => indexes.stream;
+
+  @override
+  Stream<Duration> get positionStream => positions.stream;
+
+  @override
+  Stream<Duration?> get durationStream => durations.stream;
 
   @override
   Future<Duration?> setAudioSources(
@@ -72,6 +81,8 @@ class _ControllablePlayer extends AudioPlayer {
   Future<void> dispose() async {
     await errors.close();
     await indexes.close();
+    await positions.close();
+    await durations.close();
   }
 }
 
@@ -385,5 +396,182 @@ void main() {
     expect(container.read(audioPlayerSessionProvider).errorMessage, isNotNull);
 
     await expectLater(notifier.seek(const Duration(seconds: 2)), completes);
+  });
+
+  group('posição em provider próprio (A7)', () {
+    test(
+      'avançar a posição não muda a identidade do estado da sessão',
+      () async {
+        final container = await makeContainer();
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        final before = container.read(audioPlayerSessionProvider);
+
+        player.positions.add(const Duration(milliseconds: 200));
+        await Future<void>.delayed(Duration.zero);
+        player.positions.add(const Duration(milliseconds: 400));
+        await Future<void>.delayed(Duration.zero);
+
+        final after = container.read(audioPlayerSessionProvider);
+        expect(
+          identical(before, after),
+          isTrue,
+          reason:
+              'o positionStream (~5 Hz) não pode mais trocar a identidade '
+              'de AudioPlayerSessionState — só o provider de posição muda',
+        );
+        expect(
+          container.read(audioPlayerPositionProvider).position,
+          const Duration(milliseconds: 400),
+        );
+      },
+    );
+
+    test(
+      'durationStream alimenta o provider de posição, não a sessão',
+      () async {
+        final container = await makeContainer();
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        final before = container.read(audioPlayerSessionProvider);
+        player.durations.add(const Duration(minutes: 3));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          identical(before, container.read(audioPlayerSessionProvider)),
+          isTrue,
+        );
+        expect(
+          container.read(audioPlayerPositionProvider).duration,
+          const Duration(minutes: 3),
+        );
+      },
+    );
+
+    test('nova fila zera o provider de posição', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.positions.add(const Duration(seconds: 10));
+      player.durations.add(const Duration(seconds: 200));
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(audioPlayerPositionProvider).position,
+        const Duration(seconds: 10),
+      );
+
+      await notifier.playQueue([_track('a2')]);
+
+      expect(
+        container.read(audioPlayerPositionProvider).position,
+        Duration.zero,
+        reason: 'faixa nova não pode herdar a posição da faixa anterior',
+      );
+      expect(
+        container.read(audioPlayerPositionProvider).duration,
+        Duration.zero,
+      );
+    });
+
+    test('stop() zera o provider de posição', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.positions.add(const Duration(seconds: 42));
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(audioPlayerPositionProvider).position,
+        const Duration(seconds: 42),
+      );
+
+      await notifier.stop();
+
+      expect(
+        container.read(audioPlayerPositionProvider).position,
+        Duration.zero,
+      );
+    });
+
+    test('close() zera o provider de posição', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.positions.add(const Duration(seconds: 7));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.close();
+
+      expect(
+        container.read(audioPlayerPositionProvider).position,
+        Duration.zero,
+      );
+    });
+
+    test('skipToPrevious volta pro início quando já passou de 3s (lê o '
+        'provider de posição, não mais o estado da sessão)', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1'), _track('a2')], startIndex: 1);
+
+      player.positions.add(const Duration(seconds: 5));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.skipToPrevious();
+
+      expect(
+        container.read(audioPlayerSessionProvider).errorMessage,
+        isNull,
+        reason: 'seek(zero) do duplo de player não estoura',
+      );
+    });
+  });
+
+  group('MediaSessionPositionThrottle', () {
+    test('primeiro shouldSend() sempre manda', () {
+      final throttle = MediaSessionPositionThrottle(now: () => DateTime(2026));
+      expect(throttle.shouldSend(), isTrue);
+    });
+
+    test('dentro de 1s sem force não manda de novo', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(now: () => now);
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(milliseconds: 500));
+      expect(throttle.shouldSend(), isFalse);
+    });
+
+    test('depois de 1s manda de novo', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(now: () => now);
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(seconds: 1));
+      expect(throttle.shouldSend(), isTrue);
+    });
+
+    test('force ignora a janela de 1s', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(now: () => now);
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(milliseconds: 100));
+      expect(throttle.shouldSend(force: true), isTrue);
+    });
+
+    test('reset() faz o próximo shouldSend() mandar na hora', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(now: () => now);
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(milliseconds: 100));
+      throttle.reset();
+      expect(throttle.shouldSend(), isTrue);
+    });
   });
 }

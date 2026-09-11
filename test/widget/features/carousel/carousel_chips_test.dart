@@ -2,6 +2,7 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -1007,5 +1008,83 @@ void main() {
 
       expect(readerActions.navigatedPdfIds, [pdfP2Id]);
     });
+  });
+
+  group('rebuild só com o que usa (A7)', () {
+    testWidgets(
+      'observar só queue.isNotEmpty não reconstrói quando só a posição muda',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioPlayerSessionProvider.overrideWith(
+              _ControllableAudioSession.new,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        var buildCount = 0;
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              home: Consumer(
+                builder: (context, ref, _) {
+                  buildCount++;
+                  ref.watch(
+                    audioPlayerSessionProvider.select(
+                      (s) => s.queue.isNotEmpty,
+                    ),
+                  );
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        final afterMount = buildCount;
+
+        // Só a posição muda: a posição mora num provider separado (A7) e não
+        // pode disparar rebuild de quem só observa `queue.isNotEmpty`.
+        container
+            .read(audioPlayerPositionProvider.notifier)
+            .update(position: const Duration(milliseconds: 200));
+        await tester.pump();
+        container
+            .read(audioPlayerPositionProvider.notifier)
+            .update(position: const Duration(milliseconds: 400));
+        await tester.pump();
+
+        expect(
+          buildCount,
+          afterMount,
+          reason:
+              'a posição mudou 2x e não pode ter reconstruído quem só '
+              'observa queue.isNotEmpty',
+        );
+
+        // Sanidade: uma troca real na seleção que o widget observa continua
+        // reconstruindo.
+        final session =
+            container.read(audioPlayerSessionProvider.notifier)
+                as _ControllableAudioSession;
+        session.emitQueue([
+          AudioTrack(
+            audioId: 'aud-a',
+            r2Key: 'assets/praises/p1/a.mp3',
+            nome: 'A',
+            numero: '001',
+            groupId: 'p1',
+            categoria: 'Áudio',
+            classificacao: 'Coro',
+          ),
+        ]);
+        await tester.pump();
+
+        expect(buildCount, afterMount + 1);
+      },
+    );
   });
 }

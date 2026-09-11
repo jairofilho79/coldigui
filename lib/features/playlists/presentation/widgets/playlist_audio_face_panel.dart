@@ -1,6 +1,7 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
@@ -31,6 +32,8 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
         if (cache[id] != null) cache[id]!,
     ];
     final session = ref.watch(audioPlayerSessionProvider);
+    // A posição mora num provider à parte (A7).
+    final positionState = ref.watch(audioPlayerPositionProvider);
     final currentInPlaylist =
         session.currentTrack != null &&
         playlist.audioIds.contains(session.currentTrack!.audioId);
@@ -82,8 +85,12 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
             ],
             const SizedBox(height: 8),
             AudioSeekBar(
-              position: currentInPlaylist ? session.position : Duration.zero,
-              duration: currentInPlaylist ? session.duration : Duration.zero,
+              position: currentInPlaylist
+                  ? positionState.position
+                  : Duration.zero,
+              duration: currentInPlaylist
+                  ? positionState.duration
+                  : Duration.zero,
               onLightBackground: true,
               flags: active == null
                   ? const []
