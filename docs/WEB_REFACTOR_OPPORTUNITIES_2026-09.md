@@ -1,7 +1,7 @@
 # Oportunidades de melhoria — Web (PLPCG / coldigui)
 
 **Criado em:** 2026-09-02  
-**Branch:** `web/integration` @ `6f5a181` (auditoria) · **Onda 1 executada em 2026-09-03** (seção **H**) · **Onda 2 executada em 2026-09-04** (seção **I**); itens implementados estão marcados ✅/🟡 no próprio bloco.  
+**Branch:** `web/integration` @ `6f5a181` (auditoria) · **Onda 1 executada em 2026-09-03** (seção **H**) · **Onda 2 executada em 2026-09-04** (seção **I**) · **Onda 3 executada em 2026-09-11** (seção **J**); itens implementados estão marcados ✅/🟡 no próprio bloco.  
 **Objetivo:** primeira leva de refatorações para dar sustentação às features grandes que vêm (viewer de gestos, sync de listas, Social, Eventos, plugins, favoritos de material), priorizando a versão web.  
 **Método:** leitura direta do código em cinco frentes (performance web, estabilidade, UX/produtividade, fluxo playlist + áudio + PDF, arquitetura), `flutter analyze` e `flutter test`, e verificação item a item dos backlogs anteriores em `docs/`. Cada achado traz `arquivo:linha`. Onde a consequência não foi reproduzida, está marcado **[inferência]**.
 
@@ -11,12 +11,12 @@ Legenda: **Esforço** S (horas) / M (1–3 dias) / L (semana+). **Conf.** = conf
 
 ## 0. Sinais objetivos da árvore limpa
 
-| Sinal | Na auditoria (`6f5a181`) | Após a onda 1 (2026-09-03) | Após a onda 2 (2026-09-04, `ba3801b`) |
-|---|---|---|---|
-| `flutter analyze` | 1 info (lint em teste) | 1 info (o mesmo) | 1 info (o mesmo) |
-| `flutter test` | **4 falhas** em 798 testes | **0 falhas** em 1076 testes | **0 falhas** em 1503 testes (+ 76 no Worker) |
-| `flutter test --platform chrome test/web` | não medido | verde após `@TestOn('vm')` em `web_index_perf_test.dart` | verde (7) |
-| Cobertura | 171 arquivos de teste; 0 goldens; 0 testes de boot/Isar degradado/auth | +1 teste Chrome de provider (`test/web/pdf_reader_offline_preserved_web_test.dart`); ainda 0 goldens e 0 testes de boot/Isar degradado | testes de modo degradado (Isar indisponível) em playlists, offline, deep link e áudio; Worker com D1 fake (76); ainda 0 goldens |
+| Sinal | Na auditoria (`6f5a181`) | Após a onda 1 (2026-09-03) | Após a onda 2 (2026-09-04, `ba3801b`) | Após a onda 3 (2026-09-11, `442eb66`) |
+|---|---|---|---|---|
+| `flutter analyze` | 1 info (lint em teste) | 1 info (o mesmo) | 1 info (o mesmo) | **0** |
+| `flutter test` | **4 falhas** em 798 testes | **0 falhas** em 1076 testes | **0 falhas** em 1503 testes (+ 76 no Worker) | **0 falhas** em 1832 testes (+ 84 no Worker, `tsc` no CI) |
+| `flutter test --platform chrome test/web` | não medido | verde após `@TestOn('vm')` em `web_index_perf_test.dart` | verde (7) | não re-executado nesta onda |
+| Cobertura | 171 arquivos de teste; 0 goldens; 0 testes de boot/Isar degradado/auth | +1 teste Chrome de provider (`test/web/pdf_reader_offline_preserved_web_test.dart`); ainda 0 goldens e 0 testes de boot/Isar degradado | testes de modo degradado (Isar indisponível) em playlists, offline, deep link e áudio; Worker com D1 fake (76); ainda 0 goldens | testes de boot com Isar abrindo (hidratação, manifest), troca de conta com Isar real, editor da lista ativa com Isar real, Worker social/audio-flags com D1 fake (84); ainda 0 goldens |
 
 As 4 falhas têm a mesma causa: `PdfSourceResolver` aceita `apiBaseUrl` no construtor mas o ignora, porque `_joinApiUrl` passou a chamar `AssetBaseUrlResolver.joinAssetUrl` (global) no commit `c85c567`. Ver item **B0**.
 
@@ -69,11 +69,13 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `lib/features/carousel/presentation/utils/build_carousel_metadata_map.dart:13-23`, `carousel_louvores_provider.dart:43-48`, `playlists_provider.dart:75-81,449` ("Lookup O(n)").
 - **Fix:** `Provider<Map<String, Louvor>>` por `pdfId` derivado do manifest (1× por manifest).
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `19e49e8`, `4175b9c`: `louvoresByPdfIdProvider` (mapa `pdfId → Louvor` construído uma vez por manifest); `buildCarouselMetadataMap` e `_buildLabelMap` apagados; `findLouvorByPdfId` O(1).
 
 ### A5. Cada card visível dispara uma query Isar síncrona para o badge offline
 - **Evidência:** `lib/features/catalog/presentation/widgets/louvor_group_card.dart:291-293` — `FutureProvider.autoDispose.family` por `pdfId` → `findFirst()` síncrono.
 - **Fix:** provider único `Map<String,bool>` atualizado por `upsert/remove/clearAll`; cards usam `select`.
 - **Esforço:** S–M · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `4fbd4a7`: `offlineAvailabilityMapProvider` (mapa único lido de forma síncrona do índice) invalidado por `offlineIndexRevisionProvider` (bump a cada escrita do datasource); o card usa `select`; o `FutureProvider.family` por card saiu.
 
 ### A6. Cálculo de quota na web itera toda a Cache Storage, até 3× por PDF baixado
 - **Evidência:** `lib/features/offline/domain/usecases/fetch_and_store_pdf.dart:57-84` chama `totalCachedBytes()` 3×; na web `pdf_storage_web.dart:78-90` materializa cada blob. `sumFileSizes()` via índice Isar já existe (`offline_pdf_local_datasource.dart:97-100`) e não é usado.
@@ -84,11 +86,13 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `lib/features/audio_player/presentation/providers/audio_player_session_provider.dart:105-111` — `positionStream.listen((p) => state = state.copyWith(position: p))`; `carousel_chips.dart:48`, `audio_player_screen.dart:28` fazem `watch` total.
 - **Fix:** posição em provider próprio; `select` nos consumidores; throttle do `setPositionState` a 1 Hz.
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `a0f841b`: `audioPlayerPositionProvider` separado da sessão; `CarouselChips`/`CarouselAudioFaceBar`/player observam com `select`; media session a 1 Hz (`MediaSessionPositionThrottle`).
 
 ### A8. Boot serializado: Isar (WASM + OPFS) gate-a o app antes do manifest começar a baixar
 - **Evidência:** `lib/bootstrap_app.dart:17-31`; `louvores_manifest_provider.dart:26-27` espera `isarAvailableProvider`.
 - **Fix:** iniciar fetch do `/checksum`/manifest em `main()` guardando o `Future`; montar `ColdiguiApp` já no `loading` do Isar (o `StorageRequiredGate` já cobre as áreas que exigem storage).
 - **Esforço:** M · **Conf.:** média-alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `a165b10`, `7d0edaa`, `98f8139`: `IsarStatus {opening, available, unavailable}`; `ColdiguiApp` monta durante a abertura do Isar; `StorageRequiredGate` mostra «Preparando armazenamento…»; o `/checksum` sai em paralelo à abertura e o checksum do boot só é gravado quando o manifest realmente entrou; a hidratação da sessão espera o Isar (`awaitIsarSettled`) e nunca apaga a lista ativa sem storage.
 
 ### A9. PWA sem cache de shell: entrypoints `no-cache` e SW do Flutter 3.35 se desregistra
 - **Evidência:** `web/_headers:8-27`; `build/web/flutter_service_worker.js` (stub que faz `unregister`). A Fase C da doc está marcada como "immutable", mas foi revertida (`e99558b`).
@@ -100,16 +104,19 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `home_search_provider.dart:71` (`compute` = no-op na web); `search_louvor_by_number_or_text.dart:17-19,60-65` normaliza o `numero` de 4600 louvores por query.
 - **Fix:** `numeroNorm` pré-computado; índice em memória 1× por manifest; chunks com yield ou Web Worker se a medição justificar.
 - **Esforço:** M · **Conf.:** média (falta medição)
+- 🟡 **Fatia 1 (2026-09-11, onda 3)** — `2f19870`: `PlpcgSearchIndex` construído uma vez por manifest (`numeroNorm` pré-computado); a busca da Home roda síncrona sobre o índice, sem `compute` (no-op na web) nem cópia do catálogo por tecla. A Biblioteca continua no pipeline antigo.
 
 ### A11. `pdfium.wasm` (5,2 MB) prefetchado logo após o 1º frame, competindo com o manifest
 - **Evidência:** `lib/features/pdf_reader/data/pdfrx_bootstrap.dart:24-28`; `connectivity_results.dart:16-24` trata web como não-medida.
 - **Fix:** agendar só depois do manifest em `data` + N s ocioso; respeitar `saveData`/`effectiveType`; ou disparar no primeiro hover num card.
 - **Esforço:** S · **Conf.:** média
+- ✅ **Implementado (2026-09-11, onda 3)** — `98dbc45`: `PdfrxIdlePreloader` só agenda o `pdfium.wasm` depois de o manifest ter valor ou erro **e** 3 s de folga (`Timer` cancelado no dispose); respeita `saveData` na web quando existir.
 
 ### A12. Busca Coldigom sem cancelamento/memoização; warmup N+1 serial no boot
 - **Evidência:** `home_search_provider.dart:187-190`; `coldigom_praise_cache_warmup.dart:21-49` (`for … await fetchDetail`), chamado em `playlist_session_hydrate.dart:70-73`.
 - **Fix:** `CancelToken` por geração; LRU `(query,page)`; `Future.wait` com concorrência 3–4 e timeout.
 - **Esforço:** S–M · **Conf.:** média-alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `2f19870`, `f886ccb`, `702e1a3`, `d7060cf`: `CatalogSource.search` com `SearchCancellation` → `CancelToken`; `homeRemoteSearchProvider` (`FutureProvider.autoDispose.family` por `(query, página)`, `retry: null`, `keepAlive` de 10 min no sucesso); warmup do boot com concorrência 3.
 
 ### A13. Leitor sem teto de raster/memória na web × LRU de 3 sessões
 - **Evidência:** `pdf_reader_pdf_view.dart:364-385` (`PdfViewerParams` sem `getPageRenderingScale`/`maxImageBytesCachedOnMemory`); `pdf_session_cache.dart:7`.
@@ -198,6 +205,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Fix:** persistir `lastSyncedSub`; tratar ausência remota como exclusão (ou tombstones do servidor); estratégia para 409.
 - **Esforço:** M · **Conf.:** média (semântica do `GET /api/playlists` não verificada)
 - ✅ **Implementado (2026-09-04, onda 2)** — `1b555c3`, `262da03`: `_lastSyncedSub` persistido (só remarca tudo quando o `sub` muda), 409 → `PlaylistConflictException` com LWW por `updatedAt` e re-push único, status `conflict` visível no banner, tombstones com no máximo 3 tentativas por boot. Exclusão remota (ausência = apagar) continua fora: depende de decisão (B9/B18).
+- ✅ **Fechado (2026-09-11, onda 3)** — `a81bc1e`, `134e00b`, `efa863b`, `a81eec4`: o Worker expõe tombstones (`GET …?includeDeleted=1`, `deletedAt` em toda linha); o cliente apaga localmente a lista removida em outro aparelho (a menos que tenha edição pendente mais nova, que a ressuscita); 409 com remoto mais novo guarda as edições locais numa «(cópia local)» com status `conflict`; `syncAfterLogin` retentado por «Tentar novamente» e sync ao voltar a rede; boot espera o Isar.
 
 ### B10. `id_token` Google (1h) sem refresh e sem tratamento de 401 em lugar nenhum
 - **Evidência:** `auth_user.dart:23`; Bearer cru em `playlist_remote_datasource.dart:12-13`, `audio_flag_remote_datasource.dart:12-13`, `social_remote_datasource.dart:13-14`; zero interceptors no projeto.
@@ -253,6 +261,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 ### B18. Troca de conta em tablet compartilhado mistura dados entre usuários
 - **Evidência:** `signOut` só limpa sessão (`auth_state_provider.dart:113-115`); nenhum registro Isar tem `ownerSub`; `markAllSavedPendingPush()` sobe tudo para a conta seguinte.
 - **Esforço:** M · **Conf.:** média
+- ✅ **Implementado (2026-09-11, onda 3)** — `b37435b`, `a6b6982`, `44cec66`: `Playlist.ownerSub`/`AudioFlag.ownerSub`; `adoptForSub` (só sem dono ou do mesmo dono) substitui `markAllSavedPendingPush`; na troca de conta `purgeSyncedOwnedBy(anterior)` apaga localmente o que já está na nuvem da conta anterior (pendentes ficam e não entram no push da nova); `getPendingPush`/`getTombstones` filtrados por dono.
 
 ---
 
@@ -356,17 +365,20 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Esforço:** L · **Conf.:** alta
 - 🟡 **Fatia 1 implementada (2026-09-03)** — `f66c6ce`, `ec3ae57`, `7cc31cd`, `09a6767`: `Playlist.items` (Isar, migração lazy na leitura), `SavedPlaylist.items` como fonte de verdade com `pdfIds`/`audioIds` derivados por `materialIdKindOf` (pdf/cifra/desconhecido → face PDF; áudio → face áudio), toda mutação sobre `items`, `updatePlaylist(pdfIds:)` preserva a posição relativa dos áudios (regra de slots documentada), dedupe por `items`; `RemotePlaylist` envia `schemaVersion: 2` + `items` + listas derivadas e lê v1/v2. **O Worker ainda não guarda `items`** (todo pull achata a ordem) — próxima onda: coluna `items` no D1 + `kind` junto do id + `PlaylistMediaFace` como filtro.
 - 🟡 **Fatia 2 (2026-09-04, onda 2)** — `2523836`, `f413bee`, `12d296b`, `a5a71a5`, `b31d1ae`, `303e99a`, `6cd3e4e`: `PlaylistEntry{id, kind}` é a fonte de verdade (`itemKinds` no Isar com migração lazy), wire v2 com `items` como objetos, **Worker persiste `items`** (migration `0008`, kinds preservados em PUT v1), URL de compartilhamento com `shareitems` (ordem e tipo), testes do Worker com D1 fake e job de CI. Falta (D3): carousel como view da lista e a face como filtro puro; `social/handlers.ts` ainda v1; encurtador de link (D7).
+- ✅ **Fechado (2026-09-11, onda 3)** — `ec5f50e`, `2cc5472`, `d1fcbe7`: rota social responde v2 (`items`) e o import de lista pública leva ordem, tipo e áudios (`PublicPlaylist.entries`); com D3, a lista ativa é a única persistência. Falta só o encurtador (D7).
 
 ### D3. Carousel (Isar) e playlist ativa são duas persistências reconciliadas à mão; louvor repetido é impossível
 - **Evidência:** `carousel_entry.dart:12-13` (`@Index(unique: true) pdfId`); `playlists_provider.dart:491-572` (`resolveActivePlaylistFromCarousel`, 80 linhas, chega a criar rascunho novo); `active_playlist_sync.dart`, `ensure_playlist_for_louvor.dart`, `load_playlist_into_carousel.dart` (cópias nos dois sentidos); `removePdf` na tela de listas não toca o carousel.
 - **Proposta:** carousel = view derivada de `activePlaylist.entries`; `CarouselEntry` some; `carouselFocusedIndex` vira `currentIndex` da lista ativa (o mesmo campo que UC-16 quer sincronizar).
 - **Esforço:** L (destrava D2, D5, D6) · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `4175b9c`, `9e764d3`, `c68b113`, `914407e`, `a4b326e`, `793779e`: `SavedPlaylist.entries` da lista ativa é a única seleção; `ActivePlaylistEditor` (add/remove/replace/reorder por chave de ocorrência `id`/`id#n`, `activate`, `detach`); `carouselItemsProvider`/`audioFaceItemsProvider` como views filtradas por face; foco por chave; leitor navega por chave; louvor repetido permitido («Adicionar de novo»); `CarouselEntry` só na migração única do boot; adaptadores e `CarouselRepository` apagados.
 
 ### D4. Fila do player disparada pela busca é "materiais do mesmo louvor", não a reunião
 - **Evidência:** `louvor_material_sheet.dart:295-299`, `coldigom_material_sheet.dart:358-362`, `louvor_group_card.dart:85-90` — `queue: group.audioTracks`; só `playlist_list_tile.dart:420-434` monta com `playlist.audioIds`; `playlist_audio_face_panel.dart:110` — `hasPrevious: true` hard-coded.
 - **Efeito:** "próximo" na barra pula para "Playback"/"MIDI" do mesmo louvor, não para o 412.
 - **Proposta:** fila = entradas de áudio da lista ativa; materiais alternativos ficam no swap.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `5689cb7`: `activeListAudioQueue`/`queueForTrack`: se a faixa está na lista ativa, a fila é a lista; senão, os materiais do grupo; `hasPrevious`/`hasNext` vêm da sessão.
 
 ### D5. No leitor, a face áudio tira as setas de louvor, a face PDF esconde o player, e fullscreen esconde os dois
 - **Evidência:** `carousel_chips.dart:53-62` (face áudio substitui a barra com setas); `carousel_audio_face_bar.dart:110-155` (sem anterior/próximo louvor); `shell_scaffold.dart:78-84` (`hideChrome` remove a barra inteira).
@@ -378,6 +390,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `playlist_list_tile.dart:250-260,363-376`; `app_pt.arb:370-371`. Import por deep link faz o oposto: substitui sem perguntar (`sync_deep_link_state.dart:43-44`).
 - **Proposta:** toque na lista salva = vira ativa, snackbar "Lista X ativa · Desfazer"; import com prévia "[Abrir agora] [Só salvar] [Adicionar à ativa]".
 - **Esforço:** S–M · **Conf.:** alta
+- ✅ **Implementado (2026-09-11, onda 3)** — `8a9c7f7`, `119a0eb`: «Tornar lista ativa» sem modal, snackbar com «Desfazer» (só quando havia outra ativa; nunca derruba uma ativação mais nova; não toca em `ref` depois do unmount); import por URL sem confirmação (paridade com o deep link); chaves `playlistLoadConfirm*` apagadas.
 
 ### D7. Share/import: só ids, sem material/índice/tom; importar cria lista salva duplicada a cada clique
 - **Evidência:** `playlist_share_url_builder.dart:40-49`; `pdf_id_codec.dart:8-9` (base64 do path, ~60–90 chars por id); `import_shared_playlist_from_url.dart:31-41` (`create(salva: true)` sempre); dedupe só por fingerprint na sessão (`deep_link_listener.dart:76-78`).
@@ -417,6 +430,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Esforço:** L (dividível) · **Risco:** médio · **Conf.:** alta
 - 🟡 **Fatia 1 implementada (2026-09-03)** — `55bd941`, `fc90988`, `1e47bf9`: `MaterialKind {pdf, chord, audio, youtube, gesture, unknown}` substitui `MaterialIdKind` (`.txt`/`.gest` → `gesture`); `sealed class CatalogMaterial` (`PdfMaterial`, `ChordMaterialRef`, `AudioMaterial`, `YoutubeMaterialRef`) e `LouvorGroup.materials` derivado (PDFs por seção, cifras, áudios, YouTube); adapter Coldigom mapeia `type` num único switch; `LouvorMaterialIcons.forKind` (API por string `@Deprecated`). Falta (próxima onda): migrar `LouvorGroup`/carousel/share para a lista unificada e renomear `pdfId` → `materialId` nos contratos.
 - 🟡 **Fatia 2 (2026-09-04, onda 2)** — `44c0948`, `f272c4f`, `c50acf9`: `LouvorGroup` guarda `sections` + `extras: List<CatalogMaterial>` (getters tipados derivados); porta `CatalogSource` (`PlpcgCatalogSource`, `ColdigomCatalogSource`, `CompositeCatalogSource`) e `resolveCatalogMaterial`; desvios de cifra/áudio do tile e do leitor passam pelo `openMaterialProvider`. Falta: renomear `pdfId` → `materialId` no carousel (junto de D3).
+- ✅ **Fechado (2026-09-11, onda 3)** — `c68b113`, `793779e`: `pdfId → materialId` nos contratos do carousel e do leitor; `CarouselItem{materialId, kind, index, key}`; `CarouselReaderPosition` com chaves.
 
 ### E2. "Abrir material" duplicado em 3 lugares + 3 openers distintos
 - **Evidência:** `playlist_list_tile.dart:282-292` e `reader_carousel_actions_provider.dart:44-51` (bloco idêntico de cifra); `open_louvor_in_reader.dart`, `open_chord_in_reader.dart`, `open_youtube_material.dart`; escada de 4 `on XException` copiada em `open_carousel_pdf_in_reader.dart:38-55` e `playlist_list_tile.dart:337-352`; 95 linhas de orquestração dentro de um `State` (`playlist_list_tile.dart:262-356`).
@@ -429,6 +443,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Refactor:** porta `CatalogSource {search, browse, getGroup, getMaterial}` com duas implementações; `LouvorGroup.source` explícito; `MaterialCacheRepository` único keyed por `materialId`; um `MaterialSheet(group)` com bloco de metadados opcional; `HomeSearchState` imutável num `AsyncNotifier`.
 - **Esforço:** L (dividível em M + M) · **Conf.:** alta
 - 🟡 **Fatia 1 (2026-09-04, onda 2)** — `f272c4f`, `16c829d`, `5b3f1cd`, `2433919`, `a453778`: porta `CatalogSource` (PLPCG + Coldigom + composta) para leitura por id; `MaterialSheet` único para os dois acervos (cabeçalho Coldigom quando há meta; sem abas por tipo; cifra em erro mostra «indisponível · tentar de novo»); card e botão de troca de material sem ramos `isColdigom`; `LouvorMaterialIcons.forCategory` removido. Falta (fatia 2): `HomeSearchState` imutável em `AsyncNotifier` com cancelamento/memo, `CatalogSource.search`, e tirar os 4 caches por tipo da presentation.
+- ✅ **Fechado (2026-09-11, onda 3)** — `d7060cf`, `40fceac`, `a4bc52f`, `73f7392`: `HomeSearchState` imutável (`homeSearchStateProvider` = local síncrono + remoto memoizado); `CatalogSource.searchLocal/search`; caches Coldigom gravados no data (`ColdigomCacheWriter`) e lidos na presentation só pelo `CatalogMaterialLookup`; `group_with_coldigom_meta` apagado; `flutter_riverpod/legacy` fora de `features/catalog`.
 
 ### E4. God files
 | Arquivo | Linhas | Split |
@@ -465,6 +480,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Refactor:** `AppLogger.of('feature')`, `installErrorHandlers(reporter)` com `ErrorReporter` port (no-op agora, Sentry web depois).
 - **Esforço:** S · **Conf.:** alta
 - 🟡 **Fatia 1 (2026-09-04, onda 2)** — `b2d556e`: `AppLogger.of('feature')`, porta `ErrorReporter` (no-op) e `installErrorHandlers` em `main.dart` (`FlutterError.onError`, `PlatformDispatcher.onError`, `runZonedGuarded`). Falta: migrar os `debugPrint('[x]')` existentes e ligar um reporter real.
+- 🟡 **Fatia 2 (2026-09-11, onda 3)** — os arquivos novos da onda usam `AppLogger.of('feature')`; continuam `debugPrint` legados e nenhum reporter real.
 
 ### E10. Infra de teste: sem fakes compartilhados, sem `pumpApp`, sem goldens, smoke web trivial
 - **Evidência:** 48 fakes duplicados; `test/helpers/` só com 2 arquivos; cada widget test monta `MaterialApp` à mão; `test/web/chrome_smoke_test.dart` só checa `kIsWeb`; `flutter test -j 1` por causa do binário Isar.
@@ -661,3 +677,53 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 3. **E3 fatia 2:** `HomeSearchState` imutável em `AsyncNotifier` com cancelamento e memo; `CatalogSource.search`; tirar os 4 caches por tipo da presentation.
 4. **Performance web (A4–A14):** mapas por mutação e query por card, player a 5 Hz, boot serializado e `pdfium.wasm` competindo com o manifest, teto de raster, cifra re-layoutando; A9 depende de decisão de CDN.
 5. **UX de culto (C4–C16, D4–D6):** estado vazio da Home, ícones de material no card, split view em tela larga, fit/fullscreen/duas páginas no leitor, autoscroll da cifra, fila do player = lista ativa, mini-player persistente.
+
+---
+
+## J. Onda 3 executada (2026-09-04 → 2026-09-11)
+
+**Escopo:** a "próxima onda recomendada" da seção I.4, aprovada pelo dono do produto ("onda 3"): fechar o sync de ponta a ponta, D3 (carousel como view da lista ativa), E3 fatia 2 (busca da Home pela porta) e as sobras da onda 2 mais o boot web (A7, A8, A11). Spec em `docs/superpowers/specs/2026-09-04-onda3-web-design.md`; plano em `docs/superpowers/plans/2026-09-04-onda3-web.md` (17 tarefas). Mesmo método das ondas anteriores: fase 1 com 10 tarefas em worktrees paralelos, fase 2 com 4 (widgets do carousel, leitor, Home, código morto), T14 e T16 em sequência; cada tarefa com revisão de especificação + qualidade e rodadas de correção antes do cherry-pick; revisão da branch inteira ao final e uma onda única de correções. A sessão caiu duas vezes no meio (limite de uso); os worktrees preservaram o trabalho e os agentes foram retomados.
+
+### J.1 O que entrou, por item
+
+| Item | Commits | Resultado |
+|---|---|---|
+| Sync: tombstones, cópia de conflito, dono por conta (B9, B18) | `a81bc1e`, `134e00b`, `efa863b`, `b37435b`, `a81eec4`, `a6b6982`, `391fbdf` | Worker expõe tombstones (`includeDeleted=1`, `deletedAt`); lista apagada em outro aparelho some daqui; 409 com remoto mais novo guarda «(cópia local)»; `ownerSub` em `Playlist`/`AudioFlag`; troca de conta purga o que já está na nuvem da conta anterior e adota só o sem dono; `getPendingPush`/`getTombstones` por dono; retentativa do pós-login, sync ao voltar a rede e ao abrir o Isar; **sync recarrega a tela quando move linhas** |
+| Marcadores de áudio no mesmo formato | `44cec66`, `955fd90`, `7f1a5ee`, `0a6c1bc` | pull isolado, 409 LWW, tombstones com cap, `sub` persistido, erro visível no player, dono, espera do Isar |
+| Rota social v2 + import por entradas | `ec5f50e`, `2cc5472`, `d1fcbe7` | `items` na rota pública; `PublicPlaylist.entries`; import leva ordem, tipo e áudios |
+| Worker CI | `cde7d4b` | `tsc --noEmit` e testes por glob (84) |
+| D3 — lista ativa única | `4175b9c`, `9e764d3`, `c68b113`, `914407e`, `a4b326e`, `793779e`, `df4acb8`, `899990c` | `ActivePlaylistEditor`; views por face; chave por ocorrência; louvor repetido; migração única do carousel Isar; leitor/chips/seleção por chave; adaptadores apagados |
+| D4 + D6 | `5689cb7`, `8a9c7f7`, `119a0eb` | fila = lista ativa quando a faixa está nela; «Tornar lista ativa» sem modal com desfazer |
+| E3 fatia 2 + A12 + A10 fatia 1 | `2f19870`, `73f7392`, `f886ccb`, `40fceac`, `702e1a3`, `d7060cf`, `a4bc52f`, `cf69925`, `4c5e2c2` | `CatalogSource.searchLocal/search`; índice PLPCG por manifest; cancelamento e memo Coldigom; `HomeSearchState` imutável; caches gravados no data e lidos pelo `CatalogMaterialLookup`; DI de rede separado dos caches |
+| A4, A5, A7 | `19e49e8`, `4fbd4a7`, `a0f841b` | mapa por manifest; badge offline por mapa único; posição do player em provider próprio |
+| A8 + A11 | `a165b10`, `98dbc45`, `7d0edaa`, `98f8139`, `6c9c449`, `442eb66` | app monta durante a abertura do Isar; manifest começa antes; `pdfium.wasm` depois do manifest; hidratação e adição à lista esperam o Isar |
+| Sobras da onda 2 | `88b5967`, `09815ae`, `d0cdef0`, `59d3326`, `5c496c7`, `cf23728`, `089dd85`, `4289528`, `9f34f7f`, `5fb02c9`, `dc7640e`, `32178dd`, `114e9bf` | reconcile pulado com índice muito menor que o disco; `.tmp` sobrevive ao stall e só é emendado se o pacote é o mesmo; refresh transitório não expira a sessão; cifra apagada vira marcador negativo; mensagens de PDF pelo l10n; share só com nome avisa; código morto e ciclos; paginador da Biblioteca; `CatalogFilterState` no domínio; leaflet |
+
+### J.2 Decisões tomadas durante a execução (para revisar)
+
+- **Exclusão remota só por tombstone explícito** (`includeDeleted=1`), nunca por ausência; a local com edição pendente mais nova que o `deletedAt` ressuscita a lista.
+- **409 com remoto mais novo não descarta a edição local:** vira lista nova «X (cópia local)» com status `conflict`, que só sobe se o usuário a editar. `conflicts` não conta as cópias (o banner mostra a linha própria).
+- **Troca de conta apaga localmente as listas/marcadores `synced` da conta anterior** (estão na nuvem dela); pendentes e rascunhos ficam e não entram no push da conta nova. Listas criadas sem login continuam sem dono até o primeiro push.
+- **Identidade de entrada = posição**; chave por ocorrência (`id`, `id#1`, …) para foco, chips e mutações. Adição rápida continua idempotente; «Adicionar de novo» repete.
+- **Lista salva esvaziada fica vazia** (não vira tombstone); rascunho esvaziado é apagado.
+- **«Tornar lista ativa» sem confirmação** (nada é destruído); «Desfazer» só quando havia outra ativa e nunca derruba uma ativação mais nova.
+- **Boot:** o app monta com o Isar abrindo; quem precisa do banco espera (`awaitIsarSettled`) em vez de concluir «indisponível»; o checksum do boot só é gravado quando o manifest realmente entrou.
+- **Busca remota da Home com `ref.read` da fonte** (o repositório Coldigom grava os caches que recompõem a fonte — `watch` faria laço).
+- **Retomada de ZIP** exige o mesmo `content-length`/`ETag` no HEAD e assinatura `PK` no `.tmp` montado.
+
+### J.3 Pendências conhecidas (não bloqueiam)
+
+- **Sync:** `includeDeleted=1` cresce sem poda; marcadores em `conflict` não têm caminho de recuperação (o remoto vence); listas ainda ownerless até o primeiro push; teste de troca de modo (PLPCG ↔ Coldigom) no `libraryLastGoodResultsProvider`.
+- **Lista ativa:** rótulos Coldigom das listas salvas só aparecem num `_reload` posterior ao warmup; `_carouselItemFor` do tile duplica o enriquecimento; `EmptyCarouselException` mora em `playlists/domain` mas só o leaflet lança; `_noLabel` duplicado nos dois use cases do leaflet; seguir o áudio foca a primeira ocorrência.
+- **Busca:** `CatalogQuery.pageSize` não é enviado; `PlpcgCatalogSource` guarda `catalog` e `index.louvores`; memo sem teto; `CatalogFilterState` sem `==`.
+- **Offline:** badge por índice (sem validar disco) até o primeiro abrir; ETag da retomada só dentro da mesma chamada de `download()`; `content-length` confiado.
+- **Boot:** testes que constroem `playlistsProvider` sem override do Isar chamam o opener real (pinar `isarOpenerProvider`); `_reload` sem guarda de geração.
+- **Sobras menores:** 18 chaves ARB órfãs pré-existentes; `tsconfig` do Worker não cobre os testes; `readerCarouselPositionProvider` não é autoDispose.
+- **Deploy:** nenhuma migration nova; o Worker publicado (`22c480e5`) já responde v1 da rota social — publicar o Worker novo antes do web app para que o import social leve os áudios.
+
+### J.4 Próxima onda recomendada
+
+1. **UX de culto (C4–C16, D5):** mini-player persistente e independente da face (D5), split view em tela larga (C7), fit/fullscreen/duas páginas no leitor (C8), autoscroll da cifra (C9), estado vazio da Home (C4), ícones de material no card (C5).
+2. **D7/D8:** encurtador de link e folheto com entradas de áudio.
+3. **Performance restante:** A6 (quota web), A9 (PWA shell cache — depende de decisão de CDN), A13 (teto de raster), A14 (cifra), A10 fatia 2 (Biblioteca sobre o índice).
+4. **Arquitetura:** E4 (god files), E6 (feature flags), E8 (`Failure`/`Result`), E10 (fakes compartilhados, goldens), E12/E13.
