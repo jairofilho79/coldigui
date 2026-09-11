@@ -1,6 +1,9 @@
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
 import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
@@ -10,6 +13,7 @@ import 'package:coldigui/features/chords/presentation/providers/chord_autoscroll
 import 'package:coldigui/features/chords/presentation/providers/chord_reader_mode_provider.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,11 +24,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _r2Key = 'assets/praises/p1/m1.chord';
 const _r2KeyB = 'assets/praises/p2/m2.chord';
 
+const _carouselItems = <CarouselItem>[
+  CarouselItem(
+    materialId: 'x',
+    kind: MaterialKind.pdf,
+    index: 0,
+    key: 'x',
+    numero: '1',
+    nome: 'Louvor Teste',
+    categoria: 'c',
+    classificacao: 'Col',
+  ),
+];
+
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
   Map<String, String>? queryParams,
   ChordProSong? songOverride,
+  List<CarouselItem>? carouselItems,
 }) async {
   SharedPreferences.setMockInitialValues(const {});
   final prefs = await SharedPreferences.getInstance();
@@ -41,6 +59,8 @@ Future<SharedPreferences> _pump(
         chordSongProvider.overrideWith(
           (ref, key) async => available ? song : null,
         ),
+        if (carouselItems != null)
+          carouselItemsProvider.overrideWithValue(carouselItems),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -509,6 +529,49 @@ void main() {
       await tester.pump();
 
       expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+  });
+
+  group('split view (C7)', () {
+    testWidgets('tela larga mostra o painel com a lista ativa', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, carouselItems: _carouselItems);
+
+      expect(find.byType(ActiveListPanel), findsOneWidget);
+      expect(find.textContaining('Louvor Teste'), findsOneWidget);
+    });
+
+    testWidgets('tela estreita esconde o painel', (tester) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, carouselItems: _carouselItems);
+
+      expect(find.byType(ActiveListPanel), findsNothing);
+    });
+
+    testWidgets('botão do painel alterna readerSidePanelOpenProvider', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, carouselItems: _carouselItems);
+      expect(find.byType(ActiveListPanel), findsOneWidget);
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      await tester.tap(find.byTooltip(l10n.readerSidePanelHideTooltip));
+      await tester.pumpAndSettle();
+
+      final container = _containerOf(tester);
+      expect(container.read(readerSidePanelOpenProvider), isFalse);
+      expect(find.byType(ActiveListPanel), findsNothing);
+      expect(find.byTooltip(l10n.readerSidePanelShowTooltip), findsOneWidget);
     });
   });
 }
