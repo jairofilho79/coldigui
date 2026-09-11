@@ -55,12 +55,15 @@ class LeafletDocument {
     return LeafletDocument(
       generatedAt: generatedAt ?? DateTime.now(),
       entries: [
-        for (var i = 0; i < pdfIds.length; i++)
-          LeafletEntry(
-            index: i + 1,
-            numero: labelOf(pdfIds[i])?.numero ?? '',
-            nome: labelOf(pdfIds[i])?.nome ?? pdfIds[i],
-          ),
+        for (final (i, id) in pdfIds.indexed)
+          switch (labelOf(id)) {
+            final label? => LeafletEntry(
+              index: i + 1,
+              numero: label.numero,
+              nome: label.nome,
+            ),
+            null => LeafletEntry(index: i + 1, numero: '', nome: id),
+          },
       ],
     );
   }
