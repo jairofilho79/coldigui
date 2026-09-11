@@ -1,3 +1,4 @@
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
@@ -14,7 +15,6 @@ import 'package:coldigui/features/audio_player/presentation/widgets/audio_transp
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_web_platform_hint.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -244,7 +244,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                   ],
                 ],
               ),
-              if (kIsWeb)
+              if (ref.watch(platformCapabilitiesProvider).isWeb)
                 AudioWebPlatformHint(
                   message: isIosWebStandalonePwa
                       ? l10n.audioWebIosPwaNotice

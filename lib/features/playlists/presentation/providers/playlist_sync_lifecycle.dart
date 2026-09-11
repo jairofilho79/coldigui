@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import 'playlist_sync_provider.dart';
 
 /// Dispara sync ao voltar ao foreground / online (debounce 30s).
@@ -51,7 +51,7 @@ mixin PlaylistSyncLifecycleMixin<T extends ConsumerStatefulWidget>
   @override
   void didChangeMetrics() {
     // Web: retomada de aba às vezes só dispara metrics; sync debounced.
-    if (kIsWeb) {
+    if (ref.read(platformCapabilitiesProvider).isWeb) {
       schedulePlaylistSync(debounce: const Duration(seconds: 30));
     }
   }

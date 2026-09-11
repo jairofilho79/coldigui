@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../data/audio_media_session.dart';
@@ -225,7 +226,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   @override
   AudioPlayerSessionState build() {
     _playerFactory = ref.read(audioSessionPlayerFactoryProvider);
-    if (kIsWeb) {
+    if (ref.read(platformCapabilitiesProvider).isWeb) {
       _sourceResolver = ref.read(webAudioSourceResolverProvider);
       _mediaSession = ref.read(audioMediaSessionControllerProvider);
     }
@@ -257,7 +258,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   }
 
   void _ensureMediaSessionAttached() {
-    if (!kIsWeb || _mediaSessionAttached || _mediaSession == null) return;
+    if (ref.read(platformCapabilitiesProvider).supportsBackgroundAudio ||
+        _mediaSessionAttached ||
+        _mediaSession == null) {
+      return;
+    }
     _mediaSession!.attach(
       callbacks: (
         onPlay: playPause,
@@ -315,7 +320,8 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
     try {
       final player = _ensurePlayer;
-      if (kIsWeb && autoplay) {
+      if (ref.read(platformCapabilitiesProvider).needsUserGestureForAudio &&
+          autoplay) {
         await unlockWebAudioIfNeeded(
           player,
           immediateUrl: AudioTrackUrl.fetchUrlForTrack(tracks[safeIndex]),
@@ -352,7 +358,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         await player.setAudioSources(
           sources,
           initialIndex: safeIndex,
-          preload: autoplay && !kIsWeb,
+          preload: autoplay && !ref.read(platformCapabilitiesProvider).isWeb,
         );
       } finally {
         _sourcesInFlight--;

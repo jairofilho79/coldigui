@@ -1,3 +1,4 @@
+import 'package:coldigui/core/platform/platform_capabilities.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
@@ -152,7 +153,7 @@ class _SearchBarState extends State<SearchBar> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   autofocus: shouldAutofocusSearch(
-                    isWeb: kIsWeb,
+                    isWeb: currentPlatformCapabilities().isWeb,
                     platform: defaultTargetPlatform,
                   ),
                   textInputAction: TextInputAction.search,

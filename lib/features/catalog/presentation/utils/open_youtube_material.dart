@@ -1,3 +1,4 @@
+import 'package:coldigui/core/platform/platform_capabilities.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
 import 'package:flutter/foundation.dart';
@@ -16,7 +17,7 @@ Future<bool> openYoutubeMaterial(YoutubeMaterial material) async {
     return await launchUrl(
       uri,
       mode: LaunchMode.externalApplication,
-      webOnlyWindowName: kIsWeb ? '_blank' : null,
+      webOnlyWindowName: currentPlatformCapabilities().isWeb ? '_blank' : null,
     );
   } on Object catch (e) {
     debugPrint('[catalog] falha ao abrir YouTube: $e');
