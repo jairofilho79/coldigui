@@ -717,7 +717,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 - **Lista ativa:** rótulos Coldigom das listas salvas só aparecem num `_reload` posterior ao warmup; `_carouselItemFor` do tile duplica o enriquecimento; `EmptyCarouselException` mora em `playlists/domain` mas só o leaflet lança; `_noLabel` duplicado nos dois use cases do leaflet; seguir o áudio foca a primeira ocorrência.
 - **Busca:** `CatalogQuery.pageSize` não é enviado; `PlpcgCatalogSource` guarda `catalog` e `index.louvores`; memo sem teto; `CatalogFilterState` sem `==`.
 - **Offline:** badge por índice (sem validar disco) até o primeiro abrir; ETag da retomada só dentro da mesma chamada de `download()`; `content-length` confiado.
-- **Boot:** testes que constroem `playlistsProvider` sem override do Isar chamam o opener real (pinar `isarOpenerProvider`); `_reload` sem guarda de geração.
+- **Boot:** testes que constroem `playlistsProvider` sem override do Isar chamam o opener real (pinar `isarOpenerProvider`); `_reload` sem guarda de geração; um toque em «+» dentro da janela de abertura do Isar com id ativo obsoleto pode disputar com a hidratação (o rascunho criado fica sem ser o ativo) — `addToActive` deveria esperar a hidratação; `addAudioToActivePlaylist` sem chamador em `lib/`.
 - **Sobras menores:** 18 chaves ARB órfãs pré-existentes; `tsconfig` do Worker não cobre os testes; `readerCarouselPositionProvider` não é autoDispose.
 - **Deploy:** nenhuma migration nova; o Worker publicado (`22c480e5`) já responde v1 da rota social — publicar o Worker novo antes do web app para que o import social leve os áudios.
 
