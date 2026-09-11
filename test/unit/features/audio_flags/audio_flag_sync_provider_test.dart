@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -13,6 +14,7 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _subKey = 'audio_flag_sync.last_synced_sub';
@@ -78,7 +80,7 @@ class _CountingRepository implements AudioFlagRepository {
   Future<List<SavedAudioFlag>> getPendingPush({String? sub}) async => const [];
 
   @override
-  Future<List<SavedAudioFlag>> getTombstones() async => const [];
+  Future<List<SavedAudioFlag>> getTombstones({String? sub}) async => const [];
 
   @override
   Future<void> hardDelete(String flagId) async {}
@@ -90,7 +92,7 @@ class _CountingRepository implements AudioFlagRepository {
 /// [SyncAudioFlags] roteirizado: falha nas primeiras [throwsUntilCall]
 /// chamadas e depois devolve [result].
 class _ScriptedSync extends SyncAudioFlags {
-  _ScriptedSync({this.result, this.throws, this.throwsUntilCall})
+  _ScriptedSync({this.result, this.throws, this.throwsUntilCall, this.gate})
     : super(
         _CountingRepository(),
         (_) async => const <RemoteAudioFlag>[],
@@ -103,6 +105,10 @@ class _ScriptedSync extends SyncAudioFlags {
 
   /// Número da última chamada que ainda falha (`1` = só a primeira).
   final int? throwsUntilCall;
+
+  /// Segura a rodada até o teste liberar — para descartar o container com uma
+  /// sync em voo.
+  final Completer<void>? gate;
   var calls = 0;
   final subs = <String?>[];
 
@@ -113,6 +119,7 @@ class _ScriptedSync extends SyncAudioFlags {
   }) async {
     calls++;
     subs.add(sub);
+    await gate?.future;
     final error = throws;
     final limit = throwsUntilCall;
     if (error != null && (limit == null || calls <= limit)) throw error;
@@ -140,16 +147,28 @@ void main() {
   Future<void> settle() =>
       Future<void>.delayed(const Duration(milliseconds: 20));
 
+  /// [repository] nulo deixa o repositório **real** de pé — sobre o datasource
+  /// degradado, já que o Isar deste container nunca abre.
   ProviderContainer buildContainer({
-    required AudioFlagRepository repository,
+    required AudioFlagRepository? repository,
     required SyncAudioFlags sync,
     Stream<bool>? connectivity,
+    Future<Isar>? isarReady,
   }) {
     return ProviderContainer(
       overrides: [
+        // O boot espera o Isar assentar. Sem `isarReady`, ele já nasce
+        // degradado: nenhum teste daqui usa a instância de verdade (o
+        // repositório é fake), e abrir o Isar real seria só lentidão.
+        isarInitializerProvider.overrideWith(
+          (ref) =>
+              isarReady ??
+              Future<Isar>.error(StateError('Isar não é usado neste teste')),
+        ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedInAuth.new),
-        audioFlagRepositoryProvider.overrideWithValue(repository),
+        if (repository != null)
+          audioFlagRepositoryProvider.overrideWithValue(repository),
         syncAudioFlagsProvider.overrideWithValue(sync),
         if (connectivity != null)
           connectivityStreamProvider.overrideWith((ref) => connectivity),
@@ -344,6 +363,100 @@ void main() {
 
       expect(repo.adoptCalls, 0);
       expect(sync.calls, before + 1);
+    },
+  );
+
+  test('descartar o container no meio da sync não estoura', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final gate = Completer<void>();
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(gate: gate),
+    );
+
+    await container.read(authStateProvider.future);
+    final pending = container.read(audioFlagSyncProvider.notifier).sync();
+    container.dispose();
+    gate.complete();
+
+    // `state` é `ref`: sem guarda de `mounted` depois do `await`, ler o
+    // resultado num notifier já descartado estouraria num callback sem dono.
+    await expectLater(pending, completion(isA<AudioFlagSyncResult>()));
+  });
+
+  test('segunda chamada em voo também sobrevive ao descarte', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final gate = Completer<void>();
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(gate: gate),
+    );
+
+    await container.read(authStateProvider.future);
+    final notifier = container.read(audioFlagSyncProvider.notifier);
+    final first = notifier.sync();
+    // Pega o ramo `existing != null`: espera a primeira e lê `state` depois.
+    final second = notifier.sync();
+    container.dispose();
+    gate.complete();
+
+    await expectLater(first, completion(isA<AudioFlagSyncResult>()));
+    await expectLater(second, completion(isA<AudioFlagSyncResult>()));
+  });
+
+  test('boot espera o Isar assentar antes de tocar no repositório', () async {
+    final repo = _CountingRepository();
+    final sync = _ScriptedSync();
+    final isarReady = Completer<Isar>();
+    final container = buildContainer(
+      repository: repo,
+      sync: sync,
+      isarReady: isarReady.future,
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(audioFlagSyncProvider);
+    await settle();
+
+    expect(repo.adoptCalls, 0, reason: 'o Isar ainda está abrindo');
+    expect(sync.calls, 0, reason: 'nada sobe antes do banco estar de pé');
+    expect(prefs.getString(_subKey), isNull);
+
+    // Modo degradado: a abertura falhou. O pós-login segue mesmo assim — quem
+    // reclama é o repositório, com StorageUnavailableException.
+    isarReady.completeError(StateError('OPFS travou'));
+    await settle();
+
+    expect(repo.adoptCalls, 1);
+    expect(sync.calls, 1);
+  });
+
+  test(
+    'Isar indisponível: a adoção real falha e o sub não é persistido',
+    () async {
+      // Sem override do repositório: é o `AudioFlagRepositoryImpl` de produção
+      // sobre o datasource degradado. Um no-op silencioso em `adoptForSub`
+      // deixaria o notifier gravar o `sub` como adotado — e o próximo boot não
+      // repetiria a adoção nunca mais.
+      final sync = _ScriptedSync();
+      final container = buildContainer(repository: null, sync: sync);
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      container.read(audioFlagSyncProvider);
+      await settle();
+
+      expect(
+        container.read(audioFlagSyncProvider).lastErrorCause,
+        isA<StorageUnavailableException>().having(
+          (e) => e.operation,
+          'operation',
+          'audioFlags.adoptForSub',
+        ),
+      );
+      expect(prefs.getString(_subKey), isNull);
+      expect(sync.calls, 0, reason: 'sem adoção não há sync');
     },
   );
 

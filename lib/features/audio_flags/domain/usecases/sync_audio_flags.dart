@@ -126,8 +126,9 @@ class SyncAudioFlags {
       }
     }
 
-    // Fase C — Deletes
-    final tombstones = await _repository.getTombstones();
+    // Fase C — Deletes. Só os tombstones desta conta (ou sem dono): o DELETE
+    // de um tombstone da conta anterior com este token daria 404 a cada boot.
+    final tombstones = await _repository.getTombstones(sub: sub);
     for (final tomb in tombstones) {
       final failures = _tombstoneFailures[tomb.flagId] ?? 0;
       if (failures >= maxTombstoneAttemptsPerBoot) continue;

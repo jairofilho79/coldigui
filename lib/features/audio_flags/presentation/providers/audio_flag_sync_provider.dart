@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
@@ -114,6 +115,18 @@ class AudioFlagSyncNotifier extends Notifier<AudioFlagSyncState> {
   /// vez (o `sub` persistido).
   Future<void> _syncForCurrentSub() async {
     if (!ref.mounted) return;
+    if (ref.read(authStateProvider).asData?.value == null) return;
+    // O app monta enquanto o Isar ainda está abrindo (D.2). Sincronizar antes
+    // disso faria `adoptForSub`/`purgeSyncedOwnedBy` verem um datasource
+    // degradado — e a adoção que não rodou seria persistida como feita.
+    try {
+      await ref.read(isarInitializerProvider.future);
+    } on Object catch (e) {
+      // Modo degradado: segue mesmo assim — quem reclama é o repositório, com
+      // `StorageUnavailableException`, e o tratamento de sempre vale.
+      debugPrint('[audio-flags] Isar indisponível para o sync pós-login: $e');
+    }
+    if (!ref.mounted) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
     try {
@@ -135,9 +148,14 @@ class AudioFlagSyncNotifier extends Notifier<AudioFlagSyncState> {
       return AudioFlagSyncResult.skippedAuth;
     }
 
+    // `state` também é `ref`: lê-lo depois do `await` num notifier já
+    // descartado (o player saiu, ou o container do teste caiu no meio da
+    // rodada) lançaria de dentro de um callback sem dono. Sem notifier não há
+    // resultado a reportar — quem chamou já checa `skipped`.
     final existing = _inFlight;
     if (existing != null) {
       await existing;
+      if (!ref.mounted) return AudioFlagSyncResult.skippedAuth;
       return state.lastResult ?? AudioFlagSyncResult.skippedAuth;
     }
 
@@ -145,6 +163,7 @@ class AudioFlagSyncNotifier extends Notifier<AudioFlagSyncState> {
     _inFlight = future;
     try {
       await future;
+      if (!ref.mounted) return AudioFlagSyncResult.skippedAuth;
       return state.lastResult ?? const AudioFlagSyncResult();
     } finally {
       _inFlight = null;

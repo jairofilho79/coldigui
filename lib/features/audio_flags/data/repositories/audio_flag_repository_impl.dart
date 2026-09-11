@@ -67,8 +67,8 @@ class AudioFlagRepositoryImpl implements AudioFlagRepository {
   }
 
   @override
-  Future<List<SavedAudioFlag>> getTombstones() async {
-    final rows = await _local.findTombstones();
+  Future<List<SavedAudioFlag>> getTombstones({String? sub}) async {
+    final rows = await _local.findTombstones(sub: sub);
     return rows.map(_toEntity).toList(growable: false);
   }
 
