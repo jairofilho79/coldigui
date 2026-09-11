@@ -1373,6 +1373,12 @@ abstract class AppLocalizations {
   /// **'Remover marcador'**
   String get audioFlagDelete;
 
+  /// Título da linha de erro de sync de marcadores no player de áudio
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcadores não sincronizados'**
+  String get audioFlagsSyncFailed;
+
   /// No description provided for @audioPlaybackError.
   ///
   /// In pt, this message translates to:

@@ -4,6 +4,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
+import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_sync_error_row.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -189,6 +190,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                     previousTooltip: l10n.audioPrevious,
                     nextTooltip: l10n.audioNext,
                   ),
+                  const AudioFlagSyncErrorRow(),
                   if (track != null) ...[
                     const SizedBox(height: 12),
                     Text(

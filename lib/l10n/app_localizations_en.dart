@@ -769,6 +769,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioFlagDelete => 'Remove flag';
 
   @override
+  String get audioFlagsSyncFailed => 'Markers not synced';
+
+  @override
   String get audioPlaybackError => 'Could not play this audio.';
 
   @override

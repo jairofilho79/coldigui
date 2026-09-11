@@ -379,6 +379,10 @@
   "audioFlagListTitle": "Flags",
   "audioFlagListEmpty": "No flags yet. Pause and tap the flag button.",
   "audioFlagDelete": "Remove flag",
+  "audioFlagsSyncFailed": "Markers not synced",
+  "@audioFlagsSyncFailed": {
+    "description": "Title of the audio-flag sync error row on the audio player screen"
+  },
   "audioPlaybackError": "Could not play this audio.",
   "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",
   "audioWebPlatformHintTooltip": "About web playback",

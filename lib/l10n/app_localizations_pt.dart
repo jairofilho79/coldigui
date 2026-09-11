@@ -777,6 +777,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioFlagDelete => 'Remover marcador';
 
   @override
+  String get audioFlagsSyncFailed => 'Marcadores não sincronizados';
+
+  @override
   String get audioPlaybackError => 'Não foi possível reproduzir este áudio.';
 
   @override
