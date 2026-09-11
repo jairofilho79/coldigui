@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
@@ -12,6 +14,7 @@ import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_u
 import 'package:coldigui/features/pdf_opening/data/providers/pdf_opening_providers.dart';
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
+import 'package:coldigui/features/pdf_reader/data/providers/pdf_reader_viewer_providers.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/pdf_reader_preferences.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
@@ -27,6 +30,14 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+/// Query param que, se presente na rota, sinaliza uma página específica
+/// pedida explicitamente (deep link) — desliga a restauração da última
+/// página lembrada (spec A.3 C8).
+const _pageQueryParam = 'page';
+
+/// Debounce do salvamento da última página vista (spec A.3 C8).
+const _saveLastPageDebounce = Duration(milliseconds: 500);
 
 /// UC-11 — Leitor PDF (pdfrx), rota filha do [ShellScaffold].
 ///
@@ -57,6 +68,8 @@ class PdfReaderScreen extends ConsumerStatefulWidget {
 
 class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   String? _appliedFitForPath;
+  String? _restoredLastPageForPath;
+  Timer? _saveLastPageTimer;
   var _shareLoading = false;
   var _redownloadLoading = false;
 
@@ -72,6 +85,12 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     if (oldWidget.queryParams != widget.queryParams) {
       _schedulePublishRouteParams();
     }
+  }
+
+  @override
+  void dispose() {
+    _saveLastPageTimer?.cancel();
+    super.dispose();
   }
 
   void _schedulePublishRouteParams() {
@@ -99,6 +118,53 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => applyFit());
+  }
+
+  /// Restaura a última página lembrada — uma vez por abertura de documento,
+  /// pós-frame (após `onViewerReady`), só quando a rota não traz
+  /// [_pageQueryParam] (spec A.3 C8).
+  void _scheduleRestoreLastPage(PdfReaderSession session, String pdfId) {
+    if (_restoredLastPageForPath == session.filePath) return;
+
+    void restore() {
+      if (!mounted) return;
+      final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
+      final currentSession = ref
+          .read(pdfReaderSessionProvider(currentFilePath))
+          .value;
+      if (currentSession == null ||
+          !identical(currentSession.handle, session.handle)) {
+        return;
+      }
+      if (!session.handle.isViewerReady) return;
+      _restoredLastPageForPath = session.filePath;
+
+      if (widget.queryParams.containsKey(_pageQueryParam)) return;
+      if (pdfId.isEmpty) return;
+
+      final pagesCount = session.handle.pagesCount ?? 0;
+      if (pagesCount <= 1) return;
+
+      final savedPage = ref
+          .read(readerPreferencesDatasourceProvider)
+          .lastPageFor(pdfId);
+      if (savedPage == null || savedPage <= 1 || savedPage > pagesCount) {
+        return;
+      }
+
+      session.handle.animateToPage(pageNumber: savedPage);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => restore());
+  }
+
+  /// Salva a página vista com debounce (spec A.3 C8) — cancelado no dispose.
+  void _handlePageChanged(int page, String pdfId) {
+    if (pdfId.isEmpty) return;
+    _saveLastPageTimer?.cancel();
+    _saveLastPageTimer = Timer(_saveLastPageDebounce, () {
+      ref.read(readerPreferencesDatasourceProvider).saveLastPage(pdfId, page);
+    });
   }
 
   Future<void> _sharePdf(
@@ -227,9 +293,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
 
     ref.listen(pdfReaderSessionProvider(filePath), (previous, next) {
       next.whenData((session) {
-        if (_appliedFitForPath == session.filePath) return;
-        _appliedFitForPath = session.filePath;
-        _scheduleApplyInitialFit(session.handle);
+        if (_appliedFitForPath != session.filePath) {
+          _appliedFitForPath = session.filePath;
+          _scheduleApplyInitialFit(session.handle);
+        }
+        _scheduleRestoreLastPage(session, pdfId);
       });
     });
 
@@ -309,6 +377,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           refreshViewportAfterNavigation: () => ref
               .read(pdfReaderViewSettingsProvider.notifier)
               .applyInitialFit(),
+          onPageChanged: (page) => _handlePageChanged(page, pdfId),
         ),
       ),
     );

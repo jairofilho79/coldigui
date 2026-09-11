@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
@@ -15,9 +18,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
+
+/// Handle de teste para C8 (última página): [isViewerReady] fixo em `true`
+/// (o teste não monta um `PdfViewer` real anexado) e [animateToPage]
+/// gravado em vez de delegar ao controller de verdade.
+class _RestoreTrackingHandle extends TrackablePdfReaderViewerHandle {
+  _RestoreTrackingHandle({
+    required super.document,
+    required super.documentRef,
+    required super.viewerController,
+  });
+
+  final List<int> animateToPageCalls = [];
+
+  @override
+  bool get isViewerReady => true;
+
+  @override
+  Future<void> animateToPage({
+    required int pageNumber,
+    Duration duration = const Duration(milliseconds: 500),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    animateToPageCalls.add(pageNumber);
+  }
+}
+
+_RestoreTrackingHandle _createRestoreTrackingHandle({int pageCount = 5}) {
+  final document = FakePdfDocument(pageCount: pageCount);
+  final handle = _RestoreTrackingHandle(
+    document: document,
+    documentRef: PdfDocumentRefDirect(document, autoDispose: false),
+    viewerController: PdfViewerController(),
+  );
+  handle.loadingState.value = PdfReaderLoadingState.success;
+  return handle;
+}
 
 const _carouselItems = <CarouselItem>[
   CarouselItem(
@@ -428,6 +468,97 @@ void main() {
     await tester.pump();
 
     expect(find.byType(PdfReaderScreen), findsOneWidget);
+  });
+
+  testWidgets(
+    'restaura a última página lembrada quando a rota não traz page (C8)',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.pdfLastPages: jsonEncode([
+          {'id': 'pdf-x', 'p': 3},
+        ]),
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final handle = _createRestoreTrackingHandle();
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) async => PdfReaderSession(
+                handle: handle,
+                filePath: 'asset:fixtures/sample.pdf',
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'pdfId': 'pdf-x',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        if (handle.animateToPageCalls.isNotEmpty) break;
+      }
+
+      expect(handle.animateToPageCalls, [3]);
+    },
+  );
+
+  testWidgets('não restaura a última página quando a rota já traz page (C8)', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      StorageKeys.pdfLastPages: jsonEncode([
+        {'id': 'pdf-x', 'p': 3},
+      ]),
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final handle = _createRestoreTrackingHandle();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) async => PdfReaderSession(
+              handle: handle,
+              filePath: 'asset:fixtures/sample.pdf',
+            ),
+          ),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'pdfId': 'pdf-x',
+                'titulo': 'Fixture',
+                'page': '1',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(handle.animateToPageCalls, isEmpty);
   });
 
   testWidgets('botão de ajuste chama toggleFitMode (C8)', (tester) async {

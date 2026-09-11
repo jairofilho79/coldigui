@@ -50,4 +50,8 @@ abstract final class StorageKeys {
 
   /// Ids de material abertos recentemente na Home, JSON (C4).
   static const String recentlyOpened = 'recentlyOpened';
+
+  /// LRU (50) da última página vista por `pdfId` — JSON `[{"id":..,"p":..}]`
+  /// (UC-11 / spec A.3 C8, "lembrar última página").
+  static const String pdfLastPages = 'pdfLastPages';
 }

@@ -30,4 +30,57 @@ void main() {
 
     expect(datasource.getFitMode(), PdfFitMode.pageFit);
   });
+
+  group('última página (LRU)', () {
+    test('sem entrada salva devolve null', () {
+      expect(datasource.lastPageFor('a'), isNull);
+    });
+
+    test('salva e restaura a última página de um pdfId', () async {
+      await datasource.saveLastPage('a', 3);
+      expect(datasource.lastPageFor('a'), 3);
+    });
+
+    test('salvar de novo o mesmo pdfId substitui o valor anterior', () async {
+      await datasource.saveLastPage('a', 3);
+      await datasource.saveLastPage('a', 7);
+      expect(datasource.lastPageFor('a'), 7);
+    });
+
+    test('51 ids distintos — o primeiro (mais antigo) sai do LRU', () async {
+      for (var i = 0; i < 51; i++) {
+        await datasource.saveLastPage('pdf-$i', i + 1);
+      }
+
+      expect(datasource.lastPageFor('pdf-0'), isNull);
+      expect(datasource.lastPageFor('pdf-1'), 2);
+      expect(datasource.lastPageFor('pdf-50'), 51);
+    });
+
+    test('JSON corrompido no storage — devolve null sem lançar', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(StorageKeys.pdfLastPages, '{not valid json');
+
+      expect(() => datasource.lastPageFor('a'), returnsNormally);
+      expect(datasource.lastPageFor('a'), isNull);
+    });
+
+    test('JSON válido mas shape errado (não é lista) — devolve null', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(StorageKeys.pdfLastPages, '{"a": 1}');
+
+      expect(datasource.lastPageFor('a'), isNull);
+    });
+
+    test('entrada malformada na lista é ignorada, resto sobrevive', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        StorageKeys.pdfLastPages,
+        '[{"id":"a","p":3},{"nope":true},{"id":"b","p":"x"}]',
+      );
+
+      expect(datasource.lastPageFor('a'), 3);
+      expect(datasource.lastPageFor('b'), isNull);
+    });
+  });
 }
