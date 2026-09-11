@@ -1,6 +1,7 @@
 // test/widget/features/catalog/open_material_provider_test.dart
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
@@ -99,7 +100,11 @@ _mount(WidgetTester tester, OpenMaterial opener) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [openMaterialProvider.overrideWithValue(opener)],
+      overrides: [
+        openMaterialProvider.overrideWithValue(opener),
+        // Lista ativa sem áudio: a fila padrão (D4) cai na própria faixa.
+        audioFaceItemsProvider.overrideWithValue(const []),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -146,8 +151,9 @@ void main() {
       await open(const AudioMaterial(_track));
 
       expect(spy.calls, ['audio:audio1']);
-      // Sem fila explícita o opener não inventa uma — quem tem o grupo passa.
-      expect(spy.audioQueue, isNull);
+      // Sem fila explícita e com a faixa fora da lista ativa (vazia aqui), a
+      // fila é só a faixa (D4) — quem tem o grupo passa a do grupo.
+      expect(spy.audioQueue, const [_track]);
     });
 
     testWidgets('AudioMaterial repassa a fila de quem tem o grupo', (

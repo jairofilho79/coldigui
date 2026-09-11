@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
@@ -114,7 +115,11 @@ Future<void> showCarouselSwapMaterialSheet({
           await playAudioInSession(
             ref: ref,
             track: track,
-            queue: resolved.audioTracks,
+            queue: queueForTrack(
+              track: track,
+              groupTracks: resolved.audioTracks,
+              activeQueue: activeListAudioQueue(ref),
+            ),
           );
         case ChordMaterialRef() || YoutubeMaterialRef():
           await ref.read(openMaterialProvider).open(context, ref, material);

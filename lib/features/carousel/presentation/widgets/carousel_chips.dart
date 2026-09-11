@@ -7,6 +7,7 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
@@ -400,30 +401,24 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     return tracksForGroup(groupId, lookup.audioTracksById.values.toList());
   }
 
-  /// Faixas da face de áudio da lista ativa, na ordem (vazio sem áudio).
-  List<AudioTrack> _activePlaylistTracks() {
-    final audioItems = ref.read(audioFaceItemsProvider);
-    if (audioItems.isEmpty) return const [];
-    return ref.read(catalogMaterialLookupProvider).tracksFor([
-      for (final item in audioItems) item.materialId,
-    ]);
-  }
-
   /// Toca o áudio do louvor aberto no leitor (D10 — o slot morto da barra 2).
   ///
-  /// Fila = áudios da lista ativa quando ela já contém a faixa; senão só os do
-  /// louvor. Começa sempre na faixa preferida do grupo ([findAudioForGroup]).
+  /// Fila pela regra única de [queueForTrack] (D4). Começa sempre na faixa
+  /// preferida do grupo ([findAudioForGroup]).
   Future<void> _playGroupAudio(List<AudioTrack> groupTracks) async {
     if (groupTracks.isEmpty) return;
     final target = findAudioForGroup(groupTracks.first.groupId, groupTracks);
     if (target == null) return;
 
-    final playlistTracks = _activePlaylistTracks();
-    final queue = playlistTracks.any((t) => t.audioId == target.audioId)
-        ? playlistTracks
-        : groupTracks;
-
-    await playAudioInSession(ref: ref, track: target, queue: queue);
+    await playAudioInSession(
+      ref: ref,
+      track: target,
+      queue: queueForTrack(
+        track: target,
+        groupTracks: groupTracks,
+        activeQueue: activeListAudioQueue(ref),
+      ),
+    );
   }
 
   Widget _buildNavigatorBar({

@@ -3,6 +3,7 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
@@ -114,8 +115,11 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
             AudioTransportControls(
               playing: currentInPlaylist && session.playing,
               buffering: currentInPlaylist && session.buffering,
-              hasPrevious: true,
-              hasNext: tracks.length > 1,
+              // A sessão é quem sabe onde a fila está: hard-codar `true`
+              // deixava "anterior" aceso na primeira faixa. Sem sessão nesta
+              // lista, os controles começam do início (índice 0).
+              hasPrevious: currentInPlaylist && session.hasPrevious,
+              hasNext: currentInPlaylist ? session.hasNext : tracks.length > 1,
               onLightBackground: true,
               onPrevious: () {
                 if (currentInPlaylist) {
@@ -193,12 +197,30 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
     int index,
   ) async {
     if (tracks.isEmpty) return;
+    final track = tracks[index];
+    // D4: a fila é a reunião quando a faixa já está nela — tocar daqui emenda
+    // no próximo louvor da lista ativa em vez de parar no fim desta lista.
+    final queue = queueForTrack(
+      track: track,
+      groupTracks: tracks,
+      activeQueue: activeListAudioQueue(ref),
+    );
+    // Mesma sequência (esta lista **é** a ativa): o índice tocado vale — e
+    // distingue duas ocorrências do mesmo áudio. Fila diferente: pelo id.
     await openAudioInPlayer(
       ref: ref,
       context: context,
-      track: tracks[index],
-      queue: tracks,
-      startIndex: index,
+      track: track,
+      queue: queue,
+      startIndex: _sameSequence(queue, tracks) ? index : null,
     );
+  }
+
+  static bool _sameSequence(List<AudioTrack> a, List<AudioTrack> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].audioId != b[i].audioId) return false;
+    }
+    return true;
   }
 }

@@ -2,6 +2,7 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/errors/user_message_for.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
@@ -83,7 +84,11 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         ref: ref,
         context: context,
         track: track,
-        queue: widget.group.audioTracks,
+        queue: queueForTrack(
+          track: track,
+          groupTracks: widget.group.audioTracks,
+          activeQueue: activeListAudioQueue(ref),
+        ),
       );
     } on Object catch (e) {
       debugPrint('[audio] falha ao abrir ${track.audioId}: $e');

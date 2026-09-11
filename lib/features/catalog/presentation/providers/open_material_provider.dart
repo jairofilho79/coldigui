@@ -5,6 +5,7 @@ import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../audio_player/presentation/utils/active_list_audio_queue.dart';
 import '../../../audio_player/presentation/utils/open_audio_in_player.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
@@ -78,8 +79,9 @@ class OpenMaterial {
   /// Abre [material] pelo caminho do seu [CatalogMaterial.kind].
   ///
   /// [audioQueue] só vale para [AudioMaterial]: é a fila em que a faixa toca.
-  /// Quem tem o grupo passa `group.audioTracks`; sem isso o player pararia no
-  /// fim do arranjo tocado.
+  /// Quem tem o grupo passa `group.audioTracks`; sem isso a fila sai de
+  /// [queueForTrack] sobre a lista ativa (D4) — faixa da reunião toca a
+  /// reunião, faixa de fora toca sozinha.
   ///
   /// Falhas viram snackbar por [presentMaterialOpenError] — a escada de
   /// exceções de abertura vive num lugar só.
@@ -101,7 +103,16 @@ class OpenMaterial {
             ref: ref,
             context: context,
             track: track,
-            queue: audioQueue,
+            // Sem fila do chamador, a reunião decide (D4): a faixa que já está
+            // na lista ativa toca na lista inteira; a de fora toca sozinha,
+            // como antes.
+            queue:
+                audioQueue ??
+                queueForTrack(
+                  track: track,
+                  groupTracks: [track],
+                  activeQueue: activeListAudioQueue(ref),
+                ),
           );
         case YoutubeMaterialRef(:final material):
           final opened = await openYoutube(material);
