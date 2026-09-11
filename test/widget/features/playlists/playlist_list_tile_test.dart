@@ -19,6 +19,8 @@ import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_list_tile.dart';
@@ -39,13 +41,12 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   List<PlaylistViewItem> build() => initial;
 }
 
-/// Editor da lista ativa que só registra as ativações (D6).
+/// Editor da lista ativa que registra as ativações e as espelha em
+/// [activePlaylistIdProvider], como o editor real (D6).
 ///
-/// [previousId] é o que `activate` devolve — o id que o «Desfazer» restaura.
+/// O id ativo inicial (o que o primeiro «Desfazer» restaura) vem das prefs —
+/// ver [prefsWithActive].
 class _RecordingActiveEditor extends ActivePlaylistEditor {
-  _RecordingActiveEditor({this.previousId});
-
-  final String? previousId;
   final activated = <String>[];
 
   @override
@@ -54,7 +55,9 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
   @override
   Future<String?> activate(String playlistId) async {
     activated.add(playlistId);
-    return previousId;
+    final previous = ref.read(activePlaylistIdProvider);
+    ref.read(activePlaylistIdProvider.notifier).set(playlistId);
+    return previous;
   }
 }
 
@@ -198,6 +201,14 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
+  /// Prefs com [activeId] já ativo antes de o tile aparecer.
+  Future<void> prefsWithActive(String activeId) async {
+    SharedPreferences.setMockInitialValues({
+      kActivePlaylistIdPrefsKey: activeId,
+    });
+    prefs = await SharedPreferences.getInstance();
+  }
+
   final pdfIdA = _pdfId('ColAdultos/001.pdf');
   final pdfIdB = _pdfId('ColAdultos/002.pdf');
 
@@ -259,7 +270,8 @@ void main() {
   testWidgets('«Tornar lista ativa» ativa sem diálogo e o snackbar desfaz', (
     tester,
   ) async {
-    final editor = _RecordingActiveEditor(previousId: 'p0');
+    await prefsWithActive('p0');
+    final editor = _RecordingActiveEditor();
     await tester.pumpWidget(
       buildSubject(
         playlistsNotifier: _FakePlaylistsNotifier([item]),
@@ -282,6 +294,158 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(editor.activated, ['p1', 'p0']);
+  });
+
+  // Crítico (revisão r1): o snackbar vive 5 s no messenger da raiz e o tile
+  // pode sair da árvore nesse meio-tempo (troca de aba). O callback não pode
+  // tocar em `ref` — tem que usar o que foi capturado antes de mostrar.
+  testWidgets('«Desfazer» funciona depois que o tile saiu da árvore', (
+    tester,
+  ) async {
+    await prefsWithActive('p0');
+    final editor = _RecordingActiveEditor();
+    final showTile = ValueNotifier(true);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(() => _FakePlaylistsNotifier([item])),
+          playlistShareActionsProvider.overrideWith(
+            _FakePlaylistShareActionsNotifier.new,
+          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: showTile,
+              builder: (_, show, _) => show
+                  ? PlaylistListTile(item: item, tab: PlaylistTab.saved)
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.pumpAndSettle();
+    expect(editor.activated, ['p1']);
+
+    showTile.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaylistListTile), findsNothing);
+    expect(find.text('Desfazer'), findsOneWidget);
+
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(editor.activated, ['p1', 'p0']);
+  });
+
+  // Importante (revisão r1): snackbars enfileiram; o «Desfazer» de B não
+  // pode derrubar a ativação de C que veio depois.
+  testWidgets('«Desfazer» antigo não derruba uma ativação mais nova', (
+    tester,
+  ) async {
+    await prefsWithActive('p0');
+    final editor = _RecordingActiveEditor();
+    final itemC = PlaylistViewItem(
+      playlist: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p2',
+        nome: 'Ensaio quarta',
+        pdfIds: [pdfIdA],
+        createdAt: DateTime(2026, 6, 9),
+      ),
+      pdfLabels: const ['001 — A'],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(
+            () => _FakePlaylistsNotifier([item, itemC]),
+          ),
+          playlistShareActionsProvider.overrideWith(
+            _FakePlaylistShareActionsNotifier.new,
+          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: Column(
+              children: [
+                PlaylistListTile(item: item, tab: PlaylistTab.saved),
+                PlaylistListTile(item: itemC, tab: PlaylistTab.saved),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Ativa B (p1) e guarda o callback do «Desfazer» dela.
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.pumpAndSettle();
+    final undoOfB = tester
+        .widget<SnackBarAction>(find.byType(SnackBarAction))
+        .onPressed;
+
+    // Ativa C (p2).
+    await tester.tap(find.byType(PopupMenuButton<String>).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.pumpAndSettle();
+    expect(editor.activated, ['p1', 'p2']);
+
+    // Só o snackbar de C está visível — o de B foi limpo, não enfileirado.
+    expect(find.text('Lista «Ensaio domingo» ativa'), findsNothing);
+    expect(find.text('Lista «Ensaio quarta» ativa'), findsOneWidget);
+
+    // O «Desfazer» de B, disparado tarde, não derruba C.
+    undoOfB();
+    await tester.pumpAndSettle();
+    expect(editor.activated, ['p1', 'p2']);
+
+    // O desfazer visível (o de C) volta para B.
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(editor.activated, ['p1', 'p2', 'p1']);
+  });
+
+  // Menor (revisão r1): lista já ativa não tem para onde "voltar".
+  testWidgets('lista já ativa não oferece desfazer', (tester) async {
+    await prefsWithActive('p1');
+    final editor = _RecordingActiveEditor();
+    await tester.pumpWidget(
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        editor: editor,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.pumpAndSettle();
+
+    expect(editor.activated, ['p1']);
+    expect(find.text('Lista «Ensaio domingo» ativa'), findsOneWidget);
+    expect(find.text('Desfazer'), findsNothing);
   });
 
   testWidgets('sem lista ativa anterior o snackbar não oferece desfazer', (

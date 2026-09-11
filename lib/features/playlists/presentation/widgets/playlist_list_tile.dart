@@ -35,6 +35,7 @@ import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/entities/saved_playlist.dart';
 import '../providers/active_playlist_editor.dart';
+import '../providers/active_playlist_provider.dart';
 import '../providers/playlist_media_face_provider.dart';
 import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
@@ -251,45 +252,74 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
   /// «Tornar lista ativa» (D6): sem modal — a lista que era ativa continua
   /// existindo, então não há o que "substituir". O snackbar oferece
   /// «Desfazer», que devolve a ativação à lista anterior quando havia uma.
+  ///
+  /// O snackbar vive 5 s no messenger da raiz, e o tile pode sair da árvore
+  /// nesse meio-tempo (troca de aba): o callback **não toca em `ref`** — usa
+  /// o notifier e o container capturados antes de mostrar. Snackbars
+  /// enfileiram, então o anterior é limpo e o desfazer só age se esta lista
+  /// ainda for a ativa (um «Desfazer» antigo não derruba ativação mais nova).
   Future<void> _activate(BuildContext context, AppLocalizations l10n) async {
     if (_loading) return;
     final playlist = widget.item.playlist;
+    final editor = ref.read(activePlaylistEditorProvider.notifier);
+    final container = ProviderScope.containerOf(context, listen: false);
     setState(() => _loading = true);
     final String? previous;
     try {
-      previous = await ref
-          .read(activePlaylistEditorProvider.notifier)
-          .activate(playlist.playlistId);
+      previous = await editor.activate(playlist.playlistId);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
     if (!context.mounted) return;
 
     final previousId = previous;
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.playlistActivated(_displayName(playlist.nome))),
         duration: const Duration(seconds: 5),
-        action: previousId == null
+        // Já era a ativa: não há para onde voltar.
+        action: previousId == null || previousId == playlist.playlistId
             ? null
             : SnackBarAction(
                 label: l10n.undo,
-                onPressed: () => unawaited(_undoActivate(previousId, l10n)),
+                onPressed: () => unawaited(
+                  _undoActivate(
+                    editor: editor,
+                    container: container,
+                    messenger: messenger,
+                    playlistId: playlist.playlistId,
+                    previousId: previousId,
+                    l10n: l10n,
+                  ),
+                ),
               ),
       ),
     );
   }
 
-  /// Volta a ativação para [previousId]. Mesma porteira de storage das ações
-  /// do menu: o callback do snackbar também não tem quem trate a exceção.
-  Future<void> _undoActivate(String previousId, AppLocalizations l10n) async {
+  /// Volta a ativação para [previousId] — só se [playlistId] ainda for a
+  /// ativa. Sem `ref` nem `context`: o tile pode já ter sido desmontado.
+  /// Mesma porteira de storage das ações do menu: o callback do snackbar
+  /// também não tem quem trate a exceção.
+  static Future<void> _undoActivate({
+    required ActivePlaylistEditor editor,
+    required ProviderContainer container,
+    required ScaffoldMessengerState messenger,
+    required String playlistId,
+    required String previousId,
+    required AppLocalizations l10n,
+  }) async {
+    if (container.read(activePlaylistIdProvider) != playlistId) return;
     try {
-      await ref
-          .read(activePlaylistEditorProvider.notifier)
-          .activate(previousId);
+      await editor.activate(previousId);
     } on StorageUnavailableException catch (e) {
       debugPrint('[playlists] desfazer ativação sem storage: $e');
-      _showError(l10n.offlineStorageUnavailable);
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.offlineStorageUnavailable)),
+        );
+      }
     }
   }
 
