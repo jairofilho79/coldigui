@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/errors/user_message_for.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -112,10 +114,19 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
 
     // YouTube (mesmo único) sempre via sheet — ícone vermelho e abertura externa.
-    final group = ref
-        .read(catalogMaterialLookupProvider)
-        .withPraiseMeta(widget.group);
-    await showMaterialSheet(context, ref, group);
+    await _openMaterialSheet();
+  }
+
+  /// Grupo com metadados Coldigom anexados — insumo do `MaterialSheet`.
+  LouvorGroup get _resolvedGroup =>
+      ref.read(catalogMaterialLookupProvider).withPraiseMeta(widget.group);
+
+  /// Abre o sheet padrão (abre o material tocado, sem trocar a lista ativa).
+  ///
+  /// Reaberto tanto pelo tap no corpo do card (multi-material) quanto pelo
+  /// toque num ícone de `MaterialKindsRow` (C5).
+  Future<void> _openMaterialSheet() async {
+    await showMaterialSheet(context, ref, _resolvedGroup);
   }
 
   /// Mesmo caminho do `+` do sheet: o editor decide e a snackbar traduz o
@@ -189,16 +200,11 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             source: singleAudio?.source ?? LouvorDataSource.coldigom,
           );
 
-    final metadataSummary =
-        _downloadProgressLabel(activeDownload, l10n) ??
-        (isMultiMaterial
-            ? l10n.louvorGroupMetadataSummary(
-                widget.group.totalMaterials,
-                widget.group.totalArrangements == 0
-                    ? 1
-                    : widget.group.totalArrangements,
-              )
-            : (hasAudio ? l10n.audioMaterialSection : null));
+    // C5: a linha de metadados do card mostra os ícones por tipo de material
+    // (`materialKindsGroup` no chip) em vez do resumo textual — a chave
+    // `louvorGroupMetadataSummary` fica reservada para o sheet. O progresso
+    // de download continua como texto, prioridade sobre os ícones.
+    final metadataSummary = _downloadProgressLabel(activeDownload, l10n);
 
     // A5: um mapa único do índice, lido por `select` — sem query por card.
     final offlineAvailability = primary != null
@@ -215,6 +221,8 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       child: CarouselLouvorChip(
         item: chipItem,
         metadataSummary: metadataSummary,
+        materialKindsGroup: widget.group,
+        onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
         onTap: isLoading ? null : _handleTap,
         onAdd:
             isLoading ||

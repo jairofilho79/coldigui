@@ -1,6 +1,7 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_classification.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -72,13 +73,15 @@ enum CarouselLouvorChipVariant {
 ///
 /// Corpo, botões, linha de metadados e menu de compartilhar (E4) vivem em
 /// `chip_parts/` ([ChipBody], [ChipRemoveButton]/[ChipAddButton]/
-/// [ChipAddedIndicator]/[CircleActionButton], [ChipMetadataRow],
-/// [ShareOverflowButton]).
+/// [ChipAddedIndicator]/[CircleActionButton], [ChipMetadataRow]
+/// (com `MaterialKindsRow` na variante de card, C5), [ShareOverflowButton]).
 class CarouselLouvorChip extends StatelessWidget {
   const CarouselLouvorChip({
     required this.item,
     this.variant = CarouselLouvorChipVariant.modal,
     this.metadataSummary,
+    this.materialKindsGroup,
+    this.onMaterialKindTap,
     this.showDragHandle = false,
     this.onTap,
     this.onRemove,
@@ -97,8 +100,17 @@ class CarouselLouvorChip extends StatelessWidget {
   /// `topBar` na barra do shell; `modal` (pill) em listas, modal e leitor.
   final CarouselLouvorChipVariant variant;
 
-  /// Substitui categoria/classificação — ex.: "2 entradas com 1 arranjo".
+  /// Substitui categoria/classificação — ex.: progresso de download. Tem
+  /// prioridade sobre [materialKindsGroup].
   final String? metadataSummary;
+
+  /// Variante de card da Home/Biblioteca (C5): quando presente, a linha de
+  /// metadados vira [MaterialKindsRow] — ícones por tipo de material do
+  /// grupo — no lugar de classificação/categoria.
+  final LouvorGroup? materialKindsGroup;
+
+  /// Toque num ícone de [materialKindsGroup] — ex.: abrir o `MaterialSheet`.
+  final void Function(MaterialKind kind)? onMaterialKindTap;
 
   /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
@@ -205,6 +217,8 @@ class CarouselLouvorChip extends StatelessWidget {
                         width: width,
                         numero: _isTopBar ? item.numero : null,
                         summary: metadataSummary,
+                        materialKindsGroup: materialKindsGroup,
+                        onMaterialKindTap: onMaterialKindTap,
                         classificationLabel: classificationLabel,
                         categoria: item.categoria,
                         categoryIcon: categoryIcon,

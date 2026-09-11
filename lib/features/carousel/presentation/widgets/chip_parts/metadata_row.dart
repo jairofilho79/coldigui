@@ -1,11 +1,14 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/offline_availability_badge.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:flutter/material.dart';
 
 import '../carousel_louvor_chip.dart'
     show carouselChipMetadataCompactWidth, carouselChipMetadataMediumWidth;
+import 'material_kinds_row.dart';
 
 const _compactWidth = carouselChipMetadataCompactWidth;
 const _mediumWidth = carouselChipMetadataMediumWidth;
@@ -23,6 +26,8 @@ class ChipMetadataRow extends StatelessWidget {
     required this.categoryIcon,
     this.numero,
     this.summary,
+    this.materialKindsGroup,
+    this.onMaterialKindTap,
     this.offlineAvailability = PdfOfflineAvailability.notAvailable,
     super.key,
   });
@@ -30,6 +35,14 @@ class ChipMetadataRow extends StatelessWidget {
   final double width;
   final String? numero;
   final String? summary;
+
+  /// Variante de card (C5): quando presente, substitui classificação +
+  /// categoria por [MaterialKindsRow] — ignorado se [summary] também vier
+  /// (ex.: progresso de download).
+  final LouvorGroup? materialKindsGroup;
+
+  /// Toque num ícone de [MaterialKindsRow] — repassado direto.
+  final void Function(MaterialKind kind)? onMaterialKindTap;
   final String classificationLabel;
   final String categoria;
   final IconData categoryIcon;
@@ -75,6 +88,21 @@ class ChipMetadataRow extends StatelessWidget {
               style: metaStyle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          _offlineBadge(),
+        ],
+      );
+    }
+
+    if (materialKindsGroup != null) {
+      return Row(
+        children: [
+          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
+          Flexible(
+            child: MaterialKindsRow(
+              group: materialKindsGroup!,
+              onTap: onMaterialKindTap,
             ),
           ),
           _offlineBadge(),
