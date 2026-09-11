@@ -12,6 +12,7 @@ import 'package:coldigui/core/utils/pdf_path_normalizer.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
@@ -25,6 +26,48 @@ String _encodePdfId(String path) {
 
 Uint8List _validPdfBytes([List<int> extra = const []]) {
   return Uint8List.fromList([0x25, 0x50, 0x44, 0x46, ...extra]);
+}
+
+/// Delega tudo ao [_delegate] real, exceto [getTotalOfflineBytes] — prova
+/// que a quota (A6) não escaneia mais o store, só o índice Isar.
+class _ThrowingTotalBytesStore implements PdfStoragePort {
+  _ThrowingTotalBytesStore(this._delegate);
+
+  final PdfStoragePort _delegate;
+
+  @override
+  Future<String> get rootPath => _delegate.rootPath;
+
+  @override
+  Future<String> writeAtomic(Uint8List bytes, String relPath) =>
+      _delegate.writeAtomic(bytes, relPath);
+
+  @override
+  Future<bool> exists(String storageKey) => _delegate.exists(storageKey);
+
+  @override
+  Future<void> delete(String storageKey) => _delegate.delete(storageKey);
+
+  @override
+  Future<void> deleteTree() => _delegate.deleteTree();
+
+  @override
+  Future<int> getTotalOfflineBytes() {
+    throw StateError(
+      'getTotalOfflineBytes não deve ser chamado por totalCachedBytes (A6)',
+    );
+  }
+
+  @override
+  Future<List<String>> listOrphans(Set<String> indexedStorageKeys) =>
+      _delegate.listOrphans(indexedStorageKeys);
+
+  @override
+  Future<Uint8List?> readBytes(String storageKey, {int? maxBytes}) =>
+      _delegate.readBytes(storageKey, maxBytes: maxBytes);
+
+  @override
+  Future<void> purgeLegacyStorage() => _delegate.purgeLegacyStorage();
 }
 
 void main() {
@@ -338,6 +381,30 @@ void main() {
     );
 
     expect(await repository.totalCachedBytes(), 15);
+  });
+
+  test('totalCachedBytes soma o índice Isar sem chamar o store (A6)', () async {
+    final throwingStore = _ThrowingTotalBytesStore(pdfStoragePortFor(store));
+    final repositoryWithThrowingStore = OfflinePdfRepositoryImpl(
+      store: throwingStore,
+      local: OfflinePdfLocalDatasource(isar),
+    );
+
+    final id1 = _encodePdfId('ColAdultos/c.pdf');
+    final id2 = _encodePdfId('ColAdultos/d.pdf');
+
+    await repositoryWithThrowingStore.upsert(
+      pdfId: id1,
+      bytes: _validPdfBytes(List.filled(1000, 1)),
+      category: 'ColAdultos',
+    );
+    await repositoryWithThrowingStore.upsert(
+      pdfId: id2,
+      bytes: _validPdfBytes(List.filled(234, 1)),
+      category: 'ColAdultos',
+    );
+
+    expect(await repositoryWithThrowingStore.totalCachedBytes(), 1242);
   });
 
   group('evictOldestPdfs LRU', () {
