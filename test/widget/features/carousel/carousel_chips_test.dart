@@ -80,8 +80,19 @@ class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
   String? lastPdfId;
   final navigatedPdfIds = <String>[];
 
+  /// Chaves por ocorrência recebidas — é por elas que as setas do leitor
+  /// navegam, e só elas distinguem duas entradas do mesmo louvor.
+  final navigatedKeys = <String>[];
+
   @override
   void build() {}
+
+  /// Registra a chave e deixa a implementação real focar/resolver o item.
+  @override
+  Future<String?> navigateToKey({required String key}) {
+    navigatedKeys.add(key);
+    return super.navigateToKey(key: key);
+  }
 
   @override
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
@@ -189,9 +200,9 @@ Louvor _manifestLouvor({
     numero: numero,
     categoria: 'Partitura',
     classificacao: 'ColAdultos',
-    pdf: '\$pdfId.pdf',
+    pdf: '$pdfId.pdf',
     pdfId: pdfId,
-    groupId: 'g-\$pdfId',
+    groupId: 'g-$pdfId',
   );
 }
 
@@ -635,8 +646,11 @@ void main() {
             (ref) => const CarouselReaderPosition(
               currentIndex: 2,
               total: 3,
-              previousPdfId: 'a',
-              nextPdfId: 'c',
+              currentKey: 'b',
+              previousKey: 'a',
+              nextKey: 'c',
+              previousMaterialId: 'a',
+              nextMaterialId: 'c',
             ),
           ),
         ],
@@ -791,8 +805,11 @@ void main() {
             (ref) => const CarouselReaderPosition(
               currentIndex: 2,
               total: 3,
-              previousPdfId: 'a',
-              nextPdfId: 'c',
+              currentKey: 'b',
+              previousKey: 'a',
+              nextKey: 'c',
+              previousMaterialId: 'a',
+              nextMaterialId: 'c',
             ),
           ),
         ],
@@ -820,6 +837,135 @@ void main() {
     // D10: sem áudio no louvor aberto, o slot "abrir" não aparece.
     expect(find.byIcon(Icons.open_in_full), findsNothing);
     expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+  });
+
+  testWidgets('seta do leitor navega pela chave da ocorrência vizinha', (
+    tester,
+  ) async {
+    // Louvor A repetido: o vizinho à direita de B é a **segunda** ocorrência
+    // dele (`a#1`). Navegar por id não saberia distinguir as duas.
+    final repeated = _entriesOf(const ['a', 'b', 'a']);
+    final readerActions = _FakeReaderCarouselActions();
+    final router = GoRouter(
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(repeated),
+          ),
+          readerCarouselActionsProvider.overrideWith(() => readerActions),
+          readerCarouselPositionProvider('b').overrideWith(
+            (ref) => const CarouselReaderPosition(
+              currentIndex: 2,
+              total: 3,
+              currentKey: 'b',
+              previousKey: 'a',
+              nextKey: 'a#1',
+              previousMaterialId: 'a',
+              nextMaterialId: 'a',
+            ),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      '${RoutePaths.reader}?pdfId=b&file=asset:fixtures/sample.pdf&titulo=Louvor%20B',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(readerActions.navigatedKeys, ['a#1']);
+    expect(readerActions.navigatedPdfIds, ['a']);
+    // O foco é efeito de `navigateToKey`: a ocorrência focada é a segunda.
+    expect(prefs.getString('carousel_focused_pdf_id'), 'a#1');
+  });
+
+  testWidgets('remover uma ocorrência não tira o leitor do louvor repetido', (
+    tester,
+  ) async {
+    final repeated = _FakeActiveEditor(_entriesOf(const ['a', 'b', 'a']));
+    final readerActions = _FakeReaderCarouselActions();
+    final router = GoRouter(
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, _) => const Scaffold(body: CarouselChips()),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(() => repeated),
+          readerCarouselActionsProvider.overrideWith(() => readerActions),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      '${RoutePaths.reader}?pdfId=a&file=asset:fixtures/sample.pdf&titulo=Louvor%20A',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.pumpAndSettle();
+
+    // Remove a **segunda** ocorrência de A (a terceira linha do modal).
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byIcon(Icons.close),
+          )
+          .at(2),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repeated.removedKeys, ['a#1']);
+    // A outra ocorrência de A continua na face: o leitor fica onde está.
+    expect(readerActions.navigatedKeys, isEmpty);
+    expect(readerActions.navigatedPdfIds, isEmpty);
+    expect(router.state.uri.queryParameters['pdfId'], 'a');
   });
 
   testWidgets('modo leitor oferece tocar áudio do louvor aberto', (

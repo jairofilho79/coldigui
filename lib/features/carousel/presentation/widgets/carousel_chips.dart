@@ -263,6 +263,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     final remaining = ref.read(carouselItemsProvider);
     if (!mounted) return;
 
+    // O material aberto pode estar repetido: sair uma ocorrência não tira o
+    // leitor de onde ele está enquanto sobrar outra do mesmo material.
+    if (remaining.any((item) => item.materialId == currentMaterialId)) return;
+
     if (remaining.isEmpty) {
       context.pop();
       return;

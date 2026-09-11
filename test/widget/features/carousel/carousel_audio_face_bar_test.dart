@@ -4,6 +4,7 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -73,6 +74,15 @@ class _FakeColdigomLouvoresCache extends ColdigomLouvoresCacheNotifier {
   Map<String, Louvor> build() => initial;
 }
 
+class _FakeColdigomAudioTracksCache extends ColdigomAudioTracksCacheNotifier {
+  _FakeColdigomAudioTracksCache(this.initial);
+
+  final Map<String, AudioTrack> initial;
+
+  @override
+  Map<String, AudioTrack> build() => initial;
+}
+
 void main() {
   const track = AudioTrack(
     audioId: 'aud-1',
@@ -103,6 +113,7 @@ void main() {
     required SharedPreferences prefs,
     required List<PlaylistEntry> entries,
     Map<String, Louvor> coldigomCache = const {},
+    Map<String, AudioTrack> audioCache = const {},
     _QueuedAudioSession? session,
     double? width,
   }) {
@@ -115,6 +126,9 @@ void main() {
         ),
         coldigomLouvoresCacheProvider.overrideWith(
           () => _FakeColdigomLouvoresCache(coldigomCache),
+        ),
+        coldigomAudioTracksCacheProvider.overrideWith(
+          () => _FakeColdigomAudioTracksCache(audioCache),
         ),
         audioPlayerSessionProvider.overrideWith(
           () => session ?? _QueuedAudioSession(track),
@@ -275,6 +289,88 @@ void main() {
       lessThanOrEqualTo(baselineHeight),
     );
     expect(_overflowPixels(tester.takeException()), baselineOverflow);
+  });
+
+  group('sem sessão, a faixa vem da lista ativa', () {
+    const segunda = AudioTrack(
+      audioId: 'aud-2',
+      r2Key: 'assets/praises/p2/a.mp3',
+      nome: 'Vem, Espírito',
+      numero: '101',
+      groupId: 'p2',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
+
+    testWidgets('mostra a primeira entrada de áudio resolvível no cache', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          // A primeira entrada de áudio ainda não foi aquecida no cache: ela é
+          // pulada em vez de apagar a barra.
+          entries: const [
+            PlaylistEntry(id: 'aud-frio', kind: MaterialKind.audio),
+            PlaylistEntry(id: 'aud-2', kind: MaterialKind.audio),
+          ],
+          audioCache: const {'aud-2': segunda},
+          session: _QueuedAudioSession(track, emptyQueue: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Vem, Espírito'), findsOneWidget);
+      expect(find.text('Esta lista não tem áudios.'), findsNothing);
+    });
+
+    testWidgets('sem entrada de áudio resolvível a barra fica vazia', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          entries: const [
+            PlaylistEntry(id: 'aud-frio', kind: MaterialKind.audio),
+          ],
+          session: _QueuedAudioSession(track, emptyQueue: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Vem, Espírito'), findsNothing);
+      expect(find.text('Esta lista não tem áudios.'), findsOneWidget);
+      expect(find.byIcon(Icons.open_in_full), findsNothing);
+    });
+  });
+
+  testWidgets('sem faixa, o layers cai na ocorrência focada (id e chave)', (
+    tester,
+  ) async {
+    // O mesmo PDF duas vezes na face: só a chave distingue as ocorrências, e o
+    // botão de troca tem que receber a da entrada focada — `pdf-1#1`.
+    SharedPreferences.setMockInitialValues({
+      'carousel_focused_pdf_id': 'pdf-1#1',
+    });
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      buildSubject(
+        prefs: prefs,
+        entries: const [pdfEntry, pdfEntry],
+        session: _QueuedAudioSession(track, emptyQueue: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final swap = tester.widget<CarouselSwapMaterialButton>(
+      find.byType(CarouselSwapMaterialButton),
+    );
+    expect(swap.materialId, 'pdf-1');
+    expect(swap.entryKey, 'pdf-1#1');
+    expect(swap.audioId, isNull);
   });
 
   testWidgets('oculta partitura quando o louvor tocando não tem material', (

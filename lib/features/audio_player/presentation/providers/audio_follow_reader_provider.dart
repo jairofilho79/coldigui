@@ -177,9 +177,13 @@ Future<void> openMaterialForGroupInReader({
   );
   if (!context.mounted) return;
 
-  // O foco é por ocorrência: o id vira chave pela **primeira** ocorrência dele
-  // na face, que é a mesma escolha de [resolveMaterialForGroup]. Fora da face
-  // (louvor que não está na lista) `focusKey` é no-op e o foco fica onde está.
+  // O foco é por ocorrência: a **focada** vence quando já é deste material
+  // (o usuário pode estar na segunda ocorrência dele), senão vale a primeira —
+  // a mesma escolha de [resolveMaterialForGroup]. Fora da face (louvor que não
+  // está na lista) `focusKey` é no-op e o foco fica onde está.
+  final focused = ref.read(focusedCarouselItemProvider);
+  if (focused != null && focused.materialId == targetPdfId) return;
+
   final items = ref.read(carouselItemsProvider);
   final index = items.indexWhere((item) => item.materialId == targetPdfId);
   if (index < 0) return;
