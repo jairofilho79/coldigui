@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_tabs.dart';
+import '../../core/providers/feature_flags_provider.dart';
 import '../../core/utils/safe_query_parameters.dart';
 import '../../core/utils/url_sync_params.dart';
 import '../../core/widgets/deferred_route_loader.dart';
@@ -24,17 +26,26 @@ import 'route_paths.dart';
 /// Navigator raiz do [GoRouter] — snackbars do [DeepLinkListener] (UC-14).
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Router principal do app — [StatefulShellRoute] com 5 destinos + leitor.
+/// Router principal do app — [StatefulShellRoute] com as abas de
+/// [appTabsFor] (E6) + leitor.
 ///
 /// Rotas em [RoutePaths]. `/leitor` é sub-rota da branch Home para reutilizar o
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
 /// `/audio` e `/cifra` são irmãs de `/leitor` na mesma branch.
 ///
-/// Branch Perfil (índice 4) também hospeda `/sobre`, `/offline` e `/listas`.
+/// Branch Perfil também hospeda `/sobre`, `/offline` e `/listas`.
+///
+/// As `StatefulShellBranch` são montadas a partir de [appTabsFor] — com
+/// `FF_EVENTS=false` (padrão) a rota `/eventos` não é registrada; navegar
+/// para ela cai no tratamento padrão do [GoRouter] para rota desconhecida
+/// (não lança). Índices de branch (`selectedIndex`/`goBranch`) são sempre a
+/// posição do item na mesma lista — nunca hardcoded.
 ///
 /// `/leitor` adia só a init do pdfrx; offline/leitor no bundle principal (WebKit
 /// dart2js não registra `.part.js` via `<script>` — ver flutter_bootstrap webkit).
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final tabs = appTabsFor(ref.read(featureFlagsProvider));
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
@@ -42,111 +53,116 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ShellScaffold(navigationShell: navigationShell),
-        branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.events,
-                builder: (context, state) =>
-                    const PlaceholderTabScreen(title: 'Eventos'),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.library,
-                builder: (context, state) {
-                  final params = safeQueryParameters(state.uri);
-                  return LibraryScreen(
-                    initialFonte: params[UrlSyncParams.fonte],
-                    initialMateriais: params[UrlSyncParams.materiais],
-                    initialArranjo: params[UrlSyncParams.arranjo],
-                    initialArranjoEspecial:
-                        params[UrlSyncParams.arranjoEspecial],
-                    initialTonality: params[UrlSyncParams.tonality],
-                    initialRhythm: params[UrlSyncParams.rhythm],
-                    initialCategory: params[UrlSyncParams.category],
-                    initialTags: params[UrlSyncParams.tags],
-                    initialMaterialKinds: params[UrlSyncParams.materialKinds],
-                    initialOrdenar: params[UrlSyncParams.ordenar],
-                    initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
-                    initialPagina: params[UrlSyncParams.pagina],
-                  );
-                },
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.home,
-                builder: (context, state) {
-                  final params = safeQueryParameters(state.uri);
-                  return HomeScreen(
-                    initialSearchQuery: params[UrlSyncParams.pesquisa] ?? '',
-                    initialMateriais: params[UrlSyncParams.materiais],
-                    initialArranjo: params[UrlSyncParams.arranjo],
-                  );
-                },
-                routes: [
-                  GoRoute(
-                    path: 'leitor',
-                    builder: (context, state) => DeferredRouteLoader(
-                      load: ensurePdfrxInitialized,
-                      builder: () => PdfReaderScreen(
-                        queryParams: safeQueryParameters(state.uri),
-                      ),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'audio',
-                    builder: (context, state) => AudioPlayerScreen(
-                      queryParams: safeQueryParameters(state.uri),
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'cifra',
-                    builder: (context, state) => ChordReaderScreen(
-                      queryParams: safeQueryParameters(state.uri),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.social,
-                builder: (context, state) => const SocialScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RoutePaths.profile,
-                builder: (context, state) => const ProfileScreen(),
-              ),
-              GoRoute(
-                path: RoutePaths.about,
-                builder: (context, state) => const AboutScreen(),
-              ),
-              GoRoute(
-                path: RoutePaths.offline,
-                builder: (context, state) =>
-                    const StorageRequiredGate(child: OfflineSettingsScreen()),
-              ),
-              GoRoute(
-                path: RoutePaths.playlists,
-                builder: (context, state) =>
-                    const StorageRequiredGate(child: PlaylistsScreen()),
-              ),
-            ],
-          ),
-        ],
+        branches: [for (final tab in tabs) _branchFor(tab)],
       ),
     ],
   );
 });
+
+/// `StatefulShellBranch` de [tab] — mesma ordem/rotas usadas quando todas as
+/// flags estavam sempre ligadas; ver [appRouterProvider].
+StatefulShellBranch _branchFor(AppTab tab) {
+  return switch (tab) {
+    AppTab.events => StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RoutePaths.events,
+          builder: (context, state) =>
+              const PlaceholderTabScreen(title: 'Eventos'),
+        ),
+      ],
+    ),
+    AppTab.library => StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RoutePaths.library,
+          builder: (context, state) {
+            final params = safeQueryParameters(state.uri);
+            return LibraryScreen(
+              initialFonte: params[UrlSyncParams.fonte],
+              initialMateriais: params[UrlSyncParams.materiais],
+              initialArranjo: params[UrlSyncParams.arranjo],
+              initialArranjoEspecial: params[UrlSyncParams.arranjoEspecial],
+              initialTonality: params[UrlSyncParams.tonality],
+              initialRhythm: params[UrlSyncParams.rhythm],
+              initialCategory: params[UrlSyncParams.category],
+              initialTags: params[UrlSyncParams.tags],
+              initialMaterialKinds: params[UrlSyncParams.materialKinds],
+              initialOrdenar: params[UrlSyncParams.ordenar],
+              initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
+              initialPagina: params[UrlSyncParams.pagina],
+            );
+          },
+        ),
+      ],
+    ),
+    AppTab.home => StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (context, state) {
+            final params = safeQueryParameters(state.uri);
+            return HomeScreen(
+              initialSearchQuery: params[UrlSyncParams.pesquisa] ?? '',
+              initialMateriais: params[UrlSyncParams.materiais],
+              initialArranjo: params[UrlSyncParams.arranjo],
+            );
+          },
+          routes: [
+            GoRoute(
+              path: 'leitor',
+              builder: (context, state) => DeferredRouteLoader(
+                load: ensurePdfrxInitialized,
+                builder: () => PdfReaderScreen(
+                  queryParams: safeQueryParameters(state.uri),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'audio',
+              builder: (context, state) => AudioPlayerScreen(
+                queryParams: safeQueryParameters(state.uri),
+              ),
+            ),
+            GoRoute(
+              path: 'cifra',
+              builder: (context, state) => ChordReaderScreen(
+                queryParams: safeQueryParameters(state.uri),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+    AppTab.social => StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RoutePaths.social,
+          builder: (context, state) => const SocialScreen(),
+        ),
+      ],
+    ),
+    AppTab.profile => StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RoutePaths.profile,
+          builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.about,
+          builder: (context, state) => const AboutScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.offline,
+          builder: (context, state) =>
+              const StorageRequiredGate(child: OfflineSettingsScreen()),
+        ),
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (context, state) =>
+              const StorageRequiredGate(child: PlaylistsScreen()),
+        ),
+      ],
+    ),
+  };
+}

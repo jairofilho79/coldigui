@@ -1,4 +1,7 @@
 {
   "PLPCG_API_BASE_URL": "http://127.0.0.1:8081",
-  "COLDIGOM_API_BASE_URL": "https://coldigom-api.jairofilho79.workers.dev"
+  "COLDIGOM_API_BASE_URL": "https://coldigom-api.jairofilho79.workers.dev",
+  "FF_EVENTS": false,
+  "FF_SOCIAL": true,
+  "FF_ADMIN_UPLOAD": false
 }
