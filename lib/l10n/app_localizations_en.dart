@@ -642,11 +642,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistDelete => 'Delete';
 
   @override
-  String get playlistDeleteConfirmTitle => 'Delete playlist?';
-
-  @override
-  String get playlistDeleteConfirmMessage =>
-      'This playlist will be permanently removed.';
+  String get playlistDeletedUndo => 'Playlist removed';
 
   @override
   String get playlistDraftLabel => 'Draft';

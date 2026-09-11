@@ -649,11 +649,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistDelete => 'Excluir';
 
   @override
-  String get playlistDeleteConfirmTitle => 'Excluir lista?';
-
-  @override
-  String get playlistDeleteConfirmMessage =>
-      'Esta lista será removida permanentemente.';
+  String get playlistDeletedUndo => 'Lista removida';
 
   @override
   String get playlistDraftLabel => 'Rascunho';

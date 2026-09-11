@@ -11,7 +11,6 @@ import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
-import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -306,6 +305,30 @@ class PlaylistTileActions {
     return true;
   }
 
+  /// «Apagar» (C11): sem diálogo — o desfazer substitui a confirmação. O
+  /// item some do estado na hora ([PlaylistsNotifier.deleteWithUndo]); o
+  /// snackbar oferece «Desfazer» por 5 s, mesmo padrão de [_activate]/
+  /// [_undoActivate] (captura o `container`, não `ref`/`context`, porque o
+  /// `PendingDelete.undo` pode disparar depois que o tile saiu da árvore).
+  void _delete() {
+    if (loading) return;
+    final container = ProviderScope.containerOf(context, listen: false);
+    final pending = container
+        .read(playlistsProvider.notifier)
+        .deleteWithUndo(playlist.playlistId);
+    final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.playlistDeletedUndo),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: l10n.undo,
+          onPressed: () => unawaited(pending.undo()),
+        ),
+      ),
+    );
+  }
+
   Future<void> run(String action) async {
     switch (action) {
       case 'activate':
@@ -408,13 +431,7 @@ class PlaylistTileActions {
           showAppSnackbar(context, l10n.playlistPublished);
         }
       case 'delete':
-        final confirmed = await showConfirmDialog(
-          context: context,
-          title: l10n.playlistDeleteConfirmTitle,
-          message: l10n.playlistDeleteConfirmMessage,
-        );
-        if (confirmed != true || !context.mounted) return;
-        await ref.read(playlistsProvider.notifier).delete(playlist.playlistId);
+        _delete();
     }
   }
 

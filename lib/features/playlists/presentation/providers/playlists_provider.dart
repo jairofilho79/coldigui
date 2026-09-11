@@ -23,6 +23,7 @@ import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_editor.dart';
 import 'active_playlist_provider.dart';
+import 'pending_delete.dart';
 import 'playlist_media_face_provider.dart';
 import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
@@ -44,6 +45,9 @@ class PlaylistViewItem {
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   var _sessionHydrated = false;
 
+  /// Exclusão adiada em curso (C11) — só uma por vez, ver [deleteWithUndo].
+  PendingDelete? _pendingDelete;
+
   @override
   List<PlaylistViewItem> build() {
     ref.listen(louvoresManifestProvider, (_, _) {
@@ -54,6 +58,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     // recarrega — é também o gatilho que finalmente hidrata a sessão.
     ref.listen(isarStatusProvider, (_, next) {
       if (next == IsarStatus.available) unawaited(_reload());
+    });
+    ref.onDispose(() {
+      final pending = _pendingDelete;
+      if (pending != null && !pending.isSettled) unawaited(pending.commit());
     });
     Future.microtask(_reload);
     return const [];
@@ -267,23 +275,78 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return next;
   }
 
-  Future<void> delete(String playlistId) async {
-    final existing = state
-        .where((item) => item.playlist.playlistId == playlistId)
-        .map((e) => e.playlist)
-        .firstOrNull;
+  /// Apaga imediatamente (sem desfazer) — atalho para [deleteWithUndo] com
+  /// `grace: Duration.zero` seguido de `commit`.
+  Future<void> delete(String playlistId) =>
+      deleteWithUndo(playlistId, grace: Duration.zero).commit();
+
+  /// C11 — exclusão adiada: some do estado agora, mas o repositório só é
+  /// tocado depois de [grace] (5 s por padrão) — ou antes, se [PendingDelete]
+  /// é comitado explicitamente (outro `deleteWithUndo`, o `dispose` do
+  /// notifier ou o chamador). [PendingDelete.undo] recoloca o item sem nunca
+  /// ter chegado ao repositório.
+  ///
+  /// Qualquer `deleteWithUndo` anterior ainda pendente é comitado antes
+  /// deste começar: o item dele já sumiu do estado, não faz sentido guardar
+  /// duas exclusões "em voo" ao mesmo tempo.
+  ///
+  /// Repositório e "autenticado" são resolvidos **agora** (não dentro do
+  /// `commit`): a exclusão de verdade pode rodar depois que o notifier já
+  /// foi descartado (`ref.onDispose`), quando `ref.read` não é mais seguro
+  /// (mesmo padrão de [ActivePlaylistEditor]).
+  PendingDelete deleteWithUndo(
+    String playlistId, {
+    Duration grace = const Duration(seconds: 5),
+  }) {
+    final previousPending = _pendingDelete;
+    if (previousPending != null && !previousPending.isSettled) {
+      unawaited(previousPending.commit());
+    }
+
+    final index = state.indexWhere(
+      (item) => item.playlist.playlistId == playlistId,
+    );
+    final removed = index == -1 ? null : state[index];
+    if (removed != null) {
+      state = [...state]..removeAt(index);
+    }
+
+    final repository = ref.read(playlistRepositoryProvider);
+    final deletePlaylist = ref.read(deletePlaylistProvider);
     final authed = ref.read(authStateProvider).asData?.value != null;
-    if (existing?.salva == true && !authed) {
-      // Sem conta: hard delete (sem tombstone órfão).
-      await ref.read(playlistRepositoryProvider).hardDelete(playlistId);
-    } else {
-      await ref.read(deletePlaylistProvider)(playlistId: playlistId);
-    }
-    if (ref.read(activePlaylistIdProvider) == playlistId) {
-      ref.read(activePlaylistIdProvider.notifier).clear();
-    }
-    await _reload();
-    if (authed && (existing?.salva ?? true)) _syncCloudIfAuthed();
+    // Sem conta: hard delete (sem tombstone órfão) — mesma regra de antes.
+    final hardDelete = removed?.playlist.salva == true && !authed;
+
+    final pending = PendingDelete(
+      grace: grace,
+      onUndo: () async {
+        if (removed == null || !ref.mounted) return;
+        if (state.any((item) => item.playlist.playlistId == playlistId)) {
+          return;
+        }
+        final next = [...state];
+        next.insert(index.clamp(0, next.length), removed);
+        state = next;
+      },
+      onCommit: () async {
+        if (hardDelete) {
+          await repository.hardDelete(playlistId);
+        } else {
+          await deletePlaylist(playlistId: playlistId);
+        }
+        if (!ref.mounted) return;
+        if (ref.read(activePlaylistIdProvider) == playlistId) {
+          ref.read(activePlaylistIdProvider.notifier).clear();
+        }
+        await _reload();
+        if (!ref.mounted) return;
+        if (authed && (removed?.playlist.salva ?? true)) {
+          _syncCloudIfAuthed();
+        }
+      },
+    );
+    _pendingDelete = pending;
+    return pending;
   }
 
   Future<void> deleteAllUnsaved() async {

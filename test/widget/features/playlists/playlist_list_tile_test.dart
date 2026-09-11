@@ -20,6 +20,7 @@ import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart'
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/pending_delete.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -113,6 +114,33 @@ class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
   }) async {
     lastOption = option;
     return true;
+  }
+}
+
+/// Registra os pedidos de `deleteWithUndo`/`undo`/`commit` (C11) sem tocar
+/// no repositório de verdade — devolve um [PendingDelete] real (com `grace`
+/// infinito para não disparar sozinho durante o teste).
+class _DeleteRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+  _DeleteRecordingPlaylistsNotifier(super.initial);
+
+  final deleteRequests = <String>[];
+  final undoRequests = <String>[];
+  final commitRequests = <String>[];
+  PendingDelete? lastPending;
+
+  @override
+  PendingDelete deleteWithUndo(
+    String playlistId, {
+    Duration grace = const Duration(seconds: 5),
+  }) {
+    deleteRequests.add(playlistId);
+    final pending = PendingDelete(
+      grace: grace,
+      onUndo: () async => undoRequests.add(playlistId),
+      onCommit: () async => commitRequests.add(playlistId),
+    );
+    lastPending = pending;
+    return pending;
   }
 }
 
@@ -950,5 +978,49 @@ void main() {
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
     expect(find.text('Publicar'), findsNothing);
+  });
+
+  // C11: o desfazer substitui a confirmação — nenhum diálogo aparece.
+  group('«Apagar»', () {
+    testWidgets('sem diálogo, mostra snackbar «Lista removida · Desfazer»', (
+      tester,
+    ) async {
+      final notifier = _DeleteRecordingPlaylistsNotifier([item]);
+      await tester.pumpWidget(buildSubject(playlistsNotifier: notifier));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Excluir lista?'), findsNothing);
+      expect(notifier.deleteRequests, ['p1']);
+      expect(find.text('Lista removida'), findsOneWidget);
+      expect(find.text('Desfazer'), findsOneWidget);
+      expect(notifier.undoRequests, isEmpty);
+
+      // Sem isso, o `Timer` de 5 s do `PendingDelete` real ficaria pendente
+      // depois da árvore de widgets ser descartada (o teste não desfaz nem
+      // espera a graça).
+      await notifier.lastPending!.commit();
+    });
+
+    testWidgets('«Desfazer» chama o undo do PendingDelete', (tester) async {
+      final notifier = _DeleteRecordingPlaylistsNotifier([item]);
+      await tester.pumpWidget(buildSubject(playlistsNotifier: notifier));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Desfazer'));
+      await tester.pumpAndSettle();
+
+      expect(notifier.undoRequests, ['p1']);
+      expect(notifier.commitRequests, isEmpty);
+    });
   });
 }

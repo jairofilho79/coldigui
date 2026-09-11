@@ -374,8 +374,10 @@
   "playlistRenameTitle": "Renomear lista",
   "playlistRenameConfirm": "Salvar",
   "playlistDelete": "Excluir",
-  "playlistDeleteConfirmTitle": "Excluir lista?",
-  "playlistDeleteConfirmMessage": "Esta lista será removida permanentemente.",
+  "playlistDeletedUndo": "Lista removida",
+  "@playlistDeletedUndo": {
+    "description": "Snackbar depois de apagar uma lista, com ação Desfazer (C11)"
+  },
   "playlistDraftLabel": "Rascunho",
   "@playlistDraftLabel": {
     "description": "Rótulo da lista ativa não salva na barra do carousel (C11)"

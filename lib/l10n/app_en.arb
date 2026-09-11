@@ -365,8 +365,10 @@
   "playlistRenameTitle": "Rename playlist",
   "playlistRenameConfirm": "Save",
   "playlistDelete": "Delete",
-  "playlistDeleteConfirmTitle": "Delete playlist?",
-  "playlistDeleteConfirmMessage": "This playlist will be permanently removed.",
+  "playlistDeletedUndo": "Playlist removed",
+  "@playlistDeletedUndo": {
+    "description": "Snackbar after deleting a playlist, with an Undo action (C11)"
+  },
   "playlistDraftLabel": "Draft",
   "@playlistDraftLabel": {
     "description": "Label for the unsaved active playlist on the carousel bar (C11)"

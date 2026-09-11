@@ -1145,17 +1145,11 @@ abstract class AppLocalizations {
   /// **'Excluir'**
   String get playlistDelete;
 
-  /// No description provided for @playlistDeleteConfirmTitle.
+  /// Snackbar depois de apagar uma lista, com ação Desfazer (C11)
   ///
   /// In pt, this message translates to:
-  /// **'Excluir lista?'**
-  String get playlistDeleteConfirmTitle;
-
-  /// No description provided for @playlistDeleteConfirmMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Esta lista será removida permanentemente.'**
-  String get playlistDeleteConfirmMessage;
+  /// **'Lista removida'**
+  String get playlistDeletedUndo;
 
   /// Rótulo da lista ativa não salva na barra do carousel (C11)
   ///
