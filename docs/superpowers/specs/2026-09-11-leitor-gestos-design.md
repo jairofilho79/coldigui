@@ -314,9 +314,9 @@ Providers (`gesture_providers.dart`), espelhando `chord_providers.dart`:
   304 só atualiza `fetchedAt`. Sem cache e sem rede → `null` (a tela renderiza
   com placeholders, não erro).
 - `gestureFigureProvider = FutureProvider.family<Uint8List?, String>` (keepAlive).
-- `gestureFigurePrefetchProvider = Provider.family<void, String r2KeyDoc>` —
-  ouve documento + dicionário e chama `prefetch` uma vez com as figuras
-  resolvidas dos ids do documento.
+- `prefetchGestureFigures(repository, document, dictionary)` — função pura de
+  disparo: a tela chama uma vez por documento+dicionário carregados com as
+  figuras (PNG e GIF) resolvidas dos ids do documento.
 - `gestureReaderFontSizeProvider` — `Notifier<double>` persistido em
   `StorageKeys.gestureReaderFontSize`.
 
@@ -325,7 +325,6 @@ Providers (`gesture_providers.dart`), espelhando `chord_providers.dart`:
 ```
 presentation/
   pages/gesture_reader_screen.dart
-  providers/gesture_focus_index_provider.dart     int? (null = página)
   theme/gesture_reader_palette.dart
   utils/open_gesture_in_reader.dart               espelho de open_chord_in_reader
   widgets/gesture_document_view.dart
