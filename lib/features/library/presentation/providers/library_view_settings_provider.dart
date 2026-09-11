@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
+import 'package:coldigui/core/layout/breakpoints.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,8 +122,7 @@ class LibraryViewSettingsNotifier extends Notifier<LibraryViewSettings> {
   void setDefaultForWidth(double width) {
     if (_hasExplicitItemsPerPage) return;
     _hasExplicitItemsPerPage = true;
-    // kWideLayoutBreakpoint (Tarefa 5)
-    final defaultSize = width >= 900 ? 25 : 10;
+    final defaultSize = width >= kWideLayoutBreakpoint ? 25 : 10;
     state = state.copyWith(itemsPerPage: defaultSize);
   }
 
