@@ -319,6 +319,12 @@ void main() {
     await pumpEventQueue();
 
     expect(container.read(homeSearchStateProvider).page, 1);
+    // A página volta a 1 **antes** de a remota ser pedida: nunca sai um
+    // request para ('joão', 2) — só o de 'aleluia' p.1, 'aleluia' p.2 e
+    // 'joão' p.1.
+    expect(source.searchCalls, 3);
+    expect(source.queries.last.page, 1);
+    expect(source.queries.last.text, 'joão');
   });
 
   test('mudar o filtro volta a página para 1 sem re-buscar a remota', () async {
