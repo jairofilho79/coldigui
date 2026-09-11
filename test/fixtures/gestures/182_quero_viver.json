@@ -1,0 +1,29 @@
+{
+  "schema": "coldigom.gestures/1",
+  "title": "182 - QUERO VIVER PRA SEMPRE COM JESUS",
+  "dictionaryVersion": 1,
+  "items": [
+    { "type": "coro", "children": [
+      { "type": "gesture", "gestureId": "c687580e7682", "lyrics": [{ "trigger": "Quero", "text": "viver para sempre" }] },
+      { "type": "gesture", "gestureId": "e7b821c9041a", "lyrics": [{ "trigger": "com", "text": "Jesus, lá no céu," }] },
+      { "type": "gesture", "gestureId": "6d88501c6888", "lyrics": [{ "trigger": "e", "text": "nunca mais terei sede," }] },
+      { "type": "gesture", "gestureId": "fa2878588e54", "lyrics": [{ "trigger": "serei", "text": "como árvore plantada," }] },
+      { "type": "gesture", "gestureId": "121dceda600f", "lyrics": [{ "trigger": "isso", "text": "é certeza pra mim." }] }
+    ]},
+    { "type": "gesture", "gestureId": "a6a5eb350ad4", "lyrics": [{ "trigger": "Vou", "text": "andar com meu Senhor," }] },
+    { "type": "gesture", "gestureId": "5ef0073c9723", "lyrics": [{ "trigger": "bem", "text": "no meio do Seu povo," }] },
+    { "type": "gesture", "gestureId": "fff2698cc966", "lyrics": [{ "trigger": "sem", "text": "olhar pra trás," }] },
+    { "type": "gesture", "gestureId": "81338f2f401e", "lyrics": [{ "trigger": "sob", "text": "o Seu domínio." }] },
+    { "type": "gesture", "gestureId": "c687580e7682", "lyrics": [{ "trigger": "Com", "text": "todo o meu coração," }] },
+    { "type": "gesture", "gestureId": "e7b821c9041a", "lyrics": [{ "trigger": "olhando", "text": "sempre pra cima," }] },
+    { "type": "gesture", "gestureId": "6d88501c6888", "lyrics": [{ "trigger": "vou", "text": "beber da Sua água," }] },
+    { "type": "gesture", "gestureId": "dd4ba6562f45", "lyrics": [{ "trigger": "e", "text": "comer do Seu pão," }] },
+    { "type": "gesture", "gestureId": "fa2878588e54", "lyrics": [{ "trigger": "Viver", "text": "ao lado do Senhor." }] },
+    { "type": "instruction", "kind": "back_to_chorus" },
+    { "type": "text", "text": "Quero viver pra sempre com Jesus," },
+    { "type": "text", "text": "lá na cidade de ouro e luz," },
+    { "type": "text", "text": "onde não há mais dor nem pranto," },
+    { "type": "text", "text": "só alegria e canto." },
+    { "type": "instruction", "kind": "back_to_chorus_and_finish" }
+  ]
+}
