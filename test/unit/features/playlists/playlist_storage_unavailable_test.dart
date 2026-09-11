@@ -61,10 +61,17 @@ void main() {
       );
     });
 
-    test('markAllSavedPendingPush', () {
+    test('adoptForSub', () {
       expect(
-        () => datasource.markAllSavedPendingPush(),
-        _throwsStorageUnavailable('playlists.markAllSavedPendingPush'),
+        () => datasource.adoptForSub('sub-1'),
+        _throwsStorageUnavailable('playlists.adoptForSub'),
+      );
+    });
+
+    test('purgeSyncedOwnedBy', () {
+      expect(
+        () => datasource.purgeSyncedOwnedBy('sub-0'),
+        _throwsStorageUnavailable('playlists.purgeSyncedOwnedBy'),
       );
     });
   });
@@ -114,10 +121,17 @@ void main() {
       );
     });
 
-    test('markAllSavedPendingPush propaga', () {
+    test('adoptForSub propaga', () {
       expect(
-        () => repository.markAllSavedPendingPush(),
-        _throwsStorageUnavailable('playlists.markAllSavedPendingPush'),
+        () => repository.adoptForSub('sub-1'),
+        _throwsStorageUnavailable('playlists.adoptForSub'),
+      );
+    });
+
+    test('purgeSyncedOwnedBy propaga', () {
+      expect(
+        () => repository.purgeSyncedOwnedBy('sub-0'),
+        _throwsStorageUnavailable('playlists.purgeSyncedOwnedBy'),
       );
     });
 

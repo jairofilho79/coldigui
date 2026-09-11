@@ -115,6 +115,62 @@ int _serializeSliceOnePlaylist(IsarWriter writer, Playlist object) {
 Playlist _deserializeSliceOnePlaylist(IsarReader reader) =>
     _deserializeLegacyPlaylist(reader)..items = _readStringList(reader, 18);
 
+/// Schema `Playlist` **anterior** à coluna `ownerSub` (propriedade 20): já tem
+/// a ordem única tipada completa (`items` + `itemKinds`), mas nenhuma lista
+/// tem dono — é a base que um build pré-Tarefa-4 deixou gravada.
+final _preOwnerPlaylistSchema = IsarGeneratedSchema(
+  schema: IsarSchema(
+    name: 'Playlist',
+    idName: 'id',
+    embedded: false,
+    properties: [
+      IsarPropertySchema(name: 'playlistId', type: IsarType.string),
+      IsarPropertySchema(name: 'nome', type: IsarType.string),
+      IsarPropertySchema(name: 'pdfIds', type: IsarType.stringList),
+      IsarPropertySchema(name: 'audioIds', type: IsarType.stringList),
+      IsarPropertySchema(name: 'createdAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'salva', type: IsarType.bool),
+      IsarPropertySchema(name: 'savedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'favoritedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'favorita', type: IsarType.bool),
+      IsarPropertySchema(name: 'updatedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'version', type: IsarType.long),
+      IsarPropertySchema(name: 'syncStatusIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'deletedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'isPublished', type: IsarType.bool),
+      IsarPropertySchema(name: 'publicationReachIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'publicationCategoryIndex', type: IsarType.long),
+      IsarPropertySchema(name: 'publishedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'items', type: IsarType.stringList),
+      IsarPropertySchema(name: 'itemKinds', type: IsarType.stringList),
+    ],
+    indexes: [
+      IsarIndexSchema(
+        name: 'playlistId',
+        properties: ['playlistId'],
+        unique: true,
+        hash: false,
+      ),
+    ],
+  ),
+  converter: IsarObjectConverter<int, Playlist>(
+    serialize: _serializePreOwnerPlaylist,
+    deserialize: _deserializePreOwnerPlaylist,
+    deserializeProperty: _deserializeLegacyPlaylistProp,
+  ),
+  getEmbeddedSchemas: () => [],
+);
+
+int _serializePreOwnerPlaylist(IsarWriter writer, Playlist object) {
+  _serializeSliceOnePlaylist(writer, object);
+  _writeStringList(writer, 19, object.itemKinds);
+  return object.id;
+}
+
+Playlist _deserializePreOwnerPlaylist(IsarReader reader) =>
+    _deserializeSliceOnePlaylist(reader)
+      ..itemKinds = _readStringList(reader, 19);
+
 const _nullLong = -9223372036854775808;
 
 int _serializeLegacyPlaylist(IsarWriter writer, Playlist object) {
@@ -368,4 +424,51 @@ void main() {
       expect(row.updatedAt.toUtc(), DateTime.utc(2026, 8, 1));
     },
   );
+
+  test('base gravada sem a coluna ownerSub reabre com null (A.5)', () async {
+    // Build pré-Tarefa-4: escreve a linha com o schema sem `ownerSub`.
+    final preOwner = Isar.open(
+      schemas: [_preOwnerPlaylistSchema],
+      directory: tempDir.path,
+      name: 'sem_dono',
+      engine: IsarEngine.sqlite,
+    );
+    preOwner.write((isar) {
+      isar.playlists.put(
+        Playlist()
+          ..id = 1
+          ..playlistId = 'sem-dono'
+          ..nome = 'Ensaio'
+          ..pdfIds = [pdfA]
+          ..audioIds = [audioA]
+          ..items = [pdfA, audioA]
+          ..itemKinds = ['pdf', 'audio']
+          ..createdAt = DateTime.utc(2026, 8, 1)
+          ..salva = true
+          ..savedAt = DateTime.utc(2026, 8, 1)
+          ..updatedAt = DateTime.utc(2026, 8, 1)
+          ..version = 3,
+      );
+    });
+    preOwner.close();
+
+    // Build novo: mesmo diretório/nome, schema com a coluna `ownerSub`.
+    final upgraded = Isar.open(
+      schemas: [PlaylistSchema],
+      directory: tempDir.path,
+      name: 'sem_dono',
+      engine: IsarEngine.sqlite,
+    );
+    addTearDown(() => upgraded.close());
+
+    final row = await PlaylistLocalDatasource(
+      upgraded,
+    ).findByPlaylistId('sem-dono');
+
+    expect(row, isNotNull, reason: 'a lista do usuário não pode sumir');
+    expect(row!.ownerSub, isNull, reason: 'linha antiga ainda não tem dono');
+    expect(row.items, [pdfA, audioA]);
+    expect(row.itemKinds, ['pdf', 'audio']);
+    expect(row.version, 3, reason: 'a coluna nova não mexe no que já existia');
+  });
 }

@@ -20,6 +20,7 @@ class _Repo implements PlaylistRepository {
     DateTime? updatedAt,
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
   }) => throw UnimplementedError();
 
   @override
@@ -39,7 +40,8 @@ class _Repo implements PlaylistRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<SavedPlaylist>> getPendingPush() => throw UnimplementedError();
+  Future<List<SavedPlaylist>> getPendingPush({String? sub}) =>
+      throw UnimplementedError();
 
   @override
   Future<List<SavedPlaylist>> getTombstones() => throw UnimplementedError();
@@ -48,7 +50,11 @@ class _Repo implements PlaylistRepository {
   Future<void> hardDelete(String playlistId) => throw UnimplementedError();
 
   @override
-  Future<void> markAllSavedPendingPush() => throw UnimplementedError();
+  Future<void> adoptForSub(String sub) => throw UnimplementedError();
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) =>
+      throw UnimplementedError();
 
   @override
   Future<void> publish(

@@ -39,6 +39,7 @@ final PlaylistSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'publishedAt', type: IsarType.dateTime),
       IsarPropertySchema(name: 'items', type: IsarType.stringList),
       IsarPropertySchema(name: 'itemKinds', type: IsarType.stringList),
+      IsarPropertySchema(name: 'ownerSub', type: IsarType.string),
     ],
     indexes: [
       IsarIndexSchema(
@@ -137,6 +138,14 @@ int serializePlaylist(IsarWriter writer, Playlist object) {
       IsarCore.writeString(listWriter, i, list[i]);
     }
     IsarCore.endList(writer, listWriter);
+  }
+  {
+    final value = object.ownerSub;
+    if (value == null) {
+      IsarCore.writeNull(writer, 20);
+    } else {
+      IsarCore.writeString(writer, 20, value);
+    }
   }
   return object.id;
 }
@@ -304,6 +313,7 @@ Playlist deserializePlaylist(IsarReader reader) {
       }
     }
   }
+  object.ownerSub = IsarCore.readString(reader, 20);
   return object;
 }
 
@@ -484,6 +494,8 @@ dynamic deserializePlaylistProp(IsarReader reader, int property) {
           }
         }
       }
+    case 20:
+      return IsarCore.readString(reader, 20);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -507,6 +519,7 @@ sealed class _PlaylistUpdate {
     int? publicationReachIndex,
     int? publicationCategoryIndex,
     DateTime? publishedAt,
+    String? ownerSub,
   });
 }
 
@@ -533,6 +546,7 @@ class _PlaylistUpdateImpl implements _PlaylistUpdate {
     Object? publicationReachIndex = ignore,
     Object? publicationCategoryIndex = ignore,
     Object? publishedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -554,6 +568,7 @@ class _PlaylistUpdateImpl implements _PlaylistUpdate {
             if (publicationCategoryIndex != ignore)
               16: publicationCategoryIndex as int?,
             if (publishedAt != ignore) 17: publishedAt as DateTime?,
+            if (ownerSub != ignore) 20: ownerSub as String?,
           },
         ) >
         0;
@@ -578,6 +593,7 @@ sealed class _PlaylistUpdateAll {
     int? publicationReachIndex,
     int? publicationCategoryIndex,
     DateTime? publishedAt,
+    String? ownerSub,
   });
 }
 
@@ -604,6 +620,7 @@ class _PlaylistUpdateAllImpl implements _PlaylistUpdateAll {
     Object? publicationReachIndex = ignore,
     Object? publicationCategoryIndex = ignore,
     Object? publishedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return collection.updateProperties(id, {
       if (playlistId != ignore) 1: playlistId as String?,
@@ -622,6 +639,7 @@ class _PlaylistUpdateAllImpl implements _PlaylistUpdateAll {
       if (publicationCategoryIndex != ignore)
         16: publicationCategoryIndex as int?,
       if (publishedAt != ignore) 17: publishedAt as DateTime?,
+      if (ownerSub != ignore) 20: ownerSub as String?,
     });
   }
 }
@@ -649,6 +667,7 @@ sealed class _PlaylistQueryUpdate {
     int? publicationReachIndex,
     int? publicationCategoryIndex,
     DateTime? publishedAt,
+    String? ownerSub,
   });
 }
 
@@ -675,6 +694,7 @@ class _PlaylistQueryUpdateImpl implements _PlaylistQueryUpdate {
     Object? publicationReachIndex = ignore,
     Object? publicationCategoryIndex = ignore,
     Object? publishedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (playlistId != ignore) 1: playlistId as String?,
@@ -693,6 +713,7 @@ class _PlaylistQueryUpdateImpl implements _PlaylistQueryUpdate {
       if (publicationCategoryIndex != ignore)
         16: publicationCategoryIndex as int?,
       if (publishedAt != ignore) 17: publishedAt as DateTime?,
+      if (ownerSub != ignore) 20: ownerSub as String?,
     });
   }
 }
@@ -727,6 +748,7 @@ class _PlaylistQueryBuilderUpdateImpl implements _PlaylistQueryUpdate {
     Object? publicationReachIndex = ignore,
     Object? publicationCategoryIndex = ignore,
     Object? publishedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     final q = query.build();
     try {
@@ -747,6 +769,7 @@ class _PlaylistQueryBuilderUpdateImpl implements _PlaylistQueryUpdate {
         if (publicationCategoryIndex != ignore)
           16: publicationCategoryIndex as int?,
         if (publishedAt != ignore) 17: publishedAt as DateTime?,
+        if (ownerSub != ignore) 20: ownerSub as String?,
       });
     } finally {
       q.close();
@@ -2470,6 +2493,178 @@ extension PlaylistQueryFilter
       );
     });
   }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 20));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 20));
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubGreaterThan(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  ownerSubGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubLessThan(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 20, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition>
+  ownerSubLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 20,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 20,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 20,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 20, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterFilterCondition> ownerSubIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 20, value: ''),
+      );
+    });
+  }
 }
 
 extension PlaylistQueryObject
@@ -2678,6 +2873,22 @@ extension PlaylistQuerySortBy on QueryBuilder<Playlist, Playlist, QSortBy> {
       return query.addSortBy(17, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<Playlist, Playlist, QAfterSortBy> sortByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(20, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterSortBy> sortByOwnerSubDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(20, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension PlaylistQuerySortThenBy
@@ -2884,6 +3095,22 @@ extension PlaylistQuerySortThenBy
       return query.addSortBy(17, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<Playlist, Playlist, QAfterSortBy> thenByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(20, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterSortBy> thenByOwnerSubDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(20, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension PlaylistQueryWhereDistinct
@@ -3005,6 +3232,14 @@ extension PlaylistQueryWhereDistinct
   QueryBuilder<Playlist, Playlist, QAfterDistinct> distinctByItemKinds() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(19);
+    });
+  }
+
+  QueryBuilder<Playlist, Playlist, QAfterDistinct> distinctByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(20, caseSensitive: caseSensitive);
     });
   }
 }
@@ -3131,6 +3366,12 @@ extension PlaylistQueryProperty1
       return query.addProperty(19);
     });
   }
+
+  QueryBuilder<Playlist, String?, QAfterProperty> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(20);
+    });
+  }
 }
 
 extension PlaylistQueryProperty2<R>
@@ -3255,6 +3496,12 @@ extension PlaylistQueryProperty2<R>
   itemKindsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(19);
+    });
+  }
+
+  QueryBuilder<Playlist, (R, String?), QAfterProperty> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(20);
     });
   }
 }
@@ -3384,6 +3631,12 @@ extension PlaylistQueryProperty3<R1, R2>
   itemKindsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(19);
+    });
+  }
+
+  QueryBuilder<Playlist, (R1, R2, String?), QOperations> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(20);
     });
   }
 }

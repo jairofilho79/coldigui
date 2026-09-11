@@ -75,6 +75,14 @@ class Playlist {
   /// `PlaylistLocalDatasource` recomputa (`audioIds` vence a extensão) e
   /// persiste, sem tocar `updatedAt`/`version`/`syncStatus`.
   List<String> itemKinds = const [];
+
+  /// `sub` Google do dono da linha; `null` = criada sem conta (ainda sem dono).
+  ///
+  /// **Declarado por último** pelo mesmo motivo de [items]/[itemKinds]: campo
+  /// novo no fim mantém os índices das propriedades já gravadas em disco, então
+  /// bases anteriores continuam legíveis — e reabrem com `ownerSub == null`
+  /// (spec A.5).
+  String? ownerSub;
 }
 
 extension PlaylistSyncStatusX on Playlist {

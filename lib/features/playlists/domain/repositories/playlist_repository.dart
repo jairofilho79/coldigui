@@ -30,6 +30,7 @@ abstract class PlaylistRepository {
     DateTime? updatedAt,
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
   });
 
   /// Atualização parcial — lança [StateError] se playlist ausente.
@@ -72,8 +73,9 @@ abstract class PlaylistRepository {
   /// Remove todas as playlists não salvas.
   Future<void> deleteAllUnsaved();
 
-  /// Pendentes de push (ativas, salvas).
-  Future<List<SavedPlaylist>> getPendingPush();
+  /// Pendentes de push (ativas, salvas) que [sub] pode enviar: as dela e as
+  /// ainda sem dono (spec A.5).
+  Future<List<SavedPlaylist>> getPendingPush({String? sub});
 
   /// Tombstones locais aguardando DELETE remoto.
   Future<List<SavedPlaylist>> getTombstones();
@@ -81,6 +83,17 @@ abstract class PlaylistRepository {
   /// Upsert completo a partir do remoto / sync.
   Future<void> upsert(SavedPlaylist playlist);
 
-  /// Marca todas as salvas locais como pendingPush (pós-login).
-  Future<void> markAllSavedPendingPush();
+  /// Pós-login: marca `pendingPush` e grava `ownerSub = sub` nas listas salvas
+  /// sem dono ou já de [sub] (spec A.5).
+  ///
+  /// Rascunhos (`salva == false`) nunca ganham dono; listas de outra conta
+  /// ficam intocadas — elas não sobem no push desta.
+  Future<void> adoptForSub(String sub);
+
+  /// Troca de conta: hard delete das listas `synced` de [previousSub].
+  ///
+  /// Só as `synced`: elas estão na nuvem da conta anterior e voltam no próximo
+  /// login dela. `pendingPush`/`conflict` ficam no aparelho, com o dono antigo.
+  /// Devolve quantas saíram.
+  Future<int> purgeSyncedOwnedBy(String previousSub);
 }

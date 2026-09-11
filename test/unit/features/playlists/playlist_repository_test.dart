@@ -4,8 +4,28 @@ import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
+
+/// Linha pronta para `upsert` — o caminho que grava `syncStatus`/`ownerSub`
+/// exatamente como pedido (`create` promove salva+synced a `pendingPush`).
+SavedPlaylist _row(
+  String id, {
+  String? ownerSub,
+  PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+  bool salva = true,
+}) => SavedPlaylist.fromLegacyLists(
+  playlistId: id,
+  nome: id,
+  pdfIds: const ['x'],
+  createdAt: DateTime.utc(2026, 1, 1),
+  salva: salva,
+  savedAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 1, 1),
+  syncStatus: syncStatus,
+  ownerSub: ownerSub,
+);
 
 void main() {
   late Directory tempDir;
@@ -162,5 +182,99 @@ void main() {
 
     await repository.delete('d1');
     expect(await repository.getById('d1'), isNull);
+  });
+
+  group('dono por conta (A.5)', () {
+    test('create grava o ownerSub informado', () async {
+      await repository.create(
+        nome: 'Minha',
+        pdfIds: ['a'],
+        playlistId: 'p1',
+        ownerSub: 'sub-1',
+      );
+
+      expect((await repository.getById('p1'))?.ownerSub, 'sub-1');
+    });
+
+    test('adoptForSub marca só as salvas sem dono ou do mesmo dono', () async {
+      await repository.upsert(_row('orfa'));
+      await repository.upsert(_row('minha', ownerSub: 'sub-1'));
+      await repository.upsert(_row('outra', ownerSub: 'sub-2'));
+      await repository.upsert(_row('draft', salva: false));
+
+      await repository.adoptForSub('sub-1');
+
+      final orfa = await repository.getById('orfa');
+      expect(orfa?.ownerSub, 'sub-1');
+      expect(orfa?.syncStatus, PlaylistSyncStatus.pendingPush);
+
+      final minha = await repository.getById('minha');
+      expect(minha?.ownerSub, 'sub-1');
+      expect(minha?.syncStatus, PlaylistSyncStatus.pendingPush);
+
+      final outra = await repository.getById('outra');
+      expect(outra?.ownerSub, 'sub-2', reason: 'lista de outra conta não muda');
+      expect(outra?.syncStatus, PlaylistSyncStatus.synced);
+
+      final draft = await repository.getById('draft');
+      expect(draft?.ownerSub, isNull, reason: 'rascunho nunca ganha dono');
+      expect(draft?.syncStatus, PlaylistSyncStatus.synced);
+    });
+
+    test(
+      'purgeSyncedOwnedBy apaga synced da conta anterior e mantém pendingPush',
+      () async {
+        await repository.upsert(_row('sincronizada', ownerSub: 'antigo'));
+        await repository.upsert(
+          _row(
+            'pendente',
+            ownerSub: 'antigo',
+            syncStatus: PlaylistSyncStatus.pendingPush,
+          ),
+        );
+        await repository.upsert(
+          _row(
+            'conflito',
+            ownerSub: 'antigo',
+            syncStatus: PlaylistSyncStatus.conflict,
+          ),
+        );
+        await repository.upsert(_row('nova-conta', ownerSub: 'novo'));
+        await repository.upsert(_row('sem-dono'));
+
+        final purged = await repository.purgeSyncedOwnedBy('antigo');
+
+        expect(purged, 1);
+        expect(await repository.getById('sincronizada'), isNull);
+        expect(await repository.getById('pendente'), isNotNull);
+        expect(await repository.getById('conflito'), isNotNull);
+        expect(await repository.getById('nova-conta'), isNotNull);
+        expect(await repository.getById('sem-dono'), isNotNull);
+      },
+    );
+
+    test('getPendingPush só entrega o dono corrente e as sem dono', () async {
+      await repository.upsert(
+        _row('sem-dono', syncStatus: PlaylistSyncStatus.pendingPush),
+      );
+      await repository.upsert(
+        _row(
+          'minha',
+          ownerSub: 'sub-1',
+          syncStatus: PlaylistSyncStatus.pendingPush,
+        ),
+      );
+      await repository.upsert(
+        _row(
+          'outra',
+          ownerSub: 'sub-2',
+          syncStatus: PlaylistSyncStatus.pendingPush,
+        ),
+      );
+
+      final pending = await repository.getPendingPush(sub: 'sub-1');
+
+      expect(pending.map((p) => p.playlistId).toSet(), {'sem-dono', 'minha'});
+    });
   });
 }

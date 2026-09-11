@@ -10,6 +10,7 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/datasources/playlist_remote_datasource.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/usecases/sync_playlists.dart';
+import 'active_playlist_provider.dart';
 import 'playlist_sync_lifecycle.dart';
 import 'playlists_provider.dart';
 
@@ -150,7 +151,7 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       return state.lastResult ?? PlaylistSyncResult.skippedAuth;
     }
 
-    final future = _run(user.idToken);
+    final future = _run(user.idToken, user.googleSub);
     _inFlight = future;
     try {
       await future;
@@ -182,10 +183,13 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     await ref.read(playlistsProvider.notifier).reload();
   }
 
-  Future<void> _run(String idToken) async {
+  Future<void> _run(String idToken, String? sub) async {
     state = state.copyWith(isSyncing: true);
     try {
-      final result = await ref.read(syncPlaylistsProvider)(idToken: idToken);
+      final result = await ref.read(syncPlaylistsProvider)(
+        idToken: idToken,
+        sub: sub,
+      );
       if (!ref.mounted) return;
       // O resultado carrega os erros tolerados (pull caiu, push falhou): eles
       // valem banner mesmo com a sync tendo terminado.
@@ -197,6 +201,11 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
         conflictCopies: result.conflictCopies,
         deletedRemotely: result.deletedRemotely,
       );
+      // Uma lista apagada em outro aparelho pode ser justamente a ativa: o
+      // carousel ficaria espelhando um id que não existe mais (spec A.2).
+      if (result.deletedRemotely > 0) {
+        await _clearActiveIfGone();
+      }
     } on Object catch (e) {
       debugPrint('[playlists] sync falhou: $e');
       if (!ref.mounted) return;
@@ -204,26 +213,62 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     }
   }
 
-  /// Pós-login: marca salvas como pendingPush e sincroniza.
+  /// Limpa o id ativo se a lista que ele aponta não existe mais.
   ///
-  /// Só roda de verdade quando o `sub` muda (ver [build]). Uma falha de
-  /// armazenamento aqui vira [PlaylistSyncState.lastErrorCause] em vez de um
-  /// erro não tratado na zona do login — e o `sub` **não** é persistido, para a
-  /// próxima abertura tentar de novo.
+  /// Erro próprio: o id ativo é conforto de navegação, e uma
+  /// SharedPreferences/Isar indisponível aqui não pode transformar uma sync que
+  /// deu certo num banner de falha.
+  Future<void> _clearActiveIfGone() async {
+    if (!ref.mounted) return;
+    try {
+      final activeId = ref.read(activePlaylistIdProvider);
+      if (activeId == null) return;
+      final existing = await ref
+          .read(playlistRepositoryProvider)
+          .getById(activeId);
+      if (!ref.mounted || existing != null) return;
+      ref.read(activePlaylistIdProvider.notifier).clear();
+      debugPrint('[playlists] lista ativa $activeId sumiu: id ativo limpo');
+    } on Object catch (e) {
+      debugPrint('[playlists] não deu para revisar a lista ativa: $e');
+    }
+  }
+
+  /// Pós-login: adota as listas para a conta que entrou e sincroniza.
+  ///
+  /// Só roda de verdade quando o `sub` muda (ver [build]). Na troca de conta, a
+  /// purga da anterior vem **antes** da adoção: as listas `synced` do dono
+  /// antigo já estão na nuvem dele e não podem subir para a conta nova
+  /// (spec A.5) — e se a purga levou a lista ativa, o id ativo é limpo.
+  ///
+  /// Uma falha de armazenamento aqui vira [PlaylistSyncState.lastErrorCause] em
+  /// vez de um erro não tratado na zona do login — e o `sub` **não** é
+  /// persistido, para a próxima tentativa repetir a adoção.
   Future<void> syncAfterLogin() async {
     if (!ref.mounted) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
+    final previous = _persistedSub();
     try {
-      await ref.read(playlistRepositoryProvider).markAllSavedPendingPush();
+      final repository = ref.read(playlistRepositoryProvider);
+      if (previous != null && previous != user.googleSub) {
+        final purged = await repository.purgeSyncedOwnedBy(previous);
+        if (!ref.mounted) return;
+        debugPrint('[playlists] $purged lista(s) de $previous removidas');
+        await _clearActiveIfGone();
+        if (!ref.mounted) return;
+      }
+      await repository.adoptForSub(user.googleSub);
     } on Object catch (e) {
-      debugPrint('[playlists] markAllSavedPendingPush falhou: $e');
+      debugPrint('[playlists] adoptForSub falhou: $e');
       if (ref.mounted) {
         state = state.copyWith(isSyncing: false, lastErrorCause: e);
       }
       return;
     }
+    if (!ref.mounted) return;
     await _persistSub(user.googleSub);
+    if (!ref.mounted) return;
     await sync();
   }
 

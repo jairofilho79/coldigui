@@ -46,6 +46,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     DateTime? updatedAt,
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
   }) async {
     final id = playlistId ?? generatePlaylistId();
     final now = createdAt ?? DateTime.now();
@@ -61,7 +62,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..version = version
       ..syncStatus = salva && syncStatus == PlaylistSyncStatus.synced
           ? PlaylistSyncStatus.pendingPush
-          : syncStatus;
+          : syncStatus
+      ..ownerSub = ownerSub;
     // Também no `create`: as colunas de compat são projeção de `entries`,
     // nunca as listas cruas que o chamador passou.
     _writeEntries(
@@ -200,8 +202,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   Future<void> deleteAllUnsaved() => _local.deleteAllUnsaved();
 
   @override
-  Future<List<SavedPlaylist>> getPendingPush() async {
-    final rows = await _local.findPendingPush();
+  Future<List<SavedPlaylist>> getPendingPush({String? sub}) async {
+    final rows = await _local.findPendingPush(sub: sub);
     return rows.map(_toEntity).toList(growable: false);
   }
 
@@ -228,7 +230,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       ..isPublished = playlist.isPublished
       ..publicationReach = playlist.publicationReach
       ..publicationCategory = playlist.publicationCategory
-      ..publishedAt = playlist.publishedAt;
+      ..publishedAt = playlist.publishedAt
+      ..ownerSub = playlist.ownerSub;
     _writeEntries(row, playlist.entries);
     await _local.insert(row);
   }
@@ -255,7 +258,11 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   ];
 
   @override
-  Future<void> markAllSavedPendingPush() => _local.markAllSavedPendingPush();
+  Future<void> adoptForSub(String sub) => _local.adoptForSub(sub);
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) =>
+      _local.purgeSyncedOwnedBy(previousSub);
 
   SavedPlaylist _toEntity(Playlist row) => SavedPlaylist(
     playlistId: row.playlistId,
@@ -276,6 +283,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     publicationReach: row.publicationReach,
     publicationCategory: row.publicationCategory,
     publishedAt: row.publishedAt,
+    ownerSub: row.ownerSub,
   );
 
   /// Ordem única tipada da linha: `items` + `itemKinds`.

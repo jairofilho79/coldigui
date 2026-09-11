@@ -22,12 +22,14 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
     DateTime? updatedAt,
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
   }) async {
     final id = playlistId ?? 'gen-${map.length}';
     final now = createdAt ?? DateTime.utc(2026, 1, 1);
     map[id] = SavedPlaylist(
       playlistId: id,
       nome: nome,
+      ownerSub: ownerSub,
       entries:
           entries ??
           SavedPlaylist.entriesFromLegacyLists(
@@ -79,12 +81,13 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   Future<List<SavedPlaylist>> getByTab(PlaylistTab tab) async => getAll();
 
   @override
-  Future<List<SavedPlaylist>> getPendingPush() async => map.values
+  Future<List<SavedPlaylist>> getPendingPush({String? sub}) async => map.values
       .where(
         (p) =>
             p.salva &&
             p.deletedAt == null &&
-            p.syncStatus == PlaylistSyncStatus.pendingPush,
+            p.syncStatus == PlaylistSyncStatus.pendingPush &&
+            (p.ownerSub == null || p.ownerSub == sub),
       )
       .toList();
 
@@ -103,14 +106,32 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
   }
 
   @override
-  Future<void> markAllSavedPendingPush() async {
+  Future<void> adoptForSub(String sub) async {
     for (final e in map.entries.toList()) {
-      if (e.value.salva && e.value.deletedAt == null) {
-        map[e.key] = e.value.copyWith(
-          syncStatus: PlaylistSyncStatus.pendingPush,
-        );
-      }
+      final row = e.value;
+      if (!row.salva || row.deletedAt != null) continue;
+      if (row.ownerSub != null && row.ownerSub != sub) continue;
+      map[e.key] = row.copyWith(
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        ownerSub: sub,
+      );
     }
+  }
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) async {
+    final doomed = map.entries
+        .where(
+          (e) =>
+              e.value.ownerSub == previousSub &&
+              e.value.syncStatus == PlaylistSyncStatus.synced,
+        )
+        .map((e) => e.key)
+        .toList(growable: false);
+    for (final id in doomed) {
+      map.remove(id);
+    }
+    return doomed.length;
   }
 
   @override
@@ -190,7 +211,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: null);
+    final result = await sync(idToken: null, sub: 'sub-1');
     expect(result.skipped, isTrue);
     expect(fetchCalled, isFalse);
   });
@@ -216,7 +237,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(result.pulled, 1);
     expect(repo.map['r1']?.nome, 'Culto');
     expect(repo.map['r1']?.syncStatus, PlaylistSyncStatus.synced);
@@ -266,7 +287,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(result.pulled, 0);
     expect(result.pushed, 1);
     expect(repo.map['p1']?.nome, 'Local');
@@ -293,7 +314,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(putCount, 0);
     expect(result.pushed, 0);
   });
@@ -322,7 +343,7 @@ void main() {
       },
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(deletedId, 'gone');
     expect(result.deleted, 1);
     expect(repo.map.containsKey('gone'), isFalse);
@@ -353,7 +374,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    await sync(idToken: 'token');
+    await sync(idToken: 'token', sub: 'sub-1');
     final local = repo.map['pub1']!;
     expect(local.isPublished, isTrue);
     expect(local.publicationReach, PlaylistReach.pontual);
@@ -393,7 +414,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(result.pullError, same(failure));
     expect(result.pushed, 1);
     expect(result.deleted, 1);
@@ -437,7 +458,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(attempts, 1, reason: 'remoto mais novo não é re-enviado');
     expect(result.conflicts, 0);
     expect(repo.map['p1']?.nome, 'Remoto');
@@ -494,7 +515,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(sentVersions, [2, 7]);
     expect(result.pushed, 1);
     expect(result.conflicts, 0);
@@ -540,7 +561,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(attempts, 2, reason: 're-envio acontece uma única vez');
     expect(result.conflicts, 1);
     expect(result.pushed, 0);
@@ -598,7 +619,7 @@ void main() {
       ({required idToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token');
+    final result = await sync(idToken: 'token', sub: 'sub-1');
     expect(sentVersions, [2, 7], reason: 're-envia em vez de puxar');
     expect(result.pushed, 1);
     expect(repo.map['p1']?.nome, 'Local');
@@ -630,7 +651,7 @@ void main() {
     );
 
     for (var i = 0; i < 5; i++) {
-      await sync(idToken: 'token');
+      await sync(idToken: 'token', sub: 'sub-1');
     }
 
     expect(deleteCalls, SyncPlaylists.maxTombstoneAttemptsPerBoot);
@@ -680,7 +701,7 @@ void main() {
         ({required idToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token');
+      final result = await sync(idToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 1);
       expect(result.pulled, 0);
       expect(repo.map.containsKey('p1'), isFalse);
@@ -712,7 +733,7 @@ void main() {
         ({required idToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token');
+      final result = await sync(idToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 0);
       expect(pushed, ['p1']);
       expect(repo.map['p1']?.nome, 'Local');
@@ -728,7 +749,7 @@ void main() {
         ({required idToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token');
+      final result = await sync(idToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 0);
       expect(result.pulled, 0);
       expect(repo.map, isEmpty);
@@ -780,6 +801,7 @@ void main() {
 
       final result = await syncConflicting(repo, remotePdfIds: const ['y'])(
         idToken: 'token',
+        sub: 'sub-1',
       );
 
       final copyName = conflictCopyName('Local');
@@ -805,7 +827,7 @@ void main() {
         repo,
         remotePdfIds: const ['x'],
         remoteNome: 'Mesmo',
-      )(idToken: 'token');
+      )(idToken: 'token', sub: 'sub-1');
 
       expect(result.conflictCopies, isEmpty);
       expect(repo.map.keys, ['p1']);
@@ -820,9 +842,196 @@ void main() {
         repo,
         remotePdfIds: const ['x'],
         remoteNome: 'Renomeada no outro aparelho',
-      )(idToken: 'token');
+      )(idToken: 'token', sub: 'sub-1');
 
       expect(result.conflictCopies, [conflictCopyName('Local')]);
+    });
+
+    test('remoto já apagado no 409 não ressuscita a lista', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(localPending(pdfIds: const ['x']));
+
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => <RemotePlaylist>[],
+        ({required idToken, required playlist}) async {
+          throw PlaylistConflictException(
+            RemotePlaylist.fromLegacyLists(
+              id: 'p1',
+              nome: 'Remoto apagado',
+              pdfIds: const ['y'],
+              salva: true,
+              favorita: false,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+              version: 7,
+              deletedAt: DateTime.utc(2026, 4, 1),
+            ),
+          );
+        },
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token', sub: 'sub-1');
+
+      expect(result.pulled, 0);
+      expect(result.pushed, 0);
+      expect(result.conflicts, 0);
+      expect(result.conflictCopies, isEmpty);
+      expect(repo.map.keys, ['p1'], reason: 'nenhuma cópia é criada');
+      expect(
+        repo.map['p1']?.nome,
+        'Local',
+        reason: 'o tombstone remoto não sobrescreve a lista local',
+      );
+      expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.pendingPush);
+    });
+  });
+
+  group('dono por conta (A.5)', () {
+    test('pull grava ownerSub = sub em toda linha escrita', () async {
+      final repo = _MemoryPlaylistRepository();
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => [
+          RemotePlaylist.fromLegacyLists(
+            id: 'r1',
+            nome: 'Culto',
+            pdfIds: const ['a'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 2, 1),
+            version: 2,
+            savedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+        ({required idToken, required playlist}) async => playlist,
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token', sub: 'sub-1');
+
+      expect(result.pulled, 1);
+      expect(repo.map['r1']?.ownerSub, 'sub-1');
+    });
+
+    test('push grava ownerSub = sub na linha que voltou synced', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'p1',
+          nome: 'Local',
+          pdfIds: const ['x'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          updatedAt: DateTime.utc(2026, 3, 1),
+          syncStatus: PlaylistSyncStatus.pendingPush,
+        ),
+      );
+
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => <RemotePlaylist>[],
+        ({required idToken, required playlist}) async => playlist,
+        ({required idToken, required playlistId}) async {},
+      );
+
+      await sync(idToken: 'token', sub: 'sub-1');
+
+      expect(repo.map['p1']?.ownerSub, 'sub-1');
+      expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
+    });
+
+    test('push ignora pendentes de outro dono', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'da-outra-conta',
+          nome: 'Da outra conta',
+          pdfIds: const ['x'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          updatedAt: DateTime.utc(2026, 3, 1),
+          syncStatus: PlaylistSyncStatus.pendingPush,
+          ownerSub: 'sub-2',
+        ),
+      );
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'minha',
+          nome: 'Minha',
+          pdfIds: const ['y'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          updatedAt: DateTime.utc(2026, 3, 1),
+          syncStatus: PlaylistSyncStatus.pendingPush,
+          ownerSub: 'sub-1',
+        ),
+      );
+
+      final pushed = <String>[];
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => <RemotePlaylist>[],
+        ({required idToken, required playlist}) async {
+          pushed.add(playlist.id);
+          return playlist;
+        },
+        ({required idToken, required playlistId}) async {},
+      );
+
+      final result = await sync(idToken: 'token', sub: 'sub-1');
+
+      expect(pushed, ['minha']);
+      expect(result.pushed, 1);
+      expect(
+        repo.map['da-outra-conta']?.syncStatus,
+        PlaylistSyncStatus.pendingPush,
+        reason: 'a lista da conta anterior continua parada no aparelho',
+      );
+    });
+
+    test('a cópia de conflito nasce com o dono corrente', () async {
+      final repo = _MemoryPlaylistRepository();
+      await repo.upsert(
+        SavedPlaylist.fromLegacyLists(
+          playlistId: 'p1',
+          nome: 'Local',
+          pdfIds: const ['x'],
+          createdAt: DateTime.utc(2026, 1, 1),
+          salva: true,
+          updatedAt: DateTime.utc(2026, 3, 1),
+          version: 2,
+          syncStatus: PlaylistSyncStatus.pendingPush,
+        ),
+      );
+
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => <RemotePlaylist>[],
+        ({required idToken, required playlist}) async {
+          throw PlaylistConflictException(
+            RemotePlaylist.fromLegacyLists(
+              id: 'p1',
+              nome: 'Remoto',
+              pdfIds: const ['y'],
+              salva: true,
+              favorita: false,
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+              version: 7,
+            ),
+          );
+        },
+        ({required idToken, required playlistId}) async {},
+      );
+
+      await sync(idToken: 'token', sub: 'sub-1');
+
+      final copy = repo.map.values.firstWhere((p) => p.playlistId != 'p1');
+      expect(copy.ownerSub, 'sub-1');
+      expect(repo.map['p1']?.ownerSub, 'sub-1');
     });
   });
 }

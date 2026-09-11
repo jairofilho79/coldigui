@@ -87,7 +87,12 @@ class SyncPlaylists {
   })
   _delete;
 
-  Future<PlaylistSyncResult> call({required String? idToken}) async {
+  /// [sub] é o dono corrente: toda linha escrita aqui fica com ele, e o push
+  /// só envia o que é dele ou ainda não tem dono (spec A.5).
+  Future<PlaylistSyncResult> call({
+    required String? idToken,
+    required String? sub,
+  }) async {
     if (idToken == null || idToken.isEmpty) {
       return PlaylistSyncResult.skippedAuth;
     }
@@ -103,7 +108,7 @@ class SyncPlaylists {
 
     // Fase A — Pull. Isolada: se cair, push e tombstones ainda rodam.
     try {
-      final outcome = await _pull(idToken);
+      final outcome = await _pull(idToken, sub);
       pulled = outcome.pulled;
       deletedRemotely = outcome.deletedRemotely;
     } on Object catch (e) {
@@ -112,16 +117,17 @@ class SyncPlaylists {
     }
 
     // Fase B — Push
-    final pending = await _repository.getPendingPush();
+    final pending = await _repository.getPendingPush(sub: sub);
     for (final local in pending) {
       if (!local.salva) continue;
       try {
-        pushed += await _push(idToken: idToken, local: local);
+        pushed += await _push(idToken: idToken, local: local, sub: sub);
       } on PlaylistConflictException catch (e) {
         final outcome = await _resolveConflict(
           idToken: idToken,
           local: local,
           remote: e.remote,
+          sub: sub,
         );
         pulled += outcome.pulled;
         pushed += outcome.pushed;
@@ -169,7 +175,7 @@ class SyncPlaylists {
   }
 
   /// Fase A isolada — o que o servidor trouxe e o que ele mandou apagar.
-  Future<_PullOutcome> _pull(String idToken) async {
+  Future<_PullOutcome> _pull(String idToken, String? sub) async {
     var pulled = 0;
     var deletedRemotely = 0;
     final remote = await _fetch(idToken);
@@ -185,7 +191,7 @@ class SyncPlaylists {
       if (!r.salva) continue;
       final local = await _repository.getById(r.id);
       if (local == null) {
-        await _repository.upsert(_fromRemote(r));
+        await _repository.upsert(_fromRemote(r, sub));
         pulled++;
         continue;
       }
@@ -200,7 +206,7 @@ class SyncPlaylists {
       if (local.updatedAt.isBefore(r.updatedAt) ||
           (local.updatedAt.isAtSameMomentAs(r.updatedAt) &&
               local.version < r.version)) {
-        await _repository.upsert(_fromRemote(r));
+        await _repository.upsert(_fromRemote(r, sub));
         pulled++;
       }
     }
@@ -228,6 +234,7 @@ class SyncPlaylists {
   Future<int> _push({
     required String idToken,
     required SavedPlaylist local,
+    required String? sub,
     int? version,
   }) async {
     final saved = await _upsert(
@@ -240,6 +247,7 @@ class SyncPlaylists {
         updatedAt: saved.updatedAt,
         syncStatus: PlaylistSyncStatus.synced,
         clearDeletedAt: true,
+        ownerSub: sub,
       ),
     );
     return 1;
@@ -257,12 +265,27 @@ class SyncPlaylists {
     required String idToken,
     required SavedPlaylist local,
     required RemotePlaylist remote,
+    required String? sub,
   }) async {
+    // Remoto já apagado: o tombstone é assunto do pull (`_applyRemoteDeletion`),
+    // não do 409. Aqui ele não vira upsert nem cópia — ressuscitar por cima da
+    // lista local seria desfazer uma exclusão feita em outro aparelho.
+    if (remote.deletedAt != null) {
+      debugPrint(
+        '[playlists] conflito em ${local.playlistId}: remoto já apagado, '
+        'nada a fazer',
+      );
+      return const _ConflictOutcome();
+    }
     // `!remote.salva` é ignorado pelo pull (`_pull`), e o 409 segue a mesma
     // regra: um rascunho remoto não ressuscita por cima de uma lista salva.
     if (remote.salva && remote.updatedAt.isAfter(local.updatedAt)) {
-      final copyName = await _saveConflictCopy(local: local, remote: remote);
-      await _repository.upsert(_fromRemote(remote));
+      final copyName = await _saveConflictCopy(
+        local: local,
+        remote: remote,
+        sub: sub,
+      );
+      await _repository.upsert(_fromRemote(remote, sub));
       debugPrint(
         '[playlists] conflito em ${local.playlistId}: remoto mais novo venceu',
       );
@@ -275,6 +298,7 @@ class SyncPlaylists {
       final pushed = await _push(
         idToken: idToken,
         local: local,
+        sub: sub,
         version: remote.version,
       );
       return _ConflictOutcome(pushed: pushed);
@@ -300,6 +324,7 @@ class SyncPlaylists {
   Future<String?> _saveConflictCopy({
     required SavedPlaylist local,
     required RemotePlaylist remote,
+    required String? sub,
   }) async {
     if (local.syncStatus != PlaylistSyncStatus.pendingPush) return null;
     if (!_entriesDiffer(local.entries, remote.entries) &&
@@ -316,6 +341,7 @@ class SyncPlaylists {
       syncStatus: PlaylistSyncStatus.conflict,
       updatedAt: local.updatedAt,
       createdAt: local.createdAt,
+      ownerSub: sub,
     );
     debugPrint(
       '[playlists] edições locais de ${local.playlistId} guardadas em '
@@ -336,7 +362,10 @@ class SyncPlaylists {
     return false;
   }
 
-  static SavedPlaylist _fromRemote(RemotePlaylist r) => SavedPlaylist(
+  static SavedPlaylist _fromRemote(
+    RemotePlaylist r,
+    String? sub,
+  ) => SavedPlaylist(
     playlistId: r.id,
     nome: r.nome,
     // A ordem única já vem tipada do payload — o veredito de áudio do Worker
@@ -354,6 +383,7 @@ class SyncPlaylists {
     publicationReach: r.publicationReach,
     publicationCategory: r.publicationCategory,
     publishedAt: r.publishedAt,
+    ownerSub: sub,
   );
 
   /// [version] força a versão enviada — é o re-envio pós-`409`, que só passa

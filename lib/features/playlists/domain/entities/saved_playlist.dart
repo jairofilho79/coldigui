@@ -33,6 +33,7 @@ class SavedPlaylist {
     this.publicationReach,
     this.publicationCategory,
     this.publishedAt,
+    this.ownerSub,
   }) : updatedAt = updatedAt ?? createdAt,
        entries = List<PlaylistEntry>.unmodifiable(entries);
 
@@ -62,6 +63,7 @@ class SavedPlaylist {
     PlaylistReach? publicationReach,
     PlaylistCategory? publicationCategory,
     DateTime? publishedAt,
+    String? ownerSub,
   }) : this(
          playlistId: playlistId,
          nome: nome,
@@ -83,6 +85,7 @@ class SavedPlaylist {
          publicationReach: publicationReach,
          publicationCategory: publicationCategory,
          publishedAt: publishedAt,
+         ownerSub: ownerSub,
        );
 
   /// Monta a ordem única tipada a partir das listas legadas — ver
@@ -203,6 +206,12 @@ class SavedPlaylist {
 
   final DateTime? publishedAt;
 
+  /// `sub` Google do dono; `null` = lista criada sem conta (spec A.5).
+  ///
+  /// A sync só envia listas sem dono ou do dono corrente, e a troca de conta
+  /// purga localmente as `synced` da conta anterior.
+  final String? ownerSub;
+
   /// Cópia com campos trocados.
   ///
   /// [entries] tem precedência e substitui tudo. Sem ele, [pdfIds]/[audioIds]
@@ -230,6 +239,7 @@ class SavedPlaylist {
     PlaylistCategory? publicationCategory,
     DateTime? publishedAt,
     bool clearPublication = false,
+    String? ownerSub,
   }) {
     return SavedPlaylist(
       playlistId: playlistId ?? this.playlistId,
@@ -252,6 +262,7 @@ class SavedPlaylist {
           ? null
           : (publicationCategory ?? this.publicationCategory),
       publishedAt: clearPublication ? null : (publishedAt ?? this.publishedAt),
+      ownerSub: ownerSub ?? this.ownerSub,
     );
   }
 

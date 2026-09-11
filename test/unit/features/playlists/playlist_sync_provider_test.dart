@@ -8,6 +8,7 @@ import 'package:coldigui/features/playlists/domain/entities/remote_playlist.dart
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,18 +22,32 @@ class _LoggedInAuth extends AuthNotifier {
       const AuthUser(googleSub: 'sub-1', idToken: 'token');
 }
 
-/// Repositório mínimo: só conta `markAllSavedPendingPush` (e pode falhar nele).
+/// Repositório mínimo: conta `adoptForSub`/`purgeSyncedOwnedBy` (e pode falhar
+/// na adoção); [surviving] são as listas que `getById` ainda encontra.
 class _CountingRepository implements PlaylistRepository {
-  _CountingRepository({this.markThrows});
+  _CountingRepository({this.adoptThrows, this.surviving = const {}});
 
-  final Object? markThrows;
-  var markCalls = 0;
+  final Object? adoptThrows;
+
+  /// Ids que `getById` devolve — o resto já sumiu do banco.
+  final Set<String> surviving;
+
+  var adoptCalls = 0;
+  final purgedSubs = <String>[];
+  final adoptedSubs = <String>[];
 
   @override
-  Future<void> markAllSavedPendingPush() async {
-    markCalls++;
-    final error = markThrows;
+  Future<void> adoptForSub(String sub) async {
+    adoptCalls++;
+    adoptedSubs.add(sub);
+    final error = adoptThrows;
     if (error != null) throw error;
+  }
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) async {
+    purgedSubs.add(previousSub);
+    return 1;
   }
 
   @override
@@ -42,10 +57,18 @@ class _CountingRepository implements PlaylistRepository {
   Future<List<SavedPlaylist>> getByTab(PlaylistTab tab) async => const [];
 
   @override
-  Future<SavedPlaylist?> getById(String playlistId) async => null;
+  Future<SavedPlaylist?> getById(String playlistId) async {
+    if (!surviving.contains(playlistId)) return null;
+    return SavedPlaylist.fromLegacyLists(
+      playlistId: playlistId,
+      nome: playlistId,
+      pdfIds: const ['x'],
+      createdAt: DateTime.utc(2026, 1, 1),
+    );
+  }
 
   @override
-  Future<List<SavedPlaylist>> getPendingPush() async => const [];
+  Future<List<SavedPlaylist>> getPendingPush({String? sub}) async => const [];
 
   @override
   Future<List<SavedPlaylist>> getTombstones() async => const [];
@@ -75,6 +98,7 @@ class _CountingRepository implements PlaylistRepository {
     DateTime? updatedAt,
     int version = 1,
     PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
   }) async => playlistId ?? 'gen';
 
   @override
@@ -122,9 +146,16 @@ class _ScriptedSync extends SyncPlaylists {
   final int? throwsUntilCall;
   var calls = 0;
 
+  /// `sub` recebido em cada chamada, na ordem.
+  final subs = <String?>[];
+
   @override
-  Future<PlaylistSyncResult> call({required String? idToken}) async {
+  Future<PlaylistSyncResult> call({
+    required String? idToken,
+    required String? sub,
+  }) async {
     calls++;
+    subs.add(sub);
     final error = throws;
     final limit = throwsUntilCall;
     if (error != null && (limit == null || calls <= limit)) throw error;
@@ -161,26 +192,30 @@ void main() {
     );
   }
 
-  test('primeiro login persiste o sub e marca as salvas', () async {
+  test('primeiro login persiste o sub e adota as salvas', () async {
     final repo = _CountingRepository();
-    final container = buildContainer(repository: repo, sync: _ScriptedSync());
+    final sync = _ScriptedSync();
+    final container = buildContainer(repository: repo, sync: sync);
     addTearDown(container.dispose);
 
     await container.read(authStateProvider.future);
     container.read(playlistSyncProvider);
     await settle();
 
-    expect(repo.markCalls, 1);
+    expect(repo.adoptCalls, 1);
+    expect(repo.adoptedSubs, ['sub-1']);
+    expect(repo.purgedSubs, isEmpty, reason: 'não havia conta anterior');
     expect(prefs.getString(_subKey), 'sub-1');
+    expect(sync.subs, ['sub-1'], reason: 'o use case recebe o dono corrente');
   });
 
-  test('reinício com o mesmo sub não repete markAllSavedPendingPush', () async {
+  test('reinício com o mesmo sub não repete adoptForSub', () async {
     final first = _CountingRepository();
     final container = buildContainer(repository: first, sync: _ScriptedSync());
     await container.read(authStateProvider.future);
     container.read(playlistSyncProvider);
     await settle();
-    expect(first.markCalls, 1);
+    expect(first.adoptCalls, 1);
     container.dispose();
 
     // Reinício do app: mesma SharedPreferences, container novo.
@@ -192,11 +227,11 @@ void main() {
     restarted.read(playlistSyncProvider);
     await settle();
 
-    expect(second.markCalls, 0, reason: 'sem transição de conta');
+    expect(second.adoptCalls, 0, reason: 'sem transição de conta');
     expect(secondSync.calls, 1, reason: 'boot ainda faz sync simples');
   });
 
-  test('sub diferente volta a marcar tudo como pendingPush', () async {
+  test('troca de sub purga a conta anterior antes de adotar', () async {
     await prefs.setString(_subKey, 'outro-sub');
     final repo = _CountingRepository();
     final container = buildContainer(repository: repo, sync: _ScriptedSync());
@@ -206,13 +241,42 @@ void main() {
     container.read(playlistSyncProvider);
     await settle();
 
-    expect(repo.markCalls, 1);
+    expect(repo.purgedSubs, ['outro-sub']);
+    expect(repo.adoptCalls, 1);
     expect(prefs.getString(_subKey), 'sub-1');
   });
 
-  test('markAllSavedPendingPush indisponível vira lastErrorCause', () async {
+  test('troca de sub limpa o id ativo quando a lista foi purgada', () async {
+    await prefs.setString(_subKey, 'outro-sub');
+    final repo = _CountingRepository();
+    final container = buildContainer(repository: repo, sync: _ScriptedSync());
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(activePlaylistIdProvider.notifier).set('da-conta-antiga');
+    container.read(playlistSyncProvider);
+    await settle();
+
+    expect(container.read(activePlaylistIdProvider), isNull);
+  });
+
+  test('troca de sub preserva o id ativo que sobreviveu à purga', () async {
+    await prefs.setString(_subKey, 'outro-sub');
+    final repo = _CountingRepository(surviving: const {'pendente'});
+    final container = buildContainer(repository: repo, sync: _ScriptedSync());
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(activePlaylistIdProvider.notifier).set('pendente');
+    container.read(playlistSyncProvider);
+    await settle();
+
+    expect(container.read(activePlaylistIdProvider), 'pendente');
+  });
+
+  test('adoptForSub indisponível vira lastErrorCause', () async {
     final repo = _CountingRepository(
-      markThrows: StorageUnavailableException('sem storage'),
+      adoptThrows: StorageUnavailableException('sem storage'),
     );
     final container = buildContainer(repository: repo, sync: _ScriptedSync());
     addTearDown(container.dispose);
@@ -324,5 +388,50 @@ void main() {
       isTrue,
       reason: 'a cópia guardada precisa aparecer no banner',
     );
+  });
+
+  test('exclusão remota limpa o id ativo que sumiu do banco', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(result: const PlaylistSyncResult(deletedRemotely: 1)),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(activePlaylistIdProvider.notifier).set('apagada-fora');
+    await container.read(playlistSyncProvider.notifier).sync();
+
+    expect(container.read(activePlaylistIdProvider), isNull);
+  });
+
+  test('exclusão remota não mexe no id ativo que continua no banco', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final container = buildContainer(
+      repository: _CountingRepository(surviving: const {'viva'}),
+      sync: _ScriptedSync(result: const PlaylistSyncResult(deletedRemotely: 1)),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(activePlaylistIdProvider.notifier).set('viva');
+    await container.read(playlistSyncProvider.notifier).sync();
+
+    expect(container.read(activePlaylistIdProvider), 'viva');
+  });
+
+  test('sync sem exclusão remota não toca no id ativo', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(result: const PlaylistSyncResult(pulled: 1)),
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(activePlaylistIdProvider.notifier).set('intocada');
+    await container.read(playlistSyncProvider.notifier).sync();
+
+    expect(container.read(activePlaylistIdProvider), 'intocada');
   });
 }

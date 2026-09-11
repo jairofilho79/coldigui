@@ -89,10 +89,14 @@ class PlaylistLocalDatasource {
     return _migrated([row]).first;
   }
 
-  Future<List<Playlist>> findPendingPush() async {
+  /// Pendências que a conta [sub] pode enviar: as dela e as ainda sem dono.
+  ///
+  /// O filtro de dono é em memória de propósito — `ownerSub` não é indexado (é
+  /// campo novo, e a lista de pendentes já é curta).
+  Future<List<Playlist>> findPendingPush({String? sub}) async {
     final isar = _isar;
     if (isar == null) return const [];
-    return _migrated(
+    final rows = _migrated(
       isar.playlists
           .where()
           .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
@@ -102,6 +106,9 @@ class PlaylistLocalDatasource {
           .deletedAtIsNull()
           .findAll(),
     );
+    return rows
+        .where((row) => row.ownerSub == null || row.ownerSub == sub)
+        .toList(growable: false);
   }
 
   Future<List<Playlist>> findTombstones() async {
@@ -307,12 +314,15 @@ class PlaylistLocalDatasource {
     });
   }
 
-  Future<void> markAllSavedPendingPush() async {
+  /// Adota para [sub] as listas salvas sem dono ou já dele, marcando-as
+  /// `pendingPush` (spec A.5).
+  ///
+  /// Listas de outra conta ficam intocadas: elas não sobem no push desta.
+  /// Rascunhos também não — nunca ganham dono.
+  Future<void> adoptForSub(String sub) async {
     final isar = _isar;
     if (isar == null) {
-      throw const StorageUnavailableException(
-        'playlists.markAllSavedPendingPush',
-      );
+      throw const StorageUnavailableException('playlists.adoptForSub');
     }
     await isar.write((isar) {
       final coll = isar.playlists;
@@ -323,9 +333,39 @@ class PlaylistLocalDatasource {
           .deletedAtIsNull()
           .findAll();
       for (final row in rows) {
+        if (row.ownerSub != null && row.ownerSub != sub) continue;
         row.syncStatus = PlaylistSyncStatus.pendingPush;
+        row.ownerSub = sub;
         coll.put(row);
       }
+    });
+  }
+
+  /// Apaga de vez as listas já sincronizadas de [previousSub] (troca de conta).
+  ///
+  /// Só as `synced`: elas estão na nuvem da conta anterior e voltam no próximo
+  /// login dela. `pendingPush`/`conflict` ficam no aparelho, com o dono antigo.
+  /// Devolve quantas saíram.
+  Future<int> purgeSyncedOwnedBy(String previousSub) async {
+    final isar = _isar;
+    if (isar == null) {
+      throw const StorageUnavailableException('playlists.purgeSyncedOwnedBy');
+    }
+    return isar.write((isar) {
+      final coll = isar.playlists;
+      final doomed = coll
+          .where()
+          .findAll()
+          .where(
+            (row) =>
+                row.ownerSub == previousSub &&
+                row.syncStatus == PlaylistSyncStatus.synced,
+          )
+          .toList(growable: false);
+      for (final row in doomed) {
+        coll.delete(row.id);
+      }
+      return doomed.length;
     });
   }
 
