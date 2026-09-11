@@ -13,6 +13,7 @@ import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart'
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,21 +38,25 @@ class _CountingRepository implements PlaylistRepository {
   /// Ids que `getById` devolve — o resto já sumiu do banco.
   final Set<String> surviving;
 
-  var adoptCalls = 0;
-  final purgedSubs = <String>[];
-  final adoptedSubs = <String>[];
+  /// Diário **ordenado** das chamadas de dono (`purge:<sub>` / `adopt:<sub>`).
+  ///
+  /// Ordenado de propósito: contadores separados não distinguem
+  /// purga-antes-de-adoção de adoção-antes-de-purga, e é justamente essa ordem
+  /// que impede as listas da conta anterior de subirem para a conta nova.
+  final calls = <String>[];
+
+  int get adoptCalls => calls.where((c) => c.startsWith('adopt:')).length;
 
   @override
   Future<void> adoptForSub(String sub) async {
-    adoptCalls++;
-    adoptedSubs.add(sub);
+    calls.add('adopt:$sub');
     final error = adoptThrows;
     if (error != null) throw error;
   }
 
   @override
   Future<int> purgeSyncedOwnedBy(String previousSub) async {
-    purgedSubs.add(previousSub);
+    calls.add('purge:$previousSub');
     return 1;
   }
 
@@ -76,7 +81,7 @@ class _CountingRepository implements PlaylistRepository {
   Future<List<SavedPlaylist>> getPendingPush({String? sub}) async => const [];
 
   @override
-  Future<List<SavedPlaylist>> getTombstones() async => const [];
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) async => const [];
 
   @override
   Future<void> upsert(SavedPlaylist playlist) async {}
@@ -131,6 +136,17 @@ class _CountingRepository implements PlaylistRepository {
     DateTime? deletedAt,
     bool clearDeletedAt = false,
   }) async {}
+}
+
+/// Conta os `reload()` da tela sem tocar em Isar nem no manifest.
+class _CountingPlaylists extends PlaylistsNotifier {
+  var reloadCalls = 0;
+
+  @override
+  List<PlaylistViewItem> build() => const [];
+
+  @override
+  Future<void> reload() async => reloadCalls++;
 }
 
 /// [SyncPlaylists] roteirizado: [throwsUntilCall] explode nas primeiras
@@ -198,6 +214,7 @@ void main() {
     required SyncPlaylists sync,
     Stream<bool>? connectivity,
     Future<Isar>? isarReady,
+    PlaylistsNotifier Function()? playlists,
   }) {
     return ProviderContainer(
       overrides: [
@@ -215,6 +232,7 @@ void main() {
         syncPlaylistsProvider.overrideWithValue(sync),
         if (connectivity != null)
           connectivityStreamProvider.overrideWith((ref) => connectivity),
+        if (playlists != null) playlistsProvider.overrideWith(playlists),
       ],
     );
   }
@@ -229,9 +247,11 @@ void main() {
     container.read(playlistSyncProvider);
     await settle();
 
-    expect(repo.adoptCalls, 1);
-    expect(repo.adoptedSubs, ['sub-1']);
-    expect(repo.purgedSubs, isEmpty, reason: 'não havia conta anterior');
+    expect(
+      repo.calls,
+      ['adopt:sub-1'],
+      reason: 'primeiro login adota, sem purgar — não havia conta anterior',
+    );
     expect(prefs.getString(_subKey), 'sub-1');
     expect(sync.subs, ['sub-1'], reason: 'o use case recebe o dono corrente');
   });
@@ -268,8 +288,13 @@ void main() {
     container.read(playlistSyncProvider);
     await settle();
 
-    expect(repo.purgedSubs, ['outro-sub']);
-    expect(repo.adoptCalls, 1);
+    expect(
+      repo.calls,
+      ['purge:outro-sub', 'adopt:sub-1'],
+      reason:
+          'purgar depois de adotar levaria as listas da conta anterior '
+          'para a conta nova',
+    );
     expect(prefs.getString(_subKey), 'sub-1');
   });
 
@@ -480,6 +505,56 @@ void main() {
       expect(repo.adoptCalls, 2, reason: 'a adoção pendente é refeita');
     },
   );
+
+  test('retryAndReload não recarrega a tela com adoção falhando', () async {
+    final repo = _CountingRepository(adoptThrows: StateError('storage fora'));
+    final screen = _CountingPlaylists();
+    final container = buildContainer(
+      repository: repo,
+      sync: _ScriptedSync(result: const PlaylistSyncResult(pulled: 1)),
+      playlists: () => screen,
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(playlistSyncProvider);
+    await settle();
+    expect(repo.adoptCalls, 1, reason: 'o boot já tentou adotar e falhou');
+
+    // Uma sync que deu certo deixa `lastResult` preenchido…
+    await container.read(playlistSyncProvider.notifier).sync();
+    expect(container.read(playlistSyncProvider).lastResult?.pulled, 1);
+    final before = screen.reloadCalls;
+
+    // …e o retry seguinte volta a falhar na adoção, sem chegar a sincronizar.
+    // Recarregar a tela com o `lastResult` velho mostraria movimento que não
+    // houve.
+    await container.read(playlistSyncProvider.notifier).retryAndReload();
+
+    expect(repo.adoptCalls, 2);
+    expect(screen.reloadCalls, before);
+  });
+
+  test('retryAndReload recarrega quando a adoção e a sync dão certo', () async {
+    final screen = _CountingPlaylists();
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(result: const PlaylistSyncResult(pulled: 1)),
+      playlists: () => screen,
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(playlistSyncProvider);
+    await settle();
+    // O boot já adotou e persistiu o sub; força o caminho pós-login de novo.
+    await prefs.remove(_subKey);
+    final before = screen.reloadCalls;
+
+    await container.read(playlistSyncProvider.notifier).retryAndReload();
+
+    expect(screen.reloadCalls, before + 1);
+  });
 
   test('retryAndReload só sincroniza com o sub já persistido', () async {
     await prefs.setString(_subKey, 'sub-1');

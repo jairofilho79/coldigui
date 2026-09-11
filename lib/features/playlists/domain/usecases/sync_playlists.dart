@@ -142,7 +142,7 @@ class SyncPlaylists {
     }
 
     // Fase C — Deletes
-    final tombstones = await _repository.getTombstones();
+    final tombstones = await _repository.getTombstones(sub: sub);
     for (final tomb in tombstones) {
       final failures = _tombstoneFailures[tomb.playlistId] ?? 0;
       if (failures >= maxTombstoneAttemptsPerBoot) continue;

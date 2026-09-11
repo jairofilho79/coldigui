@@ -57,7 +57,8 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<SavedPlaylist>> getTombstones() => throw UnimplementedError();
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) =>
+      throw UnimplementedError();
 
   @override
   Future<void> hardDelete(String playlistId) => throw UnimplementedError();

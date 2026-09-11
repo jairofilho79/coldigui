@@ -92,11 +92,12 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
       .toList();
 
   @override
-  Future<List<SavedPlaylist>> getTombstones() async => map.values
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) async => map.values
       .where(
         (p) =>
             p.deletedAt != null &&
-            p.syncStatus == PlaylistSyncStatus.pendingPush,
+            p.syncStatus == PlaylistSyncStatus.pendingPush &&
+            (p.ownerSub == null || p.ownerSub == sub),
       )
       .toList();
 
@@ -989,6 +990,49 @@ void main() {
         repo.map['da-outra-conta']?.syncStatus,
         PlaylistSyncStatus.pendingPush,
         reason: 'a lista da conta anterior continua parada no aparelho',
+      );
+    });
+
+    test('os tombstones de outro dono não vão para o DELETE', () async {
+      final repo = _MemoryPlaylistRepository();
+      for (final entry in <String, String?>{
+        'sem-dono': null,
+        'minha': 'sub-1',
+        'da-outra-conta': 'sub-2',
+      }.entries) {
+        await repo.upsert(
+          SavedPlaylist.fromLegacyLists(
+            playlistId: entry.key,
+            nome: entry.key,
+            pdfIds: const ['x'],
+            createdAt: DateTime.utc(2026, 1, 1),
+            salva: true,
+            updatedAt: DateTime.utc(2026, 6, 1),
+            syncStatus: PlaylistSyncStatus.pendingPush,
+            deletedAt: DateTime.utc(2026, 6, 1),
+            ownerSub: entry.value,
+          ),
+        );
+      }
+
+      final deleted = <String>[];
+      final sync = SyncPlaylists(
+        repo,
+        (_) async => <RemotePlaylist>[],
+        ({required idToken, required playlist}) async => playlist,
+        ({required idToken, required playlistId}) async {
+          deleted.add(playlistId);
+        },
+      );
+
+      final result = await sync(idToken: 'token', sub: 'sub-1');
+
+      expect(deleted.toSet(), {'sem-dono', 'minha'});
+      expect(result.deleted, 2);
+      expect(
+        repo.map.containsKey('da-outra-conta'),
+        isTrue,
+        reason: 'apagar na nuvem da conta anterior não é assunto desta conta',
       );
     });
 

@@ -59,7 +59,8 @@ class _FakePlaylistRepository implements PlaylistRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<SavedPlaylist>> getTombstones() => throw UnimplementedError();
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) =>
+      throw UnimplementedError();
 
   @override
   Future<void> adoptForSub(String sub) => throw UnimplementedError();

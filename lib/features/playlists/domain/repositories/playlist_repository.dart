@@ -77,8 +77,12 @@ abstract class PlaylistRepository {
   /// ainda sem dono (spec A.5).
   Future<List<SavedPlaylist>> getPendingPush({String? sub});
 
-  /// Tombstones locais aguardando DELETE remoto.
-  Future<List<SavedPlaylist>> getTombstones();
+  /// Tombstones locais aguardando DELETE remoto que [sub] pode enviar: os dela
+  /// e os ainda sem dono (mesma regra de [getPendingPush]).
+  ///
+  /// Apagar na nuvem da conta anterior não é assunto desta conta — o tombstone
+  /// do dono antigo fica no aparelho até ela voltar (spec A.5).
+  Future<List<SavedPlaylist>> getTombstones({String? sub});
 
   /// Upsert completo a partir do remoto / sync.
   Future<void> upsert(SavedPlaylist playlist);

@@ -111,10 +111,14 @@ class PlaylistLocalDatasource {
         .toList(growable: false);
   }
 
-  Future<List<Playlist>> findTombstones() async {
+  /// Tombstones que a conta [sub] pode enviar: os dela e os ainda sem dono.
+  ///
+  /// Mesmo filtro em memória de [findPendingPush], pelo mesmo motivo:
+  /// `ownerSub` não é indexado e a lista de tombstones é curta.
+  Future<List<Playlist>> findTombstones({String? sub}) async {
     final isar = _isar;
     if (isar == null) return const [];
-    return _migrated(
+    final rows = _migrated(
       isar.playlists
           .where()
           .deletedAtIsNotNull()
@@ -122,6 +126,9 @@ class PlaylistLocalDatasource {
           .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
           .findAll(),
     );
+    return rows
+        .where((row) => row.ownerSub == null || row.ownerSub == sub)
+        .toList(growable: false);
   }
 
   Future<List<Playlist>> findAllSavedIncludingDeleted() async {

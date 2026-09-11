@@ -15,6 +15,7 @@ SavedPlaylist _row(
   String? ownerSub,
   PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
   bool salva = true,
+  DateTime? deletedAt,
 }) => SavedPlaylist.fromLegacyLists(
   playlistId: id,
   nome: id,
@@ -25,6 +26,15 @@ SavedPlaylist _row(
   updatedAt: DateTime.utc(2026, 1, 1),
   syncStatus: syncStatus,
   ownerSub: ownerSub,
+  deletedAt: deletedAt,
+);
+
+/// Tombstone local aguardando `DELETE` remoto: apagada e `pendingPush`.
+SavedPlaylist _tombstone(String id, {String? ownerSub}) => _row(
+  id,
+  ownerSub: ownerSub,
+  syncStatus: PlaylistSyncStatus.pendingPush,
+  deletedAt: DateTime.utc(2026, 6, 1),
 );
 
 void main() {
@@ -275,6 +285,20 @@ void main() {
       final pending = await repository.getPendingPush(sub: 'sub-1');
 
       expect(pending.map((p) => p.playlistId).toSet(), {'sem-dono', 'minha'});
+    });
+
+    test('getTombstones só entrega o dono corrente e as sem dono', () async {
+      await repository.upsert(_tombstone('sem-dono'));
+      await repository.upsert(_tombstone('minha', ownerSub: 'sub-1'));
+      await repository.upsert(_tombstone('outra', ownerSub: 'sub-2'));
+
+      final tombstones = await repository.getTombstones(sub: 'sub-1');
+
+      expect(
+        tombstones.map((p) => p.playlistId).toSet(),
+        {'sem-dono', 'minha'},
+        reason: 'apagar na nuvem da conta anterior não é assunto desta conta',
+      );
     });
   });
 }

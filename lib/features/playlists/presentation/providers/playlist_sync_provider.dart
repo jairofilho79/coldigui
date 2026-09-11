@@ -226,9 +226,10 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     if (!ref.mounted) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user != null && _persistedSub() != user.googleSub) {
-      await syncAfterLogin();
-      if (!ref.mounted) return;
-      await _reloadIfMoved(state.lastResult);
+      // O resultado vem do próprio `syncAfterLogin` — ler `state.lastResult`
+      // recarregaria a tela com o saldo de uma rodada **anterior** quando a
+      // adoção falha de novo e nenhuma sync chega a rodar.
+      await _reloadIfMoved(await syncAfterLogin());
       return;
     }
     await _reloadIfMoved(await sync());
@@ -307,19 +308,21 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
   /// Uma falha de armazenamento aqui vira [PlaylistSyncState.lastErrorCause] em
   /// vez de um erro não tratado na zona do login — e o `sub` **não** é
   /// persistido, para a próxima tentativa repetir a adoção.
-  Future<void> syncAfterLogin() async {
-    if (!ref.mounted) return;
+  /// Devolve o resultado da sync que ela disparou, ou `null` quando não houve
+  /// sync nenhuma (sem usuário, notifier descartado, ou adoção que falhou).
+  Future<PlaylistSyncResult?> syncAfterLogin() async {
+    if (!ref.mounted) return null;
     final user = ref.read(authStateProvider).asData?.value;
-    if (user == null) return;
+    if (user == null) return null;
     final previous = _persistedSub();
     try {
       final repository = ref.read(playlistRepositoryProvider);
       if (previous != null && previous != user.googleSub) {
         final purged = await repository.purgeSyncedOwnedBy(previous);
-        if (!ref.mounted) return;
+        if (!ref.mounted) return null;
         debugPrint('[playlists] $purged lista(s) de $previous removidas');
         await _clearActiveIfGone();
-        if (!ref.mounted) return;
+        if (!ref.mounted) return null;
       }
       await repository.adoptForSub(user.googleSub);
     } on Object catch (e) {
@@ -327,12 +330,12 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       if (ref.mounted) {
         state = state.copyWith(isSyncing: false, lastErrorCause: e);
       }
-      return;
+      return null;
     }
-    if (!ref.mounted) return;
+    if (!ref.mounted) return null;
     await _persistSub(user.googleSub);
-    if (!ref.mounted) return;
-    await sync();
+    if (!ref.mounted) return null;
+    return sync();
   }
 
   /// SharedPreferences pode não estar disponível (teste sem override, web com

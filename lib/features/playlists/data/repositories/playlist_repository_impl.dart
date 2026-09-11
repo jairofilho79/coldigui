@@ -208,8 +208,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   }
 
   @override
-  Future<List<SavedPlaylist>> getTombstones() async {
-    final rows = await _local.findTombstones();
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) async {
+    final rows = await _local.findTombstones(sub: sub);
     return rows.map(_toEntity).toList(growable: false);
   }
 
