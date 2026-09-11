@@ -92,13 +92,21 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   void initState() {
     super.initState();
     final chords = widget.group.chordMaterials;
-    if (chords.isEmpty) return;
+    final gestures = widget.group.gestureMaterials;
     // Pós-frame: mutar provider durante a construção do widget dispara
     // "setState during build" nos ouvintes do cache.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(coldigomCacheWriterProvider).mergeChords(chords);
-    });
+    if (chords.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(coldigomCacheWriterProvider).mergeChords(chords);
+      });
+    }
+    if (gestures.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(coldigomCacheWriterProvider).mergeGestures(gestures);
+      });
+    }
   }
 
   void _handleTap(CatalogMaterial material) {
@@ -208,6 +216,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     // Um rótulo só não separa nada — grupos de um arranjo (todo praise
     // Coldigom, por exemplo) mostram a lista direto.
     final showSectionLabels = group.sections.length > 1;
+    final gestureMaterials = group.gestureMaterials;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
 
@@ -280,6 +289,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         onTap: () => ref.invalidate(
                           availableChordsProvider(group.groupId),
                         ),
+                      ),
+                  ],
+                  if (gestureMaterials.isNotEmpty) ...[
+                    _sectionLabel(l10n.gesturesMaterialSection),
+                    for (final gesture in gestureMaterials)
+                      _materialTile(
+                        material: GestureMaterialRef(gesture),
+                        iconColor: AppColors.title,
+                        carouselPdfIds: carouselPdfIds,
                       ),
                   ],
                   if (audioTracks.isNotEmpty) ...[

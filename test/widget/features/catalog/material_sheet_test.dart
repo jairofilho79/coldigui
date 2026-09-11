@@ -1,5 +1,6 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -21,6 +22,7 @@ import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -470,6 +472,72 @@ void main() {
         expect(find.text('Cifra I'), findsOneWidget);
       },
     );
+  });
+
+  group('gestos', () {
+    LouvorGroup groupWithGestures(List<GestureMaterial> gestures) {
+      return LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: const [],
+        gestureMaterials: gestures,
+      );
+    }
+
+    GestureMaterial gesture() => GestureMaterial(
+      gestureId: encodePdfId('assets/praises/p1/m1.gestures'),
+      r2Key: 'assets/praises/p1/m1.gestures',
+      nome: 'N',
+      numero: '1',
+      groupId: 'p1',
+      categoria: 'Gestos',
+      classificacao: 'x',
+      author: '',
+      source: LouvorDataSource.coldigom,
+    );
+
+    testWidgets(
+      'lista o documento de gestos com ícone pan_tool e rótulo Gestos',
+      (tester) async {
+        await _pumpSheet(tester, group: groupWithGestures([gesture()]));
+
+        // Rótulo da seção + categoria do tile.
+        expect(find.text('Gestos'), findsWidgets);
+        expect(find.byIcon(Icons.pan_tool_outlined), findsOneWidget);
+      },
+    );
+
+    testWidgets('toque no gesto chama onMaterialSelected com GestureMaterialRef', (
+      tester,
+    ) async {
+      final opener = _OpenMaterialSpy();
+      await _pumpSheet(
+        tester,
+        group: groupWithGestures([gesture()]),
+        opener: opener,
+      );
+
+      await tester.tap(find.byIcon(Icons.pan_tool_outlined));
+      await tester.pumpAndSettle();
+
+      expect(opener.opened, isA<GestureMaterialRef>());
+    });
+
+    testWidgets('abrir o sheet aquece coldigomGestureMaterialsCacheProvider', (
+      tester,
+    ) async {
+      final material = gesture();
+      await _pumpSheet(tester, group: groupWithGestures([material]));
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialSheet)),
+      );
+      expect(
+        container.read(coldigomGestureMaterialsCacheProvider),
+        containsPair(material.gestureId, isA<GestureMaterial>()),
+      );
+    });
   });
 
   group('áudio', () {
