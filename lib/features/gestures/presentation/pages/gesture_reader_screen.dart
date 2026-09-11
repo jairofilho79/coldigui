@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,6 +46,24 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
   @override
   void initState() {
     super.initState();
+    _schedulePublishRouteParams();
+  }
+
+  /// `context.replace()` do carousel (Ctrl+←/→) reaproveita a key da página:
+  /// o go_router troca só os `queryParams` do widget e chama `didUpdateWidget`
+  /// em vez de recriar o `State` — sem isto o chip do [readerRouteParamsProvider]
+  /// e o prefetch de figuras ficariam presos no primeiro louvor aberto.
+  @override
+  void didUpdateWidget(GestureReaderScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (mapEquals(widget.queryParams, oldWidget.queryParams)) return;
+    _schedulePublishRouteParams();
+    if (_r2Key != _r2KeyOf(oldWidget.queryParams)) {
+      _prefetched = false;
+    }
+  }
+
+  void _schedulePublishRouteParams() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(readerRouteParamsProvider.notifier).update(widget.queryParams);
@@ -58,8 +77,10 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
   }
 
   /// `r2Key` decodificado do id da rota; vazio se o id faltar ou for inválido.
-  String get _r2Key {
-    final id = widget.queryParams[UrlSyncParams.pdfId] ?? '';
+  String get _r2Key => _r2KeyOf(widget.queryParams);
+
+  static String _r2KeyOf(Map<String, String> queryParams) {
+    final id = queryParams[UrlSyncParams.pdfId] ?? '';
     if (id.isEmpty) return '';
     try {
       return PdfPathNormalizer.getPdfRelPath(id);

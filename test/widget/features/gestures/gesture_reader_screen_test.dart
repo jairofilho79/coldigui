@@ -39,6 +39,19 @@ class _NoopFigureRepository implements GestureFigureRepository {
   Future<void> prefetch(Iterable<String> r2Keys) async {}
 }
 
+/// Conta quantas vezes o prefetch rodou — pin do reset em troca de louvor.
+class _CountingFigureRepository implements GestureFigureRepository {
+  var prefetchCalls = 0;
+
+  @override
+  Future<Uint8List?> get(String r2Key) async => null;
+
+  @override
+  Future<void> prefetch(Iterable<String> r2Keys) async {
+    prefetchCalls++;
+  }
+}
+
 /// [document] `null` = 404; `Future.error` = falha de rede.
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
@@ -146,6 +159,69 @@ void main() {
     );
     expect(tester.widget<IconButton>(decreaseButton).onPressed, isNull);
   });
+
+  testWidgets(
+    'troca de louvor via replace republica os params e refaz o prefetch',
+    (tester) async {
+      // Espelha o `context.replace()` do carousel: mesma key de página, só o
+      // widget muda — o go_router não recria o State, chama `didUpdateWidget`.
+      SharedPreferences.setMockInitialValues(const {});
+      final prefs = await SharedPreferences.getInstance();
+      final dict = parseGestureDictionary(_read('dictionary.json'));
+      final figureRepo = _CountingFigureRepository();
+
+      final overrides = [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        gestureDocumentProvider.overrideWith(
+          (ref, key) async => parseGestureDocument(_read('182_quero_viver.json')),
+        ),
+        gestureDictionaryProvider.overrideWith((ref) async => dict),
+        gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
+        gestureFigureRepositoryProvider.overrideWithValue(figureRepo),
+      ];
+
+      const firstKey = 'assets/praises/p1/m1.gestures';
+      const secondKey = 'assets/praises/p1/m2.gestures';
+
+      Widget buildApp(Map<String, String> queryParams) {
+        return ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: GestureReaderScreen(queryParams: queryParams),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        buildApp({'pdfId': encodePdfId(firstKey), 'titulo': 'Quero viver'}),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        _containerOf(tester).read(readerRouteParamsProvider)['pdfId'],
+        encodePdfId(firstKey),
+      );
+      expect(figureRepo.prefetchCalls, 1);
+
+      // Mesma árvore de overrides/ProviderScope — só o `queryParams` do
+      // GestureReaderScreen muda, exatamente como o `replace` do carousel.
+      await tester.pumpWidget(
+        buildApp({'pdfId': encodePdfId(secondKey), 'titulo': 'Outro louvor'}),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        _containerOf(tester).read(readerRouteParamsProvider)['pdfId'],
+        encodePdfId(secondKey),
+      );
+      expect(figureRepo.prefetchCalls, 2);
+    },
+  );
 
   testWidgets('pdfId inválido não quebra: mostra "ainda não tem gestos"', (tester) async {
     await _pump(tester, document: () async => null, queryParams: {'pdfId': '###'});
