@@ -237,9 +237,22 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     }
   }
 
+  /// Para o autoscroll ao trocar de louvor (C9).
+  ///
+  /// O `Ticker` pode parar na hora — não é estado do Riverpod. Mas o
+  /// `chordAutoscrollProvider` não pode ser escrito aqui dentro: este método
+  /// só é chamado de [didUpdateWidget], e o Riverpod proíbe modificar um
+  /// provider durante um ciclo de vida de widget (build/didUpdateWidget/...) —
+  /// escrever `state` synchronamente lançaria "Tried to modify a provider
+  /// while the widget tree was building". Adia para o próximo frame, como
+  /// [_schedulePublishRouteParams] já faz para o mesmo motivo.
   void _stopAutoscroll() {
     _autoscrollTicker?.stop();
-    ref.read(chordAutoscrollProvider.notifier).stop();
+    if (!ref.read(chordAutoscrollProvider).running) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(chordAutoscrollProvider.notifier).stop();
+    });
   }
 
   @override

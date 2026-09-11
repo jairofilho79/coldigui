@@ -411,4 +411,104 @@ void main() {
       expect(view.columns, 1);
     });
   });
+
+  group('autoscroll em execucao (C9)', () {
+    // Musica longa o bastante para ter maxScrollExtent > 0 numa viewport de
+    // teste — sem isso o motor pararia sozinho no primeiro tick (nada para
+    // rolar) e nenhum dos cenarios abaixo teria como acontecer.
+    final longSong = parseChordPro(
+      List.generate(80, (i) => 'linha $i\n').join(),
+    );
+
+    Future<void> pumpNarrowLongSong(
+      WidgetTester tester, {
+      Map<String, String>? queryParams,
+    }) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(
+        tester,
+        available: true,
+        songOverride: longSong,
+        queryParams: queryParams,
+      );
+    }
+
+    double scrollOffset(WidgetTester tester) => tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+
+    testWidgets('avanca o scroll com o tempo', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      // O primeiro tick do Ticker so marca o relogio (dt ainda desconhecido);
+      // o(s) seguinte(s) e que de fato avancam o scroll.
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(scrollOffset(tester), greaterThan(0));
+
+      // Nao deixar o autoscroll vazar ligado para o proximo teste.
+      container.read(chordAutoscrollProvider.notifier).stop();
+      await tester.pump();
+    });
+
+    testWidgets('para ao chegar no fim da rolagem', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).setSpeed(5);
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      // Salto bem maior que qualquer maxScrollExtent possivel aqui — garante
+      // que o motor ultrapassa o fim e para sozinho (medido: ~2312px para 80
+      // linhas; 5 minutos a velocidade 5 (300 px/s) dao ~90000px de folga).
+      await tester.pump(const Duration(minutes: 5));
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('para ao trocar de louvor', (tester) async {
+      await pumpNarrowLongSong(
+        tester,
+        queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Louvor A'},
+      );
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      // Avanco curto: a musica e longa o bastante para nao chegar no fim.
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      // Troca de louvor sem desmontar a tela — mesmo padrao da C10.
+      await pumpNarrowLongSong(
+        tester,
+        queryParams: {'pdfId': encodePdfId(_r2KeyB), 'titulo': 'Louvor B'},
+      );
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('rolagem manual do usuario para o autoscroll', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -100));
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+  });
 }
