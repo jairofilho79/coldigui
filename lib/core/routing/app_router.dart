@@ -12,6 +12,7 @@ import '../../features/app_shell/presentation/pages/profile_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
+import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
 import '../../features/offline/presentation/pages/offline_settings_screen.dart';
 import '../../features/audio_player/presentation/pages/audio_player_screen.dart';
@@ -108,6 +109,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'cifra',
                     builder: (context, state) => ChordReaderScreen(
+                      queryParams: safeQueryParameters(state.uri),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'gestos',
+                    builder: (context, state) => GestureReaderScreen(
                       queryParams: safeQueryParameters(state.uri),
                     ),
                   ),

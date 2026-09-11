@@ -14,6 +14,9 @@ abstract final class RoutePaths {
   /// Leitor de cifras ChordPro — irmã de [reader], filha da branch Home.
   static const String chords = '/cifra';
 
+  /// Leitor de gestos CIAs — irmã de [chords], filha da branch Home.
+  static const String gestos = '/gestos';
+
   /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
   static const String audio = '/audio';
 

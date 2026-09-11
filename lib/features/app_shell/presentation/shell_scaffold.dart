@@ -35,7 +35,8 @@ class ShellScaffold extends ConsumerWidget {
   bool _isImmersiveMediaRoute(String path) {
     return path == RoutePaths.reader ||
         path == RoutePaths.audio ||
-        path == RoutePaths.chords;
+        path == RoutePaths.chords ||
+        path == RoutePaths.gestos;
   }
 
   List<PlpcgBottomNavDestination> _destinations(WidgetRef ref) {

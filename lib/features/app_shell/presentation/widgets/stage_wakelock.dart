@@ -9,14 +9,16 @@ import '../../../audio_player/presentation/providers/audio_player_session_provid
 const _stageRoutes = <String>{
   RoutePaths.reader,
   RoutePaths.chords,
+  RoutePaths.gestos,
   RoutePaths.audio,
 };
 
 /// Decide se a tela deve ficar acesa (C2).
 ///
-/// Vale para as rotas de palco — partitura, cifra e reprodutor — e para
-/// qualquer rota enquanto houver áudio tocando: quem deixou um MIDI rodando na
-/// Home continua olhando a lista sem o aparelho apagar no meio do ensaio.
+/// Vale para as rotas de palco — partitura, cifra, gestos e reprodutor — e
+/// para qualquer rota enquanto houver áudio tocando: quem deixou um MIDI
+/// rodando na Home continua olhando a lista sem o aparelho apagar no meio do
+/// ensaio.
 bool shouldHoldWakelock({required String path, required bool playing}) {
   if (playing) return true;
   return _stageRoutes.contains(path);
