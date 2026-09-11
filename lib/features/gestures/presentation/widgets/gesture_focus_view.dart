@@ -22,6 +22,18 @@ String blockContextLabel(AppLocalizations l10n, BlockContext context) => switch 
   LinkContext() => l10n.gestureContextLink,
 };
 
+/// Trigger do rodapé "próximo": a primeira linha de letra não vazia do
+/// próximo cartão — uma linha de continuação chega com `trigger` vazio, então
+/// cai para as seguintes; sem nenhum trigger, cai pro texto da primeira
+/// linha. `''` só quando [next] é `null` ou não tem letra nenhuma.
+String _footerTriggerOf(FlatGestureCard? next) {
+  final lyrics = next?.card.lyrics ?? const [];
+  for (final line in lyrics) {
+    if (line.trigger.isNotEmpty) return line.trigger;
+  }
+  return lyrics.isEmpty ? '' : lyrics.first.text;
+}
+
 /// Abre o modo foco sobre a rota atual e devolve o índice do cartão em que o
 /// regente estava ao fechar (`null` se fechou sem índice).
 ///
@@ -120,7 +132,7 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
     final l10n = AppLocalizations.of(context)!;
     final cards = widget.cards;
     final next = _index + 1 < cards.length ? cards[_index + 1] : null;
-    final nextTrigger = next?.card.lyrics.first.trigger ?? '';
+    final nextTrigger = _footerTriggerOf(next);
 
     return Focus(
       focusNode: _focusNode,

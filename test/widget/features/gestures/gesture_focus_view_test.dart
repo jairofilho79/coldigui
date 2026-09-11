@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/flat_gesture_card.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart';
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_dictionary.dart';
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_document.dart';
 import 'package:coldigui/features/gestures/domain/utils/flatten_gesture_cards.dart';
@@ -19,6 +21,37 @@ String _read(String name) => File('test/fixtures/gestures/$name').readAsStringSy
 
 Future<Future<int?>> _open(WidgetTester tester, String fixture, int initialIndex) async {
   final cards = flattenGestureCards(parseGestureDocument(_read(fixture)));
+  final dict = parseGestureDictionary(_read('dictionary.json'));
+  late Future<int?> result;
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng())],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  result = showGestureFocus(context, cards: cards, dictionary: dict, initialIndex: initialIndex, fontSize: 18);
+                },
+                child: const Text('abrir'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('abrir'));
+  await tester.pumpAndSettle();
+  return result;
+}
+
+/// Como [_open], mas com uma lista de cartões montada à mão (sem fixture).
+Future<Future<int?>> _openCards(WidgetTester tester, List<FlatGestureCard> cards, int initialIndex) async {
   final dict = parseGestureDictionary(_read('dictionary.json'));
   late Future<int?> result;
   await tester.pumpWidget(
@@ -106,5 +139,31 @@ void main() {
     await _open(tester, 'sintetico_final_link.json', 1);
     expect(find.text('3x'), findsOneWidget);
     expect(find.text('ligação'), findsOneWidget);
+  });
+
+  testWidgets('cartão com linha de continuação não estraga o rodapé do anterior', (tester) async {
+    // Cartão 4 (índice 4) tem duas linhas de letra; a primeira já tem
+    // trigger ("Vou"), então o rodapé do cartão 3 continua mostrando ela.
+    await _open(tester, '181_jerusalem.json', 3);
+    expect(find.descendant(of: find.byKey(gestureFocusNextKey), matching: find.text('Vou')), findsOneWidget);
+  });
+
+  testWidgets('próximo cartão de continuação (trigger vazio) cai pro texto da linha', (tester) async {
+    final cards = [
+      const FlatGestureCard(
+        index: 0,
+        card: GestureCard(gestureId: 'aaaaaaaaaaaa', lyrics: [LyricLine(trigger: 'Louvor', text: 'ao Senhor')]),
+        contexts: [],
+      ),
+      const FlatGestureCard(
+        index: 1,
+        card: GestureCard(gestureId: 'bbbbbbbbbbbb', lyrics: [LyricLine(trigger: '', text: 'só leitura')]),
+        contexts: [],
+      ),
+    ];
+
+    await _openCards(tester, cards, 0);
+
+    expect(find.descendant(of: find.byKey(gestureFocusNextKey), matching: find.text('só leitura')), findsOneWidget);
   });
 }
