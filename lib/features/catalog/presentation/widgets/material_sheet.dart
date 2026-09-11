@@ -9,7 +9,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -87,19 +86,6 @@ class MaterialSheet extends ConsumerStatefulWidget {
 
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   String? _addingId;
-
-  @override
-  void initState() {
-    super.initState();
-    final chords = widget.group.chordMaterials;
-    if (chords.isEmpty) return;
-    // Pós-frame: mutar provider durante a construção do widget dispara
-    // "setState during build" nos ouvintes do cache.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(coldigomCacheWriterProvider).mergeChords(chords);
-    });
-  }
 
   void _handleTap(CatalogMaterial material) {
     Navigator.of(context).pop();
@@ -204,6 +190,10 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final meta = group.coldigomMeta;
     final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
 
+    // As cifras do grupo já estão no cache Coldigom: quem monta o grupo
+    // (busca/browse, detalhe do praise, catálogo em memória) as funde no data
+    // pelo `ColdigomCacheWriter` — a presentation só lê (C.3).
+    //
     // `.value ?? []` sozinho transformava `AsyncError` em "este louvor não tem
     // cifra"; o estado é lido inteiro para o erro virar uma linha de retry.
     final chordsAsync = group.chordMaterials.isEmpty

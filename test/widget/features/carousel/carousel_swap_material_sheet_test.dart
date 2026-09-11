@@ -8,6 +8,7 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_ma
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -161,6 +162,7 @@ Future<_Harness> _pumpSwapSheet(
 
   // A rota inicial é o leitor: é de lá que o botão de troca de material é
   // acionado, e é lá que o usuário precisa continuar depois de escolher áudio.
+  late WidgetRef capturedRef;
   final router = GoRouter(
     initialLocation: RoutePaths.reader,
     routes: [
@@ -168,21 +170,24 @@ Future<_Harness> _pumpSwapSheet(
         path: RoutePaths.reader,
         builder: (context, _) => Scaffold(
           body: Consumer(
-            builder: (context, ref, _) => Column(
-              children: [
-                const Text('leitor'),
-                ElevatedButton(
-                  onPressed: () => showCarouselSwapMaterialSheet(
-                    context: context,
-                    ref: ref,
-                    group: group,
-                    currentMaterialId: 'pdf1',
-                    currentEntryKey: 'pdf1',
+            builder: (context, ref, _) {
+              capturedRef = ref;
+              return Column(
+                children: [
+                  const Text('leitor'),
+                  ElevatedButton(
+                    onPressed: () => showCarouselSwapMaterialSheet(
+                      context: context,
+                      ref: ref,
+                      group: group,
+                      currentMaterialId: 'pdf1',
+                      currentEntryKey: 'pdf1',
+                    ),
+                    child: const Text('trocar'),
                   ),
-                  child: const Text('trocar'),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -222,6 +227,11 @@ Future<_Harness> _pumpSwapSheet(
     ),
   );
   await tester.pumpAndSettle();
+  // O grupo do leitor sai do cache Coldigom, que o data já encheu com as
+  // cifras pelo escritor — o sheet só lê (C.3). O teste repete o contrato.
+  capturedRef
+      .read(coldigomCacheWriterProvider)
+      .mergeChords(group.chordMaterials);
   await tester.tap(find.text('trocar'));
   await tester.pumpAndSettle();
 

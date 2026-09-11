@@ -159,6 +159,7 @@ Future<void> _pumpSheet(
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+  late WidgetRef capturedRef;
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -176,21 +177,29 @@ Future<void> _pumpSheet(
         // esperam as strings em português.
         locale: const Locale('pt'),
         home: Consumer(
-          builder: (context, ref, _) => Scaffold(
-            body: ElevatedButton(
-              onPressed: () => showMaterialSheet(
-                context,
-                ref,
-                group,
-                canAddToPlaylist: canAddToPlaylist,
+          builder: (context, ref, _) {
+            capturedRef = ref;
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => showMaterialSheet(
+                  context,
+                  ref,
+                  group,
+                  canAddToPlaylist: canAddToPlaylist,
+                ),
+                child: const Text('abrir'),
               ),
-              child: const Text('abrir'),
-            ),
-          ),
+            );
+          },
         ),
       ),
     ),
   );
+  // Quem monta o grupo (busca/browse, detalhe do praise) já fundiu as cifras
+  // no cache pelo escritor — o sheet só lê (C.3). O teste repete o contrato.
+  capturedRef
+      .read(coldigomCacheWriterProvider)
+      .mergeChords(group.chordMaterials);
   await tester.tap(find.text('abrir'));
   await tester.pumpAndSettle();
 }
