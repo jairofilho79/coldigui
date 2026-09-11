@@ -1,4 +1,5 @@
-/// Lançada quando [LoadPlaylistIntoCarousel] é chamado com [playlistId] ausente.
+/// Lançada por [GeneratePlaylistShareUrl] quando o `playlistId` pedido não
+/// existe (ou já foi apagado).
 class PlaylistNotFoundException implements Exception {
   const PlaylistNotFoundException();
 

@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
@@ -36,6 +38,60 @@ class _RecordingSyncNotifier extends PlaylistSyncNotifier {
   }
 }
 
+/// Repositório cujo `update` falha nas primeiras [failures] chamadas e, quando
+/// [gate] está armado, só escreve depois que o teste o libera.
+class _FlakyRepository extends PlaylistRepositoryImpl {
+  _FlakyRepository(super.local);
+
+  /// Quantas das próximas escritas ainda falham.
+  var failures = 0;
+  Completer<void>? gate;
+  var updateCalls = 0;
+
+  @override
+  Future<void> update(
+    String playlistId, {
+    String? nome,
+    List<PlaylistEntry>? entries,
+    List<String>? pdfIds,
+    List<String>? audioIds,
+    bool? salva,
+    DateTime? savedAt,
+    DateTime? favoritedAt,
+    bool? favorita,
+    bool clearFavoritedAt = false,
+    DateTime? updatedAt,
+    int? version,
+    PlaylistSyncStatus? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
+  }) async {
+    updateCalls++;
+    await gate?.future;
+    if (failures > 0) {
+      failures--;
+      throw StateError('escrita falhou');
+    }
+    return super.update(
+      playlistId,
+      nome: nome,
+      entries: entries,
+      pdfIds: pdfIds,
+      audioIds: audioIds,
+      salva: salva,
+      savedAt: savedAt,
+      favoritedAt: favoritedAt,
+      favorita: favorita,
+      clearFavoritedAt: clearFavoritedAt,
+      updatedAt: updatedAt,
+      version: version,
+      syncStatus: syncStatus,
+      deletedAt: deletedAt,
+      clearDeletedAt: clearDeletedAt,
+    );
+  }
+}
+
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
 final _pdfB = encodePdfId('ColAdultos/002.pdf');
 final _pdfC = encodePdfId('ColAdultos/003.pdf');
@@ -51,7 +107,7 @@ void main() {
   late Directory tempDir;
   late Isar isar;
   late SharedPreferences prefs;
-  late PlaylistRepositoryImpl repository;
+  late _FlakyRepository repository;
 
   late _RecordingSyncNotifier sync;
 
@@ -78,7 +134,7 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('active_editor_');
     isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
-    repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+    repository = _FlakyRepository(PlaylistLocalDatasource(isar));
   });
 
   tearDown(() async {
@@ -666,6 +722,152 @@ void main() {
 
       expect((await repository.getById('p1'))!.audioIds, [_audioA]);
       expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), isNull);
+    },
+  );
+
+  test('addToActive com allowDuplicate foca a ocorrência nova', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
+
+    await c
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(_pdfA, allowDuplicate: true);
+    await _flush();
+
+    expect(c.read(carouselFocusedKeyProvider), '$_pdfA#1');
+  });
+
+  group('escrita que falha não deixa o override preso (#5)', () {
+    Future<ProviderContainer> bootDuas() async {
+      await repository.create(
+        nome: 'Ativa',
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+        ],
+        playlistId: 'p1',
+        salva: false,
+      );
+      return boot(activeId: 'p1');
+    }
+
+    test('removeByKey propaga o erro e a view volta para a lista', () async {
+      final c = await bootDuas();
+      repository.failures = 1;
+
+      await expectLater(
+        c.read(activePlaylistEditorProvider.notifier).removeByKey(_pdfA),
+        throwsStateError,
+      );
+      await _flush();
+
+      expect(c.read(activePlaylistEditorProvider), isNull);
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [_pdfA, _pdfB]);
+    });
+
+    test('replaceByKey propaga o erro e a view volta para a lista', () async {
+      final c = await bootDuas();
+      repository.failures = 1;
+
+      await expectLater(
+        c
+            .read(activePlaylistEditorProvider.notifier)
+            .replaceByKey(
+              _pdfA,
+              PlaylistEntry(id: _pdfC, kind: MaterialKind.pdf),
+            ),
+        throwsStateError,
+      );
+      await _flush();
+
+      expect(c.read(activePlaylistEditorProvider), isNull);
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [_pdfA, _pdfB]);
+    });
+
+    test('flush da reordenação engole o erro e solta o override', () async {
+      final c = await bootDuas();
+      repository.failures = 1;
+
+      // O flush roda num Timer: um erro que escapasse daqui seria assíncrono
+      // sem dono — e o teste falharia por ele.
+      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
+        PlaylistMediaFace.pdf,
+        [_pdfB, _pdfA],
+      );
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect(repository.updateCalls, 1);
+      expect(c.read(activePlaylistEditorProvider), isNull);
+      expect(
+        c.read(activeEntriesProvider).map((e) => e.id),
+        [_pdfA, _pdfB],
+        reason: 'a escrita não aconteceu: a view mostra o que está no banco',
+      );
+    });
+  });
+
+  test(
+    'duas reordenações seguidas: a segunda persiste e nunca pisca (#6)',
+    () async {
+      await repository.create(
+        nome: 'Ativa',
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfC, kind: MaterialKind.pdf),
+        ],
+        playlistId: 'p1',
+        salva: false,
+      );
+      final c = await boot(activeId: 'p1');
+      final editor = c.read(activePlaylistEditorProvider.notifier);
+
+      // Primeira ordem: o debounce vence e o flush trava na escrita (gate).
+      final gate = Completer<void>();
+      repository.gate = gate;
+      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfB, _pdfA, _pdfC]);
+      await Future<void>.delayed(activeReorderPersistDebounce * 2);
+      expect(repository.updateCalls, 1, reason: 'o primeiro flush está em voo');
+
+      // Segunda ordem chega enquanto a primeira ainda escreve.
+      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [
+        _pdfC,
+        _pdfB,
+        _pdfA,
+      ]);
+
+      // A primeira escrita termina: o override da segunda tem que continuar —
+      // sem ele a barra piscaria [B, A, C] até o segundo flush.
+      repository.gate = null;
+      gate.complete();
+      await _flush();
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [
+        _pdfC,
+        _pdfB,
+        _pdfA,
+      ]);
+
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect(repository.updateCalls, 2);
+      expect((await repository.getById('p1'))!.items, [_pdfC, _pdfB, _pdfA]);
+      expect(c.read(activePlaylistEditorProvider), isNull);
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [
+        _pdfC,
+        _pdfB,
+        _pdfA,
+      ]);
     },
   );
 }
