@@ -51,6 +51,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerFitModeTooltip => 'Ajustar largura/página (Z)';
 
   @override
+  String get readerGoToPageTitle => 'Ir para página';
+
+  @override
+  String get readerGoToPageFieldLabel => 'Número da página';
+
+  @override
+  String get readerGoToPageCancel => 'Cancelar';
+
+  @override
+  String get readerGoToPageConfirm => 'Ir';
+
+  @override
   String get louvorPdfDownloading => 'Baixando...';
 
   @override

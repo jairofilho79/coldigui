@@ -145,13 +145,21 @@ void main() {
     });
   });
 
-  group('PdfPageKeyboardPolicy.actionForKey — ajuste de página', () {
+  group('PdfPageKeyboardPolicy.actionForKey — ajuste e ir para página', () {
     test('Z alterna o fit mode', () {
       expect(act(LogicalKeyboardKey.keyZ), PdfKeyAction.toggleFit);
     });
 
+    test('G abre o diálogo de ir para página', () {
+      expect(act(LogicalKeyboardKey.keyG), PdfKeyAction.goToPage);
+    });
+
     test('ctrl+Z fica para o atalho do navegador/OS, não do leitor', () {
       expect(act(LogicalKeyboardKey.keyZ, ctrl: true), PdfKeyAction.none);
+    });
+
+    test('cmd+G fica para o atalho do navegador/OS, não do leitor', () {
+      expect(act(LogicalKeyboardKey.keyG, meta: true), PdfKeyAction.none);
     });
   });
 

@@ -17,6 +17,10 @@
   "readerFullscreenTooltip": "Tela cheia (F)",
   "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
   "readerFitModeTooltip": "Ajustar largura/página (Z)",
+  "readerGoToPageTitle": "Ir para página",
+  "readerGoToPageFieldLabel": "Número da página",
+  "readerGoToPageCancel": "Cancelar",
+  "readerGoToPageConfirm": "Ir",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

@@ -182,6 +182,30 @@ abstract class AppLocalizations {
   /// **'Ajustar largura/página (Z)'**
   String get readerFitModeTooltip;
 
+  /// No description provided for @readerGoToPageTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para página'**
+  String get readerGoToPageTitle;
+
+  /// No description provided for @readerGoToPageFieldLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Número da página'**
+  String get readerGoToPageFieldLabel;
+
+  /// No description provided for @readerGoToPageCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get readerGoToPageCancel;
+
+  /// No description provided for @readerGoToPageConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir'**
+  String get readerGoToPageConfirm;
+
   /// No description provided for @louvorPdfDownloading.
   ///
   /// In pt, this message translates to:

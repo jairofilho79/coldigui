@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../domain/entities/carousel_reader_position.dart';
 import '../providers/pdf_reader_view_settings_provider.dart';
 import '../providers/reader_route_params_provider.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
+import 'go_to_page_dialog.dart';
 
 FocusNode? _activeKeyboardFocusNode;
 
@@ -106,6 +109,17 @@ class _PdfReaderPageKeyHandlerState
     widget.onNavigateToPage(pageNumber);
   }
 
+  /// `G` — abre [GoToPageDialog] e navega para a página escolhida (spec C16).
+  Future<void> _openGoToPageDialog() async {
+    final target = await GoToPageDialog.show(
+      context,
+      pageCount: widget.pagesCount,
+      initialPage: widget.currentPage,
+    );
+    if (target == null || !mounted) return;
+    _navigateToPage(target);
+  }
+
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (!widget.enabled || widget.pageTurnInProgress) {
@@ -141,6 +155,9 @@ class _PdfReaderPageKeyHandlerState
       case PdfKeyAction.toggleFit:
         if (keyboardFocusIsInsideTextField()) return KeyEventResult.ignored;
         ref.read(pdfReaderViewSettingsProvider.notifier).toggleFitMode();
+      case PdfKeyAction.goToPage:
+        if (keyboardFocusIsInsideTextField()) return KeyEventResult.ignored;
+        unawaited(_openGoToPageDialog());
     }
     return KeyEventResult.handled;
   }
