@@ -402,6 +402,16 @@
   "chordReaderTransposeUp": "Subir meio tom",
   "chordReaderTransposeDown": "Descer meio tom",
   "chordReaderResetTranspose": "Voltar ao tom original",
+  "chordAutoscrollPlay": "Iniciar rolagem automática",
+  "chordAutoscrollPause": "Pausar rolagem automática",
+  "chordAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@chordAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
   "coldigomMetaTonality": "Tom",
   "coldigomMetaAuthor": "Autor",
   "coldigomMetaRhythm": "Ritmo",

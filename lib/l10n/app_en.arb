@@ -393,6 +393,16 @@
   "chordReaderTransposeUp": "Transpose up a semitone",
   "chordReaderTransposeDown": "Transpose down a semitone",
   "chordReaderResetTranspose": "Back to original key",
+  "chordAutoscrollPlay": "Start autoscroll",
+  "chordAutoscrollPause": "Pause autoscroll",
+  "chordAutoscrollSpeed": "Scroll speed: {speed}",
+  "@chordAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
   "coldigomMetaTonality": "Key",
   "coldigomMetaAuthor": "Author",
   "coldigomMetaRhythm": "Rhythm",

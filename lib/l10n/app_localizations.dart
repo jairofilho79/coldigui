@@ -1289,6 +1289,24 @@ abstract class AppLocalizations {
   /// **'Voltar ao tom original'**
   String get chordReaderResetTranspose;
 
+  /// No description provided for @chordAutoscrollPlay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciar rolagem automática'**
+  String get chordAutoscrollPlay;
+
+  /// No description provided for @chordAutoscrollPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar rolagem automática'**
+  String get chordAutoscrollPause;
+
+  /// No description provided for @chordAutoscrollSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da rolagem: {speed}'**
+  String chordAutoscrollSpeed(int speed);
+
   /// No description provided for @coldigomMetaTonality.
   ///
   /// In pt, this message translates to:

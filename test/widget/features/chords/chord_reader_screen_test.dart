@@ -3,8 +3,10 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
+import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/pages/chord_reader_screen.dart';
+import 'package:coldigui/features/chords/presentation/providers/chord_autoscroll_provider.dart';
 import 'package:coldigui/features/chords/presentation/providers/chord_reader_mode_provider.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
@@ -16,17 +18,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _r2Key = 'assets/praises/p1/m1.chord';
+const _r2KeyB = 'assets/praises/p2/m2.chord';
 
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
   Map<String, String>? queryParams,
+  ChordProSong? songOverride,
 }) async {
   SharedPreferences.setMockInitialValues(const {});
   final prefs = await SharedPreferences.getInstance();
-  final song = parseChordPro(
-    '{title: Comigo habita}\n{key: Eb}\n\nA [Bb]noite ha[Cm]bi\n',
-  );
+  final song =
+      songOverride ??
+      parseChordPro(
+        '{title: Comigo habita}\n{key: Eb}\n\nA [Bb]noite ha[Cm]bi\n',
+      );
 
   await tester.pumpWidget(
     ProviderScope(
@@ -166,6 +172,28 @@ void main() {
       expect(depois.left, antes.left);
       expect(find.text('-1'), findsOneWidget);
     });
+
+    testWidgets('play/pause e velocidade do autoscroll ficam na barra', (
+      tester,
+    ) async {
+      await _pump(tester, available: true);
+
+      expect(find.byTooltip('Iniciar rolagem automática'), findsOneWidget);
+
+      // Um `pump()` so, nao `pumpAndSettle()`: a musica de teste e curta
+      // (sem `maxScrollExtent`), entao o motor do autoscroll pararia sozinho
+      // se deixassemos varios frames do Ticker rodarem aqui.
+      await tester.tap(find.byTooltip('Iniciar rolagem automática'));
+      await tester.pump();
+
+      expect(find.byTooltip('Pausar rolagem automática'), findsOneWidget);
+
+      // Tocar no rotulo de velocidade avanca de 3 para 4.
+      await tester.tap(find.text('3x'));
+      await tester.pump();
+
+      expect(find.text('4x'), findsOneWidget);
+    });
   });
 
   group('teclado', () {
@@ -176,7 +204,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.equal);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), 1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
       // O cabecalho tem que acompanhar: o musico le o tom que vai tocar.
       expect(find.text('-1'), findsNothing);
     });
@@ -188,7 +216,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.numpadAdd);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), 1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
     });
 
     testWidgets('- desce meio tom', (tester) async {
@@ -198,7 +226,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.minus);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), -1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), -1);
       expect(find.text('-1'), findsOneWidget);
     });
 
@@ -209,7 +237,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.numpadSubtract);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), -1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), -1);
     });
 
     testWidgets('Ctrl+= nao transpoe (fica com o zoom do navegador)', (
@@ -220,7 +248,7 @@ void main() {
 
       await _sendWithControl(tester, LogicalKeyboardKey.equal);
 
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 0);
     });
 
     testWidgets('Ctrl+seta para cima aumenta o corpo da letra', (tester) async {
@@ -261,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(chordReaderFontSizeProvider), fonte);
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 0);
     });
 
     testWidgets('Ctrl+setas laterais sem pdfId nao quebram', (tester) async {
@@ -278,7 +306,109 @@ void main() {
       await _sendWithControl(tester, LogicalKeyboardKey.arrowLeft);
 
       expect(tester.takeException(), isNull);
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider('')), 0);
+    });
+
+    testWidgets('S liga e desliga o autoscroll', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('[ e ] regulam a velocidade do autoscroll', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketRight);
+      await tester.pump();
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed + 1,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.pump();
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed - 1,
+      );
+    });
+  });
+
+  group('transposicao por louvor (C10)', () {
+    testWidgets(
+      'trocar de louvor nao herda o tom, mas preserva o do anterior na sessao',
+      (tester) async {
+        await _pump(
+          tester,
+          available: true,
+          queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Louvor A'},
+        );
+        final container = _containerOf(tester);
+
+        await tester.tap(find.byTooltip('Subir meio tom'));
+        await tester.pumpAndSettle();
+        expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
+
+        // Troca para outro louvor sem desmontar a tela (mesma navegacao por
+        // `context.replace` que o app faz).
+        await _pump(
+          tester,
+          available: true,
+          queryParams: {'pdfId': encodePdfId(_r2KeyB), 'titulo': 'Louvor B'},
+        );
+
+        // O novo louvor comeca do tom original.
+        expect(container.read(chordReaderTransposeProvider(_r2KeyB)), 0);
+        // O louvor anterior continua com o tom escolhido, na mesma sessao.
+        expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
+      },
+    );
+  });
+
+  group('colunas em tela larga (C9)', () {
+    final longSong = parseChordPro(
+      List.generate(40, (i) => 'linha $i\n').join(),
+    );
+
+    testWidgets('largura ampla com muitas linhas usa duas colunas', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, songOverride: longSong);
+
+      final view = tester.widget<ChordProView>(find.byType(ChordProView));
+      expect(view.columns, 2);
+    });
+
+    testWidgets('largura estreita usa uma coluna mesmo com muitas linhas', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, songOverride: longSong);
+
+      final view = tester.widget<ChordProView>(find.byType(ChordProView));
+      expect(view.columns, 1);
     });
   });
 }

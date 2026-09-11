@@ -742,6 +742,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordReaderResetTranspose => 'Voltar ao tom original';
 
   @override
+  String get chordAutoscrollPlay => 'Iniciar rolagem automática';
+
+  @override
+  String get chordAutoscrollPause => 'Pausar rolagem automática';
+
+  @override
+  String chordAutoscrollSpeed(int speed) {
+    return 'Velocidade da rolagem: $speed';
+  }
+
+  @override
   String get coldigomMetaTonality => 'Tom';
 
   @override

@@ -735,6 +735,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chordReaderResetTranspose => 'Back to original key';
 
   @override
+  String get chordAutoscrollPlay => 'Start autoscroll';
+
+  @override
+  String get chordAutoscrollPause => 'Pause autoscroll';
+
+  @override
+  String chordAutoscrollSpeed(int speed) {
+    return 'Scroll speed: $speed';
+  }
+
+  @override
   String get coldigomMetaTonality => 'Key';
 
   @override
