@@ -9,7 +9,7 @@ import '../datasources/gesture_figure_store.dart';
 /// Tudo best-effort e sem exceção para fora: figura que não veio é
 /// placeholder na tela, e a próxima abertura tenta de novo.
 class GestureFigureRepository {
-  const GestureFigureRepository(this._store, this._dio, {required String apiBase})
+  GestureFigureRepository(this._store, this._dio, {required String apiBase})
     // ignore: prefer_initializing_formals
     : _apiBase = apiBase;
 
@@ -20,6 +20,11 @@ class GestureFigureRepository {
   /// Quantos downloads em voo o [prefetch] mantém.
   static const int prefetchConcurrency = 4;
 
+  /// Downloads em voo por `r2Key`: o documento e o modo foco pedem a mesma
+  /// figura ao mesmo tempo — sem isso cada `get` concorrente dispararia uma
+  /// requisição própria.
+  final _inFlight = <String, Future<Uint8List?>>{};
+
   /// Bytes da figura, do store ou da rede; `null` se não deu.
   Future<Uint8List?> get(String r2Key) async {
     final key = r2Key.trim();
@@ -28,6 +33,15 @@ class GestureFigureRepository {
     final cached = await _store.read(key);
     if (cached != null) return cached;
 
+    final inFlight = _inFlight[key];
+    if (inFlight != null) return inFlight;
+
+    final future = _fetchAndStore(key);
+    _inFlight[key] = future;
+    return future.whenComplete(() => _inFlight.remove(key));
+  }
+
+  Future<Uint8List?> _fetchAndStore(String key) async {
     final bytes = await _download(key);
     if (bytes == null) return null;
     await _store.write(key, bytes);

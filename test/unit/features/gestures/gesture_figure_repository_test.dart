@@ -86,6 +86,19 @@ void main() {
     expect(await _repo(_MemoryStore(), _FakeAdapter(const {})).get(''), isNull);
   });
 
+  test('duas chamadas concorrentes no mesmo miss fazem só uma requisição', () async {
+    final store = _MemoryStore();
+    final adapter = _FakeAdapter({url: [3, 4]});
+    final repo = _repo(store, adapter);
+
+    final results = await Future.wait([repo.get(key), repo.get(key)]);
+
+    expect(results[0], [3, 4]);
+    expect(results[1], [3, 4]);
+    expect(adapter.requested, [url]);
+    expect(store.writes, 1);
+  });
+
   test('prefetch baixa só o que falta e ignora falhas', () async {
     final store = _MemoryStore()..rows['a.png'] = Uint8List.fromList([0]);
     final adapter = _FakeAdapter({
