@@ -15,7 +15,12 @@ class CarouselItem {
   /// [materialId], [kind], [index] e [key] são o contrato novo; `pdfId` e
   /// `sortOrder` continuam aceitos como apelidos enquanto os widgets antigos
   /// não foram reescritos (Tarefas 12–16).
-  CarouselItem({
+  ///
+  /// Sem [key] a chave é a da **primeira** ocorrência ([entryKeyFor] com
+  /// `occurrence == 0`, que é o próprio id); sem [kind] o item entra como
+  /// [MaterialKind.pdf] — quem constrói pela API antiga está sempre montando
+  /// um chip da face de partituras.
+  const CarouselItem({
     String? materialId,
     MaterialKind? kind,
     int? index,
@@ -31,10 +36,10 @@ class CarouselItem {
          materialId != null || pdfId != null,
          'CarouselItem precisa de materialId',
        ),
-       materialId = (materialId ?? pdfId)!,
-       kind = kind ?? materialIdKindOf((materialId ?? pdfId)!),
+       materialId = materialId ?? pdfId ?? '',
+       kind = kind ?? MaterialKind.pdf,
        index = index ?? sortOrder ?? 0,
-       key = key ?? entryKeyFor((materialId ?? pdfId)!, 0);
+       key = key ?? materialId ?? pdfId ?? '';
 
   /// Identificador estável do material (Base64 URL-safe do path).
   final String materialId;
