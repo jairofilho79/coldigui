@@ -332,6 +332,14 @@
   "@readerSwitchMaterial": {
     "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
   },
+  "cardAddedSwapMaterial": "Adicionado à lista",
+  "@cardAddedSwapMaterial": {
+    "description": "Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa"
+  },
+  "cardSwapMaterialAction": "Trocar material",
+  "@cardSwapMaterialAction": {
+    "description": "Ação da snackbar de `cardAddedSwapMaterial` — reabre o sheet de materiais no fluxo de troca da entrada recém-adicionada"
+  },
   "readerCarouselPosition": "{current} de {total}",
   "@readerCarouselPosition": {
     "placeholders": {

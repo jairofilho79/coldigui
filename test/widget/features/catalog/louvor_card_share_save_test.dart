@@ -314,7 +314,9 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
   });
 
-  testWidgets('LouvorGroupCard com vários materiais não exibe + no card', (
+  // C5: "+" sempre visível — mesmo com vários materiais, o card oferece o
+  // material preferido (o PDF principal, aqui a Partitura) direto.
+  testWidgets('LouvorGroupCard com vários materiais mostra + no card (C5)', (
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -335,7 +337,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
   testWidgets('LouvorGroupCard com vários materiais adiciona pelo sheet', (
@@ -365,7 +367,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.share_outlined), findsNothing);
-    expect(find.byIcon(Icons.add), findsNWidgets(2));
+    // 3: o "+" sempre visível do card (C5) segue montado sob o sheet, mais
+    // os dois "+" das entradas de PDF do sheet.
+    expect(find.byIcon(Icons.add), findsNWidgets(3));
 
     await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();

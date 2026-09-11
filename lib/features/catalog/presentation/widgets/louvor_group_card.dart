@@ -15,13 +15,17 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
+import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
+import 'package:coldigui/features/catalog/presentation/utils/preferred_material_for_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -142,6 +146,79 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
   }
 
+  /// "+" sempre visível (C5): adiciona [material] — já resolvido por
+  /// [preferredMaterialForGroup] — e mostra «Adicionado à lista» com a ação
+  /// «Trocar material», que reabre o sheet no fluxo de troca (`replaceByKey`
+  /// da entrada recém-criada).
+  Future<void> _handleAddPreferredMaterial(CatalogMaterial material) async {
+    final l10n = AppLocalizations.of(context)!;
+    final outcome = await ref
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(material.id, kind: material.kind);
+
+    if (!mounted) return;
+
+    if (outcome == AddToActiveOutcome.storageUnavailable) {
+      showAppSnackbar(context, l10n.playlistStorageUnavailable);
+      return;
+    }
+
+    // `addToActive` devolve só o desfecho (added/alreadyPresent), não a
+    // chave da entrada — a última ocorrência do id na lista ativa é a que
+    // acabou de entrar (added) ou a que já estava lá (alreadyPresent), e em
+    // ambos os casos é a que faz sentido trocar.
+    final key = _lastActiveKeyFor(material.id);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.cardAddedSwapMaterial),
+          action: key == null
+              ? null
+              : SnackBarAction(
+                  label: l10n.cardSwapMaterialAction,
+                  onPressed: () => unawaited(_openSwapMaterialSheet(key)),
+                ),
+        ),
+      );
+  }
+
+  /// Chave da última ocorrência de [materialId] na lista ativa.
+  String? _lastActiveKeyFor(String materialId) {
+    String? key;
+    for (final entry in ref.read(activeEntriesProvider)) {
+      if (entry.id == materialId) key = entry.key;
+    }
+    return key;
+  }
+
+  /// Sheet no fluxo de troca: PDF/áudio substitui a entrada [key] da lista
+  /// ativa em vez de só abrir; cifra/YouTube (sem entrada própria) seguem
+  /// abrindo normalmente.
+  Future<void> _openSwapMaterialSheet(String key) async {
+    final group = _resolvedGroup;
+    await showMaterialSheet(
+      context,
+      ref,
+      group,
+      canAddToPlaylist: false,
+      onMaterialSelected: (material) async {
+        if (material is ChordMaterialRef || material is YoutubeMaterialRef) {
+          await ref
+              .read(openMaterialProvider)
+              .open(context, ref, material, audioQueue: group.audioTracks);
+          return;
+        }
+        await ref
+            .read(activePlaylistEditorProvider.notifier)
+            .replaceByKey(
+              key,
+              PlaylistEntry(id: material.id, kind: material.kind),
+            );
+      },
+    );
+  }
+
   Set<String> get _groupPdfIds => {
     for (final section in widget.group.sections)
       for (final material in section.materials) material.pdfId,
@@ -206,6 +283,15 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     // de download continua como texto, prioridade sobre os ícones.
     final metadataSummary = _downloadProgressLabel(activeDownload, l10n);
 
+    // C5: "+" sempre visível — PDF principal, senão o único áudio, senão o
+    // primeiro extra adicionável (cifra/YouTube não têm entrada própria).
+    // O caminho de um único PDF é preservado à parte para manter o "já
+    // adicionado" (✓) e a snackbar genérica do editor.
+    final isSinglePdfOnly = !isMultiMaterial && primary != null;
+    final preferredMaterial = isSinglePdfOnly
+        ? null
+        : preferredMaterialForGroup(widget.group);
+
     // A5: um mapa único do índice, lido por `select` — sem query por card.
     final offlineAvailability = primary != null
         ? ref.watch(
@@ -216,6 +302,15 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
           )
         : PdfOfflineAvailability.notAvailable;
 
+    final VoidCallback? onAdd = isLoading
+        ? null
+        : isSinglePdfOnly
+        ? (isAdded ? null : _handleAddToCarousel)
+        : (preferredMaterial == null
+              ? null
+              : () =>
+                    unawaited(_handleAddPreferredMaterial(preferredMaterial)));
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: CarouselLouvorChip(
@@ -224,14 +319,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         materialKindsGroup: widget.group,
         onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
         onTap: isLoading ? null : _handleTap,
-        onAdd:
-            isLoading ||
-                isAdded ||
-                primary == null ||
-                isMultiMaterial ||
-                singleAudio != null
-            ? null
-            : _handleAddToCarousel,
+        onAdd: onAdd,
         isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
         offlineAvailability: offlineAvailability,

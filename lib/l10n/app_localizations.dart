@@ -965,6 +965,18 @@ abstract class AppLocalizations {
   /// **'Trocar material'**
   String get readerSwitchMaterial;
 
+  /// Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionado à lista'**
+  String get cardAddedSwapMaterial;
+
+  /// Ação da snackbar de `cardAddedSwapMaterial` — reabre o sheet de materiais no fluxo de troca da entrada recém-adicionada
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar material'**
+  String get cardSwapMaterialAction;
+
   /// No description provided for @readerCarouselPosition.
   ///
   /// In pt, this message translates to:

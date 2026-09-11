@@ -549,6 +549,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerSwitchMaterial => 'Switch material';
 
   @override
+  String get cardAddedSwapMaterial => 'Added to the list';
+
+  @override
+  String get cardSwapMaterialAction => 'Switch material';
+
+  @override
   String readerCarouselPosition(int current, int total) {
     return '$current of $total';
   }

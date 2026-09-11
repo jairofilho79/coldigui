@@ -323,6 +323,14 @@
   "@readerSwitchMaterial": {
     "description": "Tooltip for switching PDF material variant in the reader toolbar"
   },
+  "cardAddedSwapMaterial": "Added to the list",
+  "@cardAddedSwapMaterial": {
+    "description": "Snackbar for the always-visible card «+» (C5) — the preferred material was added to the active list"
+  },
+  "cardSwapMaterialAction": "Switch material",
+  "@cardSwapMaterialAction": {
+    "description": "Action on the `cardAddedSwapMaterial` snackbar — reopens the material sheet in the swap flow for the just-added entry"
+  },
   "readerCarouselPosition": "{current} of {total}",
   "@readerCarouselPosition": {
     "placeholders": {
