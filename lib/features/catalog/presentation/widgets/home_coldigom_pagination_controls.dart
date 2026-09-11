@@ -14,14 +14,13 @@ class HomeColdigomPaginationControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final page = ref.watch(homeSearchColdigomPageProvider);
-    final hasNext = ref.watch(homeSearchColdigomHasNextProvider);
-    final coldigomCount = ref
-        .watch(homeSearchColdigomGroupsDataProvider)
-        .length;
-    final loading = ref.watch(homeSearchColdigomLoadingProvider);
+    final state = ref.watch(homeSearchStateProvider);
+    final page = state.page;
+    final hasNext = state.hasNextPage;
 
-    final showPager = !loading && (page > 1 || hasNext || coldigomCount > 0);
+    final showPager =
+        !state.remoteLoading &&
+        (page > 1 || hasNext || state.remoteGroups.isNotEmpty);
     if (!showPager) {
       return const SizedBox.shrink();
     }
@@ -36,9 +35,7 @@ class HomeColdigomPaginationControls extends ConsumerWidget {
             visualDensity: VisualDensity.compact,
             style: IconButton.styleFrom(foregroundColor: AppColors.textLight),
             onPressed: page > 1
-                ? () =>
-                      ref.read(homeSearchColdigomPageProvider.notifier).state =
-                          page - 1
+                ? () => ref.read(homeSearchPageProvider.notifier).previous()
                 : null,
             icon: const Icon(Icons.chevron_left),
           ),
@@ -51,9 +48,7 @@ class HomeColdigomPaginationControls extends ConsumerWidget {
             visualDensity: VisualDensity.compact,
             style: IconButton.styleFrom(foregroundColor: AppColors.textLight),
             onPressed: hasNext
-                ? () =>
-                      ref.read(homeSearchColdigomPageProvider.notifier).state =
-                          page + 1
+                ? () => ref.read(homeSearchPageProvider.notifier).next()
                 : null,
             icon: const Icon(Icons.chevron_right),
           ),

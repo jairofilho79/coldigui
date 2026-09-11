@@ -2,8 +2,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -61,10 +59,6 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) =>
-                (input) async => runHomeSearchPipeline(input),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

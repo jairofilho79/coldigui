@@ -1,6 +1,7 @@
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_coldigom_pagination_controls.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -50,33 +51,47 @@ VoidCallback? _firstChipOnTap(Element root) {
   return found;
 }
 
+/// O que vai **depois** dos cards, se algo for.
+///
+/// Os três estados são mutuamente exclusivos, e é justamente isso que a
+/// aritmética antiga de índices (`trailingIndex -= 1`, três flags booleanas)
+/// escondia: ou a página remota está em voo, ou falhou, ou chegou. Um `switch`
+/// exaustivo sobre este enum não deixa um quarto caso passar despercebido.
+enum HomeSearchTrailingSlot {
+  /// Página remota em voo.
+  loading,
+
+  /// Página remota falhou — linha "Coldigom indisponível · tentar de novo".
+  error,
+
+  /// Página remota chegou e há o que paginar.
+  pager,
+}
+
+/// Slot final correspondente a [state] — vazio quando não há nenhum.
+HomeSearchTrailingSlot? homeSearchTrailingSlot(HomeSearchState state) {
+  if (state.remoteLoading) return HomeSearchTrailingSlot.loading;
+  // Busca coldigom falhando é visível (linha com retry) em vez de lista
+  // vazia silenciosa (C.8).
+  if (state.remoteFailed) return HomeSearchTrailingSlot.error;
+  if (state.page > 1 || state.hasNextPage || state.remoteGroups.isNotEmpty) {
+    return HomeSearchTrailingSlot.pager;
+  }
+  return null;
+}
+
 /// Lista de resultados da Home — isolada da [SearchBar] para evitar rebuilds
-/// do campo de busca quando o pipeline assíncrono conclui.
+/// do campo de busca quando a página remota conclui.
 class HomeSearchResultsSliver extends ConsumerWidget {
   const HomeSearchResultsSliver({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final results = ref.watch(homeSearchGroupResultsProvider);
-    final coldigomLoading = ref.watch(homeSearchColdigomLoadingProvider);
-    final coldigomError = ref.watch(homeSearchColdigomErrorProvider);
-    final page = ref.watch(homeSearchColdigomPageProvider);
-    final hasNext = ref.watch(homeSearchColdigomHasNextProvider);
-    final coldigomCount = ref
-        .watch(homeSearchColdigomGroupsDataProvider)
-        .length;
+    final state = ref.watch(homeSearchStateProvider);
+    final results = state.groups;
+    final trailing = homeSearchTrailingSlot(state);
 
-    // Busca coldigom falhando é visível (linha com retry) em vez de lista
-    // vazia silenciosa (C.8).
-    final showError = !coldigomLoading && coldigomError;
-    final showPager =
-        !coldigomLoading &&
-        !coldigomError &&
-        (page > 1 || hasNext || coldigomCount > 0);
-    final trailingCount =
-        (coldigomLoading ? 1 : 0) + (showError ? 1 : 0) + (showPager ? 1 : 0);
-
-    if (results.isEmpty && trailingCount == 0) {
+    if (results.isEmpty && trailing == null) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
@@ -87,36 +102,39 @@ class HomeSearchResultsSliver extends ConsumerWidget {
           if (index != 0) return card;
           return KeyedSubtree(key: homeFirstSearchResultKey, child: card);
         }
-        var trailingIndex = index - results.length;
-        if (coldigomLoading) {
-          if (trailingIndex == 0) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.gold,
-                  ),
-                ),
-              ),
+        switch (trailing!) {
+          case HomeSearchTrailingSlot.loading:
+            return const _ColdigomLoadingRow();
+          case HomeSearchTrailingSlot.error:
+            return _ColdigomUnavailableRow(
+              onRetry: () => retryRemoteSearch(ref),
             );
-          }
-          trailingIndex -= 1;
+          case HomeSearchTrailingSlot.pager:
+            return const HomeColdigomPaginationControls();
         }
-        if (showError && trailingIndex == 0) {
-          return _ColdigomUnavailableRow(
-            onRetry: () =>
-                ref.read(homeSearchPipelineDriverProvider.notifier).retry(),
-          );
-        }
-        if (showPager && trailingIndex == 0) {
-          return const HomeColdigomPaginationControls();
-        }
-        return const SizedBox.shrink();
-      }, childCount: results.length + trailingCount),
+      }, childCount: results.length + (trailing == null ? 0 : 1)),
+    );
+  }
+}
+
+/// Spinner enquanto a página remota está em voo.
+class _ColdigomLoadingRow extends StatelessWidget {
+  const _ColdigomLoadingRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.gold,
+          ),
+        ),
+      ),
     );
   }
 }

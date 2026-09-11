@@ -13,7 +13,7 @@ import '../../domain/repositories/catalog_repository.dart';
 /// Estado async do manifest carregado no boot da aplicação (UC-12).
 ///
 /// Disparado via `ref.listen` em [ColdiguiApp] (evita rebuild do router ao concluir
-/// ~4600 itens); consumido por [homeSearchGroupResultsProvider] e demais `ref.watch`.
+/// ~4600 itens); consumido por `plpcgCatalogSourceProvider` e demais `ref.watch`.
 /// [LouvoresManifest.availableArranjos] é pré-computado no carregamento (UC-02).
 ///
 /// Cache-first (Fase G): retorna Isar imediatamente quando disponível e

@@ -2,8 +2,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
@@ -33,10 +31,6 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) =>
-                (input) async => runHomeSearchPipeline(input),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -65,10 +59,6 @@ void main() {
             LouvoresManifest.fromLouvores(const [], isStale: true),
           ),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) =>
-                (input) async => runHomeSearchPipeline(input),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -98,10 +88,6 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestLoadingOverride(),
           carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-          homeSearchPipelineExecutorProvider.overrideWith(
-            (ref) =>
-                (input) async => runHomeSearchPipeline(input),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

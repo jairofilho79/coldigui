@@ -180,12 +180,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
 
-    // Reconexão (C.8): volta a rede com o manifest em erro → tenta de novo
-    // sozinho, sem esperar o usuário tocar em "Tentar de novo".
+    // Reconexão (C.8): volta a rede com o manifest ou a página remota em erro
+    // → tenta de novo sozinho, sem esperar o usuário tocar em "Tentar de novo".
     ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
       if (next.value != true) return;
       if (ref.read(louvoresManifestProvider).hasError) {
         ref.invalidate(louvoresManifestProvider);
+      }
+      if (ref.read(homeSearchStateProvider).remoteFailed) {
+        retryRemoteSearch(ref);
       }
     });
 
@@ -219,8 +222,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     initialValue: _searchBarInitialValue,
                     focusNode: _searchFocusNode,
                     onQueryChanged: (value) {
-                      ref.read(homeSearchRawQueryProvider.notifier).state =
-                          value;
+                      ref
+                          .read(homeSearchQueryProvider.notifier)
+                          .setQuery(value);
                     },
                     // Enter abre o primeiro resultado — mesma ação do toque.
                     onSubmitted: (_) => activateFirstHomeSearchResult(),

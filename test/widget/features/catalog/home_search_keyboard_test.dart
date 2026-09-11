@@ -7,8 +7,9 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -100,13 +101,16 @@ Future<void> _pumpHome(
         coldigomSearchRepositoryProvider.overrideWithValue(
           _EmptyColdigomRepo(),
         ),
-        homeSearchPipelineExecutorProvider.overrideWith(
-          (ref) =>
-              (input) async => runHomeSearchPipeline(input),
-        ),
         // O pipeline de busca tem cobertura própria; aqui interessa só o que
         // o teclado faz com a lista já pronta.
-        homeSearchGroupResultsProvider.overrideWithValue(results),
+        homeSearchStateProvider.overrideWithValue(
+          HomeSearchState(
+            query: 'aleluia',
+            page: 1,
+            localGroups: results,
+            remote: const AsyncData(CatalogSearchPage.empty),
+          ),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

@@ -6,8 +6,6 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,10 +28,6 @@ Widget _homeErrorTestApp({
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-      homeSearchPipelineExecutorProvider.overrideWith(
-        (ref) =>
-            (input) async => runHomeSearchPipeline(input),
-      ),
       ...extraOverrides,
     ],
     child: MaterialApp(

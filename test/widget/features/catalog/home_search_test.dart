@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -7,8 +10,6 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
@@ -96,9 +97,46 @@ class _FakeColdigomRepo implements ColdigomSearchRepository {
   }
 }
 
+/// Repositório coldigom que falha até o teste liberar — cobre a linha de
+/// "indisponível", o retry manual e a reconexão.
+class _ScriptedColdigomRepo implements ColdigomSearchRepository {
+  var shouldFail = true;
+  var calls = 0;
+
+  @override
+  Future<ColdigomSearchResult> search(
+    String query, {
+    int page = 1,
+    SearchCancellation? cancellation,
+  }) async {
+    calls++;
+    if (shouldFail) throw Exception('coldigom indisponível');
+    return ColdigomSearchResult(
+      groups: const [],
+      louvores: const [],
+      page: page,
+      hasNextPage: false,
+    );
+  }
+
+  @override
+  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
+    return const ColdigomBrowseResult(
+      groups: [],
+      louvores: [],
+      page: 1,
+      limit: 10,
+      totalItems: 0,
+      totalPages: 0,
+    );
+  }
+}
+
 List<Override> _homeSearchTestOverrides({
   required SharedPreferences prefs,
   required List<Louvor> catalog,
+  ColdigomSearchRepository? coldigom,
+  List<Override> extra = const [],
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -109,13 +147,9 @@ List<Override> _homeSearchTestOverrides({
     // artefato da fixture, não do produto. Coldigom tem cobertura própria em
     // test/unit/features/coldigom/coldigom_search_repository_test.dart.
     coldigomSearchRepositoryProvider.overrideWithValue(
-      _FakeColdigomRepo(const []),
+      coldigom ?? _FakeColdigomRepo(const []),
     ),
-    // Pipeline PLPCG síncrono: `compute` roda em isolate e não assenta sob pump.
-    homeSearchPipelineExecutorProvider.overrideWith(
-      (ref) =>
-          (input) async => runHomeSearchPipeline(input),
-    ),
+    ...extra,
   ];
 }
 
@@ -206,6 +240,96 @@ void main() {
       expect(tester.widget<TextField>(field).controller!.text, '258');
     },
   );
+
+  testWidgets(
+    'falha remota mostra a linha de retry e o toque re-busca a mesma página',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
+      final repo = _ScriptedColdigomRepo();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _homeSearchTestOverrides(
+            prefs: prefs,
+            catalog: catalog,
+            coldigom: repo,
+          ),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const HomeScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '001');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Coldigom indisponível · tentar de novo'),
+        findsOneWidget,
+      );
+      // O resultado PLPCG segue na tela apesar da falha remota.
+      expect(find.textContaining('Aleluia'), findsOneWidget);
+
+      repo.shouldFail = false;
+      await tester.tap(find.text('Coldigom indisponível · tentar de novo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Coldigom indisponível · tentar de novo'), findsNothing);
+      expect(repo.calls, 2);
+    },
+  );
+
+  testWidgets('reconexão re-busca a página remota quando ela está em erro', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
+    final repo = _ScriptedColdigomRepo();
+    final connectivity = StreamController<bool>.broadcast();
+    addTearDown(connectivity.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _homeSearchTestOverrides(
+          prefs: prefs,
+          catalog: catalog,
+          coldigom: repo,
+          extra: [
+            connectivityStreamProvider.overrideWith(
+              (ref) => connectivity.stream,
+            ),
+          ],
+        ),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '001');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coldigom indisponível · tentar de novo'), findsOneWidget);
+    expect(repo.calls, 1);
+
+    repo.shouldFail = false;
+    connectivity.add(true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coldigom indisponível · tentar de novo'), findsNothing);
+    expect(repo.calls, 2);
+  });
 
   testWidgets(
     'SearchBar mantém texto digitado quando initialValue muda por eco de URL',

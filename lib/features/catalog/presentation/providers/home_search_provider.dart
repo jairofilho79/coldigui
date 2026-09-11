@@ -1,236 +1,160 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-
+import '../../data/providers/plpcg_catalog_source_provider.dart';
+import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
-import '../../domain/entities/louvores_manifest.dart';
 import 'catalog_filters_provider.dart';
-import 'home_search_worker.dart';
-import 'louvores_manifest_provider.dart';
+import 'home_remote_search_provider.dart';
+import 'home_search_state.dart';
 
 /// Estado da busca e filtros na Home (UC-01 + UC-02).
 ///
-/// Pipeline: [homeSearchRawQueryProvider] → debounce 300ms
-/// ([homeSearchDebouncedQueryProvider]) → busca + filtros + agrupamento
-/// off-main-thread ([homeSearchPipelineDriverProvider]) →
-/// [homeSearchGroupResultsDataProvider] → [homeSearchGroupResultsProvider]
-/// → [LouvorGroupCard].
+/// Pipeline declarativo (C.2):
+/// ```
+/// homeSearchQueryProvider (texto cru)
+///   → homeSearchDebouncedQueryProvider (300 ms)
+///       ├→ homeLocalSearchProvider   (índice PLPCG, síncrono, + filtros)
+///       └→ homeRemoteSearchProvider((query, página))  (Coldigom, cancelável)
+///             → homeSearchStateProvider → HomeSearchResultsSliver
+/// ```
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
-/// consumidos por [HomeScreen] → [buildHomeLocation].
+/// consumidos por `HomeScreen` → `buildHomeLocation`.
 ///
-/// Texto imediato digitado na [SearchBar] (sem debounce).
-final homeSearchRawQueryProvider = StateProvider<String>((ref) => '');
+/// Texto imediato digitado na `SearchBar` (sem debounce).
+final homeSearchQueryProvider = NotifierProvider<HomeSearchQuery, String>(
+  HomeSearchQuery.new,
+);
 
-/// Query debounced 300ms — dispara filtragem UC-01.
+/// Query debounced 300 ms — dispara a busca local e a chave remota.
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
-/// `true` enquanto a busca coldigom está em andamento (após resultados PLPCG).
-final homeSearchColdigomLoadingProvider = StateProvider<bool>((ref) => false);
-
-/// Página 1-based da busca coldigom (limit fixo 20).
-final homeSearchColdigomPageProvider = StateProvider<int>((ref) => 1);
-
-/// Heurística: última página coldigom veio cheia (`length >= limit`).
-final homeSearchColdigomHasNextProvider = StateProvider<bool>((ref) => false);
-
-/// `true` quando a última busca coldigom falhou (rede/servidor) — o sliver
-/// mostra uma linha de erro com retry em vez de esconder silenciosamente os
-/// resultados (C.8).
-final homeSearchColdigomErrorProvider = StateProvider<bool>((ref) => false);
-
-/// Grupos PLPCG da query atual (sempre no topo da lista).
-final homeSearchPlpcgGroupsDataProvider = StateProvider<List<LouvorGroup>>(
-  (ref) => const [],
+/// Página 1-based da busca remota; volta a 1 quando a query ou os filtros mudam.
+final homeSearchPageProvider = NotifierProvider<HomeSearchPage, int>(
+  HomeSearchPage.new,
 );
 
-/// Grupos coldigom da [homeSearchColdigomPageProvider] atual.
-final homeSearchColdigomGroupsDataProvider = StateProvider<List<LouvorGroup>>(
-  (ref) => const [],
-);
-
-/// Cache combinado PLPCG + coldigom — atualizado pelo pipeline assíncrono.
-final homeSearchGroupResultsDataProvider = Provider<List<LouvorGroup>>((ref) {
-  return [
-    ...ref.watch(homeSearchPlpcgGroupsDataProvider),
-    ...ref.watch(homeSearchColdigomGroupsDataProvider),
-  ];
-});
-
-/// Grupos agrupados por `groupId` para [LouvorGroupCard] na Home.
+/// Resultados PLPCG da query + filtros correntes — **síncronos**.
 ///
-/// Interface síncrona (como antes) — apenas [HomeSearchResultsSliver] observa
-/// este provider; a [SearchBar] não é reconstruída quando os resultados mudam.
-final homeSearchGroupResultsProvider = Provider<List<LouvorGroup>>((ref) {
-  ref.watch(homeSearchPipelineDriverProvider);
-  return ref.watch(homeSearchGroupResultsDataProvider);
+/// Observa manifest (via [plpcgCatalogSourceProvider]), query e filtros: um
+/// refresh de manifest em segundo plano ou um chip de material re-derivam só
+/// esta lista, sem tocar a rede.
+final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
+  final query = ref.watch(homeSearchDebouncedQueryProvider);
+  final filters = ref.watch(catalogFiltersProvider);
+  final source = ref.watch(plpcgCatalogSourceProvider);
+  return source.searchLocal(CatalogQuery(text: query, filters: filters));
 });
 
-/// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
-final homeSearchPipelineExecutorProvider = Provider<HomeSearchPipelineExecutor>(
-  (ref) {
-    return (input) => compute(runHomeSearchPipeline, input);
-  },
-);
+/// Estado único da busca da Home — o que os widgets observam.
+final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
+  final query = ref.watch(homeSearchDebouncedQueryProvider);
+  final page = ref.watch(homeSearchPageProvider);
+  final localGroups = ref.watch(homeLocalSearchProvider);
 
-/// Dispara busca UC-01 + filtros UC-02 + agrupamento fora do main thread.
-final homeSearchPipelineDriverProvider =
-    NotifierProvider<HomeSearchPipelineDriver, int>(
-      HomeSearchPipelineDriver.new,
+  if (query.trim().isEmpty) {
+    // Sem query não há página remota: nada de `loading` e nada de rede — a
+    // família nem chega a ser instanciada.
+    return HomeSearchState(
+      query: query,
+      page: page,
+      localGroups: localGroups,
+      remote: const AsyncData(CatalogSearchPage.empty),
     );
+  }
 
-/// Debounce de 300ms entre [homeSearchRawQueryProvider] e filtragem.
+  final remote = ref.watch(
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: page)),
+  );
+
+  return HomeSearchState(
+    query: query,
+    page: page,
+    localGroups: localGroups,
+    remote: remote,
+  );
+});
+
+/// Re-dispara a busca remota da página corrente (linha de retry e reconexão).
+///
+/// Invalida só a chave `(query, página)` que está na tela: as outras páginas
+/// já memoizadas continuam válidas.
+void retryRemoteSearch(WidgetRef ref) {
+  final query = ref.read(homeSearchDebouncedQueryProvider);
+  final page = ref.read(homeSearchPageProvider);
+  if (query.trim().isEmpty) return;
+  ref.invalidate(
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: page)),
+  );
+}
+
+/// Texto cru da `SearchBar`, sem debounce.
+class HomeSearchQuery extends Notifier<String> {
+  @override
+  String build() => '';
+
+  /// Registra a tecla recém-digitada.
+  void setQuery(String query) {
+    state = query;
+  }
+}
+
+/// Debounce de 300 ms entre [homeSearchQueryProvider] e a busca.
 class HomeSearchDebouncer extends Notifier<String> {
   Timer? _debounceTimer;
 
   @override
   String build() {
-    ref.listen<String>(homeSearchRawQueryProvider, (_, _) {
+    ref.listen<String>(homeSearchQueryProvider, (_, _) {
       _debounceTimer?.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 300), () {
         // Lê o valor atual no fim do debounce — evita aplicar `next` obsoleto
         // se outro evento cancelou e reagendou o timer antes do disparo.
-        state = ref.read(homeSearchRawQueryProvider);
+        state = ref.read(homeSearchQueryProvider);
       });
-    }, fireImmediately: true);
+    });
 
     ref.onDispose(() => _debounceTimer?.cancel());
-    return ref.read(homeSearchRawQueryProvider);
+    return ref.read(homeSearchQueryProvider);
   }
 
   /// Hidrata busca a partir da URL sem esperar debounce.
   void setImmediate(String query) {
-    ref.read(homeSearchRawQueryProvider.notifier).state = query;
+    ref.read(homeSearchQueryProvider.notifier).setQuery(query);
     _debounceTimer?.cancel();
     state = query;
   }
 }
 
-/// Executa o pipeline da Home fora do main thread; descarta resultados obsoletos.
-class HomeSearchPipelineDriver extends Notifier<int> {
-  int _generation = 0;
-
+/// Página 1-based da busca remota.
+///
+/// O reset para 1 mora aqui (e não em quem digita) porque é a única regra que
+/// liga query/filtros à paginação: quando a página já é 1, nada muda — e como
+/// a chave remota é `(query, página)`, um chip de filtro não re-busca nada.
+class HomeSearchPage extends Notifier<int> {
   @override
   int build() {
-    ref.listen<String>(homeSearchDebouncedQueryProvider, (_, _) {
-      _resetPageAndSearch();
-    }, fireImmediately: true);
-    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
-      _resetPageAndSearch();
-    });
-    ref.listen<AsyncValue<LouvoresManifest>>(louvoresManifestProvider, (_, _) {
-      _resetPageAndSearch();
-    }, fireImmediately: true);
-    ref.listen<int>(homeSearchColdigomPageProvider, (previous, next) {
+    ref.listen<String>(homeSearchDebouncedQueryProvider, (previous, next) {
       if (previous == next) return;
-      _scheduleSearch();
+      state = 1;
     });
-
-    return 0;
+    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
+      state = 1;
+    });
+    return 1;
   }
 
-  void _resetPageAndSearch() {
-    if (ref.read(homeSearchColdigomPageProvider) != 1) {
-      // A mudança de página dispara o listen de page → um único search.
-      ref.read(homeSearchColdigomPageProvider.notifier).state = 1;
-      return;
-    }
-    _scheduleSearch();
+  /// Avança uma página.
+  void next() {
+    state = state + 1;
   }
 
-  void _scheduleSearch() {
-    Future.microtask(() => unawaited(_runSearch()));
-  }
-
-  /// Re-dispara a busca atual — usado pelo retry da linha "Coldigom
-  /// indisponível" no sliver de resultados (C.8).
-  void retry() {
-    _scheduleSearch();
-  }
-
-  void _clearResults() {
-    ref.read(homeSearchPlpcgGroupsDataProvider.notifier).state = const [];
-    ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
-    ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
-    ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
-    ref.read(homeSearchColdigomErrorProvider.notifier).state = false;
-  }
-
-  Future<void> _runSearch() async {
-    final query = ref.read(homeSearchDebouncedQueryProvider);
-    final filters = ref.read(catalogFiltersProvider);
-    final catalog = ref.read(louvoresManifestProvider).value?.louvores;
-    final page = ref.read(homeSearchColdigomPageProvider);
-
-    if (query.trim().isEmpty) {
-      _generation++;
-      _clearResults();
-      return;
-    }
-
-    final generation = ++_generation;
-
-    List<LouvorGroup> groupsPlpcg = const [];
-    if (catalog != null) {
-      final input = HomeSearchPipelineInput(
-        catalog: List.of(catalog),
-        query: query,
-        selectedMaterials: filters.selectedMaterials,
-        selectedArranjos: filters.selectedArranjos,
-      );
-
-      final execute = ref.read(homeSearchPipelineExecutorProvider);
-      groupsPlpcg = await execute(input);
-
-      if (generation != _generation) return;
-
-      ref.read(homeSearchPlpcgGroupsDataProvider.notifier).state = groupsPlpcg;
-      // Mantém coldigom da página anterior até a nova resposta chegar.
-    }
-
-    ref.read(homeSearchColdigomLoadingProvider.notifier).state = true;
-    // Evita mostrar página anterior enquanto a nova chega.
-    ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
-    ref.read(homeSearchColdigomErrorProvider.notifier).state = false;
-
-    try {
-      final coldigomResult = await ref
-          .read(coldigomSearchRepositoryProvider)
-          .search(query, page: page);
-
-      if (generation != _generation) return;
-
-      ref
-          .read(coldigomLouvoresCacheProvider.notifier)
-          .mergeLouvores(coldigomResult.louvores);
-      ref
-          .read(coldigomAudioTracksCacheProvider.notifier)
-          .mergeTracks(coldigomResult.audioTracks);
-      ref
-          .read(coldigomPraiseMetaCacheProvider.notifier)
-          .mergeMeta(coldigomResult.praiseMetaByGroupId);
-
-      ref.read(homeSearchColdigomGroupsDataProvider.notifier).state =
-          coldigomResult.groups;
-      ref.read(homeSearchColdigomHasNextProvider.notifier).state =
-          coldigomResult.hasNextPage;
-    } on Object catch (error) {
-      if (generation != _generation) return;
-      debugPrint('[catalog] busca coldigom falhou: $error');
-      // Mantém resultados PLPCG já exibidos; limpa coldigom desta página e
-      // sinaliza o erro para o sliver mostrar a linha de retry (C.8).
-      ref.read(homeSearchColdigomGroupsDataProvider.notifier).state = const [];
-      ref.read(homeSearchColdigomHasNextProvider.notifier).state = false;
-      ref.read(homeSearchColdigomErrorProvider.notifier).state = true;
-    } finally {
-      if (generation == _generation) {
-        ref.read(homeSearchColdigomLoadingProvider.notifier).state = false;
-      }
-    }
+  /// Volta uma página (nunca abaixo de 1).
+  void previous() {
+    if (state <= 1) return;
+    state = state - 1;
   }
 }
 
