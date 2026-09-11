@@ -199,8 +199,12 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                           const Center(child: CircularProgressIndicator()),
                       error: (_, _) => _Message(
                         message: l10n.gesturesReaderUnavailable,
-                        onTap: () =>
-                            ref.invalidate(gestureDocumentProvider(_r2Key)),
+                        onTap: () {
+                          ref.invalidate(gestureDocumentProvider(_r2Key));
+                          // Um dicionário sem sinal na primeira abertura
+                          // também merece outra chance no retoque manual.
+                          ref.invalidate(gestureDictionaryProvider);
+                        },
                         key: gestureReaderRetryKey,
                       ),
                       data: (document) {

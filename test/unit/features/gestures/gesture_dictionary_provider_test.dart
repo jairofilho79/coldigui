@@ -4,6 +4,7 @@ import 'package:coldigui/features/gestures/data/datasources/gesture_content_data
 import 'package:coldigui/features/gestures/data/datasources/gesture_dictionary_datasource.dart';
 import 'package:coldigui/features/gestures/data/datasources/gesture_dictionary_local_datasource.dart';
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_dictionary.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,7 +45,9 @@ class _FakeLocal implements GestureDictionaryLocalDatasource {
   void touch() {
     touches++;
     final r = row;
-    if (r != null) row = GestureDictionaryCacheEntry(content: r.content, etag: r.etag, fetchedAt: DateTime.now());
+    if (r != null) {
+      row = GestureDictionaryCacheEntry(content: r.content, etag: r.etag, fetchedAt: DateTime.now());
+    }
   }
 }
 
@@ -65,6 +68,20 @@ ProviderContainer _container(_FakeRemote remote, _FakeLocal local, {bool online 
   );
   addTearDown(c.dispose);
   return c;
+}
+
+/// Lê segurando uma inscrição (como a tela) e solta no fim; o `pump()` deixa
+/// o Riverpod decidir se o elemento sobreviveu (`keepAlive`) ou não.
+Future<GestureDictionary?> _readWhileWatched(ProviderContainer c) async {
+  final sub = c.listen(gestureDictionaryProvider, (_, _) {});
+  final GestureDictionary? result;
+  try {
+    result = await c.read(gestureDictionaryProvider.future);
+  } finally {
+    sub.close();
+  }
+  await c.pump();
+  return result;
 }
 
 void main() {
@@ -120,5 +137,21 @@ void main() {
     final dict = await _container(_FakeRemote(const GestureDictionaryNotFound()), local).read(gestureDictionaryProvider.future);
     expect(dict, isNull);
     expect(local.row, isNull);
+  });
+
+  test('null (sem cache e sem rede) não gruda: próxima leitura tenta de novo', () async {
+    final remote = _FakeRemote(
+      const GestureDictionaryFresh(body: _v3, etag: '"3"'),
+      failure: const GestureFetchFailedException('dictionary', 'rede'),
+    );
+    final local = _FakeLocal();
+    final c = _container(remote, local);
+
+    final first = await _readWhileWatched(c);
+    expect(first, isNull);
+
+    remote.failure = null;
+    final second = await _readWhileWatched(c);
+    expect(second?.version, 3);
   });
 }

@@ -152,10 +152,50 @@ void main() {
     expect(second.value?.title, 'A');
   });
 
-  test('JSON inválido no cache vira AsyncError (conclusivo)', () async {
+  test('JSON inválido no cache é tratado como miss e busca na rede', () async {
+    final remote = _FakeRemote(body: _content);
     final local = _FakeLocal()..seed(_key, '{nope');
-    final result = await _readWhileWatched(_container(remote: _FakeRemote(), local: local), _key);
-    expect(result.hasError, isTrue);
+    final result = await _readWhileWatched(_container(remote: remote, local: local), _key);
+    expect(result.value?.title, 'A');
+    expect(local.rows[_key]?.content, _content);
+  });
+
+  test('revalidação com 404 grava marcador negativo e invalida', () async {
+    final remote = _FakeRemote(body: null);
+    final local = _FakeLocal()..seed(_key, _content, idade: const Duration(hours: 25));
+    final c = _container(remote: remote, local: local);
+
+    final sub = c.listen(gestureDocumentProvider(_key), (_, _) {});
+    addTearDown(sub.close);
+
+    final first = await c.read(gestureDocumentProvider(_key).future);
+    expect(first?.title, 'A', reason: 'o cache stale responde na hora');
+
+    await pumpEventQueue();
+
+    expect(local.rows[_key]?.content, '');
+    expect(
+      await c.read(gestureDocumentProvider(_key).future),
+      isNull,
+      reason: 'invalidateSelf faz a leitura aberta refletir a remoção',
+    );
+  });
+
+  test('revalidação com corpo inválido não grava', () async {
+    final remote = _FakeRemote(body: '{nope');
+    final local = _FakeLocal()..seed(_key, _content, idade: const Duration(hours: 25));
+    final c = _container(remote: remote, local: local);
+
+    final sub = c.listen(gestureDocumentProvider(_key), (_, _) {});
+    addTearDown(sub.close);
+
+    final first = await c.read(gestureDocumentProvider(_key).future);
+    expect(first?.title, 'A');
+
+    await pumpEventQueue();
+
+    expect(local.rows[_key]?.content, _content, reason: 'corpo inválido não sobrescreve o cache');
+    expect((await c.read(gestureDocumentProvider(_key).future))?.title, 'A');
   });
 
   test('chave vazia devolve null sem tocar nada', () async {

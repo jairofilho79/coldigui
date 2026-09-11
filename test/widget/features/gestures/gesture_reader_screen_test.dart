@@ -129,6 +129,52 @@ void main() {
     expect(find.byType(GestureDocumentView), findsOneWidget);
   });
 
+  testWidgets('retry também reinvalida o dicionário sem sinal', (tester) async {
+    SharedPreferences.setMockInitialValues(const {});
+    final prefs = await SharedPreferences.getInstance();
+    final dict = parseGestureDictionary(_read('dictionary.json'));
+    var dictCalls = 0;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          gestureDocumentProvider.overrideWith(
+            (ref, key) async => throw const GestureFetchFailedException(_r2Key, 'rede'),
+          ),
+          gestureDictionaryProvider.overrideWith((ref) async {
+            dictCalls++;
+            return dict;
+          }),
+          gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
+          gestureFigureRepositoryProvider.overrideWithValue(_NoopFigureRepository()),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: GestureReaderScreen(
+            queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Quero viver'},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Gestos indisponíveis · tentar de novo'), findsOneWidget);
+    final callsBeforeRetry = dictCalls;
+
+    await tester.tap(find.byKey(gestureReaderRetryKey));
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      dictCalls,
+      greaterThan(callsBeforeRetry),
+      reason: 'o retry manual também dá outra chance ao dicionário sem sinal',
+    );
+  });
+
   testWidgets('schema v2 mostra o banner acima do papel', (tester) async {
     await _pump(tester, document: () async => parseGestureDocument(_read('schema_v2.json')));
     expect(find.byType(NewerSchemaBanner), findsOneWidget);
