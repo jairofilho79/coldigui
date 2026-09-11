@@ -648,15 +648,130 @@ void main() {
       expect(updated?.items, [pdfB, audioA, pdfA, audioB]);
     });
 
-    test('esvaziar as duas faces ainda apaga a playlist', () async {
+    test('esvaziar as duas faces de uma lista salva não a apaga', () async {
       await updatePlaylist(playlistId: 'p1', pdfIds: const []);
       // Só a face de áudio sobrou — a playlist continua viva.
       expect((await repository.getById('p1'))?.items, [audioA, audioB]);
 
       await updatePlaylist(playlistId: 'p1', audioIds: const []);
 
-      // Lista salva vira tombstone (comportamento pré-existente do delete).
-      expect((await repository.getById('p1'))?.deletedAt, isNotNull);
+      // Lista salva é do usuário: esvaziá-la por engano no carousel não pode
+      // virar um tombstone empurrado para a nuvem. Ela fica, vazia.
+      final emptied = await repository.getById('p1');
+      expect(emptied, isNotNull);
+      expect(emptied!.items, isEmpty);
+      expect(emptied.deletedAt, isNull);
+    });
+
+    test('esvaziar as duas faces de um rascunho apaga a playlist', () async {
+      await repository.create(
+        nome: 'Rascunho',
+        entries: [PlaylistEntry(id: pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'draft',
+        salva: false,
+      );
+
+      await updatePlaylist(playlistId: 'draft', pdfIds: const []);
+
+      expect(await repository.getById('draft'), isNull);
+    });
+  });
+
+  group('UpdatePlaylist — entries', () {
+    late Directory tempDir;
+    late Isar isar;
+    late PlaylistRepositoryImpl repository;
+    late UpdatePlaylist updatePlaylist;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('playlist_entries_');
+      isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
+      repository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
+      updatePlaylist = UpdatePlaylist(repository);
+    });
+
+    tearDown(() async {
+      isar.close(deleteFromDisk: true);
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    test('grava itemKinds e permite repetição do mesmo id', () async {
+      await repository.create(
+        nome: 'Ensaio',
+        entries: [PlaylistEntry(id: pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'p1',
+        salva: false,
+      );
+
+      await updatePlaylist(
+        playlistId: 'p1',
+        entries: [
+          PlaylistEntry(id: pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: audioA, kind: MaterialKind.audio),
+          PlaylistEntry(id: pdfA, kind: MaterialKind.chord),
+        ],
+      );
+
+      final updated = (await repository.getById('p1'))!;
+      expect(updated.items, [pdfA, audioA, pdfA]);
+      expect(updated.entries.map((e) => e.kind), [
+        MaterialKind.pdf,
+        MaterialKind.audio,
+        MaterialKind.chord,
+      ]);
+      // As projeções de compatibilidade acompanham a ordem única.
+      expect(updated.pdfIds, [pdfA, pdfA]);
+      expect(updated.audioIds, [audioA]);
+    });
+
+    test('entries vence pdfIds/audioIds quando os dois vêm juntos', () async {
+      await repository.create(
+        nome: 'Ensaio',
+        entries: [PlaylistEntry(id: pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'p1',
+        salva: false,
+      );
+
+      await updatePlaylist(
+        playlistId: 'p1',
+        entries: [PlaylistEntry(id: pdfB, kind: MaterialKind.pdf)],
+        pdfIds: [pdfC],
+      );
+
+      expect((await repository.getById('p1'))!.items, [pdfB]);
+    });
+
+    test('entries vazias apagam o rascunho', () async {
+      await repository.create(
+        nome: 'Rascunho',
+        entries: [PlaylistEntry(id: pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'draft',
+        salva: false,
+      );
+
+      await updatePlaylist(playlistId: 'draft', entries: const []);
+
+      expect(await repository.getById('draft'), isNull);
+    });
+
+    test('entries vazias deixam a lista salva vazia, sem tombstone', () async {
+      await repository.create(
+        nome: 'Salva',
+        entries: [PlaylistEntry(id: pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'saved',
+        salva: true,
+      );
+
+      await updatePlaylist(playlistId: 'saved', entries: const []);
+
+      final emptied = await repository.getById('saved');
+      expect(emptied, isNotNull);
+      expect(emptied!.entries, isEmpty);
+      expect(emptied.pdfIds, isEmpty);
+      expect(emptied.audioIds, isEmpty);
+      expect(emptied.deletedAt, isNull);
     });
   });
 }

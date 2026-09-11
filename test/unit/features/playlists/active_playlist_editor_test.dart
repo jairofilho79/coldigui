@@ -9,9 +9,11 @@ import 'package:coldigui/features/playlists/data/providers/playlist_providers.da
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +21,20 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
+
+/// Conta as chamadas de sync sem encostar em rede nem em auth.
+class _RecordingSyncNotifier extends PlaylistSyncNotifier {
+  var calls = 0;
+
+  @override
+  PlaylistSyncState build() => const PlaylistSyncState();
+
+  @override
+  Future<PlaylistSyncResult> sync() async {
+    calls++;
+    return PlaylistSyncResult.skippedAuth;
+  }
+}
 
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
 final _pdfB = encodePdfId('ColAdultos/002.pdf');
@@ -37,15 +53,19 @@ void main() {
   late SharedPreferences prefs;
   late PlaylistRepositoryImpl repository;
 
+  late _RecordingSyncNotifier sync;
+
   Future<ProviderContainer> boot({String? activeId}) async {
     SharedPreferences.setMockInitialValues(
       activeId == null ? {} : {kActivePlaylistIdPrefsKey: activeId},
     );
     prefs = await SharedPreferences.getInstance();
+    sync = _RecordingSyncNotifier();
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
+        playlistSyncProvider.overrideWith(() => sync),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
@@ -413,4 +433,239 @@ void main() {
       ),
     ]);
   });
+
+  group('reordenação em voo × outra mutação', () {
+    Future<ProviderContainer> bootTres() async {
+      await repository.create(
+        nome: 'Ativa',
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfC, kind: MaterialKind.pdf),
+        ],
+        playlistId: 'p1',
+        salva: false,
+      );
+      return boot(activeId: 'p1');
+    }
+
+    test('remover dentro do debounce não ressuscita a entrada', () async {
+      final c = await bootTres();
+      final editor = c.read(activePlaylistEditorProvider.notifier);
+
+      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfB, _pdfA, _pdfC]);
+      // Sem esperar o debounce: a remoção chega antes do flush.
+      await editor.removeByKey(_pdfC);
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.items, [_pdfB, _pdfA]);
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [_pdfB, _pdfA]);
+    });
+
+    test('adicionar dentro do debounce mantém a entrada nova', () async {
+      final c = await bootTres();
+      final editor = c.read(activePlaylistEditorProvider.notifier);
+      final novo = encodePdfId('ColAdultos/004.pdf');
+
+      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      await editor.addToActive(novo);
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.items, [
+        _pdfC,
+        _pdfB,
+        _pdfA,
+        novo,
+      ]);
+    });
+
+    test('trocar dentro do debounce preserva a ordem arrastada', () async {
+      final c = await bootTres();
+      final editor = c.read(activePlaylistEditorProvider.notifier);
+
+      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      await editor.replaceByKey(
+        _pdfB,
+        PlaylistEntry(
+          id: encodePdfId('ColAdultos/009.pdf'),
+          kind: MaterialKind.pdf,
+        ),
+      );
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.items, [
+        _pdfC,
+        encodePdfId('ColAdultos/009.pdf'),
+        _pdfA,
+      ]);
+    });
+
+    test(
+      'detachActive grava a ordem pendente antes de soltar a lista',
+      () async {
+        final c = await bootTres();
+        final editor = c.read(activePlaylistEditorProvider.notifier);
+
+        await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+        await editor.detachActive();
+        await _flush();
+
+        expect(c.read(activePlaylistIdProvider), isNull);
+        expect((await repository.getById('p1'))!.items, [_pdfC, _pdfB, _pdfA]);
+      },
+    );
+  });
+
+  group('reorderFace só aceita permutação da face', () {
+    Future<ProviderContainer> bootDuas() async {
+      await repository.create(
+        nome: 'Ativa',
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _pdfC, kind: MaterialKind.pdf),
+        ],
+        playlistId: 'p1',
+        salva: false,
+      );
+      return boot(activeId: 'p1');
+    }
+
+    test('lista curta de chaves não apaga nada', () async {
+      final c = await bootDuas();
+
+      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
+        PlaylistMediaFace.pdf,
+        [_pdfB, _pdfA],
+      );
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect(c.read(activeEntriesProvider).map((e) => e.id), [
+        _pdfA,
+        _pdfB,
+        _pdfC,
+      ]);
+      expect((await repository.getById('p1'))!.items, [_pdfA, _pdfB, _pdfC]);
+    });
+
+    test('chave desconhecida não apaga nada', () async {
+      final c = await bootDuas();
+
+      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
+        PlaylistMediaFace.pdf,
+        [_pdfB, _pdfA, 'nao-existe'],
+      );
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.items, [_pdfA, _pdfB, _pdfC]);
+    });
+
+    test('chave repetida não apaga nada', () async {
+      final c = await bootDuas();
+
+      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
+        PlaylistMediaFace.pdf,
+        [_pdfB, _pdfB, _pdfA],
+      );
+      await Future<void>.delayed(activeReorderPersistDebounce * 3);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.items, [_pdfA, _pdfB, _pdfC]);
+    });
+  });
+
+  group('lista que fica vazia', () {
+    test('rascunho é apagado e o id ativo é limpo', () async {
+      await repository.create(
+        nome: 'Rascunho',
+        entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'p1',
+        salva: false,
+      );
+      final c = await boot(activeId: 'p1');
+
+      await c.read(activePlaylistEditorProvider.notifier).removeByKey(_pdfA);
+      await _flush();
+
+      expect(await repository.getById('p1'), isNull);
+      expect(c.read(activePlaylistIdProvider), isNull);
+    });
+
+    test('lista salva fica, vazia e sem tombstone', () async {
+      await repository.create(
+        nome: 'Salva',
+        entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'p2',
+        salva: true,
+      );
+      final c = await boot(activeId: 'p2');
+
+      await c.read(activePlaylistEditorProvider.notifier).removeByKey(_pdfA);
+      await _flush();
+
+      final saved = await repository.getById('p2');
+      expect(saved, isNotNull);
+      expect(saved!.entries, isEmpty);
+      expect(saved.deletedAt, isNull);
+      expect(c.read(activePlaylistIdProvider), 'p2');
+    });
+  });
+
+  test('mutação em lista salva dispara o sync', () async {
+    await repository.create(
+      nome: 'Salva',
+      entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+      playlistId: 'p2',
+      salva: true,
+    );
+    final c = await boot(activeId: 'p2');
+    expect(sync.calls, 0);
+
+    await c.read(activePlaylistEditorProvider.notifier).addToActive(_pdfB);
+    await _flush();
+
+    expect((await repository.getById('p2'))!.items, [_pdfA, _pdfB]);
+    expect(sync.calls, 1);
+  });
+
+  test('mutação em rascunho não dispara o sync', () async {
+    await repository.create(
+      nome: 'Rascunho',
+      entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
+
+    await c.read(activePlaylistEditorProvider.notifier).addToActive(_pdfB);
+    await _flush();
+
+    expect(sync.calls, 0);
+  });
+
+  test(
+    'adicionar áudio não persiste chave de foco da face de partituras',
+    () async {
+      await repository.create(
+        nome: 'Ativa',
+        entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+        playlistId: 'p1',
+        salva: false,
+      );
+      final c = await boot(activeId: 'p1');
+
+      await c
+          .read(activePlaylistEditorProvider.notifier)
+          .addToActive(_audioA, kind: MaterialKind.audio);
+      await _flush();
+
+      expect((await repository.getById('p1'))!.audioIds, [_audioA]);
+      expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), isNull);
+    },
+  );
 }

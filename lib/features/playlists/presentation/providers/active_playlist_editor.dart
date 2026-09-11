@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../data/providers/playlist_providers.dart';
@@ -19,6 +19,8 @@ export '../../domain/entities/active_entry.dart';
 
 /// Debounce entre reordenações consecutivas antes de persistir a lista ativa.
 const activeReorderPersistDebounce = Duration(milliseconds: 100);
+
+final _log = AppLogger.of('playlists');
 
 /// Resultado de [ActivePlaylistEditor.addToActive].
 enum AddToActiveOutcome {
@@ -85,7 +87,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
         allowDuplicate: allowDuplicate,
       );
     } on StorageUnavailableException catch (e) {
-      debugPrint('[playlists] sem storage ao adicionar à lista ativa: $e');
+      _log.warn('sem storage ao adicionar à lista ativa', e);
       return AddToActiveOutcome.storageUnavailable;
     }
   }
@@ -95,6 +97,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     MaterialKind? kind,
     bool allowDuplicate = false,
   }) async {
+    // A reordenação em voo vai a disco **antes**: só assim `active.entries`,
+    // lido do repositório logo abaixo, já está na ordem que o usuário vê.
+    await _settlePendingReorder();
+
     final entry = PlaylistEntry(
       id: materialId,
       kind: kind ?? materialIdKindOf(materialId),
@@ -109,17 +115,17 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
       ref.read(activePlaylistIdProvider.notifier).set(result.playlistId);
       state = null;
       await ref.read(playlistsProvider.notifier).reload();
-      _focusFirstOccurrence(materialId);
+      _focusAfterAdd(entry);
       return AddToActiveOutcome.added;
     }
 
     if (!allowDuplicate && active.entries.any((e) => e.id == materialId)) {
-      _focusFirstOccurrence(materialId);
+      _focusAfterAdd(entry);
       return AddToActiveOutcome.alreadyPresent;
     }
 
     await _persistEntries(active.playlistId, [...active.entries, entry]);
-    _focusFirstOccurrence(materialId);
+    _focusAfterAdd(entry);
     return AddToActiveOutcome.added;
   }
 
@@ -130,6 +136,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   Future<int> addEntriesToActive(List<PlaylistEntry> entries) async {
     if (entries.isEmpty) return 0;
     try {
+      await _settlePendingReorder();
       final activeId = ref.read(activePlaylistIdProvider);
       final repository = ref.read(playlistRepositoryProvider);
       final active = activeId == null
@@ -157,13 +164,14 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
       await _persistEntries(active.playlistId, [...active.entries, ...entries]);
       return entries.length;
     } on StorageUnavailableException catch (e) {
-      debugPrint('[playlists] sem storage ao importar entradas: $e');
+      _log.warn('sem storage ao importar entradas', e);
       return 0;
     }
   }
 
   /// Remove a ocorrência de chave [key] — as outras do mesmo id ficam.
   Future<void> removeByKey(String key) async {
+    await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
     final entries = _entries;
@@ -171,14 +179,18 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     if (index < 0) return;
 
     final next = [...entries]..removeAt(index);
-    state = null;
+    // Override até o reload: a barra mostra a lista já sem a entrada, em vez
+    // de piscar o conteúdo antigo enquanto a escrita acontece.
+    state = next;
     await _persistEntries(activeId, next);
+    state = null;
   }
 
   /// Troca a entrada de chave [key] por [replacement], na mesma posição.
   ///
   /// Devolve `false` se a chave não existe na lista ativa.
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
+    await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return false;
     final entries = _entries;
@@ -187,8 +199,9 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
 
     final next = [...entries];
     next[index] = replacement;
-    state = null;
+    state = next;
     await _persistEntries(activeId, next);
+    state = null;
     return true;
   }
 
@@ -197,6 +210,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// [orderedKeys] são as chaves de [ActiveEntry] na ordem desejada. Aplica o
   /// override otimista na hora e persiste depois de
   /// [activeReorderPersistDebounce] (a última ordem vence).
+  ///
+  /// [orderedKeys] tem que ser uma **permutação** das chaves da face: reordenar
+  /// é permutar, não editar. Uma lista curta ou com chave desconhecida não
+  /// apaga entrada nenhuma — a reordenação é ignorada e registrada.
   Future<void> reorderFace(
     PlaylistMediaFace face,
     List<String> orderedKeys,
@@ -204,15 +221,31 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
     final entries = _entries;
-    final byKey = <String, PlaylistEntry>{
-      for (final active in activeEntriesOf(entries)) active.key: active.entry,
-    };
     final wantsAudio = face == PlaylistMediaFace.audio;
-    final reordered = <PlaylistEntry>[
-      for (final key in orderedKeys)
-        if (byKey[key] != null && byKey[key]!.isAudio == wantsAudio)
-          byKey[key]!,
-    ];
+
+    final byKey = <String, PlaylistEntry>{};
+    var faceLength = 0;
+    for (final active in activeEntriesOf(entries)) {
+      byKey[active.key] = active.entry;
+      if (active.isAudio == wantsAudio) faceLength++;
+    }
+
+    final seen = <String>{};
+    final reordered = <PlaylistEntry>[];
+    for (final key in orderedKeys) {
+      final entry = byKey[key];
+      if (entry == null || entry.isAudio != wantsAudio) continue;
+      if (!seen.add(key)) continue;
+      reordered.add(entry);
+    }
+
+    if (reordered.length != faceLength) {
+      _log.warn(
+        'reorderFace(${face.name}) ignorado: ${orderedKeys.length} chaves '
+        'resolveram ${reordered.length} de $faceLength entradas da face',
+      );
+      return;
+    }
 
     state = SavedPlaylist.replaceSubset(
       entries,
@@ -227,6 +260,29 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     _reorderPersistTimer = Timer(activeReorderPersistDebounce, () {
       unawaited(_flushPendingReorder());
     });
+  }
+
+  /// Persiste **agora** a reordenação que estiver esperando o debounce.
+  ///
+  /// Toda mutação começa por aqui: o `_pendingReorder` guardado é a ordem
+  /// **anterior** à mutação, e deixá-lo armado faria o flush sobrescrever o que
+  /// a mutação acabou de gravar (a entrada removida voltaria, a adicionada
+  /// sumiria). Levar a ordem a disco antes também é o que faz a leitura do
+  /// repositório em [_addToActive] já vir na ordem que o usuário vê.
+  Future<void> _settlePendingReorder() async {
+    if (_pendingReorder == null) return;
+    _reorderPersistTimer?.cancel();
+    _reorderPersistTimer = null;
+    await _flushPendingReorder();
+  }
+
+  /// Descarta a reordenação pendente sem gravar — a lista vai sumir de qualquer
+  /// jeito.
+  void _dropPendingReorder() {
+    _reorderPersistTimer?.cancel();
+    _reorderPersistTimer = null;
+    _pendingReorder = null;
+    _pendingPlaylistId = null;
   }
 
   Future<void> _flushPendingReorder() async {
@@ -245,9 +301,9 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// Desanexa a lista ativa — a lista continua existindo, só deixa de ser a
   /// seleção.
   Future<void> detachActive() async {
-    _reorderPersistTimer?.cancel();
-    _pendingReorder = null;
-    _pendingPlaylistId = null;
+    // A lista continua existindo: a ordem que o usuário acabou de arrastar tem
+    // que ir a disco antes de a seleção soltá-la.
+    await _settlePendingReorder();
     state = null;
     ref.read(activePlaylistIdProvider.notifier).clear();
     await ref.read(playlistsProvider.notifier).reload();
@@ -255,27 +311,30 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
 
   /// Rascunho ativo: apaga e desanexa. Lista salva: só desanexa.
   Future<void> deleteActiveDraft() async {
-    _reorderPersistTimer?.cancel();
-    _pendingReorder = null;
-    _pendingPlaylistId = null;
-    state = null;
-
     final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) return;
+    if (activeId == null) {
+      _dropPendingReorder();
+      state = null;
+      return;
+    }
 
     final active = await ref.read(playlistRepositoryProvider).getById(activeId);
     if (active != null && !active.salva) {
+      _dropPendingReorder();
       await ref.read(deletePlaylistProvider)(playlistId: activeId);
+    } else {
+      // Salva: só desanexa, então a reordenação pendente ainda importa.
+      await _settlePendingReorder();
     }
+    state = null;
     ref.read(activePlaylistIdProvider.notifier).clear();
     await ref.read(playlistsProvider.notifier).reload();
   }
 
   /// Torna [playlistId] a lista ativa. Devolve o id ativo anterior (D6).
   Future<String?> activate(String playlistId) async {
-    _reorderPersistTimer?.cancel();
-    _pendingReorder = null;
-    _pendingPlaylistId = null;
+    // A lista que era ativa continua existindo — grava a ordem pendente dela.
+    await _settlePendingReorder();
     state = null;
 
     final previous = ref.read(activePlaylistIdProvider);
@@ -319,10 +378,16 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     }
   }
 
-  void _focusFirstOccurrence(String materialId) {
+  /// Foca a primeira ocorrência do material recém-adicionado.
+  ///
+  /// Áudio não: a chave focada é a da face de partituras, e um `audioId` nunca
+  /// resolve lá — persisti-la deixaria a pref com um valor morto, e o índice
+  /// cairia no fallback de clamp em vez de ficar onde estava.
+  void _focusAfterAdd(PlaylistEntry entry) {
+    if (entry.isAudio) return;
     ref
         .read(carouselFocusedKeyProvider.notifier)
-        .focus(entryKeyFor(materialId, 0));
+        .focus(entryKeyFor(entry.id, 0));
   }
 
   static int _indexOfKey(List<PlaylistEntry> entries, String key) {
