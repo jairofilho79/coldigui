@@ -12,7 +12,6 @@ import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -351,19 +350,36 @@ class PlaylistTileActions {
     }
   }
 
-  /// «Gerar folheto» (C16): torna a lista ativa (mesmo passo de
-  /// [_loadPlaylist], sem snackbar de ativação — só o folheto importa aqui) e
-  /// chama [LeafletActionsNotifier.generateAndShare] direto, sem passar pelo
-  /// sheet de opções de compartilhamento.
+  /// «Gerar folheto» (C16, revisão de review): mesmo caminho de
+  /// «Compartilhar» ([PlaylistShareActionsNotifier.share]), só que fixado em
+  /// [PlaylistShareOption.leaflet] e sem passar pelo sheet de opções — a
+  /// entrada é direto o menu do tile. **Nunca troca a lista ativa**: a
+  /// primeira versão ativava a lista antes de gerar (para o
+  /// `LeafletActionsNotifier.generateAndShare` legado, que só lê a seleção
+  /// ativa); o controlador reverteu essa decisão (spec B.3) porque abrir o
+  /// menu de uma lista salva não pode mudar qual lista está em uso alhures
+  /// no app. `share` já aceita `PlaylistShareContext.entries` de qualquer
+  /// playlist, então nada precisa ser ativado.
   Future<void> _generateLeaflet() async {
     if (loading) return;
+    final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     onLoadingChanged(true);
     try {
-      await ref
-          .read(activePlaylistEditorProvider.notifier)
-          .activate(playlist.playlistId);
-      if (!context.mounted) return;
-      await ref.read(leafletActionsProvider.notifier).generateAndShare(context);
+      final shared = await ref
+          .read(playlistShareActionsProvider.notifier)
+          .share(
+            context,
+            PlaylistShareContext(
+              playlistId: playlist.playlistId,
+              nome: playlist.nome,
+              entries: playlist.entries,
+            ),
+            PlaylistShareOption.leaflet,
+            sharePositionOrigin: shareOrigin,
+          );
+      if (!shared && context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
     } finally {
       onLoadingChanged(false);
     }
