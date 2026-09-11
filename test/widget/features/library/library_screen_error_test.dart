@@ -2,8 +2,12 @@ import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/library/domain/entities/library_catalog_mode.dart';
 import 'package:coldigui/features/library/domain/entities/paginated_louvor_groups.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
@@ -11,6 +15,8 @@ import 'package:coldigui/features/library/presentation/providers/library_catalog
 import 'package:coldigui/features/library/presentation/providers/library_coldigom_browse_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_worker.dart';
+import 'package:coldigui/features/library/presentation/providers/library_last_good_results_provider.dart';
+import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,6 +61,38 @@ class _ErrorLibraryColdigomBrowseNotifier
   Future<PaginatedLouvorGroups> build() async {
     _onBuild?.call();
     throw StateError('coldigom indisponível (teste)');
+  }
+}
+
+/// Página 1 de duas, com um grupo Coldigom — a "última página boa".
+PaginatedLouvorGroups _goodFirstPage(int itemsPerPage) => PaginatedLouvorGroups(
+  items: LouvorGroup.fromLouvores([
+    Louvor.fromManifest(
+      nome: 'Comigo habita',
+      numero: '002',
+      categoria: 'Partitura',
+      classificacao: 'Country',
+      pdf: 'm1.pdf',
+      pdfId: encodePdfId('assets/praises/p1/m1.pdf'),
+      groupId: 'p1',
+      source: LouvorDataSource.coldigom,
+    ),
+  ]),
+  page: 1,
+  itemsPerPage: itemsPerPage,
+  totalItems: 20,
+  totalPages: 2,
+);
+
+/// Página 1 boa, página ≥ 2 em erro — o caso do paginador que sumia (D.6).
+class _SecondPageFailsBrowseNotifier extends LibraryColdigomBrowseNotifier {
+  @override
+  Future<PaginatedLouvorGroups> build() async {
+    final view = ref.watch(libraryViewSettingsProvider);
+    if (view.page >= 2) {
+      throw StateError('coldigom indisponível na página 2 (teste)');
+    }
+    return _goodFirstPage(view.itemsPerPage);
   }
 }
 
@@ -165,6 +203,94 @@ void main() {
       await _settle(tester);
 
       expect(buildCount, 2);
+    },
+  );
+
+  testWidgets(
+    'LibraryScreen (Coldigom) com erro na página 2 mantém o paginador da página 1',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        _libraryErrorTestApp(
+          prefs: prefs,
+          extraOverrides: [
+            libraryCatalogModeProvider.overrideWith(
+              () =>
+                  _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
+            ),
+            libraryColdigomBrowseProvider.overrideWith(
+              _SecondPageFailsBrowseNotifier.new,
+            ),
+            connectivityStreamProvider.overrideWith(
+              (ref) => const Stream<bool>.empty(),
+            ),
+          ],
+        ),
+      );
+      await _settle(tester);
+
+      // Página 1 boa: paginador completo, sem banner de erro.
+      expect(find.text('Página 1 de 2'), findsOneWidget);
+      expect(
+        find.text('Não foi possível carregar o catálogo Coldigom'),
+        findsNothing,
+      );
+
+      // Avança para a página 2, que falha.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryScreen)),
+      );
+      container.read(libraryViewSettingsProvider.notifier).goToNextPage(2);
+      await _settle(tester);
+
+      // Banner de erro aparece...
+      expect(
+        find.text('Não foi possível carregar o catálogo Coldigom'),
+        findsOneWidget,
+      );
+      // ...e o paginador continua de pé com a última página boa.
+      expect(find.text('Página 1 de 2'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byType(DropdownButton<int>), findsOneWidget);
+    },
+  );
+
+  // Contrato do `libraryLastGoodResultsProvider`: o valor que o paginador usa
+  // quando o browse não tem nenhum. O Riverpod 3 costuma carregar o valor
+  // anterior junto do `AsyncError`, mas isso é detalhe dele — a última página
+  // boa passa a ser guardada explicitamente.
+  test(
+    'libraryLastGoodResultsProvider guarda a última página boa mesmo com o browse em erro',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          libraryCatalogModeProvider.overrideWith(
+            () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
+          ),
+          libraryColdigomBrowseProvider.overrideWith(
+            _SecondPageFailsBrowseNotifier.new,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(libraryLastGoodResultsProvider, (_, _) {});
+
+      await container.read(libraryColdigomBrowseProvider.future);
+      expect(container.read(libraryLastGoodResultsProvider).totalItems, 20);
+
+      container.read(libraryViewSettingsProvider.notifier).goToNextPage(2);
+      await expectLater(
+        container.read(libraryColdigomBrowseProvider.future),
+        throwsStateError,
+      );
+
+      final lastGood = container.read(libraryLastGoodResultsProvider);
+      expect(lastGood.page, 1);
+      expect(lastGood.totalItems, 20);
+      expect(lastGood.totalPages, 2);
+      expect(container.read(libraryGroupResultsProvider).totalItems, 20);
     },
   );
 

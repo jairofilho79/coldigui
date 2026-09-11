@@ -14,6 +14,7 @@ import '../../domain/entities/paginated_louvor_groups.dart';
 import 'library_catalog_mode_provider.dart';
 import 'library_coldigom_browse_provider.dart';
 import 'library_group_worker.dart';
+import 'library_last_good_results_provider.dart';
 import 'library_special_arrangement_provider.dart';
 import 'library_view_settings_provider.dart';
 
@@ -55,12 +56,14 @@ final libraryPlpcgGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
 
 /// Resultados da biblioteca conforme [libraryCatalogModeProvider].
 ///
-/// Coldigom: usa o último valor do browse remoto (loading → empty até chegar).
+/// Coldigom: usa o valor do browse remoto e, quando ele não tem nenhum (erro
+/// na página ≥ 2), a última página boa de [libraryLastGoodResultsProvider] —
+/// o banner de erro continua aparecendo, mas o paginador não some junto.
 final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
   final mode = ref.watch(libraryCatalogModeProvider);
   if (mode == LibraryCatalogMode.coldigom) {
     return ref.watch(libraryColdigomBrowseProvider).value ??
-        PaginatedLouvorGroups.empty;
+        ref.watch(libraryLastGoodResultsProvider);
   }
   return ref.watch(libraryPlpcgGroupResultsProvider);
 });
