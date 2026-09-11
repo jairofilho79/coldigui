@@ -51,15 +51,15 @@ class BracePainter extends CustomPainter {
         text: label,
         style: const TextStyle(
           color: GestureReaderPalette.blue,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: x - _hook);
+    )..layout(maxWidth: x - 2);
     painter.paint(
       canvas,
-      Offset((x - _hook - painter.width) / 2, midY - painter.height / 2),
+      Offset((x - 2 - painter.width) / 2, midY - painter.height / 2),
     );
   }
 
