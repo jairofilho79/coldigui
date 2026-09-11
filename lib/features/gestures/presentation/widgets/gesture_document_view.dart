@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
@@ -16,42 +14,6 @@ import 'text_line_view.dart';
 
 const Key gestureDocumentTitleKey = ValueKey('gesture-document-title');
 const Key gestureDocumentPageKey = ValueKey('gesture-document-page');
-
-/// Como `Offstage`, mas **sem** colapsar o espaço no pai.
-///
-/// `Offstage(offstage: true)` reporta `constraints.smallest` ao pai (some do
-/// layout, não só da pintura) — inútil aqui: cartões distantes da área
-/// visível precisam continuar ocupando o lugar certo na `Column` (senão o
-/// scroll pula) e `scrollToCard`/`Scrollable.ensureVisible` precisa da
-/// posição real deles a qualquer momento, mesmo sem terem sido "revelados"
-/// ainda. Isto só refaz a parte do `Offstage` que os `Finder` padrão do
-/// `flutter_test` enxergam (`Element.debugVisitOnstageChildren`,
-/// `skipOffstage: true`) — pintura, hit-test e layout do filho continuam
-/// 100% normais; só o `find` sem `skipOffstage: false` deixa de achá-lo
-/// enquanto [hidden].
-class _FinderVisibility extends StatelessWidget {
-  const _FinderVisibility({required this.hidden, required this.child});
-
-  final bool hidden;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => child;
-
-  @override
-  StatelessElement createElement() => _FinderVisibilityElement(this);
-}
-
-class _FinderVisibilityElement extends StatelessElement {
-  _FinderVisibilityElement(_FinderVisibility super.widget);
-
-  @override
-  void debugVisitOnstageChildren(ElementVisitor visitor) {
-    if (!(widget as _FinderVisibility).hidden) {
-      super.debugVisitOnstageChildren(visitor);
-    }
-  }
-}
 
 /// O documento inteiro como página rolável sobre papel branco.
 ///
@@ -84,99 +46,28 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
   final _cardKeys = <int, GlobalKey>{};
   int _nextIndex = 0;
 
-  /// Posição vertical estimada (ordem de construção) e janela "onstage".
-  ///
-  /// Todo cartão é **sempre construído** (nunca `ListView` lazy — precisamos
-  /// do `context` de qualquer índice a qualquer momento para [scrollToCard]).
-  /// Mas um cartão longe da área visível é marcado em [_FinderVisibility]:
-  /// continua ocupando o mesmo espaço no layout e pode ser revelado a
-  /// qualquer momento (ao contrário de `Offstage`, que colapsaria o espaço)
-  /// — só some dos `find` padrão (`skipOffstage: true`) até a rolagem trazer
-  /// a posição real para perto da janela, quando o rebuild do scroll o marca
-  /// onstage de novo. Estimativa grosseira (figura × linhas), não precisa de
-  /// layout real: só decide "perto o bastante para valer a pena mostrar".
-  double _cursorY = 0;
-  double _windowTop = 0;
-  double _windowBottom = double.infinity;
-
-  late ScrollController _scrollController;
-  bool _ownsScrollController = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _attachScrollController();
-  }
-
-  void _attachScrollController() {
-    final provided = widget.scrollController;
-    _scrollController = provided ?? ScrollController();
-    _ownsScrollController = provided == null;
-    _scrollController.addListener(_onScrollChanged);
-  }
-
-  void _detachScrollController() {
-    _scrollController.removeListener(_onScrollChanged);
-    if (_ownsScrollController) _scrollController.dispose();
-  }
-
-  @override
-  void didUpdateWidget(covariant GestureDocumentView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.scrollController != widget.scrollController) {
-      _detachScrollController();
-      _attachScrollController();
-    }
-  }
-
-  /// Só recalcula quem fica onstage — a rolagem em si é do `Scrollable`.
-  void _onScrollChanged() => setState(() {});
-
   GlobalKey _keyFor(int index) => _cardKeys.putIfAbsent(index, GlobalKey.new);
 
   /// Rola até o cartão [index] (índice do `flatten`). No-op se não existe.
-  ///
-  /// `duration: Duration.zero` é proposital: com uma duração animada,
-  /// `Scrollable.ensureVisible` usa `AnimationController.animateTo`, cujo
-  /// `Future` só resolve quando um frame real é bombeado — em quem chama
-  /// `await scrollToCard(...)` sem intercalar `tester.pump()`, isso trava
-  /// o teste. Com `Duration.zero`, `ensureVisible` faz `jumpTo` síncrono.
   Future<void> scrollToCard(int index) async {
     final context = _cardKeys[index]?.currentContext;
     if (context == null) return;
     await Scrollable.ensureVisible(
       context,
       alignment: 0.2,
-      duration: Duration.zero,
+      duration: const Duration(milliseconds: 250),
     );
-  }
-
-  @override
-  void dispose() {
-    _detachScrollController();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     _nextIndex = 0;
-    _cursorY = kGesturePageMargin;
-    if (widget.document.title.isNotEmpty) {
-      _cursorY += (AppTypography.headline.fontSize ?? 16) * 1.3 + 16;
-    }
-    final viewportHeight = MediaQuery.sizeOf(context).height;
-    final scrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-    // Janela generosa (1 tela acima, 2 abaixo): cobre a rolagem manual normal
-    // sem nunca esconder algo que caiba na tela.
-    _windowTop = scrollOffset - viewportHeight;
-    _windowBottom = scrollOffset + viewportHeight * 2;
-
     final items = _buildItems(widget.document.items, gapInsideLink: false);
 
     return ColoredBox(
       color: GestureReaderPalette.paper,
       child: SingleChildScrollView(
-        controller: _scrollController,
+        controller: widget.scrollController,
         padding: const EdgeInsets.symmetric(vertical: kGesturePageMargin),
         child: Center(
           child: ConstrainedBox(
@@ -218,7 +109,6 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
             ? kGestureBlockGap
             : kGestureCardGap;
         out.add(SizedBox(height: gap));
-        _cursorY += gap;
       }
       out.add(_buildItem(items[i]));
     }
@@ -230,33 +120,18 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
     GestureCard() || InstructionCard() || TextLine() => false,
   };
 
-  /// Altura estimada do cartão: figura × número de linhas, o que for maior.
-  /// Grosseira de propósito — só decide a janela de [_windowTop]/[_windowBottom].
-  double _estimateCardHeight(GestureCard card) {
-    final side = gestureFigureSide(widget.fontSize);
-    final textHeight = card.lyrics.length * widget.fontSize * 1.3;
-    return math.max(side, textHeight);
-  }
-
   Widget _buildItem(GestureItem item) {
     switch (item) {
       case GestureCard():
         final index = _nextIndex++;
-        final top = _cursorY;
-        final height = _estimateCardHeight(item);
-        _cursorY += height;
-        final hidden = top > _windowBottom || (top + height) < _windowTop;
-        return _FinderVisibility(
-          hidden: hidden,
-          child: KeyedSubtree(
-            key: _keyFor(index),
-            child: GestureCardTile(
-              index: index,
-              card: item,
-              entry: widget.dictionary.resolve(item.gestureId),
-              fontSize: widget.fontSize,
-              onTap: widget.onCardTap,
-            ),
+        return KeyedSubtree(
+          key: _keyFor(index),
+          child: GestureCardTile(
+            index: index,
+            card: item,
+            entry: widget.dictionary.resolve(item.gestureId),
+            fontSize: widget.fontSize,
+            onTap: widget.onCardTap,
           ),
         );
       case RepeatBlock(:final count, :final children):
@@ -265,18 +140,14 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
           children: _buildItems(children, gapInsideLink: false),
         );
       case ChorusBlock(:final children):
-        _cursorY += 21; // rótulo CORO
         return ChorusBlockView(children: _buildItems(children, gapInsideLink: false));
       case LinkBlock(:final children):
         return LinkBlockView(children: _buildItems(children, gapInsideLink: true));
       case FinalBlock(:final children):
-        _cursorY += 25; // rótulo FINAL + divisor
         return FinalSectionView(children: _buildItems(children, gapInsideLink: false));
       case InstructionCard(:final kind):
-        _cursorY += 40;
         return InstructionCardView(kind: kind);
       case TextLine(:final text):
-        _cursorY += (widget.fontSize - 2) * 1.3;
         return TextLineView(text: text, fontSize: widget.fontSize);
     }
   }
