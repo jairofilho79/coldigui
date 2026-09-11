@@ -66,6 +66,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerFitModeTooltip => 'Ajustar largura/página (Z)';
 
   @override
+  String get readerSidePanelShowTooltip => 'Mostrar lista (painel)';
+
+  @override
+  String get readerSidePanelHideTooltip => 'Ocultar lista (painel)';
+
+  @override
   String get readerGoToPageTitle => 'Ir para página';
 
   @override

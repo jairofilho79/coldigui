@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -13,6 +14,7 @@ import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handl
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -598,5 +600,94 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.fit_screen), findsOneWidget);
+  });
+
+  testWidgets('tela larga mostra o painel com a lista ativa (C7)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        carouselItems: _carouselItems,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ActiveListPanel), findsOneWidget);
+    expect(find.textContaining('Louvor'), findsOneWidget);
+  });
+
+  testWidgets('botão do painel alterna readerSidePanelOpenProvider (C7)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        carouselItems: _carouselItems,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.byType(ActiveListPanel), findsOneWidget);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+    await tester.tap(find.byTooltip(l10n.readerSidePanelHideTooltip));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PdfReaderScreen)),
+    );
+    expect(container.read(readerSidePanelOpenProvider), isFalse);
+    expect(find.byType(ActiveListPanel), findsNothing);
+    expect(find.byTooltip(l10n.readerSidePanelShowTooltip), findsOneWidget);
   });
 }

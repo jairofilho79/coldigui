@@ -1,10 +1,14 @@
 import 'dart:async';
 
+import 'package:coldigui/core/presentation/widgets/reader_split_layout.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -22,6 +26,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_v
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjacent_pdf_prefetch_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_indicator.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_key_handler.dart';
@@ -262,6 +267,25 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     }
   }
 
+  /// Toque num item do painel lateral (A.6 C7): mesma ação das chips — foca a
+  /// ocorrência (já feito por [ActiveListPanel]) e troca o material aberto no
+  /// leitor. No-op quando o item tocado já é o material aberto (só a
+  /// ocorrência focada muda).
+  Future<void> _openFromPanel(CarouselItem item) async {
+    final currentPdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
+    if (currentPdfId.isNotEmpty && item.materialId == currentPdfId) return;
+
+    await openCarouselPdfInReader(
+      ref: ref,
+      context: context,
+      materialId: item.materialId,
+      navigate: (location) async {
+        if (!mounted) return;
+        context.replace(location);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final titulo = widget.queryParams[UrlSyncParams.titulo] ?? 'Leitor PDF';
@@ -270,11 +294,20 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final l10n = AppLocalizations.of(context);
 
     final carouselEmpty = ref.watch(carouselItemsProvider).isEmpty;
+    final sidePanelOpen = ref.watch(readerSidePanelOpenProvider);
+    final panel = ActiveListPanel(onOpen: _openFromPanel);
 
     if (filePath.trim().isEmpty) {
       return _ReaderScaffold(
         titulo: titulo,
         showTitle: carouselEmpty,
+        panel: panel,
+        sidePanelOpen: sidePanelOpen,
+        onToggleSidePanel: () =>
+            ref.read(readerSidePanelOpenProvider.notifier).toggle(),
+        sidePanelTooltip: sidePanelOpen
+            ? (l10n?.readerSidePanelHideTooltip ?? 'Ocultar lista (painel)')
+            : (l10n?.readerSidePanelShowTooltip ?? 'Mostrar lista (painel)'),
         body: const _ReaderMessage(message: 'Parâmetro file ausente na URL'),
       );
     }
@@ -322,6 +355,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       showTitle: sessionLoading && carouselEmpty,
       isFullscreen: isFullscreen,
       filePath: sessionLoaded ? filePath : null,
+      panel: panel,
+      sidePanelOpen: sidePanelOpen,
+      onToggleSidePanel: () =>
+          ref.read(readerSidePanelOpenProvider.notifier).toggle(),
+      sidePanelTooltip: sidePanelOpen
+          ? (l10n?.readerSidePanelHideTooltip ?? 'Ocultar lista (painel)')
+          : (l10n?.readerSidePanelShowTooltip ?? 'Mostrar lista (painel)'),
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
       onToggleFitMode: () =>
           ref.read(pdfReaderViewSettingsProvider.notifier).toggleFitMode(),
@@ -396,11 +436,15 @@ class _ReaderScaffold extends StatelessWidget {
     required this.titulo,
     required this.showTitle,
     required this.body,
+    required this.panel,
     this.isFullscreen = false,
     this.filePath,
     this.onToggleFullscreen,
     this.onToggleFitMode,
     this.fitModeIsPageWidth = false,
+    this.onToggleSidePanel,
+    this.sidePanelOpen = true,
+    this.sidePanelTooltip,
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
@@ -421,6 +465,17 @@ class _ReaderScaffold extends StatelessWidget {
 
   /// `true` quando o fit atual é page-width — decide o ícone preenchido vs. contorno.
   final bool fitModeIsPageWidth;
+
+  /// Painel lateral com a lista ativa (spec A.6 C7) — ver [ReaderSplitLayout].
+  final Widget panel;
+
+  /// Alterna [readerSidePanelOpenProvider] (`Icons.view_sidebar`).
+  final VoidCallback? onToggleSidePanel;
+
+  /// `true` quando o painel está ligado — só decide o tooltip do botão; a
+  /// visibilidade de fato é do [ReaderSplitLayout] (largura + fullscreen).
+  final bool sidePanelOpen;
+  final String? sidePanelTooltip;
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
@@ -498,39 +553,50 @@ class _ReaderScaffold extends StatelessWidget {
                     onPressed: () =>
                         _runAndRestoreKeyboardFocus(onToggleFullscreen!),
                   ),
+                if (onToggleSidePanel != null)
+                  IconButton(
+                    tooltip: sidePanelTooltip,
+                    icon: const Icon(Icons.view_sidebar),
+                    isSelected: sidePanelOpen,
+                    onPressed: () =>
+                        _runAndRestoreKeyboardFocus(onToggleSidePanel!),
+                  ),
                 if (filePath != null)
                   PdfReaderPageIndicator(filePath: filePath!),
               ],
             ),
           ),
         Expanded(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned.fill(child: pdfArea),
-              if (isFullscreen)
-                Positioned(
-                  right: 16,
-                  bottom: 16,
-                  child: Opacity(
-                    opacity: 0.25,
-                    child: FloatingActionButton(
-                      tooltip:
-                          exitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
-                      elevation: 0,
-                      highlightElevation: 0,
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      onPressed: onToggleFullscreen == null
-                          ? null
-                          : () => _runAndRestoreKeyboardFocus(
-                              onToggleFullscreen!,
-                            ),
-                      child: const Icon(Icons.fullscreen_exit),
+          child: ReaderSplitLayout(
+            panel: ColoredBox(color: AppColors.card, child: panel),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(child: pdfArea),
+                if (isFullscreen)
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: Opacity(
+                      opacity: 0.25,
+                      child: FloatingActionButton(
+                        tooltip:
+                            exitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
+                        elevation: 0,
+                        highlightElevation: 0,
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        onPressed: onToggleFullscreen == null
+                            ? null
+                            : () => _runAndRestoreKeyboardFocus(
+                                onToggleFullscreen!,
+                              ),
+                        child: const Icon(Icons.fullscreen_exit),
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

@@ -39,6 +39,8 @@
   "readerFullscreenTooltip": "Fullscreen (F)",
   "readerExitFullscreenTooltip": "Exit fullscreen (Esc)",
   "readerFitModeTooltip": "Fit width/page (Z)",
+  "readerSidePanelShowTooltip": "Show list panel",
+  "readerSidePanelHideTooltip": "Hide list panel",
   "readerGoToPageTitle": "Go to page",
   "readerGoToPageFieldLabel": "Page number",
   "readerGoToPageCancel": "Cancel",

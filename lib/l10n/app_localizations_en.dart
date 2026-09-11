@@ -66,6 +66,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerFitModeTooltip => 'Fit width/page (Z)';
 
   @override
+  String get readerSidePanelShowTooltip => 'Show list panel';
+
+  @override
+  String get readerSidePanelHideTooltip => 'Hide list panel';
+
+  @override
   String get readerGoToPageTitle => 'Go to page';
 
   @override
