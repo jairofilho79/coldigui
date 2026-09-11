@@ -14,7 +14,6 @@ import 'package:coldigui/features/catalog/presentation/providers/louvores_manife
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
-import 'package:coldigui/features/coldigom/presentation/utils/group_with_coldigom_meta.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -88,8 +87,9 @@ Future<void> showCarouselSwapMaterialSheet({
   String? currentMaterialId,
   String? currentEntryKey,
 }) async {
-  final resolved = await groupWithColdigomMeta(ref, group);
-  if (!context.mounted) return;
+  final resolved = ref
+      .read(catalogMaterialLookupProvider)
+      .withPraiseMeta(group);
 
   await showMaterialSheet(
     context,

@@ -1,4 +1,3 @@
-import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../playlists/domain/exceptions/empty_carousel_exception.dart';
 import '../entities/leaflet_document.dart';
 
@@ -14,10 +13,9 @@ class GenerateLeafletFromSelection {
 
   /// Retorna documento com número/nome por louvor para captura/impressão.
   ///
-  /// [pdfIdToMetadata] enriquece itens do manifest; mapa vazio usa o id como
-  /// nome.
+  /// [labelOf] rotula os ids; sem ele, o id vira o nome.
   Future<LeafletDocument> call({
-    Map<String, CarouselItemMetadata>? pdfIdToMetadata,
+    LeafletLabelOf? labelOf,
     DateTime? generatedAt,
   }) async {
     final ids = await _readSelectionIds();
@@ -27,8 +25,10 @@ class GenerateLeafletFromSelection {
 
     return LeafletDocument.fromPdfIds(
       ids,
-      pdfIdToMetadata: pdfIdToMetadata ?? const {},
+      labelOf: labelOf ?? _noLabel,
       generatedAt: generatedAt,
     );
   }
 }
+
+LeafletLabel? _noLabel(String _) => null;

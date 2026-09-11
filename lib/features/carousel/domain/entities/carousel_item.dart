@@ -80,23 +80,3 @@ class CarouselItem {
   @Deprecated('use index')
   int get sortOrder => index;
 }
-
-/// Metadados de louvor para enriquecer chips sem acoplar ao catálogo.
-///
-/// Mapa `pdfId → CarouselItemMetadata` alimenta o folheto (UC-08) a partir do
-/// manifest.
-class CarouselItemMetadata {
-  const CarouselItemMetadata({
-    required this.numero,
-    required this.nome,
-    required this.categoria,
-    required this.classificacao,
-    this.source = LouvorDataSource.plpcg,
-  });
-
-  final String numero;
-  final String nome;
-  final String categoria;
-  final String classificacao;
-  final LouvorDataSource source;
-}

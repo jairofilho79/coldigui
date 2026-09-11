@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/utils/build_carousel_metadata_map.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
@@ -239,15 +236,10 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final metadata = buildCarouselMetadataMap(
-      plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
-      coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-    );
     final document = await resolveLeafletDocument(
       ref,
       pdfIds: shareContext.pdfIds,
       fromCarousel: shareContext.fromCarousel,
-      metadata: metadata,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
     leafletDebugLog(

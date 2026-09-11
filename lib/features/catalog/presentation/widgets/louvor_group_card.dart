@@ -10,11 +10,11 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
-import 'package:coldigui/features/coldigom/presentation/utils/group_with_coldigom_meta.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
@@ -112,8 +112,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     }
 
     // YouTube (mesmo único) sempre via sheet — ícone vermelho e abertura externa.
-    final group = await groupWithColdigomMeta(ref, widget.group);
-    if (!mounted) return;
+    final group = ref
+        .read(catalogMaterialLookupProvider)
+        .withPraiseMeta(widget.group);
     await showMaterialSheet(context, ref, group);
   }
 

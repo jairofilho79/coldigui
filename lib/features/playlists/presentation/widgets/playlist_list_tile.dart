@@ -9,8 +9,6 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +24,6 @@ import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../catalog/domain/usecases/resolve_catalog_material.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/open_material_provider.dart';
@@ -856,7 +853,7 @@ class _PlaylistDetailChips extends ConsumerWidget {
                 pdfId: item.playlist.pdfIds[i],
                 label: item.pdfLabels[i],
                 index: i,
-                findLouvor: (pdfId) => _findLouvorFromManifest(ref, pdfId),
+                findLouvor: ref.read(catalogMaterialLookupProvider).louvor,
               ),
               onTap: loading ? null : () => onPdfTap(item.playlist.pdfIds[i]),
               onRemove: loading
@@ -883,19 +880,6 @@ class _PlaylistDetailChips extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  static Louvor? _findLouvorFromManifest(WidgetRef ref, String pdfId) {
-    try {
-      final catalog = ref.read(louvoresManifestProvider).asData?.value.louvores;
-      return findLouvorByPdfIdWithColdigom(
-        catalog,
-        pdfId,
-        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-      );
-    } on Object {
-      return null;
-    }
   }
 
   static CarouselItem _carouselItemFor({

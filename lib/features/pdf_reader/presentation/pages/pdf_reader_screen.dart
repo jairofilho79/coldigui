@@ -3,9 +3,7 @@ import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
-import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
@@ -143,11 +141,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _redownloadLoading = true);
     try {
-      final louvor = findLouvorByPdfIdWithColdigom(
-        ref.read(louvoresManifestProvider).value?.louvores,
-        pdfId,
-        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-      );
+      final louvor = ref.read(catalogMaterialLookupProvider).louvor(pdfId);
       if (louvor == null) {
         if (mounted) {
           showAppSnackbar(

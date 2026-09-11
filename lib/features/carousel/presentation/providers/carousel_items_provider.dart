@@ -1,19 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/pdf_id_codec.dart';
-import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
-import '../../../chords/domain/entities/chord_material.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/carousel_item.dart';
 import 'carousel_focused_index_provider.dart';
 
 /// Face de partituras da lista ativa (tudo que **não** é áudio), enriquecida.
 ///
-/// Substitui o antigo `carouselLouvoresProvider` com estado próprio: agora é
-/// uma derivação pura de `activeEntriesProvider` + os mapas por id do manifest
-/// e dos caches Coldigom (A4 — nenhum mapa O(catálogo) por mutação).
+/// Derivação pura de `activeEntriesProvider` + o lookup síncrono por id
+/// (manifest PLPCG e caches Coldigom) — A4: nenhum mapa O(catálogo) por
+/// mutação; o carousel não tem estado próprio (D3).
 final carouselItemsProvider = Provider<List<CarouselItem>>((ref) {
   return _faceItems(ref, audio: false);
 });
@@ -42,36 +39,24 @@ final focusedCarouselItemProvider = Provider<CarouselItem?>((ref) {
 
 List<CarouselItem> _faceItems(Ref ref, {required bool audio}) {
   final entries = ref.watch(activeEntriesProvider);
-  final plpcg = ref.watch(louvoresByPdfIdProvider);
-  final coldigom = ref.watch(coldigomLouvoresCacheProvider);
-  final chords = ref.watch(coldigomChordMaterialsCacheProvider);
+  final lookup = ref.watch(catalogMaterialLookupProvider);
 
   final items = <CarouselItem>[];
   for (final entry in entries) {
     if (entry.isAudio != audio) continue;
-    items.add(
-      _enrich(
-        entry,
-        items.length,
-        plpcg: plpcg,
-        coldigom: coldigom,
-        chords: chords,
-      ),
-    );
+    items.add(_enrich(entry, items.length, lookup));
   }
   return List<CarouselItem>.unmodifiable(items);
 }
 
-/// Precedência dos metadados: cifra > coldigom > manifest PLPCG — a mesma do
-/// antigo `buildCarouselMetadataMap` (cada fonte sobrescrevia a anterior).
+/// Precedência dos metadados: cifra antes de PDF — cifra e PDF dividem o
+/// espaço de ids, e uma cifra em cache é a resposta mais específica.
 CarouselItem _enrich(
   ActiveEntry entry,
-  int faceIndex, {
-  required Map<String, Louvor> plpcg,
-  required Map<String, Louvor> coldigom,
-  required Map<String, ChordMaterial> chords,
-}) {
-  final chord = chords[entry.id];
+  int faceIndex,
+  CatalogMaterialLookup lookup,
+) {
+  final chord = lookup.chord(entry.id);
   if (chord != null) {
     return CarouselItem(
       materialId: entry.id,
@@ -86,7 +71,7 @@ CarouselItem _enrich(
     );
   }
 
-  final louvor = coldigom[entry.id] ?? plpcg[entry.id];
+  final louvor = lookup.louvor(entry.id);
   if (louvor != null) {
     return CarouselItem(
       materialId: entry.id,

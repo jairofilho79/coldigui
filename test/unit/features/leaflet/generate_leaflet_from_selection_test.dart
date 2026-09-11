@@ -1,4 +1,4 @@
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/leaflet/domain/entities/leaflet_document.dart';
 import 'package:coldigui/features/leaflet/domain/usecases/generate_leaflet_from_selection.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_carousel_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,21 +10,13 @@ void main() {
     );
     final generatedAt = DateTime(2026, 6, 11);
 
+    const labels = <String, LeafletLabel>{
+      'pdf-a': (numero: '001', nome: 'Louvor A'),
+      'pdf-b': (numero: '002', nome: 'Louvor B'),
+    };
+
     final doc = await useCase(
-      pdfIdToMetadata: {
-        'pdf-a': const CarouselItemMetadata(
-          numero: '001',
-          nome: 'Louvor A',
-          categoria: 'Partitura',
-          classificacao: 'ColAdultos',
-        ),
-        'pdf-b': const CarouselItemMetadata(
-          numero: '002',
-          nome: 'Louvor B',
-          categoria: 'Partitura',
-          classificacao: 'ColAdultos',
-        ),
-      },
+      labelOf: (id) => labels[id],
       generatedAt: generatedAt,
     );
 

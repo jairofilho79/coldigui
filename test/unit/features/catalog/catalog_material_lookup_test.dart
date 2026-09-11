@@ -2,6 +2,7 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -141,6 +142,62 @@ void main() {
         _coldigomAudioId,
       ]);
       expect(lookup.tracksFor(const []), isEmpty);
+    });
+
+    test('chordsOfGroup lista as cifras do praise por categoria', () async {
+      final container = await _container();
+      final outraCifra = ChordMaterial(
+        chordId: encodePdfId('assets/praises/p1/m2.chord'),
+        r2Key: 'assets/praises/p1/m2.chord',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'p1',
+        categoria: 'Cifra I',
+        classificacao: 'Balada',
+      );
+      final cifraDeOutro = ChordMaterial(
+        chordId: encodePdfId('assets/praises/p2/m1.chord'),
+        r2Key: 'assets/praises/p2/m1.chord',
+        nome: 'Outro',
+        numero: '1',
+        groupId: 'p2',
+        categoria: 'Cifra',
+        classificacao: 'Balada',
+      );
+      container.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords([
+        outraCifra,
+        cifraDeOutro,
+      ]);
+      final lookup = container.read(catalogMaterialLookupProvider);
+
+      expect(lookup.chordsOfGroup('p1').map((c) => c.categoria), [
+        'Cifra',
+        'Cifra I',
+      ]);
+      expect(lookup.chordsOfGroup('p404'), isEmpty);
+    });
+
+    test('withPraiseMeta anexa a meta do cache só quando falta', () async {
+      final container = await _container();
+      final lookup = container.read(catalogMaterialLookupProvider);
+      final semMeta = LouvorGroup(
+        groupId: 'p1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: const [],
+      );
+      const outraMeta = ColdigomPraiseMetadata(name: 'Já tinha');
+      final comMeta = semMeta.withColdigomMeta(outraMeta);
+      final forinho = LouvorGroup(
+        groupId: 'p404',
+        numero: '1',
+        nome: 'Sem cache',
+        sections: const [],
+      );
+
+      expect(lookup.withPraiseMeta(semMeta).coldigomMeta, same(_meta));
+      expect(lookup.withPraiseMeta(comMeta).coldigomMeta, same(outraMeta));
+      expect(lookup.withPraiseMeta(forinho), same(forinho));
     });
   });
 }

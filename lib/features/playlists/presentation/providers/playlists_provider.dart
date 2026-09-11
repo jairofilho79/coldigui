@@ -10,9 +10,8 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
@@ -77,11 +76,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   List<String> _labelsForPdfIds(
     List<String> pdfIds,
-    Map<String, Louvor> byPdfId,
+    CatalogMaterialLookup lookup,
   ) {
     return pdfIds
         .map((id) {
-          final louvor = byPdfId[id];
+          final louvor = lookup.louvor(id);
           if (louvor == null) return _fallbackLabel(id);
           return '${louvor.numero} — ${louvor.nome}';
         })
@@ -95,14 +94,14 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
-    final byPdfId = ref.read(louvoresByPdfIdProvider);
+    final lookup = ref.read(catalogMaterialLookupProvider);
     final playlists = await repository.getAll();
 
     state = playlists
         .map(
           (playlist) => PlaylistViewItem(
             playlist: playlist,
-            pdfLabels: _labelsForPdfIds(playlist.pdfIds, byPdfId),
+            pdfLabels: _labelsForPdfIds(playlist.pdfIds, lookup),
           ),
         )
         .toList(growable: false);
@@ -376,23 +375,22 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   /// Busca louvor no manifest carregado — usado ao abrir PDF de playlist no leitor.
   ///
-  /// Lookup O(1) em [louvoresByPdfIdProvider] (A4). Retorna `null` se o
-  /// manifest ainda não carregou ou o [pdfId] for órfão. Em debug, registra
-  /// estado do manifest e falhas via [playlistOpenDebugLog*].
+  /// Lookup O(1) pelo [catalogMaterialLookupProvider] (A4/C.3). Retorna `null`
+  /// se o manifest ainda não carregou ou o [pdfId] for órfão. Em debug,
+  /// registra estado do manifest e falhas via [playlistOpenDebugLog*].
   Louvor? findLouvorByPdfId(String pdfId) {
     final manifestAsync = ref.read(louvoresManifestProvider);
-    final byPdfId = ref.read(louvoresByPdfIdProvider);
-    final coldigomCache = ref.read(coldigomLouvoresCacheProvider);
+    final lookup = ref.read(catalogMaterialLookupProvider);
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
       'manifest=${manifestAsync.isLoading
           ? 'loading'
           : manifestAsync.hasError
           ? 'error'
-          : '${byPdfId.length} itens'} '
-      'coldigomCache=${coldigomCache.length}',
+          : '${lookup.plpcgLouvoresByPdfId.length} itens'} '
+      'coldigomCache=${lookup.coldigomLouvoresByPdfId.length}',
     );
-    final louvor = byPdfId[pdfId] ?? coldigomCache[pdfId];
+    final louvor = lookup.louvor(pdfId);
     if (louvor != null) {
       playlistOpenDebugLog(
         'findLouvorByPdfId: encontrado numero=${louvor.numero} '

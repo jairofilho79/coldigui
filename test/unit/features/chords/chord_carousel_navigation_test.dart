@@ -1,12 +1,13 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/features/carousel/presentation/utils/build_carousel_metadata_map.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -55,25 +56,27 @@ class _FixedResolvePdfForReader extends ResolvePdfForReader {
 void main() {
   const r2Key = 'assets/praises/p1/m1.chord';
 
-  test('metadata map inclui cifras com categoria e nome', () {
+  test('rótulo do folheto resolve cifra pelo lookup', () {
     final chordId = encodePdfId(r2Key);
-    final map = buildCarouselMetadataMap(
-      chordCache: {
-        chordId: ChordMaterial(
-          chordId: chordId,
-          r2Key: r2Key,
-          nome: 'Comigo habita',
-          numero: '692',
-          groupId: 'p1',
-          categoria: 'Cifra I',
-          classificacao: 'Cancao',
-        ),
-      },
+    final labelOf = leafletLabelOf(
+      CatalogMaterialLookup(
+        chordsById: {
+          chordId: ChordMaterial(
+            chordId: chordId,
+            r2Key: r2Key,
+            nome: 'Comigo habita',
+            numero: '692',
+            groupId: 'p1',
+            categoria: 'Cifra I',
+            classificacao: 'Cancao',
+          ),
+        },
+      ),
     );
 
-    expect(map[chordId]?.nome, 'Comigo habita');
-    expect(map[chordId]?.numero, '692');
-    expect(map[chordId]?.categoria, 'Cifra I');
+    expect(labelOf(chordId)?.nome, 'Comigo habita');
+    expect(labelOf(chordId)?.numero, '692');
+    expect(labelOf('sem-hit'), isNull);
   });
 
   group('navigateToPdfId', () {

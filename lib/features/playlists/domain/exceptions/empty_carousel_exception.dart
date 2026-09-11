@@ -1,4 +1,4 @@
-/// Lançada quando [CreatePlaylistFromCarousel] é chamado com carousel vazio.
+/// Lançada ao gerar folheto de uma seleção sem partituras (UC-08).
 class EmptyCarouselException implements Exception {
   const EmptyCarouselException();
 

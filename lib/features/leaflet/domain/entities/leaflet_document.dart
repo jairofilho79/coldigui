@@ -1,6 +1,15 @@
 import '../../../carousel/domain/entities/carousel_item.dart';
 import 'leaflet_entry.dart';
 
+/// Rótulo de um material no folheto — [numero] pode ser vazio.
+typedef LeafletLabel = ({String numero, String nome});
+
+/// Resolve o rótulo de um id; `null` quando o material não está em memória.
+///
+/// O folheto não conhece catálogo nem caches: quem chama passa o resolvedor
+/// (na app, o `CatalogMaterialLookup`; nos testes, um mapa).
+typedef LeafletLabelOf = LeafletLabel? Function(String materialId);
+
 /// Documento de folheto pronto para renderização (UC-08).
 class LeafletDocument {
   const LeafletDocument({required this.entries, required this.generatedAt});
@@ -35,10 +44,12 @@ class LeafletDocument {
     );
   }
 
-  /// Monta folheto a partir de [pdfIds] ordenados e metadados do manifest.
+  /// Monta folheto a partir de [pdfIds] ordenados, rotulados por [labelOf].
+  ///
+  /// Id sem rótulo entra com número vazio e o próprio id como nome.
   factory LeafletDocument.fromPdfIds(
     List<String> pdfIds, {
-    required Map<String, CarouselItemMetadata> pdfIdToMetadata,
+    required LeafletLabelOf labelOf,
     DateTime? generatedAt,
   }) {
     return LeafletDocument(
@@ -47,8 +58,8 @@ class LeafletDocument {
         for (var i = 0; i < pdfIds.length; i++)
           LeafletEntry(
             index: i + 1,
-            numero: pdfIdToMetadata[pdfIds[i]]?.numero ?? '',
-            nome: pdfIdToMetadata[pdfIds[i]]?.nome ?? pdfIds[i],
+            numero: labelOf(pdfIds[i])?.numero ?? '',
+            nome: labelOf(pdfIds[i])?.nome ?? pdfIds[i],
           ),
       ],
     );

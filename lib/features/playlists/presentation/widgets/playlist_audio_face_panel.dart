@@ -10,7 +10,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -27,11 +27,9 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(audioFlagSyncProvider);
-    final cache = ref.watch(coldigomAudioTracksCacheProvider);
-    final tracks = [
-      for (final id in playlist.audioIds)
-        if (cache[id] != null) cache[id]!,
-    ];
+    final tracks = ref
+        .watch(catalogMaterialLookupProvider)
+        .tracksFor(playlist.audioIds);
     final session = ref.watch(audioPlayerSessionProvider);
     // A posição mora num provider à parte (A7).
     final positionState = ref.watch(audioPlayerPositionProvider);

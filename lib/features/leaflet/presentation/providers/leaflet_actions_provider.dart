@@ -5,10 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/domain/entities/carousel_item.dart';
-import '../../../carousel/presentation/utils/build_carousel_metadata_map.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../playlists/domain/exceptions/empty_carousel_exception.dart';
 import '../../data/providers/leaflet_providers.dart';
 import '../../domain/entities/leaflet_document.dart';
@@ -45,12 +42,8 @@ class LeafletActionsNotifier extends Notifier<void> {
 
     try {
       leafletDebugLog('generateAndShare: início');
-      final metadata = buildCarouselMetadataMap(
-        plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
-        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-      );
       final document = await ref.read(generateLeafletFromSelectionProvider)(
-        pdfIdToMetadata: metadata,
+        labelOf: leafletLabelOf(ref.read(catalogMaterialLookupProvider)),
       );
       final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
 
@@ -113,21 +106,34 @@ Future<void> _defaultShareXFiles(
   );
 }
 
-/// Resolve [LeafletDocument] para carousel ou playlist salva.
+/// Rótulos do folheto pelo [lookup] — cifra antes de PDF, como nos chips.
+///
+/// O folheto (domain) não conhece o lookup (presentation); esta é a ponte.
+LeafletLabelOf leafletLabelOf(CatalogMaterialLookup lookup) {
+  return (materialId) {
+    final chord = lookup.chord(materialId);
+    if (chord != null) return (numero: chord.numero, nome: chord.nome);
+    final louvor = lookup.louvor(materialId);
+    if (louvor != null) return (numero: louvor.numero, nome: louvor.nome);
+    return null;
+  };
+}
+
+/// Resolve [LeafletDocument] para a seleção ativa ou uma playlist salva.
+///
+/// Os rótulos vêm do [catalogMaterialLookupProvider] no momento da chamada.
 Future<LeafletDocument> resolveLeafletDocument(
   Ref ref, {
   required List<String> pdfIds,
   required bool fromCarousel,
-  required Map<String, CarouselItemMetadata> metadata,
 }) async {
+  final labelOf = leafletLabelOf(ref.read(catalogMaterialLookupProvider));
   if (fromCarousel) {
-    return ref.read(generateLeafletFromSelectionProvider)(
-      pdfIdToMetadata: metadata,
-    );
+    return ref.read(generateLeafletFromSelectionProvider)(labelOf: labelOf);
   }
   return ref.read(generateLeafletFromPdfIdsProvider)(
     pdfIds: pdfIds,
-    pdfIdToMetadata: metadata,
+    labelOf: labelOf,
   );
 }
 
