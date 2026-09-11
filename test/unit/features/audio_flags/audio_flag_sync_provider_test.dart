@@ -23,18 +23,28 @@ class _LoggedInAuth extends AuthNotifier {
       const AuthUser(googleSub: 'sub-1', idToken: 'token');
 }
 
-/// Repositório mínimo: conta `adoptForSub`/`purgeSyncedOwnedBy` e pode falhar
-/// na adoção.
+/// Repositório mínimo: registra `adoptForSub`/`purgeSyncedOwnedBy` **na ordem**
+/// em que foram chamados e pode falhar na adoção.
 class _CountingRepository implements AudioFlagRepository {
   _CountingRepository({this.adoptThrows});
 
   final Object? adoptThrows;
+
+  /// Diário ordenado (`'purge:<sub>'` / `'adopt:<sub>'`).
+  ///
+  /// A ordem é o contrato, não só a contagem: purgar **depois** de adotar
+  /// apagaria as linhas que a conta nova acabou de adotar, e adotar antes de
+  /// purgar faria as linhas `synced` da conta anterior virarem `pendingPush`
+  /// do dono novo — subindo a biblioteca de A para a nuvem de B (spec A.5).
+  final calls = <String>[];
+
   var adoptCalls = 0;
   final purgedSubs = <String>[];
 
   @override
   Future<void> adoptForSub(String sub) async {
     adoptCalls++;
+    calls.add('adopt:$sub');
     final error = adoptThrows;
     if (error != null) throw error;
   }
@@ -42,6 +52,7 @@ class _CountingRepository implements AudioFlagRepository {
   @override
   Future<int> purgeSyncedOwnedBy(String previousSub) async {
     purgedSubs.add(previousSub);
+    calls.add('purge:$previousSub');
     return 0;
   }
 
@@ -191,9 +202,23 @@ void main() {
     container.read(audioFlagSyncProvider);
     await settle();
 
-    expect(repo.purgedSubs, ['outro-sub']);
-    expect(repo.adoptCalls, 1);
+    // A ordem é o contrato: adotar antes de purgar faria as linhas `synced` da
+    // conta anterior virarem `pendingPush` do dono novo e subirem para a nuvem
+    // dele. Só contar as chamadas deixaria a inversão passar.
+    expect(repo.calls, ['purge:outro-sub', 'adopt:sub-1']);
     expect(prefs.getString(_subKey), 'sub-1');
+  });
+
+  test('primeiro login não purga nada antes de adotar', () async {
+    final repo = _CountingRepository();
+    final container = buildContainer(repository: repo, sync: _ScriptedSync());
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(audioFlagSyncProvider);
+    await settle();
+
+    expect(repo.calls, ['adopt:sub-1'], reason: 'não havia conta anterior');
   });
 
   test('adoptForSub indisponível vira lastErrorCause e não persiste', () async {
