@@ -60,24 +60,6 @@ void main() {
   });
 
   group('SearchLouvorByNumberOrText.callIndexed', () {
-    test('reproduz o ranking de call sobre o mesmo catálogo', () {
-      final catalog = [
-        _louvor(nome: 'Senhor Deus', numero: '001', pdfId: 'partial'),
-        _louvor(nome: 'A Ti Senhor', numero: '500', pdfId: 'exact'),
-        _louvor(nome: 'Outro', numero: '017', pdfId: 'numero'),
-      ];
-      const usecase = SearchLouvorByNumberOrText();
-      final index = PlpcgSearchIndex.build(catalog);
-
-      for (final query in ['A Ti Senhor', '17', 'senhor', '', 'nada disso']) {
-        expect(
-          usecase.callIndexed(index, query).map((l) => l.pdfId).toList(),
-          usecase(catalog, query).map((l) => l.pdfId).toList(),
-          reason: 'query "$query"',
-        );
-      }
-    });
-
     test('acha por número normalizado sem normalizar item a item', () {
       final catalog = [_louvor(nome: 'Aleluia', numero: '001', pdfId: 'a')];
       final index = PlpcgSearchIndex.build(catalog);

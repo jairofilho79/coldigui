@@ -10,34 +10,8 @@ import '../utils/louvor_numero_normalizer.dart';
 class SearchLouvorByNumberOrText {
   const SearchLouvorByNumberOrText();
 
-  /// Filtra [catalog] pela [query] digitada — variante sem índice.
-  ///
-  /// Normaliza o número de cada item a cada chamada; usada pela Biblioteca,
-  /// que roda uma vez por navegação, não por tecla. A Home usa
-  /// [callIndexed].
-  List<Louvor> call(List<Louvor> catalog, String query) {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) return const [];
-
-    final normalizedQuery = LouvorNumeroNormalizer.normalize(trimmed);
-    final exactNumber = [
-      for (final louvor in catalog)
-        if (_matchesNumero(
-          louvor.numero,
-          LouvorNumeroNormalizer.normalize(louvor.numero),
-          trimmed,
-          normalizedQuery,
-        ))
-          louvor,
-    ];
-
-    return _rankByTitle(catalog, trimmed, exactNumber);
-  }
-
-  /// Mesma busca e mesmo ranking de [call], sobre um [PlpcgSearchIndex].
-  ///
-  /// A única diferença é a origem do número normalizado: `index.numeroNorm[i]`
-  /// em vez de normalizar `louvores[i].numero` na hora (A10).
+  /// Busca e ranking sobre um [PlpcgSearchIndex] (número já normalizado uma
+  /// vez por manifest via `index.numeroNorm[i]`, não a cada tecla — A10).
   List<Louvor> callIndexed(PlpcgSearchIndex index, String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
