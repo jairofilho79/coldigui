@@ -69,9 +69,13 @@ Dicionário: 208 figuras PNG, 8,8 MB no total (média 42 KB). Um louvor usa
    `materialIdKindOf` reconhece `.gestures`; `.txt`/`.gest` são aposentadas.
    Ids `unknown` caem na mesma face de leitura da playlist que `gesture`, então
    o comportamento observável é idêntico.
-6. **Chaves por `Row(crossAxisAlignment: stretch)`**, não `IntrinsicHeight`:
-   a `Row` já tem a altura da coluna de filhos; a chave é um `CustomPaint`
-   esticado. Aninhar é empilhar `Row`s.
+6. **Chaves por `Stack` + `Positioned.fill`**, não `IntrinsicHeight`: a
+   `Column` de filhos (com `padding.right` da largura da chave) é o filho
+   não-posicionado que dá o tamanho ao `Stack`; a chave é
+   `Positioned(top: 0, bottom: 0, right: 0, width: 28, child: CustomPaint)`
+   e ganha a altura dos filhos sem nenhuma medição intrínseca. (`Row` com
+   `stretch` não serve: em altura ilimitada o `RenderFlex` passa
+   `tightFor(height: ∞)` aos filhos.) Aninhar é empilhar `Stack`s.
 7. **`gestureId` resolve na renderização**, não no parse. O cache do documento
    fica independente da versão do dicionário; o papel não espera o dicionário.
 8. **Corpo em `SingleChildScrollView` + `Column`.** Documentos têm ≤ 40
@@ -291,7 +295,8 @@ data/
   `kGestureDictionaryTtl = 1 h` (dicionário).
 - `GestureFigureStorePort { Future<Uint8List?> read(String r2Key);
   Future<void> write(String r2Key, Uint8List bytes); Future<void> deleteAll() }`.
-  Chave de arquivo = `sha1(r2Key).hex + extensão`. Nativo grava atômico
+  Chave de arquivo = `r2Key` saneado (`[^A-Za-z0-9._-]` → `_`; ex.:
+  `assets_cia_gestures_c687580e7682.png`). Nativo grava atômico
   (`.tmp` + rename). Web usa `caches.open('plpcg-gesture-figures')`.
 - `GestureFigureRepository.get(r2Key) → Future<Uint8List?>`: store, senão
   Dio (`responseType: bytes`) via `ColdigomAssetUrl.fetchUrlForKey`, grava e
@@ -351,11 +356,14 @@ presentation/
   720 dp; mantém `Map<int, GlobalKey>` dos cartões para `scrollToCard(index)`.
 - `GestureCardTile` — `Row` topo; `GestureFigure` + `Column` de
   `LyricLineText`; `InkWell` → `onTap(index)`.
-- `RepeatBlockView`/`ChorusBlockView` — `Row(stretch)`:
-  `Expanded(Column(filhos))` + `SizedBox(width: 28, CustomPaint(BracePainter(
-  dashed, label)))`. `CORO` como `Text` acima dos filhos.
-- `LinkBlockView` — `Row(stretch)`: `SizedBox(width: 20,
-  CustomPaint(LinkConnectorPainter))` + `Expanded(Column(filhos, sem gap))`.
+- `RepeatBlockView`/`ChorusBlockView` — `Stack`: `Padding(right: 28,
+  Column(filhos))` + `Positioned(top: 0, bottom: 0, right: 0, width: 28,
+  CustomPaint(BracePainter(dashed, label)))`. `CORO` como `Text` acima dos
+  filhos, dentro da `Column` (a chave cobre só os filhos: a `Column` do
+  rótulo fica fora do `Stack`).
+- `LinkBlockView` — `Stack`: `Padding(left: 20, Column(filhos, sem gap))` +
+  `Positioned(top: 0, bottom: 0, left: 0, width: 20,
+  CustomPaint(LinkConnectorPainter))`.
 - `GestureFigure({entry, size})` — observa `gestureFigureProvider(entry.image)`;
   bytes → `Image.memory` (`gaplessPlayback`); carregando → caixa branca com
   progress discreto; `entry == null` ou bytes `null` → placeholder tracejado
@@ -382,7 +390,7 @@ presentation/
 | 10 | `lib/core/constants/storage_keys.dart` | `gestureReaderFontSize` |
 | 11 | `lib/core/database/isar_app_schemas.dart` | dois schemas novos |
 | 12 | `lib/l10n/app_pt.arb`, `app_en.arb` | `gesturesMaterialLabel`, `gesturesReaderTitle`, `gesturesReaderEmpty`, `gesturesReaderUnavailable`, `gestureInstructionInstruments`, `gestureInstructionRepeatPraise`, `gestureInstructionBackToChorus`, `gestureInstructionBackToChorusAndFinish`, `gestureNotFound`, `gestureFocusNext`, `gestureFocusEnd`, `gesturesNewerSchemaWarning`, `gestureContextRepeat` (`{count}x`), `gestureContextChorus`, `gestureContextFinal`, `gestureContextLink` |
-| 13 | `docs/features/FEATURE_INDEX.md`, `docs/use-cases/UC-15-leitor-gestos.md` | entrada `gestures` + UC curto |
+| 13 | `docs/features/FEATURE_INDEX.md`, `docs/use-cases/UC-17-leitor-gestos.md` | entrada `gestures` + UC curto |
 
 Onde a playlist e o sheet já funcionam sem código novo (ver §1), o plano só
 adiciona testes que pinam isso.
@@ -456,9 +464,10 @@ dicionário inteiro.
   fixtures cobrem tudo; `GESTURE_DICTIONARY_BASE_URL` permite um servidor local.
 - **Cache API na web para figuras.** Mesma técnica do `PdfStorageWeb`, já
   validada (COOP/COEP). Store separado evita colisão de chaves.
-- **Chave com altura errada.** `Row(stretch)` depende de a `Column` de filhos
-  ser o filho mais alto — verdade por construção (a chave tem altura 0
-  intrínseca). Teste de widget pina a altura.
+- **Chave com altura errada.** O `Stack` dimensiona pelo filho
+  não-posicionado (a `Column`), e `Positioned.fill` herda essa altura —
+  vale em altura ilimitada, que é o caso do corpo rolável. Teste de widget
+  pina a altura da chave = altura da coluna.
 - **Dicionário e documento fora de sincronia** (`dictionaryVersion` maior que
   a versão cacheada): ids novos viram placeholder até a revalidação. Aceitável;
   o placeholder mostra o id.
