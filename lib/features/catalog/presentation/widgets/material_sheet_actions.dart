@@ -88,7 +88,7 @@ Future<void> addMaterialToActivePlaylist({
       track.audioId,
     ),
     // canAddMaterialToPlaylist barra os outros antes de chegar aqui.
-    ChordMaterialRef() || YoutubeMaterialRef() => null,
+    ChordMaterialRef() || GestureMaterialRef() || YoutubeMaterialRef() => null,
   };
   if (added == null) return;
 

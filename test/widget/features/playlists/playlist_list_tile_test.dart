@@ -4,6 +4,7 @@ import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
+import 'package:coldigui/core/utils/gesture_reader_url_builder.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -13,6 +14,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_louvo
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
@@ -131,6 +133,15 @@ class _FakeChordCacheNotifier extends ColdigomChordMaterialsCacheNotifier {
   Map<String, ChordMaterial> build() => initial;
 }
 
+class _FakeGestureCacheNotifier extends ColdigomGestureMaterialsCacheNotifier {
+  _FakeGestureCacheNotifier(this.initial);
+
+  final Map<String, GestureMaterial> initial;
+
+  @override
+  Map<String, GestureMaterial> build() => initial;
+}
+
 /// Registra o material que chegou ao ponto único de abertura.
 ///
 /// Tudo que não é PDF passa a ser aberto pelo `openMaterialProvider`, então o
@@ -148,6 +159,16 @@ class _OpenMaterialSpy {
             chordId: chord.chordId,
             titulo: chord.nome,
             subtitulo: chord.numero,
+          ),
+        );
+      },
+      openGesture: ({required ref, required context, required gesture}) async {
+        opened = GestureMaterialRef(gesture);
+        await context.push(
+          buildGestureReaderLocation(
+            gestureId: gesture.gestureId,
+            titulo: gesture.nome,
+            subtitulo: gesture.numero,
           ),
         );
       },
@@ -523,6 +544,95 @@ void main() {
     expect(openSpy.opened, isA<ChordMaterialRef>());
     expect(openSpy.opened!.id, chordId);
     expect(find.text('cifra:$chordId'), findsOneWidget);
+    expect(find.textContaining('Não foi possível'), findsNothing);
+  });
+
+  testWidgets('Abrir no leitor com gesto na primeira posicao vai para /gestos', (
+    tester,
+  ) async {
+    // Mesmo caminho da cifra acima: o gesto entra na lista com o mesmo espaco
+    // de ids do PDF, entao so o materialIdKindOf separa os dois.
+    final gestureId = _pdfId('assets/praises/p1/m1.gestures');
+    final gestureItem = PlaylistViewItem(
+      playlist: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p1',
+        nome: 'Ensaio com gesto',
+        pdfIds: [gestureId, pdfIdB],
+        createdAt: DateTime(2026, 6, 8),
+      ),
+      pdfLabels: ['Gestos — A', '002 — B'],
+    );
+    final gesture = GestureMaterial(
+      gestureId: gestureId,
+      r2Key: 'assets/praises/p1/m1.gestures',
+      nome: 'Comigo habita',
+      numero: '001',
+      groupId: 'p1',
+      categoria: 'Gestos',
+      classificacao: 'ColAdultos',
+    );
+
+    final notifier = _LouvorFindingPlaylistsNotifier([gestureItem]);
+    final openSpy = _OpenMaterialSpy();
+    final router = GoRouter(
+      initialLocation: RoutePaths.playlists,
+      routes: [
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (_, _) => Scaffold(
+            body: PlaylistListTile(item: gestureItem, tab: PlaylistTab.saved),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, state) => Scaffold(
+            body: Text('leitor:${state.uri.queryParameters['pdfId']}'),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.gestos,
+          builder: (_, state) => Scaffold(
+            body: Text('gesto:${state.uri.queryParameters['pdfId']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(() => notifier),
+          carouselLouvoresProvider.overrideWith(
+            () => _FakeCarouselNotifier([]),
+          ),
+          coldigomGestureMaterialsCacheProvider.overrideWith(
+            () => _FakeGestureCacheNotifier({gestureId: gesture}),
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _FakeResolvePdfForReader(),
+          ),
+          openMaterialProvider.overrideWithValue(openSpy.build()),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abrir no leitor'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(openSpy.opened, isA<GestureMaterialRef>());
+    expect(openSpy.opened!.id, gestureId);
+    expect(find.text('gesto:$gestureId'), findsOneWidget);
     expect(find.textContaining('Não foi possível'), findsNothing);
   });
 

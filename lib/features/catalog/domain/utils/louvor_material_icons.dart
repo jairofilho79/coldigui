@@ -62,6 +62,7 @@ abstract final class LouvorMaterialIcons {
     return switch (material) {
       PdfMaterial(:final louvor) => forKind(kindForCategory(louvor.categoria)),
       ChordMaterialRef() ||
+      GestureMaterialRef() ||
       AudioMaterial() ||
       YoutubeMaterialRef() => forKind(material.kind),
     };

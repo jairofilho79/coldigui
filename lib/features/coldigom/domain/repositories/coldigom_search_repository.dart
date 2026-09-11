@@ -4,6 +4,7 @@ import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../entities/coldigom_praise_metadata.dart';
 
 /// Porta de busca/browse coldigom.
@@ -60,6 +61,7 @@ class ColdigomSearchResult {
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
     this.chordMaterials = const [],
+    this.gestureMaterials = const [],
     this.praiseMetaByGroupId = const {},
     this.page = 1,
     this.hasNextPage = false,
@@ -70,6 +72,7 @@ class ColdigomSearchResult {
   final List<AudioTrack> audioTracks;
   final List<YoutubeMaterial> youtubeMaterials;
   final List<ChordMaterial> chordMaterials;
+  final List<GestureMaterial> gestureMaterials;
   final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
   final int page;
   final bool hasNextPage;
@@ -83,6 +86,7 @@ class ColdigomBrowseResult {
     this.audioTracks = const [],
     this.youtubeMaterials = const [],
     this.chordMaterials = const [],
+    this.gestureMaterials = const [],
     this.praiseMetaByGroupId = const {},
     required this.page,
     required this.limit,
@@ -95,6 +99,7 @@ class ColdigomBrowseResult {
   final List<AudioTrack> audioTracks;
   final List<YoutubeMaterial> youtubeMaterials;
   final List<ChordMaterial> chordMaterials;
+  final List<GestureMaterial> gestureMaterials;
   final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
   final int page;
   final int limit;

@@ -7,6 +7,7 @@ import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart'
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/coldigom/domain/utils/youtube_url.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 
 import '../models/praise_dto.dart';
 
@@ -131,11 +132,36 @@ abstract final class ColdigomLouvorAdapter {
     return items;
   }
 
+  /// Um [GestureMaterial] por `type: gestures` com `r2_key` válido.
+  static List<GestureMaterial> toGestureMaterials(PraiseDetailDto praise) {
+    final items = <GestureMaterial>[];
+    for (final material in praise.materials) {
+      if (_kindOfType(material.type) != MaterialKind.gesture) continue;
+      final r2Key = material.r2Key;
+      if (r2Key == null || r2Key.isEmpty) continue;
+      items.add(
+        GestureMaterial(
+          gestureId: encodePdfId(r2Key),
+          r2Key: r2Key,
+          nome: praise.name,
+          numero: praise.number,
+          groupId: praise.id,
+          categoria: material.materialKindName ?? 'Gestos',
+          classificacao: praise.rhythm,
+          author: praise.author,
+          source: LouvorDataSource.coldigom,
+        ),
+      );
+    }
+    return items;
+  }
+
   /// Único ponto que traduz o `type` do worker para o vocabulário do app.
   static MaterialKind _kindOfType(String type) {
     return switch (type.toLowerCase()) {
       'pdf' => MaterialKind.pdf,
       'chord' => MaterialKind.chord,
+      'gestures' => MaterialKind.gesture,
       'mp3' || 'audio' => MaterialKind.audio,
       'youtube' => MaterialKind.youtube,
       _ => MaterialKind.unknown,

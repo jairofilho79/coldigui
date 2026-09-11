@@ -8,6 +8,7 @@ import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../adapters/coldigom_louvor_adapter.dart';
@@ -67,6 +68,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
+      gestureMaterials: fetched.gestureMaterials,
       coldigomMetaByGroupId: fetched.metaByGroupId,
       sortByNumber: false,
     );
@@ -76,6 +78,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
+      gestureMaterials: fetched.gestureMaterials,
       praiseMetaByGroupId: fetched.metaByGroupId,
       page: safePage,
       hasNextPage: pageDto.data.length >= searchLimit,
@@ -153,6 +156,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
+      gestureMaterials: fetched.gestureMaterials,
       coldigomMetaByGroupId: fetched.metaByGroupId,
       // Com q a API já ranqueia; sem q ordenamos por número localmente.
       sortByNumber: !hasQuery,
@@ -164,6 +168,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       audioTracks: fetched.audioTracks,
       youtubeMaterials: fetched.youtubeMaterials,
       chordMaterials: fetched.chordMaterials,
+      gestureMaterials: fetched.gestureMaterials,
       praiseMetaByGroupId: fetched.metaByGroupId,
       page: pageDto.pagination.page,
       limit: pageDto.pagination.limit,
@@ -179,6 +184,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     List<AudioTrack> audioTracks,
     List<YoutubeMaterial> youtubeMaterials,
     List<ChordMaterial> chordMaterials,
+    List<GestureMaterial> gestureMaterials,
     Map<String, ColdigomPraiseMetadata> metaByGroupId,
   })
   _mapDetails(List<PraiseDetailDto> details) {
@@ -186,12 +192,14 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
     final audioTracks = <AudioTrack>[];
     final youtubeMaterials = <YoutubeMaterial>[];
     final chordMaterials = <ChordMaterial>[];
+    final gestureMaterials = <GestureMaterial>[];
     final metaByGroupId = <String, ColdigomPraiseMetadata>{};
     for (final detail in details) {
       louvores.addAll(ColdigomLouvorAdapter.toLouvores(detail));
       audioTracks.addAll(ColdigomLouvorAdapter.toAudioTracks(detail));
       youtubeMaterials.addAll(ColdigomLouvorAdapter.toYoutubeMaterials(detail));
       chordMaterials.addAll(ColdigomLouvorAdapter.toChordMaterials(detail));
+      gestureMaterials.addAll(ColdigomLouvorAdapter.toGestureMaterials(detail));
       metaByGroupId[detail.id] = ColdigomLouvorAdapter.toMetadata(detail);
     }
     return (
@@ -199,6 +207,7 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       audioTracks: audioTracks,
       youtubeMaterials: youtubeMaterials,
       chordMaterials: chordMaterials,
+      gestureMaterials: gestureMaterials,
       metaByGroupId: metaByGroupId,
     );
   }

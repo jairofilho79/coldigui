@@ -98,7 +98,7 @@ Future<void> showCarouselSwapMaterialSheet({
             track: track,
             queue: resolved.audioTracks,
           );
-        case ChordMaterialRef() || YoutubeMaterialRef():
+        case ChordMaterialRef() || GestureMaterialRef() || YoutubeMaterialRef():
           await ref.read(openMaterialProvider).open(context, ref, material);
       }
     },

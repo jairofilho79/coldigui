@@ -2,6 +2,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../data/sources/plpcg_catalog_source.dart';
 import '../entities/louvor.dart';
 import '../entities/louvor_data_source.dart';
@@ -39,15 +40,18 @@ LouvorGroup? findSwapMaterialGroup({
   Map<String, Louvor>? coldigomCache,
   Map<String, AudioTrack>? audioCache,
   Map<String, ChordMaterial>? chordCache,
+  Map<String, GestureMaterial>? gestureCache,
 }) {
   final plpcg = PlpcgCatalogSource(catalog: plpcgCatalog);
   final coldigom = ColdigomCatalogSource(
     louvores: coldigomCache ?? const {},
     audioTracks: audioCache ?? const {},
     chords: chordCache ?? const {},
+    gestures: gestureCache ?? const {},
   );
   final tracks = audioCache?.values.toList() ?? const <AudioTrack>[];
   final chords = chordCache?.values.toList() ?? const <ChordMaterial>[];
+  final gestures = gestureCache?.values.toList() ?? const <GestureMaterial>[];
 
   Louvor? louvor;
   if (pdfId != null && pdfId.isNotEmpty) {
@@ -73,6 +77,7 @@ LouvorGroup? findSwapMaterialGroup({
       plpcg.louvoresOfGroup(groupKey),
       tracks,
       chords,
+      gestures,
       groupKey,
     );
   }
@@ -136,6 +141,7 @@ LouvorGroup? _groupIfMultiple(
   List<Louvor> pdfs,
   List<AudioTrack> tracks,
   List<ChordMaterial> chords,
+  List<GestureMaterial> gestures,
   String groupId,
 ) {
   final matchingTracks = [
@@ -146,13 +152,21 @@ LouvorGroup? _groupIfMultiple(
     for (final chord in chords)
       if (chord.groupId == groupId) chord,
   ];
-  if (pdfs.isEmpty && matchingTracks.isEmpty && matchingChords.isEmpty) {
+  final matchingGestures = [
+    for (final gesture in gestures)
+      if (gesture.groupId == groupId) gesture,
+  ];
+  if (pdfs.isEmpty &&
+      matchingTracks.isEmpty &&
+      matchingChords.isEmpty &&
+      matchingGestures.isEmpty) {
     return null;
   }
   final groups = LouvorGroup.fromLouvores(
     pdfs,
     audioTracks: matchingTracks,
     chordMaterials: matchingChords,
+    gestureMaterials: matchingGestures,
   );
   if (groups.isEmpty) return null;
   return _multipleOnly(groups.first);

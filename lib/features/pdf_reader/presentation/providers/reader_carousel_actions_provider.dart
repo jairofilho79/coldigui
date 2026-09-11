@@ -8,6 +8,7 @@ import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dar
 import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
+import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -35,6 +36,12 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
       ref.read(coldigomChordMaterialsCacheProvider),
     );
     if (chordRoute.isChord) return chordRoute.location;
+
+    final gestureRoute = gestureRouteFor(
+      targetPdfId,
+      ref.read(coldigomGestureMaterialsCacheProvider),
+    );
+    if (gestureRoute.isGesture) return gestureRoute.location;
 
     final louvor = findLouvorByPdfIdWithColdigom(
       ref.read(louvoresManifestProvider).value?.louvores,

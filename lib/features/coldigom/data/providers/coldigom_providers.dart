@@ -4,6 +4,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../coldigom_cache_writer.dart';
@@ -79,6 +80,30 @@ final coldigomChordMaterialsCacheProvider =
       ColdigomChordMaterialsCacheNotifier,
       Map<String, ChordMaterial>
     >(ColdigomChordMaterialsCacheNotifier.new);
+
+/// Cache em memória de documentos de gestos coldigom indexados por `gestureId`.
+class ColdigomGestureMaterialsCacheNotifier
+    extends Notifier<Map<String, GestureMaterial>> {
+  @override
+  Map<String, GestureMaterial> build() => const {};
+
+  void mergeGestures(Iterable<GestureMaterial> gestures) {
+    if (gestures.isEmpty) return;
+    final next = Map<String, GestureMaterial>.from(state);
+    for (final gesture in gestures) {
+      next[gesture.gestureId] = gesture;
+    }
+    state = next;
+  }
+
+  GestureMaterial? findByGestureId(String gestureId) => state[gestureId];
+}
+
+final coldigomGestureMaterialsCacheProvider =
+    NotifierProvider<
+      ColdigomGestureMaterialsCacheNotifier,
+      Map<String, GestureMaterial>
+    >(ColdigomGestureMaterialsCacheNotifier.new);
 
 /// Cache de metadados Coldigom indexados por praise/`groupId`.
 class ColdigomPraiseMetaCacheNotifier
