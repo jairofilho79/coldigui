@@ -39,6 +39,9 @@ abstract final class StorageKeys {
   /// Corpo da letra no leitor de cifras, em px.
   static const String chordReaderFontSize = 'chordReaderFontSize';
 
+  /// Corpo da letra no leitor de gestos (`double`).
+  static const String gestureReaderFontSize = 'gestureReaderFontSize';
+
   /// Claro/escuro do leitor de cifras (`light` | `dark`).
   static const String chordReaderMode = 'chordReaderMode';
 }

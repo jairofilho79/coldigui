@@ -29,8 +29,8 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
 /// YouTube não vive neste espaço (o id vem do Worker, não é um path): ele não
 /// decodifica e portanto classifica [MaterialKind.unknown] — ou seja, **um id
 /// de YouTube aparece em `pdfIds`**, junto com os ids legados e com
-/// [MaterialKind.gesture] (gesto abre no leitor). Nenhuma família fica
-/// invisível às duas faces da playlist (A7).
+/// [MaterialKind.gesture] (documento JSON de gestos, `.gestures`, que abre em
+/// `/gestos`). Nenhuma família fica invisível às duas faces da playlist (A7).
 ///
 /// Retorna [MaterialKind.unknown] para id inválido — nunca lança.
 MaterialKind materialIdKindOf(String id) {
@@ -46,9 +46,7 @@ MaterialKind materialIdKindOf(String id) {
   final lower = relPath.toLowerCase();
   if (lower.endsWith('.pdf')) return MaterialKind.pdf;
   if (lower.endsWith('.chord')) return MaterialKind.chord;
-  if (lower.endsWith('.txt') || lower.endsWith('.gest')) {
-    return MaterialKind.gesture;
-  }
+  if (lower.endsWith('.gestures')) return MaterialKind.gesture;
   final dot = lower.lastIndexOf('.');
   if (dot != -1 && kAudioMaterialExtensions.contains(lower.substring(dot))) {
     return MaterialKind.audio;

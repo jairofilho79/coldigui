@@ -20,19 +20,25 @@ void main() {
       expect(materialIdKindOf(id), MaterialKind.chord);
     });
 
-    test('reconhece gestos por .txt', () {
-      final id = encodePdfId('assets/praises/abc/def.txt');
-      expect(materialIdKindOf(id), MaterialKind.gesture);
-    });
-
-    test('reconhece gestos por .gest', () {
-      final id = encodePdfId('assets/praises/abc/def.gest');
+    test('reconhece gestos por .gestures', () {
+      final id = encodePdfId('assets/praises/abc/def.gestures');
       expect(materialIdKindOf(id), MaterialKind.gesture);
     });
 
     test('ignora caixa da extensao de gestos', () {
-      final id = encodePdfId('assets/praises/abc/def.TXT');
+      final id = encodePdfId('assets/praises/abc/def.GESTURES');
       expect(materialIdKindOf(id), MaterialKind.gesture);
+    });
+
+    test('.txt e .gest nao sao mais gesto (nada as produz)', () {
+      expect(
+        materialIdKindOf(encodePdfId('assets/praises/abc/def.txt')),
+        MaterialKind.unknown,
+      );
+      expect(
+        materialIdKindOf(encodePdfId('assets/praises/abc/def.gest')),
+        MaterialKind.unknown,
+      );
     });
 
     test('classifica extensao desconhecida como unknown', () {

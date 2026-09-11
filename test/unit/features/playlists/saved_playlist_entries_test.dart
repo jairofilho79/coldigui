@@ -12,7 +12,7 @@ final pdfA = encodePdfId('ColAdultos/001.pdf');
 final pdfB = encodePdfId('ColAdultos/002.pdf');
 final pdfC = encodePdfId('ColAdultos/003.pdf');
 final chordA = encodePdfId('ColAdultos/001.chord');
-final gestureA = encodePdfId('ColAdultos/001.gest');
+final gestureA = encodePdfId('ColAdultos/001.gestures');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 final audioB = encodePdfId('assets/praises/b/002.mp3');
 
