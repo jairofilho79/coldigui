@@ -31,6 +31,7 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
     coldigomCache: ref.watch(coldigomLouvoresCacheProvider),
     audioCache: ref.watch(coldigomAudioTracksCacheProvider),
     chordCache: ref.watch(coldigomChordMaterialsCacheProvider),
+    gestureCache: ref.watch(coldigomGestureMaterialsCacheProvider),
   );
 }
 

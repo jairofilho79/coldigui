@@ -14,6 +14,7 @@ import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.da
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -45,6 +46,16 @@ const _chord = ChordMaterial(
   numero: '692',
   groupId: 'g1',
   categoria: 'Cifra I',
+  classificacao: 'Básico',
+);
+
+const _gesture = GestureMaterial(
+  gestureId: 'gesture1',
+  r2Key: 'k2',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'g1',
+  categoria: 'Gestos I',
   classificacao: 'Básico',
 );
 
@@ -195,6 +206,10 @@ Future<_Harness> _pumpSwapSheet(
         builder: (_, _) => const Scaffold(body: Text('cifra')),
       ),
       GoRoute(
+        path: RoutePaths.gestos,
+        builder: (_, _) => const Scaffold(body: Text('gestos')),
+      ),
+      GoRoute(
         path: RoutePaths.audio,
         builder: (_, _) => const Scaffold(body: Text('player')),
       ),
@@ -288,6 +303,24 @@ void main() {
 
     expect(harness.location, startsWith(RoutePaths.chords));
     expect(find.text('cifra'), findsOneWidget);
+    expect(harness.carousel.replaced, isEmpty);
+  });
+
+  testWidgets('gesto abre a rota de gestos', (tester) async {
+    final group = LouvorGroup.fromLouvores(
+      [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+      gestureMaterials: const [_gesture],
+    ).first;
+
+    final harness = await _pumpSwapSheet(tester, group: group);
+
+    expect(find.text('Gestos I'), findsOneWidget);
+
+    await tester.tap(find.text('Gestos I'));
+    await tester.pumpAndSettle();
+
+    expect(harness.location, startsWith(RoutePaths.gestos));
+    expect(find.text('gestos'), findsOneWidget);
     expect(harness.carousel.replaced, isEmpty);
   });
 

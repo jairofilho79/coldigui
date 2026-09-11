@@ -64,7 +64,7 @@ LouvorGroup? findSwapMaterialGroup({
 
   final playingGroupId = _playingTrackGroupId(audioId, audioCache);
   if (playingGroupId != null &&
-      playingGroupId != _pdfIdGroupKey(pdfId, louvor, chordCache)) {
+      playingGroupId != _pdfIdGroupKey(pdfId, louvor, chordCache, gestureCache)) {
     return _multipleOnly(coldigom.findGroupById(playingGroupId));
   }
 
@@ -82,9 +82,12 @@ LouvorGroup? findSwapMaterialGroup({
     );
   }
 
-  // Cifra: o id decodifica para `.chord`, então nenhum [Louvor] casa com ele.
-  // O praiseId sai do próprio id — é o mesmo `assets/praises/{id}/…` do PDF.
-  if (pdfId != null && pdfId.isNotEmpty && chordCache?[pdfId] != null) {
+  // Cifra ou gesto: o id decodifica para `.chord`/`.gesture`, então nenhum
+  // [Louvor] casa com ele. O praiseId sai do próprio id — é o mesmo
+  // `assets/praises/{id}/…` do PDF.
+  if (pdfId != null &&
+      pdfId.isNotEmpty &&
+      (chordCache?[pdfId] != null || gestureCache?[pdfId] != null)) {
     return _multipleOnly(coldigom.findGroupForMaterial(pdfId));
   }
 
@@ -106,16 +109,17 @@ String? _playingTrackGroupId(
   return track.groupId;
 }
 
-/// `groupId` do material [pdfId] (PDF ou cifra), ou `null` se desconhecido.
+/// `groupId` do material [pdfId] (PDF, cifra ou gesto), ou `null` se
+/// desconhecido.
 String? _pdfIdGroupKey(
   String? pdfId,
   Louvor? louvor,
-  Map<String, ChordMaterial>? chordCache,
-) {
+  Map<String, ChordMaterial>? chordCache, [
+  Map<String, GestureMaterial>? gestureCache,
+]) {
   if (louvor != null) return _groupKey(louvor);
   if (pdfId == null || pdfId.isEmpty) return null;
-  final chord = chordCache?[pdfId];
-  if (chord == null) return null;
+  if (chordCache?[pdfId] == null && gestureCache?[pdfId] == null) return null;
   return coldigomPraiseIdFromPdfId(pdfId);
 }
 
