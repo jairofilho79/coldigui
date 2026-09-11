@@ -15,6 +15,7 @@ import 'package:coldigui/features/gestures/presentation/providers/gesture_reader
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_card_tile.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_document_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
+import 'package:coldigui/features/gestures/presentation/widgets/gesture_focus_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/newer_schema_banner.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -226,5 +227,28 @@ void main() {
   testWidgets('pdfId inválido não quebra: mostra "ainda não tem gestos"', (tester) async {
     await _pump(tester, document: () async => null, queryParams: {'pdfId': '###'});
     expect(find.text('Este louvor ainda não tem gestos'), findsOneWidget);
+  });
+
+  testWidgets('toque num cartão abre o foco; fechar rola a página até o cartão', (tester) async {
+    await _pump(tester, document: () async => parseGestureDocument(_read('182_quero_viver.json')));
+    await tester.tap(find.byKey(gestureCardKey(2)));
+    await tester.pumpAndSettle();
+    expect(find.byType(GestureFocusView), findsOneWidget);
+    expect(find.byKey(gestureFocusPageKey(2)), findsOneWidget);
+
+    for (var i = 0; i < 10; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+    }
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(GestureFocusView), findsNothing);
+    expect(find.byKey(gestureCardKey(12)), findsOneWidget);
+    // A `Column` do documento constrói todos os cartões de uma vez, então
+    // "existe" sozinho não prova que a rolagem aconteceu — confere que o
+    // cartão devolvido pelo foco está de fato visível na viewport.
+    final cardRect = tester.getRect(find.byKey(gestureCardKey(12)));
+    final viewportHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(cardRect.top, inInclusiveRange(0.0, viewportHeight));
   });
 }

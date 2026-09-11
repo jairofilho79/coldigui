@@ -13,11 +13,14 @@ import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/gesture_providers.dart';
+import '../../domain/entities/flat_gesture_card.dart';
 import '../../domain/entities/gesture_dictionary.dart';
 import '../../domain/entities/gesture_document.dart';
 import '../../domain/entities/gesture_reader_font_size.dart';
+import '../../domain/utils/flatten_gesture_cards.dart';
 import '../providers/gesture_reader_font_size_provider.dart';
 import '../widgets/gesture_document_view.dart';
+import '../widgets/gesture_focus_view.dart';
 import '../widgets/newer_schema_banner.dart';
 
 const Key gestureReaderRetryKey = ValueKey('gesture-reader-retry');
@@ -143,6 +146,26 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     );
   }
 
+  /// Abre o modo foco a partir do cartão [index] e, ao fechar, rola a página
+  /// de volta até onde o regente estava.
+  Future<void> _openFocus(
+    List<FlatGestureCard> cards,
+    GestureDictionary dictionary,
+    int index,
+    double fontSize,
+  ) async {
+    final result = await showGestureFocus(
+      context,
+      cards: cards,
+      dictionary: dictionary,
+      initialIndex: index,
+      fontSize: fontSize,
+    );
+    if (!mounted || result == null) return;
+    await _documentViewKey.currentState?.scrollToCard(result);
+    _keyboardFocusNode.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -187,6 +210,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                         if (dictionary.byId.isNotEmpty) {
                           _maybePrefetch(document, dictionary);
                         }
+                        final flat = flattenGestureCards(document);
                         return Column(
                           children: [
                             if (document.isNewerSchema)
@@ -197,7 +221,9 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                                 document: document,
                                 dictionary: dictionary,
                                 fontSize: fontSize,
-                                // Task 15 liga o modo foco aqui.
+                                onCardTap: flat.isEmpty
+                                    ? null
+                                    : (index) => _openFocus(flat, dictionary, index, fontSize),
                               ),
                             ),
                           ],
