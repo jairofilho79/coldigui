@@ -169,6 +169,17 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     minInterval: const Duration(seconds: 5),
   );
 
+  /// `audioId` dono da última duração observada (`durationStream`) — C12 fix
+  /// round 2.
+  ///
+  /// `durationStream` ignora emissões `null` e nada zera o `duration` do
+  /// [audioPlayerPositionProvider] numa troca **dentro da fila**
+  /// (`skipToNext`/`skipToPrevious`/`skipToIndex`/avanço automático do
+  /// player) — só `_applyQueue` faz isso. Sem essa marca, a duração da faixa
+  /// anterior ficava "pendurada" no provider e [_persistCurrentPosition]
+  /// gravava a duração errada sob o id da faixa nova.
+  String? _durationForAudioId;
+
   /// Geração da fila em vigor: cada `_applyQueue` incrementa e descarta o
   /// próprio resultado se outra chamada tiver começado depois (toque duplo).
   int _generation = 0;
@@ -217,6 +228,10 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           ref
               .read(audioPlayerPositionProvider.notifier)
               .update(duration: duration);
+          // Marca de quem é essa duração (C12 fix round 2) — sem isto uma
+          // duração emitida atrasada, já noutra faixa, seria gravada com o
+          // id errado em `_persistCurrentPosition`.
+          _durationForAudioId = state.currentTrack?.audioId;
           // Duração nova (troca de faixa) não pode esperar a janela de 1 s.
           _sendMediaSessionPosition(
             position: ref.read(audioPlayerPositionProvider).position,
@@ -232,6 +247,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           playerIndex: index,
           applyingSources: _applyingSources,
         );
+        if (next != state.currentIndex) {
+          // Troca de faixa dentro da fila (skip/avanço automático) não passa
+          // por `_applyQueue` — sem isto a janela de 5 s e a duração da
+          // faixa anterior ficariam presas na faixa nova (C12 fix round 2).
+          _positionStoreThrottle.reset();
+          _durationForAudioId = null;
+        }
         state = state.copyWith(currentIndex: next);
         _mediaSession?.updateTrack(state.currentTrack);
         _persistFocusedAudioId(state.currentTrack?.audioId);
@@ -300,12 +322,19 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     final track = state.currentTrack;
     if (track == null) return;
     if (!force && !_positionStoreThrottle.shouldSend()) return;
+    // Só usa a duração conhecida quando ela realmente pertence à faixa em
+    // foco — sem isto uma duração "pendurada" da faixa anterior (troca em
+    // fila, sem passar por `_applyQueue`) seria gravada sob o id errado
+    // (C12 fix round 2).
     final knownDuration = ref.read(audioPlayerPositionProvider).duration;
+    final durationBelongsToTrack = _durationForAudioId == track.audioId;
     unawaited(
       _positionStore.write(
         track.audioId,
         position,
-        duration: knownDuration > Duration.zero ? knownDuration : null,
+        duration: durationBelongsToTrack && knownDuration > Duration.zero
+            ? knownDuration
+            : null,
       ),
     );
   }
@@ -389,6 +418,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
     _positionStoreThrottle.reset();
+    _durationForAudioId = null;
     // Posição gravada (C12): só no boot (`restoreQueue`) e só quando o
     // trackId bate — tocar a partir da lista/busca (`playQueue`) começa do
     // zero. Perto do fim (< 5s restantes, quando a duração é conhecida) não

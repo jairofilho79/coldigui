@@ -825,6 +825,38 @@ void main() {
       expect(store.read()?.duration, const Duration(minutes: 3));
     });
 
+    test('duração da faixa anterior não é gravada sob o id da faixa nova '
+        '(C12 fix round 2)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1'), _track('a2')]);
+
+      // Duração de a1 conhecida.
+      player.durations.add(const Duration(seconds: 200));
+      await Future<void>.delayed(Duration.zero);
+
+      // O player avança sozinho pra faixa seguinte (troca em fila, sem
+      // passar por _applyQueue) — durationStream ainda não emitiu nada
+      // pra a2.
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+
+      player.playerStates.add(PlayerState(true, ProcessingState.ready));
+      await Future<void>.delayed(Duration.zero);
+      player.positions.add(const Duration(seconds: 5));
+      await Future<void>.delayed(Duration.zero);
+
+      final store = AudioPlaybackPositionStore(prefs);
+      final result = store.read();
+      expect(result?.trackId, 'a2');
+      expect(
+        result?.duration,
+        isNull,
+        reason: 'a duração de a1 não pode ser atribuída a a2',
+      );
+    });
+
     test(
       'pausar grava a posição imediatamente (não espera a janela de 5s)',
       () async {
