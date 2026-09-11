@@ -1,17 +1,26 @@
 // test/widget/features/audio_player/play_audio_in_session_storage_test.dart
 //
-// A1: tocar do sheet com Isar indisponível toca a faixa e **não** tenta
-// escrever na lista ativa (mesma porteira de `addMaterialToActivePlaylist`).
+// A1/A8: tocar nunca depende do storage — o áudio vem da rede. A entrada na
+// lista ativa passa pelo editor, que devolve `storageUnavailable` quando o
+// Isar de fato não veio; enquanto ele só está **abrindo** (web fria) ninguém
+// pré-julga no toque. Quem tem `BuildContext` (`openAudioInPlayer`) mostra a
+// snackbar de storage a partir do resultado.
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _track = AudioTrack(
@@ -38,89 +47,185 @@ class _FakeSession extends AudioPlayerSessionNotifier {
   }
 }
 
-/// Só registra; a versão real lança `StorageUnavailableException` sem Isar.
-class _RecordingPlaylists extends PlaylistsNotifier {
-  final List<String> addedAudioIds = [];
-
+class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   List<PlaylistViewItem> build() => const [];
+}
+
+/// Editor com resultado fixo — registra o que o player mandou adicionar.
+class _StubActiveEditor extends ActivePlaylistEditor {
+  _StubActiveEditor(this.outcome);
+
+  final AddToActiveOutcome outcome;
+  final List<({String id, MaterialKind? kind})> added = [];
 
   @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async {
-    addedAudioIds.add(audioId);
-    return true;
+  List<PlaylistEntry>? build() => null;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    added.add((id: materialId, kind: kind));
+    return outcome;
   }
 }
 
 void main() {
   late SharedPreferences prefs;
+  late AppLocalizations pt;
+
+  setUpAll(() async {
+    pt = await AppLocalizations.delegate.load(const Locale('pt'));
+  });
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
   });
 
-  Future<void> pumpAndPlay(
-    WidgetTester tester, {
-    required bool isarAvailable,
+  List<Override> overrides({
     required _FakeSession session,
-    required _RecordingPlaylists playlists,
-  }) async {
-    late WidgetRef capturedRef;
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          isarAvailableProvider.overrideWithValue(isarAvailable),
-          audioPlayerSessionProvider.overrideWith(() => session),
-          playlistsProvider.overrideWith(() => playlists),
-        ],
-        child: MaterialApp(
-          home: Consumer(
-            builder: (context, ref, _) {
-              capturedRef = ref;
-              return const SizedBox.shrink();
-            },
+    required _StubActiveEditor editor,
+  }) => [
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    // Web fria: o app já está na tela e o Isar ainda não resolveu.
+    isarStatusProvider.overrideWithValue(IsarStatus.opening),
+    audioPlayerSessionProvider.overrideWith(() => session),
+    activePlaylistEditorProvider.overrideWith(() => editor),
+    playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+  ];
+
+  group('playAudioInSession', () {
+    Future<AddToActiveOutcome> pumpAndPlay(
+      WidgetTester tester, {
+      required _FakeSession session,
+      required _StubActiveEditor editor,
+    }) async {
+      late WidgetRef capturedRef;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: overrides(session: session, editor: editor),
+          child: MaterialApp(
+            home: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ),
-      ),
-    );
-    await playAudioInSession(ref: capturedRef, track: _track);
-    await tester.pump();
-  }
+      );
+      final outcome = await playAudioInSession(ref: capturedRef, track: _track);
+      await tester.pump();
+      return outcome;
+    }
 
-  testWidgets('sem Isar, tocar do sheet toca e não escreve na lista', (
-    tester,
-  ) async {
-    final session = _FakeSession();
-    final playlists = _RecordingPlaylists();
-
-    await pumpAndPlay(
+    testWidgets('sem storage toca mesmo assim e devolve storageUnavailable', (
       tester,
-      isarAvailable: false,
-      session: session,
-      playlists: playlists,
-    );
+    ) async {
+      final session = _FakeSession();
+      final editor = _StubActiveEditor(AddToActiveOutcome.storageUnavailable);
 
-    expect(session.played, hasLength(1));
-    expect(session.played.single.single.audioId, 'audio1');
-    expect(playlists.addedAudioIds, isEmpty);
+      final outcome = await pumpAndPlay(
+        tester,
+        session: session,
+        editor: editor,
+      );
+
+      expect(session.played, hasLength(1));
+      expect(session.played.single.single.audioId, 'audio1');
+      expect(outcome, AddToActiveOutcome.storageUnavailable);
+    });
+
+    testWidgets('com o Isar abrindo, entra pelo editor com kind de áudio', (
+      tester,
+    ) async {
+      final session = _FakeSession();
+      final editor = _StubActiveEditor(AddToActiveOutcome.added);
+
+      final outcome = await pumpAndPlay(
+        tester,
+        session: session,
+        editor: editor,
+      );
+
+      expect(session.played, hasLength(1));
+      expect(editor.added, [(id: 'audio1', kind: MaterialKind.audio)]);
+      expect(outcome, AddToActiveOutcome.added);
+    });
   });
 
-  testWidgets('com Isar, tocar do sheet continua entrando na lista', (
-    tester,
-  ) async {
-    final session = _FakeSession();
-    final playlists = _RecordingPlaylists();
+  group('openAudioInPlayer', () {
+    Future<void> pumpAndOpen(
+      WidgetTester tester, {
+      required _FakeSession session,
+      required _StubActiveEditor editor,
+    }) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: overrides(session: session, editor: editor),
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: GoRouter(
+              routes: [
+                GoRoute(
+                  path: '/',
+                  builder: (_, _) => Scaffold(
+                    body: Consumer(
+                      builder: (context, ref, _) => ElevatedButton(
+                        onPressed: () => openAudioInPlayer(
+                          ref: ref,
+                          context: context,
+                          track: _track,
+                        ),
+                        child: const Text('tocar'),
+                      ),
+                    ),
+                  ),
+                ),
+                GoRoute(
+                  path: RoutePaths.audio,
+                  builder: (_, _) => const Scaffold(body: Text('player')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('tocar'));
+      await tester.pumpAndSettle();
+    }
 
-    await pumpAndPlay(
+    testWidgets('com o Isar abrindo, toca, navega e não mostra snackbar', (
       tester,
-      isarAvailable: true,
-      session: session,
-      playlists: playlists,
-    );
+    ) async {
+      final session = _FakeSession();
+      final editor = _StubActiveEditor(AddToActiveOutcome.added);
 
-    expect(session.played, hasLength(1));
-    expect(playlists.addedAudioIds, ['audio1']);
+      await pumpAndOpen(tester, session: session, editor: editor);
+
+      expect(session.played, hasLength(1));
+      expect(find.text('player'), findsOneWidget);
+      expect(find.text(pt.playlistStorageUnavailable), findsNothing);
+    });
+
+    testWidgets('storageUnavailable do editor mostra a snackbar de storage', (
+      tester,
+    ) async {
+      final session = _FakeSession();
+      final editor = _StubActiveEditor(AddToActiveOutcome.storageUnavailable);
+
+      await pumpAndOpen(tester, session: session, editor: editor);
+
+      // Tocar continua valendo (o áudio vem da rede); só a lista não gravou.
+      expect(session.played, hasLength(1));
+      expect(find.text('player'), findsOneWidget);
+      expect(find.text(pt.playlistStorageUnavailable), findsOneWidget);
+    });
   });
 }

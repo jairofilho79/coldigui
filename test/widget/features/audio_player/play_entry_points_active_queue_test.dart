@@ -98,9 +98,6 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   List<PlaylistViewItem> build() => const [];
 
   @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async => true;
-
-  @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
 }
 
@@ -113,13 +110,22 @@ class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
   Map<String, AudioTrack> build() => initial;
 }
 
+/// Editor da lista ativa sem storage: `playAudioInSession` entra por ele, e
+/// aqui só interessa a fila — a entrada na lista responde `added` e pronto.
 class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
+  _FakeActiveEditor([this.initial = const []]);
 
   final List<PlaylistEntry> initial;
 
   @override
   List<PlaylistEntry>? build() => initial;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async => AddToActiveOutcome.added;
 }
 
 class _FakeLouvoresCache extends ColdigomLouvoresCacheNotifier {
@@ -162,6 +168,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(true),
+          activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
           playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
           catalogMaterialLookupProvider.overrideWithValue(
@@ -293,6 +300,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(true),
+          activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
           playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
           louvoresByPdfIdProvider.overrideWithValue({'pdf1': louvor}),

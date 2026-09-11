@@ -112,6 +112,10 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
 
 /// Registra cada `addToActive` do sheet — o `+` passa pelo editor (B.3).
 class _RecordingActiveEditor extends ActivePlaylistEditor {
+  _RecordingActiveEditor({this.outcome = AddToActiveOutcome.added});
+
+  /// O que o editor responde — o sheet só traduz o resultado em snackbar.
+  final AddToActiveOutcome outcome;
   final List<({String id, MaterialKind? kind, bool allowDuplicate})> added = [];
 
   @override
@@ -124,7 +128,7 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
     bool allowDuplicate = false,
   }) async {
     added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
-    return AddToActiveOutcome.added;
+    return outcome;
   }
 }
 
@@ -146,6 +150,7 @@ Future<void> _pumpSheet(
   ActivePlaylistEditor Function()? editor,
   List<ActiveEntry> activeEntries = const [],
   bool canAddToPlaylist = true,
+  IsarStatus isarStatus = IsarStatus.available,
   List<Override> overrides = const [],
 }) async {
   // O sheet é uma ListView e o modal ocupa 75% da altura: na janela padrão
@@ -157,7 +162,7 @@ Future<void> _pumpSheet(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        isarAvailableProvider.overrideWithValue(true),
+        isarStatusProvider.overrideWithValue(isarStatus),
         activeEntriesProvider.overrideWithValue(activeEntries),
         if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
@@ -661,6 +666,65 @@ void main() {
       expect(editor.added, [
         (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: true),
       ]);
+    });
+
+    // A8: enquanto o Isar ainda **abre** (web fria), o `+` não pré-julga o
+    // storage no toque — quem decide é o editor, que espera a abertura.
+    testWidgets('com o Isar abrindo, o + entra pelo editor sem pré-julgar', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        isarStatus: IsarStatus.opening,
+      );
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(editor.added, hasLength(1));
+      expect(find.text('Adicionado à seleção'), findsOneWidget);
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('storageUnavailable do editor vira a snackbar de storage', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor(
+        outcome: AddToActiveOutcome.storageUnavailable,
+      );
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        isarStatus: IsarStatus.opening,
+      );
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Adicionado à seleção'), findsNothing);
     });
 
     testWidgets('canAddToPlaylist falso esconde todos os +', (tester) async {

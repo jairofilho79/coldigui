@@ -1,4 +1,3 @@
-import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/errors/user_message_for.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -7,6 +6,7 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -15,11 +15,11 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,28 +118,16 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     await showMaterialSheet(context, ref, group);
   }
 
+  /// Mesmo caminho do `+` do sheet: o editor decide e a snackbar traduz o
+  /// resultado — sem pré-julgar o storage no toque (A8).
   Future<void> _handleAddToCarousel() async {
     final louvor = widget.group.primaryLouvor;
     if (louvor == null) return;
 
-    if (!ref.read(isarAvailableProvider)) {
-      if (!mounted) return;
-      showAppSnackbar(
-        context,
-        AppLocalizations.of(context)!.playlistStorageUnavailable,
-      );
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context)!;
-    final added = await ref
-        .read(playlistsProvider.notifier)
-        .addLouvorToActivePlaylist(louvor.pdfId);
-
-    if (!mounted) return;
-    showAppSnackbar(
-      context,
-      added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
+    await addMaterialToActivePlaylist(
+      context: context,
+      ref: ref,
+      material: PdfMaterial(louvor),
     );
   }
 

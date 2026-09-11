@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/database/isar_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -75,6 +74,11 @@ class MaterialAddTrailing extends StatelessWidget {
 /// Passa pelo [ActivePlaylistEditor] (B.3): o `kind` vem do próprio
 /// [CatalogMaterial], não da extensão do id. [allowDuplicate] é o caminho de
 /// «Adicionar de novo» — uma segunda ocorrência do mesmo material.
+///
+/// Não pré-julga o storage no toque (A8): a decisão é do editor, e só
+/// [AddToActiveOutcome.storageUnavailable] — o desfecho real da escrita —
+/// vira a snackbar de storage. Um `isarAvailableProvider` lido aqui
+/// colapsaria «ainda abrindo» em «indisponível».
 Future<void> addMaterialToActivePlaylist({
   required BuildContext context,
   required WidgetRef ref,
@@ -82,13 +86,6 @@ Future<void> addMaterialToActivePlaylist({
   bool allowDuplicate = false,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-
-  if (!ref.read(isarAvailableProvider)) {
-    if (context.mounted) {
-      showAppSnackbar(context, l10n.playlistStorageUnavailable);
-    }
-    return;
-  }
 
   // canAddMaterialToPlaylist barra cifra e YouTube antes de chegar aqui.
   if (!canAddMaterialToPlaylist(material)) return;

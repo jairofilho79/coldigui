@@ -10,6 +10,8 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -22,14 +24,24 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   List<PlaylistViewItem> build() => const [];
 
-  @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async => true;
-
   // `openLouvorInReader` resolve o PDF e adiciona à lista ativa dentro de um
   // `Future.wait`, que só completa quando **os dois** terminam — sem este
   // override o teste ficaria pendurado no Isar e o erro nunca chegaria à UI.
   @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
+}
+
+/// `playAudioInSession` entra na lista ativa pelo editor — sem storage aqui.
+class _FakeActiveEditor extends ActivePlaylistEditor {
+  @override
+  List<PlaylistEntry>? build() => null;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async => AddToActiveOutcome.added;
 }
 
 /// Sessão de áudio que sempre falha ao tocar — `playQueue` é o único `await`
@@ -131,6 +143,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
             playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
             audioPlayerSessionProvider.overrideWith(_FailingAudioSession.new),
           ],
