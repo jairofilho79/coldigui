@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coldigui/features/audio_flags/data/datasources/audio_flag_remote_datasource.dart';
+import 'package:coldigui/features/audio_flags/domain/entities/remote_audio_flag.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,6 +12,7 @@ class _FixedAdapter implements HttpClientAdapter {
 
   final int statusCode;
   final Object? body;
+  RequestOptions? lastRequest;
 
   @override
   Future<ResponseBody> fetch(
@@ -18,6 +20,7 @@ class _FixedAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    lastRequest = options;
     return ResponseBody.fromString(
       body == null ? '' : jsonEncode(body),
       statusCode,
@@ -36,6 +39,27 @@ AudioFlagRemoteDatasource _datasource(Object? body) {
   dio.httpClientAdapter = _FixedAdapter(200, body);
   return AudioFlagRemoteDatasource(dio);
 }
+
+/// Datasource com adapter exposto, para inspecionar a requisição/status.
+(AudioFlagRemoteDatasource, _FixedAdapter) _withAdapter(
+  int statusCode,
+  Object? body,
+) {
+  final adapter = _FixedAdapter(statusCode, body);
+  final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+  dio.httpClientAdapter = adapter;
+  return (AudioFlagRemoteDatasource(dio), adapter);
+}
+
+RemoteAudioFlag _flag({String id = 'f1'}) => RemoteAudioFlag(
+  id: id,
+  audioId: 'aud-1',
+  positionMs: 1000,
+  label: 'refrão',
+  createdAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 2, 1),
+  version: 1,
+);
 
 Map<String, Object?> _row({String id = 'f1', String audioId = 'aud-1'}) => {
   'id': id,
@@ -87,5 +111,65 @@ void main() {
     ]);
 
     expect(await datasource.fetchAll('token'), isEmpty);
+  });
+
+  test('fetchAll pede os tombstones com includeDeleted=1', () async {
+    final (datasource, adapter) = _withAdapter(200, [_row()]);
+
+    await datasource.fetchAll('token');
+
+    expect(adapter.lastRequest?.queryParameters['includeDeleted'], '1');
+  });
+
+  test('deletedAt do wire chega na entidade', () async {
+    final datasource = _datasource([
+      {..._row(id: 'viva')},
+      {..._row(id: 'morta'), 'deletedAt': '2026-05-01T00:00:00.000Z'},
+    ]);
+
+    final result = await datasource.fetchAll('token');
+
+    expect(result.firstWhere((f) => f.id == 'viva').deletedAt, isNull);
+    expect(
+      result.firstWhere((f) => f.id == 'morta').deletedAt,
+      DateTime.utc(2026, 5, 1),
+    );
+  });
+
+  test('deletedAt ilegível descarta só o registro ruim', () async {
+    final datasource = _datasource([
+      {..._row(id: 'ruim'), 'deletedAt': 'ontem'},
+      _row(id: 'ok-1'),
+    ]);
+
+    expect((await datasource.fetchAll('token')).single.id, 'ok-1');
+  });
+
+  test('409 com corpo legível vira AudioFlagConflictException', () async {
+    final (datasource, _) = _withAdapter(409, {
+      ..._row(),
+      'updatedAt': '2026-03-01T00:00:00.000Z',
+      'version': 7,
+    });
+
+    await expectLater(
+      datasource.upsert(idToken: 'token', flag: _flag()),
+      throwsA(
+        isA<AudioFlagConflictException>().having(
+          (e) => e.remote.version,
+          'remote.version',
+          7,
+        ),
+      ),
+    );
+  });
+
+  test('409 sem corpo legível continua DioException', () async {
+    final (datasource, _) = _withAdapter(409, {'id': 42});
+
+    await expectLater(
+      datasource.upsert(idToken: 'token', flag: _flag()),
+      throwsA(isA<DioException>()),
+    );
   });
 }

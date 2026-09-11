@@ -30,15 +30,22 @@ class AudioFlagLocalDatasource {
     return isar.audioFlags.where().flagIdEqualTo(flagId).findFirst();
   }
 
-  Future<List<AudioFlag>> findPendingPush() async {
+  /// Pendências que a conta [sub] pode enviar: as dela e as ainda sem dono.
+  ///
+  /// O filtro de dono é em memória de propósito — `ownerSub` não é indexado (é
+  /// campo novo, e a lista de pendentes já é curta).
+  Future<List<AudioFlag>> findPendingPush({String? sub}) async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.audioFlags
+    final rows = isar.audioFlags
         .where()
         .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
         .and()
         .deletedAtIsNull()
         .findAll();
+    return rows
+        .where((row) => row.ownerSub == null || row.ownerSub == sub)
+        .toList(growable: false);
   }
 
   Future<List<AudioFlag>> findTombstones() async {
@@ -87,16 +94,47 @@ class AudioFlagLocalDatasource {
     });
   }
 
-  Future<void> markAllPendingPush() async {
+  /// Adota para [sub] as linhas vivas sem dono ou já dele, marcando-as
+  /// `pendingPush` (spec A.5).
+  ///
+  /// Linhas de outra conta ficam intocadas: elas não sobem no push desta.
+  Future<void> adoptForSub(String sub) async {
     final isar = _isar;
     if (isar == null) return;
     await isar.write((isar) {
       final coll = isar.audioFlags;
       final rows = coll.where().deletedAtIsNull().findAll();
       for (final row in rows) {
+        if (row.ownerSub != null && row.ownerSub != sub) continue;
         row.syncStatus = PlaylistSyncStatus.pendingPush;
+        row.ownerSub = sub;
         coll.put(row);
       }
+    });
+  }
+
+  /// Apaga de vez as linhas já sincronizadas de [previousSub] (troca de conta).
+  ///
+  /// Só as `synced`: elas estão na nuvem da conta anterior e voltam no próximo
+  /// login dela. `pendingPush`/`conflict` ficam no aparelho, com o dono antigo.
+  Future<int> purgeSyncedOwnedBy(String previousSub) async {
+    final isar = _isar;
+    if (isar == null) return 0;
+    return isar.write((isar) {
+      final coll = isar.audioFlags;
+      final doomed = coll
+          .where()
+          .findAll()
+          .where(
+            (row) =>
+                row.ownerSub == previousSub &&
+                row.syncStatus == PlaylistSyncStatus.synced,
+          )
+          .toList(growable: false);
+      for (final row in doomed) {
+        coll.delete(row.id);
+      }
+      return doomed.length;
     });
   }
 

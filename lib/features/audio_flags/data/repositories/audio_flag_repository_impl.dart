@@ -61,8 +61,8 @@ class AudioFlagRepositoryImpl implements AudioFlagRepository {
   Future<void> hardDelete(String flagId) => _local.deleteByFlagId(flagId);
 
   @override
-  Future<List<SavedAudioFlag>> getPendingPush() async {
-    final rows = await _local.findPendingPush();
+  Future<List<SavedAudioFlag>> getPendingPush({String? sub}) async {
+    final rows = await _local.findPendingPush(sub: sub);
     return rows.map(_toEntity).toList(growable: false);
   }
 
@@ -83,12 +83,17 @@ class AudioFlagRepositoryImpl implements AudioFlagRepository {
       ..updatedAt = flag.updatedAt
       ..version = flag.version
       ..syncStatus = flag.syncStatus
-      ..deletedAt = flag.deletedAt;
+      ..deletedAt = flag.deletedAt
+      ..ownerSub = flag.ownerSub;
     await _local.insert(row);
   }
 
   @override
-  Future<void> markAllPendingPush() => _local.markAllPendingPush();
+  Future<void> adoptForSub(String sub) => _local.adoptForSub(sub);
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) =>
+      _local.purgeSyncedOwnedBy(previousSub);
 
   SavedAudioFlag _toEntity(AudioFlag row) => SavedAudioFlag(
     flagId: row.flagId,
@@ -102,5 +107,6 @@ class AudioFlagRepositoryImpl implements AudioFlagRepository {
     version: row.version,
     syncStatus: row.syncStatus,
     deletedAt: row.deletedAt,
+    ownerSub: row.ownerSub,
   );
 }

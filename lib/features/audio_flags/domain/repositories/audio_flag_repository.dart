@@ -18,11 +18,19 @@ abstract class AudioFlagRepository {
 
   Future<void> hardDelete(String flagId);
 
-  Future<List<SavedAudioFlag>> getPendingPush();
+  /// Pendências que [sub] pode enviar: as dela e as ainda sem dono (spec A.5).
+  Future<List<SavedAudioFlag>> getPendingPush({String? sub});
 
   Future<List<SavedAudioFlag>> getTombstones();
 
   Future<void> upsert(SavedAudioFlag flag);
 
-  Future<void> markAllPendingPush();
+  /// Pós-login: marca `pendingPush` e grava `ownerSub = sub` nas linhas sem
+  /// dono ou já de [sub].
+  Future<void> adoptForSub(String sub);
+
+  /// Troca de conta: hard delete das linhas `synced` de [previousSub].
+  ///
+  /// Devolve quantas saíram.
+  Future<int> purgeSyncedOwnedBy(String previousSub);
 }

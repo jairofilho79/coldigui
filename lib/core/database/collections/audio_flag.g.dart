@@ -29,6 +29,7 @@ final AudioFlagSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'version', type: IsarType.long),
       IsarPropertySchema(name: 'syncStatusIndex', type: IsarType.long),
       IsarPropertySchema(name: 'deletedAt', type: IsarType.dateTime),
+      IsarPropertySchema(name: 'ownerSub', type: IsarType.string),
     ],
     indexes: [
       IsarIndexSchema(
@@ -76,6 +77,14 @@ int serializeAudioFlag(IsarWriter writer, AudioFlag object) {
     9,
     object.deletedAt?.toUtc().microsecondsSinceEpoch ?? -9223372036854775808,
   );
+  {
+    final value = object.ownerSub;
+    if (value == null) {
+      IsarCore.writeNull(writer, 10);
+    } else {
+      IsarCore.writeString(writer, 10, value);
+    }
+  }
   return object.id;
 }
 
@@ -128,6 +137,7 @@ AudioFlag deserializeAudioFlag(IsarReader reader) {
       ).toLocal();
     }
   }
+  object.ownerSub = IsarCore.readString(reader, 10);
   return object;
 }
 
@@ -184,6 +194,8 @@ dynamic deserializeAudioFlagProp(IsarReader reader, int property) {
           ).toLocal();
         }
       }
+    case 10:
+      return IsarCore.readString(reader, 10);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -201,6 +213,7 @@ sealed class _AudioFlagUpdate {
     int? version,
     int? syncStatusIndex,
     DateTime? deletedAt,
+    String? ownerSub,
   });
 }
 
@@ -221,6 +234,7 @@ class _AudioFlagUpdateImpl implements _AudioFlagUpdate {
     Object? version = ignore,
     Object? syncStatusIndex = ignore,
     Object? deletedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -234,6 +248,7 @@ class _AudioFlagUpdateImpl implements _AudioFlagUpdate {
             if (version != ignore) 7: version as int?,
             if (syncStatusIndex != ignore) 8: syncStatusIndex as int?,
             if (deletedAt != ignore) 9: deletedAt as DateTime?,
+            if (ownerSub != ignore) 10: ownerSub as String?,
           },
         ) >
         0;
@@ -252,6 +267,7 @@ sealed class _AudioFlagUpdateAll {
     int? version,
     int? syncStatusIndex,
     DateTime? deletedAt,
+    String? ownerSub,
   });
 }
 
@@ -272,6 +288,7 @@ class _AudioFlagUpdateAllImpl implements _AudioFlagUpdateAll {
     Object? version = ignore,
     Object? syncStatusIndex = ignore,
     Object? deletedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return collection.updateProperties(id, {
       if (flagId != ignore) 1: flagId as String?,
@@ -283,6 +300,7 @@ class _AudioFlagUpdateAllImpl implements _AudioFlagUpdateAll {
       if (version != ignore) 7: version as int?,
       if (syncStatusIndex != ignore) 8: syncStatusIndex as int?,
       if (deletedAt != ignore) 9: deletedAt as DateTime?,
+      if (ownerSub != ignore) 10: ownerSub as String?,
     });
   }
 }
@@ -304,6 +322,7 @@ sealed class _AudioFlagQueryUpdate {
     int? version,
     int? syncStatusIndex,
     DateTime? deletedAt,
+    String? ownerSub,
   });
 }
 
@@ -324,6 +343,7 @@ class _AudioFlagQueryUpdateImpl implements _AudioFlagQueryUpdate {
     Object? version = ignore,
     Object? syncStatusIndex = ignore,
     Object? deletedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (flagId != ignore) 1: flagId as String?,
@@ -335,6 +355,7 @@ class _AudioFlagQueryUpdateImpl implements _AudioFlagQueryUpdate {
       if (version != ignore) 7: version as int?,
       if (syncStatusIndex != ignore) 8: syncStatusIndex as int?,
       if (deletedAt != ignore) 9: deletedAt as DateTime?,
+      if (ownerSub != ignore) 10: ownerSub as String?,
     });
   }
 }
@@ -363,6 +384,7 @@ class _AudioFlagQueryBuilderUpdateImpl implements _AudioFlagQueryUpdate {
     Object? version = ignore,
     Object? syncStatusIndex = ignore,
     Object? deletedAt = ignore,
+    Object? ownerSub = ignore,
   }) {
     final q = query.build();
     try {
@@ -376,6 +398,7 @@ class _AudioFlagQueryBuilderUpdateImpl implements _AudioFlagQueryUpdate {
         if (version != ignore) 7: version as int?,
         if (syncStatusIndex != ignore) 8: syncStatusIndex as int?,
         if (deletedAt != ignore) 9: deletedAt as DateTime?,
+        if (ownerSub != ignore) 10: ownerSub as String?,
       });
     } finally {
       q.close();
@@ -1265,6 +1288,180 @@ extension AudioFlagQueryFilter
       );
     });
   }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 10));
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition>
+  ownerSubIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 10));
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubGreaterThan(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition>
+  ownerSubGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubLessThan(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 10, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition>
+  ownerSubLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubBetween(
+    String? lower,
+    String? upper, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 10,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 10,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 10,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition> ownerSubIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 10, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterFilterCondition>
+  ownerSubIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 10, value: ''),
+      );
+    });
+  }
 }
 
 extension AudioFlagQueryObject
@@ -1402,6 +1599,22 @@ extension AudioFlagQuerySortBy on QueryBuilder<AudioFlag, AudioFlag, QSortBy> {
       return query.addSortBy(9, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterSortBy> sortByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterSortBy> sortByOwnerSubDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension AudioFlagQuerySortThenBy
@@ -1537,6 +1750,22 @@ extension AudioFlagQuerySortThenBy
       return query.addSortBy(9, sort: Sort.desc);
     });
   }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterSortBy> thenByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterSortBy> thenByOwnerSubDesc({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension AudioFlagQueryWhereDistinct
@@ -1599,6 +1828,14 @@ extension AudioFlagQueryWhereDistinct
   QueryBuilder<AudioFlag, AudioFlag, QAfterDistinct> distinctByDeletedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(9);
+    });
+  }
+
+  QueryBuilder<AudioFlag, AudioFlag, QAfterDistinct> distinctByOwnerSub({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(10, caseSensitive: caseSensitive);
     });
   }
 }
@@ -1664,6 +1901,12 @@ extension AudioFlagQueryProperty1
       return query.addProperty(9);
     });
   }
+
+  QueryBuilder<AudioFlag, String?, QAfterProperty> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
+    });
+  }
 }
 
 extension AudioFlagQueryProperty2<R>
@@ -1725,6 +1968,12 @@ extension AudioFlagQueryProperty2<R>
   QueryBuilder<AudioFlag, (R, DateTime?), QAfterProperty> deletedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(9);
+    });
+  }
+
+  QueryBuilder<AudioFlag, (R, String?), QAfterProperty> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
     });
   }
 }
@@ -1790,6 +2039,12 @@ extension AudioFlagQueryProperty3<R1, R2>
   deletedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(9);
+    });
+  }
+
+  QueryBuilder<AudioFlag, (R1, R2, String?), QOperations> ownerSubProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(10);
     });
   }
 }

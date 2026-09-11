@@ -32,6 +32,12 @@ class AudioFlag {
   int syncStatusIndex = 0;
 
   DateTime? deletedAt;
+
+  /// `sub` Google do dono da linha; `null` = criada sem conta (ainda sem dono).
+  ///
+  /// **Declarado por último** de propósito: campo novo no fim mantém os índices
+  /// das propriedades já gravadas em disco (regra Isar do projeto).
+  String? ownerSub;
 }
 
 extension AudioFlagSyncStatusX on AudioFlag {

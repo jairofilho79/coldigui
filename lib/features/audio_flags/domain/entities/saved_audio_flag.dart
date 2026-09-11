@@ -14,6 +14,7 @@ class SavedAudioFlag {
     this.version = 1,
     this.syncStatus = PlaylistSyncStatus.synced,
     this.deletedAt,
+    this.ownerSub,
   }) : updatedAt = updatedAt ?? createdAt;
 
   final String flagId;
@@ -25,6 +26,9 @@ class SavedAudioFlag {
   final int version;
   final PlaylistSyncStatus syncStatus;
   final DateTime? deletedAt;
+
+  /// `sub` Google do dono; `null` = marcador criado sem conta (spec A.5).
+  final String? ownerSub;
 
   Duration get position => Duration(milliseconds: positionMs);
 
@@ -39,6 +43,7 @@ class SavedAudioFlag {
     PlaylistSyncStatus? syncStatus,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
+    String? ownerSub,
   }) {
     return SavedAudioFlag(
       flagId: flagId ?? this.flagId,
@@ -50,6 +55,7 @@ class SavedAudioFlag {
       version: version ?? this.version,
       syncStatus: syncStatus ?? this.syncStatus,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+      ownerSub: ownerSub ?? this.ownerSub,
     );
   }
 }
