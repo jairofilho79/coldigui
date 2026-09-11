@@ -535,7 +535,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 PlaylistShareContext(
                   playlistId: playlist.playlistId,
                   nome: playlist.nome,
-                  pdfIds: playlist.pdfIds,
+                  entries: playlist.entries,
                 ),
                 option,
                 sharePositionOrigin: shareOrigin,

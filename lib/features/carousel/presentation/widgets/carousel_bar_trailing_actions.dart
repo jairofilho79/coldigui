@@ -2,7 +2,6 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
@@ -10,6 +9,7 @@ import 'package:coldigui/features/playlists/domain/entities/playlist_share_optio
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
@@ -178,10 +178,10 @@ class _CarouselBarTrailingActionsState
       return;
     }
 
-    final pdfIds = ref
-        .read(carouselItemsProvider)
-        .map((item) => item.materialId)
-        .toList();
+    final entries = ref
+        .read(activeEntriesProvider)
+        .map((activeEntry) => activeEntry.entry)
+        .toList(growable: false);
     final option = await showPlaylistShareSheet(context);
     if (option == null || !context.mounted) return;
 
@@ -194,7 +194,7 @@ class _CarouselBarTrailingActionsState
             PlaylistShareContext(
               playlistId: active.playlistId,
               nome: active.nome,
-              pdfIds: pdfIds,
+              entries: entries,
               fromCarousel: true,
             ),
             option,

@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_share_option.dart';
-import '../../domain/exceptions/empty_carousel_exception.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../providers/playlists_provider.dart';
@@ -89,7 +89,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             capture: capture,
           );
       }
-    } on EmptyCarouselException catch (error, stackTrace) {
+    } on EmptyLeafletException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -238,7 +238,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }) async {
     final document = await resolveLeafletDocument(
       ref,
-      pdfIds: shareContext.pdfIds,
+      entries: shareContext.entries,
       fromCarousel: shareContext.fromCarousel,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);

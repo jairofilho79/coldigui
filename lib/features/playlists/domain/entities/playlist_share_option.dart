@@ -1,3 +1,5 @@
+import 'playlist_entry.dart';
+
 /// Modo de compartilhamento escolhido no bottom sheet (UC-07/UC-08).
 enum PlaylistShareOption {
   /// Só URL da playlist.
@@ -18,16 +20,16 @@ class PlaylistShareContext {
   const PlaylistShareContext({
     required this.playlistId,
     required this.nome,
-    required this.pdfIds,
+    required this.entries,
     this.fromCarousel = false,
   });
 
   final String playlistId;
   final String nome;
 
-  /// IDs na ordem da lista ou do carousel.
-  final List<String> pdfIds;
+  /// Entradas (tipadas) na ordem da lista ou do carousel — inclui áudio.
+  final List<PlaylistEntry> entries;
 
-  /// `true` quando [pdfIds] reflete a seleção do carousel; `false` para playlist salva.
+  /// `true` quando [entries] reflete a seleção do carousel; `false` para playlist salva.
   final bool fromCarousel;
 }
