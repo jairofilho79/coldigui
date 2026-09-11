@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/audio_player/data/datasources/audio_playback_position_store.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -16,7 +17,9 @@ class _ControllablePlayer extends AudioPlayer {
   final indexes = StreamController<int?>.broadcast();
   final positions = StreamController<Duration>.broadcast();
   final durations = StreamController<Duration?>.broadcast();
+  final playerStates = StreamController<PlayerState>.broadcast();
   final setSourcesCalls = <List<AudioSource>>[];
+  final initialPositions = <Duration?>[];
   final pendingSetSources = <Completer<Duration?>>[];
   final seekCalls = <Duration?>[];
   final setSpeedCalls = <double>[];
@@ -25,6 +28,11 @@ class _ControllablePlayer extends AudioPlayer {
   bool blockSetSources = false;
   Object? playError;
   int playCalls = 0;
+
+  /// Sobrescreve o getter do `AudioPlayer` real (lido por `playPause`) — o
+  /// teste ajusta direto (`player.playing = true`) para escolher o ramo.
+  @override
+  bool playing = false;
 
   @override
   Stream<PlayerException> get errorStream => errors.stream;
@@ -39,6 +47,9 @@ class _ControllablePlayer extends AudioPlayer {
   Stream<Duration?> get durationStream => durations.stream;
 
   @override
+  Stream<PlayerState> get playerStateStream => playerStates.stream;
+
+  @override
   Future<Duration?> setAudioSources(
     List<AudioSource> audioSources, {
     bool preload = true,
@@ -47,6 +58,7 @@ class _ControllablePlayer extends AudioPlayer {
     ShuffleOrder? shuffleOrder,
   }) {
     setSourcesCalls.add(audioSources);
+    initialPositions.add(initialPosition);
     if (!blockSetSources) return Future.value(null);
     final completer = Completer<Duration?>();
     pendingSetSources.add(completer);
@@ -92,10 +104,11 @@ class _ControllablePlayer extends AudioPlayer {
     await indexes.close();
     await positions.close();
     await durations.close();
+    await playerStates.close();
   }
 }
 
-AudioTrack _track(String id) => AudioTrack(
+AudioTrack _track(String id, {Duration? duration}) => AudioTrack(
   audioId: id,
   r2Key: 'assets/praises/p1/$id.mp3',
   nome: id.toUpperCase(),
@@ -103,6 +116,7 @@ AudioTrack _track(String id) => AudioTrack(
   groupId: 'p1',
   categoria: 'Áudio',
   classificacao: 'Coro',
+  duration: duration,
 );
 
 /// `r2Key` absoluto e malformado: `Uri.parse` estoura em `_playbackUriForTrack`
@@ -582,6 +596,20 @@ void main() {
       throttle.reset();
       expect(throttle.shouldSend(), isTrue);
     });
+
+    test('minInterval customizado (5s, reuso pra posição persistida)', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(
+        now: () => now,
+        minInterval: const Duration(seconds: 5),
+      );
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(seconds: 3));
+      expect(throttle.shouldSend(), isFalse);
+      now = now.add(const Duration(seconds: 3));
+      expect(throttle.shouldSend(), isTrue);
+    });
   });
 
   group('seekBy (C12)', () {
@@ -660,6 +688,149 @@ void main() {
         contains(1.25),
         reason: '_applyQueue reaplica a velocidade na fonte nova',
       );
+    });
+  });
+
+  group('posição persistida (C12)', () {
+    test(
+      'restoreQueue com trackId igual passa a posição gravada ao player',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        await AudioPlaybackPositionStore(
+          prefs,
+        ).write('a1', const Duration(seconds: 30));
+
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.restoreQueue([
+          _track('a1', duration: const Duration(minutes: 3)),
+        ]);
+
+        expect(player.initialPositions.single, const Duration(seconds: 30));
+      },
+    );
+
+    test(
+      'restoreQueue com trackId diferente ignora a posição gravada',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        await AudioPlaybackPositionStore(
+          prefs,
+        ).write('b1', const Duration(seconds: 30));
+
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.restoreQueue([
+          _track('a1', duration: const Duration(minutes: 3)),
+        ]);
+
+        expect(player.initialPositions.single, isNull);
+      },
+    );
+
+    test('posição a menos de 5s do fim não é restaurada', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(
+        prefs,
+      ).write('a1', const Duration(minutes: 3) - const Duration(seconds: 3));
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([
+        _track('a1', duration: const Duration(minutes: 3)),
+      ]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
+    test('playQueue (tocar da lista/busca) começa sempre do zero', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(
+        prefs,
+      ).write('a1', const Duration(seconds: 30));
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([
+        _track('a1', duration: const Duration(minutes: 3)),
+      ]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
+    test('stop() grava a posição atual antes de zerar', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.stop();
+
+      final store = AudioPlaybackPositionStore(prefs);
+      expect(store.read()?.trackId, 'a1');
+      expect(store.read()?.position, const Duration(seconds: 55));
+    });
+
+    test(
+      'pausar grava a posição imediatamente (não espera a janela de 5s)',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        player.playing = true;
+        player.positions.add(const Duration(seconds: 12));
+        await Future<void>.delayed(Duration.zero);
+
+        await notifier.playPause();
+
+        final store = AudioPlaybackPositionStore(prefs);
+        expect(store.read()?.trackId, 'a1');
+        expect(store.read()?.position, const Duration(seconds: 12));
+      },
+    );
+
+    test(
+      'grava a primeira posição tocando, mas não de novo antes de 5s',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        player.playerStates.add(PlayerState(true, ProcessingState.ready));
+        await Future<void>.delayed(Duration.zero);
+        expect(container.read(audioPlayerSessionProvider).playing, isTrue);
+
+        player.positions.add(const Duration(seconds: 1));
+        await Future<void>.delayed(Duration.zero);
+
+        final store = AudioPlaybackPositionStore(prefs);
+        expect(store.read()?.position, const Duration(seconds: 1));
+
+        player.positions.add(const Duration(seconds: 2));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          store.read()?.position,
+          const Duration(seconds: 1),
+          reason: 'dentro da janela de 5s a próxima gravação espera',
+        );
+      },
+    );
+
+    test('sem faixa em foco, nada é gravado', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+      await notifier.stop();
+
+      expect(AudioPlaybackPositionStore(prefs).read(), isNull);
     });
   });
 }

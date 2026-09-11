@@ -60,4 +60,8 @@ abstract final class StorageKeys {
 
   /// «Duas páginas em tela larga» (spread) ligado/desligado — spec A.4 C8.
   static const String pdfSpreadEnabled = 'pdfSpreadEnabled';
+
+  /// Última posição do player de áudio, JSON `{"trackId":..,"positionMs":..}`
+  /// (spec B.4 C12, retomar posição no boot).
+  static const String audioLastPosition = 'audioLastPosition';
 }

@@ -11,6 +11,7 @@ import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../data/audio_media_session.dart';
 import '../../data/audio_player_web_providers.dart';
 import '../../data/audio_web_unlock.dart';
+import '../../data/datasources/audio_playback_position_store.dart';
 import '../../data/web_audio_source_resolver.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/utils/audio_track_url.dart';
@@ -85,21 +86,27 @@ class AudioPlayerSessionState {
 }
 
 /// Decide quando reenviar a posição pra media session do sistema: no máximo
-/// uma vez por segundo, exceto quando `force` (troca de duração ou seek) —
-/// sem isto o listener de `positionStream` (~5 Hz) chamaria `updatePosition`
-/// a cada tick (A7).
+/// uma vez por segundo (padrão), exceto quando `force` (troca de duração ou
+/// seek) — sem isto o listener de `positionStream` (~5 Hz) chamaria
+/// `updatePosition` a cada tick (A7).
+///
+/// [minInterval] é reutilizado por [AudioPlaybackPositionStore] (C12), que
+/// grava a posição no máximo a cada 5 s enquanto toca — mesma lógica de
+/// janela, intervalo diferente.
 @visibleForTesting
 class MediaSessionPositionThrottle {
-  MediaSessionPositionThrottle({DateTime Function()? now})
-    : _now = now ?? DateTime.now;
+  MediaSessionPositionThrottle({
+    DateTime Function()? now,
+    Duration? minInterval,
+  }) : _now = now ?? DateTime.now,
+       _minInterval = minInterval ?? const Duration(seconds: 1);
 
   final DateTime Function() _now;
+  final Duration _minInterval;
   DateTime? _lastSentAt;
 
-  static const _minInterval = Duration(seconds: 1);
-
   /// `true` quando o chamador deve mandar a posição agora (e já registra o
-  /// envio, avançando a janela de 1 s).
+  /// envio, avançando a janela).
   bool shouldSend({bool force = false}) {
     final now = _now();
     final lastSentAt = _lastSentAt;
@@ -140,6 +147,11 @@ final audioSessionPlayerFactoryProvider = Provider<AudioPlayer Function()>(
   (ref) => AudioPlayer.new,
 );
 
+/// Última posição de reprodução gravada (C12) — `SharedPreferences`.
+final audioPlaybackPositionStoreProvider = Provider<AudioPlaybackPositionStore>(
+  (ref) => AudioPlaybackPositionStore(ref.watch(sharedPreferencesProvider)),
+);
+
 /// Sessão única de áudio — fonte de verdade para page e playlist face.
 class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   AudioPlayer? _player;
@@ -149,6 +161,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   AudioPlayer Function() _playerFactory = AudioPlayer.new;
   bool _mediaSessionAttached = false;
   final _mediaSessionPositionThrottle = MediaSessionPositionThrottle();
+  late AudioPlaybackPositionStore _positionStore;
+
+  /// C12: no máximo uma gravação a cada 5 s enquanto toca (mesmo padrão do
+  /// [_mediaSessionPositionThrottle], janela maior).
+  final _positionStoreThrottle = MediaSessionPositionThrottle(
+    minInterval: const Duration(seconds: 5),
+  );
 
   /// Geração da fila em vigor: cada `_applyQueue` incrementa e descarta o
   /// próprio resultado se outra chamada tiver começado depois (toque duplo).
@@ -189,6 +208,9 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           position: position,
           duration: ref.read(audioPlayerPositionProvider).duration,
         );
+        // Gravação periódica (C12): só enquanto toca — pause/stop já gravam
+        // na hora, fora daqui (`_persistCurrentPosition(force: true)`).
+        if (state.playing) _persistCurrentPosition(position);
       }),
       player.durationStream.listen((duration) {
         if (duration != null) {
@@ -234,6 +256,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   @override
   AudioPlayerSessionState build() {
     _playerFactory = ref.read(audioSessionPlayerFactoryProvider);
+    _positionStore = ref.read(audioPlaybackPositionStoreProvider);
     if (ref.read(platformCapabilitiesProvider).isWeb) {
       _sourceResolver = ref.read(webAudioSourceResolverProvider);
       _mediaSession = ref.read(audioMediaSessionControllerProvider);
@@ -263,6 +286,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     if (mediaSession == null) return;
     if (!_mediaSessionPositionThrottle.shouldSend(force: force)) return;
     mediaSession.updatePosition(position: position, duration: duration);
+  }
+
+  /// Grava a posição da faixa em foco (C12) — a cada 5 s enquanto toca
+  /// (`force: false`, via `positionStream`) e na hora, no pause/stop
+  /// (`force: true`).
+  void _persistCurrentPosition(Duration position, {bool force = false}) {
+    final track = state.currentTrack;
+    if (track == null) return;
+    if (!force && !_positionStoreThrottle.shouldSend()) return;
+    unawaited(_positionStore.write(track.audioId, position));
   }
 
   void _ensureMediaSessionAttached() {
@@ -307,6 +340,30 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     return _applyQueue(tracks, startIndex: startIndex, autoplay: false);
   }
 
+  /// Posição gravada a usar como `initialPosition` do `setAudioSources`
+  /// (C12), ou `null` para começar do zero.
+  ///
+  /// Só considera a posição gravada no boot (`restoreQueue`, `!autoplay`) e
+  /// só quando o `trackId` bate com [target] — `playQueue` (tocar da
+  /// lista/busca) sempre começa do zero. Quando a duração de [target] já é
+  /// conhecida e a posição gravada está a menos de 5 s do fim, não retoma
+  /// (a faixa já tinha praticamente terminado).
+  Duration? _resolveRestorePosition({
+    required bool autoplay,
+    required AudioTrack target,
+  }) {
+    if (autoplay) return null;
+    final stored = _positionStore.read();
+    if (stored == null || stored.trackId != target.audioId) return null;
+
+    final duration = target.duration;
+    if (duration != null && duration > const Duration(seconds: 5)) {
+      final threshold = duration - const Duration(seconds: 5);
+      if (stored.position >= threshold) return null;
+    }
+    return stored.position;
+  }
+
   Future<void> _applyQueue(
     List<AudioTrack> tracks, {
     required int startIndex,
@@ -317,6 +374,15 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     final safeIndex = startIndex.clamp(0, tracks.length - 1);
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
+    _positionStoreThrottle.reset();
+    // Posição gravada (C12): só no boot (`restoreQueue`) e só quando o
+    // trackId bate — tocar a partir da lista/busca (`playQueue`) começa do
+    // zero. Perto do fim (< 5s restantes, quando a duração é conhecida) não
+    // vale a pena retomar.
+    final initialPosition = _resolveRestorePosition(
+      autoplay: autoplay,
+      target: tracks[safeIndex],
+    );
     state = state.copyWith(
       queue: List<AudioTrack>.from(tracks),
       currentIndex: safeIndex,
@@ -366,6 +432,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         await player.setAudioSources(
           sources,
           initialIndex: safeIndex,
+          initialPosition: initialPosition,
           preload: autoplay && !ref.read(platformCapabilitiesProvider).isWeb,
         );
       } finally {
@@ -430,6 +497,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     try {
       if (player.playing) {
         await player.pause();
+        // Pausa não pode esperar a janela de 5 s (C12).
+        _persistCurrentPosition(
+          ref.read(audioPlayerPositionProvider).position,
+          force: true,
+        );
       } else {
         await player.play();
       }
@@ -512,6 +584,12 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   }
 
   Future<void> stop() async {
+    // Antes de zerar a posição em memória (C12) — precisa da posição atual,
+    // ainda presente no provider.
+    _persistCurrentPosition(
+      ref.read(audioPlayerPositionProvider).position,
+      force: true,
+    );
     try {
       await _player?.stop();
     } on Object catch (e) {
@@ -519,6 +597,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     }
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
+    _positionStoreThrottle.reset();
     state = state.copyWith(playing: false);
   }
 
@@ -537,6 +616,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _mediaSession?.updateTrack(null);
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
+    _positionStoreThrottle.reset();
     state = const AudioPlayerSessionState();
     _persistFocusedAudioId(null);
   }
