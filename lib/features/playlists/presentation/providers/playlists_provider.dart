@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
@@ -70,6 +71,12 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref.listen(louvoresManifestProvider, (_, _) {
       unawaited(_reload());
     });
+    // O app monta durante a abertura do Isar (A8), então o primeiro `_reload`
+    // roda contra o datasource degradado e não lista nada. Quando o banco abre,
+    // recarrega — é também o gatilho que finalmente hidrata a sessão.
+    ref.listen(isarStatusProvider, (_, next) {
+      if (next == IsarStatus.available) unawaited(_reload());
+    });
     Future.microtask(_reload);
     return const [];
   }
@@ -113,9 +120,19 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
         .toList(growable: false);
 
     if (!_sessionHydrated) {
+      // Trava antes de esperar para não disparar duas hidratações concorrentes
+      // (`_reload` roda de novo quando o manifest chega e quando o Isar abre).
       _sessionHydrated = true;
-      unawaited(hydratePlaylistSession(ref));
+      unawaited(_hydrateSession());
     }
+  }
+
+  /// Hidrata a sessão e **destrava** se não havia storage.
+  ///
+  /// Sem Isar a hidratação não aconteceu de fato — deixar travado faria o boot
+  /// frio (app montado durante `opening`, A8) perder a restauração para sempre.
+  Future<void> _hydrateSession() async {
+    if (!await hydratePlaylistSession(ref)) _sessionHydrated = false;
   }
 
   /// Recarrega listas do Isar (ex.: após sync cloud).

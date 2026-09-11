@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -9,10 +12,14 @@ import 'package:coldigui/features/playlists/data/providers/playlist_providers.da
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_hydrate.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePlaylistRepo extends Fake implements PlaylistRepository {
@@ -59,7 +66,7 @@ class _HydrateRunner extends Notifier<int> {
   @override
   int build() => 0;
 
-  Future<void> run() => hydratePlaylistSession(ref);
+  Future<bool> run() => hydratePlaylistSession(ref);
 }
 
 final _hydrateRunnerProvider = NotifierProvider<_HydrateRunner, int>(
@@ -109,6 +116,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        isarStatusProvider.overrideWithValue(IsarStatus.available),
         playlistRepositoryProvider.overrideWithValue(
           _FakePlaylistRepo(playlist),
         ),
@@ -122,11 +130,83 @@ void main() {
       _trackB,
     ]);
 
-    await container.read(_hydrateRunnerProvider.notifier).run();
+    expect(await container.read(_hydrateRunnerProvider.notifier).run(), isTrue);
 
     final session = container.read(audioPlayerSessionProvider);
     expect(session.queue.map((t) => t.audioId), [_audioIdA, _audioIdB]);
     expect(session.currentIndex, 1);
     expect(session.playing, isFalse);
+  });
+
+  group('sem storage a hidratação não apaga estado persistido', () {
+    /// Estado de um boot real com playlist ativa de áudio salva nas prefs.
+    Future<SharedPreferences> bootPrefs() async {
+      SharedPreferences.setMockInitialValues({
+        kActivePlaylistIdPrefsKey: 'pl-1',
+        'playlist_media_face': PlaylistMediaFace.audio.name,
+      });
+      return SharedPreferences.getInstance();
+    }
+
+    /// Datasource degradado: `getById` devolve `null` para qualquer id, sem
+    /// distinguir "não existe" de "o banco não abriu".
+    ProviderContainer degradedContainer(
+      SharedPreferences prefs,
+      List<Override> isarOverrides,
+    ) {
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          ...isarOverrides,
+          playlistRepositoryProvider.overrideWithValue(_FakePlaylistRepo(null)),
+          carouselRepositoryProvider.overrideWithValue(_FakeCarouselRepo()),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    void expectUntouched(ProviderContainer container, SharedPreferences prefs) {
+      expect(
+        prefs.getString(kActivePlaylistIdPrefsKey),
+        'pl-1',
+        reason: 'o id da playlist ativa é permanente — apagar é irreversível',
+      );
+      expect(container.read(activePlaylistIdProvider), 'pl-1');
+      expect(
+        container.read(playlistMediaFaceProvider),
+        PlaylistMediaFace.audio,
+        reason: 'a face não pode cair para pdf só porque o Isar não abriu',
+      );
+    }
+
+    test('Isar indisponível', () async {
+      final prefs = await bootPrefs();
+      final container = degradedContainer(prefs, [
+        isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
+      ]);
+
+      expect(
+        await container.read(_hydrateRunnerProvider.notifier).run(),
+        isFalse,
+        reason: 'sem storage a hidratação não aconteceu',
+      );
+
+      expectUntouched(container, prefs);
+    });
+
+    test('Isar abrindo que termina em falha', () async {
+      final prefs = await bootPrefs();
+      final opening = Completer<Isar>();
+      final container = degradedContainer(prefs, [
+        isarOpenerProvider.overrideWithValue(() => opening.future),
+      ]);
+
+      final hydrating = container.read(_hydrateRunnerProvider.notifier).run();
+      opening.completeError(StateError('OPFS travado'));
+
+      expect(await hydrating, isFalse);
+      expectUntouched(container, prefs);
+    });
   });
 }

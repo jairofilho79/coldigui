@@ -107,6 +107,30 @@ final isarAvailableProvider = Provider<bool>((ref) {
   return ref.watch(isarStatusProvider) == IsarStatus.available;
 });
 
+/// Espera a abertura terminar e devolve o desfecho — nunca [IsarStatus.opening].
+///
+/// Para decisões de boot que **não podem** ser tomadas contra o datasource
+/// degradado: sem Isar ele responde vazio/`null` sem distinguir "não existe" de
+/// "o banco ainda não abriu", e quem grava em SharedPreferences a partir dessa
+/// resposta apaga estado real (ver `hydratePlaylistSession`).
+///
+/// Nunca lança: erro ou timeout viram [IsarStatus.unavailable]. Quando a
+/// abertura já terminou, devolve sem `await` — e sem tocar em
+/// [isarInitializerProvider], o que deixa o teste sobrescrever só
+/// [isarStatusProvider].
+Future<IsarStatus> awaitIsarSettled(Ref ref) async {
+  final status = ref.read(isarStatusProvider);
+  if (status != IsarStatus.opening) return status;
+
+  try {
+    await ref.read(isarInitializerProvider.future);
+    return IsarStatus.available;
+  } on Object catch (error) {
+    debugPrint('[isar] abertura não concluiu: $error');
+    return IsarStatus.unavailable;
+  }
+}
+
 /// Provider de instância Isar Plus (ADR-001).
 ///
 /// Schemas: [LouvorCache], [CarouselEntry], [Playlist], [OfflinePdfIndex].

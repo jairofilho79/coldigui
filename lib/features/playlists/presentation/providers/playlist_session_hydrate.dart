@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -51,7 +53,19 @@ int restoreQueueStartIndex(List<AudioTrack> tracks, String? focusedAudioId) {
 }
 
 /// Restaura playlist ativa, labels Coldigom e fila pausada após o boot.
-Future<void> hydratePlaylistSession(Ref ref) async {
+///
+/// Devolve `false` — sem tocar em nada — quando o Isar não abriu. Desde que o
+/// app monta durante a abertura (A8), esta função roda no boot frio com o
+/// datasource degradado, que responde `null` para qualquer id: tratar isso
+/// como "a playlist não existe mais" apagaria de vez o id ativo das
+/// SharedPreferences e derrubaria a face para pdf. Quem chama usa o retorno
+/// para saber se pode considerar a sessão hidratada.
+Future<bool> hydratePlaylistSession(Ref ref) async {
+  if (await awaitIsarSettled(ref) != IsarStatus.available) {
+    debugPrint('[playlists] hidratação adiada: storage indisponível');
+    return false;
+  }
+
   final activeId = ref.read(activePlaylistIdProvider);
   var audioIds = const <String>[];
 
@@ -82,7 +96,7 @@ Future<void> hydratePlaylistSession(Ref ref) async {
           .read(playlistMediaFaceProvider.notifier)
           .setFace(PlaylistMediaFace.pdf);
     }
-    return;
+    return true;
   }
 
   final focusedAudioId = ref
@@ -94,4 +108,5 @@ Future<void> hydratePlaylistSession(Ref ref) async {
         tracks,
         startIndex: restoreQueueStartIndex(tracks, focusedAudioId),
       );
+  return true;
 }
