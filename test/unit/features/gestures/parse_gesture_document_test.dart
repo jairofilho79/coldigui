@@ -16,7 +16,8 @@ void main() {
       expect(doc.isNewerSchema, isFalse);
       expect(doc.title, '182 - QUERO VIVER PRA SEMPRE COM JESUS');
       expect(doc.dictionaryVersion, 1);
-      expect(doc.items, hasLength(16));
+      // 12 itens de raiz: coro(5) + 5 gestos + instrução + 4 gestos + instrução.
+      expect(doc.items, hasLength(12));
       expect(doc.hasGestures, isTrue);
 
       final coro = doc.items.first as ChorusBlock;
@@ -27,7 +28,7 @@ void main() {
       expect(first.lyrics.single.text, 'viver para sempre');
 
       expect(
-        doc.items[10],
+        doc.items[6],
         isA<InstructionCard>().having(
           (i) => i.kind,
           'kind',
