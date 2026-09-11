@@ -75,8 +75,12 @@ void main() {
       expect(decodeShareItems('p:id-a,,a:aud-1,'), const [_pdfA, _audio1]);
     });
 
-    test('dedupe por id — primeira ocorrência vence', () {
-      expect(decodeShareItems('p:id-a,a:id-a,p:id-b'), const [_pdfA, _pdfB]);
+    test('id repetido preserva as duas ocorrências (a lista pode repetir)', () {
+      expect(decodeShareItems('p:id-a,p:id-b,p:id-a'), const [
+        _pdfA,
+        _pdfB,
+        _pdfA,
+      ]);
     });
 
     test('faz trim de cada token', () {

@@ -151,5 +151,24 @@ void main() {
         throwsA(isA<InvalidSharePlaylistException>()),
       );
     });
+
+    // A reunião de origem pode repetir um louvor («Adicionar de novo»); a
+    // importada tem que repetir também — o link é a lista, não um conjunto.
+    test('id repetido cria duas entradas', () async {
+      final id = await useCase(
+        shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
+        sharePdfs: 'pdf-a,pdf-a',
+        shareAudios: 'aud-1',
+        shareName: 'Com repetição',
+      );
+
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.entries, const [
+        PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+        PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+        PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+      ]);
+      expect(saved.pdfIds, ['pdf-a', 'pdf-a']);
+    });
   });
 }

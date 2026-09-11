@@ -2,7 +2,7 @@ import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/social/domain/entities/public_playlist.dart';
 import 'package:coldigui/features/social/domain/entities/social_user.dart';
 import 'package:coldigui/features/social/presentation/providers/social_search_provider.dart';
@@ -241,12 +241,11 @@ class _PublicPlaylistTileState extends ConsumerState<_PublicPlaylistTile> {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);
     try {
-      final notifier = ref.read(playlistsProvider.notifier);
-      var added = 0;
-      for (final pdfId in widget.playlist.pdfIds) {
-        final ok = await notifier.addLouvorToActivePlaylist(pdfId);
-        if (ok) added++;
-      }
+      // A lista pública chega como veio do dono: partituras e áudios na
+      // ordem, repetições incluídas — nada de dedupe nem de "só PDFs".
+      final added = await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .addEntriesToActive(widget.playlist.entries);
       if (!mounted) return;
       showAppSnackbar(
         context,
@@ -261,7 +260,7 @@ class _PublicPlaylistTileState extends ConsumerState<_PublicPlaylistTile> {
 
   @override
   Widget build(BuildContext context) {
-    final count = widget.playlist.pdfIds.length;
+    final count = widget.playlist.entries.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
