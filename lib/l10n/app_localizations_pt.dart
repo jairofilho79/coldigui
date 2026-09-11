@@ -846,9 +846,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioFlagAdd => 'Adicionar marcador';
 
   @override
-  String get audioFlagPauseToAdd => 'Pause para adicionar um marcador';
-
-  @override
   String get audioFlagAddTitle => 'Novo marcador';
 
   @override

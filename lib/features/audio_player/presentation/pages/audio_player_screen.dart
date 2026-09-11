@@ -6,6 +6,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_sync_error_row.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -46,7 +47,7 @@ class AudioPlayerScreen extends ConsumerWidget {
         track.nome,
       if (track != null && track.author.isNotEmpty) track.author,
     ];
-    final canAddFlag = track != null && !session.playing;
+    final canAddFlag = audioPlayerCanAddFlag(track);
     // Ponte D1: partitura/cifra do louvor da faixa e toggle "seguir o áudio".
     final materialPdfId = resolveMaterialForGroup(ref, track?.groupId);
     final followingAudio = ref.watch(audioFollowReaderProvider);
@@ -120,9 +121,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                           ),
                         ),
                       IconButton(
-                        tooltip: canAddFlag
-                            ? l10n.audioFlagAdd
-                            : l10n.audioFlagPauseToAdd,
+                        tooltip: l10n.audioFlagAdd,
                         onPressed: !canAddFlag
                             ? null
                             : () => _addFlag(
@@ -318,6 +317,12 @@ class AudioPlayerScreen extends ConsumerWidget {
         );
   }
 }
+
+/// C12 [decisão]: o marcador pode ser adicionado com o áudio tocando — a
+/// posição vale a do momento do toque, precisão suficiente (cai a exigência
+/// de pausar antes).
+@visibleForTesting
+bool audioPlayerCanAddFlag(AudioTrack? track) => track != null;
 
 /// Velocidades oferecidas no menu do `/audio` (C12).
 const List<double> kAudioSpeedOptions = [0.75, 1.0, 1.25, 1.5];

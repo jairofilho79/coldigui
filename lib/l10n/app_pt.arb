@@ -495,7 +495,6 @@
     "description": "Tooltip do botão que toca o áudio do louvor aberto no leitor"
   },
   "audioFlagAdd": "Adicionar marcador",
-  "audioFlagPauseToAdd": "Pause para adicionar um marcador",
   "audioFlagAddTitle": "Novo marcador",
   "audioFlagLabelHint": "Rótulo opcional",
   "audioFlagCancel": "Cancelar",

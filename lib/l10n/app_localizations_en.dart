@@ -839,9 +839,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioFlagAdd => 'Add audio flag';
 
   @override
-  String get audioFlagPauseToAdd => 'Pause to add an audio flag';
-
-  @override
   String get audioFlagAddTitle => 'New audio flag';
 
   @override

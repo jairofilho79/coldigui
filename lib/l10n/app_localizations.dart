@@ -1487,12 +1487,6 @@ abstract class AppLocalizations {
   /// **'Adicionar marcador'**
   String get audioFlagAdd;
 
-  /// No description provided for @audioFlagPauseToAdd.
-  ///
-  /// In pt, this message translates to:
-  /// **'Pause para adicionar um marcador'**
-  String get audioFlagPauseToAdd;
-
   /// No description provided for @audioFlagAddTitle.
   ///
   /// In pt, this message translates to:
