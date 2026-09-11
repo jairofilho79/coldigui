@@ -5,8 +5,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
@@ -103,15 +101,6 @@ class _MutableSyncNotifier extends PlaylistSyncNotifier {
   Future<PlaylistSyncResult> sync() async => const PlaylistSyncResult();
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-
-  @override
-  List<CarouselItem> build() => initial;
-}
-
 void main() {
   late SharedPreferences prefs;
 
@@ -179,9 +168,6 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const []),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -226,6 +212,42 @@ void main() {
     expect(find.text('Lista importada'), findsOneWidget);
   });
 
+  // D6: importar cria uma lista nova e a torna ativa — a anterior continua
+  // salva, então não há "substituição" a confirmar (paridade com o deep link).
+  testWidgets('importar por URL não pede confirmação', (tester) async {
+    final notifier = _FakePlaylistsNotifier(const []);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => notifier),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const PlaylistsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Importar lista'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'sharepdfs=x&sharename=Teste',
+    );
+    await tester.tap(find.text('Importar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Substituir seleção?'), findsNothing);
+    expect(find.text('Confirmar'), findsNothing);
+    expect(notifier.lastImport?.shareName, 'Teste');
+    expect(find.text('Lista importada'), findsOneWidget);
+  });
+
   testWidgets('importar URL legada (sem shareitems) segue funcionando', (
     tester,
   ) async {
@@ -236,9 +258,6 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const []),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

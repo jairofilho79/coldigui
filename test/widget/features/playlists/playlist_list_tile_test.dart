@@ -8,8 +8,6 @@ import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -20,6 +18,7 @@ import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_list_tile.dart';
@@ -35,24 +34,34 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   _FakePlaylistsNotifier(this.initial);
 
   final List<PlaylistViewItem> initial;
-  String? lastLoadedPlaylistId;
 
   @override
   List<PlaylistViewItem> build() => initial;
+}
+
+/// Editor da lista ativa que só registra as ativações (D6).
+///
+/// [previousId] é o que `activate` devolve — o id que o «Desfazer» restaura.
+class _RecordingActiveEditor extends ActivePlaylistEditor {
+  _RecordingActiveEditor({this.previousId});
+
+  final String? previousId;
+  final activated = <String>[];
 
   @override
-  Future<bool> loadIntoCarousel(String playlistId) async {
-    lastLoadedPlaylistId = playlistId;
-    return true;
+  List<PlaylistEntry>? build() => null;
+
+  @override
+  Future<String?> activate(String playlistId) async {
+    activated.add(playlistId);
+    return previousId;
   }
 }
 
-/// Modo degradado (Isar fechado): as escritas da lista lançam.
-class _StorelessPlaylistsNotifier extends _FakePlaylistsNotifier {
-  _StorelessPlaylistsNotifier(super.initial);
-
+/// Modo degradado (Isar fechado): ativar lança.
+class _StorelessActiveEditor extends _RecordingActiveEditor {
   @override
-  Future<bool> loadIntoCarousel(String playlistId) async {
+  Future<String?> activate(String playlistId) async {
     throw const StorageUnavailableException('playlists.update');
   }
 }
@@ -173,15 +182,6 @@ class _FakeAudioCacheNotifier extends ColdigomAudioTracksCacheNotifier {
   Map<String, AudioTrack> build() => initial;
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-
-  @override
-  List<CarouselItem> build() => initial;
-}
-
 String _pdfId(String relPath) {
   return base64Url
       .encode(utf8.encode(relPath))
@@ -214,18 +214,17 @@ void main() {
   Widget buildSubject({
     required PlaylistsNotifier playlistsNotifier,
     PlaylistShareActionsNotifier? shareActionsNotifier,
-    List<CarouselItem> carouselItems = const [],
+    _RecordingActiveEditor? editor,
   }) {
     final shareNotifier =
         shareActionsNotifier ?? _FakePlaylistShareActionsNotifier();
+    final activeEditor = editor ?? _RecordingActiveEditor();
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         playlistsProvider.overrideWith(() => playlistsNotifier),
         playlistShareActionsProvider.overrideWith(() => shareNotifier),
-        carouselLouvoresProvider.overrideWith(
-          () => _FakeCarouselNotifier(carouselItems),
-        ),
+        activePlaylistEditorProvider.overrideWith(() => activeEditor),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -238,7 +237,7 @@ void main() {
     );
   }
 
-  testWidgets('menu exibe Carregar no carousel e Abrir no leitor', (
+  testWidgets('menu exibe Tornar lista ativa e Abrir no leitor', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -249,23 +248,62 @@ void main() {
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
 
-    expect(find.text('Carregar no carousel'), findsOneWidget);
+    expect(find.text('Tornar lista ativa'), findsOneWidget);
     expect(find.text('Abrir no leitor'), findsOneWidget);
     expect(find.text('Compartilhar'), findsOneWidget);
+    expect(find.text('Carregar no carousel'), findsNothing);
   });
 
-  testWidgets('Carregar no carousel dispara loadIntoCarousel', (tester) async {
-    final notifier = _FakePlaylistsNotifier([item]);
-    await tester.pumpWidget(buildSubject(playlistsNotifier: notifier));
+  // D6: trocar a lista ativa não substitui nada — a anterior continua salva.
+  // Nada de modal; a saída é o snackbar com «Desfazer».
+  testWidgets('«Tornar lista ativa» ativa sem diálogo e o snackbar desfaz', (
+    tester,
+  ) async {
+    final editor = _RecordingActiveEditor(previousId: 'p0');
+    await tester.pumpWidget(
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        editor: editor,
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Carregar no carousel'));
+    await tester.tap(find.text('Tornar lista ativa'));
     await tester.pumpAndSettle();
 
-    expect(notifier.lastLoadedPlaylistId, 'p1');
-    expect(find.text('Lista carregada no carousel'), findsOneWidget);
+    expect(find.text('Substituir seleção?'), findsNothing);
+    expect(find.text('Confirmar'), findsNothing);
+    expect(editor.activated, ['p1']);
+    expect(find.text('Lista «Ensaio domingo» ativa'), findsOneWidget);
+
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+
+    expect(editor.activated, ['p1', 'p0']);
+  });
+
+  testWidgets('sem lista ativa anterior o snackbar não oferece desfazer', (
+    tester,
+  ) async {
+    final editor = _RecordingActiveEditor();
+    await tester.pumpWidget(
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        editor: editor,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.pumpAndSettle();
+
+    expect(editor.activated, ['p1']);
+    expect(find.text('Lista «Ensaio domingo» ativa'), findsOneWidget);
+    expect(find.text('Desfazer'), findsNothing);
   });
 
   // B5: ação da lista sem storage vira aviso, não erro solto no callback.
@@ -273,13 +311,16 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(playlistsNotifier: _StorelessPlaylistsNotifier([item])),
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        editor: _StorelessActiveEditor(),
+      ),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Carregar no carousel'));
+    await tester.tap(find.text('Tornar lista ativa'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -291,44 +332,9 @@ void main() {
     );
   });
 
-  testWidgets('confirma substituição quando carousel não vazio', (
-    tester,
-  ) async {
-    final notifier = _FakePlaylistsNotifier([item]);
-    await tester.pumpWidget(
-      buildSubject(
-        playlistsNotifier: notifier,
-        carouselItems: const [
-          CarouselItem(
-            pdfId: 'x',
-            sortOrder: 0,
-            numero: '001',
-            nome: 'X',
-            categoria: 'Partitura',
-            classificacao: 'ColAdultos',
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Carregar no carousel'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Substituir seleção?'), findsOneWidget);
-
-    await tester.tap(find.text('Confirmar'));
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-
-    expect(notifier.lastLoadedPlaylistId, 'p1');
-  });
-
   testWidgets('toque no chip abre leitor com pdf selecionado', (tester) async {
     final notifier = _LouvorFindingPlaylistsNotifier([item]);
+    final editor = _RecordingActiveEditor();
     final router = GoRouter(
       initialLocation: RoutePaths.playlists,
       routes: [
@@ -351,9 +357,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier([]),
-          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
           resolvePdfForReaderProvider.overrideWithValue(
             _FakeResolvePdfForReader(),
           ),
@@ -374,7 +378,7 @@ void main() {
     await tester.tap(find.textContaining('002'));
     await tester.pumpAndSettle();
 
-    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(editor.activated, ['p1']);
     expect(find.text(pdfIdB), findsOneWidget);
   });
 
@@ -384,6 +388,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final pt = await AppLocalizations.delegate.load(const Locale('pt'));
       final notifier = _LouvorFindingPlaylistsNotifier([item]);
+      final editor = _RecordingActiveEditor();
       final router = GoRouter(
         initialLocation: RoutePaths.playlists,
         routes: [
@@ -406,9 +411,7 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             playlistsProvider.overrideWith(() => notifier),
-            carouselLouvoresProvider.overrideWith(
-              () => _FakeCarouselNotifier([]),
-            ),
+            activePlaylistEditorProvider.overrideWith(() => editor),
             resolvePdfForReaderProvider.overrideWithValue(
               _DeletedPdfResolveForReader(),
             ),
@@ -463,6 +466,8 @@ void main() {
     );
 
     final notifier = _LouvorFindingPlaylistsNotifier([chordItem]);
+
+    final editor = _RecordingActiveEditor();
     final openSpy = _OpenMaterialSpy();
     final router = GoRouter(
       initialLocation: RoutePaths.playlists,
@@ -493,9 +498,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier([]),
-          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
           coldigomChordMaterialsCacheProvider.overrideWith(
             () => _FakeChordCacheNotifier({chordId: chord}),
           ),
@@ -519,7 +522,7 @@ void main() {
     await tester.tap(find.text('Abrir no leitor'));
     await tester.pumpAndSettle();
 
-    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(editor.activated, ['p1']);
     expect(openSpy.opened, isA<ChordMaterialRef>());
     expect(openSpy.opened!.id, chordId);
     expect(find.text('cifra:$chordId'), findsOneWidget);
@@ -563,6 +566,8 @@ void main() {
     );
 
     final notifier = _LouvorFindingPlaylistsNotifier([audioItem]);
+
+    final editor = _RecordingActiveEditor();
     final openSpy = _OpenMaterialSpy();
 
     await tester.pumpWidget(
@@ -570,9 +575,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier([]),
-          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
           coldigomAudioTracksCacheProvider.overrideWith(
             () => _FakeAudioCacheNotifier({audioId: track}),
           ),
@@ -598,7 +601,7 @@ void main() {
     await tester.tap(find.text('Abrir no leitor'));
     await tester.pumpAndSettle();
 
-    expect(notifier.lastLoadedPlaylistId, 'p1');
+    expect(editor.activated, ['p1']);
     expect(openSpy.opened, isA<AudioMaterial>());
     expect(openSpy.opened!.id, audioId);
     expect(find.textContaining('Não foi possível'), findsNothing);
@@ -662,9 +665,6 @@ void main() {
           ),
           playlistShareActionsProvider.overrideWith(
             _FakePlaylistShareActionsNotifier.new,
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier([]),
           ),
         ],
         child: MaterialApp(

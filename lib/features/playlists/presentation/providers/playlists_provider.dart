@@ -374,36 +374,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 
-  /// Torna [playlistId] a lista ativa (D6 — «Tornar lista ativa»).
-  ///
-  /// Retorna `false` se a playlist não existir — instrumentação via
-  /// [playlistOpenDebugLog*] em [kDebugMode].
-  Future<bool> loadIntoCarousel(String playlistId) async {
-    playlistOpenDebugLog('activate: início playlistId=$playlistId');
-    try {
-      final existing = await ref
-          .read(playlistRepositoryProvider)
-          .getById(playlistId);
-      if (existing == null) {
-        playlistOpenDebugLogFailure('activate', 'playlist $playlistId ausente');
-        return false;
-      }
-      await ref
-          .read(activePlaylistEditorProvider.notifier)
-          .activate(playlistId);
-      playlistOpenDebugLog(
-        'activate: ok — ${existing.entries.length} entradas na lista ativa',
-      );
-      return true;
-    } on PlaylistNotFoundException catch (error, stackTrace) {
-      playlistOpenDebugLogError('activate: lista ausente', error, stackTrace);
-      return false;
-    } on Object catch (error, stackTrace) {
-      playlistOpenDebugLogError('activate', error, stackTrace);
-      return false;
-    }
-  }
-
   /// Busca louvor no manifest carregado — usado ao abrir PDF de playlist no leitor.
   ///
   /// Lookup O(1) em [louvoresByPdfIdProvider] (A4). Retorna `null` se o
@@ -529,9 +499,12 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
         shareItems: shareItems,
         shareName: shareName,
       );
-      ref.read(activePlaylistIdProvider.notifier).set(playlistId);
-      await _reload();
-      ref.read(carouselFocusedKeyProvider.notifier).clear();
+      // D6: a importada vira a ativa pelo mesmo caminho do «Tornar lista
+      // ativa» — a lista que era ativa continua salva, com a ordem pendente
+      // dela levada a disco antes da troca.
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlistId);
       return playlistId;
     } on InvalidSharePlaylistException {
       return null;

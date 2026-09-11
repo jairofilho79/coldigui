@@ -341,7 +341,7 @@
   },
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
-  "playlistLoadIntoCarousel": "Carregar no carousel",
+  "playlistActivate": "Tornar lista ativa",
   "playlistOpenInReader": "Abrir no leitor",
   "playlistOpenInAudioPlayer": "Abrir no reprodutor",
   "playlistFacePdf": "PDFs",
@@ -411,9 +411,19 @@
     "description": "Tooltip do ícone no player que revela o aviso de segundo plano na Web"
   },
   "audioWebIosPwaNotice": "No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.",
-  "playlistLoadConfirmTitle": "Substituir seleção?",
-  "playlistLoadConfirmMessage": "A seleção atual será substituída pelos louvores desta lista.",
-  "playlistLoaded": "Lista carregada no carousel",
+  "playlistActivated": "Lista «{nome}» ativa",
+  "@playlistActivated": {
+    "description": "Snackbar depois de tornar uma lista a lista ativa",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Desfazer",
+  "@undo": {
+    "description": "Ação de desfazer em snackbars"
+  },
   "playlistEmptyPdfList": "Esta lista não tem louvores.",
   "playlistShare": "Compartilhar",
   "playlistImport": "Importar lista",

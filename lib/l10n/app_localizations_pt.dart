@@ -632,7 +632,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'A lista ficará vazia e será excluída.';
 
   @override
-  String get playlistLoadIntoCarousel => 'Carregar no carousel';
+  String get playlistActivate => 'Tornar lista ativa';
 
   @override
   String get playlistOpenInReader => 'Abrir no leitor';
@@ -796,14 +796,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.';
 
   @override
-  String get playlistLoadConfirmTitle => 'Substituir seleção?';
+  String playlistActivated(String nome) {
+    return 'Lista «$nome» ativa';
+  }
 
   @override
-  String get playlistLoadConfirmMessage =>
-      'A seleção atual será substituída pelos louvores desta lista.';
-
-  @override
-  String get playlistLoaded => 'Lista carregada no carousel';
+  String get undo => 'Desfazer';
 
   @override
   String get playlistEmptyPdfList => 'Esta lista não tem louvores.';

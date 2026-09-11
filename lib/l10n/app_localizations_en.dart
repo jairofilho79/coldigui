@@ -625,7 +625,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The playlist will be empty and will be deleted.';
 
   @override
-  String get playlistLoadIntoCarousel => 'Load into carousel';
+  String get playlistActivate => 'Make list active';
 
   @override
   String get playlistOpenInReader => 'Open in reader';
@@ -789,14 +789,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'On iPhone with the app installed on the Home Screen, audio may pause when you lock the screen or switch apps. Keep the app open to listen.';
 
   @override
-  String get playlistLoadConfirmTitle => 'Replace selection?';
+  String playlistActivated(String nome) {
+    return 'List \"$nome\" is active';
+  }
 
   @override
-  String get playlistLoadConfirmMessage =>
-      'The current selection will be replaced with songs from this playlist.';
-
-  @override
-  String get playlistLoaded => 'Playlist loaded into carousel';
+  String get undo => 'Undo';
 
   @override
   String get playlistEmptyPdfList => 'This playlist has no songs.';

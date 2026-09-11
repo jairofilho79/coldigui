@@ -1103,11 +1103,11 @@ abstract class AppLocalizations {
   /// **'A lista ficará vazia e será excluída.'**
   String get playlistDeleteLastPdfMessage;
 
-  /// No description provided for @playlistLoadIntoCarousel.
+  /// No description provided for @playlistActivate.
   ///
   /// In pt, this message translates to:
-  /// **'Carregar no carousel'**
-  String get playlistLoadIntoCarousel;
+  /// **'Tornar lista ativa'**
+  String get playlistActivate;
 
   /// No description provided for @playlistOpenInReader.
   ///
@@ -1403,23 +1403,17 @@ abstract class AppLocalizations {
   /// **'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.'**
   String get audioWebIosPwaNotice;
 
-  /// No description provided for @playlistLoadConfirmTitle.
+  /// Snackbar depois de tornar uma lista a lista ativa
   ///
   /// In pt, this message translates to:
-  /// **'Substituir seleção?'**
-  String get playlistLoadConfirmTitle;
+  /// **'Lista «{nome}» ativa'**
+  String playlistActivated(String nome);
 
-  /// No description provided for @playlistLoadConfirmMessage.
+  /// Ação de desfazer em snackbars
   ///
   /// In pt, this message translates to:
-  /// **'A seleção atual será substituída pelos louvores desta lista.'**
-  String get playlistLoadConfirmMessage;
-
-  /// No description provided for @playlistLoaded.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lista carregada no carousel'**
-  String get playlistLoaded;
+  /// **'Desfazer'**
+  String get undo;
 
   /// No description provided for @playlistEmptyPdfList.
   ///

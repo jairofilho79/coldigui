@@ -332,7 +332,7 @@
   },
   "playlistDeleteLastPdfTitle": "Remove last song?",
   "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
-  "playlistLoadIntoCarousel": "Load into carousel",
+  "playlistActivate": "Make list active",
   "playlistOpenInReader": "Open in reader",
   "playlistOpenInAudioPlayer": "Open in audio player",
   "playlistFacePdf": "PDFs",
@@ -393,9 +393,19 @@
     "description": "Tooltip on the player icon that reveals the web background-playback notice"
   },
   "audioWebIosPwaNotice": "On iPhone with the app installed on the Home Screen, audio may pause when you lock the screen or switch apps. Keep the app open to listen.",
-  "playlistLoadConfirmTitle": "Replace selection?",
-  "playlistLoadConfirmMessage": "The current selection will be replaced with songs from this playlist.",
-  "playlistLoaded": "Playlist loaded into carousel",
+  "playlistActivated": "List \"{nome}\" is active",
+  "@playlistActivated": {
+    "description": "Snackbar after making a playlist the active list",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Undo",
+  "@undo": {
+    "description": "Undo action in snackbars"
+  },
   "playlistEmptyPdfList": "This playlist has no songs.",
   "playlistShare": "Share",
   "playlistImport": "Import playlist",

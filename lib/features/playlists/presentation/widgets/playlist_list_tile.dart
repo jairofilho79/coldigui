@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -18,7 +21,6 @@ import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -26,11 +28,13 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../catalog/domain/usecases/resolve_catalog_material.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/open_material_provider.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/entities/saved_playlist.dart';
+import '../providers/active_playlist_editor.dart';
 import '../providers/playlist_media_face_provider.dart';
 import '../providers/playlist_share_actions_provider.dart';
 import '../providers/playlists_provider.dart';
@@ -52,10 +56,10 @@ import 'save_playlist_dialog.dart';
 /// visual com modal do carousel e [LouvorCard] (pesquisa/biblioteca).
 ///
 /// Fase 4.2: CRUD (renomear, excluir, remover PDF, favorito).
-/// Fase 4.3: menu **Carregar no carousel** e **Abrir no leitor**; toque em
-/// chip expandido abre o PDF selecionado no leitor — ambos confirmam
-/// substituição quando [carouselLouvoresProvider] não está vazio, carregam a
-/// playlist no carousel e navegam via [openPdfInReaderProvider] +
+/// Onda 3 (D6): menu **Tornar lista ativa** (sem modal — snackbar com
+/// «Desfazer») e **Abrir no leitor**; toque em chip expandido abre o PDF
+/// selecionado no leitor — os dois tornam a lista ativa
+/// ([ActivePlaylistEditor.activate]) e navegam via [openPdfInReaderProvider] +
 /// `context.push` (rota `/leitor` com [rootNavigatorKey]).
 ///
 /// Metadados dos chips enriquecidos via [louvoresManifestProvider] quando
@@ -189,11 +193,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
         ref.watch(authStateProvider).asData?.value?.hasUsername ?? false;
 
     return [
-      if (face == PlaylistMediaFace.pdf)
-        PopupMenuItem(
-          value: 'load',
-          child: Text(l10n.playlistLoadIntoCarousel),
-        ),
+      PopupMenuItem(value: 'activate', child: Text(l10n.playlistActivate)),
       PopupMenuItem(
         value: face == PlaylistMediaFace.audio ? 'openAudio' : 'openReader',
         child: Text(
@@ -248,16 +248,49 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     }
   }
 
-  Future<bool> _confirmReplaceIfNeeded(AppLocalizations l10n) async {
-    final carouselItems = ref.read(carouselLouvoresProvider);
-    if (carouselItems.isEmpty) return true;
+  /// «Tornar lista ativa» (D6): sem modal — a lista que era ativa continua
+  /// existindo, então não há o que "substituir". O snackbar oferece
+  /// «Desfazer», que devolve a ativação à lista anterior quando havia uma.
+  Future<void> _activate(BuildContext context, AppLocalizations l10n) async {
+    if (_loading) return;
+    final playlist = widget.item.playlist;
+    setState(() => _loading = true);
+    final String? previous;
+    try {
+      previous = await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlist.playlistId);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+    if (!context.mounted) return;
 
-    final confirmed = await showConfirmDialog(
-      context: context,
-      title: l10n.playlistLoadConfirmTitle,
-      message: l10n.playlistLoadConfirmMessage,
+    final previousId = previous;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.playlistActivated(_displayName(playlist.nome))),
+        duration: const Duration(seconds: 5),
+        action: previousId == null
+            ? null
+            : SnackBarAction(
+                label: l10n.undo,
+                onPressed: () => unawaited(_undoActivate(previousId, l10n)),
+              ),
+      ),
     );
-    return confirmed == true;
+  }
+
+  /// Volta a ativação para [previousId]. Mesma porteira de storage das ações
+  /// do menu: o callback do snackbar também não tem quem trate a exceção.
+  Future<void> _undoActivate(String previousId, AppLocalizations l10n) async {
+    try {
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(previousId);
+    } on StorageUnavailableException catch (e) {
+      debugPrint('[playlists] desfazer ativação sem storage: $e');
+      _showError(l10n.offlineStorageUnavailable);
+    }
   }
 
   Future<void> _openPdfInReader(String pdfId) async {
@@ -367,6 +400,10 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     }
   }
 
+  /// Torna a lista ativa antes de abrir uma entrada dela no leitor (D6).
+  ///
+  /// Sem confirmação: a lista anterior continua salva. `false` só quando a
+  /// lista não tem face de partituras para abrir.
   Future<bool> _loadPlaylist(AppLocalizations l10n) async {
     final playlist = widget.item.playlist;
     playlistOpenDebugLog(
@@ -379,24 +416,10 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       return false;
     }
 
-    if (!await _confirmReplaceIfNeeded(l10n) || !mounted) {
-      playlistOpenDebugLog('_loadPlaylist: cancelado pelo usuário');
-      return false;
-    }
-
-    final loaded = await ref
-        .read(playlistsProvider.notifier)
-        .loadIntoCarousel(playlist.playlistId);
+    await ref
+        .read(activePlaylistEditorProvider.notifier)
+        .activate(playlist.playlistId);
     if (!mounted) return false;
-
-    if (!loaded) {
-      playlistOpenDebugLogFailure(
-        '_loadPlaylist',
-        'loadIntoCarousel retornou false',
-      );
-      if (mounted) showPlaylistOpenErrorSnackbar(context, l10n);
-      return false;
-    }
 
     playlistOpenDebugLog('_loadPlaylist: ok');
     return true;
@@ -428,18 +451,11 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
     final playlist = widget.item.playlist;
 
     switch (action) {
-      case 'load':
-        if (_loading) return;
-        setState(() => _loading = true);
-        try {
-          final loaded = await _loadPlaylist(l10n);
-          if (loaded && context.mounted) {
-            showAppSnackbar(context, l10n.playlistLoaded);
-          }
-        } finally {
-          if (mounted) setState(() => _loading = false);
-        }
+      case 'activate':
+        await _activate(context, l10n);
       case 'openReader':
+        // Ativa e abre a **primeira entrada da face de partituras** — que é
+        // o que `pdfIds` projeta (tudo que não é áudio, na ordem).
         if (playlist.pdfIds.isEmpty) {
           _showError(l10n.playlistEmptyPdfList);
           return;
@@ -451,20 +467,23 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
           return;
         }
         setState(() => _expanded = true);
-        final cache = ref.read(coldigomAudioTracksCacheProvider);
-        final tracks = [
-          for (final id in playlist.audioIds)
-            if (cache[id] != null) cache[id]!,
-        ];
+        final tracks = ref
+            .read(catalogMaterialLookupProvider)
+            .tracksFor(playlist.audioIds);
         if (tracks.isEmpty) {
           _showError(l10n.playlistAudioEmpty);
           return;
         }
+        // D4: se a faixa já está na lista ativa, a fila é a lista ativa.
         await openAudioInPlayer(
           ref: ref,
           context: context,
           track: tracks.first,
-          queue: tracks,
+          queue: queueForTrack(
+            track: tracks.first,
+            groupTracks: tracks,
+            activeQueue: activeListAudioQueue(ref),
+          ),
         );
       case 'share':
         if (playlist.pdfIds.isEmpty && playlist.audioIds.isEmpty) {

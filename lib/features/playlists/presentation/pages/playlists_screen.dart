@@ -6,7 +6,6 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../providers/playlist_sync_lifecycle.dart';
 import '../providers/playlist_sync_provider.dart';
@@ -101,16 +100,8 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     final result = await showImportPlaylistDialog(context);
     if (result == null || !context.mounted) return;
 
-    final carouselItems = ref.read(carouselLouvoresProvider);
-    if (carouselItems.isNotEmpty) {
-      final confirmed = await showConfirmDialog(
-        context: context,
-        title: l10n.playlistLoadConfirmTitle,
-        message: l10n.playlistLoadConfirmMessage,
-      );
-      if (confirmed != true || !context.mounted) return;
-    }
-
+    // D6: a lista importada vira a ativa e a anterior continua salva — nada
+    // a "substituir", logo nada a confirmar (paridade com o deep link).
     final String? playlistId;
     try {
       playlistId = await ref
