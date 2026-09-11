@@ -5,9 +5,8 @@ import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/domain/repositories/carousel_repository.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
@@ -25,25 +24,6 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
-
-class _FakeCarouselRepo extends Fake implements CarouselRepository {
-  _FakeCarouselRepo(List<String> ids) : ids = [...ids];
-
-  final List<String> ids;
-
-  @override
-  Future<List<String>> getOrderedPdfIds() async => List.of(ids);
-
-  @override
-  Future<void> add(String pdfId) async {
-    if (!ids.contains(pdfId)) ids.add(pdfId);
-  }
-
-  @override
-  Future<List<CarouselItem>> getOrderedItems({
-    required Map<String, CarouselItemMetadata> pdfIdToMetadata,
-  }) async => const [];
-}
 
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
@@ -120,8 +100,8 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistRepositoryProvider.overrideWithValue(repository),
-          carouselRepositoryProvider.overrideWithValue(
-            _FakeCarouselRepo(carouselPdfIds),
+          carouselLocalDatasourceProvider.overrideWithValue(
+            const CarouselLocalDatasource.unavailable(),
           ),
           louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         ],

@@ -2,14 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:coldigui/core/database/collections/carousel_entry.dart';
-
 import 'offline_test_helpers.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
-import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
@@ -28,10 +24,7 @@ String _encodePdfId(String path) {
       .replaceAll('=', '');
 }
 
-Louvor _louvor({
-  required String pdfId,
-  String groupId = '003:clamo-a-ti',
-}) {
+Louvor _louvor({required String pdfId, String groupId = '003:clamo-a-ti'}) {
   return Louvor.fromManifest(
     nome: 'Clamo a ti',
     numero: '3',
@@ -49,7 +42,6 @@ void main() {
   late Isar isar;
   late OfflinePdfRepositoryImpl offlineRepository;
   late PlaylistRepositoryImpl playlistRepository;
-  late CarouselRepositoryImpl carouselRepository;
 
   const category = 'ColAdultos';
   const oldRelPath = 'ColAdultos/old.pdf';
@@ -67,12 +59,8 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(schemas: [
-        LouvorCacheSchema,
-        OfflinePdfIndexSchema,
-        PlaylistSchema,
-        CarouselEntrySchema,
-      ],
+    isar = Isar.open(
+      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
       directory: tempDir.path,
     );
 
@@ -84,7 +72,6 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
-    carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
   });
 
   tearDown(() async {
@@ -103,10 +90,7 @@ void main() {
       isPersistent: true,
     );
 
-    await offlineRepository.remapPdfId(
-      fromPdfId: oldPdfId,
-      toPdfId: newPdfId,
-    );
+    await offlineRepository.remapPdfId(fromPdfId: oldPdfId, toPdfId: newPdfId);
 
     expect(await offlineRepository.lookup(oldPdfId), isNull);
     final remapped = await offlineRepository.lookup(newPdfId);
@@ -116,36 +100,40 @@ void main() {
     expect(await File(entry.absolutePath).exists(), isTrue);
   });
 
-  test('RemapPdfIdsAfterCatalogUpdate atualiza offline, playlist e carousel',
-      () async {
-    final bytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
-    await offlineRepository.upsert(
-      pdfId: oldPdfId,
-      bytes: bytes,
-      category: category,
-      isPersistent: true,
-    );
+  test(
+    'RemapPdfIdsAfterCatalogUpdate atualiza offline, playlist e carousel',
+    () async {
+      final bytes = Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
+      await offlineRepository.upsert(
+        pdfId: oldPdfId,
+        bytes: bytes,
+        category: category,
+        isPersistent: true,
+      );
 
-    final playlistId = await playlistRepository.create(
-      nome: 'Ensaio',
-      pdfIds: [oldPdfId, _encodePdfId('ColAdultos/other.pdf')],
-    );
-    await carouselRepository.replaceAll([oldPdfId]);
+      final playlistId = await playlistRepository.create(
+        nome: 'Ensaio',
+        pdfIds: [oldPdfId, _encodePdfId('ColAdultos/other.pdf')],
+      );
 
-    final remap = RemapPdfIdsAfterCatalogUpdate(
-      offlineRepository,
-      playlistRepository,
-      carouselRepository,
-    );
+      final remap = RemapPdfIdsAfterCatalogUpdate(
+        offlineRepository,
+        playlistRepository,
+      );
 
-    await remap(
-      previousLouvores: [_louvor(pdfId: oldPdfId)],
-      newLouvores: [_louvor(pdfId: newPdfId)],
-    );
+      await remap(
+        previousLouvores: [_louvor(pdfId: oldPdfId)],
+        newLouvores: [_louvor(pdfId: newPdfId)],
+      );
 
-    expect(await offlineRepository.lookup(newPdfId), isNotNull);
-    final playlist = await playlistRepository.getById(playlistId);
-    expect(playlist!.pdfIds, [newPdfId, _encodePdfId('ColAdultos/other.pdf')]);
-    expect(await carouselRepository.getOrderedPdfIds(), [newPdfId]);
-  });
+      expect(await offlineRepository.lookup(newPdfId), isNotNull);
+      final playlist = await playlistRepository.getById(playlistId);
+      expect(playlist!.pdfIds, [
+        newPdfId,
+        _encodePdfId('ColAdultos/other.pdf'),
+      ]);
+      // O `kind` declarado sobrevive ao remapeamento (só o id muda de lugar).
+      expect(playlist.entries.map((e) => e.kind.name), ['pdf', 'pdf']);
+    },
+  );
 }

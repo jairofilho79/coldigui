@@ -9,6 +9,7 @@ import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -204,6 +205,10 @@ void main() {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        // A barra lê a view derivada; aqui ela espelha o notifier fake.
+        carouselItemsProvider.overrideWith(
+          (ref) => ref.watch(carouselLouvoresProvider),
+        ),
         carouselLouvoresProvider.overrideWith(() => carouselNotifier),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
       ],
@@ -347,6 +352,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -391,6 +400,10 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            // A barra lê a view derivada; aqui ela espelha o notifier fake.
+            carouselItemsProvider.overrideWith(
+              (ref) => ref.watch(carouselLouvoresProvider),
+            ),
             carouselLouvoresProvider.overrideWith(() => carouselNotifier),
             playlistsProvider.overrideWith(() => playlistsNotifier),
             playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -431,6 +444,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(() => carouselNotifier),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
@@ -462,6 +479,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(() => notifier),
           playlistsProvider.overrideWith(() => playlists),
         ],
@@ -511,6 +532,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -554,6 +579,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -601,6 +630,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -669,6 +702,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -733,6 +770,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier(items),
           ),
@@ -819,6 +860,10 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          // A barra lê a view derivada; aqui ela espelha o notifier fake.
+          carouselItemsProvider.overrideWith(
+            (ref) => ref.watch(carouselLouvoresProvider),
+          ),
           carouselLouvoresProvider.overrideWith(
             () => _FakeCarouselNotifier([carouselItem]),
           ),
@@ -922,6 +967,10 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            // A barra lê a view derivada; aqui ela espelha o notifier fake.
+            carouselItemsProvider.overrideWith(
+              (ref) => ref.watch(carouselLouvoresProvider),
+            ),
             carouselLouvoresProvider.overrideWith(
               () => _FakeCarouselNotifier(carouselItems),
             ),

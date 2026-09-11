@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:coldigui/core/database/collections/carousel_entry.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/routing/app_router.dart';
@@ -8,13 +7,10 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/data/providers/app_shell_providers.dart';
 import 'package:coldigui/features/app_shell/domain/usecases/sync_deep_link_state.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/deep_link_listener.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
-import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/playlist_not_found_exception.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
-import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -99,20 +95,11 @@ void main() {
 
   setUpAll(() async {
     final dir = await Directory.systemTemp.createTemp('deep_link_widget_');
-    final isar = Isar.open(
-      schemas: [CarouselEntrySchema, PlaylistSchema],
-      directory: dir.path,
-    );
-    final carouselRepository = CarouselRepositoryImpl(
-      CarouselLocalDatasource(isar),
-    );
+    final isar = Isar.open(schemas: [PlaylistSchema], directory: dir.path);
     final playlistRepository = PlaylistRepositoryImpl(
       PlaylistLocalDatasource(isar),
     );
-    importUseCase = ImportSharedPlaylistFromUrl(
-      playlistRepository,
-      LoadPlaylistIntoCarousel(playlistRepository, carouselRepository),
-    );
+    importUseCase = ImportSharedPlaylistFromUrl(playlistRepository);
   });
 
   testWidgets('deep link success navega para home e exibe snackbar', (

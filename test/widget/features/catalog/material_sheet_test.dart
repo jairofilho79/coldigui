@@ -2,14 +2,13 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
-import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
@@ -106,11 +105,6 @@ class _OpenMaterialSpy extends OpenMaterial {
   }
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
 class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
   final List<String> addedPdfIds = [];
   final List<String> addedAudioIds = [];
@@ -159,7 +153,7 @@ Future<void> _pumpSheet(
     ProviderScope(
       overrides: [
         isarAvailableProvider.overrideWithValue(true),
-        carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+        activeEntriesProvider.overrideWithValue(const []),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
         if (opener != null) openMaterialProvider.overrideWithValue(opener),
         ...overrides,
@@ -612,7 +606,7 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             isarAvailableProvider.overrideWithValue(true),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+            activeEntriesProvider.overrideWithValue(const []),
             playlistsProvider.overrideWith(_RecordingPlaylistsNotifier.new),
             coldigomPraiseMetaCacheProvider.overrideWith(
               () => _SeededPraiseMetaCache(praiseMeta),

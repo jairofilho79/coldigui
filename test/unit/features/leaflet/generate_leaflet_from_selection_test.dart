@@ -1,40 +1,13 @@
-import 'dart:io';
-
-import 'package:coldigui/core/database/collections/carousel_entry.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/leaflet/domain/usecases/generate_leaflet_from_selection.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_carousel_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_plus/isar_plus.dart';
 
 void main() {
-  late Directory tempDir;
-  late Isar isar;
-  late CarouselRepositoryImpl carouselRepository;
-  late GenerateLeafletFromSelection useCase;
-
-
-  setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('leaflet_uc08_');
-    isar = Isar.open(schemas: [CarouselEntrySchema],
-      directory: tempDir.path,
-    );
-    carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
-    useCase = GenerateLeafletFromSelection(carouselRepository);
-  });
-
-  tearDown(() async {
-    isar.close(deleteFromDisk: true);
-    if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
-    }
-  });
-
   test('retorna LeafletDocument com índices e campos ordenados', () async {
-    await carouselRepository.add('pdf-a');
-    await carouselRepository.add('pdf-b');
+    final useCase = GenerateLeafletFromSelection(
+      () async => ['pdf-a', 'pdf-b'],
+    );
     final generatedAt = DateTime(2026, 6, 11);
 
     final doc = await useCase(
@@ -65,10 +38,20 @@ void main() {
     expect(doc.entries[1].nome, 'Louvor B');
   });
 
-  test('lança EmptyCarouselException quando seleção vazia', () async {
-    expect(
-      () => useCase(),
-      throwsA(isA<EmptyCarouselException>()),
+  test('repetição do mesmo id vira duas linhas do folheto', () async {
+    final useCase = GenerateLeafletFromSelection(
+      () async => ['pdf-a', 'pdf-b', 'pdf-a'],
     );
+
+    final doc = await useCase();
+
+    expect(doc.entries.map((e) => e.index), [1, 2, 3]);
+    expect(doc.entries.map((e) => e.nome), ['pdf-a', 'pdf-b', 'pdf-a']);
+  });
+
+  test('lança EmptyCarouselException quando seleção vazia', () async {
+    final useCase = GenerateLeafletFromSelection(() async => const []);
+
+    expect(() => useCase(), throwsA(isA<EmptyCarouselException>()));
   });
 }

@@ -1,18 +1,14 @@
 import 'dart:io';
 
-import 'package:coldigui/core/database/collections/carousel_entry.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/app_shell/domain/usecases/sync_deep_link_state.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
-import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
-import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
@@ -78,6 +74,7 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
   Future<void> update(
     String playlistId, {
     String? nome,
+    List<PlaylistEntry>? entries,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,
@@ -103,21 +100,12 @@ void main() {
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('sync_deep_link_');
-    isar = Isar.open(
-      schemas: [CarouselEntrySchema, PlaylistSchema],
-      directory: tempDir.path,
-    );
-    final carouselRepository = CarouselRepositoryImpl(
-      CarouselLocalDatasource(isar),
-    );
+    isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
     final playlistRepository = PlaylistRepositoryImpl(
       PlaylistLocalDatasource(isar),
     );
     useCase = SyncDeepLinkState(
-      ImportSharedPlaylistFromUrl(
-        playlistRepository,
-        LoadPlaylistIntoCarousel(playlistRepository, carouselRepository),
-      ),
+      ImportSharedPlaylistFromUrl(playlistRepository),
     );
   });
 
@@ -190,13 +178,7 @@ void main() {
         const StorageUnavailableException('playlists.insert'),
       );
       final failingUseCase = SyncDeepLinkState(
-        ImportSharedPlaylistFromUrl(
-          failing,
-          LoadPlaylistIntoCarousel(
-            failing,
-            CarouselRepositoryImpl(CarouselLocalDatasource(isar)),
-          ),
-        ),
+        ImportSharedPlaylistFromUrl(failing),
       );
 
       final result = await failingUseCase(
@@ -213,13 +195,7 @@ void main() {
     () async {
       final failing = _ThrowingPlaylistRepository(StateError('boom'));
       final failingUseCase = SyncDeepLinkState(
-        ImportSharedPlaylistFromUrl(
-          failing,
-          LoadPlaylistIntoCarousel(
-            failing,
-            CarouselRepositoryImpl(CarouselLocalDatasource(isar)),
-          ),
-        ),
+        ImportSharedPlaylistFromUrl(failing),
       );
 
       final result = await failingUseCase(
