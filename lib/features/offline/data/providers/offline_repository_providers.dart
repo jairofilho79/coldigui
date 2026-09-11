@@ -12,13 +12,37 @@ final pdfStoragePortProvider = Provider<PdfStoragePort>((ref) {
   return createPdfStoragePort();
 });
 
+/// Revisão do índice offline — sobe a cada escrita que muda disponibilidade.
+///
+/// É o que invalida `offlineAvailabilityMapProvider` (A5): o mapa observa
+/// este contador e relê o índice **uma** vez por mudança, em vez de uma query
+/// por card. Mora ao lado da DI porque é ela quem injeta o `bump` no
+/// datasource — o datasource, em `data/`, não segura `Ref`.
+class OfflineIndexRevisionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  /// Registra uma escrita no índice.
+  void bump() => state = state + 1;
+}
+
+/// Contador de escritas no índice offline — ver [OfflineIndexRevisionNotifier].
+final offlineIndexRevisionProvider =
+    NotifierProvider<OfflineIndexRevisionNotifier, int>(
+      OfflineIndexRevisionNotifier.new,
+    );
+
 /// DI — CRUD Isar [OfflinePdfIndex] via [isarProvider].
 final offlinePdfLocalDatasourceProvider = Provider<OfflinePdfLocalDatasource>((
   ref,
 ) {
   final isar = ref.watch(optionalIsarProvider);
   if (isar == null) return const OfflinePdfLocalDatasource.unavailable();
-  return OfflinePdfLocalDatasource(isar);
+  return OfflinePdfLocalDatasource(
+    isar,
+    onIndexChanged: () =>
+        ref.read(offlineIndexRevisionProvider.notifier).bump(),
+  );
 });
 
 /// DI — [OfflinePdfRepositoryImpl].

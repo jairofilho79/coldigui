@@ -15,8 +15,8 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/coldigom/presentation/utils/group_with_coldigom_meta.dart';
-import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -211,9 +211,14 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
               )
             : (hasAudio ? l10n.audioMaterialSection : null));
 
+    // A5: um mapa único do índice, lido por `select` — sem query por card.
     final offlineAvailability = primary != null
-        ? ref.watch(_offlineAvailabilityProvider(primary.pdfId)).value ??
-              PdfOfflineAvailability.notAvailable
+        ? ref.watch(
+            offlineAvailabilityMapProvider.select(
+              (map) =>
+                  map[primary.pdfId] ?? PdfOfflineAvailability.notAvailable,
+            ),
+          )
         : PdfOfflineAvailability.notAvailable;
 
     return Padding(
@@ -237,8 +242,3 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     );
   }
 }
-
-final _offlineAvailabilityProvider = FutureProvider.autoDispose
-    .family<PdfOfflineAvailability, String>((ref, pdfId) {
-      return ref.watch(validatePdfAvailabilityProvider).call(pdfId: pdfId);
-    });
