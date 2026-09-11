@@ -11,6 +11,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/library/domain/entities/library_catalog_mode.dart';
 import 'package:coldigui/features/library/domain/entities/paginated_louvor_groups.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
+import 'package:coldigui/features/library/presentation/providers/coldigom_library_filters_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_catalog_mode_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_coldigom_browse_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
@@ -83,6 +84,29 @@ PaginatedLouvorGroups _goodFirstPage(int itemsPerPage) => PaginatedLouvorGroups(
   totalItems: 20,
   totalPages: 2,
 );
+
+/// Sem filtro de tom a página 1 vem boa; com filtro, a busca falha.
+///
+/// Serve para o caso "mudou a consulta e a primeira busca da consulta nova
+/// falhou": a última página boa é da consulta **anterior** e não pode ser
+/// servida como se descrevesse a nova.
+class _FilterAwareBrowseNotifier extends LibraryColdigomBrowseNotifier {
+  @override
+  Future<PaginatedLouvorGroups> build() async {
+    final filters = ref.watch(coldigomLibraryFiltersProvider);
+    final view = ref.watch(libraryViewSettingsProvider);
+    if (filters.selectedTonalities.isNotEmpty) {
+      throw StateError('coldigom indisponível para o filtro novo (teste)');
+    }
+    return _goodFirstPage(view.itemsPerPage);
+  }
+}
+
+/// Última página boa fixa, sem escutar o browse — isola o `?? lastGood`.
+class _FixedLastGoodNotifier extends LibraryLastGoodResultsNotifier {
+  @override
+  PaginatedLouvorGroups build() => _goodFirstPage(10);
+}
 
 /// Página 1 boa, página ≥ 2 em erro — o caso do paginador que sumia (D.6).
 class _SecondPageFailsBrowseNotifier extends LibraryColdigomBrowseNotifier {
@@ -291,6 +315,106 @@ void main() {
       expect(lastGood.totalItems, 20);
       expect(lastGood.totalPages, 2);
       expect(container.read(libraryGroupResultsProvider).totalItems, 20);
+    },
+  );
+
+  // A fiação `?? lastGood` isolada: browse sem valor nenhum (o `build` falha na
+  // primeira vez, então o `AsyncError` não tem valor anterior para carregar) e
+  // uma última página boa posta à mão.
+  test(
+    'libraryGroupResultsProvider cai na última página boa quando o browse não tem valor',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          libraryCatalogModeProvider.overrideWith(
+            () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
+          ),
+          libraryColdigomBrowseProvider.overrideWith(
+            () => _ErrorLibraryColdigomBrowseNotifier(null),
+          ),
+          libraryLastGoodResultsProvider.overrideWith(
+            _FixedLastGoodNotifier.new,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await expectLater(
+        container.read(libraryColdigomBrowseProvider.future),
+        throwsStateError,
+      );
+      final browse = container.read(libraryColdigomBrowseProvider);
+      expect(browse.hasError, isTrue);
+      expect(browse.value, isNull);
+
+      final results = container.read(libraryGroupResultsProvider);
+      expect(results.totalItems, 20);
+      expect(results.totalPages, 2);
+    },
+  );
+
+  // Mudou a consulta (filtro), a primeira busca dela falhou: a página boa do
+  // filtro anterior descrevia outro conjunto e não pode reaparecer como se
+  // fosse deste.
+  test(
+    'libraryLastGoodResultsProvider esquece a página boa quando o filtro muda',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          libraryCatalogModeProvider.overrideWith(
+            () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
+          ),
+          libraryColdigomBrowseProvider.overrideWith(
+            _FilterAwareBrowseNotifier.new,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(libraryLastGoodResultsProvider, (_, _) {});
+
+      await container.read(libraryColdigomBrowseProvider.future);
+      expect(container.read(libraryGroupResultsProvider).totalItems, 20);
+
+      container
+          .read(coldigomLibraryFiltersProvider.notifier)
+          .toggleTonality('G');
+      await expectLater(
+        container.read(libraryColdigomBrowseProvider.future),
+        throwsStateError,
+      );
+
+      final browse = container.read(libraryColdigomBrowseProvider);
+      expect(browse.hasError, isTrue);
+      // A armadilha: o `AsyncError` ainda carrega a página do filtro anterior.
+      expect(browse.value, isNotNull);
+      expect(container.read(libraryLastGoodResultsProvider).totalItems, 0);
+      expect(container.read(libraryGroupResultsProvider).totalItems, 0);
+    },
+  );
+
+  // Mesma regra para ordenação e tamanho de página: mudam o conjunto/os totais.
+  test(
+    'libraryLastGoodResultsProvider esquece a página boa quando a ordenação muda',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          libraryCatalogModeProvider.overrideWith(
+            () => _FixedLibraryCatalogModeNotifier(LibraryCatalogMode.coldigom),
+          ),
+          libraryColdigomBrowseProvider.overrideWith(
+            _SecondPageFailsBrowseNotifier.new,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.listen(libraryLastGoodResultsProvider, (_, _) {});
+
+      await container.read(libraryColdigomBrowseProvider.future);
+      expect(container.read(libraryLastGoodResultsProvider).totalItems, 20);
+
+      container.read(libraryViewSettingsProvider.notifier).setSortBy('nome');
+
+      expect(container.read(libraryLastGoodResultsProvider).totalItems, 0);
     },
   );
 
