@@ -168,12 +168,10 @@ class _CarouselBarTrailingActionsState
   ) async {
     playlistShareDebugLog('CarouselBarTrailingActions._openShareSheet: início');
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
-    final resolved = await ref
-        .read(playlistsProvider.notifier)
-        .resolveActivePlaylistFromCarousel();
-    if (!context.mounted) return;
-
-    if (resolved == null) {
+    // A lista ativa **é** a seleção (D3): nada a reconciliar com o carousel.
+    final active = ref.read(activePlaylistProvider);
+    if (active == null || active.entries.isEmpty) {
+      playlistShareDebugLog('_openShareSheet: sem lista ativa ou vazia');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
@@ -194,8 +192,8 @@ class _CarouselBarTrailingActionsState
           .share(
             context,
             PlaylistShareContext(
-              playlistId: resolved.playlistId,
-              nome: resolved.nome,
+              playlistId: active.playlistId,
+              nome: active.nome,
               pdfIds: pdfIds,
               fromCarousel: true,
             ),

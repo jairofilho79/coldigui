@@ -891,8 +891,8 @@ class _PlaylistDetailChips extends ConsumerWidget {
     final louvor = findLouvor(pdfId);
     if (louvor != null) {
       return CarouselItem(
-        pdfId: pdfId,
-        sortOrder: index,
+        materialId: pdfId,
+        index: index,
         numero: louvor.numero,
         nome: louvor.nome,
         categoria: louvor.categoria,
@@ -905,8 +905,8 @@ class _PlaylistDetailChips extends ConsumerWidget {
     final dashIndex = label.indexOf(' — ');
     if (dashIndex > 0) {
       return CarouselItem(
-        pdfId: pdfId,
-        sortOrder: index,
+        materialId: pdfId,
+        index: index,
         numero: label.substring(0, dashIndex).trim(),
         nome: label.substring(dashIndex + 3).trim(),
         categoria: '',
@@ -916,8 +916,8 @@ class _PlaylistDetailChips extends ConsumerWidget {
     }
 
     return CarouselItem(
-      pdfId: pdfId,
-      sortOrder: index,
+      materialId: pdfId,
+      index: index,
       numero: '',
       nome: label,
       categoria: '',

@@ -28,21 +28,6 @@ import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
 
-/// Lista ativa resolvida — retorno de
-/// [PlaylistsNotifier.resolveActivePlaylistFromCarousel].
-///
-/// Usado por [CarouselBarTrailingActions._sharePlaylist] e
-/// [PlaylistsNotifier.sharePlaylist] antes de gerar URL PWA.
-class ResolvedActivePlaylist {
-  const ResolvedActivePlaylist({required this.playlistId, required this.nome});
-
-  /// ID estável da playlist ([SavedPlaylist.playlistId]).
-  final String playlistId;
-
-  /// Nome exibido no share sheet (`subject` do share nativo).
-  final String nome;
-}
-
 /// Playlist enriquecida com labels do manifest para exibição na UI.
 class PlaylistViewItem {
   const PlaylistViewItem({required this.playlist, required this.pdfLabels});
@@ -53,9 +38,9 @@ class PlaylistViewItem {
 
 /// Estado reativo das playlists — UC-06 (CRUD, load, abas) e UC-07 (share/import).
 ///
-/// Toda mutação da **seleção** passa pelo [ActivePlaylistEditor] (D3): os
-/// métodos daqui que ainda falam em carousel são invólucros de compatibilidade
-/// até a Tarefa 16.
+/// Toda mutação da **seleção** passa pelo [ActivePlaylistEditor] (D3);
+/// [addLouvorToActivePlaylist]/[addAudioToActivePlaylist] são a porta de quem
+/// abre um material e quer garanti-lo na lista ativa.
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   var _sessionHydrated = false;
 
@@ -160,20 +145,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
         }
       }),
     );
-  }
-
-  /// Garante lista ativa contendo [pdfId] e retorna o id da lista.
-  ///
-  /// Invólucro de [EnsureActivePlaylist] (D3).
-  Future<String> ensurePlaylistForLouvor(String pdfId) async {
-    final result = await ref.read(ensureActivePlaylistProvider)(
-      entry: PlaylistEntry.classified(pdfId),
-      activePlaylistId: ref.read(activePlaylistIdProvider),
-    );
-    ref.read(activePlaylistIdProvider.notifier).set(result.playlistId);
-    await _reload();
-    ref.read(carouselFocusedKeyProvider.notifier).focus(entryKeyFor(pdfId, 0));
-    return result.playlistId;
   }
 
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
@@ -403,25 +374,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       'pdfId=$pdfId ausente no manifest e cache coldigom',
     );
     return null;
-  }
-
-  /// Lista ativa para ações como compartilhar (invólucro até a Tarefa 16).
-  ///
-  /// Não existe mais carousel a reconciliar: a lista ativa **é** a seleção.
-  /// Retorna `null` quando não há lista ativa ou ela está vazia.
-  @Deprecated('use activePlaylistProvider')
-  Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async {
-    final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) {
-      playlistShareDebugLog('resolve: sem lista ativa — abortando');
-      return null;
-    }
-    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active == null || active.entries.isEmpty) {
-      playlistShareDebugLog('resolve: lista ativa ausente ou vazia');
-      return null;
-    }
-    return ResolvedActivePlaylist(playlistId: activeId, nome: active.nome);
   }
 
   /// Compartilha playlist via URL PWA (`/?sharepdfs=…&sharename=…`).

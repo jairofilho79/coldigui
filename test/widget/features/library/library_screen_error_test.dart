@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -26,11 +24,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
 
 /// Fixa o modo (PLPCG/Coldigom) sem hidratar por URL — evita depender do
 /// [WidgetsBinding.addPostFrameCallback] de [LibraryScreen._hydrateFromUrl].
@@ -127,7 +120,6 @@ Widget _libraryErrorTestApp({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       libraryGroupPipelineExecutorProvider.overrideWith(
         (ref) =>
             (input) async => runLibraryGroupPipeline(input),

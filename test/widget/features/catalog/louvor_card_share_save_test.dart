@@ -15,8 +15,6 @@ import 'package:coldigui/features/offline/domain/repositories/offline_pdf_reposi
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -201,17 +199,9 @@ class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
       );
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
 
   @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
@@ -242,7 +232,6 @@ List<Override> _commonOverrides({
   return [
     isarAvailableProvider.overrideWithValue(true),
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
-    carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
     playlistsProvider.overrideWith(
       playlistsNotifier ?? _FakePlaylistsNotifier.new,

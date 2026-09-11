@@ -1,7 +1,5 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
@@ -41,17 +39,9 @@ LouvorGroup _multiMaterialGroup() => LouvorGroup.fromLouvores([
   _louvor(categoria: 'Cifra'),
 ]).first;
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
 
   @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
@@ -96,7 +86,6 @@ Future<void> _pumpHome(
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(true),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-        carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
         coldigomSearchRepositoryProvider.overrideWithValue(
           _EmptyColdigomRepo(),

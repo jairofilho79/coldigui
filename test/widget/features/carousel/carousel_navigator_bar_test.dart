@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _testItem = CarouselItem(
-  pdfId: 'b',
-  sortOrder: 1,
+  materialId: 'b',
+  index: 1,
   numero: '002',
   nome: 'Louvor B',
   categoria: 'Partitura',
@@ -67,8 +67,8 @@ void main() {
         home: Scaffold(
           body: CarouselNavigatorBar(
             item: const CarouselItem(
-              pdfId: 'a',
-              sortOrder: 0,
+              materialId: 'a',
+              index: 0,
               numero: '001',
               nome: 'Louvor A',
               categoria: 'Partitura',
@@ -134,8 +134,8 @@ void main() {
               width: 400,
               child: CarouselNavigatorBar(
                 item: const CarouselItem(
-                  pdfId: 'x',
-                  sortOrder: 0,
+                  materialId: 'x',
+                  index: 0,
                   numero: '203',
                   nome: 'Alto Preço',
                   categoria: 'Partitura',

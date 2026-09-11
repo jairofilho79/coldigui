@@ -2,8 +2,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -32,11 +30,6 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   // override o teste ficaria pendurado no Isar e o erro nunca chegaria à UI.
   @override
   Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
 }
 
 /// Sessão de áudio que sempre falha ao tocar — `playQueue` é o único `await`
@@ -139,7 +132,6 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
             audioPlayerSessionProvider.overrideWith(_FailingAudioSession.new),
           ],
           child: MaterialApp.router(
@@ -183,7 +175,6 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
             louvorPdfDownloadProvider.overrideWith(
               _DeletedPdfDownloadNotifier.new,
             ),

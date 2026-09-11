@@ -8,21 +8,15 @@
 ///
 /// Sem wrap circular: as extremidades dão `null` nos dois lados.
 class CarouselReaderPosition {
-  /// [previousMaterialId]/[nextMaterialId] são o contrato novo; `previousPdfId`
-  /// e `nextPdfId` continuam aceitos como apelidos enquanto os widgets do
-  /// carousel não foram reescritos (Tarefas 12–16).
   const CarouselReaderPosition({
     required this.currentIndex,
     required this.total,
-    this.currentKey = '',
+    required this.currentKey,
     this.previousKey,
     this.nextKey,
-    String? previousMaterialId,
-    String? nextMaterialId,
-    @Deprecated('use previousMaterialId') String? previousPdfId,
-    @Deprecated('use nextMaterialId') String? nextPdfId,
-  }) : previousMaterialId = previousMaterialId ?? previousPdfId,
-       nextMaterialId = nextMaterialId ?? nextPdfId;
+    this.previousMaterialId,
+    this.nextMaterialId,
+  });
 
   /// Índice 1-based na face de partituras da lista ativa.
   final int currentIndex;
@@ -48,12 +42,6 @@ class CarouselReaderPosition {
   bool get canGoPrevious => previousMaterialId != null;
 
   bool get canGoNext => nextMaterialId != null;
-
-  @Deprecated('use previousMaterialId')
-  String? get previousPdfId => previousMaterialId;
-
-  @Deprecated('use nextMaterialId')
-  String? get nextPdfId => nextMaterialId;
 }
 
 /// Direção de navegação no carousel do leitor.

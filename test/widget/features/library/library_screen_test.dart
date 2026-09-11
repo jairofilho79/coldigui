@@ -1,7 +1,5 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
@@ -29,11 +27,6 @@ Louvor _louvor({
   pdfId: 'id-$numero',
 );
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
 Widget _libraryTestApp({
   required SharedPreferences prefs,
   required List<Louvor> catalog,
@@ -44,7 +37,6 @@ Widget _libraryTestApp({
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
-      carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       libraryGroupPipelineExecutorProvider.overrideWith(
         (ref) =>
             (input) async => runLibraryGroupPipeline(input),
@@ -176,7 +168,6 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestLoadingOverride(),
-          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
           libraryGroupPipelineExecutorProvider.overrideWith(
             (ref) =>
                 (input) async => runLibraryGroupPipeline(input),

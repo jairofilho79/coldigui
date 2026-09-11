@@ -168,8 +168,8 @@ void main() {
   final currentPath = 'assets/ColAdultos/current.pdf';
   final nextPath = 'assets/ColAdultos/next.pdf';
   final currentPdfId = _pdfIdForPath(currentPath);
-  final prevPdfId = _pdfIdForPath(prevPath);
-  final nextPdfId = _pdfIdForPath(nextPath);
+  final prevId = _pdfIdForPath(prevPath);
+  final nextId = _pdfIdForPath(nextPath);
 
   test('prefetch dispara após sessão carregar sem bloquear abertura', () async {
     SharedPreferences.setMockInitialValues({});
@@ -221,7 +221,7 @@ void main() {
     expect(resolved, isEmpty);
 
     await Future<void>.delayed(Duration.zero);
-    expect(resolved, [prevPdfId, nextPdfId]);
+    expect(resolved, [prevId, nextId]);
 
     prefetchSub.close();
     sessionSub.close();
@@ -282,7 +282,7 @@ void main() {
     await container.read(pdfReaderSessionProvider(filePath).future);
     await Future<void>.delayed(Duration.zero);
 
-    expect(resolved, [nextPdfId]);
+    expect(resolved, [nextId]);
 
     prefetchSub.close();
     sessionSub.close();

@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _item = CarouselItem(
-  pdfId: 'x',
-  sortOrder: 0,
+  materialId: 'x',
+  index: 0,
   numero: '203',
   nome: 'O fio da escarlata é o mistério',
   categoria: 'Partitura',
@@ -168,8 +168,8 @@ void main() {
 
   testWidgets('chip coldigom usa fundo preto', (tester) async {
     const coldigomItem = CarouselItem(
-      pdfId: 'coldigom-id',
-      sortOrder: 0,
+      materialId: 'coldigom-id',
+      index: 0,
       numero: '031',
       nome: 'Sal da terra',
       categoria: 'Partitura',

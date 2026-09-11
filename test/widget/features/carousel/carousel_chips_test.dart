@@ -15,10 +15,11 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carou
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -28,18 +29,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier({this.resolvedPlaylist});
-
-  final ResolvedActivePlaylist? resolvedPlaylist;
   var startedNewEmpty = false;
   var deletedActiveUnsaved = false;
 
   @override
   List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async =>
-      resolvedPlaylist;
 
   @override
   Future<void> startNewEmptySelection() async {
@@ -225,6 +219,15 @@ void main() {
   };
   final entries = _entriesOf(const ['a', 'b', 'c']);
 
+  /// Lista ativa em memória — é dela que o compartilhar tira id e nome (D3).
+  final activePlaylist = SavedPlaylist(
+    playlistId: 'p1',
+    nome: 'Ensaio',
+    createdAt: DateTime(2026, 1, 1),
+    entries: entries,
+    salva: false,
+  );
+
   Widget buildSubject(
     List<PlaylistEntry> activeEntries, {
     _FakeActiveEditor? notifier,
@@ -365,12 +368,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final playlistsNotifier = _FakePlaylistsNotifier(
-      resolvedPlaylist: const ResolvedActivePlaylist(
-        playlistId: 'p1',
-        nome: 'Ensaio',
-      ),
-    );
+    final playlistsNotifier = _FakePlaylistsNotifier();
     final shareNotifier = _FakePlaylistShareActionsNotifier();
     final editor = _FakeActiveEditor(entries);
     await tester.pumpWidget(
@@ -380,6 +378,7 @@ void main() {
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
+          activePlaylistProvider.overrideWithValue(activePlaylist),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
         child: MaterialApp(
@@ -403,19 +402,14 @@ void main() {
   });
 
   testWidgets(
-    'compartilhar lista com carousel preenchido sem playlist ativa em memória',
+    'compartilhar com a lista ativa preenchida não avisa lista vazia',
     (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final playlistsNotifier = _FakePlaylistsNotifier(
-        resolvedPlaylist: const ResolvedActivePlaylist(
-          playlistId: 'p1',
-          nome: 'Ensaio',
-        ),
-      );
+      final playlistsNotifier = _FakePlaylistsNotifier();
       final shareNotifier = _FakePlaylistShareActionsNotifier();
       final editor = _FakeActiveEditor(entries);
       await tester.pumpWidget(
@@ -425,6 +419,7 @@ void main() {
             louvoresByPdfIdProvider.overrideWithValue(manifest),
             activePlaylistEditorProvider.overrideWith(() => editor),
             playlistsProvider.overrideWith(() => playlistsNotifier),
+            activePlaylistProvider.overrideWithValue(activePlaylist),
             playlistShareActionsProvider.overrideWith(() => shareNotifier),
           ],
           child: MaterialApp(
@@ -451,12 +446,7 @@ void main() {
   testWidgets('tap compartilhar dispara opção folheto no sheet', (
     tester,
   ) async {
-    final playlistsNotifier = _FakePlaylistsNotifier(
-      resolvedPlaylist: const ResolvedActivePlaylist(
-        playlistId: 'p1',
-        nome: 'Ensaio',
-      ),
-    );
+    final playlistsNotifier = _FakePlaylistsNotifier();
     final shareNotifier = _FakePlaylistShareActionsNotifier();
     final editor = _FakeActiveEditor(entries);
     await tester.pumpWidget(
@@ -466,6 +456,7 @@ void main() {
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
+          activePlaylistProvider.overrideWithValue(activePlaylist),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
         child: MaterialApp(

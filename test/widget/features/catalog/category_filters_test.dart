@@ -4,8 +4,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,11 +23,6 @@ Louvor _louvor({
   pdf: '$numero.pdf',
   pdfId: 'id-$numero',
 );
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
 
 void main() {
   setUp(() async {
@@ -58,7 +51,6 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
-          carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

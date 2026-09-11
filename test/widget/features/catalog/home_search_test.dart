@@ -6,8 +6,6 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
@@ -50,11 +48,6 @@ LouvorGroup _group(Louvor louvor) => LouvorGroup(
     ),
   ],
 );
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
 
 class _FakeColdigomRepo implements ColdigomSearchRepository {
   _FakeColdigomRepo(this.catalog);
@@ -141,7 +134,6 @@ List<Override> _homeSearchTestOverrides({
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
     louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
-    carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
     // Acervo vazio: estes testes medem debounce/eco de URL sobre a busca PLPCG.
     // Alimentar o mesmo catálogo nas duas fontes duplicaria cada resultado —
     // artefato da fixture, não do produto. Coldigom tem cobertura própria em

@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -15,11 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
 Widget _homeErrorTestApp({
   required SharedPreferences prefs,
   required List<Override> extraOverrides,
@@ -27,7 +20,6 @@ Widget _homeErrorTestApp({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
       ...extraOverrides,
     ],
     child: MaterialApp(
