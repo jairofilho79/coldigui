@@ -5,11 +5,10 @@ import '../../domain/entities/louvor_group.dart';
 
 /// Tudo o que a Home precisa saber sobre a busca corrente, num valor só (C.2).
 ///
-/// Substitui os seis `StateProvider` mutados imperativamente pelo antigo
-/// `HomeSearchPipelineDriver`: não há mais geração a comparar nem escrita
-/// cruzada entre providers — o estado é derivado das três fontes
-/// (`query` debounced, busca local síncrona e a página remota `AsyncValue`)
-/// e não pode ficar inconsistente.
+/// Valor **derivado** por `homeSearchStateProvider` das três fontes — a
+/// `query` debounced, a busca local síncrona e a página remota `AsyncValue`
+/// —, nunca mutado na mão: não há geração a comparar nem escrita cruzada entre
+/// providers, então ele não tem como ficar inconsistente.
 final class HomeSearchState {
   const HomeSearchState({
     required this.query,
