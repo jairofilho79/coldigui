@@ -5,11 +5,11 @@ import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
-import '../../domain/repositories/coldigom_search_repository.dart';
 import '../coldigom_cache_writer.dart';
-import '../datasources/coldigom_remote_datasource.dart';
-import '../providers/coldigom_dio_provider.dart';
-import '../repositories/coldigom_search_repository_impl.dart';
+
+// Rede (datasource + repositório) mora em `coldigom_remote_providers.dart`;
+// quem está em `data/` continua importando só este arquivo.
+export 'coldigom_remote_providers.dart';
 
 /// Cache em memória de louvores coldigom indexados por `pdfId`.
 class ColdigomLouvoresCacheNotifier extends Notifier<Map<String, Louvor>> {
@@ -146,25 +146,10 @@ final coldigomYoutubeCacheProvider =
       Map<String, List<YoutubeMaterial>>
     >(ColdigomYoutubeCacheNotifier.new);
 
-final coldigomRemoteDatasourceProvider = Provider<ColdigomRemoteDatasource>((
-  ref,
-) {
-  return ColdigomRemoteDatasource(ref.watch(coldigomDioProvider));
-});
-
 /// Ponto único de escrita nos caches acima — ver [ColdigomCacheWriter].
 ///
 /// Não observa nada: a instância vive enquanto o container viver, e não
 /// invalida quem a lê a cada merge.
 final coldigomCacheWriterProvider = Provider<ColdigomCacheWriter>((ref) {
   return ColdigomCacheWriter(ref);
-});
-
-final coldigomSearchRepositoryProvider = Provider<ColdigomSearchRepository>((
-  ref,
-) {
-  return ColdigomSearchRepositoryImpl(
-    ref.watch(coldigomRemoteDatasourceProvider),
-    cache: ref.watch(coldigomCacheWriterProvider),
-  );
 });

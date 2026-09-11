@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../coldigom/data/models/praise_dto.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../coldigom/data/providers/coldigom_remote_providers.dart';
 
 /// Facets Coldigom para chips da biblioteca.
 class ColdigomLibraryFacets {
