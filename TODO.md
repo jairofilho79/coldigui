@@ -22,7 +22,7 @@ Definir estratégia para testar features futuras sem impactar usuários em produ
 
 ### 3. Gestos em Gravura — arquivos `.txt` + ferramenta visual
 
-Especificar e gerar arquivos `.txt` com a representação dos gestos (app separada em desenvolvimento). No Coldigui, criar ferramenta visual para **ler e desenhar** esses gestos — substituindo ou complementando PDFs estáticos, com editor/viewer integrado ao leitor e ao fluxo de busca por material.
+**Ferramenta visual concluída** → [UC-17 — Leitor de Gestos CIAs](docs/use-cases/UC-17-leitor-gestos.md) (set/2026). Especificar e gerar arquivos `.txt` com a representação dos gestos (app separada em desenvolvimento). No Coldigui, criar ferramenta visual para **ler e desenhar** esses gestos — substituindo ou complementando PDFs estáticos, com editor/viewer integrado ao leitor e ao fluxo de busca por material.
 
 ### 4. Cifras — arquivos `.txt` + viewer
 
