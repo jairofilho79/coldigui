@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/database/isar_provider.dart';
+import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
@@ -98,11 +100,24 @@ final playlistSyncProvider =
     );
 
 class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
+  /// Espera antes de sincronizar quando a rede volta (spec A.6).
+  ///
+  /// Mutável e estática só para o teste encolher: a volta da conectividade
+  /// costuma vir em rajada (várias mudanças de interface em sequência) e
+  /// sincronizar na primeira gastaria uma requisição que ainda falharia.
+  static Duration reconnectDebounce = const Duration(seconds: 2);
+
   Future<void>? _inFlight;
   String? _lastSyncedSub;
+  Timer? _reconnectTimer;
 
   @override
   PlaylistSyncState build() {
+    ref.onDispose(() {
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+    });
+
     ref.listen(authStateProvider, (prev, next) {
       final user = next.asData?.value;
       if (user == null) {
@@ -117,12 +132,39 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       // leria um provider ainda não inicializado. Sai do build primeiro.
       unawaited(Future<void>.microtask(_syncForCurrentSub));
     }, fireImmediately: true);
+
+    // A rede voltou: sincroniza o que ficou parado offline. Sem
+    // `fireImmediately` — o boot já sincroniza pelo listener de auth.
+    ref.listen(connectivityStreamProvider, (prev, next) {
+      final online = next.asData?.value ?? false;
+      final wasOnline = prev?.asData?.value ?? false;
+      if (!online || wasOnline) return;
+      if (ref.read(authStateProvider).asData?.value == null) return;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(reconnectDebounce, () {
+        if (!ref.mounted) return;
+        unawaited(sync());
+      });
+    });
+
     return const PlaylistSyncState();
   }
 
   /// Sync do boot/login: só remarca tudo como `pendingPush` quando a conta
   /// mudou desde a última vez (o `sub` persistido).
   Future<void> _syncForCurrentSub() async {
+    if (!ref.mounted) return;
+    if (ref.read(authStateProvider).asData?.value == null) return;
+    // O app monta enquanto o Isar ainda está abrindo (D.2). Sincronizar antes
+    // disso faria `adoptForSub`/`purgeSyncedOwnedBy` verem uma coleção vazia e
+    // o pull acenderia o banner por um erro que não é do usuário.
+    try {
+      await ref.read(isarInitializerProvider.future);
+    } on Object catch (e) {
+      // Modo degradado: segue mesmo assim — quem reclama é o repositório, com
+      // `StorageUnavailableException`, e o tratamento de sempre vale.
+      debugPrint('[playlists] Isar indisponível para o sync pós-login: $e');
+    }
     if (!ref.mounted) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
@@ -145,9 +187,14 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       return PlaylistSyncResult.skippedAuth;
     }
 
+    // `state` também é `ref`: lê-lo depois do `await` num notifier já
+    // descartado (a tela saiu, ou o container do teste caiu no meio da rodada)
+    // lançaria de dentro de um callback sem dono. Sem notifier não há resultado
+    // a reportar — quem chamou já checa `skipped`.
     final existing = _inFlight;
     if (existing != null) {
       await existing;
+      if (!ref.mounted) return PlaylistSyncResult.skippedAuth;
       return state.lastResult ?? PlaylistSyncResult.skippedAuth;
     }
 
@@ -155,6 +202,7 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     _inFlight = future;
     try {
       await future;
+      if (!ref.mounted) return PlaylistSyncResult.skippedAuth;
       return state.lastResult ?? const PlaylistSyncResult();
     } finally {
       _inFlight = null;
@@ -171,9 +219,24 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
   /// A regra de recarregar é a mesma do [PlaylistSyncLifecycleMixin]:
   /// `PlaylistsNotifier` não observa o banco, então uma sync que trouxe listas
   /// novas apagaria o banner e deixaria a tela mostrando o estado velho.
+  /// Quando o `sub` corrente ainda não foi persistido, a adoção do pós-login
+  /// não deu certo — refazê-la é o retry certo (spec A.6); um `sync()` puro
+  /// deixaria as listas locais sem dono e sem subir.
   Future<void> retryAndReload() async {
-    final result = await sync();
-    if (!ref.mounted || result.skipped) return;
+    if (!ref.mounted) return;
+    final user = ref.read(authStateProvider).asData?.value;
+    if (user != null && _persistedSub() != user.googleSub) {
+      await syncAfterLogin();
+      if (!ref.mounted) return;
+      await _reloadIfMoved(state.lastResult);
+      return;
+    }
+    await _reloadIfMoved(await sync());
+  }
+
+  Future<void> _reloadIfMoved(PlaylistSyncResult? result) async {
+    if (!ref.mounted) return;
+    if (result == null || result.skipped) return;
     if (result.pulled == 0 &&
         result.pushed == 0 &&
         result.deleted == 0 &&

@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
@@ -12,6 +16,7 @@ import 'package:coldigui/features/playlists/presentation/providers/active_playli
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _subKey = 'playlist_sync.last_synced_sub';
@@ -131,7 +136,7 @@ class _CountingRepository implements PlaylistRepository {
 /// [SyncPlaylists] roteirizado: [throwsUntilCall] explode nas primeiras
 /// chamadas e as seguintes devolvem [result].
 class _ScriptedSync extends SyncPlaylists {
-  _ScriptedSync({this.result, this.throws, this.throwsUntilCall})
+  _ScriptedSync({this.result, this.throws, this.throwsUntilCall, this.gate})
     : super(
         _CountingRepository(),
         (_) async => const <RemotePlaylist>[],
@@ -146,6 +151,10 @@ class _ScriptedSync extends SyncPlaylists {
   final int? throwsUntilCall;
   var calls = 0;
 
+  /// Segura a rodada até o teste liberar — para descartar o container com uma
+  /// sync em voo.
+  final Completer<void>? gate;
+
   /// `sub` recebido em cada chamada, na ordem.
   final subs = <String?>[];
 
@@ -156,6 +165,7 @@ class _ScriptedSync extends SyncPlaylists {
   }) async {
     calls++;
     subs.add(sub);
+    await gate?.future;
     final error = throws;
     final limit = throwsUntilCall;
     if (error != null && (limit == null || calls <= limit)) throw error;
@@ -172,6 +182,11 @@ void main() {
     // `getInstance` é singleton: sem o reload, o cache do teste anterior
     // sobrevive a `setMockInitialValues`.
     await prefs.reload();
+    PlaylistSyncNotifier.reconnectDebounce = const Duration(milliseconds: 5);
+  });
+
+  tearDown(() {
+    PlaylistSyncNotifier.reconnectDebounce = const Duration(seconds: 2);
   });
 
   /// Deixa o `unawaited(syncAfterLogin())` do `build()` terminar.
@@ -181,13 +196,25 @@ void main() {
   ProviderContainer buildContainer({
     required PlaylistRepository repository,
     required SyncPlaylists sync,
+    Stream<bool>? connectivity,
+    Future<Isar>? isarReady,
   }) {
     return ProviderContainer(
       overrides: [
+        // O boot espera o Isar assentar. Sem `isarReady`, ele já nasce
+        // degradado: nenhum teste daqui usa a instância de verdade (o
+        // repositório é fake), e abrir o Isar real seria só lentidão.
+        isarInitializerProvider.overrideWith(
+          (ref) =>
+              isarReady ??
+              Future<Isar>.error(StateError('Isar não é usado neste teste')),
+        ),
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedInAuth.new),
         playlistRepositoryProvider.overrideWithValue(repository),
         syncPlaylistsProvider.overrideWithValue(sync),
+        if (connectivity != null)
+          connectivityStreamProvider.overrideWith((ref) => connectivity),
       ],
     );
   }
@@ -433,5 +460,119 @@ void main() {
     await container.read(playlistSyncProvider.notifier).sync();
 
     expect(container.read(activePlaylistIdProvider), 'intocada');
+  });
+
+  test(
+    'retryAndReload refaz o pós-login quando o sub não foi persistido',
+    () async {
+      final repo = _CountingRepository(adoptThrows: StateError('storage fora'));
+      final container = buildContainer(repository: repo, sync: _ScriptedSync());
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      container.read(playlistSyncProvider);
+      await settle();
+      expect(repo.adoptCalls, 1);
+      expect(prefs.getString(_subKey), isNull);
+
+      await container.read(playlistSyncProvider.notifier).retryAndReload();
+
+      expect(repo.adoptCalls, 2, reason: 'a adoção pendente é refeita');
+    },
+  );
+
+  test('retryAndReload só sincroniza com o sub já persistido', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final repo = _CountingRepository();
+    final sync = _ScriptedSync();
+    final container = buildContainer(repository: repo, sync: sync);
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(playlistSyncProvider);
+    await settle();
+    final before = sync.calls;
+
+    await container.read(playlistSyncProvider.notifier).retryAndReload();
+
+    expect(repo.adoptCalls, 0);
+    expect(sync.calls, before + 1);
+  });
+
+  test('descartar o container no meio da sync não estoura', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final gate = Completer<void>();
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: _ScriptedSync(gate: gate),
+    );
+
+    await container.read(authStateProvider.future);
+    final pending = container.read(playlistSyncProvider.notifier).sync();
+    container.dispose();
+    gate.complete();
+
+    // `state` é `ref`: sem guarda de `mounted` depois do `await`, ler o
+    // resultado num notifier já descartado estouraria num callback sem dono.
+    await expectLater(pending, completion(isA<PlaylistSyncResult>()));
+  });
+
+  test('boot espera o Isar assentar antes de tocar no repositório', () async {
+    final repo = _CountingRepository();
+    final sync = _ScriptedSync();
+    final isarReady = Completer<Isar>();
+    final container = buildContainer(
+      repository: repo,
+      sync: sync,
+      isarReady: isarReady.future,
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    container.read(playlistSyncProvider);
+    await settle();
+
+    expect(repo.adoptCalls, 0, reason: 'o Isar ainda está abrindo');
+    expect(sync.calls, 0, reason: 'nada sobe antes do banco estar de pé');
+    expect(prefs.getString(_subKey), isNull);
+
+    // Modo degradado: a abertura falhou. O pós-login segue mesmo assim — quem
+    // reclama é o repositório, com StorageUnavailableException.
+    isarReady.completeError(StateError('OPFS travou'));
+    await settle();
+
+    expect(repo.adoptCalls, 1);
+    expect(sync.calls, 1);
+  });
+
+  test('volta da conectividade dispara sync depois do debounce', () async {
+    await prefs.setString(_subKey, 'sub-1');
+    final sync = _ScriptedSync();
+    final connectivity = StreamController<bool>.broadcast();
+    addTearDown(connectivity.close);
+    final container = buildContainer(
+      repository: _CountingRepository(),
+      sync: sync,
+      connectivity: connectivity.stream,
+    );
+    addTearDown(container.dispose);
+
+    await container.read(authStateProvider.future);
+    // `listen`, e não `read`: no Riverpod 3 um provider sem ouvinte ativo tem
+    // as próprias assinaturas pausadas — o `ref.listen` da conectividade só
+    // recebe eventos enquanto alguém observa o notifier (na tela, a lista).
+    container.listen(playlistSyncProvider, (_, _) {});
+    await settle();
+    final before = sync.calls;
+
+    connectivity.add(false);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(sync.calls, before, reason: 'ficar offline não sincroniza');
+
+    connectivity.add(true);
+    expect(sync.calls, before, reason: 'o debounce ainda não venceu');
+    await Future<void>.delayed(const Duration(milliseconds: 40));
+
+    expect(sync.calls, before + 1);
   });
 }
