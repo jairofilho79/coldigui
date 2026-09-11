@@ -111,6 +111,43 @@ void main() {
     expect(await repository.getById('p1'), isNotNull);
   });
 
+  // Fix round 1 — Important 1: playlist_sync_provider.dart chama reload()
+  // depois de um sync com movedRows; sem filtro, `_reload()` reescreveria o
+  // `state` a partir do repositório (que ainda tem a linha — o commit não
+  // rodou) e ressuscitaria a lista dentro da janela de graça.
+  test(
+    'reload() durante a graça não ressuscita a lista com exclusão pendente',
+    () async {
+      await repository.create(
+        nome: 'Rascunho',
+        entries: [PlaylistEntry(id: 'a', kind: MaterialKind.pdf)],
+        playlistId: 'p1',
+        salva: false,
+      );
+      final c = await boot();
+
+      final pending = c.read(playlistsProvider.notifier).deleteWithUndo('p1');
+      // O repositório ainda tem a linha (commit não rodou) — um reload
+      // disparado por sync/manifesto durante a graça não pode trazê-la de
+      // volta ao estado.
+      expect(await repository.getById('p1'), isNotNull);
+      await c.read(playlistsProvider.notifier).reload();
+
+      expect(
+        c.read(playlistsProvider).map((i) => i.playlist.playlistId),
+        isNot(contains('p1')),
+      );
+
+      await pending.undo();
+      await c.read(playlistsProvider.notifier).reload();
+
+      expect(
+        c.read(playlistsProvider).map((i) => i.playlist.playlistId),
+        contains('p1'),
+      );
+    },
+  );
+
   test('undo recoloca a lista e nunca chama o repositório', () async {
     await repository.create(
       nome: 'Rascunho',

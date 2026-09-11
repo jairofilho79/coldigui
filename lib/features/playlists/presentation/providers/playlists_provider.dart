@@ -48,6 +48,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   /// Exclusão adiada em curso (C11) — só uma por vez, ver [deleteWithUndo].
   PendingDelete? _pendingDelete;
 
+  /// `playlistId` de [_pendingDelete] — usado por [_reload] para não
+  /// ressuscitar a lista enquanto a exclusão ainda não comitou (fix round 1,
+  /// Important 1).
+  String? _pendingDeleteId;
+
   @override
   List<PlaylistViewItem> build() {
     ref.listen(louvoresManifestProvider, (_, _) {
@@ -90,7 +95,19 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     final lookup = ref.read(catalogMaterialLookupProvider);
     final playlists = await repository.getAll();
 
+    // Fix round 1 — Important 1: o repositório ainda tem a linha enquanto a
+    // exclusão está na graça (o commit real só roda depois); um reload
+    // disparado nesse meio-tempo (`playlist_sync_provider.dart` chama
+    // `reload()` após todo sync com `movedRows`, e qualquer mutação
+    // autenticada pode disparar isso dentro dos 5 s) não pode ressuscitar a
+    // lista que o usuário acabou de apagar.
+    final pendingDelete = _pendingDelete;
+    final hiddenId = (pendingDelete != null && !pendingDelete.isSettled)
+        ? _pendingDeleteId
+        : null;
+
     state = playlists
+        .where((playlist) => playlist.playlistId != hiddenId)
         .map(
           (playlist) => PlaylistViewItem(
             playlist: playlist,
@@ -346,6 +363,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       },
     );
     _pendingDelete = pending;
+    _pendingDeleteId = playlistId;
     return pending;
   }
 
