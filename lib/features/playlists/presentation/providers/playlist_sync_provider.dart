@@ -13,7 +13,6 @@ import '../../data/datasources/playlist_remote_datasource.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/usecases/sync_playlists.dart';
 import 'active_playlist_provider.dart';
-import 'playlist_sync_lifecycle.dart';
 import 'playlists_provider.dart';
 
 /// Último `sub` que passou pelo `syncAfterLogin` — persistido para o boot com a
@@ -209,16 +208,13 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     }
   }
 
-  /// "Tentar novamente" do banner: sincroniza e recarrega a lista visível se
-  /// alguma linha se mexeu.
+  /// "Tentar novamente" do banner: sincroniza (a tela recarrega em [_run] se
+  /// alguma linha se mexeu).
   ///
   /// Mora no notifier, e não no widget, porque o `WidgetRef` do banner não tem
   /// `mounted`: sair da tela no meio do retry faria o `read` de depois do
   /// `await` explodir num callback sem dono. O `Ref` daqui tem.
   ///
-  /// A regra de recarregar é a mesma do [PlaylistSyncLifecycleMixin]:
-  /// `PlaylistsNotifier` não observa o banco, então uma sync que trouxe listas
-  /// novas apagaria o banner e deixaria a tela mostrando o estado velho.
   /// Quando o `sub` corrente ainda não foi persistido, a adoção do pós-login
   /// não deu certo — refazê-la é o retry certo (spec A.6); um `sync()` puro
   /// deixaria as listas locais sem dono e sem subir.
@@ -226,25 +222,10 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     if (!ref.mounted) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user != null && _persistedSub() != user.googleSub) {
-      // O resultado vem do próprio `syncAfterLogin` — ler `state.lastResult`
-      // recarregaria a tela com o saldo de uma rodada **anterior** quando a
-      // adoção falha de novo e nenhuma sync chega a rodar.
-      await _reloadIfMoved(await syncAfterLogin());
+      await syncAfterLogin();
       return;
     }
-    await _reloadIfMoved(await sync());
-  }
-
-  Future<void> _reloadIfMoved(PlaylistSyncResult? result) async {
-    if (!ref.mounted) return;
-    if (result == null || result.skipped) return;
-    if (result.pulled == 0 &&
-        result.pushed == 0 &&
-        result.deleted == 0 &&
-        result.deletedRemotely == 0) {
-      return;
-    }
-    await ref.read(playlistsProvider.notifier).reload();
+    await sync();
   }
 
   Future<void> _run(String idToken, String? sub) async {
@@ -265,6 +246,12 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
         conflictCopies: result.conflictCopies,
         deletedRemotely: result.deletedRemotely,
       );
+      // `PlaylistsNotifier` não observa o banco: sem isto, o que o pull trouxe
+      // (ou o tombstone remoto levou) não chega à tela nem ao carousel — e o
+      // editor, que lê essa view, gravaria por cima a lista velha.
+      if (result.movedRows && ref.mounted) {
+        await ref.read(playlistsProvider.notifier).reload();
+      }
       // Uma lista apagada em outro aparelho pode ser justamente a ativa: o
       // carousel ficaria espelhando um id que não existe mais (spec A.2).
       if (result.deletedRemotely > 0) {
@@ -303,7 +290,8 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
   /// Só roda de verdade quando o `sub` muda (ver [build]). Na troca de conta, a
   /// purga da anterior vem **antes** da adoção: as listas `synced` do dono
   /// antigo já estão na nuvem dele e não podem subir para a conta nova
-  /// (spec A.5) — e se a purga levou a lista ativa, o id ativo é limpo.
+  /// (spec A.5) — e se a purga levou a lista ativa, o id ativo é limpo e a
+  /// tela recarrega antes da sync, para não continuar listando o que sumiu.
   ///
   /// Uma falha de armazenamento aqui vira [PlaylistSyncState.lastErrorCause] em
   /// vez de um erro não tratado na zona do login — e o `sub` **não** é
@@ -323,6 +311,10 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
         debugPrint('[playlists] $purged lista(s) de $previous removidas');
         await _clearActiveIfGone();
         if (!ref.mounted) return null;
+        if (purged > 0) {
+          await ref.read(playlistsProvider.notifier).reload();
+          if (!ref.mounted) return null;
+        }
       }
       await repository.adoptForSub(user.googleSub);
     } on Object catch (e) {

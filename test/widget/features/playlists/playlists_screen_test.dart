@@ -85,6 +85,10 @@ class _FakeSyncNotifier extends PlaylistSyncNotifier {
   Future<PlaylistSyncResult> sync() async {
     syncCalls++;
     await gate?.future;
+    // Como o notifier real: a tela recarrega quando a rodada moveu linhas.
+    if (result.movedRows && ref.mounted) {
+      await ref.read(playlistsProvider.notifier).reload();
+    }
     return result;
   }
 }

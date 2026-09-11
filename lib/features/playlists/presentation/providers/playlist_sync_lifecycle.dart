@@ -5,11 +5,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'playlist_sync_provider.dart';
-import 'playlists_provider.dart';
 
 /// Dispara sync ao voltar ao foreground / online (debounce 30s).
 ///
-/// Usado pela [PlaylistsScreen]; no-op se deslogado (gate no sync).
+/// Usado pela [PlaylistsScreen]; no-op se deslogado (gate no sync). A tela
+/// recarrega dentro do próprio [PlaylistSyncNotifier] quando a sync mexeu em
+/// alguma linha — aqui só se agenda a rodada.
 mixin PlaylistSyncLifecycleMixin<T extends ConsumerStatefulWidget>
     on ConsumerState<T>, WidgetsBindingObserver {
   Timer? _debounce;
@@ -35,19 +36,8 @@ mixin PlaylistSyncLifecycleMixin<T extends ConsumerStatefulWidget>
         return;
       }
       _lastSyncAt = DateTime.now();
-      unawaited(
-        ref.read(playlistSyncProvider.notifier).sync().then((result) async {
-          if (!result.skipped &&
-              (result.pulled > 0 ||
-                  result.pushed > 0 ||
-                  result.deleted > 0 ||
-                  result.deletedRemotely > 0)) {
-            if (mounted) {
-              await ref.read(playlistsProvider.notifier).reload();
-            }
-          }
-        }),
-      );
+      if (!mounted) return;
+      unawaited(ref.read(playlistSyncProvider.notifier).sync());
     });
   }
 
