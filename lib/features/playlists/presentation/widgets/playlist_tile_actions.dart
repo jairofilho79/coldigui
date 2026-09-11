@@ -12,6 +12,7 @@ import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -95,6 +96,10 @@ class PlaylistTileActions {
         ),
       PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
       PopupMenuItem(value: 'duplicate', child: Text(l10n.playlistDuplicate)),
+      PopupMenuItem(
+        value: 'generateLeaflet',
+        child: Text(l10n.carouselGenerateLeaflet),
+      ),
       PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
     ];
   }
@@ -346,6 +351,24 @@ class PlaylistTileActions {
     }
   }
 
+  /// «Gerar folheto» (C16): torna a lista ativa (mesmo passo de
+  /// [_loadPlaylist], sem snackbar de ativação — só o folheto importa aqui) e
+  /// chama [LeafletActionsNotifier.generateAndShare] direto, sem passar pelo
+  /// sheet de opções de compartilhamento.
+  Future<void> _generateLeaflet() async {
+    if (loading) return;
+    onLoadingChanged(true);
+    try {
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlist.playlistId);
+      if (!context.mounted) return;
+      await ref.read(leafletActionsProvider.notifier).generateAndShare(context);
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
   Future<void> run(String action) async {
     switch (action) {
       case 'activate':
@@ -449,6 +472,8 @@ class PlaylistTileActions {
         }
       case 'duplicate':
         await _duplicate();
+      case 'generateLeaflet':
+        await _generateLeaflet();
       case 'delete':
         _delete();
     }

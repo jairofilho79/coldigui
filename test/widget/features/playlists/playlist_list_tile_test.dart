@@ -15,6 +15,8 @@ import 'package:coldigui/features/offline/data/providers/offline_providers.dart'
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
+import 'package:coldigui/features/leaflet/presentation/providers/leaflet_actions_provider.dart'
+    hide ShareXFilesFn;
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
@@ -160,6 +162,30 @@ class _DuplicateRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
   }
 }
 
+/// Registra as chamadas a `generateAndShare` (C16) — os tipos dos parâmetros
+/// opcionais viram `Object?` só para não precisar importar os `typedef`
+/// locais de `leaflet_actions_provider.dart` (evita colisão de nome com os
+/// mesmos `typedef`s de `playlist_share_actions_provider.dart`, já
+/// importados neste arquivo).
+class _FakeLeafletActionsNotifier extends LeafletActionsNotifier {
+  var calls = 0;
+  BuildContext? lastContext;
+
+  @override
+  void build() {}
+
+  @override
+  Future<bool> generateAndShare(
+    BuildContext context, {
+    Object? shareXFiles,
+    Object? capture,
+  }) async {
+    calls++;
+    lastContext = context;
+    return true;
+  }
+}
+
 class _FakeResolvePdfForReader implements ResolvePdfForReader {
   @override
   Future<LocalPdfSource> call({
@@ -295,16 +321,20 @@ void main() {
     required PlaylistsNotifier playlistsNotifier,
     PlaylistShareActionsNotifier? shareActionsNotifier,
     _RecordingActiveEditor? editor,
+    LeafletActionsNotifier? leafletActionsNotifier,
   }) {
     final shareNotifier =
         shareActionsNotifier ?? _FakePlaylistShareActionsNotifier();
     final activeEditor = editor ?? _RecordingActiveEditor();
+    final leafletNotifier =
+        leafletActionsNotifier ?? _FakeLeafletActionsNotifier();
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         playlistsProvider.overrideWith(() => playlistsNotifier),
         playlistShareActionsProvider.overrideWith(() => shareNotifier),
         activePlaylistEditorProvider.overrideWith(() => activeEditor),
+        leafletActionsProvider.overrideWith(() => leafletNotifier),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -332,6 +362,7 @@ void main() {
     expect(find.text('Abrir no leitor'), findsOneWidget);
     expect(find.text('Compartilhar'), findsOneWidget);
     expect(find.text('Duplicar'), findsOneWidget);
+    expect(find.text('Gerar folheto'), findsOneWidget);
     expect(find.text('Carregar no carousel'), findsNothing);
   });
 
@@ -1052,5 +1083,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifier.duplicated, [('p1', 'Ensaio domingo (cópia)')]);
+  });
+
+  // C16: sem passar pelo sheet de share — a lista vira ativa e o folheto sai
+  // direto.
+  testWidgets('«Gerar folheto» ativa a lista e chama generateAndShare direto', (
+    tester,
+  ) async {
+    final editor = _RecordingActiveEditor();
+    final leaflet = _FakeLeafletActionsNotifier();
+    await tester.pumpWidget(
+      buildSubject(
+        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        editor: editor,
+        leafletActionsNotifier: leaflet,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gerar folheto'));
+    await tester.pumpAndSettle();
+
+    expect(editor.activated, ['p1']);
+    expect(leaflet.calls, 1);
+    expect(find.byType(BottomSheet), findsNothing);
   });
 }
