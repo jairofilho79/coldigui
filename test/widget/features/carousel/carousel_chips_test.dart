@@ -4,20 +4,21 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -43,13 +44,13 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   @override
   Future<void> startNewEmptySelection() async {
     startedNewEmpty = true;
-    await ref.read(carouselLouvoresProvider.notifier).clear();
+    await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 
   @override
   Future<void> deleteActiveUnsavedPlaylist() async {
     deletedActiveUnsaved = true;
-    await ref.read(carouselLouvoresProvider.notifier).clear();
+    await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 }
 
@@ -90,34 +91,44 @@ class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
   }
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
+/// Lista ativa dirigida pelo teste: a barra deriva dela por
+/// `activeEntriesProvider` → `carouselItemsProvider`, sem adaptador no meio.
+class _FakeActiveEditor extends ActivePlaylistEditor {
+  _FakeActiveEditor(this.initial);
 
-  final List<CarouselItem> initial;
+  final List<PlaylistEntry> initial;
   var cleared = false;
   List<String>? lastReorder;
-  final removed = <String>[];
+  final removedKeys = <String>[];
 
   @override
-  List<CarouselItem> build() => initial;
+  List<PlaylistEntry>? build() => initial;
+
+  List<ActiveEntry> get _entries => activeEntriesOf(state ?? const []);
 
   @override
-  Future<void> remove(String pdfId) async {
-    removed.add(pdfId);
-    state = state.where((item) => item.pdfId != pdfId).toList(growable: false);
+  Future<void> removeByKey(String key) async {
+    removedKeys.add(key);
+    state = [
+      for (final active in _entries)
+        if (active.key != key) active.entry,
+    ];
   }
 
   @override
-  Future<void> clear() async {
+  Future<void> deleteActiveDraft() async {
     cleared = true;
     state = const [];
   }
 
   @override
-  Future<void> reorder(List<String> pdfIds) async {
-    lastReorder = pdfIds;
-    final byId = {for (final item in state) item.pdfId: item};
-    state = pdfIds.map((pdfId) => byId[pdfId]!).toList(growable: false);
+  Future<void> reorderFace(
+    PlaylistMediaFace face,
+    List<String> orderedKeys,
+  ) async {
+    lastReorder = orderedKeys;
+    final byKey = {for (final active in _entries) active.key: active.entry};
+    state = [for (final key in orderedKeys) ?byKey[key]];
   }
 }
 
@@ -167,21 +178,26 @@ class _FakeColdigomAudioTracksCache extends ColdigomAudioTracksCacheNotifier {
   Map<String, AudioTrack> build() => initial;
 }
 
-CarouselItem _item({
+/// Metadados do manifest para o id — é daí que o chip tira número e nome.
+Louvor _manifestLouvor({
   required String pdfId,
-  required int sortOrder,
   required String numero,
   required String nome,
 }) {
-  return CarouselItem(
-    pdfId: pdfId,
-    sortOrder: sortOrder,
-    numero: numero,
+  return Louvor.fromManifest(
     nome: nome,
+    numero: numero,
     categoria: 'Partitura',
     classificacao: 'ColAdultos',
+    pdf: '\$pdfId.pdf',
+    pdfId: pdfId,
+    groupId: 'g-\$pdfId',
   );
 }
+
+List<PlaylistEntry> _entriesOf(Iterable<String> ids) => [
+  for (final id in ids) PlaylistEntry(id: id, kind: MaterialKind.pdf),
+];
 
 void main() {
   late SharedPreferences prefs;
@@ -191,25 +207,23 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  final items = [
-    _item(pdfId: 'a', sortOrder: 0, numero: '001', nome: 'Louvor A'),
-    _item(pdfId: 'b', sortOrder: 1, numero: '002', nome: 'Louvor B'),
-    _item(pdfId: 'c', sortOrder: 2, numero: '003', nome: 'Louvor C'),
-  ];
+  final manifest = {
+    'a': _manifestLouvor(pdfId: 'a', numero: '001', nome: 'Louvor A'),
+    'b': _manifestLouvor(pdfId: 'b', numero: '002', nome: 'Louvor B'),
+    'c': _manifestLouvor(pdfId: 'c', numero: '003', nome: 'Louvor C'),
+  };
+  final entries = _entriesOf(const ['a', 'b', 'c']);
 
   Widget buildSubject(
-    List<CarouselItem> carouselItems, {
-    CarouselLouvoresNotifier? notifier,
+    List<PlaylistEntry> activeEntries, {
+    _FakeActiveEditor? notifier,
   }) {
-    final carouselNotifier = notifier ?? _FakeCarouselNotifier(carouselItems);
+    final editor = notifier ?? _FakeActiveEditor(activeEntries);
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        // A barra lê a view derivada; aqui ela espelha o notifier fake.
-        carouselItemsProvider.overrideWith(
-          (ref) => ref.watch(carouselLouvoresProvider),
-        ),
-        carouselLouvoresProvider.overrideWith(() => carouselNotifier),
+        louvoresByPdfIdProvider.overrideWithValue(manifest),
+        activePlaylistEditorProvider.overrideWith(() => editor),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
       ],
       child: MaterialApp(
@@ -230,7 +244,7 @@ void main() {
   });
 
   testWidgets('renderiza apenas um chip visível', (tester) async {
-    await tester.pumpWidget(buildSubject(items));
+    await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Louvor A'), findsOneWidget);
@@ -241,7 +255,7 @@ void main() {
   testWidgets('setas navegam índice focado e somem nas extremidades', (
     tester,
   ) async {
-    await tester.pumpWidget(buildSubject(items));
+    await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.chevron_left), findsNothing);
@@ -263,15 +277,15 @@ void main() {
   });
 
   testWidgets('chip da barra não possui botão de remover', (tester) async {
-    await tester.pumpWidget(buildSubject(items));
+    await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.close), findsNothing);
   });
 
   testWidgets('modal permite remover item', (tester) async {
-    final notifier = _FakeCarouselNotifier(items);
-    await tester.pumpWidget(buildSubject(items, notifier: notifier));
+    final notifier = _FakeActiveEditor(entries);
+    await tester.pumpWidget(buildSubject(entries, notifier: notifier));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.visibility_outlined));
@@ -293,7 +307,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(notifier.removed, ['a']);
+    expect(notifier.removedKeys, ['a']);
     expect(
       find.descendant(of: dialog, matching: find.textContaining('Louvor A')),
       findsNothing,
@@ -301,7 +315,7 @@ void main() {
   });
 
   testWidgets('exibe menu overflow quando há chips', (tester) async {
-    await tester.pumpWidget(buildSubject(items));
+    await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
@@ -319,7 +333,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(buildSubject(items));
+    await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
@@ -347,16 +361,13 @@ void main() {
       ),
     );
     final shareNotifier = _FakePlaylistShareActionsNotifier();
-    final carouselNotifier = _FakeCarouselNotifier(items);
+    final editor = _FakeActiveEditor(entries);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(() => carouselNotifier),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
@@ -395,16 +406,13 @@ void main() {
         ),
       );
       final shareNotifier = _FakePlaylistShareActionsNotifier();
-      final carouselNotifier = _FakeCarouselNotifier(items);
+      final editor = _FakeActiveEditor(entries);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            // A barra lê a view derivada; aqui ela espelha o notifier fake.
-            carouselItemsProvider.overrideWith(
-              (ref) => ref.watch(carouselLouvoresProvider),
-            ),
-            carouselLouvoresProvider.overrideWith(() => carouselNotifier),
+            louvoresByPdfIdProvider.overrideWithValue(manifest),
+            activePlaylistEditorProvider.overrideWith(() => editor),
             playlistsProvider.overrideWith(() => playlistsNotifier),
             playlistShareActionsProvider.overrideWith(() => shareNotifier),
           ],
@@ -439,16 +447,13 @@ void main() {
       ),
     );
     final shareNotifier = _FakePlaylistShareActionsNotifier();
-    final carouselNotifier = _FakeCarouselNotifier(items);
+    final editor = _FakeActiveEditor(entries);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(() => carouselNotifier),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           playlistShareActionsProvider.overrideWith(() => shareNotifier),
         ],
@@ -473,17 +478,14 @@ void main() {
   });
 
   testWidgets('limpar seleção com Nova Lista', (tester) async {
-    final notifier = _FakeCarouselNotifier(items);
+    final notifier = _FakeActiveEditor(entries);
     final playlists = _FakePlaylistsNotifier();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(() => notifier),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(() => notifier),
           playlistsProvider.overrideWith(() => playlists),
         ],
         child: MaterialApp(
@@ -532,12 +534,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(items),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -579,12 +578,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(items),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -630,12 +626,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(items),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
           readerCarouselPositionProvider('b').overrideWith(
@@ -702,12 +695,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(items),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -740,8 +730,31 @@ void main() {
     expect(find.text('c'), findsOneWidget);
   });
 
+  testWidgets('o mesmo louvor repetido é duas entradas navegáveis', (
+    tester,
+  ) async {
+    final repeated = _entriesOf(const ['a', 'a', 'b']);
+    await tester.pumpWidget(buildSubject(repeated));
+    await tester.pumpAndSettle();
+
+    // Três ocorrências, duas do mesmo id: a seta anda por ocorrência.
+    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Louvor A'), findsOneWidget);
+    // O foco persistido é a chave da **segunda** ocorrência, não o id.
+    expect(prefs.getString('carousel_focused_pdf_id'), 'a#1');
+
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Louvor B'), findsOneWidget);
+    expect(prefs.getString('carousel_focused_pdf_id'), 'b');
+  });
+
   testWidgets('item único não exibe setas', (tester) async {
-    await tester.pumpWidget(buildSubject([items.first]));
+    await tester.pumpWidget(buildSubject([entries.first]));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.chevron_left), findsNothing);
@@ -770,12 +783,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(items),
+          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(entries),
           ),
           readerCarouselPositionProvider('b').overrideWith(
             (ref) => const CarouselReaderPosition(
@@ -835,12 +845,6 @@ void main() {
       categoria: 'Áudio',
       classificacao: 'Coro',
     );
-    final carouselItem = _item(
-      pdfId: pdfId,
-      sortOrder: 0,
-      numero: '004',
-      nome: 'Louvor D',
-    );
 
     final router = GoRouter(
       initialLocation: RoutePaths.home,
@@ -860,12 +864,8 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          // A barra lê a view derivada; aqui ela espelha o notifier fake.
-          carouselItemsProvider.overrideWith(
-            (ref) => ref.watch(carouselLouvoresProvider),
-          ),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier([carouselItem]),
+          activePlaylistEditorProvider.overrideWith(
+            () => _FakeActiveEditor(_entriesOf([pdfId])),
           ),
           playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
           coldigomLouvoresCacheProvider.overrideWith(
@@ -931,11 +931,7 @@ void main() {
 
     // A partitura vem antes da cifra: é ela que `findMaterialForGroup` devolve
     // para o grupo p1, enquanto o leitor exibe a cifra do mesmo louvor.
-    final carouselItems = [
-      _item(pdfId: pdfP1Id, sortOrder: 0, numero: '001', nome: 'Louvor p1'),
-      _item(pdfId: chordP1Id, sortOrder: 1, numero: '001', nome: 'Cifra p1'),
-      _item(pdfId: pdfP2Id, sortOrder: 2, numero: '002', nome: 'Louvor p2'),
-    ];
+    final activeEntries = _entriesOf([pdfP1Id, chordP1Id, pdfP2Id]);
 
     Future<_ControllableAudioSession> pumpReader(
       WidgetTester tester,
@@ -967,12 +963,8 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            // A barra lê a view derivada; aqui ela espelha o notifier fake.
-            carouselItemsProvider.overrideWith(
-              (ref) => ref.watch(carouselLouvoresProvider),
-            ),
-            carouselLouvoresProvider.overrideWith(
-              () => _FakeCarouselNotifier(carouselItems),
+            activePlaylistEditorProvider.overrideWith(
+              () => _FakeActiveEditor(activeEntries),
             ),
             playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
             readerCarouselActionsProvider.overrideWith(() => readerActions),

@@ -10,8 +10,7 @@ import 'package:coldigui/features/audio_player/presentation/providers/audio_play
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_display_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
@@ -20,8 +19,8 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
@@ -29,10 +28,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carou
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
-import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_session_hydrate.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,8 +39,10 @@ import 'package:go_router/go_router.dart';
 /// Única instância compartilhada em todas as rotas do shell, inclusive `/leitor`
 /// e `/audio`.
 ///
-/// **Face PDF:** chips do carousel Isar (como antes).
-/// **Face áudio:** [CarouselAudioFaceBar] quando há sessão/playlist de áudio.
+/// **Face PDF:** chips das entradas não-áudio da lista ativa
+/// ([carouselItemsProvider]).
+/// **Face áudio:** [CarouselAudioFaceBar] quando há sessão ou entradas de
+/// áudio na lista ativa ([audioFaceItemsProvider]).
 ///
 /// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
 ///
@@ -58,54 +56,45 @@ class CarouselChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     listenAudioFollowReader(ref, context);
 
-    final pdfItems = ref.watch(carouselLouvoresDisplayProvider);
+    final pdfItems = ref.watch(carouselItemsProvider);
+    final audioItems = ref.watch(audioFaceItemsProvider);
     final face = ref.watch(playlistMediaFaceProvider);
     // Só isto: a barra é montada em toda rota do shell e não pode reconstruir
     // a ~5 Hz com o resto do estado da sessão (posição, agora num provider
     // separado — A7).
-    final hasSession = ref.watch(
+    final hasSessionQueue = ref.watch(
       audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
     );
-    final hasAudioPlaylist = _activeHasAudioIds(ref);
     final hasPdf = pdfItems.isNotEmpty;
 
     if (!shouldShowCarouselAudioFace(
       face: face,
       hasPdf: hasPdf,
-      hasSessionQueue: hasSession,
-      hasAudioPlaylist: hasAudioPlaylist,
+      hasAudio: audioItems.isNotEmpty || hasSessionQueue,
     )) {
       if (!hasPdf) return const SizedBox.shrink();
       return _CarouselChipsBar(items: pdfItems);
     }
     return const CarouselAudioFaceBar();
   }
-
-  bool _activeHasAudioIds(WidgetRef ref) {
-    final activeId = ref.watch(activePlaylistIdProvider);
-    if (activeId == null) return false;
-    for (final item in ref.watch(playlistsProvider)) {
-      if (item.playlist.playlistId == activeId) {
-        return item.playlist.audioIds.isNotEmpty;
-      }
-    }
-    return false;
-  }
 }
 
-/// Após [AudioPlayerSessionNotifier.close] (fila vazia + face PDF) não força
-/// áudio só por `audioIds`. Face áudio só com sessão ou playlist de áudio.
+/// As duas faces são filtros da mesma lista (B.1): a face de áudio aparece
+/// quando o usuário a escolheu e há áudio, ou quando não há **nada** na face de
+/// partituras para mostrar no lugar dela.
+///
+/// [hasAudio] junta as duas origens de áudio — fila da sessão e entradas de
+/// áudio da lista ativa. Após [AudioPlayerSessionNotifier.close] (fila vazia) a
+/// barra continua na face de partituras enquanto houver PDF nela.
 @visibleForTesting
 bool shouldShowCarouselAudioFace({
   required PlaylistMediaFace face,
   required bool hasPdf,
-  required bool hasSessionQueue,
-  required bool hasAudioPlaylist,
+  required bool hasAudio,
 }) {
-  final hasAudio = hasSessionQueue || hasAudioPlaylist;
   if (!hasPdf && !hasAudio) return false;
   if (face == PlaylistMediaFace.audio) return hasAudio;
-  return hasSessionQueue && !hasPdf;
+  return hasAudio && !hasPdf;
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {
@@ -120,7 +109,7 @@ class _CarouselChipsBar extends ConsumerStatefulWidget {
 class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   var _openingReader = false;
   var _carouselNavLoading = false;
-  String? _lastSyncedReaderPdfId;
+  String? _lastSyncedReaderMaterialId;
 
   List<CarouselItem> get items => widget.items;
 
@@ -143,24 +132,42 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       if (!mounted) return;
 
       if (!_isReaderRoute) {
-        _lastSyncedReaderPdfId = null;
+        _lastSyncedReaderMaterialId = null;
         ref.read(readerRouteParamsProvider.notifier).clear();
         return;
       }
 
-      final pdfId = _resolveReaderPdfId(readOnly: true);
-      if (pdfId != _lastSyncedReaderPdfId) {
+      final materialId = _resolveReaderMaterialId(readOnly: true);
+      if (materialId != _lastSyncedReaderMaterialId) {
         setState(() {
-          _lastSyncedReaderPdfId = pdfId;
+          _lastSyncedReaderMaterialId = materialId;
           _carouselNavLoading = false;
           _openingReader = false;
         });
       }
 
-      if (pdfId != null) {
-        ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(pdfId);
-      }
+      if (materialId != null) _focusMaterialId(materialId);
     });
+  }
+
+  /// Foca a ocorrência de [materialId] na face de partituras.
+  ///
+  /// A ocorrência já focada vence (B.5): o mesmo louvor pode estar duas vezes
+  /// na lista e trocar o foco para a primeira delas moveria o usuário sozinho.
+  void _focusMaterialId(String materialId) {
+    final all = ref.read(carouselItemsProvider);
+    if (all.isEmpty) return;
+    final focused = ref.read(carouselFocusedIndexProvider);
+    if (focused >= 0 &&
+        focused < all.length &&
+        all[focused].materialId == materialId) {
+      return;
+    }
+    for (final item in all) {
+      if (item.materialId != materialId) continue;
+      ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
+      return;
+    }
   }
 
   GoRouterState? get _routerState {
@@ -183,9 +190,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     return fromScreen;
   }
 
-  String? _resolveReaderPdfId({required bool readOnly}) {
-    final pdfId = _readerRouteParams(readOnly: readOnly)[UrlSyncParams.pdfId];
-    if (pdfId != null && pdfId.isNotEmpty) return pdfId;
+  String? _resolveReaderMaterialId({required bool readOnly}) {
+    final fromUrl = _readerRouteParams(readOnly: readOnly)[UrlSyncParams.pdfId];
+    if (fromUrl != null && fromUrl.isNotEmpty) return fromUrl;
 
     if (!_isReaderRoute || items.isEmpty) return null;
     final focusedIndex =
@@ -193,26 +200,34 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 ? ref.read(carouselFocusedIndexProvider)
                 : ref.watch(carouselFocusedIndexProvider))
             .clamp(0, items.length - 1);
-    return items[focusedIndex].pdfId;
+    return items[focusedIndex].materialId;
   }
 
-  String? get _readerPdfId => _resolveReaderPdfId(readOnly: false);
+  String? get _readerMaterialId => _resolveReaderMaterialId(readOnly: false);
 
   String get _readerTitulo {
     final titulo = _readerRouteParams(readOnly: false)[UrlSyncParams.titulo];
     if (titulo != null && titulo.isNotEmpty) return titulo;
-    final pdfId = _readerPdfId;
-    if (pdfId == null) return '';
-    return _itemForPdfId(pdfId, '').nome;
+    final materialId = _readerMaterialId;
+    if (materialId == null) return '';
+    return _itemForMaterialId(materialId, '').nome;
   }
 
-  CarouselItem _itemForPdfId(String pdfId, String titulo) {
+  /// Item da face para [materialId] — a ocorrência focada quando é a dele,
+  /// senão a primeira. Fora da lista, um item sintético com o título da URL.
+  CarouselItem _itemForMaterialId(String materialId, String titulo) {
+    final focused = ref.read(carouselFocusedIndexProvider);
+    if (focused >= 0 &&
+        focused < items.length &&
+        items[focused].materialId == materialId) {
+      return items[focused];
+    }
     for (final item in items) {
-      if (item.pdfId == pdfId) return item;
+      if (item.materialId == materialId) return item;
     }
     return CarouselItem(
-      pdfId: pdfId,
-      sortOrder: 0,
+      materialId: materialId,
+      index: 0,
       numero: '',
       nome: titulo,
       categoria: '',
@@ -227,23 +242,25 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       await openCarouselPdfInReader(
         ref: ref,
         context: context,
-        pdfId: item.pdfId,
+        materialId: item.materialId,
         navigate: (location) async {
           context.push(location);
         },
       );
       if (!mounted) return;
-      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(item.pdfId);
+      ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
     } finally {
       if (mounted) setState(() => _openingReader = false);
     }
   }
 
-  Future<void> _handleCarouselItemRemoved(String removedPdfId) async {
-    final currentPdfId = _readerPdfId;
-    if (currentPdfId == null || removedPdfId != currentPdfId) return;
+  Future<void> _handleCarouselItemRemoved(String removedMaterialId) async {
+    final currentMaterialId = _readerMaterialId;
+    if (currentMaterialId == null || removedMaterialId != currentMaterialId) {
+      return;
+    }
 
-    final remaining = ref.read(carouselLouvoresProvider);
+    final remaining = ref.read(carouselItemsProvider);
     if (!mounted) return;
 
     if (remaining.isEmpty) {
@@ -255,7 +272,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     try {
       final location = await ref
           .read(readerCarouselActionsProvider.notifier)
-          .navigateToPdfId(targetPdfId: remaining.first.pdfId);
+          .navigateToKey(key: remaining.first.key);
       if (!mounted) return;
 
       if (location != null) {
@@ -270,31 +287,31 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     return showCarouselSelectionSheet(
       context,
       onItemRemoved: _handleCarouselItemRemoved,
-      onItemTap: (selected) =>
-          _replaceReaderWithCarouselItem(selectedPdfId: selected.pdfId),
+      onItemTap: _replaceReaderWithCarouselItem,
     );
   }
 
-  Future<void> _replaceReaderWithCarouselItem({
-    required String selectedPdfId,
-    String? currentPdfId,
-  }) async {
-    final activePdfId = currentPdfId ?? _resolveReaderPdfId(readOnly: true);
-    if (activePdfId != null && selectedPdfId == activePdfId) return;
+  Future<void> _replaceReaderWithCarouselItem(CarouselItem selected) async {
+    final activeMaterialId = _resolveReaderMaterialId(readOnly: true);
+    if (activeMaterialId != null && selected.materialId == activeMaterialId) {
+      return;
+    }
     if (_carouselNavLoading) return;
 
     setState(() => _carouselNavLoading = true);
     try {
+      // O foco vai **antes** da rota: é a chave focada que diz a
+      // `readerCarouselPositionProvider` qual ocorrência está aberta, e as
+      // setas do leitor têm que sair desta, não da primeira do mesmo id.
+      ref.read(carouselFocusedIndexProvider.notifier).focusKey(selected.key);
       await openCarouselPdfInReader(
         ref: ref,
         context: context,
-        pdfId: selectedPdfId,
+        materialId: selected.materialId,
         navigate: (location) async {
           context.replace(location);
         },
       );
-      if (!mounted) return;
-      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(selectedPdfId);
     } finally {
       if (mounted) setState(() => _carouselNavLoading = false);
     }
@@ -306,21 +323,22 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }) async {
     if (_carouselNavLoading) return;
 
-    final targetPdfId = switch (direction) {
-      CarouselReaderDirection.previous => position.previousPdfId,
-      CarouselReaderDirection.next => position.nextPdfId,
+    // Navega por **chave**: o mesmo louvor repetido na lista tem vizinhos
+    // diferentes em cada ocorrência, e um id sozinho não diz qual é a daqui.
+    final targetKey = switch (direction) {
+      CarouselReaderDirection.previous => position.previousKey,
+      CarouselReaderDirection.next => position.nextKey,
     };
-    if (targetPdfId == null) return;
+    if (targetKey == null) return;
 
     final l10n = AppLocalizations.of(context);
     setState(() => _carouselNavLoading = true);
 
     try {
-      ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(targetPdfId);
-
+      // `navigateToKey` já foca a ocorrência antes de resolver a rota.
       final location = await ref
           .read(readerCarouselActionsProvider.notifier)
-          .navigateToPdfId(targetPdfId: targetPdfId);
+          .navigateToKey(key: targetKey);
       if (!mounted) return;
 
       if (location == null) {
@@ -365,34 +383,26 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     }
   }
 
-  /// Faixas de áudio do louvor de [pdfId] (PDF ou cifra) no acervo.
-  List<AudioTrack> _groupTracksForPdfId(String pdfId) {
+  /// Faixas de áudio do louvor de [materialId] (PDF ou cifra) no acervo.
+  List<AudioTrack> _groupTracksForMaterialId(String materialId) {
+    final lookup = ref.watch(catalogMaterialLookupProvider);
     final groupId = groupIdForMaterialId(
-      materialId: pdfId,
-      byPdfId: ref.watch(coldigomLouvoresCacheProvider),
-      chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
+      materialId: materialId,
+      byPdfId: lookup.coldigomLouvoresByPdfId,
+      chordsById: lookup.chordsById,
       catalog: ref.watch(louvoresManifestProvider).value?.louvores ?? const [],
     );
     if (groupId == null) return const [];
-    return tracksForGroup(
-      groupId,
-      ref.watch(coldigomAudioTracksCacheProvider).values.toList(),
-    );
+    return tracksForGroup(groupId, lookup.audioTracksById.values.toList());
   }
 
-  /// Faixas da lista ativa, na ordem salva (vazio sem playlist de áudio).
+  /// Faixas da face de áudio da lista ativa, na ordem (vazio sem áudio).
   List<AudioTrack> _activePlaylistTracks() {
-    final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) return const [];
-    for (final item in ref.read(playlistsProvider)) {
-      if (item.playlist.playlistId == activeId) {
-        return tracksForAudioIds(
-          item.playlist.audioIds,
-          ref.read(coldigomAudioTracksCacheProvider),
-        );
-      }
-    }
-    return const [];
+    final audioItems = ref.read(audioFaceItemsProvider);
+    if (audioItems.isEmpty) return const [];
+    return ref.read(catalogMaterialLookupProvider).tracksFor([
+      for (final item in audioItems) item.materialId,
+    ]);
   }
 
   /// Toca o áudio do louvor aberto no leitor (D10 — o slot morto da barra 2).
@@ -440,46 +450,40 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         openPlayerIcon: openPlayerIcon,
         openPlayerTooltip: openPlayerTooltip,
         onOpenSelection: onOpenSelection,
-        swapMaterial: CarouselSwapMaterialButton(pdfId: item.pdfId),
+        swapMaterial: CarouselSwapMaterialButton(
+          materialId: item.materialId,
+          entryKey: item.key,
+        ),
         trailingActions: const [CarouselBarTrailingActions()],
       ),
     );
   }
 
   Widget _buildShellMode() {
-    final sourceItems = ref.read(carouselLouvoresProvider);
-    final focusedIndex = ref.watch(carouselFocusedIndexProvider);
-    final safeSourceIndex = focusedIndex.clamp(0, sourceItems.length - 1);
-    final focusedPdfId = sourceItems[safeSourceIndex].pdfId;
-    final displayIndex = items.indexWhere((item) => item.pdfId == focusedPdfId);
-    final focusedItem =
-        items[displayIndex >= 0
-            ? displayIndex
-            : safeSourceIndex.clamp(0, items.length - 1)];
+    final focusedIndex = ref
+        .watch(carouselFocusedIndexProvider)
+        .clamp(0, items.length - 1);
+    final focusedItem = items[focusedIndex];
     final onReaderWithoutPdfId = _isReaderRoute;
 
     // No leitor sem `pdfId` na URL o slot "abrir" também era morto (D10).
     final groupTracks = onReaderWithoutPdfId
-        ? _groupTracksForPdfId(focusedPdfId)
+        ? _groupTracksForMaterialId(focusedItem.materialId)
         : const <AudioTrack>[];
 
     return _buildNavigatorBar(
       item: focusedItem,
-      canGoPrevious: safeSourceIndex > 0,
-      canGoNext: safeSourceIndex < sourceItems.length - 1,
+      canGoPrevious: focusedIndex > 0,
+      canGoNext: focusedIndex < items.length - 1,
       loading: _openingReader || _carouselNavLoading,
       onPrevious: onReaderWithoutPdfId
-          ? (safeSourceIndex > 0
-                ? () => _replaceReaderWithCarouselItem(
-                    selectedPdfId: sourceItems[safeSourceIndex - 1].pdfId,
-                  )
+          ? (focusedIndex > 0
+                ? () => _replaceReaderWithCarouselItem(items[focusedIndex - 1])
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goPrevious(),
       onNext: onReaderWithoutPdfId
-          ? (safeSourceIndex < sourceItems.length - 1
-                ? () => _replaceReaderWithCarouselItem(
-                    selectedPdfId: sourceItems[safeSourceIndex + 1].pdfId,
-                  )
+          ? (focusedIndex < items.length - 1
+                ? () => _replaceReaderWithCarouselItem(items[focusedIndex + 1])
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
       onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
@@ -498,7 +502,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         context,
         onItemTap: (item) async {
           if (onReaderWithoutPdfId) {
-            await _replaceReaderWithCarouselItem(selectedPdfId: item.pdfId);
+            await _replaceReaderWithCarouselItem(item);
           } else {
             await _openInReader(item);
           }
@@ -507,14 +511,14 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     );
   }
 
-  Widget _buildReaderMode(String pdfId) {
-    final position = ref.watch(readerCarouselPositionProvider(pdfId));
-    final item = _itemForPdfId(pdfId, _readerTitulo);
+  Widget _buildReaderMode(String materialId) {
+    final position = ref.watch(readerCarouselPositionProvider(materialId));
+    final item = _itemForMaterialId(materialId, _readerTitulo);
     final loading = _carouselNavLoading;
 
     // D10: no leitor o slot "abrir" tocava nada — vira "tocar áudio deste
     // louvor" e some quando o louvor não tem áudio.
-    final groupTracks = _groupTracksForPdfId(pdfId);
+    final groupTracks = _groupTracksForMaterialId(materialId);
     final playAudio = groupTracks.isEmpty
         ? null
         : () => unawaited(_playGroupAudio(groupTracks));
@@ -562,9 +566,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   @override
   Widget build(BuildContext context) {
     if (_isReaderRoute) {
-      final pdfId = _readerPdfId;
-      if (pdfId != null) {
-        return _buildReaderMode(pdfId);
+      final materialId = _readerMaterialId;
+      if (materialId != null) {
+        return _buildReaderMode(materialId);
       }
     }
 

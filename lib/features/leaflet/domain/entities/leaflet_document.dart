@@ -3,10 +3,7 @@ import 'leaflet_entry.dart';
 
 /// Documento de folheto pronto para renderização (UC-08).
 class LeafletDocument {
-  const LeafletDocument({
-    required this.entries,
-    required this.generatedAt,
-  });
+  const LeafletDocument({required this.entries, required this.generatedAt});
 
   /// Linhas na ordem da seleção.
   final List<LeafletEntry> entries;
@@ -14,7 +11,8 @@ class LeafletDocument {
   /// Data/hora de geração — exibida no cabeçalho do folheto.
   final DateTime generatedAt;
 
-  /// Monta folheto a partir dos itens do carousel, preservando [CarouselItem.sortOrder].
+  /// Monta folheto a partir dos itens do carousel, preservando
+  /// [CarouselItem.index] (a posição dentro da face).
   ///
   /// Índices [LeafletEntry.index] são 1-based. [generatedAt] default: `DateTime.now()`.
   factory LeafletDocument.fromCarouselItems(
@@ -22,7 +20,7 @@ class LeafletDocument {
     DateTime? generatedAt,
   }) {
     final sorted = List<CarouselItem>.from(items)
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      ..sort((a, b) => a.index.compareTo(b.index));
 
     return LeafletDocument(
       generatedAt: generatedAt ?? DateTime.now(),

@@ -2,7 +2,7 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
@@ -181,8 +181,8 @@ class _CarouselBarTrailingActionsState
     }
 
     final pdfIds = ref
-        .read(carouselLouvoresProvider)
-        .map((e) => e.pdfId)
+        .read(carouselItemsProvider)
+        .map((item) => item.materialId)
         .toList();
     final option = await showPlaylistShareSheet(context);
     if (option == null || !context.mounted) return;

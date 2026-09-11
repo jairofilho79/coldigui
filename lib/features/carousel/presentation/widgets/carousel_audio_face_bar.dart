@@ -10,17 +10,14 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,17 +58,12 @@ class CarouselAudioFaceBar extends ConsumerWidget {
         ? const <SavedAudioFlag>[]
         : (ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
               const []);
-    final pdfItems = ref.watch(carouselLouvoresProvider);
-    final focusedPdfId = pdfItems.isEmpty
-        ? null
-        : pdfItems[ref
-                  .watch(carouselFocusedIndexProvider)
-                  .clamp(0, pdfItems.length - 1)]
-              .pdfId;
+    final pdfItems = ref.watch(carouselItemsProvider);
+    final focusedItem = ref.watch(focusedCarouselItemProvider);
 
     // Ponte D1: o material do louvor **tocando**, não o chip focado — o
     // carousel pode estar em outro louvor enquanto a faixa toca.
-    final trackMaterialPdfId = resolveMaterialForGroup(ref, track?.groupId);
+    final trackMaterialId = resolveMaterialForGroup(ref, track?.groupId);
     final followingAudio = ref.watch(audioFollowReaderProvider);
 
     // Sem flags: sobe o bloco para o seek alinhar aos IconButtons.
@@ -204,7 +196,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               icon: const Icon(Icons.open_in_full),
               onPressed: () => pushAudioPlayerRoute(context, track),
             ),
-          if (track != null && trackMaterialPdfId != null)
+          if (track != null && trackMaterialId != null)
             IconButton(
               style: carouselBarIconButtonStyle,
               tooltip: l10n.audioOpenSheetMusic,
@@ -233,18 +225,22 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                 onItemTap: (item) => openCarouselPdfInReader(
                   ref: ref,
                   context: context,
-                  pdfId: item.pdfId,
+                  materialId: item.materialId,
                   navigate: (location) async {
                     context.push(location);
                   },
                 ),
               ),
             ),
-          // Layers segue a faixa tocando: `pdfId` do próprio grupo (troca o
-          // material no lugar) e, sem material, só o `audioId` — nunca o chip
-          // focado, que pode ser outro louvor.
+          // Layers segue a faixa tocando: `materialId` do próprio grupo (troca
+          // o material no lugar) e, sem material, só o `audioId` — nunca o chip
+          // focado, que pode ser outro louvor. Sem faixa nenhuma o botão cai no
+          // item focado da face de partituras, cuja chave é conhecida.
           CarouselSwapMaterialButton(
-            pdfId: track == null ? focusedPdfId : trackMaterialPdfId,
+            materialId: track == null
+                ? focusedItem?.materialId
+                : trackMaterialId,
+            entryKey: track == null ? focusedItem?.key : null,
             audioId: track?.audioId,
           ),
           const CarouselBarTrailingActions(),
@@ -261,25 +257,18 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     return '$head | ${track.categoria}';
   }
 
+  /// Faixa corrente: a da sessão ou, sem sessão, a **primeira entrada de
+  /// áudio** da lista ativa resolvida no cache (B.2 — sem varrer
+  /// `playlistsProvider`).
   AudioTrack? _resolveTrack(WidgetRef ref, AudioTrack? current) {
     if (current != null) return current;
 
-    final activeId = ref.watch(activePlaylistIdProvider);
-    if (activeId == null) return null;
+    final audioItems = ref.watch(audioFaceItemsProvider);
+    if (audioItems.isEmpty) return null;
 
-    final playlists = ref.watch(playlistsProvider);
-    List<String>? audioIds;
-    for (final item in playlists) {
-      if (item.playlist.playlistId == activeId) {
-        audioIds = item.playlist.audioIds;
-        break;
-      }
-    }
-    if (audioIds == null || audioIds.isEmpty) return null;
-
-    final cache = ref.watch(coldigomAudioTracksCacheProvider);
-    for (final id in audioIds) {
-      final found = cache[id];
+    final lookup = ref.watch(catalogMaterialLookupProvider);
+    for (final item in audioItems) {
+      final found = lookup.audioTrack(item.materialId);
       if (found != null) return found;
     }
     return null;

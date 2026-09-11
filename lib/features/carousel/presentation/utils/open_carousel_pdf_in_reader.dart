@@ -6,7 +6,8 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/presentation/providers/open_material_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 
-/// Abre [pdfId] no leitor via [ReaderCarouselActionsNotifier.navigateToPdfId].
+/// Abre [materialId] no leitor via
+/// [ReaderCarouselActionsNotifier.navigateToPdfId].
 ///
 /// [navigate] recebe a rota `/leitor?...` — use `context.push` no shell ou
 /// `context.replace` quando já estiver no leitor. Não aguarde o `Future` do
@@ -17,14 +18,14 @@ import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provi
 Future<void> openCarouselPdfInReader({
   required WidgetRef ref,
   required BuildContext context,
-  required String pdfId,
+  required String materialId,
   required Future<void> Function(String location) navigate,
 }) async {
   final l10n = AppLocalizations.of(context);
   try {
     final location = await ref
         .read(readerCarouselActionsProvider.notifier)
-        .navigateToPdfId(targetPdfId: pdfId);
+        .navigateToPdfId(targetPdfId: materialId);
     if (!context.mounted) return;
 
     if (location == null) {

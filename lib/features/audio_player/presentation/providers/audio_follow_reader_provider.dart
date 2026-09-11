@@ -166,7 +166,7 @@ Future<void> openMaterialForGroupInReader({
   await openCarouselPdfInReader(
     ref: ref,
     context: context,
-    pdfId: targetPdfId,
+    materialId: targetPdfId,
     navigate: (location) async {
       if (onReader) {
         context.replace(location);

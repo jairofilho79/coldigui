@@ -3,12 +3,12 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -21,13 +21,14 @@ class _FakePlaylistsNotifier extends PlaylistsNotifier {
   List<PlaylistViewItem> build() => const [];
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
+/// Lista ativa fixa — a face de partituras da barra sai daqui (B.2).
+class _FakeActiveEditor extends ActivePlaylistEditor {
+  _FakeActiveEditor(this.initial);
 
-  final List<CarouselItem> initial;
+  final List<PlaylistEntry> initial;
 
   @override
-  List<CarouselItem> build() => initial;
+  List<PlaylistEntry>? build() => initial;
 }
 
 class _QueuedAudioSession extends AudioPlayerSessionNotifier {
@@ -83,14 +84,7 @@ void main() {
     classificacao: 'Coro',
   );
 
-  const pdfItem = CarouselItem(
-    pdfId: 'pdf-1',
-    sortOrder: 0,
-    numero: '047',
-    nome: 'Shekinah',
-    categoria: 'Partitura',
-    classificacao: 'Coro',
-  );
+  const pdfEntry = PlaylistEntry(id: 'pdf-1', kind: MaterialKind.pdf);
 
   final groupPdfId = encodePdfId('assets/praises/p1/partitura.pdf');
   final groupLouvor = Louvor.fromManifest(
@@ -103,19 +97,11 @@ void main() {
     groupId: 'p1',
     source: LouvorDataSource.coldigom,
   );
-  final groupPdfItem = CarouselItem(
-    pdfId: groupPdfId,
-    sortOrder: 0,
-    numero: '047',
-    nome: 'Shekinah',
-    categoria: 'Partitura',
-    classificacao: 'Coro',
-    source: LouvorDataSource.coldigom,
-  );
+  final groupPdfEntry = PlaylistEntry(id: groupPdfId, kind: MaterialKind.pdf);
 
   Widget buildSubject({
     required SharedPreferences prefs,
-    required List<CarouselItem> items,
+    required List<PlaylistEntry> entries,
     Map<String, Louvor> coldigomCache = const {},
     _QueuedAudioSession? session,
     double? width,
@@ -124,8 +110,8 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
-        carouselLouvoresProvider.overrideWith(
-          () => _FakeCarouselNotifier(items),
+        activePlaylistEditorProvider.overrideWith(
+          () => _FakeActiveEditor(entries),
         ),
         coldigomLouvoresCacheProvider.overrideWith(
           () => _FakeColdigomLouvoresCache(coldigomCache),
@@ -153,7 +139,9 @@ void main() {
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(buildSubject(prefs: prefs, items: const [pdfItem]));
+    await tester.pumpWidget(
+      buildSubject(prefs: prefs, entries: const [pdfEntry]),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.close), findsNothing);
@@ -168,7 +156,7 @@ void main() {
     await tester.pumpWidget(
       buildSubject(
         prefs: prefs,
-        items: [groupPdfItem],
+        entries: [groupPdfEntry],
         coldigomCache: {groupPdfId: groupLouvor},
       ),
     );
@@ -185,7 +173,7 @@ void main() {
     await tester.pumpWidget(
       buildSubject(
         prefs: prefs,
-        items: [groupPdfItem],
+        entries: [groupPdfEntry],
         coldigomCache: {groupPdfId: groupLouvor},
       ),
     );
@@ -204,7 +192,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final session = _QueuedAudioSession(track, errorMessage: '(1) decode');
     await tester.pumpWidget(
-      buildSubject(prefs: prefs, items: const [pdfItem], session: session),
+      buildSubject(prefs: prefs, entries: const [pdfEntry], session: session),
     );
     await tester.pumpAndSettle();
 
@@ -227,7 +215,7 @@ void main() {
     await tester.pumpWidget(
       buildSubject(
         prefs: prefs,
-        items: const [pdfItem],
+        entries: const [pdfEntry],
         session: _QueuedAudioSession(
           track,
           errorMessage: '(1) decode',
@@ -243,7 +231,9 @@ void main() {
 
   testWidgets('sem erro não aparece "Tentar novamente"', (tester) async {
     final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(buildSubject(prefs: prefs, items: const [pdfItem]));
+    await tester.pumpWidget(
+      buildSubject(prefs: prefs, entries: const [pdfEntry]),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Tentar novamente'), findsNothing);
@@ -256,7 +246,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
 
     await tester.pumpWidget(
-      buildSubject(prefs: prefs, items: const [pdfItem], width: 360),
+      buildSubject(prefs: prefs, entries: const [pdfEntry], width: 360),
     );
     await tester.pumpAndSettle();
     final baselineHeight = tester
@@ -273,7 +263,7 @@ void main() {
     await tester.pumpWidget(
       buildSubject(
         prefs: prefs,
-        items: const [pdfItem],
+        entries: const [pdfEntry],
         session: _QueuedAudioSession(track, errorMessage: '(1) decode'),
         width: 360,
       ),
@@ -291,7 +281,9 @@ void main() {
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(buildSubject(prefs: prefs, items: const [pdfItem]));
+    await tester.pumpWidget(
+      buildSubject(prefs: prefs, entries: const [pdfEntry]),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.menu_book), findsNothing);

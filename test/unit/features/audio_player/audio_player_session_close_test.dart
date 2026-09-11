@@ -112,31 +112,43 @@ void main() {
     );
   });
 
+  // As duas origens de áudio (fila da sessão e entradas de áudio da lista
+  // ativa) entram juntas em `hasAudio` desde a Tarefa 12 — a face é um filtro
+  // da mesma lista, não um estado à parte.
   group('shouldShowCarouselAudioFace', () {
     test(
-      'após close (fila vazia + face PDF) não mostra áudio só por playlist',
+      'após close (fila vazia + face PDF) não mostra áudio enquanto houver PDF',
       () {
         expect(
           shouldShowCarouselAudioFace(
             face: PlaylistMediaFace.pdf,
             hasPdf: true,
-            hasSessionQueue: false,
-            hasAudioPlaylist: true,
+            hasAudio: true,
           ),
           isFalse,
         );
       },
     );
 
-    test('sem PDF e sem sessão, playlist com áudio não reabre sozinha', () {
+    test('sem PDF e sem áudio nenhum, a barra some', () {
       expect(
         shouldShowCarouselAudioFace(
           face: PlaylistMediaFace.pdf,
           hasPdf: false,
-          hasSessionQueue: false,
-          hasAudioPlaylist: true,
+          hasAudio: false,
         ),
         isFalse,
+      );
+    });
+
+    test('lista só de áudio mostra a face de áudio mesmo na face PDF', () {
+      expect(
+        shouldShowCarouselAudioFace(
+          face: PlaylistMediaFace.pdf,
+          hasPdf: false,
+          hasAudio: true,
+        ),
+        isTrue,
       );
     });
 
@@ -145,20 +157,18 @@ void main() {
         shouldShowCarouselAudioFace(
           face: PlaylistMediaFace.audio,
           hasPdf: true,
-          hasSessionQueue: false,
-          hasAudioPlaylist: true,
+          hasAudio: true,
         ),
         isTrue,
       );
     });
 
-    test('face áudio sem sessão nem audioIds fica na face PDF', () {
+    test('face áudio sem áudio nenhum fica na face PDF', () {
       expect(
         shouldShowCarouselAudioFace(
           face: PlaylistMediaFace.audio,
           hasPdf: true,
-          hasSessionQueue: false,
-          hasAudioPlaylist: false,
+          hasAudio: false,
         ),
         isFalse,
       );
@@ -169,8 +179,7 @@ void main() {
         shouldShowCarouselAudioFace(
           face: PlaylistMediaFace.pdf,
           hasPdf: false,
-          hasSessionQueue: true,
-          hasAudioPlaylist: false,
+          hasAudio: true,
         ),
         isTrue,
       );

@@ -3,8 +3,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -15,6 +13,9 @@ import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -72,25 +73,19 @@ const _trackB = AudioTrack(
 
 // ------------------------------------------------------------------- fakes
 
-class _RecordingCarouselNotifier extends CarouselLouvoresNotifier {
-  final List<(String, String)> replaced = [];
+/// Editor da lista ativa com uma entrada só — a partitura `pdf1`.
+class _RecordingActiveEditor extends ActivePlaylistEditor {
+  /// `(chave da ocorrência, entrada nova)` de cada [replaceByKey].
+  final List<(String, PlaylistEntry)> replaced = [];
 
   @override
-  List<CarouselItem> build() => const [
-    CarouselItem(
-      pdfId: 'pdf1',
-      sortOrder: 0,
-      numero: '692',
-      nome: 'Comigo habita',
-      categoria: 'Partitura',
-      classificacao: 'Básico',
-      source: LouvorDataSource.coldigom,
-    ),
+  List<PlaylistEntry>? build() => const [
+    PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
   ];
 
   @override
-  Future<bool> replacePdfId(String oldPdfId, String newPdfId) async {
-    replaced.add((oldPdfId, newPdfId));
+  Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
+    replaced.add((key, replacement));
     return true;
   }
 }
@@ -144,7 +139,7 @@ class _Harness {
   });
 
   final GoRouter router;
-  final _RecordingCarouselNotifier carousel;
+  final _RecordingActiveEditor carousel;
   final _FakeReaderCarouselActions readerActions;
   final _RecordingAudioSession audio;
 
@@ -159,7 +154,7 @@ Future<_Harness> _pumpSwapSheet(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final carousel = _RecordingCarouselNotifier();
+  final carousel = _RecordingActiveEditor();
   final readerActions = _FakeReaderCarouselActions();
   final audio = _RecordingAudioSession();
   final prefs = await SharedPreferences.getInstance();
@@ -181,7 +176,8 @@ Future<_Harness> _pumpSwapSheet(
                     context: context,
                     ref: ref,
                     group: group,
-                    currentPdfId: 'pdf1',
+                    currentMaterialId: 'pdf1',
+                    currentEntryKey: 'pdf1',
                   ),
                   child: const Text('trocar'),
                 ),
@@ -206,7 +202,10 @@ Future<_Harness> _pumpSwapSheet(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(true),
-        carouselLouvoresProvider.overrideWith(() => carousel),
+        activePlaylistEditorProvider.overrideWith(() => carousel),
+        louvoresByPdfIdProvider.overrideWithValue({
+          'pdf1': _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        }),
         readerCarouselActionsProvider.overrideWith(() => readerActions),
         playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
         audioPlayerSessionProvider.overrideWith(() => audio),
@@ -267,7 +266,9 @@ void main() {
     await tester.tap(find.text('Gestos CIAs'));
     await tester.pumpAndSettle();
 
-    expect(harness.carousel.replaced, [('pdf1', 'pdf2')]);
+    expect(harness.carousel.replaced, [
+      ('pdf1', const PlaylistEntry(id: 'pdf2', kind: MaterialKind.pdf)),
+    ]);
     expect(harness.readerActions.navigated, ['pdf2']);
     // `context.replace` no leitor: continua uma rota `/leitor` só, com o novo
     // pdfId — nada de empilhar um segundo leitor.
