@@ -57,4 +57,7 @@ abstract final class StorageKeys {
 
   /// Painel lateral do leitor (PDF/cifra) aberto/fechado — spec A.6 C7.
   static const String readerSidePanelOpen = 'readerSidePanelOpen';
+
+  /// «Duas páginas em tela larga» (spread) ligado/desligado — spec A.4 C8.
+  static const String pdfSpreadEnabled = 'pdfSpreadEnabled';
 }

@@ -45,6 +45,8 @@
   "readerGoToPageFieldLabel": "Número da página",
   "readerGoToPageCancel": "Cancelar",
   "readerGoToPageConfirm": "Ir",
+  "readerMoreOptionsTooltip": "Mais opções",
+  "readerSpreadToggleLabel": "Duas páginas em tela larga",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

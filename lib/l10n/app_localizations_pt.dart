@@ -84,6 +84,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerGoToPageConfirm => 'Ir';
 
   @override
+  String get readerMoreOptionsTooltip => 'Mais opções';
+
+  @override
+  String get readerSpreadToggleLabel => 'Duas páginas em tela larga';
+
+  @override
   String get louvorPdfDownloading => 'Baixando...';
 
   @override

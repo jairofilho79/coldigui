@@ -13,6 +13,7 @@ import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_fa
 import 'package:coldigui/features/pdf_reader/data/models/pdf_reader_viewer_handle.dart';
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_view_settings_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -600,6 +601,65 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.fit_screen), findsOneWidget);
+  });
+
+  testWidgets('item de menu «duas páginas» alterna spreadEnabled (A.4 C8)', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+    expect(find.byTooltip(l10n.readerMoreOptionsTooltip), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PdfReaderScreen)),
+    );
+    expect(container.read(pdfReaderViewSettingsProvider).spreadEnabled, isTrue);
+
+    await tester.tap(find.byTooltip(l10n.readerMoreOptionsTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.readerSpreadToggleLabel), findsOneWidget);
+
+    // `warnIfMissed: false`: o hit test do harness de teste às vezes acerta
+    // a camada de barreira do menu em vez do `RenderParagraph` do texto —
+    // cosmético, o toque chega ao item normalmente (ação confirmada abaixo).
+    await tester.tap(
+      find.text(l10n.readerSpreadToggleLabel),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(pdfReaderViewSettingsProvider).spreadEnabled,
+      isFalse,
+    );
   });
 
   testWidgets('tela larga mostra o painel com a lista ativa (C7)', (

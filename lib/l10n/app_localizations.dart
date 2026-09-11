@@ -236,6 +236,18 @@ abstract class AppLocalizations {
   /// **'Ir'**
   String get readerGoToPageConfirm;
 
+  /// No description provided for @readerMoreOptionsTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais opções'**
+  String get readerMoreOptionsTooltip;
+
+  /// No description provided for @readerSpreadToggleLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Duas páginas em tela larga'**
+  String get readerSpreadToggleLabel;
+
   /// No description provided for @louvorPdfDownloading.
   ///
   /// In pt, this message translates to:

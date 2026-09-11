@@ -34,4 +34,11 @@ class PdfReaderViewSettingsNotifier extends Notifier<PdfReaderViewSettings> {
     state = state.copyWith(fitMode: next);
     await ref.read(setZoomAndFitModeProvider).call(mode: next);
   }
+
+  /// Alterna «duas páginas em tela larga» e persiste (spec A.4 C8).
+  Future<void> toggleSpread() async {
+    final next = !state.spreadEnabled;
+    await ref.read(readerPreferencesDatasourceProvider).saveSpreadEnabled(next);
+    state = state.copyWith(spreadEnabled: next);
+  }
 }

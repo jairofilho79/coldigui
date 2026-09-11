@@ -1,25 +1,33 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import '../../../../core/theme/color_extensions.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
+import '../providers/pdf_reader_view_settings_provider.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
 import '../utils/pdf_reader_viewport_policy.dart';
+import '../utils/pdf_spread_layout.dart';
 import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
-/// Widget pdfrx encapsulado — único ponto de import `pdfrx` na presentation (ADR-002).
+/// Widget pdfrx encapsulado — pontos de import `pdfrx` na presentation
+/// restritos a este arquivo e a [spreadPageLayout]/[defaultPdfPageLayout]
+/// (ADR-002; o layout de páginas em spread, spec A.4, exige os tipos
+/// `PdfPage`/`PdfPageLayout`/`PdfViewerParams` do pacote).
 ///
-/// Scroll vertical contínuo (layout padrão pdfrx). `ValueKey(handle)` evita
-/// duas instâncias simultâneas do mesmo handle. Handles reutilizados do
-/// cache LRU exigem `_scheduleReattachIfCached` via [PdfReaderViewerHandle.reattachIfNeeded].
-class PdfReaderPdfView extends StatefulWidget {
+/// Scroll vertical contínuo (layout padrão pdfrx) ou duas páginas lado a
+/// lado em viewport largo (spec A.4 C8, [PdfReaderViewSettings.spreadEnabled]).
+/// `ValueKey(handle)` evita duas instâncias simultâneas do mesmo handle.
+/// Handles reutilizados do cache LRU exigem `_scheduleReattachIfCached` via
+/// [PdfReaderViewerHandle.reattachIfNeeded].
+class PdfReaderPdfView extends ConsumerStatefulWidget {
   const PdfReaderPdfView({
     required this.handle,
     required this.navigateToPage,
@@ -44,10 +52,10 @@ class PdfReaderPdfView extends StatefulWidget {
   final ValueChanged<int>? onPageChanged;
 
   @override
-  State<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
+  ConsumerState<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
 }
 
-class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
+class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
   var _activePointers = 0;
   int? _trackingPointer;
   int? _pageAtPointerDown;
@@ -346,9 +354,19 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
 
   Widget _buildPdfContent() {
     final handle = widget.handle;
+    final spreadEnabled = ref.watch(
+      pdfReaderViewSettingsProvider.select(
+        (settings) => settings.spreadEnabled,
+      ),
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasWidth = constraints.maxWidth;
+        final viewportAspect = constraints.maxHeight > 0
+            ? constraints.maxWidth / constraints.maxHeight
+            : 0.0;
+
         return Listener(
           onPointerDown: _onPointerDown,
           onPointerMove: _onPointerMove,
@@ -365,6 +383,14 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
                   backgroundColor: AppColors.pdfArea,
                   onViewerReady: (_, _) => handle.markViewerReady(),
                   onPageChanged: _handleVisiblePageChanged,
+                  layoutPages: spreadEnabled
+                      ? (pages, params) => spreadPageLayout(
+                          pages,
+                          params,
+                          viewportAspect: viewportAspect,
+                          fallback: defaultPdfPageLayout,
+                        )
+                      : null,
                   loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
                     return const Center(
                       child: CircularProgressIndicator(color: AppColors.gold),

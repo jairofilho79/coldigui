@@ -24,7 +24,10 @@ class ReaderPreferencesDatasource {
 
   /// Carrega preferências de visualização.
   PdfReaderViewSettings loadSettings() {
-    return PdfReaderViewSettings(fitMode: getFitMode());
+    return PdfReaderViewSettings(
+      fitMode: getFitMode(),
+      spreadEnabled: getSpreadEnabled(),
+    );
   }
 
   /// Persiste modo de encaixe.
@@ -33,6 +36,16 @@ class ReaderPreferencesDatasource {
       StorageKeys.pdfPreferredFitMode,
       mode.toStorageString(),
     );
+  }
+
+  /// «Duas páginas em tela larga» salvo ou default `true` (spec A.4 C8).
+  bool getSpreadEnabled() {
+    return _prefs.getBool(StorageKeys.pdfSpreadEnabled) ?? true;
+  }
+
+  /// Persiste «duas páginas em tela larga».
+  Future<void> saveSpreadEnabled(bool value) async {
+    await _prefs.setBool(StorageKeys.pdfSpreadEnabled, value);
   }
 
   /// Última página lembrada para [pdfId], ou `null` se nunca salva / JSON
