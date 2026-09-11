@@ -29,9 +29,16 @@ HomeSearchState _state({
   );
 }
 
+late SharedPreferences _prefs;
+
+/// Todo teste passa pelo `sharedPreferencesProvider`: desde a C13 o
+/// `catalogFiltersProvider` (lido pelo estado vazio) persiste em prefs.
 Widget _sliverTestApp(List<Override> overrides) {
   return ProviderScope(
-    overrides: overrides,
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+      ...overrides,
+    ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -49,17 +56,16 @@ class _EmptyRecentlyOpened extends RecentlyOpenedNotifier {
 }
 
 void main() {
-  setUp(() {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
   });
 
   testWidgets('sem consulta e sem grupos mostra o estado vazio da Home (C4)', (
     tester,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       _sliverTestApp([
-        sharedPreferencesProvider.overrideWithValue(prefs),
         recentlyOpenedProvider.overrideWith(_EmptyRecentlyOpened.new),
         homeSearchStateProvider.overrideWithValue(
           _state(query: '', remote: const AsyncData(CatalogSearchPage.empty)),
