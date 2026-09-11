@@ -112,8 +112,11 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
     );
 
     // `cached` vazio desliga o `If-None-Match`, então `syncManifest` só devolve
-    // checksum quando o corpo trouxe `ETag`; o checksum do boot cobre o resto.
-    final checksum = outcome.checksum ?? await bootChecksum;
+    // checksum quando o corpo trouxe `ETag`; o checksum do boot cobre o resto —
+    // mas só quando o manifest realmente entrou no cache. Um corpo vazio
+    // (`cacheReplaced: false`) não pode armar o gate condicional.
+    final checksum =
+        outcome.checksum ?? (outcome.cacheReplaced ? await bootChecksum : null);
     await _persistChecksum(checksumStore, checksum, knownChecksum);
 
     final isStale = await repository.isCatalogStale();
@@ -160,10 +163,17 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
       if (!ref.mounted) return;
 
       // Mesma precedência de `CatalogRepositoryImpl`: `ETag` do corpo primeiro,
-      // checksum avulso só como reserva.
+      // checksum avulso só como reserva — e **só** se o corpo realmente entrou.
+      // `syncManifest` engole falha de rede e devolve o cache com
+      // `cacheReplaced: false` e `checksum: null`; gravar o checksum do boot aí
+      // congelaria o catálogo, porque o próximo boot mandaria esse valor no
+      // `If-None-Match` e ouviria "nada mudou" para um corpo que nunca chegou.
+      final bootFallback = knownIsOutdated && outcome.cacheReplaced
+          ? booted
+          : null;
       await _persistChecksum(
         checksumStore,
-        outcome.checksum ?? (knownIsOutdated ? booted : null),
+        outcome.checksum ?? bootFallback,
         knownChecksum,
       );
       if (!ref.mounted) return;

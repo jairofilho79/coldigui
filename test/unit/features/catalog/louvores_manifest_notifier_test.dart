@@ -122,6 +122,11 @@ void main() {
         isarStatusProvider.overrideWithValue(
           isarAvailable ? IsarStatus.available : IsarStatus.unavailable,
         ),
+        // Rede de segurança: se algum caminho escapar do override de status,
+        // o teste falha em vez de tentar abrir um Isar de verdade.
+        isarOpenerProvider.overrideWithValue(
+          () async => throw StateError('openAppIsar não deve ser chamado'),
+        ),
         catalogRepositoryProvider.overrideWithValue(repository),
       ],
     );
@@ -463,6 +468,38 @@ void main() {
         );
       },
     );
+
+    test('corpo que não chegou não grava o checksum do boot', () async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.manifestChecksum: 'antigo',
+      });
+      prefs = await SharedPreferences.getInstance();
+
+      // `checksumUnchanged` devolve o cache com `cacheReplaced: false` e
+      // `checksum: null` — é o que `CatalogRepositoryImpl` faz quando a busca
+      // do corpo falha (ele engole o erro e preserva o cache).
+      final repository = _FakeCatalogRepository(
+        cached: [_louvor('cached-1')],
+        checksumUnchanged: true,
+        remoteChecksum: 'novo',
+      );
+
+      final container = createOpeningContainer(
+        repository,
+        () async => _FakeIsar(),
+      );
+
+      await container.read(louvoresManifestProvider.future);
+      await pumpEventQueue();
+
+      expect(
+        prefs.getString(StorageKeys.manifestChecksum),
+        'antigo',
+        reason:
+            'gravar "novo" sem o corpo congelaria o catálogo: o próximo boot '
+            'mandaria If-None-Match: novo e ouviria "nada mudou"',
+      );
+    });
 
     test('checksum do boot igual ao salvo mantém o gate condicional', () async {
       SharedPreferences.setMockInitialValues({
