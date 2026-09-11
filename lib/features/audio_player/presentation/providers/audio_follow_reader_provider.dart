@@ -114,6 +114,9 @@ String? resolveMaterialForGroup(
   final chordCache = listen
       ? ref.watch(coldigomChordMaterialsCacheProvider)
       : ref.read(coldigomChordMaterialsCacheProvider);
+  final gestureCache = listen
+      ? ref.watch(coldigomGestureMaterialsCacheProvider)
+      : ref.read(coldigomGestureMaterialsCacheProvider);
   final manifest = listen
       ? ref.watch(louvoresManifestProvider)
       : ref.read(louvoresManifestProvider);
@@ -123,6 +126,7 @@ String? resolveMaterialForGroup(
     carouselPdfIds: [for (final item in carouselItems) item.pdfId],
     byPdfId: coldigomCache,
     chordsById: chordCache,
+    gesturesById: gestureCache,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -144,6 +148,9 @@ String? resolveGroupIdForMaterial(
   final chordCache = listen
       ? ref.watch(coldigomChordMaterialsCacheProvider)
       : ref.read(coldigomChordMaterialsCacheProvider);
+  final gestureCache = listen
+      ? ref.watch(coldigomGestureMaterialsCacheProvider)
+      : ref.read(coldigomGestureMaterialsCacheProvider);
   final manifest = listen
       ? ref.watch(louvoresManifestProvider)
       : ref.read(louvoresManifestProvider);
@@ -152,6 +159,7 @@ String? resolveGroupIdForMaterial(
     materialId: materialId,
     byPdfId: coldigomCache,
     chordsById: chordCache,
+    gesturesById: gestureCache,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -185,10 +193,13 @@ Future<void> openMaterialForGroupInReader({
   ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(targetPdfId);
 }
 
-/// `true` em `/leitor` ou `/cifra`; `false` sem GoRouter (testes de widget).
+/// `true` em `/leitor`, `/cifra` ou `/gestos`; `false` sem GoRouter (testes de
+/// widget).
 bool isReaderRoute(BuildContext context) {
   final path = currentRoutePath(context);
-  return path == RoutePaths.reader || path == RoutePaths.chords;
+  return path == RoutePaths.reader ||
+      path == RoutePaths.chords ||
+      path == RoutePaths.gestos;
 }
 
 /// Path da rota atual, ou `null` quando não há GoRouter no contexto.

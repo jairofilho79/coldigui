@@ -5,12 +5,14 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final coldigomPdfId = encodePdfId('assets/praises/p1/partitura.pdf');
   final coldigomOtherPdfId = encodePdfId('assets/praises/p1/gestos.pdf');
   final chordId = encodePdfId('assets/praises/p1/cifra.chord');
+  final gestureId = encodePdfId('assets/praises/p1/m1.gestures');
   final otherPraisePdfId = encodePdfId('assets/praises/p9/partitura.pdf');
 
   Louvor coldigomLouvor(String pdfId, String groupId, String categoria) {
@@ -39,6 +41,16 @@ void main() {
     numero: '047',
     groupId: 'p1',
     categoria: 'Cifra',
+    classificacao: 'Coro',
+  );
+
+  final gesture = GestureMaterial(
+    gestureId: gestureId,
+    r2Key: 'assets/praises/p1/m1.gestures',
+    nome: 'Shekinah',
+    numero: '047',
+    groupId: 'p1',
+    categoria: 'Gestos',
     classificacao: 'Coro',
   );
 
@@ -85,6 +97,17 @@ void main() {
       );
 
       expect(found, chordId);
+    });
+
+    test('prefere o gesto do carousel quando ele é o material do grupo', () {
+      final found = findMaterialForGroup(
+        groupId: 'p1',
+        carouselPdfIds: [otherPraisePdfId, gestureId],
+        byPdfId: coldigomCache,
+        gesturesById: {gestureId: gesture},
+      );
+
+      expect(found, gestureId);
     });
 
     test('cai para o primeiro PDF do grupo no catálogo', () {
@@ -156,6 +179,17 @@ void main() {
           materialId: chordId,
           byPdfId: coldigomCache,
           chordsById: {chordId: chord},
+        ),
+        'p1',
+      );
+    });
+
+    test('resolve o grupo de um id de gesto pelo cache', () {
+      expect(
+        groupIdForMaterialId(
+          materialId: gestureId,
+          byPdfId: coldigomCache,
+          gesturesById: {gestureId: gesture},
         ),
         'p1',
       );

@@ -113,7 +113,10 @@ Future<void> _onPdfMaterialSelected({
 }) async {
   if (!context.mounted) return;
   final path = GoRouterState.of(context).uri.path;
-  final onReader = path == RoutePaths.reader || path == RoutePaths.chords;
+  final onReader =
+      path == RoutePaths.reader ||
+      path == RoutePaths.chords ||
+      path == RoutePaths.gestos;
 
   if (currentPdfId != null &&
       currentPdfId.isNotEmpty &&

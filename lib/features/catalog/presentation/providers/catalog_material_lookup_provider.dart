@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/youtube_material.dart';
@@ -23,6 +24,7 @@ final class CatalogMaterialLookup {
     this.coldigomLouvoresByPdfId = const {},
     this.audioTracksById = const {},
     this.chordsById = const {},
+    this.gesturesById = const {},
     this.praiseMetaByGroupId = const {},
     this.youtubeByGroupId = const {},
   });
@@ -38,6 +40,9 @@ final class CatalogMaterialLookup {
 
   /// Cifras Coldigom em cache, por `chordId`.
   final Map<String, ChordMaterial> chordsById;
+
+  /// Documentos de gestos Coldigom em cache, por `gestureId`.
+  final Map<String, GestureMaterial> gesturesById;
 
   /// Metadados do praise em cache, por `groupId`.
   final Map<String, ColdigomPraiseMetadata> praiseMetaByGroupId;
@@ -57,6 +62,9 @@ final class CatalogMaterialLookup {
 
   /// Cifra em cache, ou `null`.
   ChordMaterial? chord(String chordId) => chordsById[chordId];
+
+  /// Documento de gestos em cache, ou `null`.
+  GestureMaterial? gesture(String gestureId) => gesturesById[gestureId];
 
   /// Metadados do praise Coldigom, ou `null`.
   ColdigomPraiseMetadata? praiseMeta(String groupId) =>
@@ -82,6 +90,7 @@ final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
     coldigomLouvoresByPdfId: ref.watch(coldigomLouvoresCacheProvider),
     audioTracksById: ref.watch(coldigomAudioTracksCacheProvider),
     chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
+    gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
     praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
     youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
   );

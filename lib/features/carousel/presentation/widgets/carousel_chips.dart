@@ -170,7 +170,9 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
   bool get _isReaderRoute {
     final path = _routerState?.uri.path;
-    return path == RoutePaths.reader || path == RoutePaths.chords;
+    return path == RoutePaths.reader ||
+        path == RoutePaths.chords ||
+        path == RoutePaths.gestos;
   }
 
   Map<String, String> _readerRouteParams({required bool readOnly}) {
@@ -365,12 +367,13 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     }
   }
 
-  /// Faixas de áudio do louvor de [pdfId] (PDF ou cifra) no acervo.
+  /// Faixas de áudio do louvor de [pdfId] (PDF, cifra ou gesto) no acervo.
   List<AudioTrack> _groupTracksForPdfId(String pdfId) {
     final groupId = groupIdForMaterialId(
       materialId: pdfId,
       byPdfId: ref.watch(coldigomLouvoresCacheProvider),
       chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
+      gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
       catalog: ref.watch(louvoresManifestProvider).value?.louvores ?? const [],
     );
     if (groupId == null) return const [];
