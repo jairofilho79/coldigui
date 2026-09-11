@@ -47,4 +47,7 @@ abstract final class StorageKeys {
 
   /// Itens por página da Biblioteca (UC-03) — C13.
   static const String libraryItemsPerPage = 'libraryItemsPerPage';
+
+  /// Ids de material abertos recentemente na Home, JSON (C4).
+  static const String recentlyOpened = 'recentlyOpened';
 }

@@ -7,6 +7,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_filters
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/recently_opened_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
@@ -167,6 +168,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final manifestAsync = ref.watch(louvoresManifestProvider);
+    // Mantém o `recentlyOpenedProvider` com um observador vivo enquanto a
+    // Home existe — sem isto os `ref.listen` internos dele (leitor/cifra,
+    // sessão de áudio) não disparam (Riverpod 3.3, ver docstring do provider).
+    ref.watch(recentlyOpenedProvider);
 
     ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, _) {
       if (!_urlSyncEnabled) return;
