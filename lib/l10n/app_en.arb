@@ -359,6 +359,7 @@
   "chordReaderTransposeUp": "Transpose up a semitone",
   "chordReaderTransposeDown": "Transpose down a semitone",
   "chordReaderResetTranspose": "Back to original key",
+  "gestureNotFound": "gesture not found",
   "pdfMaterialSection": "PDF",
   "coldigomMetaTonality": "Key",
   "coldigomMetaAuthor": "Author",

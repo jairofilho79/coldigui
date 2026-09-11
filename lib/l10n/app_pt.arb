@@ -368,6 +368,7 @@
   "chordReaderTransposeUp": "Subir meio tom",
   "chordReaderTransposeDown": "Descer meio tom",
   "chordReaderResetTranspose": "Voltar ao tom original",
+  "gestureNotFound": "gesto não encontrado",
   "pdfMaterialSection": "PDF",
   "coldigomMetaTonality": "Tom",
   "coldigomMetaAuthor": "Autor",

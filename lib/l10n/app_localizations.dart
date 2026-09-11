@@ -1253,6 +1253,12 @@ abstract class AppLocalizations {
   /// **'Voltar ao tom original'**
   String get chordReaderResetTranspose;
 
+  /// No description provided for @gestureNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'gesto não encontrado'**
+  String get gestureNotFound;
+
   /// No description provided for @pdfMaterialSection.
   ///
   /// In pt, this message translates to:

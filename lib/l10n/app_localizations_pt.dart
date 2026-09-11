@@ -719,6 +719,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordReaderResetTranspose => 'Voltar ao tom original';
 
   @override
+  String get gestureNotFound => 'gesto não encontrado';
+
+  @override
   String get pdfMaterialSection => 'PDF';
 
   @override
