@@ -743,6 +743,41 @@ void main() {
       expect(player.initialPositions.single, isNull);
     });
 
+    // C12 fix round 1: `AudioTrack.duration` nunca é populado em produção —
+    // o gate de "perto do fim" precisa da duração gravada no próprio store,
+    // não da faixa.
+    test('usa a duração gravada no store quando a faixa não tem duration '
+        '(caso real de produção)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(prefs).write(
+        'a1',
+        const Duration(minutes: 1),
+        duration: const Duration(minutes: 3),
+      );
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([_track('a1')]);
+
+      expect(player.initialPositions.single, const Duration(minutes: 1));
+    });
+
+    test('posição a menos de 5s da duração gravada no store não é restaurada '
+        '(faixa sem duration)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(prefs).write(
+        'a1',
+        const Duration(minutes: 3) - const Duration(seconds: 2),
+        duration: const Duration(minutes: 3),
+      );
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([_track('a1')]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
     test('playQueue (tocar da lista/busca) começa sempre do zero', () async {
       final container = await makeContainer();
       final prefs = container.read(sharedPreferencesProvider);
@@ -772,6 +807,22 @@ void main() {
       final store = AudioPlaybackPositionStore(prefs);
       expect(store.read()?.trackId, 'a1');
       expect(store.read()?.position, const Duration(seconds: 55));
+    });
+
+    test('stop() grava também a duração observada (C12 fix round 1)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.durations.add(const Duration(minutes: 3));
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.stop();
+
+      final store = AudioPlaybackPositionStore(prefs);
+      expect(store.read()?.duration, const Duration(minutes: 3));
     });
 
     test(

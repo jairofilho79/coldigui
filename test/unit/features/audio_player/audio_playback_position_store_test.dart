@@ -26,6 +26,49 @@ void main() {
     expect(result?.position, const Duration(seconds: 42));
   });
 
+  test('write com duration grava e read relê durationMs', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = AudioPlaybackPositionStore(prefs);
+
+    await store.write(
+      'aud-1',
+      const Duration(seconds: 42),
+      duration: const Duration(minutes: 3),
+    );
+    final result = store.read();
+
+    expect(result?.trackId, 'aud-1');
+    expect(result?.position, const Duration(seconds: 42));
+    expect(result?.duration, const Duration(minutes: 3));
+  });
+
+  test('write sem duration grava e read relê duration null', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = AudioPlaybackPositionStore(prefs);
+
+    await store.write('aud-1', const Duration(seconds: 10));
+    final result = store.read();
+
+    expect(result?.duration, isNull);
+  });
+
+  test(
+    'JSON sem durationMs (formato anterior à C12 r1) lê duration null',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.audioLastPosition: '{"trackId":"aud-1","positionMs":5000}',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final store = AudioPlaybackPositionStore(prefs);
+
+      final result = store.read();
+
+      expect(result?.trackId, 'aud-1');
+      expect(result?.position, const Duration(seconds: 5));
+      expect(result?.duration, isNull);
+    },
+  );
+
   test('write sobrescreve o valor anterior', () async {
     final prefs = await SharedPreferences.getInstance();
     final store = AudioPlaybackPositionStore(prefs);

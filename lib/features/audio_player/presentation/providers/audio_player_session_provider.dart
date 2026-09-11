@@ -291,11 +291,23 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   /// Grava a posição da faixa em foco (C12) — a cada 5 s enquanto toca
   /// (`force: false`, via `positionStream`) e na hora, no pause/stop
   /// (`force: true`).
+  ///
+  /// Junto vai a duração observada (`audioPlayerPositionProvider`, se já
+  /// conhecida) — `AudioTrack.duration` nunca é populado em produção, então
+  /// é essa duração gravada que sustenta o gate de "perto do fim" em
+  /// [_resolveRestorePosition] (C12 fix round 1).
   void _persistCurrentPosition(Duration position, {bool force = false}) {
     final track = state.currentTrack;
     if (track == null) return;
     if (!force && !_positionStoreThrottle.shouldSend()) return;
-    unawaited(_positionStore.write(track.audioId, position));
+    final knownDuration = ref.read(audioPlayerPositionProvider).duration;
+    unawaited(
+      _positionStore.write(
+        track.audioId,
+        position,
+        duration: knownDuration > Duration.zero ? knownDuration : null,
+      ),
+    );
   }
 
   void _ensureMediaSessionAttached() {
@@ -345,9 +357,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   ///
   /// Só considera a posição gravada no boot (`restoreQueue`, `!autoplay`) e
   /// só quando o `trackId` bate com [target] — `playQueue` (tocar da
-  /// lista/busca) sempre começa do zero. Quando a duração de [target] já é
-  /// conhecida e a posição gravada está a menos de 5 s do fim, não retoma
-  /// (a faixa já tinha praticamente terminado).
+  /// lista/busca) sempre começa do zero. Quando a duração já é conhecida —
+  /// prefere a de [target], mas `AudioTrack.duration` nunca é populado em
+  /// produção hoje, então cai pra duração observada gravada junto no store
+  /// (C12 fix round 1) — e a posição gravada está a menos de 5 s do fim,
+  /// não retoma (a faixa já tinha praticamente terminado).
   Duration? _resolveRestorePosition({
     required bool autoplay,
     required AudioTrack target,
@@ -356,7 +370,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     final stored = _positionStore.read();
     if (stored == null || stored.trackId != target.audioId) return null;
 
-    final duration = target.duration;
+    final duration = target.duration ?? stored.duration;
     if (duration != null && duration > const Duration(seconds: 5)) {
       final threshold = duration - const Duration(seconds: 5);
       if (stored.position >= threshold) return null;
