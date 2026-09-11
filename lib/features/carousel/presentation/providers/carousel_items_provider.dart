@@ -5,6 +5,7 @@ import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/carousel_item.dart';
 import 'carousel_focused_index_provider.dart';
@@ -45,6 +46,7 @@ List<CarouselItem> _faceItems(Ref ref, {required bool audio}) {
   final plpcg = ref.watch(louvoresByPdfIdProvider);
   final coldigom = ref.watch(coldigomLouvoresCacheProvider);
   final chords = ref.watch(coldigomChordMaterialsCacheProvider);
+  final gestures = ref.watch(coldigomGestureMaterialsCacheProvider);
 
   final items = <CarouselItem>[];
   for (final entry in entries) {
@@ -56,20 +58,23 @@ List<CarouselItem> _faceItems(Ref ref, {required bool audio}) {
         plpcg: plpcg,
         coldigom: coldigom,
         chords: chords,
+        gestures: gestures,
       ),
     );
   }
   return List<CarouselItem>.unmodifiable(items);
 }
 
-/// Precedência dos metadados: cifra > coldigom > manifest PLPCG — a mesma do
-/// antigo `buildCarouselMetadataMap` (cada fonte sobrescrevia a anterior).
+/// Precedência dos metadados: cifra/gesto > coldigom > manifest PLPCG — a
+/// mesma do antigo `buildCarouselMetadataMap` (cada fonte sobrescrevia a
+/// anterior).
 CarouselItem _enrich(
   ActiveEntry entry,
   int faceIndex, {
   required Map<String, Louvor> plpcg,
   required Map<String, Louvor> coldigom,
   required Map<String, ChordMaterial> chords,
+  required Map<String, GestureMaterial> gestures,
 }) {
   final chord = chords[entry.id];
   if (chord != null) {
@@ -83,6 +88,21 @@ CarouselItem _enrich(
       categoria: chord.categoria,
       classificacao: chord.classificacao,
       source: chord.source,
+    );
+  }
+
+  final gesture = gestures[entry.id];
+  if (gesture != null) {
+    return CarouselItem(
+      materialId: entry.id,
+      kind: entry.kind,
+      index: faceIndex,
+      key: entry.key,
+      numero: gesture.numero,
+      nome: gesture.nome,
+      categoria: gesture.categoria,
+      classificacao: gesture.classificacao,
+      source: gesture.source,
     );
   }
 

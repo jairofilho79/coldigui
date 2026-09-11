@@ -127,7 +127,7 @@ class OpenMaterial {
   }
 }
 
-/// Ponto único de abertura de material (PDF, cifra, áudio, YouTube).
+/// Ponto único de abertura de material (PDF, cifra, gestos, áudio, YouTube).
 final openMaterialProvider = Provider<OpenMaterial>(
   (ref) => const OpenMaterial(),
 );
