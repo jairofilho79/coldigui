@@ -5,7 +5,7 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/repositories/carousel_repository.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
@@ -29,11 +29,6 @@ class _FakePlaylistRepo extends Fake implements PlaylistRepository {
 
   @override
   Future<SavedPlaylist?> getById(String playlistId) async => playlist;
-}
-
-class _FakeCarouselRepo extends Fake implements CarouselRepository {
-  @override
-  Future<List<String>> getOrderedPdfIds() async => const [];
 }
 
 /// Ids realistas: `audioId` é sempre `encodePdfId(r2Key)` — é a extensão do
@@ -120,7 +115,9 @@ void main() {
         playlistRepositoryProvider.overrideWithValue(
           _FakePlaylistRepo(playlist),
         ),
-        carouselRepositoryProvider.overrideWithValue(_FakeCarouselRepo()),
+        carouselLocalDatasourceProvider.overrideWithValue(
+          const CarouselLocalDatasource.unavailable(),
+        ),
       ],
     );
     addTearDown(container.dispose);

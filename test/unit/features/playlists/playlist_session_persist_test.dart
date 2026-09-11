@@ -2,21 +2,12 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-
-  @override
-  List<CarouselItem> build() => initial;
-}
 
 const _itemA = CarouselItem(
   pdfId: 'pdf-a',
@@ -68,23 +59,19 @@ void main() {
     final first = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        carouselLouvoresProvider.overrideWith(
-          () => _FakeCarouselNotifier(const [_itemA, _itemB]),
-        ),
+        carouselItemsProvider.overrideWithValue(const [_itemA, _itemB]),
       ],
     );
     addTearDown(first.dispose);
 
-    first.read(carouselFocusedIndexProvider.notifier).focusPdfId('pdf-b');
+    first.read(carouselFocusedIndexProvider.notifier).focusKey('pdf-b');
     await Future<void>.delayed(Duration.zero);
     expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), 'pdf-b');
 
     final second = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        carouselLouvoresProvider.overrideWith(
-          () => _FakeCarouselNotifier(const [_itemA, _itemB]),
-        ),
+        carouselItemsProvider.overrideWithValue(const [_itemA, _itemB]),
       ],
     );
     addTearDown(second.dispose);

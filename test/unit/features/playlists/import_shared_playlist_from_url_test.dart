@@ -1,37 +1,25 @@
 import 'dart:io';
 
-import 'package:coldigui/core/database/collections/carousel_entry.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
-import 'package:coldigui/features/carousel/data/repositories/carousel_repository_impl.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/invalid_share_playlist_exception.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
-import 'package:coldigui/features/playlists/domain/usecases/load_playlist_into_carousel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 
 void main() {
   late Directory tempDir;
   late Isar isar;
-  late CarouselRepositoryImpl carouselRepository;
   late PlaylistRepositoryImpl playlistRepository;
   late ImportSharedPlaylistFromUrl useCase;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('import_playlist_');
-    isar = Isar.open(
-      schemas: [CarouselEntrySchema, PlaylistSchema],
-      directory: tempDir.path,
-    );
-    carouselRepository = CarouselRepositoryImpl(CarouselLocalDatasource(isar));
+    isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
     playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
-    useCase = ImportSharedPlaylistFromUrl(
-      playlistRepository,
-      LoadPlaylistIntoCarousel(playlistRepository, carouselRepository),
-    );
+    useCase = ImportSharedPlaylistFromUrl(playlistRepository);
   });
 
   tearDown(() async {
@@ -41,9 +29,7 @@ void main() {
     }
   });
 
-  test('cria playlist e carrega carousel', () async {
-    await carouselRepository.add('pdf-old');
-
+  test('cria playlist salva a partir do share', () async {
     final id = await useCase(
       sharePdfs: 'pdf-a, pdf-b',
       shareName: 'Lista importada',
@@ -52,7 +38,6 @@ void main() {
     final saved = await playlistRepository.getById(id);
     expect(saved?.nome, 'Lista importada');
     expect(saved?.pdfIds, ['pdf-a', 'pdf-b']);
-    expect(await carouselRepository.getOrderedPdfIds(), ['pdf-a', 'pdf-b']);
   });
 
   test('preserva ordem dos pdfIds', () async {
@@ -119,20 +104,22 @@ void main() {
       expect(saved!.pdfIds, ['pdf-a']);
     });
 
-    test('só áudio não carrega o carousel', () async {
-      await carouselRepository.add('pdf-old');
+    test('só áudio grava a lista inteira na face de áudio', () async {
+      final id = await useCase(
+        shareItems: 'a:aud-1,a:aud-2',
+        shareName: 'Só áudio',
+      );
 
-      await useCase(shareItems: 'a:aud-1,a:aud-2', shareName: 'Só áudio');
-
-      expect(await carouselRepository.getOrderedPdfIds(), ['pdf-old']);
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.audioIds, ['aud-1', 'aud-2']);
+      expect(saved.pdfIds, isEmpty);
     });
 
-    test('só cifra carrega o carousel', () async {
-      await carouselRepository.add('pdf-old');
+    test('só cifra grava a lista na face de partituras', () async {
+      final id = await useCase(shareItems: 'c:cif-1', shareName: 'Só cifra');
 
-      await useCase(shareItems: 'c:cif-1', shareName: 'Só cifra');
-
-      expect(await carouselRepository.getOrderedPdfIds(), ['cif-1']);
+      final saved = await playlistRepository.getById(id);
+      expect(saved!.pdfIds, ['cif-1']);
     });
 
     test('lança InvalidSharePlaylistException se tudo vazio', () async {

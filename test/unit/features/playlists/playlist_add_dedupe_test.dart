@@ -5,9 +5,8 @@ import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/domain/repositories/carousel_repository.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
@@ -20,20 +19,6 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
-
-class _FakeCarouselRepo extends Fake implements CarouselRepository {
-  _FakeCarouselRepo(this.ids);
-
-  final List<String> ids;
-
-  @override
-  Future<List<String>> getOrderedPdfIds() async => ids;
-
-  @override
-  Future<List<CarouselItem>> getOrderedItems({
-    required Map<String, CarouselItemMetadata> pdfIdToMetadata,
-  }) async => const [];
-}
 
 Future<void> _flushAsync() async {
   await Future<void>.delayed(Duration.zero);
@@ -76,8 +61,8 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
-        carouselRepositoryProvider.overrideWithValue(
-          _FakeCarouselRepo(carouselPdfIds),
+        carouselLocalDatasourceProvider.overrideWithValue(
+          const CarouselLocalDatasource.unavailable(),
         ),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],

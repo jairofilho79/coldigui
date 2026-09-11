@@ -76,6 +76,7 @@ class _FakePlaylistRepository implements PlaylistRepository {
   Future<void> update(
     String playlistId, {
     String? nome,
+    List<PlaylistEntry>? entries,
     List<String>? pdfIds,
     List<String>? audioIds,
     bool? salva,
