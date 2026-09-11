@@ -378,6 +378,19 @@
   "@playlistDeletedUndo": {
     "description": "Snackbar depois de apagar uma lista, com ação Desfazer (C11)"
   },
+  "playlistDuplicate": "Duplicar",
+  "@playlistDuplicate": {
+    "description": "Item do menu do tile que cria uma cópia da lista (C11)"
+  },
+  "playlistCopyName": "{nome} (cópia)",
+  "@playlistCopyName": {
+    "description": "Nome default da cópia criada por «Duplicar» (C11)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
   "playlistDraftLabel": "Rascunho",
   "@playlistDraftLabel": {
     "description": "Rótulo da lista ativa não salva na barra do carousel (C11)"

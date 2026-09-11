@@ -349,6 +349,25 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return pending;
   }
 
+  /// C11 — duplica playlist: cria cópia salva com as mesmas entradas e o
+  /// nome [copyName] (já formatado pelo chamador — ARB `playlistCopyName`).
+  /// Devolve o `playlistId` da cópia.
+  Future<String> duplicate(
+    String playlistId, {
+    required String copyName,
+  }) async {
+    final copy = await ref.read(duplicatePlaylistProvider)(
+      playlistId: playlistId,
+      copyName: copyName,
+    );
+    await _reload();
+    ref
+        .read(playlistsUiProvider.notifier)
+        .selectTab(PlaylistTab.saved, scrollToPlaylistId: copy.playlistId);
+    _syncCloudIfAuthed();
+    return copy.playlistId;
+  }
+
   Future<void> deleteAllUnsaved() async {
     final activeId = ref.read(activePlaylistIdProvider);
     final active = activeId == null

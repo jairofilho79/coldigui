@@ -94,6 +94,7 @@ class PlaylistTileActions {
           ),
         ),
       PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
+      PopupMenuItem(value: 'duplicate', child: Text(l10n.playlistDuplicate)),
       PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
     ];
   }
@@ -329,6 +330,22 @@ class PlaylistTileActions {
     );
   }
 
+  /// «Duplicar» (C11): cria cópia salva com as mesmas entradas — o nome
+  /// («Nome (cópia)», ARB `playlistCopyName`) é decidido aqui porque o
+  /// notifier não conhece l10n.
+  Future<void> _duplicate() async {
+    if (loading) return;
+    final copyName = l10n.playlistCopyName(playlist.nome);
+    onLoadingChanged(true);
+    try {
+      await ref
+          .read(playlistsProvider.notifier)
+          .duplicate(playlist.playlistId, copyName: copyName);
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
   Future<void> run(String action) async {
     switch (action) {
       case 'activate':
@@ -430,6 +447,8 @@ class PlaylistTileActions {
         if (context.mounted) {
           showAppSnackbar(context, l10n.playlistPublished);
         }
+      case 'duplicate':
+        await _duplicate();
       case 'delete':
         _delete();
     }

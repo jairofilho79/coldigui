@@ -369,6 +369,19 @@
   "@playlistDeletedUndo": {
     "description": "Snackbar after deleting a playlist, with an Undo action (C11)"
   },
+  "playlistDuplicate": "Duplicate",
+  "@playlistDuplicate": {
+    "description": "Tile menu item that creates a copy of the playlist (C11)"
+  },
+  "playlistCopyName": "{nome} (copy)",
+  "@playlistCopyName": {
+    "description": "Default name of the copy created by \"Duplicate\" (C11)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
   "playlistDraftLabel": "Draft",
   "@playlistDraftLabel": {
     "description": "Label for the unsaved active playlist on the carousel bar (C11)"

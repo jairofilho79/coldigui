@@ -8,6 +8,7 @@ import '../../domain/ports/share_link_shortener.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/usecases/delete_all_unsaved_playlists.dart';
 import '../../domain/usecases/delete_playlist.dart';
+import '../../domain/usecases/duplicate_playlist.dart';
 import '../../domain/usecases/ensure_active_playlist.dart';
 import '../../domain/usecases/favorite_playlist.dart';
 import '../../domain/usecases/generate_playlist_share_url.dart';
@@ -44,6 +45,11 @@ final updatePlaylistProvider = Provider<UpdatePlaylist>((ref) {
 /// UC-06 — excluir playlist.
 final deletePlaylistProvider = Provider<DeletePlaylist>((ref) {
   return DeletePlaylist(ref.watch(playlistRepositoryProvider));
+});
+
+/// UC-06 — duplicar playlist (C11).
+final duplicatePlaylistProvider = Provider<DuplicatePlaylist>((ref) {
+  return DuplicatePlaylist(ref.watch(playlistRepositoryProvider));
 });
 
 /// UC-06 — alternar favorito (legado; preferir favorite/unfavorite).

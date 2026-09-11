@@ -645,6 +645,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistDeletedUndo => 'Playlist removed';
 
   @override
+  String get playlistDuplicate => 'Duplicate';
+
+  @override
+  String playlistCopyName(String nome) {
+    return '$nome (copy)';
+  }
+
+  @override
   String get playlistDraftLabel => 'Draft';
 
   @override

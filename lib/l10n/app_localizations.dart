@@ -1151,6 +1151,18 @@ abstract class AppLocalizations {
   /// **'Lista removida'**
   String get playlistDeletedUndo;
 
+  /// Item do menu do tile que cria uma cópia da lista (C11)
+  ///
+  /// In pt, this message translates to:
+  /// **'Duplicar'**
+  String get playlistDuplicate;
+
+  /// Nome default da cópia criada por «Duplicar» (C11)
+  ///
+  /// In pt, this message translates to:
+  /// **'{nome} (cópia)'**
+  String playlistCopyName(String nome);
+
   /// Rótulo da lista ativa não salva na barra do carousel (C11)
   ///
   /// In pt, this message translates to:

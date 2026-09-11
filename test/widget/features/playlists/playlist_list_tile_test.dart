@@ -144,6 +144,22 @@ class _DeleteRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
   }
 }
 
+/// Registra os pedidos de `duplicate` (C11).
+class _DuplicateRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+  _DuplicateRecordingPlaylistsNotifier(super.initial);
+
+  final duplicated = <(String, String)>[];
+
+  @override
+  Future<String> duplicate(
+    String playlistId, {
+    required String copyName,
+  }) async {
+    duplicated.add((playlistId, copyName));
+    return 'copy-of-$playlistId';
+  }
+}
+
 class _FakeResolvePdfForReader implements ResolvePdfForReader {
   @override
   Future<LocalPdfSource> call({
@@ -315,6 +331,7 @@ void main() {
     expect(find.text('Tornar lista ativa'), findsOneWidget);
     expect(find.text('Abrir no leitor'), findsOneWidget);
     expect(find.text('Compartilhar'), findsOneWidget);
+    expect(find.text('Duplicar'), findsOneWidget);
     expect(find.text('Carregar no carousel'), findsNothing);
   });
 
@@ -1022,5 +1039,18 @@ void main() {
       expect(notifier.undoRequests, ['p1']);
       expect(notifier.commitRequests, isEmpty);
     });
+  });
+
+  testWidgets('«Duplicar» chama duplicate com o nome de cópia', (tester) async {
+    final notifier = _DuplicateRecordingPlaylistsNotifier([item]);
+    await tester.pumpWidget(buildSubject(playlistsNotifier: notifier));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Duplicar'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.duplicated, [('p1', 'Ensaio domingo (cópia)')]);
   });
 }

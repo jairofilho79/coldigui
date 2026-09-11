@@ -652,6 +652,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistDeletedUndo => 'Lista removida';
 
   @override
+  String get playlistDuplicate => 'Duplicar';
+
+  @override
+  String playlistCopyName(String nome) {
+    return '$nome (cópia)';
+  }
+
+  @override
   String get playlistDraftLabel => 'Rascunho';
 
   @override
