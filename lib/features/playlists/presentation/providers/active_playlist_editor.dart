@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
@@ -80,6 +81,11 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     MaterialKind? kind,
     bool allowDuplicate = false,
   }) async {
+    // O app monta durante a abertura do Isar (A8): um toque nos primeiros
+    // segundos do boot frio espera o banco decidir em vez de responder
+    // «armazenamento indisponível» para um banco que só está abrindo.
+    await awaitIsarSettled(ref);
+    if (!ref.mounted) return AddToActiveOutcome.storageUnavailable;
     try {
       return await _addToActive(
         materialId,
@@ -138,6 +144,8 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// a reunião importada tem que repetir também. Devolve quantas entraram.
   Future<int> addEntriesToActive(List<PlaylistEntry> entries) async {
     if (entries.isEmpty) return 0;
+    await awaitIsarSettled(ref);
+    if (!ref.mounted) return 0;
     try {
       await _settlePendingReorder();
       final activeId = ref.read(activePlaylistIdProvider);

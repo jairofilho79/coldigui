@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
@@ -98,6 +99,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistRepositoryProvider.overrideWithValue(repository),
           carouselLocalDatasourceProvider.overrideWithValue(

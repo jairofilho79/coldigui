@@ -206,7 +206,7 @@ Future<_Harness> _pumpSwapSheet(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        isarAvailableProvider.overrideWithValue(true),
+        isarStatusProvider.overrideWithValue(IsarStatus.available),
         activePlaylistEditorProvider.overrideWith(() => carousel),
         louvoresByPdfIdProvider.overrideWithValue({
           'pdf1': _pdf(categoria: 'Partitura', pdfId: 'pdf1'),

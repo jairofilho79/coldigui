@@ -4,6 +4,7 @@
 // para o chamador — os `add*ToActivePlaylist` são disparados de futuros não
 // aguardados (ex.: `playAudioInSession`), onde uma exceção vira erro assíncrono
 // não tratado e o usuário não recebe nada.
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
@@ -45,6 +46,7 @@ void main() {
     return ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
         playlistRepositoryProvider.overrideWithValue(repository),
         carouselLocalDatasourceProvider.overrideWithValue(
           const CarouselLocalDatasource.unavailable(),
