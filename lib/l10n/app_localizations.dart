@@ -935,6 +935,18 @@ abstract class AppLocalizations {
   /// **'Próximo louvor'**
   String get readerCarouselNext;
 
+  /// Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Louvor anterior'**
+  String get audioFacePreviousLouvor;
+
+  /// Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo louvor'**
+  String get audioFaceNextLouvor;
+
   /// Tooltip do ícone de troca de material na barra do leitor PDF
   ///
   /// In pt, this message translates to:
@@ -1336,6 +1348,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Próximo'**
   String get audioNext;
+
+  /// Tooltip do botão de faixa anterior no mini-player persistente (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Faixa anterior'**
+  String get miniPlayerPrevious;
+
+  /// Tooltip do botão de próxima faixa no mini-player persistente (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Próxima faixa'**
+  String get miniPlayerNext;
 
   /// No description provided for @audioOpenPlayer.
   ///

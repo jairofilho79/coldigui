@@ -534,6 +534,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerCarouselNext => 'Next hymn';
 
   @override
+  String get audioFacePreviousLouvor => 'Previous hymn';
+
+  @override
+  String get audioFaceNextLouvor => 'Next hymn';
+
+  @override
   String get readerSwitchMaterial => 'Switch material';
 
   @override
@@ -757,6 +763,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get audioNext => 'Next';
+
+  @override
+  String get miniPlayerPrevious => 'Previous track';
+
+  @override
+  String get miniPlayerNext => 'Next track';
 
   @override
   String get audioOpenPlayer => 'Open player';

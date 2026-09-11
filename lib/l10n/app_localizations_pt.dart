@@ -541,6 +541,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerCarouselNext => 'Próximo louvor';
 
   @override
+  String get audioFacePreviousLouvor => 'Louvor anterior';
+
+  @override
+  String get audioFaceNextLouvor => 'Próximo louvor';
+
+  @override
   String get readerSwitchMaterial => 'Trocar material';
 
   @override
@@ -764,6 +770,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get audioNext => 'Próximo';
+
+  @override
+  String get miniPlayerPrevious => 'Faixa anterior';
+
+  @override
+  String get miniPlayerNext => 'Próxima faixa';
 
   @override
   String get audioOpenPlayer => 'Abrir player';

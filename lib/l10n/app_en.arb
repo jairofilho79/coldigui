@@ -309,6 +309,14 @@
   "carouselListClose": "Close",
   "readerCarouselPrevious": "Previous hymn",
   "readerCarouselNext": "Next hymn",
+  "audioFacePreviousLouvor": "Previous hymn",
+  "@audioFacePreviousLouvor": {
+    "description": "Tooltip for the arrow that moves focus to the previous hymn in the audio face of the bar (D5)"
+  },
+  "audioFaceNextLouvor": "Next hymn",
+  "@audioFaceNextLouvor": {
+    "description": "Tooltip for the arrow that moves focus to the next hymn in the audio face of the bar (D5)"
+  },
   "readerSwitchMaterial": "Switch material",
   "@readerSwitchMaterial": {
     "description": "Tooltip for switching PDF material variant in the reader toolbar"
@@ -395,6 +403,14 @@
   "audioPause": "Pause",
   "audioPrevious": "Previous",
   "audioNext": "Next",
+  "miniPlayerPrevious": "Previous track",
+  "@miniPlayerPrevious": {
+    "description": "Tooltip for the previous-track button in the persistent mini-player (D5)"
+  },
+  "miniPlayerNext": "Next track",
+  "@miniPlayerNext": {
+    "description": "Tooltip for the next-track button in the persistent mini-player (D5)"
+  },
   "audioOpenPlayer": "Open player",
   "audioClosePlayer": "Close and return to search",
   "audioOpenSheetMusic": "Sheet music for this hymn",

@@ -3,6 +3,7 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -14,6 +15,7 @@ import 'package:coldigui/features/playlists/presentation/providers/playlists_pro
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -52,6 +54,38 @@ class _QueuedAudioSession extends AudioPlayerSessionNotifier {
   Future<void> retryCurrent() async {
     retryCalls++;
     state = state.copyWith(clearError: true);
+  }
+}
+
+/// Registra `playQueue` em vez de tocar — as setas de louvor (D5) não podem
+/// encostar num `AudioPlayer` real.
+class _RecordingAudioSession extends AudioPlayerSessionNotifier {
+  _RecordingAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+  final playedQueues = <List<AudioTrack>>[];
+
+  @override
+  AudioPlayerSessionState build() => _state;
+
+  @override
+  Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
+    playedQueues.add(tracks);
+  }
+}
+
+/// Registra `focusKey` em vez de resolver contra a face de partituras — as
+/// setas de louvor da face de áudio (D5) navegam por chave de ocorrência
+/// independente da face PDF.
+class _RecordingFocusedIndexNotifier extends CarouselFocusedIndexNotifier {
+  final focusedKeys = <String>[];
+
+  @override
+  int build() => 0;
+
+  @override
+  void focusKey(String key) {
+    focusedKeys.add(key);
   }
 }
 
@@ -114,8 +148,9 @@ void main() {
     required List<PlaylistEntry> entries,
     Map<String, Louvor> coldigomCache = const {},
     Map<String, AudioTrack> audioCache = const {},
-    _QueuedAudioSession? session,
+    AudioPlayerSessionNotifier? session,
     double? width,
+    List<Override> extraOverrides = const [],
   }) {
     return ProviderScope(
       overrides: [
@@ -133,6 +168,7 @@ void main() {
         audioPlayerSessionProvider.overrideWith(
           () => session ?? _QueuedAudioSession(track),
         ),
+        ...extraOverrides,
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -388,5 +424,114 @@ void main() {
       findsOneWidget,
       reason: 'o toggle é preferência global, não depende do material da faixa',
     );
+  });
+
+  group('setas de louvor (D5)', () {
+    const trackA = AudioTrack(
+      audioId: 'aud-a',
+      r2Key: 'assets/praises/a/a.mp3',
+      nome: 'Louvor A',
+      numero: '001',
+      groupId: 'ga',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
+    const trackB = AudioTrack(
+      audioId: 'aud-b',
+      r2Key: 'assets/praises/b/a.mp3',
+      nome: 'Louvor B',
+      numero: '002',
+      groupId: 'gb',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+    );
+    const entryA = PlaylistEntry(id: 'aud-a', kind: MaterialKind.audio);
+    const entryB = PlaylistEntry(id: 'aud-b', kind: MaterialKind.audio);
+
+    testWidgets(
+      'focada na primeira: próximo habilitado, anterior desabilitado',
+      (tester) async {
+        final prefs = await SharedPreferences.getInstance();
+        await tester.pumpWidget(
+          buildSubject(
+            prefs: prefs,
+            entries: const [entryA, entryB],
+            audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
+            session: _RecordingAudioSession(
+              const AudioPlayerSessionState(queue: [trackA]),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final previous = tester.widget<IconButton>(
+          find.widgetWithIcon(IconButton, Icons.chevron_left),
+        );
+        final next = tester.widget<IconButton>(
+          find.widgetWithIcon(IconButton, Icons.chevron_right),
+        );
+        expect(previous.onPressed, isNull);
+        expect(next.onPressed, isNotNull);
+      },
+    );
+
+    testWidgets('tap em próximo foca e toca a faixa da segunda entrada', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [trackA]),
+      );
+      final focusNotifier = _RecordingFocusedIndexNotifier();
+
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          entries: const [entryA, entryB],
+          audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
+          session: session,
+          extraOverrides: [
+            carouselFocusedIndexProvider.overrideWith(() => focusNotifier),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Próximo louvor'));
+      await tester.pumpAndSettle();
+
+      expect(focusNotifier.focusedKeys, ['aud-b']);
+      expect(session.playedQueues, hasLength(1));
+      expect(
+        session.playedQueues.single.any((t) => t.audioId == trackB.audioId),
+        isTrue,
+      );
+    });
+
+    testWidgets('focada na última: próximo desabilitado, anterior habilitado', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          entries: const [entryA, entryB],
+          audioCache: {trackA.audioId: trackA, trackB.audioId: trackB},
+          session: _RecordingAudioSession(
+            const AudioPlayerSessionState(queue: [trackB]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final previous = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.chevron_left),
+      );
+      final next = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.chevron_right),
+      );
+      expect(previous.onPressed, isNotNull);
+      expect(next.onPressed, isNull);
+    });
   });
 }

@@ -7,12 +7,11 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
-import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import 'package:coldigui/features/carousel/presentation/utils/play_group_audio.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
@@ -87,7 +86,10 @@ class CarouselChips extends ConsumerWidget {
 /// [hasAudio] junta as duas origens de áudio — fila da sessão e entradas de
 /// áudio da lista ativa. Após [AudioPlayerSessionNotifier.close] (fila vazia) a
 /// barra continua na face de partituras enquanto houver PDF nela.
-@visibleForTesting
+///
+/// Pública (não só `@visibleForTesting`): também decide, em [ShellScaffold],
+/// se a face de áudio já cobre os controles do mini-player (D5) — o
+/// mini-player só aparece quando esta função devolve `false`.
 bool shouldShowCarouselAudioFace({
   required PlaylistMediaFace face,
   required bool hasPdf,
@@ -403,23 +405,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
   /// Toca o áudio do louvor aberto no leitor (D10 — o slot morto da barra 2).
   ///
-  /// Fila pela regra única de [queueForTrack] (D4). Começa sempre na faixa
-  /// preferida do grupo ([findAudioForGroup]).
-  Future<void> _playGroupAudio(List<AudioTrack> groupTracks) async {
-    if (groupTracks.isEmpty) return;
-    final target = findAudioForGroup(groupTracks.first.groupId, groupTracks);
-    if (target == null) return;
-
-    await playAudioInSession(
-      ref: ref,
-      track: target,
-      queue: queueForTrack(
-        track: target,
-        groupTracks: groupTracks,
-        activeQueue: activeListAudioQueue(ref),
-      ),
-    );
-  }
+  /// Regra compartilhada com as setas de louvor da face de áudio (D5) — ver
+  /// [playGroupAudio].
+  Future<void> _playGroupAudio(List<AudioTrack> groupTracks) =>
+      playGroupAudio(ref, groupTracks);
 
   Widget _buildNavigatorBar({
     required CarouselItem item,

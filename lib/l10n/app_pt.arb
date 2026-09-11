@@ -318,6 +318,14 @@
   "carouselListClose": "Fechar",
   "readerCarouselPrevious": "Louvor anterior",
   "readerCarouselNext": "Próximo louvor",
+  "audioFacePreviousLouvor": "Louvor anterior",
+  "@audioFacePreviousLouvor": {
+    "description": "Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)"
+  },
+  "audioFaceNextLouvor": "Próximo louvor",
+  "@audioFaceNextLouvor": {
+    "description": "Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)"
+  },
   "readerSwitchMaterial": "Trocar material",
   "@readerSwitchMaterial": {
     "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
@@ -404,6 +412,14 @@
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",
   "audioNext": "Próximo",
+  "miniPlayerPrevious": "Faixa anterior",
+  "@miniPlayerPrevious": {
+    "description": "Tooltip do botão de faixa anterior no mini-player persistente (D5)"
+  },
+  "miniPlayerNext": "Próxima faixa",
+  "@miniPlayerNext": {
+    "description": "Tooltip do botão de próxima faixa no mini-player persistente (D5)"
+  },
   "audioOpenPlayer": "Abrir player",
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
