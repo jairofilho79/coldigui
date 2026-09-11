@@ -8,6 +8,7 @@ import '../../data/datasources/manifest_checksum_store.dart';
 import '../../data/providers/catalog_providers.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvores_manifest.dart';
+import '../../domain/repositories/catalog_repository.dart';
 
 /// Estado async do manifest carregado no boot da aplicação (UC-12).
 ///
@@ -24,22 +25,72 @@ final louvoresManifestProvider =
 
 /// Carrega manifest cache-first com refresh remoto em background.
 class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
+  /// Boot com o Isar ainda abrindo: rede e abertura em paralelo (A8).
+  ///
+  /// `BootstrapApp` passou a montar o app durante [IsarStatus.opening], então
+  /// `build()` roda enquanto o WASM + OPFS ainda abre (até `isarOpenTimeout`).
+  /// Em vez de decidir cache-first já — o que jogaria todo boot web frio no
+  /// download completo mesmo tendo cache — dispara o `GET /api/catalog/checksum`
+  /// na hora e só então espera a abertura terminar. O checksum volta de graça
+  /// junto com a espera e ainda diz se o catálogo mudou.
+  ///
+  /// Nada de `watch` antes da espera. `catalogRepositoryProvider` depende de
+  /// `optionalIsarProvider` (o datasource local sai de `unavailable()` quando o
+  /// Isar abre) e `isarStatusProvider` muda junto: observar qualquer um dos
+  /// dois aqui reconstruiria o notifier no exato instante em que a abertura
+  /// termina, e o boot baixaria o manifest duas vezes. A dependência de rebuild
+  /// fica em `isarInitializerProvider.future`, que só troca quando alguém
+  /// invalida o provider (o "tentar novamente" do `StorageRequiredGate`), e o
+  /// repositório é observado depois — já com o Isar no lugar.
   @override
   Future<LouvoresManifest> build() async {
-    final repository = ref.watch(catalogRepositoryProvider);
-    final isarAvailable = ref.watch(isarAvailableProvider);
+    var status = ref.read(isarStatusProvider);
+    final isarSettled = ref.watch(isarInitializerProvider.future);
 
-    if (isarAvailable) {
+    Future<String?>? bootChecksum;
+
+    if (status == IsarStatus.opening) {
+      bootChecksum = _prefetchChecksum(ref.read(catalogRepositoryProvider));
+      try {
+        await isarSettled;
+        status = IsarStatus.available;
+      } on Object catch (error) {
+        debugPrint('[catalog] Isar não abriu no boot: $error');
+        status = IsarStatus.unavailable;
+      }
+    } else {
+      // Em modo degradado `isarSettled` já falhou; sem este dreno o erro
+      // ficaria sem dono e viraria exceção assíncrona não tratada.
+      unawaited(isarSettled.then((_) {}, onError: (Object _, StackTrace _) {}));
+    }
+
+    final repository = ref.watch(catalogRepositoryProvider);
+
+    if (status == IsarStatus.available) {
       final cached = await repository.loadCachedLouvores();
 
       if (cached.isNotEmpty) {
-        unawaited(_refreshFromRemote(cached));
+        unawaited(_refreshFromRemote(cached, bootChecksum: bootChecksum));
         final isStale = await repository.isCatalogStale();
         return LouvoresManifest.fromLouvores(cached, isStale: isStale);
       }
     }
 
-    return _loadFromRemote();
+    return _loadFromRemote(bootChecksum: bootChecksum);
+  }
+
+  /// Dispara o `GET /api/catalog/checksum` do boot sem deixar o erro solto.
+  ///
+  /// A falha vira `null` de propósito — o prefetch é só uma otimização. Quem
+  /// realmente precisa da rede é `syncManifest`, que trata a queda logo abaixo.
+  Future<String?> _prefetchChecksum(CatalogRepository repository) {
+    return repository.fetchManifestChecksum().then<String?>(
+      (checksum) => checksum,
+      onError: (Object error, StackTrace _) {
+        debugPrint('[catalog] checksum do boot falhou: $error');
+        return null;
+      },
+    );
   }
 
   /// Boot frio (sem cache) — baixa o manifest inteiro e **guarda o checksum**.
@@ -48,7 +99,9 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
   /// para não descartar `outcome.checksum` (A3): sem ele o `If-None-Match` só
   /// entraria em cena no terceiro boot, porque o segundo ainda não teria
   /// checksum salvo para enviar.
-  Future<LouvoresManifest> _loadFromRemote() async {
+  Future<LouvoresManifest> _loadFromRemote({
+    Future<String?>? bootChecksum,
+  }) async {
     final repository = ref.read(catalogRepositoryProvider);
     final checksumStore = ref.read(manifestChecksumStoreProvider);
     final knownChecksum = await checksumStore.getLastKnownChecksum();
@@ -58,7 +111,10 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
       knownChecksum: knownChecksum,
     );
 
-    await _persistChecksum(checksumStore, outcome.checksum, knownChecksum);
+    // `cached` vazio desliga o `If-None-Match`, então `syncManifest` só devolve
+    // checksum quando o corpo trouxe `ETag`; o checksum do boot cobre o resto.
+    final checksum = outcome.checksum ?? await bootChecksum;
+    await _persistChecksum(checksumStore, checksum, knownChecksum);
 
     final isStale = await repository.isCatalogStale();
     return LouvoresManifest.fromLouvores(outcome.louvores, isStale: isStale);
@@ -73,9 +129,13 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
   ///
   /// A chamada é `unawaited`, então **todo** o corpo fica dentro do `try` e cada
   /// retomada depois de um `await` confere [Ref.mounted]: o notifier é
-  /// descartado quando `isarAvailableProvider` vira, e escrever `state` depois
-  /// disso lança no Riverpod 3 sem ninguém para pegar o erro (A2).
-  Future<void> _refreshFromRemote(List<Louvor> cached) async {
+  /// descartado quando `catalogRepositoryProvider` troca (o datasource local
+  /// muda ao Isar abrir), e escrever `state` depois disso lança no Riverpod 3
+  /// sem ninguém para pegar o erro (A2).
+  Future<void> _refreshFromRemote(
+    List<Louvor> cached, {
+    Future<String?>? bootChecksum,
+  }) async {
     final repository = ref.read(catalogRepositoryProvider);
 
     try {
@@ -83,13 +143,29 @@ class LouvoresManifestNotifier extends AsyncNotifier<LouvoresManifest> {
       final knownChecksum = await checksumStore.getLastKnownChecksum();
       if (!ref.mounted) return;
 
+      // O checksum pedido durante a abertura do Isar (A8) já responde a
+      // pergunta do `If-None-Match`: quando ele difere do salvo, o catálogo
+      // mudou e mandar o condicional de novo só custaria um round-trip antes
+      // do download. Quando é igual (ou não veio), `syncManifest` segue com o
+      // gate condicional de sempre — é ele que marca o catálogo como sincado.
+      final booted = await bootChecksum;
+      if (!ref.mounted) return;
+      final knownIsOutdated =
+          booted != null && knownChecksum != null && booted != knownChecksum;
+
       final outcome = await repository.syncManifest(
         cached: cached,
-        knownChecksum: knownChecksum,
+        knownChecksum: knownIsOutdated ? null : knownChecksum,
       );
       if (!ref.mounted) return;
 
-      await _persistChecksum(checksumStore, outcome.checksum, knownChecksum);
+      // Mesma precedência de `CatalogRepositoryImpl`: `ETag` do corpo primeiro,
+      // checksum avulso só como reserva.
+      await _persistChecksum(
+        checksumStore,
+        outcome.checksum ?? (knownIsOutdated ? booted : null),
+        knownChecksum,
+      );
       if (!ref.mounted) return;
 
       final isStale = await repository.isCatalogStale();

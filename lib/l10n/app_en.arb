@@ -68,6 +68,9 @@
   "catalogStaleBanner": "Catalog last updated over 7 days ago. Connect to refresh.",
   "catalogLoadError": "Could not load the catalog",
   "retry": "Try again",
+  "storagePreparing": "Preparing local storage…",
+  "storageUnavailableTitle": "Local storage unavailable",
+  "storageUnavailableBody": "This area needs the app's local database. The online catalog and the PDF reader are still available on the other tabs.",
   "libraryResultsSummary": "Showing {from}–{to} of {total} hymns",
   "@libraryResultsSummary": {
     "placeholders": {

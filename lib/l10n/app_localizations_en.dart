@@ -126,6 +126,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retry => 'Try again';
 
   @override
+  String get storagePreparing => 'Preparing local storage…';
+
+  @override
+  String get storageUnavailableTitle => 'Local storage unavailable';
+
+  @override
+  String get storageUnavailableBody =>
+      'This area needs the app\'s local database. The online catalog and the PDF reader are still available on the other tabs.';
+
+  @override
   String libraryResultsSummary(int from, int to, int total) {
     return 'Showing $from–$to of $total hymns';
   }

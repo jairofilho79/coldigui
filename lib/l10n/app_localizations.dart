@@ -314,6 +314,24 @@ abstract class AppLocalizations {
   /// **'Tentar novamente'**
   String get retry;
 
+  /// No description provided for @storagePreparing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando o armazenamento local…'**
+  String get storagePreparing;
+
+  /// No description provided for @storageUnavailableTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível'**
+  String get storageUnavailableTitle;
+
+  /// No description provided for @storageUnavailableBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta área precisa do banco local do app. O catálogo online e o leitor de PDF continuam disponíveis nas outras abas.'**
+  String get storageUnavailableBody;
+
   /// No description provided for @libraryResultsSummary.
   ///
   /// In pt, this message translates to:

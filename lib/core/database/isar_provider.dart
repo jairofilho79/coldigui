@@ -74,9 +74,37 @@ final optionalIsarProvider = Provider<Isar?>((ref) {
   return ref.watch(isarInitializerProvider).asData?.value;
 });
 
+/// Estágio da abertura do Isar (A8).
+///
+/// [opening] existe para separar "ainda abrindo" de "não abriu": com o app
+/// montado durante a abertura (web fria: WASM + OPFS, até [isarOpenTimeout]),
+/// quem decide no boot precisa poder esperar em vez de tratar o carregamento
+/// como falha.
+enum IsarStatus {
+  /// [isarInitializerProvider] ainda não resolveu.
+  opening,
+
+  /// Isar aberto e utilizável.
+  available,
+
+  /// Abertura falhou ou estourou o timeout — modo degradado.
+  unavailable,
+}
+
+/// Estágio atual da abertura do Isar — ver [IsarStatus].
+final isarStatusProvider = Provider<IsarStatus>((ref) {
+  final async = ref.watch(isarInitializerProvider);
+  if (async.hasValue) return IsarStatus.available;
+  if (async.hasError) return IsarStatus.unavailable;
+  return IsarStatus.opening;
+});
+
 /// `true` quando [isarInitializerProvider] concluiu com sucesso.
+///
+/// Continua colapsando [IsarStatus.opening] em `false`: quem precisa esperar a
+/// abertura usa [isarStatusProvider].
 final isarAvailableProvider = Provider<bool>((ref) {
-  return ref.watch(optionalIsarProvider) != null;
+  return ref.watch(isarStatusProvider) == IsarStatus.available;
 });
 
 /// Provider de instância Isar Plus (ADR-001).

@@ -127,6 +127,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get retry => 'Tentar novamente';
 
   @override
+  String get storagePreparing => 'Preparando o armazenamento local…';
+
+  @override
+  String get storageUnavailableTitle => 'Armazenamento local indisponível';
+
+  @override
+  String get storageUnavailableBody =>
+      'Esta área precisa do banco local do app. O catálogo online e o leitor de PDF continuam disponíveis nas outras abas.';
+
+  @override
   String libraryResultsSummary(int from, int to, int total) {
     return 'Mostrando $from–$to de $total louvores';
   }

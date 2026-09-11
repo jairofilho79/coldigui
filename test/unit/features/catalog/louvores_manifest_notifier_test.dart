@@ -9,6 +9,7 @@ import 'package:coldigui/features/catalog/domain/repositories/catalog_repository
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Louvor _louvor(String pdfId) => Louvor.fromManifest(
@@ -27,6 +28,7 @@ class _FakeCatalogRepository implements CatalogRepository {
     this.remoteError,
     this.checksumUnchanged = false,
     this.syncedChecksum,
+    this.remoteChecksum,
   });
 
   final List<Louvor> cached;
@@ -39,13 +41,24 @@ class _FakeCatalogRepository implements CatalogRepository {
   /// Checksum devolvido pelo sync para o notifier persistir.
   final String? syncedChecksum;
 
+  /// Resposta de `GET /api/catalog/checksum` (prefetch do boot, A8).
+  final String? remoteChecksum;
+
   var loadManifestCalls = 0;
   var syncCalls = 0;
+  var checksumCalls = 0;
+  var loadCachedCalls = 0;
   List<Louvor>? lastSyncCached;
   String? lastKnownChecksum;
 
+  /// `false` enquanto o datasource local é o `unavailable()` do modo degradado.
+  var isarOpen = true;
+
   @override
-  Future<List<Louvor>> loadCachedLouvores() async => List.of(cached);
+  Future<List<Louvor>> loadCachedLouvores() async {
+    loadCachedCalls++;
+    return isarOpen ? List.of(cached) : const [];
+  }
 
   @override
   Future<ManifestSyncOutcome> syncManifest({
@@ -82,7 +95,10 @@ class _FakeCatalogRepository implements CatalogRepository {
   Future<void> cacheManifest(List<Louvor> louvores) async {}
 
   @override
-  Future<String?> fetchManifestChecksum() async => null;
+  Future<String?> fetchManifestChecksum() async {
+    checksumCalls++;
+    return remoteChecksum;
+  }
 
   @override
   Future<bool> isCatalogStale() async => false;
@@ -103,8 +119,34 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        isarAvailableProvider.overrideWithValue(isarAvailable),
+        isarStatusProvider.overrideWithValue(
+          isarAvailable ? IsarStatus.available : IsarStatus.unavailable,
+        ),
         catalogRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+    return container;
+  }
+
+  /// Container com o Isar ainda abrindo — o boot decide só quando [opener] resolver.
+  ///
+  /// O override de `catalogRepositoryProvider` observa `optionalIsarProvider`
+  /// como a produção faz (`catalogLocalDatasourceProvider` troca de
+  /// `unavailable()` para o datasource real quando o Isar abre): sem isso o
+  /// teste não veria o notifier ser reconstruído no meio do boot.
+  ProviderContainer createOpeningContainer(
+    _FakeCatalogRepository repository,
+    Future<Isar> Function() opener,
+  ) {
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        isarOpenerProvider.overrideWithValue(opener),
+        catalogRepositoryProvider.overrideWith((ref) {
+          repository.isarOpen = ref.watch(optionalIsarProvider) != null;
+          return repository;
+        }),
       ],
     );
     addTearDown(container.dispose);
@@ -322,6 +364,147 @@ void main() {
     });
   });
 
+  group('boot com o Isar ainda abrindo (A8)', () {
+    test('pede o checksum antes do Isar resolver', () async {
+      final isarGate = Completer<Isar>();
+      final repository = _FakeCatalogRepository(
+        cached: [_louvor('cached-1')],
+        remote: [_louvor('remote-1')],
+        remoteChecksum: 'fresco',
+      );
+
+      final container = createOpeningContainer(
+        repository,
+        () => isarGate.future,
+      );
+
+      final booted = container.read(louvoresManifestProvider.future);
+      await pumpEventQueue();
+
+      expect(
+        repository.checksumCalls,
+        1,
+        reason: 'A8: o GET /checksum não espera o WASM + OPFS abrirem',
+      );
+      expect(
+        repository.loadCachedCalls,
+        0,
+        reason: 'a decisão cache-first só acontece depois do Isar resolver',
+      );
+
+      isarGate.complete(_FakeIsar());
+      final manifest = await booted;
+      await pumpEventQueue();
+
+      expect(manifest.louvores.single.pdfId, 'cached-1');
+      expect(
+        repository.loadCachedCalls,
+        1,
+        reason: 'o boot não pode ler o cache duas vezes ao Isar resolver',
+      );
+      expect(
+        repository.syncCalls,
+        1,
+        reason: 'nem baixar o manifest duas vezes',
+      );
+    });
+
+    test('Isar que falha ao abrir cai para o remoto', () async {
+      final repository = _FakeCatalogRepository(
+        cached: [_louvor('cached-1')],
+        remote: [_louvor('remote-1')],
+      );
+
+      final container = createOpeningContainer(
+        repository,
+        () async => throw StateError('sem OPFS'),
+      );
+
+      final manifest = await container.read(louvoresManifestProvider.future);
+
+      expect(manifest.louvores.single.pdfId, 'remote-1');
+      expect(repository.lastSyncCached, isEmpty);
+      expect(repository.loadCachedCalls, 0);
+    });
+
+    test(
+      'checksum do boot dispensa o /checksum condicional quando mudou',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          StorageKeys.manifestChecksum: 'antigo',
+        });
+        prefs = await SharedPreferences.getInstance();
+
+        final repository = _FakeCatalogRepository(
+          cached: [_louvor('cached-1')],
+          remote: [_louvor('remote-1')],
+          remoteChecksum: 'novo',
+        );
+
+        final container = createOpeningContainer(
+          repository,
+          () async => _FakeIsar(),
+        );
+
+        await container.read(louvoresManifestProvider.future);
+        await pumpEventQueue();
+
+        expect(
+          repository.lastKnownChecksum,
+          isNull,
+          reason:
+              'o checksum do boot já disse que mudou — repetir o condicional '
+              'seria um round-trip a mais antes do download',
+        );
+        expect(
+          prefs.getString(StorageKeys.manifestChecksum),
+          'novo',
+          reason: 'sem ETag no corpo, o checksum do boot arma o gate',
+        );
+      },
+    );
+
+    test('checksum do boot igual ao salvo mantém o gate condicional', () async {
+      SharedPreferences.setMockInitialValues({
+        StorageKeys.manifestChecksum: 'igual',
+      });
+      prefs = await SharedPreferences.getInstance();
+
+      final repository = _FakeCatalogRepository(
+        cached: [_louvor('cached-1')],
+        checksumUnchanged: true,
+        remoteChecksum: 'igual',
+      );
+
+      final container = createOpeningContainer(
+        repository,
+        () async => _FakeIsar(),
+      );
+
+      await container.read(louvoresManifestProvider.future);
+      await pumpEventQueue();
+
+      expect(repository.lastKnownChecksum, 'igual');
+    });
+
+    test('falha do prefetch do checksum não quebra o boot', () async {
+      final repository = _FailingChecksumRepository(
+        cached: [_louvor('cached-1')],
+      );
+
+      final container = createOpeningContainer(
+        repository,
+        () async => _FakeIsar(),
+      );
+
+      final manifest = await container.read(louvoresManifestProvider.future);
+      await pumpEventQueue();
+
+      expect(manifest.louvores.single.pdfId, 'cached-1');
+      expect(container.read(louvoresManifestProvider).hasError, isFalse);
+    });
+  });
+
   test(
     'refresh em background não toca no notifier depois do dispose (A2)',
     () async {
@@ -343,6 +526,26 @@ void main() {
       );
     },
   );
+}
+
+/// Fake mínimo de [Isar] — só [close] é chamado por [isarInitializerProvider].
+class _FakeIsar implements Isar {
+  @override
+  bool close({bool deleteFromDisk = false}) => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Repositório cujo `GET /checksum` falha — rede parcial no boot.
+class _FailingChecksumRepository extends _FakeCatalogRepository {
+  _FailingChecksumRepository({required super.cached})
+    : super(checksumUnchanged: true);
+
+  @override
+  Future<String?> fetchManifestChecksum() async {
+    throw Exception('checksum offline');
+  }
 }
 
 /// Repositório cujo `syncManifest` só termina quando o teste liberar.

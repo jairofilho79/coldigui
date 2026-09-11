@@ -3,31 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/database/isar_provider.dart';
-import 'core/theme/app_theme.dart';
-import 'core/theme/color_extensions.dart';
 
-/// Aguarda [isarInitializerProvider] e monta [ColdiguiApp].
+/// Monta [ColdiguiApp] imediatamente, sem esperar [isarInitializerProvider] (A8).
 ///
-/// Em falha de Isar, abre [ColdiguiApp] em modo degradado (catálogo online).
+/// A abertura do Isar (WASM + OPFS na web, até `isarOpenTimeout`) deixou de
+/// serializar o boot: o router sobe já e o download do manifest começa junto
+/// com a abertura em vez de depois dela. As telas que realmente precisam do
+/// banco local ficam atrás de `StorageRequiredGate`, que mostra spinner
+/// enquanto o status é [IsarStatus.opening] e o aviso de indisponível quando a
+/// abertura falha (modo degradado: catálogo online + leitor de PDF).
+///
+/// O `watch` é mantido só para que o provider seja inicializado no boot — sem
+/// ele ninguém abriria o Isar até a primeira tela que precisa dele.
 class BootstrapApp extends ConsumerWidget {
   const BootstrapApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isarAsync = ref.watch(isarInitializerProvider);
-
-    return isarAsync.when(
-      loading: () => MaterialApp(
-        title: 'PLPCG',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        home: const Scaffold(
-          backgroundColor: AppColors.background,
-          body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
-        ),
-      ),
-      error: (_, _) => const ColdiguiApp(),
-      data: (_) => const ColdiguiApp(),
-    );
+    ref.watch(isarStatusProvider);
+    return const ColdiguiApp();
   }
 }
