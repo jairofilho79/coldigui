@@ -1,9 +1,15 @@
 import 'dart:async';
 
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Alvo de foco neutro: sem ele o evento de tecla não tem por onde subir até
 /// os atalhos globais.
@@ -328,4 +335,120 @@ void main() {
       expect(session.playPauseCalls, 0);
     });
   });
+
+  group('navigateReaderCarouselByKeyboard — N/P por chave', () {
+    CarouselItem item(String materialId, int index, {String? key}) {
+      return CarouselItem(
+        materialId: materialId,
+        kind: MaterialKind.pdf,
+        index: index,
+        key: key ?? materialId,
+        numero: '1',
+        nome: 'Louvor',
+        categoria: 'Partitura',
+        classificacao: 'Col',
+      );
+    }
+
+    /// Face com o mesmo louvor repetido: `a`, `b`, `a#1`.
+    Future<(WidgetRef, _RecordingReaderActions)> pump(
+      WidgetTester tester,
+      String focusedKey,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final actions = _RecordingReaderActions();
+      late WidgetRef captured;
+
+      final router = GoRouter(
+        initialLocation: RoutePaths.reader,
+        routes: [
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, _) => Scaffold(
+              body: Consumer(
+                builder: (context, ref, _) {
+                  captured = ref;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            carouselItemsProvider.overrideWithValue([
+              item('a', 0),
+              item('b', 1),
+              item('a', 2, key: 'a#1'),
+            ]),
+            readerCarouselActionsProvider.overrideWith(() => actions),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      captured.read(carouselFocusedIndexProvider.notifier).focusKey(focusedKey);
+      await tester.pumpAndSettle();
+      return (captured, actions);
+    }
+
+    testWidgets('P sai da segunda ocorrência para o vizinho de verdade', (
+      tester,
+    ) async {
+      final (ref, actions) = await pump(tester, 'a#1');
+
+      final moved = await navigateReaderCarouselByKeyboard(
+        ref: ref,
+        context: tester.element(find.byType(SizedBox)),
+        currentPdfId: 'a',
+        direction: CarouselReaderDirection.previous,
+      );
+      await tester.pumpAndSettle();
+
+      expect(moved, isTrue);
+      expect(actions.navigated, ['b']);
+      expect(ref.read(carouselFocusedKeyProvider), 'b');
+    });
+
+    testWidgets('N na última ocorrência não tem para onde ir', (tester) async {
+      final (ref, actions) = await pump(tester, 'a#1');
+
+      final moved = await navigateReaderCarouselByKeyboard(
+        ref: ref,
+        context: tester.element(find.byType(SizedBox)),
+        currentPdfId: 'a',
+        direction: CarouselReaderDirection.next,
+      );
+      await tester.pumpAndSettle();
+
+      expect(moved, isFalse);
+      expect(actions.navigated, isEmpty);
+      expect(ref.read(carouselFocusedKeyProvider), 'a#1');
+    });
+  });
+}
+
+/// Ações do leitor sem resolve real — grava o `materialId` pedido.
+class _RecordingReaderActions extends ReaderCarouselActionsNotifier {
+  final navigated = <String>[];
+
+  @override
+  void build() {}
+
+  @override
+  Future<String?> navigateToPdfId({required String targetPdfId}) async {
+    navigated.add(targetPdfId);
+    return '${RoutePaths.reader}?pdfId=$targetPdfId';
+  }
 }

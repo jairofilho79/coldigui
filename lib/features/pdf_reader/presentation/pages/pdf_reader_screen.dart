@@ -2,7 +2,7 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
@@ -208,7 +208,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final pdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
     final l10n = AppLocalizations.of(context);
 
-    final carouselEmpty = ref.watch(carouselLouvoresProvider).isEmpty;
+    final carouselEmpty = ref.watch(carouselItemsProvider).isEmpty;
 
     if (filePath.trim().isEmpty) {
       return _ReaderScaffold(

@@ -18,14 +18,17 @@ class PrefetchAdjacentCarouselPdfs {
   final PrefetchNetworkPolicy _networkPolicy;
 
   /// Dispara resolve para vizinhos ainda não cacheados; erros são ignorados.
+  ///
+  /// Os vizinhos chegam como **materialId** (o id de uma entrada da lista
+  /// ativa): quem chama já resolveu qual ocorrência é a corrente.
   Future<void> call({
     required List<Louvor>? catalog,
-    required String? previousPdfId,
-    required String? nextPdfId,
+    required String? previousMaterialId,
+    required String? nextMaterialId,
   }) async {
     if (!await _networkPolicy.allowsAdjacentPdfPrefetch()) return;
 
-    for (final pdfId in [previousPdfId, nextPdfId]) {
+    for (final pdfId in [previousMaterialId, nextMaterialId]) {
       if (pdfId == null) continue;
       if (await _validateAvailability.isCachedOnDisk(pdfId: pdfId)) continue;
 

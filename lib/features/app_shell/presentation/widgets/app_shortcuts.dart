@@ -8,7 +8,6 @@ import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
-import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -84,10 +83,14 @@ bool keyboardFocusIsOnSpaceActivatableControl() {
 
 /// Troca de louvor pelo teclado dentro do leitor (PDF ou cifra).
 ///
-/// Percorre o mesmo caminho das setas da barra 2: posição no carousel ->
-/// [ReaderCarouselActionsNotifier.navigateToPdfId] -> `replace` da rota. Fica
-/// aqui, e não em cada leitor, porque `Ctrl+→` tem que se comportar igual nos
-/// dois — e o leitor de cifras não pode importar o widget do leitor de PDF.
+/// Percorre o mesmo caminho das setas da barra 2: posição na face de
+/// partituras -> [ReaderCarouselActionsNotifier.navigateToKey] -> `replace` da
+/// rota. Fica aqui, e não em cada leitor, porque `N`/`P` e `Ctrl+→` têm que se
+/// comportar igual nos dois — e o leitor de cifras não pode importar o widget
+/// do leitor de PDF.
+///
+/// A navegação é **por chave**: com o mesmo louvor repetido na lista, o
+/// vizinho do id é ambíguo, o da ocorrência não.
 ///
 /// Retorna `false` quando não há vizinho naquela direção.
 Future<bool> navigateReaderCarouselByKeyboard({
@@ -101,18 +104,17 @@ Future<bool> navigateReaderCarouselByKeyboard({
   final position = ref.read(readerCarouselPositionProvider(currentPdfId));
   if (position == null) return false;
 
-  final targetPdfId = switch (direction) {
-    CarouselReaderDirection.previous => position.previousPdfId,
-    CarouselReaderDirection.next => position.nextPdfId,
+  final targetKey = switch (direction) {
+    CarouselReaderDirection.previous => position.previousKey,
+    CarouselReaderDirection.next => position.nextKey,
   };
-  if (targetPdfId == null) return false;
-
-  ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(targetPdfId);
+  if (targetKey == null) return false;
 
   try {
+    // `navigateToKey` foca a ocorrência antes de resolver a rota.
     final location = await ref
         .read(readerCarouselActionsProvider.notifier)
-        .navigateToPdfId(targetPdfId: targetPdfId);
+        .navigateToKey(key: targetKey);
     if (!context.mounted) return false;
 
     if (location == null) {

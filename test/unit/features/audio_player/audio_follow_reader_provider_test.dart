@@ -1,8 +1,18 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
+import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Future<ProviderContainer> _container() async {
   final prefs = await SharedPreferences.getInstance();
@@ -62,6 +72,102 @@ void main() {
     addTearDown(second.dispose);
 
     expect(second.read(audioFollowReaderProvider), isFalse);
+  });
+
+  group('resolveMaterialForGroup — face de partituras + lookup', () {
+    final chordId = encodePdfId('assets/praises/p2/m1.chord');
+    final pdfId = encodePdfId('assets/praises/p2/m1.pdf');
+
+    CarouselItem item(String materialId, int index) => CarouselItem(
+      materialId: materialId,
+      kind: MaterialKind.pdf,
+      index: index,
+      key: materialId,
+      numero: '2',
+      nome: 'Louvor',
+      categoria: 'Partitura',
+      classificacao: 'Cancao',
+    );
+
+    Future<WidgetRef> pump(
+      WidgetTester tester,
+      List<CarouselItem> items,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      late WidgetRef captured;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            carouselItemsProvider.overrideWithValue(items),
+            louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+          ],
+          child: Consumer(
+            builder: (context, ref, _) {
+              captured = ref;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      return captured;
+    }
+
+    testWidgets('a cifra que está na lista ativa vence a partitura', (
+      tester,
+    ) async {
+      final ref = await pump(tester, [item(chordId, 0)]);
+      ref.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords([
+        ChordMaterial(
+          chordId: chordId,
+          r2Key: 'assets/praises/p2/m1.chord',
+          nome: 'Comigo habita',
+          numero: '692',
+          groupId: 'p2',
+          categoria: 'Cifra I',
+          classificacao: 'Cancao',
+        ),
+      ]);
+      ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
+        Louvor.fromManifest(
+          nome: 'Comigo habita',
+          numero: '692',
+          categoria: 'Partitura',
+          classificacao: 'Cancao',
+          pdf: 'm1.pdf',
+          pdfId: pdfId,
+          groupId: 'p2',
+        ),
+      ]);
+      await tester.pump();
+
+      expect(
+        resolveMaterialForGroup(ref, 'p2', listen: false),
+        chordId,
+        reason: 'a escolha do usuário na lista ativa vence',
+      );
+    });
+
+    testWidgets('sem material na lista ativa cai no cache Coldigom', (
+      tester,
+    ) async {
+      final ref = await pump(tester, const []);
+      ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
+        Louvor.fromManifest(
+          nome: 'Comigo habita',
+          numero: '692',
+          categoria: 'Partitura',
+          classificacao: 'Cancao',
+          pdf: 'm1.pdf',
+          pdfId: pdfId,
+          groupId: 'p2',
+        ),
+      ]);
+      await tester.pump();
+
+      expect(resolveMaterialForGroup(ref, 'p2', listen: false), pdfId);
+    });
   });
 
   group('shouldFollowAudioInReader', () {

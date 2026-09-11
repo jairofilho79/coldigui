@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
@@ -19,6 +23,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
@@ -156,6 +161,84 @@ void main() {
       // Dá uma volta de event loop para o unawaited catchError rodar.
       await Future<void>.delayed(Duration.zero);
       expect(logs.any((l) => l.contains('[coldigom] warmup falhou')), isTrue);
+    });
+  });
+
+  group('navigateToKey — foca a ocorrência e resolve a rota', () {
+    const otherPath = 'assets/praises/p2/m1.pdf';
+    final otherPdfId = encodePdfId(otherPath);
+    final other = Louvor.fromManifest(
+      nome: 'Outro louvor',
+      numero: '1',
+      categoria: 'Partitura',
+      classificacao: 'Balada',
+      pdf: 'm1.pdf',
+      pdfId: otherPdfId,
+    );
+
+    CarouselItem item(String materialId, int index, {String? key}) {
+      return CarouselItem(
+        materialId: materialId,
+        kind: MaterialKind.pdf,
+        index: index,
+        key: key ?? materialId,
+        numero: '1',
+        nome: 'Louvor',
+        categoria: 'Partitura',
+        classificacao: 'Balada',
+      );
+    }
+
+    Future<ProviderContainer> boot(List<CarouselItem> items) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          carouselItemsProvider.overrideWithValue(items),
+          louvoresManifestOverride(
+            LouvoresManifest.fromLouvores([louvor, other]),
+          ),
+          ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
+            (Louvor _) async {},
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _FixedResolvePdfForReader(source),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(louvoresManifestProvider.future);
+      return container;
+    }
+
+    test('a segunda ocorrência vira o item focado', () async {
+      final container = await boot([
+        item(pdfId, 0),
+        item(otherPdfId, 1),
+        item(pdfId, 2, key: '$pdfId#1'),
+      ]);
+
+      final location = await container
+          .read(readerCarouselActionsProvider.notifier)
+          .navigateToKey(key: '$pdfId#1');
+
+      expect(location, isNotNull);
+      expect(location, startsWith(RoutePaths.reader));
+      expect(location, contains('pdfId=$pdfId'));
+      expect(container.read(carouselFocusedKeyProvider), '$pdfId#1');
+      expect(container.read(carouselFocusedIndexProvider), 2);
+    });
+
+    test('chave que não está na face não navega nem troca o foco', () async {
+      final container = await boot([item(pdfId, 0)]);
+
+      final location = await container
+          .read(readerCarouselActionsProvider.notifier)
+          .navigateToKey(key: 'inexistente');
+
+      expect(location, isNull);
+      expect(container.read(carouselFocusedKeyProvider), isNull);
     });
   });
 }

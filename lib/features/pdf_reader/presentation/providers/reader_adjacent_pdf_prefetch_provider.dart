@@ -55,8 +55,8 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
 
         await prefetch.call(
           catalog: catalog,
-          previousPdfId: _pdfIdOrNull(position.previousPdfId),
-          nextPdfId: _pdfIdOrNull(position.nextPdfId),
+          previousMaterialId: _pdfIdOrNull(position.previousMaterialId),
+          nextMaterialId: _pdfIdOrNull(position.nextMaterialId),
         );
       }
 
@@ -71,8 +71,8 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
         next,
       ) {
         if (next == null) return;
-        if (previous?.previousPdfId == next.previousPdfId &&
-            previous?.nextPdfId == next.nextPdfId) {
+        if (previous?.previousMaterialId == next.previousMaterialId &&
+            previous?.nextMaterialId == next.nextMaterialId) {
           return;
         }
         final session = ref.read(pdfReaderSessionProvider(params.filePath));

@@ -112,6 +112,10 @@ void main() {
 
     // Garante a lista ativa carregada antes de abrir a cifra.
     capturedRef.read(playlistsProvider);
+    // Quem grava a cifra no cache é o sheet de materiais (pelo
+    // `coldigomCacheWriter`) antes de o tile abrir; `openChordInReader` só
+    // entra na lista e navega.
+    capturedRef.read(coldigomCacheWriterProvider).mergeChords([_chord]);
     await tester.pumpAndSettle();
     return capturedRef;
   }

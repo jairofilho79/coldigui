@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/chord_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../playlists/presentation/providers/playlists_provider.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/chord_material.dart';
 
 /// Resultado de decodificar um id de material como cifra.
@@ -52,17 +51,20 @@ ChordRoute chordRouteFor(
 /// Abre [chord] em `/cifra`, entrando na lista ativa como o PDF faz.
 ///
 /// Espelha `openLouvorInReader`, sem a etapa de resolve local: o `.chord` é
-/// buscado pelo `chordSongProvider`, que já está aquecido pelo sheet.
+/// buscado pelo `chordSongProvider`, que já está aquecido pelo sheet — que
+/// também é quem grava as cifras do grupo no cache pelo `coldigomCacheWriter`
+/// (C.3: a presentation não escreve cache).
+///
+/// O `kind` vai explícito: o id da cifra é classificável por extensão, mas
+/// quem chama **sabe** que é cifra e não precisa pagar a decodificação.
 Future<void> openChordInReader({
   required WidgetRef ref,
   required BuildContext context,
   required ChordMaterial chord,
 }) async {
-  ref.read(coldigomCacheWriterProvider).mergeChords([chord]);
-
   await ref
-      .read(playlistsProvider.notifier)
-      .addLouvorToActivePlaylist(chord.chordId);
+      .read(activePlaylistEditorProvider.notifier)
+      .addToActive(chord.chordId, kind: MaterialKind.chord);
 
   if (!context.mounted) return;
 

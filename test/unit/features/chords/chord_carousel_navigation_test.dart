@@ -164,5 +164,49 @@ void main() {
         expect(location, contains('titulo=Comigo'));
       },
     );
+
+    test('louvor só no cache Coldigom resolve pelo lookup', () async {
+      const relPath = 'assets/praises/p9/coldigom.pdf';
+      final pdfId = encodePdfId(relPath);
+      final louvor = Louvor.fromManifest(
+        nome: 'Só no Coldigom',
+        numero: '900',
+        categoria: 'Partitura',
+        classificacao: 'Cancao',
+        pdf: 'coldigom.pdf',
+        pdfId: pdfId,
+      );
+      final source = LocalPdfSource(
+        pdfId: pdfId,
+        absolutePath: '/tmp/$pdfId.pdf',
+        fromCache: true,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          // Manifest PLPCG vazio: o id só existe no cache Coldigom.
+          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+          ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
+            (Louvor _) async {},
+          ),
+          resolvePdfForReaderProvider.overrideWithValue(
+            _FixedResolvePdfForReader(source),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(louvoresManifestProvider.future);
+      container.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
+        louvor,
+      ]);
+
+      final location = await container
+          .read(readerCarouselActionsProvider.notifier)
+          .navigateToPdfId(targetPdfId: pdfId);
+
+      expect(location, isNotNull);
+      expect(location, startsWith(RoutePaths.reader));
+      expect(location, contains('pdfId=$pdfId'));
+    });
   });
 }

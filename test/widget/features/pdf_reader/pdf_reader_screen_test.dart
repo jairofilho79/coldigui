@@ -1,7 +1,7 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
@@ -19,24 +19,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
-class _FakeCarouselNotifierWithItems extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [
-    CarouselItem(
-      pdfId: 'x',
-      sortOrder: 0,
-      numero: '1',
-      nome: 'Louvor',
-      categoria: 'c',
-      classificacao: 'Col',
-    ),
-  ];
-}
+const _carouselItems = <CarouselItem>[
+  CarouselItem(
+    materialId: 'x',
+    kind: MaterialKind.pdf,
+    index: 0,
+    key: 'x',
+    numero: '1',
+    nome: 'Louvor',
+    categoria: 'c',
+    classificacao: 'Col',
+  ),
+];
 
 class _FixedOfflineCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
@@ -47,7 +41,7 @@ ProviderScope _readerScope({
   required SharedPreferences prefs,
   required Widget child,
   List<Override> overrides = const [],
-  CarouselLouvoresNotifier? carouselNotifier,
+  List<CarouselItem> carouselItems = const [],
 }) {
   return ProviderScope(
     retry: (retryCount, error) => null,
@@ -56,9 +50,7 @@ ProviderScope _readerScope({
       offlineCacheStatusProvider.overrideWith(
         _FixedOfflineCacheStatusNotifier.new,
       ),
-      carouselLouvoresProvider.overrideWith(
-        () => carouselNotifier ?? _FakeCarouselNotifier(),
-      ),
+      carouselItemsProvider.overrideWithValue(carouselItems),
       ...overrides,
     ],
     child: child,
@@ -339,8 +331,11 @@ void main() {
             (ref) => const CarouselReaderPosition(
               currentIndex: 2,
               total: 3,
-              previousPdfId: 'A',
-              nextPdfId: 'C',
+              currentKey: 'B',
+              previousMaterialId: 'A',
+              nextMaterialId: 'C',
+              previousKey: 'A',
+              nextKey: 'C',
             ),
           ),
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
@@ -380,7 +375,7 @@ void main() {
     await tester.pumpWidget(
       _readerScope(
         prefs: prefs,
-        carouselNotifier: _FakeCarouselNotifierWithItems(),
+        carouselItems: _carouselItems,
         overrides: [
           pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
             (ref) => Future.error(const InvalidPdfPathException('stub')),
