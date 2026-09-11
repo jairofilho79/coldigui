@@ -3469,8 +3469,13 @@ Future<RichText> _pump(WidgetTester tester, LyricLine line, {double width = 400}
   return tester.widget<RichText>(find.byType(RichText));
 }
 
-List<TextSpan> _spans(RichText rich) =>
-    (rich.text as TextSpan).children!.cast<TextSpan>();
+/// `Text.rich` envolve o span dado num `TextSpan` raiz (com o estilo do
+/// `DefaultTextStyle`); os spans do gatilho/leitura estão um nível abaixo.
+List<TextSpan> _spans(RichText rich) {
+  final root = rich.text as TextSpan;
+  final ours = root.children!.single as TextSpan;
+  return ours.children!.cast<TextSpan>();
+}
 
 void main() {
   testWidgets('gatilho vermelho negrito + espaço + leitura preta', (tester) async {
