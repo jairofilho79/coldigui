@@ -8,9 +8,8 @@ import 'dart:async';
 
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/domain/repositories/carousel_repository.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
@@ -68,16 +67,6 @@ class _DegradedUntilOpenRepo extends Fake implements PlaylistRepository {
   }
 }
 
-class _FakeCarouselRepo extends Fake implements CarouselRepository {
-  @override
-  Future<List<String>> getOrderedPdfIds() async => const [];
-
-  @override
-  Future<List<CarouselItem>> getOrderedItems({
-    required Map<String, CarouselItemMetadata> pdfIdToMetadata,
-  }) async => const [];
-}
-
 Future<void> _flushAsync() async {
   for (var i = 0; i < 6; i++) {
     await Future<void>.delayed(Duration.zero);
@@ -101,7 +90,9 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarOpenerProvider.overrideWithValue(() => opening.future),
         playlistRepositoryProvider.overrideWithValue(repository),
-        carouselRepositoryProvider.overrideWithValue(_FakeCarouselRepo()),
+        carouselLocalDatasourceProvider.overrideWithValue(
+          CarouselLocalDatasource.unavailable(),
+        ),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
@@ -156,7 +147,9 @@ void main() {
           () async => throw StateError('sem OPFS'),
         ),
         playlistRepositoryProvider.overrideWithValue(repository),
-        carouselRepositoryProvider.overrideWithValue(_FakeCarouselRepo()),
+        carouselLocalDatasourceProvider.overrideWithValue(
+          CarouselLocalDatasource.unavailable(),
+        ),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );

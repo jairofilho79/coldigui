@@ -156,7 +156,9 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           ...isarOverrides,
           playlistRepositoryProvider.overrideWithValue(_FakePlaylistRepo(null)),
-          carouselRepositoryProvider.overrideWithValue(_FakeCarouselRepo()),
+          carouselLocalDatasourceProvider.overrideWithValue(
+            CarouselLocalDatasource.unavailable(),
+          ),
         ],
       );
       addTearDown(container.dispose);
