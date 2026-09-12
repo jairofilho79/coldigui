@@ -200,18 +200,6 @@ abstract class AppLocalizations {
   /// **'Ajustar largura/página (Z)'**
   String get readerFitModeTooltip;
 
-  /// No description provided for @readerSidePanelShowTooltip.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mostrar lista (painel)'**
-  String get readerSidePanelShowTooltip;
-
-  /// No description provided for @readerSidePanelHideTooltip.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ocultar lista (painel)'**
-  String get readerSidePanelHideTooltip;
-
   /// No description provided for @readerGoToPageTitle.
   ///
   /// In pt, this message translates to:

@@ -39,8 +39,6 @@
   "readerFullscreenTooltip": "Tela cheia (F)",
   "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
   "readerFitModeTooltip": "Ajustar largura/página (Z)",
-  "readerSidePanelShowTooltip": "Mostrar lista (painel)",
-  "readerSidePanelHideTooltip": "Ocultar lista (painel)",
   "readerGoToPageTitle": "Ir para página",
   "readerGoToPageFieldLabel": "Número da página",
   "readerGoToPageCancel": "Cancelar",

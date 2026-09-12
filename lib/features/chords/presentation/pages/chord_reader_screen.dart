@@ -3,10 +3,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/layout/breakpoints.dart';
-import '../../../../core/presentation/widgets/reader_split_layout.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
@@ -14,13 +12,9 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
-import '../../../carousel/domain/entities/carousel_item.dart';
-import '../../../carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
-import '../../../carousel/presentation/widgets/active_list_panel.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
-import '../../../pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_reader_font_size.dart';
 import '../../domain/entities/chordpro_song.dart';
@@ -107,25 +101,6 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     } finally {
       _louvorNavigationInProgress = false;
     }
-  }
-
-  /// Toque num item do painel lateral (A.6 C7): mesma ação das chips — foca a
-  /// ocorrência (já feito por [ActiveListPanel]) e troca o material aberto no
-  /// leitor. No-op quando o item tocado já é o material aberto (só a
-  /// ocorrência focada muda).
-  Future<void> _openFromPanel(CarouselItem item) async {
-    final currentPdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
-    if (currentPdfId.isNotEmpty && item.materialId == currentPdfId) return;
-
-    await openCarouselPdfInReader(
-      ref: ref,
-      context: context,
-      materialId: item.materialId,
-      navigate: (location) async {
-        if (!mounted) return;
-        context.replace(location);
-      },
-    );
   }
 
   /// Teclado do leitor de cifras (C1, C9).
@@ -293,8 +268,6 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     final semitones = ref.watch(chordReaderTransposeProvider(r2Key));
     final songAsync = ref.watch(chordSongProvider(r2Key));
     final autoscroll = ref.watch(chordAutoscrollProvider);
-    final sidePanelOpen = ref.watch(readerSidePanelOpenProvider);
-    final panel = ActiveListPanel(onOpen: _openFromPanel);
     // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
     // — reserva espaço para as últimas linhas não ficarem cobertas por ele.
     final isFullscreen = ref.watch(readerFullscreenProvider);
@@ -336,96 +309,84 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                   chordId: r2Key,
                   autoscroll: autoscroll,
                   l10n: l10n,
-                  sidePanelOpen: sidePanelOpen,
-                  onToggleSidePanel: () =>
-                      ref.read(readerSidePanelOpenProvider.notifier).toggle(),
-                  sidePanelTooltip: sidePanelOpen
-                      ? l10n.readerSidePanelHideTooltip
-                      : l10n.readerSidePanelShowTooltip,
                 ),
                 Expanded(
-                  child: ReaderSplitLayout(
-                    panel: ColoredBox(color: palette.background, child: panel),
-                    // Important 4 (onda 4): colunas pela largura DISPONÍVEL
-                    // (depois do painel lateral tirar `panelWidth`), não pela
-                    // largura da tela inteira — `LayoutBuilder` aqui já mede
-                    // o espaço real desta área (dentro do `Expanded` acima,
-                    // ao lado do painel quando ele está aberto).
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final columns =
-                            constraints.maxWidth >= kWideLayoutBreakpoint
-                            ? 2
-                            : 1;
-                        return songAsync.when(
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (_, _) => _Unavailable(
-                            message: l10n.chordReaderUnavailable,
-                            palette: palette,
-                          ),
-                          data: (song) {
-                            if (song == null) {
-                              return _Unavailable(
-                                message: l10n.chordReaderUnavailable,
-                                palette: palette,
-                              );
-                            }
-                            return NotificationListener<UserScrollNotification>(
-                              // A11: rolar com o dedo/mouse é o jeito mais
-                              // claro de dizer "eu assumo daqui" — para o
-                              // autoscroll na hora, sem esperar o usuário
-                              // achar o botão de pausa.
-                              onNotification: (notification) {
-                                if (notification.direction !=
-                                    ScrollDirection.idle) {
-                                  ref
-                                      .read(chordAutoscrollProvider.notifier)
-                                      .stop();
-                                }
-                                return false;
-                              },
-                              child: CustomScrollView(
-                                controller: _scrollController,
-                                slivers: [
-                                  SliverPadding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      16,
-                                      0,
-                                      16,
-                                      12,
-                                    ),
-                                    sliver: SliverToBoxAdapter(
-                                      child: _ChordHeader(
-                                        song: song,
-                                        semitones: semitones,
-                                        palette: palette,
-                                      ),
-                                    ),
-                                  ),
-                                  SliverPadding(
-                                    padding: EdgeInsets.fromLTRB(
-                                      16,
-                                      0,
-                                      16,
-                                      bottomPadding,
-                                    ),
-                                    sliver: ChordProView(
-                                      song: song,
-                                      palette: palette,
-                                      fontSize: fontSize,
-                                      semitones: semitones,
-                                      memo: _transposeMemo,
-                                      columns: columns,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                  // Important 4 (onda 4): colunas pela largura DISPONÍVEL —
+                  // `LayoutBuilder` aqui já mede o espaço real desta área
+                  // (dentro do `Expanded` acima), que hoje equivale à largura
+                  // da tela (sem painel lateral tirando espaço).
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns =
+                          constraints.maxWidth >= kWideLayoutBreakpoint ? 2 : 1;
+                      return songAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (_, _) => _Unavailable(
+                          message: l10n.chordReaderUnavailable,
+                          palette: palette,
+                        ),
+                        data: (song) {
+                          if (song == null) {
+                            return _Unavailable(
+                              message: l10n.chordReaderUnavailable,
+                              palette: palette,
                             );
-                          },
-                        );
-                      },
-                    ),
+                          }
+                          return NotificationListener<UserScrollNotification>(
+                            // A11: rolar com o dedo/mouse é o jeito mais
+                            // claro de dizer "eu assumo daqui" — para o
+                            // autoscroll na hora, sem esperar o usuário
+                            // achar o botão de pausa.
+                            onNotification: (notification) {
+                              if (notification.direction !=
+                                  ScrollDirection.idle) {
+                                ref
+                                    .read(chordAutoscrollProvider.notifier)
+                                    .stop();
+                              }
+                              return false;
+                            },
+                            child: CustomScrollView(
+                              controller: _scrollController,
+                              slivers: [
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    12,
+                                  ),
+                                  sliver: SliverToBoxAdapter(
+                                    child: _ChordHeader(
+                                      song: song,
+                                      semitones: semitones,
+                                      palette: palette,
+                                    ),
+                                  ),
+                                ),
+                                SliverPadding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    bottomPadding,
+                                  ),
+                                  sliver: ChordProView(
+                                    song: song,
+                                    palette: palette,
+                                    fontSize: fontSize,
+                                    semitones: semitones,
+                                    memo: _transposeMemo,
+                                    columns: columns,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
@@ -545,9 +506,6 @@ class _ChordReaderToolbar extends ConsumerWidget {
     required this.chordId,
     required this.autoscroll,
     required this.l10n,
-    required this.sidePanelOpen,
-    required this.onToggleSidePanel,
-    required this.sidePanelTooltip,
   });
 
   final ChordReaderMode mode;
@@ -559,12 +517,6 @@ class _ChordReaderToolbar extends ConsumerWidget {
   final String chordId;
   final ChordAutoscrollState autoscroll;
   final AppLocalizations l10n;
-
-  /// `true` quando o painel lateral (spec A.6 C7) está ligado — decide o
-  /// tooltip do botão `Icons.view_sidebar`.
-  final bool sidePanelOpen;
-  final VoidCallback onToggleSidePanel;
-  final String sidePanelTooltip;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -683,14 +635,6 @@ class _ChordReaderToolbar extends ConsumerWidget {
             ),
             onPressed: () =>
                 ref.read(chordReaderModeProvider.notifier).toggle(),
-          ),
-          _ToolbarSeparator(color: palette.comment),
-          IconButton(
-            style: style,
-            tooltip: sidePanelTooltip,
-            icon: const Icon(Icons.view_sidebar),
-            isSelected: sidePanelOpen,
-            onPressed: onToggleSidePanel,
           ),
         ],
       ),

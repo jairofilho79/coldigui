@@ -17,8 +17,7 @@ import 'carousel_selection_sheet.dart'
 ///
 /// Extraído do corpo do modal de seleção temporária
 /// ([showCarouselSelectionSheet], que agora só embrulha isto num
-/// `AlertDialog`) para ser reutilizado também no painel lateral do leitor de
-/// PDF e da cifra ([ReaderSplitLayout]).
+/// `AlertDialog`).
 ///
 /// Mostra a face [face] da lista ativa ([carouselItemsProvider] para
 /// [PlaylistMediaFace.pdf], [audioFaceItemsProvider] para

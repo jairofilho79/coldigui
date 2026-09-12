@@ -4,9 +4,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
 import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
@@ -17,7 +14,6 @@ import 'package:coldigui/features/chords/presentation/providers/chord_reader_mod
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
-import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,25 +52,11 @@ const _playingTrack = AudioTrack(
 const _r2Key = 'assets/praises/p1/m1.chord';
 const _r2KeyB = 'assets/praises/p2/m2.chord';
 
-const _carouselItems = <CarouselItem>[
-  CarouselItem(
-    materialId: 'x',
-    kind: MaterialKind.pdf,
-    index: 0,
-    key: 'x',
-    numero: '1',
-    nome: 'Louvor Teste',
-    categoria: 'c',
-    classificacao: 'Col',
-  ),
-];
-
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
   Map<String, String>? queryParams,
   ChordProSong? songOverride,
-  List<CarouselItem>? carouselItems,
   List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues(const {});
@@ -92,8 +74,6 @@ Future<SharedPreferences> _pump(
         chordSongProvider.overrideWith(
           (ref, key) async => available ? song : null,
         ),
-        if (carouselItems != null)
-          carouselItemsProvider.overrideWithValue(carouselItems),
         ...overrides,
       ],
       child: MaterialApp(
@@ -442,9 +422,9 @@ void main() {
     testWidgets('largura ampla com muitas linhas usa duas colunas', (
       tester,
     ) async {
-      // Important 4 (onda 4): a decisão passou a usar a largura DISPONÍVEL
-      // (depois do painel lateral de 320px, aberto por padrão) — 1300px
-      // garante 980px de sobra, acima de kWideLayoutBreakpoint (900).
+      // Important 4 (onda 4): a decisão usa a largura DISPONÍVEL, que sem
+      // painel lateral equivale à largura da tela — 1300px é bem acima de
+      // kWideLayoutBreakpoint (900).
       tester.view.physicalSize = const Size(1300, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -467,33 +447,6 @@ void main() {
       final view = tester.widget<ChordProView>(find.byType(ChordProView));
       expect(view.columns, 1);
     });
-
-    // Important 4 (onda 4): a decisão tem que ler a largura DISPONÍVEL (já
-    // descontado o painel lateral de 320px — `ReaderSplitLayout`), não a
-    // largura da tela inteira. Em 1000px com o painel aberto (default),
-    // sobram 680px pro conteúdo — menos que kWideLayoutBreakpoint (900) —
-    // então tem que cair para 1 coluna, mesmo a tela inteira tendo 1000px
-    // (>= 900).
-    testWidgets(
-      'largura total ampla mas com painel lateral aberto usa uma coluna',
-      (tester) async {
-        tester.view.physicalSize = const Size(1000, 800);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-
-        await _pump(
-          tester,
-          available: true,
-          songOverride: longSong,
-          carouselItems: _carouselItems,
-        );
-
-        expect(find.byType(ActiveListPanel), findsOneWidget);
-
-        final view = tester.widget<ChordProView>(find.byType(ChordProView));
-        expect(view.columns, 1);
-      },
-    );
   });
 
   group('autoscroll em execucao (C9)', () {
@@ -593,49 +546,6 @@ void main() {
       await tester.pump();
 
       expect(container.read(chordAutoscrollProvider).running, isFalse);
-    });
-  });
-
-  group('split view (C7)', () {
-    testWidgets('tela larga mostra o painel com a lista ativa', (tester) async {
-      tester.view.physicalSize = const Size(1200, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-
-      await _pump(tester, available: true, carouselItems: _carouselItems);
-
-      expect(find.byType(ActiveListPanel), findsOneWidget);
-      expect(find.textContaining('Louvor Teste'), findsOneWidget);
-    });
-
-    testWidgets('tela estreita esconde o painel', (tester) async {
-      tester.view.physicalSize = const Size(600, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-
-      await _pump(tester, available: true, carouselItems: _carouselItems);
-
-      expect(find.byType(ActiveListPanel), findsNothing);
-    });
-
-    testWidgets('botão do painel alterna readerSidePanelOpenProvider', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1200, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-
-      await _pump(tester, available: true, carouselItems: _carouselItems);
-      expect(find.byType(ActiveListPanel), findsOneWidget);
-
-      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
-      await tester.tap(find.byTooltip(l10n.readerSidePanelHideTooltip));
-      await tester.pumpAndSettle();
-
-      final container = _containerOf(tester);
-      expect(container.read(readerSidePanelOpenProvider), isFalse);
-      expect(find.byType(ActiveListPanel), findsNothing);
-      expect(find.byTooltip(l10n.readerSidePanelShowTooltip), findsOneWidget);
     });
   });
 
