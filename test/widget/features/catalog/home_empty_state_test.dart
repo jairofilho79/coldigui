@@ -1,5 +1,7 @@
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/theme/app_theme.dart';
+import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -90,6 +92,47 @@ Future<void> _pump(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Igual a [_pump], mas com [AppTheme.light] e sem `backgroundColor` no
+/// `Scaffold` — reproduz o fundo vinho real da Home ([AppColors.background],
+/// `scaffoldBackgroundColor` do tema) para os testes de contraste do fix
+/// «texto branco onde o fundo é vinho» (onda 4.1, feedback do product owner).
+Future<void> _pumpOnWine(
+  WidgetTester tester, {
+  required HomeSearchState state,
+  required SharedPreferences prefs,
+  List<Override> overrides = const [],
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+        ...overrides,
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: Scaffold(body: HomeEmptyState(state: state)),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Color? _textColor(WidgetTester tester, String text) =>
+    tester.widget<Text>(find.text(text)).style?.color;
+
+Color? _buttonForegroundColor(WidgetTester tester, Finder finder) {
+  final style = switch (tester.widget(finder)) {
+    TextButton(:final style) => style,
+    OutlinedButton(:final style) => style,
+    _ => null,
+  };
+  return style?.foregroundColor?.resolve(const <WidgetState>{});
 }
 
 class _FixedRecentlyOpened extends RecentlyOpenedNotifier {
@@ -370,6 +413,126 @@ void main() {
         findsNothing,
       );
     });
+  });
+
+  group('contraste sobre o fundo vinho (onda 4.1, feedback do product owner)', () {
+    testWidgets(
+      'sem consulta: cartão de lista ativa, rótulo de recentes e hint em branco',
+      (tester) async {
+        final prefs = await SharedPreferences.getInstance();
+        final playlist = SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Culto de domingo',
+          entries: [PlaylistEntry.classified('pdf-1')],
+          createdAt: DateTime.utc(2026, 9, 1),
+        );
+
+        await _pumpOnWine(
+          tester,
+          state: _state(),
+          prefs: prefs,
+          overrides: [
+            activePlaylistProvider.overrideWithValue(playlist),
+            recentlyOpenedProvider.overrideWith(
+              () => _FixedRecentlyOpened(const ['pdf-1']),
+            ),
+            catalogMaterialLookupProvider.overrideWithValue(
+              CatalogMaterialLookup(
+                plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
+              ),
+            ),
+          ],
+        );
+
+        expect(
+          _textColor(tester, 'Lista ativa: Culto de domingo · 1 louvor'),
+          AppColors.textLight,
+        );
+        expect(
+          _buttonForegroundColor(
+            tester,
+            find.widgetWithText(TextButton, 'Abrir no leitor'),
+          ),
+          AppColors.textLight,
+        );
+        expect(_textColor(tester, 'Abertos recentemente'), AppColors.textLight);
+        expect(
+          _textColor(tester, 'Busque por título ou número'),
+          AppColors.textLight.withValues(alpha: 0.7),
+        );
+        // O chip continua no fundo creme do `ChipThemeData` — sem `style`
+        // próprio, o `Text` herda o vinho de `labelStyle` por baixo, então
+        // não muda com este fix (nada a asserir no `Text.style`, que é nulo).
+        expect(find.text('001 Aleluia'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'consulta sem resultado: título, dicas, botão e aviso Coldigom em branco',
+      (tester) async {
+        final prefs = await SharedPreferences.getInstance();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+            connectivityStreamProvider.overrideWith(
+              (ref) => Stream.value(false),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+        container
+            .read(catalogFiltersProvider.notifier)
+            .toggleArranjo('ColAdultos');
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              home: Scaffold(
+                body: HomeEmptyState(
+                  state: _state(
+                    query: 'zzz',
+                    remote: AsyncError(Exception('boom'), StackTrace.empty),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          _textColor(tester, 'Nenhum louvor para «zzz»'),
+          AppColors.textLight,
+        );
+        expect(
+          _textColor(
+            tester,
+            'Tente outro termo, ou confira o número e a grafia.',
+          ),
+          AppColors.textLight.withValues(alpha: 0.7),
+        );
+        expect(
+          _buttonForegroundColor(
+            tester,
+            find.widgetWithText(OutlinedButton, 'Limpar filtros'),
+          ),
+          AppColors.textLight,
+        );
+        expect(
+          _textColor(
+            tester,
+            'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
+          ),
+          AppColors.textLight.withValues(alpha: 0.75),
+        );
+      },
+    );
   });
 }
 

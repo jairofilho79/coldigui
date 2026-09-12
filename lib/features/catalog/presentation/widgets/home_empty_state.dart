@@ -88,13 +88,20 @@ class _NoQueryContent extends ConsumerWidget {
           const SizedBox(height: 20),
         ],
         if (recentMaterials.isNotEmpty) ...[
-          Text(l10n.homeEmptyRecent, style: AppTypography.label),
+          Text(
+            l10n.homeEmptyRecent,
+            style: AppTypography.label.copyWith(color: AppColors.textLight),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               for (final material in recentMaterials)
+                // `ActionChip` mantém o fundo creme do `ChipThemeData` — texto
+                // vinho (`AppColors.title`, padrão do tema) fica correto aqui,
+                // mesmo com o restante deste estado vazio no fundo vinho do
+                // `Scaffold` da Home.
                 ActionChip(
                   key: ValueKey(material.id),
                   label: Text(_materialLabel(material)),
@@ -109,7 +116,11 @@ class _NoQueryContent extends ConsumerWidget {
         Center(
           child: Text(
             l10n.homeEmptyHint,
-            style: AppTypography.hint(),
+            // Fundo vinho do `Scaffold` da Home (product owner, onda 4.1):
+            // `AppTypography.hint()` é vinho, pensado para o card creme.
+            style: AppTypography.hint().copyWith(
+              color: AppColors.textLight.withValues(alpha: 0.7),
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -138,11 +149,15 @@ class _ActivePlaylistCard extends ConsumerWidget {
           Expanded(
             child: Text(
               l10n.homeEmptyActiveList(playlist.nome, playlist.entries.length),
-              style: AppTypography.body,
+              // Fundo dourado translúcido sobre o vinho do `Scaffold` da Home
+              // (product owner, onda 4.1): `AppTypography.body` é vinho, para
+              // o card creme — aqui o texto continua sobre fundo escuro.
+              style: AppTypography.body.copyWith(color: AppColors.textLight),
             ),
           ),
           const SizedBox(width: 12),
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
             onPressed: () {
               final lookup = ref.read(catalogMaterialLookupProvider);
               final material = _resolveMaterial(
@@ -175,18 +190,36 @@ class _NoResultsContent extends ConsumerWidget {
     final isOffline = connectivity.value == false;
     final showColdigomOffline = state.remoteFailed && isOffline;
 
+    // Fundo vinho do `Scaffold` da Home (product owner, onda 4.1):
+    // `AppTypography.body`/`hint()` e o `foregroundColor` default de
+    // `OutlinedButton` (`colorScheme.primary`) são vinho, pensados para o
+    // card creme — este estado vazio precisa de branco explícito.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.homeNoResults(state.query),
-          style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+          style: AppTypography.body.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textLight,
+          ),
         ),
         const SizedBox(height: 6),
-        Text(l10n.homeNoResultsTips, style: AppTypography.hint()),
+        Text(
+          l10n.homeNoResultsTips,
+          style: AppTypography.hint().copyWith(
+            color: AppColors.textLight.withValues(alpha: 0.7),
+          ),
+        ),
         if (hasActiveFilter) ...[
           const SizedBox(height: 12),
           OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textLight,
+              side: BorderSide(
+                color: AppColors.textLight.withValues(alpha: 0.7),
+              ),
+            ),
             onPressed: () => ref.read(catalogFiltersProvider.notifier).reset(),
             child: Text(l10n.homeClearFilters),
           ),
@@ -196,7 +229,7 @@ class _NoResultsContent extends ConsumerWidget {
           Text(
             l10n.homeColdigomOffline,
             style: AppTypography.body.copyWith(
-              color: AppColors.title.withValues(alpha: 0.75),
+              color: AppColors.textLight.withValues(alpha: 0.75),
             ),
           ),
         ],
