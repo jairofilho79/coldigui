@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/failures/app_failure.dart';
+import '../../../../core/l10n/failure_message.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/byte_format.dart';
@@ -162,9 +164,9 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     } on StorageUnavailableException catch (e) {
       debugPrint('[offline] limpar falhou: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineStorageUnavailable)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failureMessage(l10n, AppFailure.from(e)))),
+      );
       return;
     } finally {
       lock.release(OfflineMaintenanceOwner.clear);
@@ -202,19 +204,10 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     final selectionState = ref.watch(offlineCategorySelectionProvider);
 
     ref.listen(offlineBulkDownloadProvider, (previous, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != previous?.errorMessage) {
-        final message = switch (next.errorMessage) {
-          'offlineStorageUnavailable' => l10n.offlineStorageUnavailable,
-          'offlineInsufficientDiskSpace' => l10n.offlineInsufficientDiskSpace,
-          'offlineDownloadNoSpace' => l10n.offlineDownloadNoSpace,
-          'offlineDownloadTimeout' => l10n.offlineDownloadTimeout,
-          'offlineDownloadNetworkError' => l10n.offlineDownloadNetworkError,
-          _ => l10n.offlineDownloadError,
-        };
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+      if (next.failure != null && next.failure != previous?.failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failureMessage(l10n, next.failure!))),
+        );
       }
       if ((next.status == OfflineBulkDownloadStatus.completed ||
               next.status == OfflineBulkDownloadStatus.completedWithWarnings) &&

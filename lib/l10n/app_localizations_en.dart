@@ -242,21 +242,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get offlineDownloadError => 'Could not complete offline download';
-
-  @override
-  String get offlineDownloadTimeout =>
-      'Slow connection. Tap Resume when the network improves.';
-
-  @override
-  String get offlineDownloadNetworkError =>
-      'No connection. Check your internet and resume.';
-
-  @override
-  String get offlineDownloadNoSpace =>
-      'Not enough space on this device. Free up space and try again.';
-
-  @override
   String get offlineKeepAppOpenDuringDownload =>
       'Keep the app open while downloading.';
 

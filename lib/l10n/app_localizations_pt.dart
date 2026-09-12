@@ -245,22 +245,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get offlineDownloadError =>
-      'Não foi possível concluir o download offline';
-
-  @override
-  String get offlineDownloadTimeout =>
-      'Conexão lenta. Toque em Retomar quando a rede melhorar.';
-
-  @override
-  String get offlineDownloadNetworkError =>
-      'Sem conexão. Verifique a internet e retome.';
-
-  @override
-  String get offlineDownloadNoSpace =>
-      'Sem espaço no dispositivo. Libere espaço e tente novamente.';
-
-  @override
   String get offlineKeepAppOpenDuringDownload =>
       'Mantenha o app aberto durante o download.';
 

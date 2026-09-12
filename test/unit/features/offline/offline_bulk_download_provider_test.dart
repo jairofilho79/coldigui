@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/failures/app_failure.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 
 import 'offline_test_helpers.dart';
@@ -313,28 +314,28 @@ void main() {
     await Future<void>.delayed(Duration.zero);
   }
 
-  test('offlineBulkDownloadErrorKey mapeia receiveTimeout', () {
-    final key = offlineBulkDownloadErrorKey(
+  test('DioException receiveTimeout vira NetworkFailure (E8)', () {
+    final failure = AppFailure.from(
       DioException(
         requestOptions: RequestOptions(path: '/packages/test.zip'),
         type: DioExceptionType.receiveTimeout,
       ),
     );
-    expect(key, 'offlineDownloadTimeout');
+    expect(failure, isA<NetworkFailure>());
   });
 
-  test('offlineBulkDownloadErrorKey mapeia connectionError', () {
-    final key = offlineBulkDownloadErrorKey(
+  test('DioException connectionError vira NetworkFailure (E8)', () {
+    final failure = AppFailure.from(
       DioException(
         requestOptions: RequestOptions(path: '/packages/test.zip'),
         type: DioExceptionType.connectionError,
       ),
     );
-    expect(key, 'offlineDownloadNetworkError');
+    expect(failure, isA<NetworkFailure>());
   });
 
   test(
-    'start com DioException receiveTimeout define offlineDownloadTimeout',
+    'start com DioException receiveTimeout define failure NetworkFailure (E8)',
     () async {
       final container = createContainer(
         DioException(
@@ -350,12 +351,12 @@ void main() {
 
       final state = container.read(offlineBulkDownloadProvider);
       expect(state.status, OfflineBulkDownloadStatus.failed);
-      expect(state.errorMessage, 'offlineDownloadTimeout');
+      expect(state.failure, isA<NetworkFailure>());
     },
   );
 
   test(
-    'start com DioException connectionError define offlineDownloadNetworkError',
+    'start com DioException connectionError define failure NetworkFailure (E8)',
     () async {
       final container = createContainer(
         DioException(
@@ -371,7 +372,7 @@ void main() {
 
       final state = container.read(offlineBulkDownloadProvider);
       expect(state.status, OfflineBulkDownloadStatus.failed);
-      expect(state.errorMessage, 'offlineDownloadNetworkError');
+      expect(state.failure, isA<NetworkFailure>());
     },
   );
 
@@ -440,7 +441,7 @@ void main() {
   });
 
   test(
-    'InsufficientDiskSpaceException define estado failed com offlineDownloadNoSpace '
+    'InsufficientDiskSpaceException define estado failed com StorageFailure (E8) '
     'e não chama markConfigured (Task 3/B4)',
     () async {
       final offlineMode = _TrackingOfflineModeNotifier();
@@ -473,7 +474,7 @@ void main() {
 
       final state = container.read(offlineBulkDownloadProvider);
       expect(state.status, OfflineBulkDownloadStatus.failed);
-      expect(state.errorMessage, 'offlineDownloadNoSpace');
+      expect(state.failure, isA<StorageFailure>());
       expect(offlineMode.markConfiguredCallCount, 0);
     },
   );
@@ -553,12 +554,12 @@ void main() {
     },
   );
 
-  test('offlineBulkDownloadErrorKey mapeia StorageUnavailableException', () {
+  test('StorageUnavailableException vira StorageFailure (E8)', () {
     expect(
-      offlineBulkDownloadErrorKey(
+      AppFailure.from(
         const StorageUnavailableException('offline.putAllByPdfId'),
       ),
-      'offlineStorageUnavailable',
+      isA<StorageFailure>(),
     );
   });
 
@@ -587,7 +588,7 @@ void main() {
 
     final state = container.read(offlineBulkDownloadProvider);
     expect(state.status, OfflineBulkDownloadStatus.failed);
-    expect(state.errorMessage, 'offlineStorageUnavailable');
+    expect(state.failure, isA<StorageFailure>());
     expect(useCase.callCount, 0);
   });
 

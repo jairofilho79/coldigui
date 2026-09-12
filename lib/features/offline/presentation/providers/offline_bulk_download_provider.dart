@@ -5,6 +5,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/failures/app_failure.dart';
 import '../../data/providers/offline_bulk_providers.dart';
 import '../../data/providers/offline_core_providers.dart';
 import 'offline_cache_status_provider.dart';
@@ -15,28 +16,6 @@ import '../../domain/entities/offline_bulk_checkpoint.dart';
 import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/usecases/download_offline_packages.dart';
-
-/// Chave l10n usada quando o índice offline (Isar) não está disponível.
-const offlineStorageUnavailableKey = 'offlineStorageUnavailable';
-
-/// Chave l10n para falhas de bulk mapeadas a partir de exceções concretas.
-String offlineBulkDownloadErrorKey(Object error) {
-  if (error is StorageUnavailableException) {
-    return offlineStorageUnavailableKey;
-  }
-  if (error is InsufficientDiskSpaceException) {
-    return 'offlineDownloadNoSpace';
-  }
-  if (error is DioException) {
-    return switch (error.type) {
-      DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionTimeout => 'offlineDownloadTimeout',
-      DioExceptionType.connectionError => 'offlineDownloadNetworkError',
-      _ => 'offlineDownloadError',
-    };
-  }
-  return 'offlineDownloadError';
-}
 
 /// Mantém a tela ligada durante bulk download prolongado (backlog #12).
 abstract interface class BulkDownloadWakelock {
@@ -74,7 +53,7 @@ class OfflineBulkDownloadState {
     this.status = OfflineBulkDownloadStatus.idle,
     this.progress,
     this.checkpoint,
-    this.errorMessage,
+    this.failure,
     this.unmatchedZipEntries = const [],
     this.failedCount = 0,
   });
@@ -82,7 +61,10 @@ class OfflineBulkDownloadState {
   final OfflineBulkDownloadStatus status;
   final OfflineDownloadProgress? progress;
   final OfflineBulkCheckpoint? checkpoint;
-  final String? errorMessage;
+
+  /// Falha classificada (E8) da última execução — a UI traduz via
+  /// `failureMessage`.
+  final AppFailure? failure;
   final List<String> unmatchedZipEntries;
 
   /// PDFs esperados que falharam na última execução (Task 3/B4) — usado para
@@ -100,7 +82,7 @@ class OfflineBulkDownloadState {
     OfflineBulkDownloadStatus? status,
     OfflineDownloadProgress? progress,
     OfflineBulkCheckpoint? checkpoint,
-    String? errorMessage,
+    AppFailure? failure,
     List<String>? unmatchedZipEntries,
     int? failedCount,
     bool clearCheckpoint = false,
@@ -111,7 +93,7 @@ class OfflineBulkDownloadState {
       status: status ?? this.status,
       progress: progress ?? this.progress,
       checkpoint: clearCheckpoint ? null : (checkpoint ?? this.checkpoint),
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      failure: clearError ? null : (failure ?? this.failure),
       unmatchedZipEntries: clearUnmatchedZipEntries
           ? const []
           : (unmatchedZipEntries ?? this.unmatchedZipEntries),
@@ -275,7 +257,9 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     debugPrint('[offline] bulk abortado: índice offline indisponível');
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.failed,
-      errorMessage: offlineStorageUnavailableKey,
+      failure: const StorageFailure(
+        StorageUnavailableException('offline.bulk'),
+      ),
       progress: null,
     );
     return false;
@@ -315,7 +299,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
         .load();
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.failed,
-      errorMessage: offlineBulkDownloadErrorKey(error),
+      failure: AppFailure.from(error),
       checkpoint: checkpoint,
       progress: null,
     );

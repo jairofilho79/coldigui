@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/failures/app_failure.dart';
 import '../../data/providers/offline_providers.dart';
 import '../../domain/usecases/download_missing_pdfs.dart';
-import 'offline_bulk_download_provider.dart';
 import 'offline_cache_status_provider.dart';
 import 'offline_category_selection_provider.dart';
 import 'offline_maintenance_lock_provider.dart';
@@ -19,7 +20,7 @@ class OfflineMissingDownloadState {
     this.done = 0,
     this.total = 0,
     this.lastResult,
-    this.errorMessage,
+    this.failure,
   });
 
   final OfflineMissingDownloadStatus status;
@@ -33,8 +34,8 @@ class OfflineMissingDownloadState {
   /// Resultado da última execução concluída — usado pelo snackbar da tela.
   final DownloadMissingResult? lastResult;
 
-  /// Chave l10n da falha (ex.: `offlineStorageUnavailable`).
-  final String? errorMessage;
+  /// Falha classificada (E8) da última execução.
+  final AppFailure? failure;
 
   bool get isRunning => status == OfflineMissingDownloadStatus.running;
 
@@ -43,7 +44,7 @@ class OfflineMissingDownloadState {
     int? done,
     int? total,
     DownloadMissingResult? lastResult,
-    String? errorMessage,
+    AppFailure? failure,
     bool clearResult = false,
     bool clearError = false,
   }) {
@@ -52,7 +53,7 @@ class OfflineMissingDownloadState {
       done: done ?? this.done,
       total: total ?? this.total,
       lastResult: clearResult ? null : (lastResult ?? this.lastResult),
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      failure: clearError ? null : (failure ?? this.failure),
     );
   }
 }
@@ -83,7 +84,9 @@ class OfflineMissingDownloadNotifier
       debugPrint('[offline] faltantes abortado: índice offline indisponível');
       state = state.copyWith(
         status: OfflineMissingDownloadStatus.failed,
-        errorMessage: offlineStorageUnavailableKey,
+        failure: const StorageFailure(
+          StorageUnavailableException('offline.missing'),
+        ),
       );
       return;
     }
@@ -128,7 +131,7 @@ class OfflineMissingDownloadNotifier
       debugPrint('[offline] faltantes falhou: $e');
       state = state.copyWith(
         status: OfflineMissingDownloadStatus.failed,
-        errorMessage: offlineBulkDownloadErrorKey(e),
+        failure: AppFailure.from(e),
       );
     } finally {
       lock.release(OfflineMaintenanceOwner.missing);
