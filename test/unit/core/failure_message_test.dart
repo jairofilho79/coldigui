@@ -1,5 +1,6 @@
 import 'package:coldigui/core/failures/app_failure.dart';
 import 'package:coldigui/core/l10n/failure_message.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,18 @@ void main() {
   test('StorageFailure usa failureStorage', () {
     final failure = StorageFailure(Exception('x'));
     expect(failureMessage(pt, failure), pt.failureStorage);
+  });
+
+  test('StorageFailure com InsufficientDiskSpaceException usa '
+      'offlineInsufficientDiskSpace', () {
+    final failure = StorageFailure(
+      const InsufficientDiskSpaceException(
+        requiredBytes: 100,
+        availableBytes: 10,
+      ),
+    );
+    expect(failureMessage(pt, failure), pt.offlineInsufficientDiskSpace);
+    expect(failureMessage(en, failure), en.offlineInsufficientDiskSpace);
   });
 
   test('AuthFailure usa failureAuth', () {

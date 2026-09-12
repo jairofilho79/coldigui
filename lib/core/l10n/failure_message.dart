@@ -1,3 +1,4 @@
+import '../../features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import '../../l10n/app_localizations.dart';
 import '../failures/app_failure.dart';
 
@@ -8,6 +9,8 @@ String failureMessage(AppLocalizations l10n, AppFailure failure) {
     NetworkFailure() => l10n.failureNetwork,
     OfflineFailure() => l10n.failureOffline,
     NotFoundFailure() => l10n.failureNotFound,
+    StorageFailure(cause: InsufficientDiskSpaceException()) =>
+      l10n.offlineInsufficientDiskSpace,
     StorageFailure() => l10n.failureStorage,
     AuthFailure() => l10n.failureAuth,
     ConflictFailure() => l10n.failureConflict,
