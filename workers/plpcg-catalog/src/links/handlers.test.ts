@@ -10,6 +10,43 @@ import { ORIGIN, createShortLink, resolveShortLink } from './handlers.ts';
 
 const claims = { sub: 'u1', email: 'a@b.c' } as never;
 
+/**
+ * Simula a corrida da spec (Minor, D7): a checagem de reuso `created_by` +
+ * `query` do handler não acha nada (leitura "stale"), mas por baixo dos
+ * panos uma inserção concorrente com a mesma `(created_by, query)` já
+ * aconteceu antes do `INSERT` do handler rodar — o `INSERT ON CONFLICT DO
+ * NOTHING` bate no índice único `(created_by, query)` (não no `code`) e o
+ * handler precisa reconsultar em vez de esgotar tentativas de código e
+ * devolver 500.
+ */
+class RacingFakeD1Database extends FakeD1Database {
+  raceRow: ShortLinkRow;
+  reuseSelectCount: number;
+
+  constructor(raceRow: ShortLinkRow) {
+    super();
+    this.raceRow = raceRow;
+    this.reuseSelectCount = 0;
+  }
+
+  override runQuery(sql: string, bindings: unknown[]): unknown[] {
+    const normalized = sql.replace(/\s+/g, ' ').trim();
+    const isReuseSelect =
+      /short_links/i.test(normalized) &&
+      /created_by = \?/i.test(normalized) &&
+      /query = \?/i.test(normalized);
+    if (isReuseSelect) {
+      this.reuseSelectCount++;
+      if (this.reuseSelectCount === 1) {
+        const result = super.runQuery(sql, bindings);
+        this.seedShortLink(this.raceRow);
+        return result;
+      }
+    }
+    return super.runQuery(sql, bindings);
+  }
+}
+
 function postRequest(body: unknown): Request {
   return new Request('https://example.test/api/links', {
     method: 'POST',
@@ -80,6 +117,46 @@ test('query maior que 4096 bytes — 400', async () => {
   const { status } = await post(db, { query: huge });
   assert.equal(status, 400);
 });
+
+test('query com CR/LF (injeção de header) — 400', async () => {
+  const db = new FakeD1Database();
+
+  const { status } = await post(db, {
+    query: 'shareitems=a\r\nX-Evil: 1',
+  });
+
+  assert.equal(status, 400);
+  assert.equal(db.shortLinks.size, 0);
+});
+
+test('query com caractere fora do alfabeto permitido — 400', async () => {
+  const db = new FakeD1Database();
+
+  const { status } = await post(db, {
+    query: 'shareitems=a bc',
+  });
+
+  assert.equal(status, 400);
+});
+
+test(
+  'INSERT concorrente com a mesma (created_by, query) devolve o código ' +
+    'existente — 200, não 500',
+  async () => {
+    const raceRow = shortLinkRow({
+      code: 'raced01',
+      query: validQuery,
+      created_by: 'u1',
+    });
+    const db = new RacingFakeD1Database(raceRow);
+
+    const { status, json } = await post(db, { query: validQuery });
+
+    assert.equal(status, 200);
+    assert.equal(json.code, 'raced01');
+    assert.equal(db.shortLinks.size, 1);
+  },
+);
 
 test('101ª criação em 24h para o mesmo usuário — 429', async () => {
   const now = Date.now();

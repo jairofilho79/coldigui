@@ -25,7 +25,7 @@
  * | `SELECT COUNT(*) … FROM short_links WHERE created_by = ? AND created_at >= ?` (teto de abuso, `links/handlers.ts`) | `SELECT COUNT` + `short_links` |
  * | `SELECT code FROM short_links WHERE created_by = ? AND query = ?` (reuso) | `short_links` + `created_by = ?` + `query = ?` |
  * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
- * | `INSERT INTO short_links (…) VALUES (…) ON CONFLICT(code) DO NOTHING RETURNING code` | `INSERT INTO short_links` |
+ * | `INSERT INTO short_links (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `INSERT INTO short_links` |
  * | `UPDATE short_links SET hits = hits + 1 WHERE code = ?` | `UPDATE short_links` |
  *
  * O soft delete de `softDeletePlaylist`/`softDeleteAudioFlag` é um `UPDATE` e
@@ -417,10 +417,10 @@ export class FakeD1Database {
   }
 
   /**
-   * `INSERT INTO short_links (…) VALUES (…) ON CONFLICT(code) DO NOTHING
-   * RETURNING code`: colisão de `code` devolve `[]` (nenhuma linha —
-   * `.first()` do chamador lê `null` e tenta outro código); sem colisão,
-   * grava e devolve a linha para o `RETURNING`.
+   * `INSERT INTO short_links (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING
+   * code`: colisão de `code` OU do índice único `(created_by, query)`
+   * devolve `[]` (nenhuma linha — `.first()` do chamador lê `null`); sem
+   * colisão, grava e devolve a linha para o `RETURNING`.
    */
   private insertShortLink(normalized: string, bindings: unknown[]): unknown[] {
     const { columns, values } = insertPlan(normalized);
@@ -430,7 +430,11 @@ export class FakeD1Database {
       row[column] = resolveToken(values[i], bindings, cursor, undefined);
     });
     const built = row as unknown as ShortLinkRow;
-    if (this.shortLinks.has(built.code)) {
+    const codeConflict = this.shortLinks.has(built.code);
+    const queryConflict = [...this.shortLinks.values()].some(
+      (r) => r.created_by === built.created_by && r.query === built.query,
+    );
+    if (codeConflict || queryConflict) {
       return [];
     }
     this.shortLinks.set(built.code, built);

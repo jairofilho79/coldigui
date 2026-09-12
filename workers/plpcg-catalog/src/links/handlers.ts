@@ -57,12 +57,23 @@ function randomCode(): string {
 }
 
 /**
- * `query` válida: string, até {@link MAX_QUERY_BYTES} bytes UTF-8, contendo
- * `shareitems=` (equivalente server-side de `parsePlaylistShareParams` —
- * sem decodificar os itens, só exigindo que o parâmetro exista).
+ * Alfabeto de uma query string já url-encoded: `[A-Za-z0-9]`, os caracteres
+ * não reservados (`._~-`) e a sintaxe de query (`%`, `&`, `=`, `+`).
+ * Rejeitar tudo fora disso barra CR/LF e qualquer byte não-Latin-1 — que
+ * `resolveShortLink` reflete cru no header `Location` — antes que cheguem a
+ * `Headers`, que lançaria e derrubaria a request com 500.
+ */
+const VALID_QUERY_PATTERN = /^[A-Za-z0-9._~%&=+-]+$/;
+
+/**
+ * `query` válida: string, até {@link MAX_QUERY_BYTES} bytes UTF-8, restrita
+ * a {@link VALID_QUERY_PATTERN} e contendo `shareitems=` (equivalente
+ * server-side de `parsePlaylistShareParams` — sem decodificar os itens, só
+ * exigindo que o parâmetro exista).
  */
 function isValidQuery(query: unknown): query is string {
   if (typeof query !== 'string' || query.length === 0) return false;
+  if (!VALID_QUERY_PATTERN.test(query)) return false;
   if (!query.includes('shareitems=')) return false;
   return new TextEncoder().encode(query).length <= MAX_QUERY_BYTES;
 }
@@ -114,15 +125,17 @@ export async function createShortLink(
 
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
     const code = randomCode();
-    // `ON CONFLICT(code) DO NOTHING RETURNING code`: colisão de código (a
-    // astronômica coincidência de duas gerações batendo) devolve nenhuma
-    // linha em vez de derrubar a request — a próxima iteração tenta outro
-    // código.
+    // `ON CONFLICT DO NOTHING RETURNING code` sem alvo: cobre tanto a
+    // colisão de `code` (a astronômica coincidência de duas gerações
+    // batendo) quanto o índice único `(created_by, query)` — uma criação
+    // concorrente da mesma query venceu a corrida entre o SELECT de reuso
+    // acima e este INSERT. Nenhuma linha devolvida não diz qual das duas
+    // aconteceu, então o `if (raced)` abaixo distingue.
     const row = await db
       .prepare(
         `INSERT INTO short_links (code, query, created_by, created_at, hits)
          VALUES (?, ?, ?, ?, 0)
-         ON CONFLICT(code) DO NOTHING
+         ON CONFLICT DO NOTHING
          RETURNING code`,
       )
       .bind(code, query, claims.sub, Date.now())
@@ -131,6 +144,21 @@ export async function createShortLink(
       return json(
         { code: row.code, url: linkUrl(row.code) } satisfies CreateLinkJson,
         201,
+      );
+    }
+
+    // Sem `RETURNING`: se foi o índice único `(created_by, query)` que
+    // bateu, a linha da corrida já existe — devolve o código dela em vez de
+    // esgotar tentativas de código novo e cair no 500 abaixo. Se não achar
+    // nada, foi colisão de `code`; o loop tenta outro.
+    const raced = await db
+      .prepare(`SELECT code FROM short_links WHERE created_by = ? AND query = ?`)
+      .bind(claims.sub, query)
+      .first<{ code: string }>();
+    if (raced) {
+      return json(
+        { code: raced.code, url: linkUrl(raced.code) } satisfies CreateLinkJson,
+        200,
       );
     }
   }
