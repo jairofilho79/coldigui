@@ -13,6 +13,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../audio_player/domain/entities/audio_track.dart';
 import '../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
+import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
 import '../../playlists/presentation/providers/playlist_media_face_provider.dart';
 import '../../playlists/presentation/providers/playlist_sync_provider.dart';
@@ -225,6 +226,7 @@ class ShellScaffold extends ConsumerWidget {
                             left: 0,
                             right: 0,
                             bottom: 0,
+                            height: kMiniPlayerBarHeight,
                             child: MiniPlayerBar(overlay: true),
                           ),
                       ],

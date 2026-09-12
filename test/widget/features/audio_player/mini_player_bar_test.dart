@@ -129,4 +129,82 @@ void main() {
 
     expect(find.text('12 — Louvor'), findsOneWidget);
   });
+
+  // Important 3 (fix wave onda 4): o overlay de tela cheia (`shell_scaffold
+  // .dart`) empilha a `MiniPlayerBar(overlay: true)` sobre o leitor — uma
+  // `MouseRegion` opaca no `_HoverFade` absorvia QUALQUER toque dentro dos
+  // seus limites, mesmo em área em branco da faixa, e o leitor por baixo
+  // nunca via o toque.
+  Widget buildOverlayOverBehind(
+    _RecordingAudioSession session, {
+    required VoidCallback onBehindTap,
+  }) {
+    return ProviderScope(
+      overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: Scaffold(
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onBehindTap,
+                ),
+              ),
+              const Align(
+                alignment: Alignment.bottomCenter,
+                child: MiniPlayerBar(overlay: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets(
+    'overlay=true: toque numa área em branco da barra atinge o leitor por '
+    'baixo',
+    (tester) async {
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [track]),
+      );
+      var behindTaps = 0;
+      await tester.pumpWidget(
+        buildOverlayOverBehind(session, onBehindTap: () => behindTaps++),
+      );
+      await tester.pumpAndSettle();
+
+      // O título não tem nenhum controle — é a área "em branco" da faixa.
+      await tester.tap(find.text('12 — Louvor'));
+      await tester.pumpAndSettle();
+
+      expect(behindTaps, 1);
+      expect(session.playPauseCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'overlay=true: toque num botão continua exclusivo dele, não passa pro '
+    'leitor',
+    (tester) async {
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [track]),
+      );
+      var behindTaps = 0;
+      await tester.pumpWidget(
+        buildOverlayOverBehind(session, onBehindTap: () => behindTaps++),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.play_arrow));
+      await tester.pumpAndSettle();
+
+      expect(session.playPauseCalls, 1);
+      expect(behindTaps, 0);
+    },
+  );
 }

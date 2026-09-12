@@ -6,6 +6,7 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/audio_player_position_provider.dart';
 import '../providers/audio_player_session_provider.dart';
+import 'mini_player_bar_metrics.dart';
 
 /// Mini-player persistente (D5) — 44 px: título, transporte e progresso finos.
 ///
@@ -68,7 +69,7 @@ class MiniPlayerBar extends ConsumerWidget {
     final bar = Material(
       color: overlay ? Colors.black.withValues(alpha: 0.72) : AppColors.card,
       child: SizedBox(
-        height: 44,
+        height: kMiniPlayerBarHeight,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -185,6 +186,14 @@ class _HoverFadeState extends State<_HoverFade> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
+      // Fix wave onda 4 (Important 3): não-opaca — o padrão (`true`) fazia
+      // esta `MouseRegion` absorver qualquer toque dentro dos seus limites,
+      // mesmo em área em branco da faixa, e o leitor por baixo (no overlay
+      // de tela cheia do `shell_scaffold.dart`) nunca via o toque. Com
+      // `opaque: false` e o `Listener` abaixo em `translucent`, só uma área
+      // com controle de verdade (os botões) continua exclusiva; o resto
+      // passa pro que está por baixo.
+      opaque: false,
       onEnter: (_) => _setActive(true),
       onExit: (_) => _setActive(false),
       child: Listener(
