@@ -818,7 +818,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 | `ff8c100` | «Duas páginas em tela larga» fora do menu; spread só automático — C8 |
 | `3e265cf` | «Rascunho» na chip salva a lista com nome (`saveActivePlaylist`); «Salvar como lista» e o menu «⋮» saem, fica só compartilhar (`Icons.adaptive.share`); nome limitado a 1/5 da barra — C11 |
 
-| `dfa61ee` | cartão «Lista ativa: … · Abrir no leitor» removido do estado vazio da Home — redundante com a barra do carousel (lista, louvor em foco e abrir); ficam «Abertos recentemente» e a dica — C4 |
+| `06d1c04` | cartão «Lista ativa: … · Abrir no leitor» removido do estado vazio da Home — redundante com a barra do carousel (lista, louvor em foco e abrir); ficam «Abertos recentemente» e a dica — C4 |
 
 Pendência do mesmo padrão: o banner antigo de «catálogo desatualizado» em `home_screen.dart` também pinta vinho sobre vinho (anterior à onda; não mexido).
 
