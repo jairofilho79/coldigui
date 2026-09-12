@@ -196,6 +196,20 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
   bool get _applyingSources => _sourcesInFlight > 0;
 
+  /// Faixa da fila em [state.queue] no índice que [player] reporta agora —
+  /// resolvido pela mesma regra do `currentIndexStream`
+  /// ([resolveSessionQueueIndex]), já que `player.currentIndex` pode estar à
+  /// frente do próprio stream (C12 fix round 3, ver `durationStream` acima).
+  AudioTrack? _trackAtPlayerIndex(AudioPlayer player) {
+    final index = resolveSessionQueueIndex(
+      pendingIndex: state.currentIndex,
+      playerIndex: player.currentIndex,
+      applyingSources: _applyingSources,
+    );
+    if (index < 0 || index >= state.queue.length) return null;
+    return state.queue[index];
+  }
+
   AudioPlayer get _ensurePlayer {
     final existing = _player;
     if (existing != null) return existing;
@@ -231,7 +245,14 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           // Marca de quem é essa duração (C12 fix round 2) — sem isto uma
           // duração emitida atrasada, já noutra faixa, seria gravada com o
           // id errado em `_persistCurrentPosition`.
-          _durationForAudioId = state.currentTrack?.audioId;
+          //
+          // A partir de `player.currentIndex` (fix round 3), não de
+          // `state.currentTrack`: o just_audio emite `durationStream` antes
+          // de `currentIndexStream` numa troca dentro da fila, e
+          // `state.currentIndex` só muda quando o listener de
+          // `currentIndexStream` (abaixo) rodar — `player.currentIndex` já
+          // reflete a troca nesse momento.
+          _durationForAudioId = _trackAtPlayerIndex(player)?.audioId;
           // Duração nova (troca de faixa) não pode esperar a janela de 1 s.
           _sendMediaSessionPosition(
             position: ref.read(audioPlayerPositionProvider).position,
@@ -252,7 +273,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           // por `_applyQueue` — sem isto a janela de 5 s e a duração da
           // faixa anterior ficariam presas na faixa nova (C12 fix round 2).
           _positionStoreThrottle.reset();
-          _durationForAudioId = null;
+          // Fix round 3: só descarta se `_durationForAudioId` ainda não é o
+          // da faixa nova — o `durationStream` acima pode ter chegado
+          // primeiro (com o id certo, via `player.currentIndex`), e não pode
+          // ser jogado fora só porque o `currentIndexStream` chegou depois.
+          final newTrackId = next >= 0 && next < state.queue.length
+              ? state.queue[next].audioId
+              : null;
+          if (_durationForAudioId != newTrackId) {
+            _durationForAudioId = null;
+          }
         }
         state = state.copyWith(currentIndex: next);
         _mediaSession?.updateTrack(state.currentTrack);
@@ -488,7 +518,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       state = state.copyWith(currentIndex: safeIndex, playing: false);
       // Trocar de fonte reseta a velocidade do player pro padrão — reaplica
       // a escolhida pelo usuário (C12). Padrão (1.0) não precisa de chamada
-      // extra ao player — evita um `await` a mais em toda troca de faixa.
+      // extra ao player — evita um `await` a mais em toda troca de faixa (e
+      // uma janela extra pro `currentIndexStream` de um player de verdade
+      // cuspir o índice de garantia — spec original do `_sourcesInFlight`).
+      // `close()` reseta a velocidade do player de volta a 1.0 (fix round 3)
+      // pra este atalho continuar seguro depois de um `close()`.
       if (state.speed != 1.0) {
         await player.setSpeed(state.speed);
       }
@@ -653,6 +687,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _generation++;
     try {
       await _player?.stop();
+      // Fix round 3 (Minor): `close()` não descarta `_player` — o mesmo
+      // player de verdade é reaproveitado na próxima fila — e `stop()` não
+      // mexe na velocidade. Sem isto, o player ficava grudado na velocidade
+      // escolhida antes do close() mesmo com `state` (zerado abaixo) já
+      // mostrando 1.0x, porque `_applyQueue` pula `setSpeed` quando o
+      // padrão (1.0) já bate com o estado.
+      await _player?.setSpeed(1.0);
     } on Object catch (e) {
       debugPrint('[audio] close falhou ao parar o player: $e');
     }

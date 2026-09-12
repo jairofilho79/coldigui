@@ -34,6 +34,14 @@ class _ControllablePlayer extends AudioPlayer {
   @override
   bool playing = false;
 
+  /// Sobrescreve o getter do `AudioPlayer` real: no just_audio de verdade,
+  /// `currentIndex` é o valor síncrono do mesmo subject que alimenta
+  /// `currentIndexStream` — já reflete a troca antes do listener do stream
+  /// rodar (C12 fix round 3). O teste ajusta direto, junto com `indexes.add`,
+  /// pra simular essa ordem.
+  @override
+  int? currentIndex;
+
   @override
   Stream<PlayerException> get errorStream => errors.stream;
 
@@ -689,6 +697,36 @@ void main() {
         reason: '_applyQueue reaplica a velocidade na fonte nova',
       );
     });
+
+    // C12 fix round 3: `close()` zera a velocidade em memória (volta a
+    // `AudioPlayerSessionState` padrão), mas nunca chama `setSpeed` no
+    // player — que continua tocando na velocidade antiga. Como `close()`
+    // não descarta `_player` (só chama `stop()`), o mesmo player de verdade
+    // é reaproveitado na próxima fila; `_applyQueue` pulava `setSpeed`
+    // achando que 1.0 é o padrão inofensivo, deixando o player grudado em
+    // 1.5x mesmo com o estado (e a UI) mostrando 1.0x.
+    test(
+      'close() não deixa velocidade antiga grudada no player reaproveitado',
+      () async {
+        final container = await makeContainer();
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+        await notifier.setSpeed(1.5);
+        player.setSpeedCalls.clear();
+
+        await notifier.close();
+        await notifier.playQueue([_track('a2')]);
+
+        expect(container.read(audioPlayerSessionProvider).speed, 1.0);
+        expect(
+          player.setSpeedCalls,
+          contains(1.0),
+          reason:
+              '_applyQueue tem que reaplicar 1.0 no player, que ficou em '
+              '1.5 depois do close()',
+        );
+      },
+    );
   });
 
   group('posição persistida (C12)', () {
@@ -854,6 +892,47 @@ void main() {
         result?.duration,
         isNull,
         reason: 'a duração de a1 não pode ser atribuída a a2',
+      );
+    });
+
+    // C12 fix round 3: o just_audio emite `durationStream` (já da faixa
+    // nova) ANTES do `currentIndexStream` numa troca dentro da fila — mas o
+    // getter síncrono `player.currentIndex` já reflete o índice novo nesse
+    // momento. Marcar `_durationForAudioId` a partir dele (não de
+    // `state.currentTrack`, que só muda quando o `currentIndexStream`
+    // chega) evita perder a duração certa da faixa nova.
+    test('duração da faixa nova que chega antes do currentIndexStream não se '
+        'perde', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1'), _track('a2')]);
+
+      // Duração de a1 conhecida.
+      player.durations.add(const Duration(seconds: 200));
+      await Future<void>.delayed(Duration.zero);
+
+      // O player já trocou de faixa (currentIndex síncrono reflete isso)
+      // e manda a duração nova ANTES do currentIndexStream.
+      player.currentIndex = 1;
+      player.durations.add(const Duration(seconds: 180));
+      await Future<void>.delayed(Duration.zero);
+
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+
+      player.playerStates.add(PlayerState(true, ProcessingState.ready));
+      await Future<void>.delayed(Duration.zero);
+      player.positions.add(const Duration(seconds: 5));
+      await Future<void>.delayed(Duration.zero);
+
+      final store = AudioPlaybackPositionStore(prefs);
+      final result = store.read();
+      expect(result?.trackId, 'a2');
+      expect(
+        result?.duration,
+        const Duration(seconds: 180),
+        reason: 'a duração de a2 já tinha chegado — não pode ser perdida',
       );
     });
 
