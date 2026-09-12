@@ -417,6 +417,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required bool canGoNext,
     required bool loading,
     required bool showActivePlaylistName,
+    required double barWidth,
     VoidCallback? onPrevious,
     VoidCallback? onNext,
     VoidCallback? onChipTap,
@@ -431,7 +432,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         children: [
           // C11: nome da lista ativa à esquerda — some abaixo de 480 px (a
           // chip do louvor tem prioridade na largura).
-          if (showActivePlaylistName) const ActivePlaylistNameChip(),
+          if (showActivePlaylistName)
+            ActivePlaylistNameChip(
+              maxWidth: ActivePlaylistNameChip.maxWidthForBar(barWidth),
+            ),
           Expanded(
             child: CarouselNavigatorBar(
               item: item,
@@ -458,7 +462,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     );
   }
 
-  Widget _buildShellMode({required bool showActivePlaylistName}) {
+  Widget _buildShellMode({
+    required bool showActivePlaylistName,
+    required double barWidth,
+  }) {
     final focusedIndex = ref
         .watch(carouselFocusedIndexProvider)
         .clamp(0, items.length - 1);
@@ -476,6 +483,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: focusedIndex < items.length - 1,
       loading: _openingReader || _carouselNavLoading,
       showActivePlaylistName: showActivePlaylistName,
+      barWidth: barWidth,
       onPrevious: onReaderWithoutPdfId
           ? (focusedIndex > 0
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex - 1])
@@ -514,6 +522,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   Widget _buildReaderMode(
     String materialId, {
     required bool showActivePlaylistName,
+    required double barWidth,
   }) {
     final position = ref.watch(readerCarouselPositionProvider(materialId));
     final item = _itemForMaterialId(materialId, _readerTitulo);
@@ -536,6 +545,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoNext: false,
         loading: loading,
         showActivePlaylistName: showActivePlaylistName,
+        barWidth: barWidth,
         onOpenSelection: _openReaderSelectionSheet,
         onOpenPlayer: playAudio,
         openPlayerIcon: Icons.play_circle_outline,
@@ -549,6 +559,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: position.canGoNext,
       loading: loading,
       showActivePlaylistName: showActivePlaylistName,
+      barWidth: barWidth,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
               direction: CarouselReaderDirection.previous,
@@ -583,11 +594,15 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             return _buildReaderMode(
               materialId,
               showActivePlaylistName: showActivePlaylistName,
+              barWidth: constraints.maxWidth,
             );
           }
         }
 
-        return _buildShellMode(showActivePlaylistName: showActivePlaylistName);
+        return _buildShellMode(
+          showActivePlaylistName: showActivePlaylistName,
+          barWidth: constraints.maxWidth,
+        );
       },
     );
   }

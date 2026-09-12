@@ -857,13 +857,7 @@ abstract class AppLocalizations {
   /// **'Adicionar à seleção'**
   String get carouselAddTooltip;
 
-  /// No description provided for @carouselSavePlaylist.
-  ///
-  /// In pt, this message translates to:
-  /// **'Salvar como lista'**
-  String get carouselSavePlaylist;
-
-  /// Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08).
+  /// Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08).
   ///
   /// In pt, this message translates to:
   /// **'Compartilhar'**
@@ -874,12 +868,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Gerar folheto'**
   String get carouselGenerateLeaflet;
-
-  /// No description provided for @carouselOverflowMenu.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mais ações'**
-  String get carouselOverflowMenu;
 
   /// No description provided for @carouselOpenList.
   ///

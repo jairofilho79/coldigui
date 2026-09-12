@@ -35,6 +35,10 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   final addedPdfIds = <String>[];
   final addedAudioIds = <String>[];
   final renamed = <(String, String)>[];
+
+  /// Nomes passados a [saveActivePlaylist]; devolve [saveActiveResult].
+  final savedActiveNames = <String>[];
+  var saveActiveResult = true;
   ImportPlaylistDialogResult? lastImport;
 
   var refreshCalled = false;
@@ -65,6 +69,12 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   Future<bool> addAudioToActivePlaylist(String audioId) async {
     addedAudioIds.add(audioId);
     return addAudioResult;
+  }
+
+  @override
+  Future<bool> saveActivePlaylist({required String nome}) async {
+    savedActiveNames.add(nome);
+    return saveActiveResult;
   }
 
   @override

@@ -36,6 +36,7 @@ void main() {
     WidgetTester tester, {
     required List<PlaylistViewItem> items,
     String? activeId,
+    double maxWidth = ActivePlaylistNameChip.defaultMaxWidth,
   }) async {
     SharedPreferences.setMockInitialValues(
       activeId == null ? {} : {kActivePlaylistIdPrefsKey: activeId},
@@ -49,11 +50,16 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => notifier),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('pt'),
-          home: Scaffold(body: ActivePlaylistNameChip()),
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: ActivePlaylistNameChip(maxWidth: maxWidth),
+            ),
+          ),
         ),
       ),
     );
@@ -101,5 +107,53 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifier.renamed, [('p1', 'Ensaio quarta')]);
+  });
+
+  testWidgets('toque no rascunho salva a lista com o nome, não só renomeia', (
+    tester,
+  ) async {
+    final notifier = await pumpChip(tester, items: [draftItem], activeId: 'p2');
+
+    await tester.tap(find.text('Rascunho'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Salvar lista'), findsOneWidget);
+    expect(find.text('Renomear lista'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'Culto de quarta');
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.savedActiveNames, ['Culto de quarta']);
+    expect(notifier.renamed, isEmpty);
+    expect(find.text('Lista salva'), findsOneWidget);
+  });
+
+  testWidgets('nome longo respeita maxWidth com reticências', (tester) async {
+    final longItem = PlaylistViewItem(
+      playlist: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p3',
+        nome: 'Um nome de lista comprido demais para caber na barra',
+        pdfIds: const ['a'],
+        createdAt: DateTime(2026, 6, 8),
+      ),
+      pdfLabels: const ['001 — A'],
+    );
+    await pumpChip(tester, items: [longItem], activeId: 'p3', maxWidth: 80);
+
+    final text = tester.widget<Text>(find.byType(Text));
+    expect(text.overflow, TextOverflow.ellipsis);
+    expect(tester.getSize(find.byType(Text)).width, lessThanOrEqualTo(80));
+    // 80 de texto + 10 de padding de cada lado + borda de 2 px.
+    expect(
+      tester.getSize(find.byType(ActivePlaylistNameChip)).width,
+      lessThanOrEqualTo(80 + 20 + 4 + 6),
+    );
+  });
+
+  test('maxWidthForBar: um quinto da barra entre 72 e 160', () {
+    expect(ActivePlaylistNameChip.maxWidthForBar(300), 72);
+    expect(ActivePlaylistNameChip.maxWidthForBar(480), 96);
+    expect(ActivePlaylistNameChip.maxWidthForBar(1200), 160);
   });
 }

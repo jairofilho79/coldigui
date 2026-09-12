@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/features/carousel/presentation/utils/save_active_playlist_from_bar.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -15,15 +16,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Lê [activePlaylistProvider] (a lista ativa já resolvida por
 /// `PlaylistsNotifier`) e mostra `.nome` — rascunho (`salva == false`) mostra
 /// [AppLocalizations.playlistDraftLabel] no lugar do nome default gerado por
-/// `defaultPlaylistName` (técnico demais para a barra). Toque abre o mesmo
-/// diálogo de renomear do menu do tile ([showSavePlaylistDialog] +
-/// `PlaylistsNotifier.rename`).
+/// `defaultPlaylistName` (técnico demais para a barra). Toque num rascunho
+/// **salva** a lista com o nome digitado ([saveActivePlaylistFromBar] —
+/// `PlaylistsNotifier.saveActivePlaylist`, que promove `salva`); numa lista
+/// já salva abre o diálogo de renomear ([showSavePlaylistDialog] +
+/// `PlaylistsNotifier.rename`). Renomear nunca promove o rascunho — era o
+/// bug em que a chip aceitava o nome e continuava «Rascunho».
 ///
 /// `null` (sem lista ativa) → [SizedBox.shrink] — quem monta esta chip
 /// (`_CarouselChipsBar`) decide a largura mínima (480 px) abaixo da qual ela
-/// some, dando prioridade à chip do louvor.
+/// some, dando prioridade à chip do louvor, e passa em [maxWidth] a fatia da
+/// barra que o nome pode ocupar (o texto além disso vira reticências).
 class ActivePlaylistNameChip extends ConsumerWidget {
-  const ActivePlaylistNameChip({super.key});
+  const ActivePlaylistNameChip({super.key, this.maxWidth = defaultMaxWidth});
+
+  /// Largura máxima do texto do nome, sem o padding da chip.
+  final double maxWidth;
+
+  /// Teto usado quando quem monta a chip não passa [maxWidth].
+  static const double defaultMaxWidth = 160;
+
+  /// Largura do nome para uma barra de [barWidth] px: um quinto da barra,
+  /// entre [minTextWidth] e [defaultMaxWidth] — um nome longo nunca engole a
+  /// chip do louvor, que tem prioridade.
+  static double maxWidthForBar(double barWidth) =>
+      (barWidth * 0.2).clamp(minTextWidth, defaultMaxWidth);
+
+  static const double minTextWidth = 72;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,11 +65,19 @@ class ActivePlaylistNameChip extends ConsumerWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => unawaited(_rename(context, ref, playlist, l10n)),
+          onTap: () => unawaited(
+            playlist.salva
+                ? _rename(context, ref, playlist, l10n)
+                : saveActivePlaylistFromBar(
+                    context,
+                    ref,
+                    initialName: playlist.nome,
+                  ),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 160),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               child: Text(
                 label,
                 style: AppTypography.headline.copyWith(

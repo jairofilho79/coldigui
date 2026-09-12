@@ -293,13 +293,11 @@
   },
   "carouselRemoveTooltip": "Remove",
   "carouselAddTooltip": "Add to selection",
-  "carouselSavePlaylist": "Save as playlist",
   "carouselSharePlaylist": "Share",
   "@carouselSharePlaylist": {
-    "description": "Carousel bar overflow menu item and share button tooltip (UC-07/UC-08)."
+    "description": "Carousel bar share button tooltip (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Generate leaflet",
-  "carouselOverflowMenu": "More actions",
   "carouselOpenList": "View selection",
   "carouselListTitle": "Temporary selection",
   "carouselListClose": "Close",

@@ -498,16 +498,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselAddTooltip => 'Adicionar à seleção';
 
   @override
-  String get carouselSavePlaylist => 'Salvar como lista';
-
-  @override
   String get carouselSharePlaylist => 'Compartilhar';
 
   @override
   String get carouselGenerateLeaflet => 'Gerar folheto';
-
-  @override
-  String get carouselOverflowMenu => 'Mais ações';
 
   @override
   String get carouselOpenList => 'Ver seleção';

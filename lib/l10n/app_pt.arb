@@ -302,13 +302,11 @@
   },
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
-  "carouselSavePlaylist": "Salvar como lista",
   "carouselSharePlaylist": "Compartilhar",
   "@carouselSharePlaylist": {
-    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
+    "description": "Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Gerar folheto",
-  "carouselOverflowMenu": "Mais ações",
   "carouselOpenList": "Ver seleção",
   "carouselListTitle": "Seleção temporária",
   "carouselListClose": "Fechar",

@@ -268,18 +268,23 @@ void main() {
     );
   });
 
-  testWidgets('exibe menu overflow quando há chips', (tester) async {
+  testWidgets('exibe só compartilhar à direita, sem menu de três pontos', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsNothing);
+    expect(find.byType(PopupMenuButton), findsNothing);
+    expect(find.byIcon(Icons.adaptive.share), findsOneWidget);
+    expect(find.byTooltip('Compartilhar'), findsOneWidget);
     expect(find.byIcon(Icons.save_outlined), findsNothing);
-    expect(find.byIcon(Icons.share_outlined), findsNothing);
+    expect(find.text('Salvar como lista'), findsNothing);
     expect(find.byIcon(Icons.clear_all), findsOneWidget);
     expect(find.byIcon(Icons.open_in_full), findsOneWidget);
   });
 
-  testWidgets('em smartphone overflow não esconde limpar nem o olho', (
+  testWidgets('em smartphone compartilhar não esconde limpar nem o olho', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -290,9 +295,8 @@ void main() {
     await tester.pumpWidget(buildSubject(entries));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.more_vert), findsOneWidget);
-    expect(find.byIcon(Icons.save_outlined), findsNothing);
-    expect(find.byIcon(Icons.share_outlined), findsNothing);
+    expect(find.byIcon(Icons.adaptive.share), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert), findsNothing);
     expect(find.byIcon(Icons.clear_all), findsOneWidget);
     expect(find.byIcon(Icons.chevron_left), findsNothing);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
@@ -300,7 +304,7 @@ void main() {
     expect(find.byIcon(Icons.view_list), findsNothing);
   });
 
-  testWidgets('menu overflow em smartphone abre sheet de compartilhar', (
+  testWidgets('botão compartilhar em smartphone abre sheet de compartilhar', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -331,9 +335,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Compartilhar'));
+    await tester.tap(find.byIcon(Icons.adaptive.share));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Só o link'));
     await tester.pumpAndSettle();
@@ -372,9 +374,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Compartilhar'));
+      await tester.tap(find.byIcon(Icons.adaptive.share));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Só o link'));
       await tester.pumpAndSettle();
@@ -409,9 +409,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Compartilhar'));
+    await tester.tap(find.byIcon(Icons.adaptive.share));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Só o folheto'));
     await tester.pumpAndSettle();
