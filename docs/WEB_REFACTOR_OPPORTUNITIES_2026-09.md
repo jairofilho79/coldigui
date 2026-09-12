@@ -1,7 +1,7 @@
 # Oportunidades de melhoria — Web (PLPCG / coldigui)
 
 **Criado em:** 2026-09-02  
-**Branch:** `web/integration` @ `6f5a181` (auditoria) · **Onda 1 executada em 2026-09-03** (seção **H**) · **Onda 2 executada em 2026-09-04** (seção **I**) · **Onda 3 executada em 2026-09-11** (seção **J**); itens implementados estão marcados ✅/🟡 no próprio bloco.  
+**Branch:** `web/integration` @ `6f5a181` (auditoria) · **Onda 1 executada em 2026-09-03** (seção **H**) · **Onda 2 executada em 2026-09-04** (seção **I**) · **Onda 3 executada em 2026-09-11** (seção **J**) · **Onda 4 executada em 2026-09-12** (seção **K**); itens implementados estão marcados ✅/🟡 no próprio bloco.  
 **Objetivo:** primeira leva de refatorações para dar sustentação às features grandes que vêm (viewer de gestos, sync de listas, Social, Eventos, plugins, favoritos de material), priorizando a versão web.  
 **Método:** leitura direta do código em cinco frentes (performance web, estabilidade, UX/produtividade, fluxo playlist + áudio + PDF, arquitetura), `flutter analyze` e `flutter test`, e verificação item a item dos backlogs anteriores em `docs/`. Cada achado traz `arquivo:linha`. Onde a consequência não foi reproduzida, está marcado **[inferência]**.
 
@@ -11,12 +11,12 @@ Legenda: **Esforço** S (horas) / M (1–3 dias) / L (semana+). **Conf.** = conf
 
 ## 0. Sinais objetivos da árvore limpa
 
-| Sinal | Na auditoria (`6f5a181`) | Após a onda 1 (2026-09-03) | Após a onda 2 (2026-09-04, `ba3801b`) | Após a onda 3 (2026-09-11, `442eb66`) |
-|---|---|---|---|---|
-| `flutter analyze` | 1 info (lint em teste) | 1 info (o mesmo) | 1 info (o mesmo) | **0** |
-| `flutter test` | **4 falhas** em 798 testes | **0 falhas** em 1076 testes | **0 falhas** em 1503 testes (+ 76 no Worker) | **0 falhas** em 1832 testes (+ 84 no Worker, `tsc` no CI) |
-| `flutter test --platform chrome test/web` | não medido | verde após `@TestOn('vm')` em `web_index_perf_test.dart` | verde (7) | não re-executado nesta onda |
-| Cobertura | 171 arquivos de teste; 0 goldens; 0 testes de boot/Isar degradado/auth | +1 teste Chrome de provider (`test/web/pdf_reader_offline_preserved_web_test.dart`); ainda 0 goldens e 0 testes de boot/Isar degradado | testes de modo degradado (Isar indisponível) em playlists, offline, deep link e áudio; Worker com D1 fake (76); ainda 0 goldens | testes de boot com Isar abrindo (hidratação, manifest), troca de conta com Isar real, editor da lista ativa com Isar real, Worker social/audio-flags com D1 fake (84); ainda 0 goldens |
+| Sinal | Na auditoria (`6f5a181`) | Após a onda 1 (2026-09-03) | Após a onda 2 (2026-09-04, `ba3801b`) | Após a onda 3 (2026-09-11, `442eb66`) | Após a onda 4 (2026-09-12, `89f96e4`) |
+|---|---|---|---|---|---|
+| `flutter analyze` | 1 info (lint em teste) | 1 info (o mesmo) | 1 info (o mesmo) | **0** | **0** |
+| `flutter test` | **4 falhas** em 798 testes | **0 falhas** em 1076 testes | **0 falhas** em 1503 testes (+ 76 no Worker) | **0 falhas** em 1832 testes (+ 84 no Worker, `tsc` no CI) | **0 falhas** em 2146 testes (+ 96 no Worker) |
+| `flutter test --platform chrome test/web` | não medido | verde após `@TestOn('vm')` em `web_index_perf_test.dart` | verde (7) | não re-executado nesta onda | não re-executado nesta onda |
+| Cobertura | 171 arquivos de teste; 0 goldens; 0 testes de boot/Isar degradado/auth | +1 teste Chrome de provider (`test/web/pdf_reader_offline_preserved_web_test.dart`); ainda 0 goldens e 0 testes de boot/Isar degradado | testes de modo degradado (Isar indisponível) em playlists, offline, deep link e áudio; Worker com D1 fake (76); ainda 0 goldens | testes de boot com Isar abrindo (hidratação, manifest), troca de conta com Isar real, editor da lista ativa com Isar real, Worker social/audio-flags com D1 fake (84); ainda 0 goldens | `test/support` (fakes compartilhadas, `pumpApp`, overrides padrão), testes de layout largo (rail, split view, colunas), fullscreen web com porta fake, Worker links (96); ainda 0 goldens |
 
 As 4 falhas têm a mesma causa: `PdfSourceResolver` aceita `apiBaseUrl` no construtor mas o ignora, porque `_joinApiUrl` passou a chamar `AssetBaseUrlResolver.joinAssetUrl` (global) no commit `c85c567`. Ver item **B0**.
 
@@ -81,6 +81,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `lib/features/offline/domain/usecases/fetch_and_store_pdf.dart:57-84` chama `totalCachedBytes()` 3×; na web `pdf_storage_web.dart:78-90` materializa cada blob. `sumFileSizes()` via índice Isar já existe (`offline_pdf_local_datasource.dart:97-100`) e não é usado.
 - **Efeito:** com centenas de PDFs offline, abrir um PDF novo custa segundos extras.
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `8d51dfb`: `totalCachedBytes()` lê `sumFileSizes()` do índice Isar (O(1) por índice); o scan do Cache Storage fica só para a estatística por categoria e o reconcile; com Isar indisponível a quota não desaloja nada (direção segura).
 
 ### A7. Estado do player substituído a ~5 Hz e observado inteiro pelo shell
 - **Evidência:** `lib/features/audio_player/presentation/providers/audio_player_session_provider.dart:105-111` — `positionStream.listen((p) => state = state.copyWith(position: p))`; `carousel_chips.dart:48`, `audio_player_screen.dart:28` fazem `watch` total.
@@ -105,6 +106,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Fix:** `numeroNorm` pré-computado; índice em memória 1× por manifest; chunks com yield ou Web Worker se a medição justificar.
 - **Esforço:** M · **Conf.:** média (falta medição)
 - 🟡 **Fatia 1 (2026-09-11, onda 3)** — `2f19870`: `PlpcgSearchIndex` construído uma vez por manifest (`numeroNorm` pré-computado); a busca da Home roda síncrona sobre o índice, sem `compute` (no-op na web) nem cópia do catálogo por tecla. A Biblioteca continua no pipeline antigo.
+- ✅ **Fechado (2026-09-12, onda 4)** — `d38adce`: a Biblioteca não tem busca textual (só filtros), então a «fatia 2» não tinha alvo; apagados `searchLouvorByNumberOrTextProvider` e o `call()` não indexado sem chamador.
 
 ### A11. `pdfium.wasm` (5,2 MB) prefetchado logo após o 1º frame, competindo com o manifest
 - **Evidência:** `lib/features/pdf_reader/data/pdfrx_bootstrap.dart:24-28`; `connectivity_results.dart:16-24` trata web como não-medida.
@@ -122,15 +124,18 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `pdf_reader_pdf_view.dart:364-385` (`PdfViewerParams` sem `getPageRenderingScale`/`maxImageBytesCachedOnMemory`); `pdf_session_cache.dart:7`.
 - **Fix:** escala ≤ `2×dpr`, ~32 MB em `kIsWeb`, `maxSize` 2 na web.
 - **Esforço:** S · **Conf.:** média
+- ✅ **Implementado (2026-09-12, onda 4)** — `aca420f`: `getPageRenderingScale` ≤ 2 × dpr e `maxImageBytesCachedOnMemory` = 32 MiB na web (por `PlatformCapabilities`); `PdfSessionCache` com `maxSize` 2 na web e 3 no nativo.
 
 ### A14. Cifra re-layouta a música inteira a cada transposição/tamanho de fonte
 - **Evidência:** `chordpro_view.dart:69-86,110-130,167-169` — `Column` de `Wrap`, `transposeChordLabel` por célula por build.
 - **Fix:** `SliverList` por linha + memoização por `(chord, semitones, preferFlats)`.
 - **Esforço:** S–M · **Conf.:** média
+- ✅ **Implementado (2026-09-12, onda 4)** — `9500380`: corpo da cifra em `CustomScrollView` + `SliverList.builder` por linha; `TransposeLabelMemo` (`(acorde, semitons, bemóis)` → rótulo, teto 512).
 
 ### A15. Bottom nav: `TextPainter.layout()` no `build` durante animação (regressão do V2-A5)
 - **Evidência:** `plpcg_bottom_nav_bar.dart:323-329,342` (revertido em `e24aa3f`).
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `e4783f2`: largura do rótulo calculada em `initState`/`didUpdateWidget` (só quando o rótulo muda), nunca no `build`.
 
 ### A16. Bundle publica `assets/fixtures/sample.pdf` (1,95 MB) e `NOTICES` (1,45 MB)
 - **Evidência:** `pubspec.yaml:69`; único uso em `lib/` é comentário.
@@ -288,54 +293,65 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `home_search_results_sliver.dart:27-29` — `results.isEmpty → SizedBox.shrink()`; nenhuma chave l10n de "nenhum resultado" para a Home.
 - **Proposta:** mensagem + sugestões; Home sem query com "últimos abertos" e "lista ativa"; aviso "Coldigom indisponível offline".
 - **Esforço:** S / M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `b3491b4`, `87c0366`: `HomeEmptyState` — sem consulta mostra a lista ativa («Abrir no leitor») e «Abertos recentemente» (`recentlyOpenedProvider`, 8 ids em prefs, gravados pelos params do leitor e pela faixa do player); consulta sem resultado mostra «Nenhum louvor para …», dicas, «Limpar filtros» quando há filtro e aviso Coldigom offline.
 
 ### C5. Card não mostra quais materiais existem; termos casados sem destaque; "+" só aparece com PDF único
 - **Evidência:** `louvor_group_card.dart:279-288` (resumo textual), `:301-308` (`onAdd` nulo se multi-material). Sem `TextSpan` de highlight.
 - **Efeito:** montar 8 louvores na lista do culto ≈ 30 toques.
 - **Proposta:** linha de ícones (PDF · cifra · gestos · áudio · YouTube) clicáveis; "+" sempre visível adicionando o material preferido com snackbar "Trocar material".
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `485fad4`, `abeb28f`, `a47b05b`, `1055011`: `MaterialKindsRow` (ícones por tipo com contagem, toque abre o sheet) no card; «+» sempre que há material adicionável (`preferredMaterialForGroup`: PDF principal > áudio único > extra adicionável) com snackbar «Adicionado à lista · Trocar material» (troca por `replaceByKey`); `HighlightedText` destaca o termo no título com a normalização do índice.
 
 ### C6. Shell de 5 abas em desktop, com aba placeholder em posição nobre; Listas/Offline a 2 cliques
 - **Evidência:** `shell_scaffold.dart:96-102`; `app_router.dart:47-51` → `PlaceholderTabScreen('Eventos')` → "Em breve"; único breakpoint muda padding (`home_screen.dart:165`); `plpcg_bottom_nav_bar.dart:56` índices fixos.
 - **Proposta:** `LayoutBuilder` ≥ 840 px → `NavigationRail`; esconder Eventos enquanto placeholder (via feature flag, ver E7); Listas no 1º nível.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `9ded0c6`: `NavigationRail` a partir de 840 px (`kRailBreakpoint`) com as mesmas destinations derivadas das flags; bottom bar escondida nessa largura. Listas continuam no 2º nível.
 
 ### C7. Sem split view em telas largas (PDF/cifra + lista da reunião + player)
 - **Evidência:** `pdf_reader_screen.dart:333-405` e `chord_reader_screen.dart:63-137` são `Column` sem breakpoint; lista só em `AlertDialog` (`carousel_selection_sheet.dart:104`) que cobre a partitura.
 - **Proposta:** ≥ 900 px: painel lateral com a lista (item atual destacado, drag para reordenar), player compacto, "seguir áudio".
 - **Esforço:** M–L · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `4ab554a`, `cac2713`, `8772a75`: `ActiveListPanel` (extraído do diálogo de seleção, reutilizado por ele) num painel de 320 px à direita do leitor de PDF e da cifra a partir de 900 px (`ReaderSplitLayout`, preferência `readerSidePanelOpenProvider` persistida, botão na toolbar; some em fullscreen).
 
 ### C8. Leitor PDF: toggle fit-mode existe e nenhum botão o chama; fullscreen web é no-op; sem 2 páginas lado a lado; sem lembrar última página
 - **Evidência:** `pdf_reader_view_settings_provider.dart:31` (`toggleFitMode`, 0 chamadas); `reader_fullscreen_provider.dart:41-47` (só `SystemChrome`, sem Fullscreen API); `pdf_reader_pdf_view.dart:364-368` (sem spread); `reader_preferences_datasource.dart:26` (só `fitMode`).
 - **Proposta:** botão fit + tecla; `requestFullscreen()` via `package:web`; spread quando `width/height > 1.3`; `{pdfId: page}` LRU 50.
 - **Esforço:** S+S+M+S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `a3954e0`, `97366ad`, `2ab3e71`, `4d35b76`, `8e199ca`, `75f4972`, `c607f36`: botão e tecla `Z` de ajuste; fullscreen web pela Fullscreen API (`ReaderFullscreenPlatform`, escuta `fullscreenchange`); última página por PDF (LRU 50 em prefs) restaurada quando o viewer fica pronto e a rota não traz `page`; «ir para página» pelo indicador e tecla `G`; duas páginas lado a lado em viewport largo (`spreadPageLayout`, preferência «Duas páginas em tela larga»), desligado enquanto o ajuste efetivo é à largura (fullscreen/`Z`).
 
 ### C9. Leitor de cifras: sem autoscroll, capo, colunas em tela larga
 - **Evidência:** `chord_reader_screen.dart:90-130` (`SingleChildScrollView` + `Column`); grep `autoscroll|capo` vazio; `chordpro_view.dart:86` coluna única.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `dddae1b`, `78d0ce9`, `322a6de`, `d0715cd`, `f5bc42b`: autoscroll por `Ticker` (velocidade 1–5, teclas `S`, `[`, `]`; para no fim, no toque e ao trocar de louvor); duas colunas pela largura disponível (≥ 900 px e ≥ 24 linhas, corte na seção mais próxima do meio). Capo fica fora.
 
 ### C10. Transposição vaza para o próximo louvor da lista (contradiz o docstring)
 - **Evidência:** `chord_reader_mode_provider.dart:59-87` — `NotifierProvider` global, doc diz "cada abertura começa no tom original", mas ninguém chama `reset()` ao trocar de `pdfId` (só o botão, `chord_reader_screen.dart:220`); troca de louvor é `context.replace` (`carousel_chips.dart:315`).
 - **Proposta:** curto prazo `family` por `chordId`/reset em `didUpdateWidget`; médio prazo "tom escolhido" como atributo da entrada da lista (vai no share e no folheto).
 - **Esforço:** S / M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `ac76885`: `chordReaderTransposeProvider` virou família por `chordId` — cada louvor tem seu tom na sessão; abrir outro não herda.
 
 ### C11. Listas: nome da lista ativa invisível na barra; reordenar só no diálogo; exclusão sem "desfazer"; sem duplicar
 - **Evidência:** `carousel_chips.dart`/`carousel_navigator_bar.dart` não exibem `nome`; `carousel_selection_sheet.dart:108-116`; `playlist_list_tile.dart:500-507` (confirm → delete, sem undo); menu `:194-217` sem "Duplicar".
 - **Proposta:** nome editável inline à esquerda dos chips; drag & drop na própria barra com mouse; snackbar "Removida · Desfazer" (soft-delete); "Duplicar".
 - **Esforço:** M + S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `539d7a7`, `a3760cb`, `d777450`, `b3887f9`, `dfb970d`: nome da lista ativa na barra (toque renomeia; some < 480 px); apagar sem confirmação, com «Desfazer» por 5 s (exclusão adiada `PendingDelete`; `_reload` e o import ignoram a lista pendente; ativa é solta na hora e restaurada no undo); «Duplicar» (`DuplicatePlaylist`, «Nome (cópia)», sem publicação). Reordenar na barra fica fora (o painel lateral cobre).
 
 ### C12. Player sem velocidade, ±10 s, loop A–B, Espaço; marcador só com áudio pausado; posição não persiste
 - **Evidência:** `audio_transport_controls.dart` (só prev/play/next); sem `setSpeed`/loop no provider; `audio_player_screen.dart:43` — `canAddFlag = track != null && !session.playing`.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `7979eb6`, `971c863`, `86ff3a2`, `3cdb710`, `cb9ca89`, `89faa2f`, `885bf6e`, `87e3bb2`: ±10 s nos controles e teclas `J`/`L` (sem modificador, guarda de campo de texto); velocidade 0,75×–1,5× (reaplicada na troca de fila; zerada no `close`); marcador com o áudio tocando; posição gravada a cada 5 s e no pause/stop com a duração observada, retomada só no boot (não retoma a menos de 5 s do fim). Loop A–B fica fora.
 
 ### C13. Filtros nunca persistem entre sessões; Biblioteca com 10 itens por página em desktop
 - **Evidência:** `catalog_filters_provider.dart` sem `SharedPreferences`; `library_view_settings_provider.dart:25`.
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `c7b50f0`, `8622cac`: filtros de material/arranjo e itens por página persistem em prefs (URL vence quando presente; `hydrateFromUrl` sem params não apaga); Biblioteca abre com 25 por página em tela larga quando nada foi escolhido.
 
 ### C14. Título da aba do navegador fixo em "PLPCG"
 - **Evidência:** `lib/app.dart:44`; nenhum `Title(`/`onGenerateTitle`.
 - **Proposta:** `Title('$numero — $nome · PLPCG')` nos leitores e player.
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `dd2c452`: `Title` no shell — «123 — Nome · PLPCG» no leitor/cifra, faixa no player, «Aba · PLPCG» nas demais.
 
 ### C15. Strings hardcoded em PT fora do l10n; alvos de toque pequenos; sem `semanticLabel`
 - **Evidência:** `shell_scaffold.dart:48-57` (nomes das abas), `pdf_reader_screen.dart:200,211,266,370,391,413`, `plpcg_primary_app_bar.dart:35,47`, `confirm_dialog.dart:17,21`, `profile_screen.dart:62-74,157`, `deferred_route_loader.dart:71`; 27 fallbacks `?? '…'`. 8 `Semantics(`, 0 `semanticLabel`; botão limpar 24×24 (`search_bar.dart:138-141`); 10 usos de `MaterialTapTargetSize.shrinkWrap`.
@@ -345,6 +361,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 ### C16. Folheto só via Share; gesto escondido (long-press no indicador de página); sem "ir para página"
 - **Evidência:** `playlist_share_sheet.dart:54`; `pdf_reader_page_indicator.dart:40-48`.
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `4d35b76`, `fc74aac`, `f30cc59`: «ir para página» pelo indicador e tecla `G`; «Gerar folheto» direto no menu da lista salva (sem passar pelo sheet de share e sem trocar a lista ativa).
 
 ---
 
@@ -385,6 +402,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Efeito:** pausar durante o louvor em tela cheia exige duas ações.
 - **Proposta:** mini-player fino e persistente, independente da face, visível em fullscreen (mesmo padrão do FAB de sair, `pdf_reader_screen.dart:384-400`).
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `ab1eb34`, `ca0e3c7`, `1913a34`, `0fab43e`, `dc1d4f9`: `MiniPlayerBar` (44 px) no shell quando há faixa e a face de áudio não está visível, e como overlay translúcido em fullscreen sobre o leitor e a cifra (toque em área vazia passa; FAB de sair e última linha da cifra sobem); face de áudio com setas de louvor relativas à faixa tocando.
 
 ### D6. Modal "Substituir seleção?" e "Carregar no carousel" divergem de "abrir entra na lista ativa, sem modal"
 - **Evidência:** `playlist_list_tile.dart:250-260,363-376`; `app_pt.arb:370-371`. Import por deep link faz o oposto: substitui sem perguntar (`sync_deep_link_state.dart:43-44`).
@@ -396,11 +414,13 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `playlist_share_url_builder.dart:40-49`; `pdf_id_codec.dart:8-9` (base64 do path, ~60–90 chars por id); `import_shared_playlist_from_url.dart:31-41` (`create(salva: true)` sempre); dedupe só por fingerprint na sessão (`deep_link_listener.dart:76-78`).
 - **Proposta:** dedupe por hash de conteúdo; formato v2 `id:kind` (+ índice atual, tom); short link pelo Worker (`/l/ABC123`), que também é o degrau para UC-16.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `3a3710b`, `6c314a9`, `3d4ac39`, `984457b`: Worker `POST /api/links` (autenticado, reuso por `(dono, query)`, teto 100/24 h, código de 7 chars, charset validado) e `GET /l/:code` (público, 302 para `plpcg.com/?…`, `max-age` 1 h) com migration `0009_create_short_links`; o share usa o link curto quando logado e cai na URL longa em qualquer erro; importar o mesmo conteúdo não duplica a lista salva (`contentFingerprint` por `kind:id`; «Lista já estava salva»).
 
 ### D8. Folheto e "compartilhar da barra" ignoram entradas de áudio
 - **Evidência:** `playlist_share_actions_provider.dart:246-251`, `playlist_list_tile.dart:455-459`, `carousel_bar_trailing_actions.dart:183-186` — só `pdfIds`; `generate_leaflet_from_selection.dart:26-28` lança "seleção vazia" numa lista só de áudios.
 - **Proposta:** folheto consome a fila única (D2); enquanto não existir, `pdfIds ∪ audioIds` resolvidos para (numero, nome) e deduplicados por `groupId`.
 - **Esforço:** S após D2 · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `7656c6c`, `42f3273`: `GenerateLeafletFromEntries` (um só use case) resolve PDF, cifra e áudio pelo `CatalogMaterialLookup`, deduplica por `groupId`; `PlaylistShareContext.entries`; `EmptyLeafletException` no próprio feature.
 
 ### D9. Cache do leitor descartado ao sair do `/leitor`; LRU de 3 não cobre ida e volta entre 5 louvores
 - **Evidência:** `pdf_session_cache.dart:7,55-59`; `reader_adjacent_pdf_prefetch_provider.dart:37` (`autoDispose`); prefetch sem `CancelToken` nem dedupe com o download do usuário (`prefetch_adjacent_carousel_pdfs.dart:39-48`).
@@ -411,6 +431,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `carousel_chips.dart:431,453` — `onOpenPlayer: () {}`; `carousel_navigator_bar.dart:86-92` renderiza o botão.
 - **Proposta:** `null` no modo leitor, ou reaproveitar o slot como "▶ áudio deste louvor" (D1).
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-03, onda 1)** — `3a0b8bf`: o botão do modo leitor vira «tocar áudio deste louvor» (`queueForTrack`); constatado no levantamento da onda 4.
 
 ### D11. Tela `/audio` é beco sem saída e duplica a barra
 - **Evidência:** `audio_player_screen.dart:45-208` (sem lista, sem link para partitura); `shell_scaffold.dart:33-38` marca `/audio` imersiva enquanto a `CarouselAudioFaceBar` repete os mesmos controles.
@@ -454,6 +475,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 | `offline_settings_screen.dart` | 677 | controller + 5 widgets |
 | `carousel_louvor_chip.dart` | 589 | chip + `chip_parts/` |
 - **Esforço:** M por arquivo · **Risco:** baixo (widget tests existentes) · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `967a0d5`, `ed3ba4a`, `4f1cc86`: `playlist_list_tile.dart` → tile + `playlist_tile_{header,detail_chips,actions}.dart`; `offline_settings_screen.dart` → 4 widgets em `offline_settings_widgets/` (fica com 531 linhas — `_OfflineContent` ainda dentro); `carousel_louvor_chip.dart` → `chip_parts/`. Sem mudança de comportamento.
 
 ### E5. Código morto e docs desalinhadas
 - **Evidência (computado):** nunca importados: `core/constants/feature_flags.dart`, `core/constants/deep_link_config.dart`, `pdf_opening/domain/usecases/open_pdf_external.dart`, `catalog/presentation/widgets/catalog_refresh_banner.dart`, `admin/**` (`@Deprecated`), `offline/presentation/providers/offline_missing_download_provider.dart`; 19 chaves ARB sem uso; `FEATURE_INDEX.md` aponta 4 arquivos inexistentes (inclui `library_results_provider.dart` como "legado implementado"); `lib/deferred/` vazio; 3 imports `flutter_riverpod/legacy`. `WEB_PERFORMANCE_AND_LOADING.md` (Fases C e F) e `OFFLINE_PERFORMANCE_BACKLOG.md` descrevem estado que o código já não tem.
@@ -464,6 +486,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Evidência:** `feature_flags.dart:4` (não importado); `app_router.dart:47-49,126-128` sempre registra; `plpcg_bottom_nav_bar.dart:56` índices fixos; `dart_defines/*.json` só tem URLs.
 - **Refactor:** `FeatureFlags.fromEnvironment()` (`bool.fromEnvironment('FF_SOCIAL')`) → `featureFlagsProvider`; router e nav bar montam abas a partir dele; fase 2: overrides remotos via Worker `/api/config` por canal beta (TODO #2).
 - **Esforço:** S / M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `dcb2997`, `0767526`: `FeatureFlags.fromEnvironment()` (`FF_EVENTS` default false, `FF_SOCIAL` true, `FF_ADMIN_UPLOAD` false) → `featureFlagsProvider`; `appTabsFor(flags)` alimenta router e shell (índices sempre derivados); `dart_defines/*.json` com as três chaves; rota desconhecida/escondida redireciona à Home.
 
 ### E7. "Deferred loading" não existe de fato
 - **Evidência:** `app_router.dart:100-103` — único `DeferredRouteLoader` só chama `ensurePdfrxInitialized` (init de runtime); `grep 'deferred as'` = 0; Fase F foi revertida (WebKit não registra `.part.js`, `app_router.dart:34-35`).
@@ -474,6 +497,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Evidência:** `open_carousel_pdf_in_reader.dart:38-55`; exceções com `.message` fora do l10n; 55 `catch (_)`/`on Object {}` sem log (18 em presentation).
 - **Refactor:** `sealed class AppFailure {Network, Offline, NotFound, Storage, Auth, Conflict, Unknown}`; `failureMessage(l10n, f)` central; migrar primeiro `pdf_opening`/`offline`.
 - **Esforço:** M · **Conf.:** média-alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `5a07709`, `59d8561`, `e6cf45c`, `34c8913`, `a2ae708`, `2837196`: `sealed class AppFailure` (network/offline/notFound/storage/auth/conflict/unknown) com `AppFailure.from` e `failureMessage(l10n)`; catches da presentation de pdf_reader e offline migrados (sem silenciosos); `PdfExternallyDeleted` mantém texto e atalho «Baixar»; falta de espaço mantém a mensagem própria; exceções de caminho/leitura sem PT no domínio. Outros features ficam para depois.
 
 ### E9. Observabilidade zero: sem error boundary, logs por feature, `retry: null` não documentado
 - **Evidência:** `main.dart` sem `FlutterError.onError`/`PlatformDispatcher.onError`/`runZonedGuarded`; 3 utilitários de debug log locais; `main.dart:17`.
@@ -486,6 +510,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Evidência:** 48 fakes duplicados; `test/helpers/` só com 2 arquivos; cada widget test monta `MaterialApp` à mão; `test/web/chrome_smoke_test.dart` só checa `kIsWeb`; `flutter test -j 1` por causa do binário Isar.
 - **Refactor:** `test/support/` com `pumpApp`, `InMemory*Repository`, `FakeColdigomSource`, `TestProviderOverrides.standard()`; goldens para card, chip e tile.
 - **Esforço:** M · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `1ba6549`, `9e792fa`: `test/support/` com `pumpApp`, `standardTestOverrides` (prefs, Isar indisponível, opener, carousel datasource, `PlatformCapabilities`) e as 5 fakes mais duplicadas (35 arquivos migrados); 5 testes que abriam o Isar real agora pinam os overrides. Sem goldens.
 
 ### E11. Lints permissivos
 - **Evidência:** `analysis_options.yaml` = `flutter_lints` + `prefer_single_quotes` + `avoid_print`. Sem `strict-casts/inference/raw-types`, `unawaited_futures`, `cancel_subscriptions`, `always_use_package_imports` (imports mistos no mesmo arquivo, ex. `louvor_group.dart:1-9`).
@@ -500,6 +525,7 @@ Fatos medidos: 16 features; 180 providers (0 codegen); `pdfId` aparece 198× em 
 - **Evidência:** `audio_player_session_provider.dart:138,157,213,246`, `playlist_sync_lifecycle.dart:61`, `deep_link_listener.dart:52`; sufixos `_stub`/`_native`/`_io` misturados.
 - **Refactor:** `PlatformCapabilities {supportsBackgroundAudio, needsUserGestureForAudio, supportsFileSave, …}` via conditional import + provider overridável (plugins metrônomo/afinador vão depender disso).
 - **Esforço:** S · **Conf.:** alta
+- ✅ **Implementado (2026-09-12, onda 4)** — `bb7717d`, `76810ee`: `PlatformCapabilities {isWeb, supportsBackgroundAudio, needsUserGestureForAudio, supportsFileSave, supportsFullscreenApi}` por conditional import + `platformCapabilitiesProvider`; zero `kIsWeb` na presentation. Sufixos de arquivo não renomeados.
 
 ### E14. Convenções: pt/en misturado na mesma classe; `pdfId` para ids que não são PDF; estrutura por feature desigual
 - **Evidência:** `SavedPlaylist { nome, salva, favorita, updatedAt, syncStatus }`; `auth`, `audio_player`, `social`, `coldigom` sem use cases; `ports/` vs `repositories/` para o mesmo conceito.
@@ -727,3 +753,63 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 2. **D7/D8:** encurtador de link e folheto com entradas de áudio.
 3. **Performance restante:** A6 (quota web), A9 (PWA shell cache — depende de decisão de CDN), A13 (teto de raster), A14 (cifra), A10 fatia 2 (Biblioteca sobre o índice).
 4. **Arquitetura:** E4 (god files), E6 (feature flags), E8 (`Failure`/`Result`), E10 (fakes compartilhados, goldens), E12/E13.
+
+## K. Onda 4 executada (2026-09-11 → 2026-09-12)
+
+**Branch:** `web/integration` @ `89f96e4` (77 commits sobre `01f2c1b`). **Spec:** `docs/superpowers/specs/2026-09-11-onda4-web-design.md` · **Plano:** `docs/superpowers/plans/2026-09-11-onda4-web.md` (17 tarefas em três fases, subagents em worktrees, revisão por tarefa, revisão final da branch e uma onda de correções).
+
+### K.1 O que entrou, por item
+
+| Item | Commits | Resultado |
+|---|---|---|
+| D5 + C14 (mini-player, título) | `ab1eb34`, `ca0e3c7`, `1913a34`, `dd2c452`, `0fab43e`, `dc1d4f9` | mini-player persistente no shell e overlay em fullscreen; setas de louvor na face de áudio; `<title>` por rota |
+| C8 + C16 (leitor) | `a3954e0`, `97366ad`, `2ab3e71`, `4d35b76`, `8e199ca`, `75f4972`, `c607f36`, `9427f8b` | ajuste (`Z`), fullscreen web, última página, ir para página (`G`), spread em viewport largo |
+| C9 + C10 + A14 (cifra) | `ac76885`, `9500380`, `dddae1b`, `78d0ce9`, `322a6de`, `d0715cd`, `f5bc42b` | tom por louvor, sliver + memo, autoscroll, duas colunas pela largura disponível |
+| C7 (split view) | `4ab554a`, `cac2713`, `8772a75` | `ActiveListPanel` no leitor e na cifra a partir de 900 px |
+| C4 (Home) | `b3491b4`, `87c0366`, `a6c6084` | estados vazios com lista ativa, recentes, «sem resultados», Coldigom offline |
+| C5 (card) | `485fad4`, `abeb28f`, `a47b05b`, `1055011` | ícones de material, «+» sempre com troca, destaque do termo |
+| C11 + C16 (listas) | `539d7a7`, `a3760cb`, `d777450`, `b3887f9`, `fc74aac`, `f30cc59`, `dfb970d` | nome na barra, apagar com desfazer, duplicar, folheto direto |
+| C12 (player) | `7979eb6`, `971c863`, `86ff3a2`, `3cdb710`, `cb9ca89`, `89faa2f`, `885bf6e`, `87e3bb2` | ±10 s (`J`/`L`), velocidade, marcador tocando, posição retomada |
+| C13 + A6 + A15 + A10 | `c7b50f0`, `8622cac`, `8d51dfb`, `e4783f2`, `d38adce` | filtros e página persistidos; quota pelo índice; nav memoizada; busca morta apagada |
+| D7 (link curto, dedupe) | `3a3710b`, `6c314a9`, `3d4ac39`, `984457b` | Worker `short_links` (migration `0009`), share com link curto, import sem duplicar |
+| D8 (folheto) | `7656c6c`, `42f3273` | folheto por entradas, com áudio |
+| E6 + C6 (flags, rail) | `dcb2997`, `9ded0c6`, `0767526` | flags por `dart-define`, abas derivadas, `NavigationRail` ≥ 840 px, redirect de rota escondida |
+| E8 (`AppFailure`) | `5a07709`, `59d8561`, `e6cf45c`, `34c8913`, `a2ae708`, `dcacdbc`, `2837196` | falhas tipadas e mensagem central em pdf_reader e offline |
+| E13 (`PlatformCapabilities`) | `bb7717d`, `76810ee` | zero `kIsWeb` na presentation |
+| E4 (splits) | `967a0d5`, `ed3ba4a`, `4f1cc86` | tile, tela offline e chip em partes |
+| A13 (raster) | `aca420f` | teto de raster e cache 2 na web |
+| E10 (`test/support`) | `1ba6549`, `9e792fa` | fakes compartilhadas, `pumpApp`, overrides padrão, testes pinados ao Isar fake |
+
+### K.2 Decisões tomadas durante a execução (para revisar)
+
+- **Última página lembrada** (C8): quem volta a um louvor cai na página em que parou; o indicador mostra «n/N» e o long-press volta à primeira.
+- **Spread desligado no ajuste à largura** (C8): pdfrx 2.4.4 não ajusta a uma região; em fullscreen e com `Z` o leitor volta a uma página por linha.
+- **Apagar lista sem confirmação, com «Desfazer» por 5 s** (C11): exclusão adiada; fechar a aba nos 5 s cancela a exclusão (nada se perde).
+- **Link curto**: criação só autenticada com teto de 100/24 h por conta; `GET /l/:code` público e cacheável, sem rate limit; a URL longa continua com os três parâmetros.
+- **Dedupe do import** por conteúdo (`kind:id` na ordem), ignorando o nome.
+- **`FF_EVENTS=false`** esconde a aba «Eventos» (placeholder «Em breve») até a feature existir — não é o «Modo Culto» descartado; rotas escondidas redirecionam à Home.
+- **Face de áudio**: a posição corrente é a faixa tocando (não o foco da face de partituras); as setas navegam relativas a ela.
+- **«Gerar folheto» do menu da lista** não troca a lista ativa.
+- **Marcador com o áudio tocando**: posição do toque, sem exigir pausa.
+- **Tom por louvor na sessão** (C10): voltar ao mesmo louvor mantém o tom; sem persistência.
+- **Trailer dos commits dos agentes**: `Co-Authored-By: Claude Sonnet 5` (modelo que os escreveu), mantido.
+- Fora desta onda por decisão: capo, loop A–B, reordenar na barra, mover Listas ao 1º nível, goldens, renomear sufixos `_stub`/`_io`, A9 (SW próprio — decisão de CDN), A16, E12 (separar publicação), C15.
+
+### K.3 Pendências conhecidas (não bloqueiam)
+
+- **Leitor:** `applyInitialFit` continua sendo re-aplicado a cada troca de página (comportamento antigo); navegação por página com spread avança uma página por vez; `_HoverFade` do overlay sem teste de hit-test; `readerCarouselPositionProvider` não é autoDispose.
+- **Cifra:** `stop()` adiado do autoscroll pode cancelar um reinício no mesmo frame (token de geração); `chord_reader_screen.dart` com 616 linhas.
+- **Listas:** chip do nome observa a entidade inteira; renomear rascunho não muda o rótulo «Rascunho»; `duplicate` recebe `copyName` do tile.
+- **Player:** `audioPlayerPositionProvider.duration` não é zerado numa troca dentro da fila (UI pode mostrar a duração anterior por um tick); `setSpeed` grava o estado antes do player; `MediaSessionPositionThrottle` reutilizado para o store com o nome antigo.
+- **Home/card:** `record()` de recentes grava mesmo sem mudança; com remoto falho aparecem a linha «Coldigom indisponível · tentar de novo» e o aviso do estado vazio (checar com produto); ordem de ícones testada sem gestos/YouTube.
+- **Worker:** sem rate limit no `GET /l/:code`; `tsconfig` não cobre testes.
+- **Arquitetura:** `generate_leaflet_from_entries.dart` (domínio) importa o tipo do lookup da presentation; `reader_split_layout.dart` em `core` importa providers do pdf_reader; `offline_settings_screen.dart` (531) e `playlist_tile_actions.dart` (425) ainda grandes; ciclo de import entre `metadata_row.dart` e `carousel_louvor_chip.dart` por duas constantes; `offlineMissingDownloadProvider` e `LeafletDocument.fromPdfIds` mortos; `InvalidPdfPathException` cai na mensagem genérica do leitor; `_tabLabel` do shell com literais PT (convenção antiga da nav); `Title` re-enviado a cada rebuild do shell; `.gitignore` `test/**/failures/` esconderia um futuro `test/unit/core/failures/`.
+- **Testes:** `standardTestOverrides` omite prefs quando `null`; `pumpApp` criado mas não adotado; `playlist_add_dedupe_test` e `reconcile_offline_index_benchmark_test` sensíveis à carga (o primeiro agora pinado ao Isar fake).
+- **Deploy:** migration `0009_create_short_links.sql` **precisa ser aplicada** e o Worker publicado antes do web app (`wrangler.jsonc` ganhou as rotas `plpcg.com/l/*` e `plpcg.com/api/links*`); `dart_defines/*.json` ganharam `FF_EVENTS`/`FF_SOCIAL`/`FF_ADMIN_UPLOAD` (o build de produção esconde «Eventos»).
+
+### K.4 Próxima onda recomendada
+
+1. **Validação em culto:** uma passada manual no navegador do que só o olho pega — fullscreen com mini-player e FAB, spread em projetor, última página, split view a 900–1200 px, autoscroll da cifra, link curto de ponta a ponta (depois de aplicar a migration).
+2. **Sobras de UX:** C15 (varredura l10n/toque/semântica), capo e loop A–B se houver demanda, reordenar no painel com mouse, `pumpApp` nos testes existentes.
+3. **Arquitetura:** E8 nos demais features (catalog, playlists, audio), E12 (separar publicação), E5 (mortos listados em K.3), remoção do `applyInitialFit` por página.
+4. **Performance:** A9 (SW próprio) depois da decisão de CDN; A16 se o artefato de deploy importar.
