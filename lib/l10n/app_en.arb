@@ -287,10 +287,18 @@
   "carouselClearDeleteList": "Delete list",
   "carouselAdded": "Added to selection",
   "carouselAlreadyAdded": "Already in selection",
-  "materialAddAgain": "Add again",
-  "@materialAddAgain": {
-    "description": "Trailing action of the material sheet when the material is already in the active list — adds a second occurrence"
+  "materialRemoveTooltip": "Remove from list",
+  "@materialRemoveTooltip": {
+    "description": "Tooltip of the × trailing the material sheet row when the material is already in the active list"
   },
+  "materialRemoveConfirmTitle": "Remove from list?",
+  "materialRemoveConfirmMessage": "“{name}” will leave the active list.",
+  "@materialRemoveConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "materialRemoved": "Removed from list",
   "carouselRemoveTooltip": "Remove",
   "carouselAddTooltip": "Add to selection",
   "carouselSharePlaylist": "Share",

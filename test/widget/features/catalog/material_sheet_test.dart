@@ -1,4 +1,5 @@
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -112,11 +113,18 @@ class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
 
 /// Registra cada `addToActive` do sheet — o `+` passa pelo editor (B.3).
 class _RecordingActiveEditor extends ActivePlaylistEditor {
-  _RecordingActiveEditor({this.outcome = AddToActiveOutcome.added});
+  _RecordingActiveEditor({
+    this.outcome = AddToActiveOutcome.added,
+    this.removeThrows = false,
+  });
 
   /// O que o editor responde — o sheet só traduz o resultado em snackbar.
   final AddToActiveOutcome outcome;
+
+  /// `removeById` sem storage: lança como o editor real.
+  final bool removeThrows;
   final List<({String id, MaterialKind? kind, bool allowDuplicate})> added = [];
+  final List<String> removed = [];
 
   @override
   List<PlaylistEntry>? build() => null;
@@ -129,6 +137,12 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
   }) async {
     added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
     return outcome;
+  }
+
+  @override
+  Future<void> removeById(String materialId) async {
+    if (removeThrows) throw const StorageUnavailableException('teste');
+    removed.add(materialId);
   }
 }
 
@@ -698,7 +712,7 @@ void main() {
       expect(find.text('Playback'), findsOneWidget);
     });
 
-    testWidgets('material já na lista mostra «Adicionar de novo» e repete', (
+    testWidgets('material já na lista mostra × e remove após confirmar', (
       tester,
     ) async {
       final editor = _RecordingActiveEditor();
@@ -720,14 +734,86 @@ void main() {
       );
 
       expect(find.byType(CarouselLouvorAddButton), findsNothing);
-      expect(find.text('Adicionar de novo'), findsOneWidget);
+      expect(find.text('Adicionar de novo'), findsNothing);
+      expect(find.byTooltip('Remover da lista'), findsOneWidget);
 
-      await tester.tap(find.text('Adicionar de novo'));
+      await tester.tap(find.byTooltip('Remover da lista'));
       await tester.pumpAndSettle();
 
-      expect(editor.added, [
-        (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: true),
-      ]);
+      expect(find.text('Remover da lista?'), findsOneWidget);
+      expect(find.text('«Partitura» sai da lista ativa.'), findsOneWidget);
+
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(editor.removed, ['pdf1']);
+      expect(editor.added, isEmpty);
+      expect(find.text('Removido da lista'), findsOneWidget);
+    });
+
+    testWidgets('cancelar a confirmação não remove nada', (tester) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      await tester.tap(find.byTooltip('Remover da lista'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(editor.removed, isEmpty);
+      expect(find.text('Remover da lista?'), findsNothing);
+      // O sheet continua aberto, com o × no lugar.
+      expect(find.byTooltip('Remover da lista'), findsOneWidget);
+    });
+
+    testWidgets('remover sem storage vira a snackbar de storage', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor(removeThrows: true);
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      await tester.tap(find.byTooltip('Remover da lista'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Removido da lista'), findsNothing);
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsOneWidget,
+      );
     });
 
     // A8: enquanto o Isar ainda **abre** (web fria), o `+` não pré-julga o

@@ -251,6 +251,40 @@ void main() {
     expect((await repository.getById('p1'))!.items, [_pdfA, _pdfB]);
   });
 
+  test('removeById remove todas as ocorrências do material', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+      ],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
+
+    await c.read(activePlaylistEditorProvider.notifier).removeById(_pdfA);
+    await _flush();
+
+    expect((await repository.getById('p1'))!.items, [_pdfB]);
+  });
+
+  test('removeById de material ausente não grava nada', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
+
+    await c.read(activePlaylistEditorProvider.notifier).removeById(_pdfC);
+    await _flush();
+
+    expect((await repository.getById('p1'))!.items, [_pdfA]);
+  });
+
   test('replaceByKey troca na mesma posição', () async {
     await repository.create(
       nome: 'Ativa',

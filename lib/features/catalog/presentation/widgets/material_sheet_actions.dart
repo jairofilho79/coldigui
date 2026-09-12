@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -14,26 +13,31 @@ bool canAddMaterialToPlaylist(CatalogMaterial material) {
   return material is PdfMaterial || material is AudioMaterial;
 }
 
-/// Trailing `+` / spinner / «Adicionar de novo» de uma linha do sheet.
+/// Trailing `+` / spinner / `×` de uma linha do sheet.
 ///
-/// Com [isAdded] a linha deixa de ser um ✓ morto: a lista ativa aceita
-/// repetição (B.1), então o material já presente ganha a ação
-/// «Adicionar de novo» — o ✓ fica como sinal de que ele já está lá.
+/// Com [isAdded] a linha vira um `×` que tira o material da lista: o ✓ com
+/// «Adicionar de novo» repetia a entrada sem que ninguém quisesse (onda 4.4),
+/// e a repetição continua possível pela própria lista. A remoção pede
+/// confirmação — isso é do chamador, em [onRemove].
 class MaterialAddTrailing extends StatelessWidget {
   const MaterialAddTrailing({
     required this.isAdded,
     required this.isAdding,
     required this.onAdd,
-    required this.addAgainLabel,
+    required this.onRemove,
+    required this.removeTooltip,
     super.key,
   });
 
   final bool isAdded;
+
+  /// Escrita em voo (adição ou remoção): vira spinner.
   final bool isAdding;
   final VoidCallback onAdd;
+  final VoidCallback onRemove;
 
-  /// Rótulo de «Adicionar de novo» (`l10n.materialAddAgain`).
-  final String addAgainLabel;
+  /// Tooltip do `×` (`l10n.materialRemoveTooltip`).
+  final String removeTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -48,21 +52,11 @@ class MaterialAddTrailing extends StatelessWidget {
       );
     }
     if (isAdded) {
-      return TextButton.icon(
-        onPressed: onAdd,
-        icon: const Icon(Icons.check, size: 16, color: AppColors.title),
-        label: Text(addAgainLabel),
-        style: TextButton.styleFrom(
-          foregroundColor: AppColors.title,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-          textStyle: AppTypography.label.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      return IconButton(
+        onPressed: onRemove,
+        tooltip: removeTooltip,
+        icon: const Icon(Icons.close, color: AppColors.title),
+        visualDensity: VisualDensity.compact,
       );
     }
     return CarouselLouvorAddButton(onPressed: onAdd);

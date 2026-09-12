@@ -296,10 +296,18 @@
   "carouselClearDeleteList": "Apagar lista",
   "carouselAdded": "Adicionado à seleção",
   "carouselAlreadyAdded": "Já está na seleção",
-  "materialAddAgain": "Adicionar de novo",
-  "@materialAddAgain": {
-    "description": "Ação no trailing do sheet de materiais quando o material já está na lista ativa — adiciona uma segunda ocorrência"
+  "materialRemoveTooltip": "Remover da lista",
+  "@materialRemoveTooltip": {
+    "description": "Tooltip do × no trailing do sheet de materiais quando o material já está na lista ativa"
   },
+  "materialRemoveConfirmTitle": "Remover da lista?",
+  "materialRemoveConfirmMessage": "«{name}» sai da lista ativa.",
+  "@materialRemoveConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "materialRemoved": "Removido da lista",
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
   "carouselSharePlaylist": "Compartilhar",

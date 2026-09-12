@@ -489,7 +489,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselAlreadyAdded => 'Já está na seleção';
 
   @override
-  String get materialAddAgain => 'Adicionar de novo';
+  String get materialRemoveTooltip => 'Remover da lista';
+
+  @override
+  String get materialRemoveConfirmTitle => 'Remover da lista?';
+
+  @override
+  String materialRemoveConfirmMessage(String name) {
+    return '«$name» sai da lista ativa.';
+  }
+
+  @override
+  String get materialRemoved => 'Removido da lista';
 
   @override
   String get carouselRemoveTooltip => 'Remover';

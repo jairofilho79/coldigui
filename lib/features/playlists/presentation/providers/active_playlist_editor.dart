@@ -202,6 +202,32 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     }
   }
 
+  /// Remove **todas** as ocorrências de [materialId] da lista ativa.
+  ///
+  /// É o `×` do sheet de materiais: ele só sabe que o material «está na
+  /// lista» (por id, não por chave), então tirar dali significa que o ✓ some
+  /// — inclusive quando o material foi repetido. Lança
+  /// [StorageUnavailableException] como [removeByKey].
+  Future<void> removeById(String materialId) async {
+    await _settlePendingReorder();
+    final activeId = ref.read(activePlaylistIdProvider);
+    if (activeId == null) return;
+    final entries = _entries;
+    final next = [
+      for (final entry in entries)
+        if (entry.id != materialId) entry,
+    ];
+    if (next.length == entries.length) return;
+
+    // Mesmo override otimista de removeByKey.
+    state = next;
+    try {
+      await _persistEntries(activeId, next);
+    } finally {
+      if (ref.mounted) state = null;
+    }
+  }
+
   /// Troca a entrada de chave [key] por [replacement], na mesma posição.
   ///
   /// Devolve `false` se a chave não existe na lista ativa.

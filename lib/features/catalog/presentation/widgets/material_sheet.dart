@@ -3,11 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
@@ -108,10 +112,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     });
   }
 
-  Future<void> _handleAdd(
-    CatalogMaterial material, {
-    bool allowDuplicate = false,
-  }) async {
+  Future<void> _handleAdd(CatalogMaterial material) async {
     if (_addingId != null) return;
 
     setState(() => _addingId = material.id);
@@ -120,8 +121,33 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         context: context,
         ref: ref,
         material: material,
-        allowDuplicate: allowDuplicate,
       );
+    } finally {
+      if (mounted) setState(() => _addingId = null);
+    }
+  }
+
+  /// `×` da linha: confirma e tira [material] da lista ativa (todas as
+  /// ocorrências — o sheet só sabe que ele «está lá», por id).
+  Future<void> _handleRemove(CatalogMaterial material) async {
+    if (_addingId != null) return;
+    final l10n = AppLocalizations.of(context)!;
+
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: l10n.materialRemoveConfirmTitle,
+      message: l10n.materialRemoveConfirmMessage(material.categoria),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _addingId = material.id);
+    try {
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .removeById(material.id);
+      if (mounted) showAppSnackbar(context, l10n.materialRemoved);
+    } on StorageUnavailableException {
+      if (mounted) showAppSnackbar(context, l10n.playlistStorageUnavailable);
     } finally {
       if (mounted) setState(() => _addingId = null);
     }
@@ -175,11 +201,12 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       trailing: showAdd
           ? MaterialAddTrailing(
               // As duas faces são a mesma lista (B.1): áudio já adicionado
-              // também mostra o ✓ e «Adicionar de novo».
+              // também mostra o × de remover.
               isAdded: isAdded,
               isAdding: _addingId == material.id,
-              addAgainLabel: l10n.materialAddAgain,
-              onAdd: () => _handleAdd(material, allowDuplicate: isAdded),
+              removeTooltip: l10n.materialRemoveTooltip,
+              onAdd: () => _handleAdd(material),
+              onRemove: () => _handleRemove(material),
             )
           : null,
       onTap: () => _handleTap(material),

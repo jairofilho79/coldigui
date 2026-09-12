@@ -839,11 +839,29 @@ abstract class AppLocalizations {
   /// **'Já está na seleção'**
   String get carouselAlreadyAdded;
 
-  /// Ação no trailing do sheet de materiais quando o material já está na lista ativa — adiciona uma segunda ocorrência
+  /// Tooltip do × no trailing do sheet de materiais quando o material já está na lista ativa
   ///
   /// In pt, this message translates to:
-  /// **'Adicionar de novo'**
-  String get materialAddAgain;
+  /// **'Remover da lista'**
+  String get materialRemoveTooltip;
+
+  /// No description provided for @materialRemoveConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover da lista?'**
+  String get materialRemoveConfirmTitle;
+
+  /// No description provided for @materialRemoveConfirmMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'«{name}» sai da lista ativa.'**
+  String materialRemoveConfirmMessage(String name);
+
+  /// No description provided for @materialRemoved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Removido da lista'**
+  String get materialRemoved;
 
   /// No description provided for @carouselRemoveTooltip.
   ///
