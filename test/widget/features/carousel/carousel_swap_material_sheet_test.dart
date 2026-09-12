@@ -284,6 +284,8 @@ void main() {
 
     final harness = await _pumpSwapSheet(tester, group: group);
 
+    await tester.tap(find.text('Cifras'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Cifra I'));
     await tester.pumpAndSettle();
 
@@ -302,6 +304,8 @@ void main() {
 
     final harness = await _pumpSwapSheet(tester, group: group);
 
+    await tester.tap(find.text('Áudio'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Instrumental'));
     await tester.pumpAndSettle();
 

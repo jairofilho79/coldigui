@@ -249,11 +249,9 @@ void main() {
       expect(find.text('Cifra'), findsOneWidget);
     });
 
-    // D.6: um bloco não é uma seção de PDF. Uma seção **mais** o bloco de
-    // cifras já são dois blocos, e o rótulo é o que diz onde os PDFs acabam.
-    testWidgets('uma seção de PDF com cifras mostra os dois rótulos', (
-      tester,
-    ) async {
+    // Dois tipos → abas «Partituras» | «Cifras»; a seção única de PDF não
+    // ganha rótulo (a aba já diz o que é).
+    testWidgets('uma seção de PDF com cifras vira duas abas', (tester) async {
       final group = LouvorGroup(
         groupId: 'g1',
         numero: '692',
@@ -270,8 +268,31 @@ void main() {
         overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
       );
 
-      expect(find.text('Básico'), findsOneWidget);
+      expect(find.text('Básico'), findsNothing);
+      expect(find.text('Partituras'), findsOneWidget);
       expect(find.text('Cifras'), findsOneWidget);
+      expect(find.text('Partitura'), findsOneWidget);
+      expect(find.text('Cifra I'), findsNothing);
+
+      await tester.tap(find.text('Cifras'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cifra I'), findsOneWidget);
+      expect(find.text('Partitura'), findsNothing);
+    });
+
+    testWidgets('seção sem classificação usa «Partituras» como rótulo', (
+      tester,
+    ) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1', classificacao: ''),
+        _pdf(categoria: 'Cifra', pdfId: 'pdf2', classificacao: 'Fox'),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Fox'), findsOneWidget);
     });
 
     // Praise Coldigom de seção única sem cifra/áudio/YouTube: um bloco só.
@@ -287,6 +308,7 @@ void main() {
       await _pumpSheet(tester, group: group);
 
       expect(find.text('Básico'), findsNothing);
+      expect(find.text('Partituras'), findsNothing);
       expect(find.text('Cifras'), findsNothing);
       expect(find.text('Áudio'), findsNothing);
       expect(find.text('YouTube'), findsNothing);
@@ -310,15 +332,21 @@ void main() {
       );
 
       expect(find.text('YouTube'), findsOneWidget);
+      // PDF tem botão +; a aba de YouTube nem tile com + tem.
+      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
+      expect(find.text('Gestos CIAs'), findsNothing);
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Gestos CIAs'), findsOneWidget);
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
 
       final youtubeIcon = tester.widget<Icon>(
         find.byIcon(LouvorMaterialIcons.youtube),
       );
       expect(youtubeIcon.color, AppColors.youtube);
 
-      // PDF tem botão +; tile YouTube não.
-      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
       final youtubeTile = tester.widget<ListTile>(
         find.widgetWithText(ListTile, 'Gestos CIAs'),
       );
@@ -333,7 +361,7 @@ void main() {
   });
 
   group('cabeçalho Coldigom', () {
-    testWidgets('meta, número separado do nome e listas por tipo', (
+    testWidgets('meta, número separado do nome e abas por tipo', (
       tester,
     ) async {
       final group = LouvorGroup.fromLouvores(
@@ -370,12 +398,11 @@ void main() {
       expect(find.text('Tom'), findsOneWidget);
       expect(find.text('Dm'), findsOneWidget);
       expect(find.text('Autor'), findsOneWidget);
-      // Duas vezes: autor no bloco de meta e subtítulo da faixa de áudio.
-      expect(find.text('CIAS'), findsNWidgets(2));
+      expect(find.text('CIAS'), findsOneWidget);
       expect(find.text('Ritmo'), findsOneWidget);
-      // Duas vezes: o ritmo no bloco de meta e o rótulo da seção de PDF, que
-      // agora aparece porque o grupo tem mais de um bloco (D.6).
-      expect(find.text('Básico'), findsNWidgets(2));
+      // Só no bloco de meta: a seção única de PDF não ganha rótulo, a aba
+      // «Partituras» já diz o que é.
+      expect(find.text('Básico'), findsOneWidget);
       expect(find.text('Categoria'), findsOneWidget);
       expect(find.text('Clamor'), findsOneWidget);
       expect(find.text('PES'), findsOneWidget);
@@ -384,11 +411,27 @@ void main() {
       // Título concatenado antigo do sheet PLPCG não existe.
       expect(find.text('692 — Comigo habita'), findsNothing);
 
+      // Abas: PDF aberta, as outras só com o rótulo.
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
       expect(find.text('Partitura'), findsOneWidget);
       expect(find.text('Cifra I'), findsOneWidget);
-      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('Playback'), findsNothing);
+      expect(find.text('Gestos CIAs'), findsNothing);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Partitura'), findsNothing);
       expect(find.text('Playback'), findsOneWidget);
-      expect(find.text('YouTube'), findsOneWidget);
+      // Autor no bloco de meta e no subtítulo da faixa.
+      expect(find.text('CIAS'), findsNWidgets(2));
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Playback'), findsNothing);
       expect(find.text('Gestos CIAs'), findsOneWidget);
     });
 
@@ -432,7 +475,8 @@ void main() {
         ],
       );
 
-      expect(find.text('Cifras'), findsOneWidget);
+      // Tipo único: sem abas nem rótulo.
+      expect(find.text('Cifras'), findsNothing);
       expect(find.text('Cifra I'), findsOneWidget);
       expect(find.text('Cifra II'), findsNothing);
     });
@@ -518,8 +562,7 @@ void main() {
           ],
         );
 
-        // Erro não some com a seção: a linha de retry ocupa o lugar da cifra.
-        expect(find.text('Cifras'), findsOneWidget);
+        // Erro não some com a lista: a linha de retry ocupa o lugar da cifra.
         expect(
           find.text('Cifra indisponível · tentar de novo'),
           findsOneWidget,
@@ -549,6 +592,11 @@ void main() {
       await _pumpSheet(tester, group: group, opener: opener);
 
       expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('Playback'), findsNothing);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Playback'), findsOneWidget);
       expect(find.text('CIAS'), findsOneWidget);
 
@@ -590,6 +638,8 @@ void main() {
 
       await _pumpSheet(tester, group: group, opener: opener);
 
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Instrumental'));
       await tester.pumpAndSettle();
 
@@ -625,24 +675,27 @@ void main() {
 
       await _pumpSheet(tester, group: group, editor: () => editor);
 
-      expect(find.byType(CarouselLouvorAddButton), findsNWidgets(2));
+      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
 
-      await tester.tap(find.byType(CarouselLouvorAddButton).first);
+      await tester.tap(find.byType(CarouselLouvorAddButton));
       await tester.pumpAndSettle();
       expect(editor.added, [
         (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: false),
       ]);
 
-      await tester.tap(find.byType(CarouselLouvorAddButton).last);
+      // O + não fecha o sheet.
+      expect(find.text('Partitura'), findsOneWidget);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CarouselLouvorAddButton));
       await tester.pumpAndSettle();
       expect(editor.added.last, (
         id: 'audio1',
         kind: MaterialKind.audio,
         allowDuplicate: false,
       ));
-
-      // O + não fecha o sheet.
-      expect(find.text('Partitura'), findsOneWidget);
+      expect(find.text('Playback'), findsOneWidget);
     });
 
     testWidgets('material já na lista mostra «Adicionar de novo» e repete', (
@@ -749,6 +802,9 @@ void main() {
         playlists: _RecordingPlaylistsNotifier.new,
       );
 
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
       expect(find.byType(CarouselLouvorAddButton), findsNothing);
     });
   });

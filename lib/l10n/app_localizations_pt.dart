@@ -696,6 +696,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioPlayerTitle => 'Áudio';
 
   @override
+  String get pdfMaterialSection => 'Partituras';
+
+  @override
   String get audioMaterialSection => 'Áudio';
 
   @override

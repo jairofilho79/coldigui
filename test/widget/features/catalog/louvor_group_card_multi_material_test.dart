@@ -151,7 +151,9 @@ void main() {
 
       expect(find.byType(MaterialSheet), findsOneWidget);
 
-      // O sheet repete o rótulo no cabeçalho da seção e na linha do material.
+      // A aba «Áudio» primeiro; a faixa tem a mesma categoria «Áudio».
+      await tester.tap(find.text('Áudio').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Áudio').last);
       await tester.pumpAndSettle();
 

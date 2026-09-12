@@ -402,6 +402,7 @@
   },
   "playlistAudioEmpty": "This playlist has no audio tracks.",
   "audioPlayerTitle": "Audio",
+  "pdfMaterialSection": "Sheet music",
   "audioMaterialSection": "Audio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Chords",

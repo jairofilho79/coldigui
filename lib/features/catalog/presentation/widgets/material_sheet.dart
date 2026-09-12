@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
@@ -22,9 +23,10 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 /// Sheet único de escolha de material — PLPCG e Coldigom.
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
-/// deixou de decidir o layout. O grupo é renderizado sempre igual (seções de
-/// PDF, depois [LouvorGroup.extras] por tipo) e o cabeçalho de metadados
-/// aparece quando o grupo tem [LouvorGroup.coldigomMeta].
+/// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
+/// tipo presente (PDF, cifras, áudio, YouTube) quando há mais de um, senão a
+/// lista direta — e o cabeçalho de metadados aparece quando o grupo tem
+/// [LouvorGroup.coldigomMeta].
 ///
 /// [canAddToPlaylist] `false` esconde os `+` — é o caso da troca de material no
 /// leitor, onde o louvor já está na lista.
@@ -86,6 +88,9 @@ class MaterialSheet extends ConsumerStatefulWidget {
 
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   String? _addingId;
+
+  /// Aba escolhida; null = a primeira presente.
+  MaterialKind? _selectedKind;
 
   void _handleTap(CatalogMaterial material) {
     Navigator.of(context).pop();
@@ -204,16 +209,24 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
 
-    // D.6: um rótulo só não separa nada, mas «um bloco» não é «uma seção de
-    // PDF». Um louvor com uma seção **e** cifras já tem dois blocos, e o
-    // rótulo da seção é o que diz onde os PDFs acabam. Contam-se todos:
-    // seções de PDF + cifra + áudio + YouTube.
-    final blockCount =
-        group.sections.length +
-        (availableChords.isNotEmpty || chordsAsync.hasError ? 1 : 0) +
-        (audioTracks.isNotEmpty ? 1 : 0) +
-        (youtubeMaterials.isNotEmpty ? 1 : 0);
-    final showSectionLabels = blockCount > 1;
+    // Abas por tipo (PDF / Cifras / Áudio / YouTube) só quando há mais de um
+    // tipo — com 17 PDFs e 14 áudios a lista corrida escondia o áudio no fim
+    // (onda 4.3). Dentro da aba de PDF as seções por classificação continuam
+    // separadas por rótulo quando há mais de uma.
+    final kinds = <MaterialKind>[
+      if (group.totalPdfs > 0) MaterialKind.pdf,
+      if (availableChords.isNotEmpty || chordsAsync.hasError)
+        MaterialKind.chord,
+      if (audioTracks.isNotEmpty) MaterialKind.audio,
+      if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
+    ];
+    final showSegments = kinds.length > 1;
+    // Aba escolhida que sumiu (cifras que deixaram de carregar) cai na
+    // primeira em vez de deixar a lista vazia.
+    final selectedIndex = kinds.indexOf(_selectedKind ?? MaterialKind.pdf);
+    final selectedKind = kinds.isEmpty
+        ? null
+        : kinds[selectedIndex < 0 ? 0 : selectedIndex];
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
@@ -241,55 +254,30 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ],
             const SizedBox(height: 12),
             const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
+            if (showSegments) ...[
+              const SizedBox(height: 12),
+              _KindSegmentBar(
+                labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
+                selectedIndex: kinds.indexOf(selectedKind!),
+                onSelected: (index) {
+                  setState(() => _selectedKind = kinds[index]);
+                },
+              ),
+            ],
             const SizedBox(height: 8),
             Expanded(
               child: ListView(
-                children: [
-                  for (final section in group.sections) ...[
-                    if (showSectionLabels) _sectionLabel(section.displayLabel),
-                    for (final entry in section.materials)
-                      _materialTile(
-                        material: PdfMaterial(entry.louvor),
-                        icon: LouvorMaterialIcons.forEntry(entry),
-                        iconColor: AppColors.title,
-                        activeMaterialIds: activeMaterialIds,
-                        l10n: l10n,
-                      ),
-                  ],
-                  if (availableChords.isNotEmpty || chordsAsync.hasError) ...[
-                    _sectionLabel(l10n.chordMaterialSection),
-                    for (final chord in availableChords)
-                      _materialTile(
-                        material: ChordMaterialRef(chord),
-                        iconColor: AppColors.title,
-                        activeMaterialIds: activeMaterialIds,
-                        l10n: l10n,
-                      ),
-                    // Defensivo: `availableChordsProvider` engole falha de rede
-                    // por cifra (a cifra fica listada), então este ramo só é
-                    // alcançado por erro inesperado. Fica porque o custo é uma
-                    // linha e a alternativa — seção sumindo sem explicação — é
-                    // pior. Contrato pinado em
-                    // `available_chords_provider_test.dart`.
-                    if (chordsAsync.hasError)
-                      ListTile(
-                        leading: const Icon(
-                          Icons.refresh,
-                          color: AppColors.title,
-                        ),
-                        title: Text(
-                          l10n.chordUnavailableRetry,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        onTap: () => ref.invalidate(
-                          availableChordsProvider(group.groupId),
-                        ),
-                      ),
-                  ],
-                  if (audioTracks.isNotEmpty) ...[
-                    _sectionLabel(l10n.audioMaterialSection),
+                children: switch (selectedKind) {
+                  null => const [],
+                  MaterialKind.pdf => _pdfTiles(group, activeMaterialIds, l10n),
+                  MaterialKind.chord => _chordTiles(
+                    group,
+                    availableChords,
+                    chordsAsync.hasError,
+                    activeMaterialIds,
+                    l10n,
+                  ),
+                  MaterialKind.audio => [
                     for (final track in audioTracks)
                       _materialTile(
                         material: AudioMaterial(track),
@@ -299,8 +287,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         subtitle: track.author,
                       ),
                   ],
-                  if (youtubeMaterials.isNotEmpty) ...[
-                    _sectionLabel(l10n.youtubeMaterialSection),
+                  MaterialKind.youtube => [
                     for (final item in youtubeMaterials)
                       _materialTile(
                         material: YoutubeMaterialRef(item),
@@ -309,10 +296,171 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         l10n: l10n,
                       ),
                   ],
-                ],
+                  // `kinds` só emite os quatro acima; se um dia emitir outro,
+                  // que falhe alto em vez de mostrar uma aba vazia.
+                  MaterialKind.gesture || MaterialKind.unknown =>
+                    throw StateError('kind sem aba: $selectedKind'),
+                },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// PDFs por seção; o rótulo da seção só quando há mais de uma. Classificação
+  /// vazia (praise Coldigom sem ritmo) cai em «Partituras» em vez de um rótulo
+  /// em branco.
+  List<Widget> _pdfTiles(
+    LouvorGroup group,
+    Set<String> activeMaterialIds,
+    AppLocalizations l10n,
+  ) {
+    final showSectionLabels = group.sections.length > 1;
+    return [
+      for (final section in group.sections) ...[
+        if (showSectionLabels)
+          _sectionLabel(
+            section.displayLabel.trim().isEmpty
+                ? l10n.pdfMaterialSection
+                : section.displayLabel,
+          ),
+        for (final entry in section.materials)
+          _materialTile(
+            material: PdfMaterial(entry.louvor),
+            icon: LouvorMaterialIcons.forEntry(entry),
+            iconColor: AppColors.title,
+            activeMaterialIds: activeMaterialIds,
+            l10n: l10n,
+          ),
+      ],
+    ];
+  }
+
+  List<Widget> _chordTiles(
+    LouvorGroup group,
+    List<ChordMaterial> availableChords,
+    bool hasError,
+    Set<String> activeMaterialIds,
+    AppLocalizations l10n,
+  ) {
+    return [
+      for (final chord in availableChords)
+        _materialTile(
+          material: ChordMaterialRef(chord),
+          iconColor: AppColors.title,
+          activeMaterialIds: activeMaterialIds,
+          l10n: l10n,
+        ),
+      // Defensivo: `availableChordsProvider` engole falha de rede por cifra
+      // (a cifra fica listada), então este ramo só é alcançado por erro
+      // inesperado. Fica porque o custo é uma linha e a alternativa — aba
+      // vazia sem explicação — é pior. Contrato pinado em
+      // `available_chords_provider_test.dart`.
+      if (hasError)
+        ListTile(
+          leading: const Icon(Icons.refresh, color: AppColors.title),
+          title: Text(
+            l10n.chordUnavailableRetry,
+            style: AppTypography.body.copyWith(color: AppColors.textDark),
+          ),
+          onTap: () => ref.invalidate(availableChordsProvider(group.groupId)),
+        ),
+    ];
+  }
+
+  static String _kindLabel(AppLocalizations l10n, MaterialKind kind) {
+    return switch (kind) {
+      MaterialKind.pdf => l10n.pdfMaterialSection,
+      MaterialKind.chord => l10n.chordMaterialSection,
+      MaterialKind.audio => l10n.audioMaterialSection,
+      MaterialKind.youtube => l10n.youtubeMaterialSection,
+      MaterialKind.gesture ||
+      MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
+    };
+  }
+}
+
+/// Barra de segmentos por tipo de material — uma aba por kind presente.
+class _KindSegmentBar extends StatelessWidget {
+  const _KindSegmentBar({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.title.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              Expanded(
+                child: _KindSegmentChip(
+                  label: labels[i],
+                  selected: i == selectedIndex,
+                  onTap: () => onSelected(i),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KindSegmentChip extends StatelessWidget {
+  const _KindSegmentChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.gold.withValues(alpha: 0.25)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          alignment: Alignment.center,
+          constraints: const BoxConstraints(minHeight: 36),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: selected
+                ? Border.all(color: AppColors.gold, width: 1.5)
+                : null,
+          ),
+          child: Text(
+            label,
+            style: AppTypography.label.copyWith(
+              color: selected
+                  ? AppColors.title
+                  : AppColors.title.withValues(alpha: 0.55),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

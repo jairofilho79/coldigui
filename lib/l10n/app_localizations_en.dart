@@ -690,6 +690,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioPlayerTitle => 'Audio';
 
   @override
+  String get pdfMaterialSection => 'Sheet music';
+
+  @override
   String get audioMaterialSection => 'Audio';
 
   @override

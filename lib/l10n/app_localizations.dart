@@ -1205,6 +1205,12 @@ abstract class AppLocalizations {
   /// **'Áudio'**
   String get audioPlayerTitle;
 
+  /// No description provided for @pdfMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partituras'**
+  String get pdfMaterialSection;
+
   /// No description provided for @audioMaterialSection.
   ///
   /// In pt, this message translates to:
