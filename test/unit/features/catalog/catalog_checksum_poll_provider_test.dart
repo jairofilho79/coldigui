@@ -1,41 +1,13 @@
+import '../../../support/fakes/fake_catalog_repository.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_providers.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/repositories/catalog_repository.dart';
 import 'package:coldigui/features/catalog/domain/repositories/manifest_checksum_reader.dart';
 import 'package:coldigui/features/catalog/domain/usecases/poll_manifest_checksum.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_checksum_poll_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakeCatalogRepository implements CatalogRepository {
-  @override
-  Future<List<Louvor>> loadCachedLouvores() async => [];
-
-  @override
-  Future<List<Louvor>> loadManifest() async => [];
-
-  @override
-  Future<List<Louvor>> forceRefreshManifest() async => [];
-
-  @override
-  Future<void> cacheManifest(List<Louvor> louvores) async {}
-
-  @override
-  Future<String?> fetchManifestChecksum() async => 'same';
-
-  @override
-  Future<ManifestSyncOutcome> syncManifest({
-    required List<Louvor> cached,
-    String? knownChecksum,
-  }) async =>
-      ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
-
-  @override
-  Future<bool> isCatalogStale() async => false;
-}
 
 class _FakeChecksumStore implements ManifestChecksumReader {
   @override
@@ -46,7 +18,7 @@ class _FakeChecksumStore implements ManifestChecksumReader {
 }
 
 class _CountingPoll extends PollManifestChecksum {
-  _CountingPoll() : super(_FakeCatalogRepository(), _FakeChecksumStore());
+  _CountingPoll() : super(FakeCatalogRepository(), _FakeChecksumStore());
 
   int callCount = 0;
 

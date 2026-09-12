@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_active_editor.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -5,46 +6,12 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_selecti
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// Editor da lista ativa dirigido pelo teste — registra chave por chave.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
-
-  final List<PlaylistEntry> initial;
-  final removedKeys = <String>[];
-  List<String>? lastReorder;
-
-  @override
-  List<PlaylistEntry>? build() => initial;
-
-  List<ActiveEntry> get _entries => activeEntriesOf(state ?? const []);
-
-  @override
-  Future<void> removeByKey(String key) async {
-    removedKeys.add(key);
-    state = [
-      for (final active in _entries)
-        if (active.key != key) active.entry,
-    ];
-  }
-
-  @override
-  Future<void> reorderFace(
-    PlaylistMediaFace face,
-    List<String> orderedKeys,
-  ) async {
-    lastReorder = orderedKeys;
-    final byKey = {for (final active in _entries) active.key: active.entry};
-    state = [for (final key in orderedKeys) ?byKey[key]];
-  }
-}
 
 Louvor _louvor(String pdfId, String numero, String nome, String classificacao) {
   return Louvor.fromManifest(
@@ -89,7 +56,7 @@ void main() {
   });
 
   Widget buildSubject({
-    required _FakeActiveEditor editor,
+    required FakeActiveEditor editor,
     Widget body = const _OpenSheetButton(),
   }) {
     return ProviderScope(
@@ -110,7 +77,7 @@ void main() {
   testWidgets('remover dispara removeByKey com a chave da ocorrência', (
     tester,
   ) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
 
     await tester.pumpWidget(buildSubject(editor: editor));
     await tester.tap(find.text('open'));
@@ -132,7 +99,7 @@ void main() {
   testWidgets('o mesmo louvor repetido remove só a ocorrência tocada', (
     tester,
   ) async {
-    final editor = _FakeActiveEditor(const [
+    final editor = FakeActiveEditor(const [
       PlaylistEntry(id: 'a', kind: MaterialKind.pdf),
       PlaylistEntry(id: 'a', kind: MaterialKind.pdf),
       PlaylistEntry(id: 'b', kind: MaterialKind.pdf),
@@ -162,7 +129,7 @@ void main() {
   testWidgets('reorder dispara reorderFace na face de partituras por chaves', (
     tester,
   ) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
 
     await tester.pumpWidget(buildSubject(editor: editor));
     await tester.tap(find.text('open'));
@@ -183,7 +150,7 @@ void main() {
   });
 
   testWidgets('toque no chip foca a chave e dispara onItemTap', (tester) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     CarouselItem? tapped;
 
     await tester.pumpWidget(
@@ -214,7 +181,7 @@ void main() {
   });
 
   testWidgets('exibe chips temáticos com metadados', (tester) async {
-    await tester.pumpWidget(buildSubject(editor: _FakeActiveEditor(entries)));
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -227,7 +194,7 @@ void main() {
   testWidgets('a chave da ocorrência é a ValueKey do item reordenável', (
     tester,
   ) async {
-    await tester.pumpWidget(buildSubject(editor: _FakeActiveEditor(entries)));
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 

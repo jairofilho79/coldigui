@@ -4,8 +4,9 @@
 // sessão não pode rodar contra o datasource degradado — ele responde `[]`/`null`
 // sem distinguir "não existe" de "o banco ainda não abriu", e `hydratePlaylistSession`
 // grava essa conclusão nas SharedPreferences (apagando o id da playlist ativa).
+import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../support/fakes/fake_isar.dart';
 import 'dart:async';
-
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
@@ -23,17 +24,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../helpers/louvores_manifest_test_helpers.dart';
-
-/// Fake mínimo de [Isar] — só [close] é chamado por [isarInitializerProvider].
-class _FakeIsar implements Isar {
-  @override
-  bool close({bool deleteFromDisk = false}) => true;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 final _playlist = SavedPlaylist.fromLegacyLists(
   playlistId: 'pl-1',
@@ -113,7 +103,7 @@ void main() {
     );
     expect(container.read(playlistMediaFaceProvider), PlaylistMediaFace.audio);
 
-    opening.complete(_FakeIsar());
+    opening.complete(FakeIsar());
     await _flushAsync();
 
     expect(

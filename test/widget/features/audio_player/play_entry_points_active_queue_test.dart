@@ -1,3 +1,5 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -93,14 +95,6 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
   }
 }
 
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
 class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
   _FakeAudioCache(this.initial);
 
@@ -108,24 +102,6 @@ class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
 
   @override
   Map<String, AudioTrack> build() => initial;
-}
-
-/// Editor da lista ativa sem storage: `playAudioInSession` entra por ele, e
-/// aqui só interessa a fila — a entrada na lista responde `added` e pronto.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor([this.initial = const []]);
-
-  final List<PlaylistEntry> initial;
-
-  @override
-  List<PlaylistEntry>? build() => initial;
-
-  @override
-  Future<AddToActiveOutcome> addToActive(
-    String materialId, {
-    MaterialKind? kind,
-    bool allowDuplicate = false,
-  }) async => AddToActiveOutcome.added;
 }
 
 class _FakeLouvoresCache extends ColdigomLouvoresCacheNotifier {
@@ -168,8 +144,8 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(true),
-          activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
           catalogMaterialLookupProvider.overrideWithValue(
             const CatalogMaterialLookup(
@@ -300,8 +276,8 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(true),
-          activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
           louvoresByPdfIdProvider.overrideWithValue({'pdf1': louvor}),
           catalogMaterialLookupProvider.overrideWithValue(
@@ -436,11 +412,11 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(true),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor([
+            () => FakeActiveEditor([
               PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
             ]),
           ),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
           coldigomLouvoresCacheProvider.overrideWith(
             () => _FakeLouvoresCache({pdfId: louvor}),

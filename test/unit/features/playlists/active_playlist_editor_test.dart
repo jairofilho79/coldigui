@@ -1,12 +1,13 @@
+import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../support/fakes/fake_isar.dart';
 import 'dart:async';
 import 'dart:io';
-
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
+import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -24,8 +25,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Conta as chamadas de sync sem encostar em rede nem em auth.
 class _RecordingSyncNotifier extends PlaylistSyncNotifier {
@@ -104,15 +103,6 @@ Future<void> _flush() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
-}
-
-/// Fake mínimo de [Isar] — só [close] é chamado por `isarInitializerProvider`.
-class _FakeIsar implements Isar {
-  @override
-  bool close({bool deleteFromDisk = false}) => true;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -915,7 +905,7 @@ void main() {
     expect(settled, isFalse, reason: 'com o Isar abrindo, o toque espera');
     expect(await repository.getAll(), isEmpty);
 
-    opening.complete(_FakeIsar());
+    opening.complete(FakeIsar());
     expect(await pending, AddToActiveOutcome.added);
     expect((await repository.getAll()).single.entries.single.id, _pdfA);
   });

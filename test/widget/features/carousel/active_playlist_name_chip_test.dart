@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -8,25 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// Notifier fixo — sem Isar, sem `_reload` — que registra os `rename`.
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier(this.initial);
-
-  final List<PlaylistViewItem> initial;
-  final renamed = <(String, String)>[];
-
-  @override
-  List<PlaylistViewItem> build() => initial;
-
-  @override
-  Future<void> rename({
-    required String playlistId,
-    required String nome,
-  }) async {
-    renamed.add((playlistId, nome));
-  }
-}
 
 void main() {
   final salvaItem = PlaylistViewItem(
@@ -50,7 +32,7 @@ void main() {
     pdfLabels: const ['001 — A'],
   );
 
-  Future<_FakePlaylistsNotifier> pumpChip(
+  Future<FakePlaylistsNotifier> pumpChip(
     WidgetTester tester, {
     required List<PlaylistViewItem> items,
     String? activeId,
@@ -59,7 +41,7 @@ void main() {
       activeId == null ? {} : {kActivePlaylistIdPrefsKey: activeId},
     );
     final prefs = await SharedPreferences.getInstance();
-    final notifier = _FakePlaylistsNotifier(items);
+    final notifier = FakePlaylistsNotifier(items);
 
     await tester.pumpWidget(
       ProviderScope(

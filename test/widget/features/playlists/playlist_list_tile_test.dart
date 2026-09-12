@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -7,17 +7,17 @@ import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
-import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/pending_delete.dart';
@@ -32,15 +32,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier(this.initial);
-
-  final List<PlaylistViewItem> initial;
-
-  @override
-  List<PlaylistViewItem> build() => initial;
-}
 
 /// Editor da lista ativa que registra as ativações e as espelha em
 /// [activePlaylistIdProvider], como o editor real (D6).
@@ -63,7 +54,7 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
 }
 
 /// Registra as remoções por posição pedidas ao notifier (lista não ativa).
-class _RemovalRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+class _RemovalRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
   _RemovalRecordingPlaylistsNotifier(super.initial);
 
   final removed = <(String, int)>[];
@@ -120,7 +111,7 @@ class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
 /// Registra os pedidos de `deleteWithUndo`/`undo`/`commit` (C11) sem tocar
 /// no repositório de verdade — devolve um [PendingDelete] real (com `grace`
 /// infinito para não disparar sozinho durante o teste).
-class _DeleteRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+class _DeleteRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
   _DeleteRecordingPlaylistsNotifier(super.initial);
 
   final deleteRequests = <String>[];
@@ -145,7 +136,7 @@ class _DeleteRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
 }
 
 /// Registra os pedidos de `duplicate` (C11).
-class _DuplicateRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+class _DuplicateRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
   _DuplicateRecordingPlaylistsNotifier(super.initial);
 
   final duplicated = <(String, String)>[];
@@ -187,7 +178,7 @@ class _DeletedPdfResolveForReader implements ResolvePdfForReader {
   }
 }
 
-class _LouvorFindingPlaylistsNotifier extends _FakePlaylistsNotifier {
+class _LouvorFindingPlaylistsNotifier extends FakePlaylistsNotifier {
   _LouvorFindingPlaylistsNotifier(super.initial);
 
   @override
@@ -321,7 +312,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(playlistsNotifier: _FakePlaylistsNotifier([item])),
+      buildSubject(playlistsNotifier: FakePlaylistsNotifier([item])),
     );
     await tester.pumpAndSettle();
 
@@ -345,7 +336,7 @@ void main() {
     final editor = _RecordingActiveEditor();
     await tester.pumpWidget(
       buildSubject(
-        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        playlistsNotifier: FakePlaylistsNotifier([item]),
         editor: editor,
       ),
     );
@@ -380,7 +371,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          playlistsProvider.overrideWith(() => _FakePlaylistsNotifier([item])),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier([item])),
           playlistShareActionsProvider.overrideWith(
             _FakePlaylistShareActionsNotifier.new,
           ),
@@ -442,7 +433,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(
-            () => _FakePlaylistsNotifier([item, itemC]),
+            () => FakePlaylistsNotifier([item, itemC]),
           ),
           playlistShareActionsProvider.overrideWith(
             _FakePlaylistShareActionsNotifier.new,
@@ -503,7 +494,7 @@ void main() {
     final editor = _RecordingActiveEditor();
     await tester.pumpWidget(
       buildSubject(
-        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        playlistsNotifier: FakePlaylistsNotifier([item]),
         editor: editor,
       ),
     );
@@ -525,7 +516,7 @@ void main() {
     final editor = _RecordingActiveEditor();
     await tester.pumpWidget(
       buildSubject(
-        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        playlistsNotifier: FakePlaylistsNotifier([item]),
         editor: editor,
       ),
     );
@@ -547,7 +538,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       buildSubject(
-        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        playlistsNotifier: FakePlaylistsNotifier([item]),
         editor: _StorelessActiveEditor(),
       ),
     );
@@ -890,7 +881,7 @@ void main() {
       final editor = _RemovalRecordingActiveEditor();
       await pumpRepeated(
         tester,
-        notifier: _FakePlaylistsNotifier([repeated]),
+        notifier: FakePlaylistsNotifier([repeated]),
         editor: editor,
       );
 
@@ -921,7 +912,7 @@ void main() {
     final shareNotifier = _FakePlaylistShareActionsNotifier();
     await tester.pumpWidget(
       buildSubject(
-        playlistsNotifier: _FakePlaylistsNotifier([item]),
+        playlistsNotifier: FakePlaylistsNotifier([item]),
         shareActionsNotifier: shareNotifier,
       ),
     );
@@ -939,7 +930,7 @@ void main() {
 
   testWidgets('menu exibe Publicar em lista privada', (tester) async {
     await tester.pumpWidget(
-      buildSubject(playlistsNotifier: _FakePlaylistsNotifier([item])),
+      buildSubject(playlistsNotifier: FakePlaylistsNotifier([item])),
     );
     await tester.pumpAndSettle();
 
@@ -971,7 +962,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(
-            () => _FakePlaylistsNotifier([published]),
+            () => FakePlaylistsNotifier([published]),
           ),
           playlistShareActionsProvider.overrideWith(
             _FakePlaylistShareActionsNotifier.new,
@@ -1065,7 +1056,7 @@ void main() {
       final shareNotifier = _FakePlaylistShareActionsNotifier();
       await tester.pumpWidget(
         buildSubject(
-          playlistsNotifier: _FakePlaylistsNotifier([item]),
+          playlistsNotifier: FakePlaylistsNotifier([item]),
           editor: editor,
           shareActionsNotifier: shareNotifier,
         ),

@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -15,8 +17,6 @@ import 'package:coldigui/features/offline/domain/repositories/offline_pdf_reposi
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_card.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -199,14 +199,6 @@ class _UnusedFetchAndStorePdf extends FetchAndStorePdf {
       );
 }
 
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
 /// O `+` do sheet de materiais entra pelo editor da lista ativa (B.3).
 class _RecordingActiveEditor extends ActivePlaylistEditor {
   String? lastAddedPdfId;
@@ -234,7 +226,7 @@ List<Override> _commonOverrides({
     resolvePdfForReaderProvider.overrideWithValue(_FakeResolvePdfForReader()),
     if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
     playlistsProvider.overrideWith(
-      playlistsNotifier ?? _FakePlaylistsNotifier.new,
+      playlistsNotifier ?? FakePlaylistsNotifier.new,
     ),
   ];
 }

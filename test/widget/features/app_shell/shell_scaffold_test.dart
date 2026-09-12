@@ -1,5 +1,5 @@
+import '../../../support/fakes/fake_active_editor.dart';
 import 'dart:io';
-
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -36,16 +36,6 @@ class _FakeAudioSession extends AudioPlayerSessionNotifier {
 
   @override
   AudioPlayerSessionState build() => _state;
-}
-
-/// Lista ativa dirigida pelo teste — a face de áudio/PDF sai daqui.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
-
-  final List<PlaylistEntry> initial;
-
-  @override
-  List<PlaylistEntry>? build() => initial;
 }
 
 /// Sem sync real: nem auth, nem conectividade.
@@ -195,7 +185,7 @@ void main() {
       tester,
       overrides: [
         activePlaylistEditorProvider.overrideWith(
-          () => _FakeActiveEditor([pdfEntry]),
+          () => FakeActiveEditor([pdfEntry]),
         ),
         audioPlayerSessionProvider.overrideWith(
           () =>
@@ -216,7 +206,7 @@ void main() {
         tester,
         overrides: [
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor([audioEntry]),
+            () => FakeActiveEditor([audioEntry]),
           ),
           playlistMediaFaceProvider.overrideWith(
             () => _FixedFace(PlaylistMediaFace.audio),
@@ -242,7 +232,7 @@ void main() {
         overrides: [
           readerFullscreenProvider.overrideWith(_FixedFullscreenNotifier.new),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor([pdfEntry]),
+            () => FakeActiveEditor([pdfEntry]),
           ),
           audioPlayerSessionProvider.overrideWith(
             () => _FakeAudioSession(

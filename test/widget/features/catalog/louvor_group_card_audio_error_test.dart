@@ -1,3 +1,5 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -10,7 +12,6 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -19,30 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  // `openLouvorInReader` resolve o PDF e adiciona à lista ativa dentro de um
-  // `Future.wait`, que só completa quando **os dois** terminam — sem este
-  // override o teste ficaria pendurado no Isar e o erro nunca chegaria à UI.
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
-/// `playAudioInSession` entra na lista ativa pelo editor — sem storage aqui.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  @override
-  List<PlaylistEntry>? build() => null;
-
-  @override
-  Future<AddToActiveOutcome> addToActive(
-    String materialId, {
-    MaterialKind? kind,
-    bool allowDuplicate = false,
-  }) async => AddToActiveOutcome.added;
-}
 
 /// Sessão de áudio que sempre falha ao tocar — `playQueue` é o único `await`
 /// de `openAudioInPlayer`, então o erro chega ao `catch` do card.
@@ -143,8 +120,8 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            activePlaylistEditorProvider.overrideWith(_FakeActiveEditor.new),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             audioPlayerSessionProvider.overrideWith(_FailingAudioSession.new),
           ],
           child: MaterialApp.router(
@@ -187,7 +164,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             louvorPdfDownloadProvider.overrideWith(
               _DeletedPdfDownloadNotifier.new,
             ),

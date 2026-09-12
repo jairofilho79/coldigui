@@ -1,10 +1,9 @@
+import '../../../support/fakes/fake_auth_remote_datasource.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:coldigui/core/network/auth_refresh_interceptor.dart';
 import 'package:coldigui/core/network/retry_interceptor.dart';
 import 'package:coldigui/core/providers/dio_provider.dart';
-import 'package:coldigui/features/auth/data/auth_remote_datasource.dart';
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
@@ -43,15 +42,6 @@ class _ScriptedAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-class _FakeAuthRemoteDatasource extends AuthRemoteDatasource {
-  _FakeAuthRemoteDatasource(this.user) : super(Dio());
-
-  final AuthUser user;
-
-  @override
-  Future<AuthUser> establishSession(String idToken) async => user;
-}
-
 String _b64(Map<String, Object?> json) =>
     base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
 
@@ -75,7 +65,7 @@ void main() {
       overrides: [
         authSessionStoreProvider.overrideWithValue(store),
         authRemoteDatasourceProvider.overrideWithValue(
-          _FakeAuthRemoteDatasource(user),
+          FakeAuthRemoteDatasource.returning(user),
         ),
         googleSignInInitializerProvider.overrideWithValue(noopInitializer),
         if (refresher != null)

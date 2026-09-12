@@ -3,6 +3,8 @@
 // C5: card multi-material — "+" sempre habilitado, adiciona o material
 // preferido (PDF principal) e oferece «Trocar material» na snackbar, que
 // reabre o sheet no fluxo de troca (`replaceByKey`).
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -19,42 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-}
-
-/// Editor que simula a gravação de verdade: `addToActive` empilha a entrada
-/// em `state` (o que `activeEntriesProvider` lê) — sem isso a chave da
-/// entrada recém-criada nunca apareceria para o `replaceByKey` do card.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  final List<({String id, MaterialKind? kind})> added = [];
-  final List<({String key, PlaylistEntry replacement})> replaced = [];
-
-  @override
-  List<PlaylistEntry>? build() => const [];
-
-  @override
-  Future<AddToActiveOutcome> addToActive(
-    String materialId, {
-    MaterialKind? kind,
-    bool allowDuplicate = false,
-  }) async {
-    added.add((id: materialId, kind: kind));
-    state = [
-      ...?state,
-      PlaylistEntry(id: materialId, kind: kind ?? MaterialKind.pdf),
-    ];
-    return AddToActiveOutcome.added;
-  }
-
-  @override
-  Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
-    replaced.add((key: key, replacement: replacement));
-    return true;
-  }
-}
 
 LouvorGroup _multiMaterialGroup() {
   final louvor = Louvor(
@@ -111,16 +77,16 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  Future<_FakeActiveEditor> pumpCard(WidgetTester tester) async {
+  Future<FakeActiveEditor> pumpCard(WidgetTester tester) async {
     final prefs = await SharedPreferences.getInstance();
-    final editor = _FakeActiveEditor();
+    final editor = FakeActiveEditor()..applyAddToActiveToState = true;
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           activePlaylistEditorProvider.overrideWith(() => editor),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

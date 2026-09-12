@@ -1,9 +1,6 @@
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
-import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
-import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -18,6 +15,7 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../support/test_overrides.dart';
 
 Future<void> _flushAsync() async {
   await Future<void>.delayed(Duration.zero);
@@ -52,11 +50,8 @@ void main() {
   ProviderContainer container() {
     return ProviderContainer(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        ...standardTestOverrides(prefs: prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
-        carouselLocalDatasourceProvider.overrideWithValue(
-          const CarouselLocalDatasource.unavailable(),
-        ),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );

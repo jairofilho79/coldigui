@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -8,13 +9,13 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_ma
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -102,17 +103,6 @@ class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
     navigated.add(targetPdfId);
     return '${RoutePaths.reader}?pdfId=$targetPdfId';
   }
-}
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-
-  @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async => true;
 }
 
 class _RecordingAudioSession extends AudioPlayerSessionNotifier {
@@ -212,7 +202,7 @@ Future<_Harness> _pumpSwapSheet(
           'pdf1': _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
         }),
         readerCarouselActionsProvider.overrideWith(() => readerActions),
-        playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         audioPlayerSessionProvider.overrideWith(() => audio),
         chordSongProvider.overrideWith(
           (ref, r2Key) async => parseChordPro('{title: X}\n\nA [Bb]noite,\n'),

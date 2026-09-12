@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_isar.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_sync_metadata_store.dart';
@@ -5,7 +6,6 @@ import 'package:coldigui/features/catalog/data/repositories/catalog_repository_i
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Louvor _louvor(String pdfId, {String nome = 'Louvor', String numero = '001'}) =>
@@ -64,7 +64,7 @@ class _TestRemote extends CatalogRemoteDatasource {
 }
 
 class _TestLocal extends CatalogLocalDatasource {
-  _TestLocal() : super(_FakeIsar());
+  _TestLocal() : super(FakeIsar());
 
   final List<Louvor> store = [];
   var saveCalls = 0;
@@ -79,12 +79,6 @@ class _TestLocal extends CatalogLocalDatasource {
 
   @override
   Future<List<Louvor>> loadLouvores() async => List.of(store);
-}
-
-/// Isar não usado — métodos sobrescritos em [_TestLocal].
-class _FakeIsar implements Isar {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 CatalogRepositoryImpl _repo({

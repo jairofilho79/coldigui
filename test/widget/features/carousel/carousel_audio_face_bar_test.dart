@@ -1,3 +1,5 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -17,21 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-}
-
-/// Lista ativa fixa — a face de partituras da barra sai daqui (B.2).
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
-
-  final List<PlaylistEntry> initial;
-
-  @override
-  List<PlaylistEntry>? build() => initial;
-}
 
 class _QueuedAudioSession extends AudioPlayerSessionNotifier {
   _QueuedAudioSession(this.track, {this.errorMessage, this.emptyQueue = false});
@@ -139,9 +126,9 @@ void main() {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         activePlaylistEditorProvider.overrideWith(
-          () => _FakeActiveEditor(entries),
+          () => FakeActiveEditor(entries),
         ),
         coldigomLouvoresCacheProvider.overrideWith(
           () => _FakeColdigomLouvoresCache(coldigomCache),

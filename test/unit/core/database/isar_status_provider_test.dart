@@ -1,18 +1,9 @@
+import '../../../support/fakes/fake_isar.dart';
 import 'dart:async';
-
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
-
-/// Fake mínimo de [Isar] — só [close] é chamado por [isarInitializerProvider].
-class _FakeIsar implements Isar {
-  @override
-  bool close({bool deleteFromDisk = false}) => true;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 void main() {
   ProviderContainer containerWith(Future<Isar> Function() opener) {
@@ -36,12 +27,12 @@ void main() {
       reason: 'abrindo ainda não é disponível',
     );
 
-    completer.complete(_FakeIsar());
+    completer.complete(FakeIsar());
     await container.read(isarInitializerProvider.future);
   });
 
   test('available quando o Isar abre', () async {
-    final container = containerWith(() async => _FakeIsar());
+    final container = containerWith(() async => FakeIsar());
 
     await container.read(isarInitializerProvider.future);
 

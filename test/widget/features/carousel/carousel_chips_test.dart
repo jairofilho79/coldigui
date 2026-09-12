@@ -1,21 +1,21 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
-import 'package:go_router/go_router.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -26,27 +26,8 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  var startedNewEmpty = false;
-  var deletedActiveUnsaved = false;
-
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<void> startNewEmptySelection() async {
-    startedNewEmpty = true;
-    await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
-  }
-
-  @override
-  Future<void> deleteActiveUnsavedPlaylist() async {
-    deletedActiveUnsaved = true;
-    await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
-  }
-}
 
 class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
   PlaylistShareOption? lastOption;
@@ -93,47 +74,6 @@ class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
     lastPdfId = targetPdfId;
     navigatedPdfIds.add(targetPdfId);
     return '${RoutePaths.reader}?pdfId=$targetPdfId&file=asset:fixtures/sample.pdf';
-  }
-}
-
-/// Lista ativa dirigida pelo teste: a barra deriva dela por
-/// `activeEntriesProvider` → `carouselItemsProvider`, sem adaptador no meio.
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
-
-  final List<PlaylistEntry> initial;
-  var cleared = false;
-  List<String>? lastReorder;
-  final removedKeys = <String>[];
-
-  @override
-  List<PlaylistEntry>? build() => initial;
-
-  List<ActiveEntry> get _entries => activeEntriesOf(state ?? const []);
-
-  @override
-  Future<void> removeByKey(String key) async {
-    removedKeys.add(key);
-    state = [
-      for (final active in _entries)
-        if (active.key != key) active.entry,
-    ];
-  }
-
-  @override
-  Future<void> deleteActiveDraft() async {
-    cleared = true;
-    state = const [];
-  }
-
-  @override
-  Future<void> reorderFace(
-    PlaylistMediaFace face,
-    List<String> orderedKeys,
-  ) async {
-    lastReorder = orderedKeys;
-    final byKey = {for (final active in _entries) active.key: active.entry};
-    state = [for (final key in orderedKeys) ?byKey[key]];
   }
 }
 
@@ -230,15 +170,15 @@ void main() {
 
   Widget buildSubject(
     List<PlaylistEntry> activeEntries, {
-    _FakeActiveEditor? notifier,
+    FakeActiveEditor? notifier,
   }) {
-    final editor = notifier ?? _FakeActiveEditor(activeEntries);
+    final editor = notifier ?? FakeActiveEditor(activeEntries);
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         louvoresByPdfIdProvider.overrideWithValue(manifest),
         activePlaylistEditorProvider.overrideWith(() => editor),
-        playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -298,7 +238,7 @@ void main() {
   });
 
   testWidgets('modal permite remover item', (tester) async {
-    final notifier = _FakeActiveEditor(entries);
+    final notifier = FakeActiveEditor(entries);
     await tester.pumpWidget(buildSubject(entries, notifier: notifier));
     await tester.pumpAndSettle();
 
@@ -368,9 +308,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final playlistsNotifier = _FakePlaylistsNotifier();
+    final playlistsNotifier = FakePlaylistsNotifier();
     final shareNotifier = _FakePlaylistShareActionsNotifier();
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -409,9 +349,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final playlistsNotifier = _FakePlaylistsNotifier();
+      final playlistsNotifier = FakePlaylistsNotifier();
       final shareNotifier = _FakePlaylistShareActionsNotifier();
-      final editor = _FakeActiveEditor(entries);
+      final editor = FakeActiveEditor(entries);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -446,9 +386,9 @@ void main() {
   testWidgets('tap compartilhar dispara opção folheto no sheet', (
     tester,
   ) async {
-    final playlistsNotifier = _FakePlaylistsNotifier();
+    final playlistsNotifier = FakePlaylistsNotifier();
     final shareNotifier = _FakePlaylistShareActionsNotifier();
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -480,8 +420,8 @@ void main() {
   });
 
   testWidgets('limpar seleção com Nova Lista', (tester) async {
-    final notifier = _FakeActiveEditor(entries);
-    final playlists = _FakePlaylistsNotifier();
+    final notifier = FakeActiveEditor(entries);
+    final playlists = FakePlaylistsNotifier();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -538,7 +478,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(entries),
+            () => FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -582,7 +522,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(entries),
+            () => FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -630,7 +570,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(entries),
+            () => FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
           readerCarouselPositionProvider('b').overrideWith(
@@ -702,7 +642,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(entries),
+            () => FakeActiveEditor(entries),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],
@@ -790,7 +730,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(entries),
+            () => FakeActiveEditor(entries),
           ),
           readerCarouselPositionProvider('b').overrideWith(
             (ref) => const CarouselReaderPosition(
@@ -857,7 +797,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           louvoresByPdfIdProvider.overrideWithValue(manifest),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(repeated),
+            () => FakeActiveEditor(repeated),
           ),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
           readerCarouselPositionProvider('b').overrideWith(
@@ -899,7 +839,7 @@ void main() {
   testWidgets('remover uma ocorrência não tira o leitor do louvor repetido', (
     tester,
   ) async {
-    final repeated = _FakeActiveEditor(_entriesOf(const ['a', 'b', 'a']));
+    final repeated = FakeActiveEditor(_entriesOf(const ['a', 'b', 'a']));
     final readerActions = _FakeReaderCarouselActions();
     final router = GoRouter(
       initialLocation: RoutePaths.home,
@@ -1002,9 +942,9 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           activePlaylistEditorProvider.overrideWith(
-            () => _FakeActiveEditor(_entriesOf([pdfId])),
+            () => FakeActiveEditor(_entriesOf([pdfId])),
           ),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           coldigomLouvoresCacheProvider.overrideWith(
             () => _FakeColdigomLouvoresCache({pdfId: louvor}),
           ),
@@ -1101,9 +1041,9 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             activePlaylistEditorProvider.overrideWith(
-              () => _FakeActiveEditor(activeEntries),
+              () => FakeActiveEditor(activeEntries),
             ),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             readerCarouselActionsProvider.overrideWith(() => readerActions),
             audioPlayerSessionProvider.overrideWith(() => session),
             coldigomLouvoresCacheProvider.overrideWith(

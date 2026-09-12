@@ -5,6 +5,7 @@
 // Isar de fato não veio; enquanto ele só está **abrindo** (web fria) ninguém
 // pré-julga no toque. Quem tem `BuildContext` (`openAudioInPlayer`) mostra a
 // snackbar de storage a partir do resultado.
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -45,11 +46,6 @@ class _FakeSession extends AudioPlayerSessionNotifier {
   Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
     played.add(tracks);
   }
-}
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
 }
 
 /// Editor com resultado fixo — registra o que o player mandou adicionar.
@@ -95,7 +91,7 @@ void main() {
     isarStatusProvider.overrideWithValue(IsarStatus.opening),
     audioPlayerSessionProvider.overrideWith(() => session),
     activePlaylistEditorProvider.overrideWith(() => editor),
-    playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+    playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
   ];
 
   group('playAudioInSession', () {

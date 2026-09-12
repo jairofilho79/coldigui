@@ -1,24 +1,14 @@
+import '../../../support/fakes/fake_auth_remote_datasource.dart';
 import 'package:coldigui/features/app_shell/presentation/pages/profile_screen.dart';
-import 'package:coldigui/features/auth/data/auth_remote_datasource.dart';
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-class _FakeAuthRemoteDatasource extends AuthRemoteDatasource {
-  _FakeAuthRemoteDatasource(this._behavior) : super(Dio());
-
-  final Future<AuthUser> Function(String idToken) _behavior;
-
-  @override
-  Future<AuthUser> establishSession(String idToken) => _behavior(idToken);
-}
 
 void main() {
   const user = AuthUser(
@@ -63,7 +53,7 @@ void main() {
       store ?? (AuthSessionStore()..write(user)),
     ),
     authRemoteDatasourceProvider.overrideWithValue(
-      _FakeAuthRemoteDatasource(behavior),
+      FakeAuthRemoteDatasource(behavior),
     ),
     googleSignInInitializerProvider.overrideWithValue(noopInitializer),
   ];

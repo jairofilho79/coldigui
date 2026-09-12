@@ -4,6 +4,7 @@
 // está **abrindo** (`IsarStatus.opening`, web fria), quem decide é o editor da
 // lista ativa: ele espera/grava e só devolve `storageUnavailable` quando o
 // storage de fato não veio. A snackbar segue o resultado, não o status.
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -19,11 +20,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-}
 
 /// Editor com resultado fixo — registra o que o card mandou adicionar.
 class _StubActiveEditor extends ActivePlaylistEditor {
@@ -84,7 +80,7 @@ void main() {
           // Web fria: o app já está na tela e o Isar ainda não resolveu.
           isarStatusProvider.overrideWithValue(IsarStatus.opening),
           activePlaylistEditorProvider.overrideWith(() => editor),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,

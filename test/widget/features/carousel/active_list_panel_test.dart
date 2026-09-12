@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_active_editor.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
@@ -12,42 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// Editor da lista ativa dirigido pelo teste — registra chave por chave
-/// (mesmo dublê de `carousel_selection_sheet_test.dart`).
-class _FakeActiveEditor extends ActivePlaylistEditor {
-  _FakeActiveEditor(this.initial);
-
-  final List<PlaylistEntry> initial;
-  final removedKeys = <String>[];
-  List<String>? lastReorder;
-  PlaylistMediaFace? lastReorderFace;
-
-  @override
-  List<PlaylistEntry>? build() => initial;
-
-  List<ActiveEntry> get _entries => activeEntriesOf(state ?? const []);
-
-  @override
-  Future<void> removeByKey(String key) async {
-    removedKeys.add(key);
-    state = [
-      for (final active in _entries)
-        if (active.key != key) active.entry,
-    ];
-  }
-
-  @override
-  Future<void> reorderFace(
-    PlaylistMediaFace face,
-    List<String> orderedKeys,
-  ) async {
-    lastReorderFace = face;
-    lastReorder = orderedKeys;
-    final byKey = {for (final active in _entries) active.key: active.entry};
-    state = [for (final key in orderedKeys) ?byKey[key]];
-  }
-}
 
 Louvor _louvor(String pdfId, String numero, String nome, String classificacao) {
   return Louvor.fromManifest(
@@ -82,7 +47,7 @@ void main() {
   });
 
   Widget buildSubject({
-    required _FakeActiveEditor editor,
+    required FakeActiveEditor editor,
     Future<void> Function(CarouselItem item)? onOpen,
     Future<void> Function(CarouselItem item)? onRemoved,
   }) {
@@ -104,7 +69,7 @@ void main() {
   }
 
   testWidgets('exibe a face de partituras com metadados', (tester) async {
-    await tester.pumpWidget(buildSubject(editor: _FakeActiveEditor(entries)));
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 
     expect(find.byType(CarouselLouvorChip), findsNWidgets(3));
@@ -117,7 +82,7 @@ void main() {
     // próprio id.
     await prefs.setString('carousel_focused_pdf_id', 'b');
 
-    await tester.pumpWidget(buildSubject(editor: _FakeActiveEditor(entries)));
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 
     final a = tester.widget<Container>(
@@ -138,7 +103,7 @@ void main() {
   testWidgets('reorder dispara reorderFace na face de partituras por chaves', (
     tester,
   ) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     await tester.pumpWidget(buildSubject(editor: editor));
     await tester.pumpAndSettle();
 
@@ -160,7 +125,7 @@ void main() {
   testWidgets('× dispara removeByKey com a chave da ocorrência', (
     tester,
   ) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     CarouselItem? removed;
 
     await tester.pumpWidget(
@@ -187,7 +152,7 @@ void main() {
   });
 
   testWidgets('toque foca a chave e dispara onOpen', (tester) async {
-    final editor = _FakeActiveEditor(entries);
+    final editor = FakeActiveEditor(entries);
     CarouselItem? tapped;
 
     await tester.pumpWidget(
@@ -204,7 +169,7 @@ void main() {
   });
 
   testWidgets('sem onOpen o toque não faz nada', (tester) async {
-    await tester.pumpWidget(buildSubject(editor: _FakeActiveEditor(entries)));
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('Louvor A'));

@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -11,19 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  final addedPdfIds = <String>[];
-
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    addedPdfIds.add(pdfId);
-    return true;
-  }
-}
 
 /// Registra o que o import social manda para a lista ativa.
 class _RecordingActiveEditor extends ActivePlaylistEditor {
@@ -63,7 +51,7 @@ void main() {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final editor = _RecordingActiveEditor();
-    final playlists = _FakePlaylistsNotifier();
+    final playlists = FakePlaylistsNotifier();
 
     await tester.pumpWidget(
       ProviderScope(

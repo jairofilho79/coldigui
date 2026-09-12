@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -52,13 +53,8 @@ CarouselItem _audioItem(AudioTrack track, int index) => CarouselItem(
   classificacao: track.classificacao,
 );
 
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-}
-
 /// Registra as remoções por posição pedidas ao notifier.
-class _RemovalRecordingPlaylistsNotifier extends _FakePlaylistsNotifier {
+class _RemovalRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
   final removed = <(String, int)>[];
 
   @override
@@ -124,7 +120,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           isarAvailableProvider.overrideWithValue(false),
           playlistsProvider.overrideWith(
-            playlists ?? _FakePlaylistsNotifier.new,
+            playlists ?? FakePlaylistsNotifier.new,
           ),
           audioPlayerSessionProvider.overrideWith(() => session),
           coldigomAudioTracksCacheProvider.overrideWith(
