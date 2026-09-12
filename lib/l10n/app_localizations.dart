@@ -2129,6 +2129,48 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir a ação. Tente de novo.'**
   String get errorGeneric;
 
+  /// failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Verifique sua rede e tente de novo.'**
+  String get failureNetwork;
+
+  /// failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException
+  ///
+  /// In pt, this message translates to:
+  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
+  String get failureOffline;
+
+  /// failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível encontrar. O item pode ter sido removido.'**
+  String get failureNotFound;
+
+  /// failureMessage (E8): StorageFailure — StorageUnavailableException, PdfStorageWriteException, InsufficientDiskSpaceException, PdfLocalCorruptedException
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
+  String get failureStorage;
+
+  /// failureMessage (E8): AuthFailure — HTTP 401/403
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sessão expirou. Entre novamente para continuar.'**
+  String get failureAuth;
+
+  /// failureMessage (E8): ConflictFailure — HTTP 409, PlaylistConflictException, AudioFlagConflictException
+  ///
+  /// In pt, this message translates to:
+  /// **'Conflito de sincronização. Tente novamente.'**
+  String get failureConflict;
+
+  /// failureMessage (E8): UnknownFailure — fallback para erro não classificado
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível concluir a ação. Tente de novo.'**
+  String get failureUnknown;
+
   /// Título do banner de sessão expirada no perfil e nas listas
   ///
   /// In pt, this message translates to:

@@ -689,6 +689,34 @@
   "@errorGeneric": {
     "description": "userMessageFor: fallback para erro não classificado (C.5)"
   },
+  "failureNetwork": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
+  "@failureNetwork": {
+    "description": "failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException"
+  },
+  "failureOffline": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "@failureOffline": {
+    "description": "failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException"
+  },
+  "failureNotFound": "Não foi possível encontrar. O item pode ter sido removido.",
+  "@failureNotFound": {
+    "description": "failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException"
+  },
+  "failureStorage": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
+  "@failureStorage": {
+    "description": "failureMessage (E8): StorageFailure — StorageUnavailableException, PdfStorageWriteException, InsufficientDiskSpaceException, PdfLocalCorruptedException"
+  },
+  "failureAuth": "Sua sessão expirou. Entre novamente para continuar.",
+  "@failureAuth": {
+    "description": "failureMessage (E8): AuthFailure — HTTP 401/403"
+  },
+  "failureConflict": "Conflito de sincronização. Tente novamente.",
+  "@failureConflict": {
+    "description": "failureMessage (E8): ConflictFailure — HTTP 409, PlaylistConflictException, AudioFlagConflictException"
+  },
+  "failureUnknown": "Não foi possível concluir a ação. Tente de novo.",
+  "@failureUnknown": {
+    "description": "failureMessage (E8): UnknownFailure — fallback para erro não classificado"
+  },
   "sessionExpiredBanner": "Sessão expirada",
   "@sessionExpiredBanner": {
     "description": "Título do banner de sessão expirada no perfil e nas listas"

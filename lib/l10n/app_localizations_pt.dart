@@ -1246,6 +1246,33 @@ class AppLocalizationsPt extends AppLocalizations {
   String get errorGeneric => 'Não foi possível concluir a ação. Tente de novo.';
 
   @override
+  String get failureNetwork =>
+      'Sem conexão com a internet. Verifique sua rede e tente de novo.';
+
+  @override
+  String get failureOffline =>
+      'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
+
+  @override
+  String get failureNotFound =>
+      'Não foi possível encontrar. O item pode ter sido removido.';
+
+  @override
+  String get failureStorage =>
+      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
+
+  @override
+  String get failureAuth =>
+      'Sua sessão expirou. Entre novamente para continuar.';
+
+  @override
+  String get failureConflict => 'Conflito de sincronização. Tente novamente.';
+
+  @override
+  String get failureUnknown =>
+      'Não foi possível concluir a ação. Tente de novo.';
+
+  @override
   String get sessionExpiredBanner => 'Sessão expirada';
 
   @override

@@ -1231,6 +1231,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGeneric => 'Could not complete the action. Try again.';
 
   @override
+  String get failureNetwork =>
+      'No internet connection. Check your network and try again.';
+
+  @override
+  String get failureOffline =>
+      'This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.';
+
+  @override
+  String get failureNotFound =>
+      'Could not find this. It may have been removed.';
+
+  @override
+  String get failureStorage =>
+      'Local storage is unavailable. Reload the page or free up space.';
+
+  @override
+  String get failureAuth =>
+      'Your session has expired. Sign in again to continue.';
+
+  @override
+  String get failureConflict => 'Sync conflict. Please try again.';
+
+  @override
+  String get failureUnknown => 'Could not complete the action. Try again.';
+
+  @override
   String get sessionExpiredBanner => 'Session expired';
 
   @override
