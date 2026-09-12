@@ -808,7 +808,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 - **Testes:** `standardTestOverrides` omite prefs quando `null`; `pumpApp` criado mas não adotado; `playlist_add_dedupe_test` e `reconcile_offline_index_benchmark_test` sensíveis à carga (o primeiro agora pinado ao Isar fake).
 - **Deploy:** migration `0009_create_short_links.sql` **precisa ser aplicada** e o Worker publicado antes do web app (`wrangler.jsonc` ganhou as rotas `plpcg.com/l/*` e `plpcg.com/api/links*`); `dart_defines/*.json` ganharam `FF_EVENTS`/`FF_SOCIAL`/`FF_ADMIN_UPLOAD` (o build de produção esconde «Eventos»).
 
-### K.3b Ondas 4.1 e 4.2 — correções da validação manual (2026-09-12)
+### K.3b Ondas 4.1 a 4.3 — correções da validação manual (2026-09-12)
 
 | Commit | O quê |
 |---|---|
@@ -817,14 +817,16 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 | `4815aa4` | painel lateral e botão da toolbar removidos; o olho da barra abre a lista — C7 |
 | `ff8c100` | «Duas páginas em tela larga» fora do menu; spread só automático — C8 |
 | `3e265cf` | «Rascunho» na chip salva a lista com nome (`saveActivePlaylist`); «Salvar como lista» e o menu «⋮» saem, fica só compartilhar (`Icons.adaptive.share`); nome limitado a 1/5 da barra — C11 |
-
 | `06d1c04` | cartão «Lista ativa: … · Abrir no leitor» removido do estado vazio da Home — redundante com a barra do carousel (lista, louvor em foco e abrir); ficam «Abertos recentemente» e a dica — C4 |
+| `5dc4ea3` | sheet de materiais volta a ter abas por tipo (Partituras / Cifras / Áudio / YouTube) quando há mais de um; rótulo da seção de PDF cai em «Partituras» quando a classificação (ritmo Coldigom) é vazia — reverte parcialmente o «sem abas por tipo» de E3 (`16c829d`): 17 PDFs + 14 áudios escondiam o áudio no fim da lista. Onda 4.3, validado em produção (deploy de `4e00673` em 2026-09-12) |
+
+Nota da validação em produção: praise `047 Shekinah` sem tom/ritmo/autor/categoria é dado do Worker (campos vazios em `GET /api/praises/:id`), não regressão do sheet — dos 100 primeiros praises, 81 têm tom.
 
 Pendência do mesmo padrão: o banner antigo de «catálogo desatualizado» em `home_screen.dart` também pinta vinho sobre vinho (anterior à onda; não mexido).
 
 ### K.4 Próxima onda recomendada
 
-1. **Validação em culto:** uma passada manual no navegador do que só o olho pega — fullscreen com mini-player e FAB, spread em projetor, última página, autoscroll da cifra, link curto de ponta a ponta (migration `0009` e Worker já publicados em 2026-09-12; web app ainda não). Em curso — ver K.3b.
+1. **Validação em culto:** uma passada manual no navegador do que só o olho pega — fullscreen com mini-player e FAB, spread em projetor, última página, autoscroll da cifra, link curto de ponta a ponta (migration `0009`, Worker e web app `4e00673` publicados em 2026-09-12). Em curso — ver K.3b.
 2. **Sobras de UX:** C15 (varredura l10n/toque/semântica), capo e loop A–B se houver demanda, reordenar no painel com mouse, `pumpApp` nos testes existentes.
 3. **Arquitetura:** E8 nos demais features (catalog, playlists, audio), E12 (separar publicação), E5 (mortos listados em K.3), remoção do `applyInitialFit` por página.
 4. **Performance:** A9 (SW próprio) depois da decisão de CDN; A16 se o artefato de deploy importar.
