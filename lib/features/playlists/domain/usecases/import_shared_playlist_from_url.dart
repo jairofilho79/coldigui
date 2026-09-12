@@ -37,12 +37,19 @@ class ImportSharedPlaylistFromUrl {
   /// Se existir, não cria: devolve a lista existente com
   /// `alreadyExisted: true`.
   ///
+  /// [excludePlaylistId] (fix round 2, Minor) tira uma lista específica da
+  /// dedupe — a que está na graça de uma exclusão adiada (C11): o repositório
+  /// ainda não sabe que ela foi apagada (`deletedAt` só é gravado no
+  /// `commit`, que pode nunca rodar se o usuário desfizer), então o filtro de
+  /// tombstone abaixo não a pega sozinho.
+  ///
   /// Lança [InvalidSharePlaylistException] se params inválidos.
   Future<ImportResult> call({
     required String shareName,
     String sharePdfs = '',
     String shareAudios = '',
     String shareItems = '',
+    String? excludePlaylistId,
   }) async {
     final params = PlaylistShareParams(
       sharePdfs: sharePdfs,
@@ -60,6 +67,7 @@ class ImportSharedPlaylistFromUrl {
     final saved = await _playlistRepository.getAll();
     for (final playlist in saved) {
       if (!playlist.salva || playlist.deletedAt != null) continue;
+      if (playlist.playlistId == excludePlaylistId) continue;
       if (contentFingerprint(playlist.entries) == fingerprint) {
         return ImportResult(playlist: playlist, alreadyExisted: true);
       }

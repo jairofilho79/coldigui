@@ -93,18 +93,24 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
     final lookup = ref.read(catalogMaterialLookupProvider);
-    final playlists = await repository.getAll();
 
-    // Fix round 1 — Important 1: o repositório ainda tem a linha enquanto a
-    // exclusão está na graça (o commit real só roda depois); um reload
-    // disparado nesse meio-tempo (`playlist_sync_provider.dart` chama
-    // `reload()` após todo sync com `movedRows`, e qualquer mutação
-    // autenticada pode disparar isso dentro dos 5 s) não pode ressuscitar a
-    // lista que o usuário acabou de apagar.
+    // Fix round 1 — Important 1 / fix round 2 — Minor: o repositório ainda
+    // tem a linha enquanto a exclusão está na graça (o commit real só roda
+    // depois); um reload disparado nesse meio-tempo (`playlist_sync_provider
+    // .dart` chama `reload()` após todo sync com `movedRows`, e qualquer
+    // mutação autenticada pode disparar isso dentro dos 5 s) não pode
+    // ressuscitar a lista que o usuário acabou de apagar. Resolvido **antes**
+    // do `await` abaixo — não depois: um `commit()` concorrente assenta
+    // `_pendingDelete!.isSettled` de forma síncrona (antes do próprio
+    // `_onCommit` terminar), então checar depois do `await getAll()` corre o
+    // risco de ver `isSettled == true` mesmo quando a leitura em voo capturou
+    // um snapshot de antes da exclusão de verdade.
     final pendingDelete = _pendingDelete;
     final hiddenId = (pendingDelete != null && !pendingDelete.isSettled)
         ? _pendingDeleteId
         : null;
+
+    final playlists = await repository.getAll();
 
     state = playlists
         .where((playlist) => playlist.playlistId != hiddenId)
@@ -328,6 +334,16 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       state = [...state]..removeAt(index);
     }
 
+    // Fix round 2 (Minor): a seleção ativa não pode continuar apontando pra
+    // uma lista que já sumiu do estado — limpa já aqui (não só no `commit`,
+    // que só roda depois da graça ou nem roda se o usuário desfizer); o
+    // `undo` restaura.
+    final wasActive =
+        removed != null && ref.read(activePlaylistIdProvider) == playlistId;
+    if (wasActive) {
+      ref.read(activePlaylistIdProvider.notifier).clear();
+    }
+
     final repository = ref.read(playlistRepositoryProvider);
     final deletePlaylist = ref.read(deletePlaylistProvider);
     final authed = ref.read(authStateProvider).asData?.value != null;
@@ -344,6 +360,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
         final next = [...state];
         next.insert(index.clamp(0, next.length), removed);
         state = next;
+        if (wasActive) {
+          ref.read(activePlaylistIdProvider.notifier).set(playlistId);
+        }
       },
       onCommit: () async {
         if (hardDelete) {
@@ -519,11 +538,20 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     String shareItems = '',
   }) async {
     try {
+      // Fix round 2 (Minor): a lista pendente de exclusão adiada (C11, ainda
+      // sem `deletedAt` no repositório) não pode ser reaproveitada pela
+      // dedupe por conteúdo (spec C.2).
+      final pendingDelete = _pendingDelete;
+      final excludePlaylistId =
+          (pendingDelete != null && !pendingDelete.isSettled)
+          ? _pendingDeleteId
+          : null;
       final result = await ref.read(importSharedPlaylistFromUrlProvider)(
         sharePdfs: sharePdfs,
         shareAudios: shareAudios,
         shareItems: shareItems,
         shareName: shareName,
+        excludePlaylistId: excludePlaylistId,
       );
       final playlistId = result.playlist.playlistId;
       // D6: a importada vira a ativa pelo mesmo caminho do «Tornar lista

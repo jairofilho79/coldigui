@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
@@ -8,6 +9,9 @@ import 'package:coldigui/features/playlists/data/datasources/playlist_local_data
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
@@ -46,6 +50,141 @@ Future<void> _flush() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
+}
+
+/// Decorador de [PlaylistRepository] que permite travar a **próxima**
+/// chamada a [getAll] depois que ela já capturou o retorno do repositório
+/// real, mas antes de devolvê-lo — reproduz determinística a corrida do fix
+/// round 2 (Minor): um `reload()` cuja leitura já começou antes de um
+/// `commit()` concorrente, mas que só é observada por quem chamou depois.
+class _GatedGetAllRepository implements PlaylistRepository {
+  _GatedGetAllRepository(this._inner);
+
+  final PlaylistRepository _inner;
+  Completer<void>? _gate;
+
+  /// Arma o travamento; a próxima chamada a [getAll] captura o snapshot do
+  /// repositório real na hora, mas só devolve depois que o [Completer]
+  /// devolvido for completado.
+  Completer<void> armNextGetAll() {
+    final gate = Completer<void>();
+    _gate = gate;
+    return gate;
+  }
+
+  @override
+  Future<List<SavedPlaylist>> getAll() async {
+    final gate = _gate;
+    _gate = null;
+    final snapshot = await _inner.getAll();
+    if (gate != null) await gate.future;
+    return snapshot;
+  }
+
+  @override
+  Future<List<SavedPlaylist>> getByTab(PlaylistTab tab) => _inner.getByTab(tab);
+
+  @override
+  Future<SavedPlaylist?> getById(String playlistId) =>
+      _inner.getById(playlistId);
+
+  @override
+  Future<String> create({
+    required String nome,
+    List<PlaylistEntry>? entries,
+    List<String> pdfIds = const [],
+    List<String> audioIds = const [],
+    String? playlistId,
+    DateTime? createdAt,
+    bool salva = true,
+    DateTime? savedAt,
+    DateTime? updatedAt,
+    int version = 1,
+    PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+    String? ownerSub,
+  }) => _inner.create(
+    nome: nome,
+    entries: entries,
+    pdfIds: pdfIds,
+    audioIds: audioIds,
+    playlistId: playlistId,
+    createdAt: createdAt,
+    salva: salva,
+    savedAt: savedAt,
+    updatedAt: updatedAt,
+    version: version,
+    syncStatus: syncStatus,
+    ownerSub: ownerSub,
+  );
+
+  @override
+  Future<void> update(
+    String playlistId, {
+    String? nome,
+    List<PlaylistEntry>? entries,
+    List<String>? pdfIds,
+    List<String>? audioIds,
+    bool? salva,
+    DateTime? savedAt,
+    DateTime? favoritedAt,
+    bool? favorita,
+    bool clearFavoritedAt = false,
+    DateTime? updatedAt,
+    int? version,
+    PlaylistSyncStatus? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
+  }) => _inner.update(
+    playlistId,
+    nome: nome,
+    entries: entries,
+    pdfIds: pdfIds,
+    audioIds: audioIds,
+    salva: salva,
+    savedAt: savedAt,
+    favoritedAt: favoritedAt,
+    favorita: favorita,
+    clearFavoritedAt: clearFavoritedAt,
+    updatedAt: updatedAt,
+    version: version,
+    syncStatus: syncStatus,
+    deletedAt: deletedAt,
+    clearDeletedAt: clearDeletedAt,
+  );
+
+  @override
+  Future<void> publish(
+    String playlistId, {
+    required PlaylistCategory category,
+    PlaylistReach reach = PlaylistReach.usual,
+  }) => _inner.publish(playlistId, category: category, reach: reach);
+
+  @override
+  Future<void> delete(String playlistId) => _inner.delete(playlistId);
+
+  @override
+  Future<void> hardDelete(String playlistId) => _inner.hardDelete(playlistId);
+
+  @override
+  Future<void> deleteAllUnsaved() => _inner.deleteAllUnsaved();
+
+  @override
+  Future<List<SavedPlaylist>> getPendingPush({String? sub}) =>
+      _inner.getPendingPush(sub: sub);
+
+  @override
+  Future<List<SavedPlaylist>> getTombstones({String? sub}) =>
+      _inner.getTombstones(sub: sub);
+
+  @override
+  Future<void> upsert(SavedPlaylist playlist) => _inner.upsert(playlist);
+
+  @override
+  Future<void> adoptForSub(String sub) => _inner.adoptForSub(sub);
+
+  @override
+  Future<int> purgeSyncedOwnedBy(String previousSub) =>
+      _inner.purgeSyncedOwnedBy(previousSub);
 }
 
 /// `PlaylistsNotifier.deleteWithUndo` (C11, spec B.3): exclusão adiada com
@@ -147,6 +286,58 @@ void main() {
       );
     },
   );
+
+  // Fix round 2 (Minor): `_reload` tem que decidir o `hiddenId` a partir do
+  // `_pendingDelete` de ANTES do próprio `await getAll()` — não depois. Um
+  // `reload()` cuja leitura já estava em voo quando um `commit()` concorrente
+  // assenta (`_settled` vira `true` de forma síncrona, antes do `_onCommit`
+  // rodar) não pode devolver a linha só porque o commit "venceu a corrida" da
+  // checagem.
+  test('reload() cuja leitura começou antes do commit concorrente não '
+      'ressuscita a lista', () async {
+    await repository.create(
+      nome: 'Rascunho',
+      entries: [PlaylistEntry(id: 'a', kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final gatedRepository = _GatedGetAllRepository(repository);
+    final container = ProviderContainer(
+      overrides: [
+        ...standardTestOverrides(prefs: prefs),
+        playlistRepositoryProvider.overrideWithValue(gatedRepository),
+        playlistSyncProvider.overrideWith(() => sync),
+        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+      ],
+    );
+    addTearDown(container.dispose);
+    container.read(playlistsProvider);
+    await _flush();
+
+    final pending = container
+        .read(playlistsProvider.notifier)
+        .deleteWithUndo('p1');
+
+    // Arma o travamento: a leitura do `reload()` abaixo já captura a lista
+    // (ainda com "p1", já que o commit não rodou) mas só devolve quando o
+    // gate for liberado — simula uma leitura que começou antes do commit.
+    final gate = gatedRepository.armNextGetAll();
+    final reloadFuture = container.read(playlistsProvider.notifier).reload();
+    // Dá tempo do `getAll()` gated capturar o snapshot antes do commit.
+    await Future<void>.delayed(Duration.zero);
+
+    // O commit roda e termina por completo (com seu próprio reload interno,
+    // que não está mais travado) ANTES da leitura em voo ser liberada.
+    await pending.commit();
+    gate.complete();
+    await reloadFuture;
+    await _flush();
+
+    expect(
+      container.read(playlistsProvider).map((i) => i.playlist.playlistId),
+      isNot(contains('p1')),
+    );
+  });
 
   test('undo recoloca a lista e nunca chama o repositório', () async {
     await repository.create(
@@ -310,6 +501,36 @@ void main() {
     await _flush();
 
     expect(c.read(activePlaylistIdProvider), isNull);
+  });
+
+  // Fix round 2 (Minor): a seleção ativa não pode continuar apontando pra
+  // uma lista que já sumiu do estado — limpa na hora do `deleteWithUndo`
+  // (não só no `commit`), e o `undo` restaura.
+  test('apagar a lista ativa limpa a seleção na hora (durante a graça) e o '
+      'undo restaura', () async {
+    await repository.create(
+      nome: 'Rascunho',
+      entries: [PlaylistEntry(id: 'a', kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
+    expect(c.read(activePlaylistIdProvider), 'p1');
+
+    final pending = c.read(playlistsProvider.notifier).deleteWithUndo('p1');
+
+    expect(
+      c.read(activePlaylistIdProvider),
+      isNull,
+      reason:
+          'não pode ficar apontando pra uma lista já removida do estado '
+          'durante a graça do desfazer',
+    );
+
+    await pending.undo();
+    await _flush();
+
+    expect(c.read(activePlaylistIdProvider), 'p1');
   });
 
   test('delete() continua apagando na hora, sem desfazer', () async {

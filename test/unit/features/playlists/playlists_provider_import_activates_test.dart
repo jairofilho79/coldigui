@@ -86,4 +86,32 @@ void main() {
     // Foco da face de partituras zerado, como em qualquer ativação.
     expect(c.read(carouselFocusedKeyProvider), isNull);
   });
+
+  // Fix round 2 (Minor): a dedupe por conteúdo (spec C.2) não pode reaproveitar
+  // uma lista que está na graça de uma exclusão adiada (C11) — o repositório
+  // ainda não sabe que ela foi apagada (commit só roda depois).
+  test('importar com o mesmo conteúdo de uma lista pendente de exclusão cria '
+      'nova, não reaproveita a pendente', () async {
+    await repository.create(
+      nome: 'Vai sair (exclusão adiada, ainda não comitou)',
+      pdfIds: const ['pdf-a'],
+      playlistId: 'p1',
+      salva: true,
+    );
+    final c = container();
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    c.read(playlistsProvider.notifier).deleteWithUndo('p1');
+
+    final imported = await c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(sharePdfs: 'pdf-a', shareName: 'Reimportada');
+
+    expect(imported, isNotNull);
+    expect(imported, isNot('p1'));
+    final importedPlaylist = await repository.getById(imported!);
+    expect(importedPlaylist?.nome, 'Reimportada');
+  });
 }

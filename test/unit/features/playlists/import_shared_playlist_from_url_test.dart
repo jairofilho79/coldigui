@@ -143,6 +143,28 @@ void main() {
         expect(result.alreadyExisted, isFalse);
       },
     );
+
+    // Fix round 2 (Minor): uma exclusão adiada (C11) ainda não comitou —
+    // `deletedAt` continua `null` no repositório durante a graça — então o
+    // filtro de tombstone acima não basta; quem chama passa o id pendente
+    // explicitamente para não reaproveitar uma lista que está pra sumir.
+    test('lista pendente de exclusão (excludePlaylistId) com o mesmo conteúdo '
+        'não conta', () async {
+      final id = await playlistRepository.create(
+        nome: 'Vai sair (exclusão adiada, ainda não comitou)',
+        pdfIds: const ['a', 'b'],
+        salva: true,
+      );
+
+      final result = await useCase(
+        sharePdfs: 'a,b',
+        shareName: 'Importada',
+        excludePlaylistId: id,
+      );
+
+      expect(result.alreadyExisted, isFalse);
+      expect(result.playlist.playlistId, isNot(id));
+    });
   });
 
   group('shareitems (v2)', () {
