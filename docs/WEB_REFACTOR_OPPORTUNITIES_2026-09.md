@@ -306,19 +306,20 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `shell_scaffold.dart:96-102`; `app_router.dart:47-51` → `PlaceholderTabScreen('Eventos')` → "Em breve"; único breakpoint muda padding (`home_screen.dart:165`); `plpcg_bottom_nav_bar.dart:56` índices fixos.
 - **Proposta:** `LayoutBuilder` ≥ 840 px → `NavigationRail`; esconder Eventos enquanto placeholder (via feature flag, ver E7); Listas no 1º nível.
 - **Esforço:** M · **Conf.:** alta
-- ✅ **Implementado (2026-09-12, onda 4)** — `9ded0c6`: `NavigationRail` a partir de 840 px (`kRailBreakpoint`) com as mesmas destinations derivadas das flags; bottom bar escondida nessa largura. Listas continuam no 2º nível.
+- ✅ **Implementado (2026-09-12, onda 4)** — `9ded0c6`: rail a partir de 840 px (`kRailBreakpoint`) com as mesmas destinations derivadas das flags; bottom bar escondida nessa largura. Listas continuam no 2º nível.
+- 🔁 **Refeito (onda 4.1, `e1a5b3e`)** — o `NavigationRail` do Material perdeu os ícones/tipografia/brilho da barra inferior na validação; o rail agora empilha os mesmos `PlpcgNavItem` (item extraído da barra, com `axis`) sobre o vinho com a linha dourada.
 
 ### C7. Sem split view em telas largas (PDF/cifra + lista da reunião + player)
 - **Evidência:** `pdf_reader_screen.dart:333-405` e `chord_reader_screen.dart:63-137` são `Column` sem breakpoint; lista só em `AlertDialog` (`carousel_selection_sheet.dart:104`) que cobre a partitura.
 - **Proposta:** ≥ 900 px: painel lateral com a lista (item atual destacado, drag para reordenar), player compacto, "seguir áudio".
 - **Esforço:** M–L · **Conf.:** alta
-- ✅ **Implementado (2026-09-12, onda 4)** — `4ab554a`, `cac2713`, `8772a75`: `ActiveListPanel` (extraído do diálogo de seleção, reutilizado por ele) num painel de 320 px à direita do leitor de PDF e da cifra a partir de 900 px (`ReaderSplitLayout`, preferência `readerSidePanelOpenProvider` persistida, botão na toolbar; some em fullscreen).
+- ↩️ **Implementado e removido** — onda 4 (`4ab554a`, `cac2713`, `8772a75`) trouxe `ActiveListPanel` num painel de 320 px a partir de 900 px; na validação o botão da toolbar foi julgado redundante com o «olho» da barra («a ideia é a mesma, mas só funciona de desktop em diante») e o painel saiu inteiro na onda 4.1 (`4815aa4`). Fica o `ActiveListPanel` como corpo do diálogo de seleção. Não retomar sem pedido.
 
 ### C8. Leitor PDF: toggle fit-mode existe e nenhum botão o chama; fullscreen web é no-op; sem 2 páginas lado a lado; sem lembrar última página
 - **Evidência:** `pdf_reader_view_settings_provider.dart:31` (`toggleFitMode`, 0 chamadas); `reader_fullscreen_provider.dart:41-47` (só `SystemChrome`, sem Fullscreen API); `pdf_reader_pdf_view.dart:364-368` (sem spread); `reader_preferences_datasource.dart:26` (só `fitMode`).
 - **Proposta:** botão fit + tecla; `requestFullscreen()` via `package:web`; spread quando `width/height > 1.3`; `{pdfId: page}` LRU 50.
 - **Esforço:** S+S+M+S · **Conf.:** alta
-- ✅ **Implementado (2026-09-12, onda 4)** — `a3954e0`, `97366ad`, `2ab3e71`, `4d35b76`, `8e199ca`, `75f4972`, `c607f36`: botão e tecla `Z` de ajuste; fullscreen web pela Fullscreen API (`ReaderFullscreenPlatform`, escuta `fullscreenchange`); última página por PDF (LRU 50 em prefs) restaurada quando o viewer fica pronto e a rota não traz `page`; «ir para página» pelo indicador e tecla `G`; duas páginas lado a lado em viewport largo (`spreadPageLayout`, preferência «Duas páginas em tela larga»), desligado enquanto o ajuste efetivo é à largura (fullscreen/`Z`).
+- ✅ **Implementado (2026-09-12, onda 4)** — `a3954e0`, `97366ad`, `2ab3e71`, `4d35b76`, `8e199ca`, `75f4972`, `c607f36`: botão e tecla `Z` de ajuste; fullscreen web pela Fullscreen API (`ReaderFullscreenPlatform`, escuta `fullscreenchange`); última página por PDF (LRU 50 em prefs) restaurada quando o viewer fica pronto e a rota não traz `page`; «ir para página» pelo indicador e tecla `G`; duas páginas lado a lado em viewport largo (`spreadPageLayout`), desligado enquanto o ajuste efetivo é à largura (fullscreen/`Z`). Onda 4.1 (`ff8c100`): a preferência «Duas páginas em tela larga» saiu do menu — o spread é só automático.
 
 ### C9. Leitor de cifras: sem autoscroll, capo, colunas em tela larga
 - **Evidência:** `chord_reader_screen.dart:90-130` (`SingleChildScrollView` + `Column`); grep `autoscroll|capo` vazio; `chordpro_view.dart:86` coluna única.
@@ -335,7 +336,7 @@ Fatos de plataforma que sustentam vários itens: `compute()` na web roda **na th
 - **Evidência:** `carousel_chips.dart`/`carousel_navigator_bar.dart` não exibem `nome`; `carousel_selection_sheet.dart:108-116`; `playlist_list_tile.dart:500-507` (confirm → delete, sem undo); menu `:194-217` sem "Duplicar".
 - **Proposta:** nome editável inline à esquerda dos chips; drag & drop na própria barra com mouse; snackbar "Removida · Desfazer" (soft-delete); "Duplicar".
 - **Esforço:** M + S · **Conf.:** alta
-- ✅ **Implementado (2026-09-12, onda 4)** — `539d7a7`, `a3760cb`, `d777450`, `b3887f9`, `dfb970d`: nome da lista ativa na barra (toque renomeia; some < 480 px); apagar sem confirmação, com «Desfazer» por 5 s (exclusão adiada `PendingDelete`; `_reload` e o import ignoram a lista pendente; ativa é solta na hora e restaurada no undo); «Duplicar» (`DuplicatePlaylist`, «Nome (cópia)», sem publicação). Reordenar na barra fica fora (o painel lateral cobre).
+- ✅ **Implementado (2026-09-12, onda 4)** — `539d7a7`, `a3760cb`, `d777450`, `b3887f9`, `dfb970d`: nome da lista ativa na barra (toque renomeia; some < 480 px; onda 4.2 `3e265cf`: tocar em «Rascunho» **salva** com nome — antes só renomeava e o rascunho ficava rascunho — e o nome ocupa no máximo 1/5 da barra, 72–160 px; o menu «⋮» da barra virou um botão único de compartilhar com `Icons.adaptive.share`); apagar sem confirmação, com «Desfazer» por 5 s (exclusão adiada `PendingDelete`; `_reload` e o import ignoram a lista pendente; ativa é solta na hora e restaurada no undo); «Duplicar» (`DuplicatePlaylist`, «Nome (cópia)», sem publicação). Reordenar na barra fica fora (o painel lateral cobre).
 
 ### C12. Player sem velocidade, ±10 s, loop A–B, Espaço; marcador só com áudio pausado; posição não persiste
 - **Evidência:** `audio_transport_controls.dart` (só prev/play/next); sem `setSpeed`/loop no provider; `audio_player_screen.dart:43` — `canAddFlag = track != null && !session.playing`.
@@ -799,17 +800,29 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 
 - **Leitor:** `applyInitialFit` continua sendo re-aplicado a cada troca de página (comportamento antigo); navegação por página com spread avança uma página por vez; `_HoverFade` do overlay sem teste de hit-test; `readerCarouselPositionProvider` não é autoDispose.
 - **Cifra:** `stop()` adiado do autoscroll pode cancelar um reinício no mesmo frame (token de geração); `chord_reader_screen.dart` com 616 linhas.
-- **Listas:** chip do nome observa a entidade inteira; renomear rascunho não muda o rótulo «Rascunho»; `duplicate` recebe `copyName` do tile.
+- **Listas:** chip do nome observa a entidade inteira; `duplicate` recebe `copyName` do tile. (Renomear rascunho sem sair de «Rascunho» era o bug corrigido em `3e265cf`.)
 - **Player:** `audioPlayerPositionProvider.duration` não é zerado numa troca dentro da fila (UI pode mostrar a duração anterior por um tick); `setSpeed` grava o estado antes do player; `MediaSessionPositionThrottle` reutilizado para o store com o nome antigo.
 - **Home/card:** `record()` de recentes grava mesmo sem mudança; com remoto falho aparecem a linha «Coldigom indisponível · tentar de novo» e o aviso do estado vazio (checar com produto); ordem de ícones testada sem gestos/YouTube.
 - **Worker:** sem rate limit no `GET /l/:code`; `tsconfig` não cobre testes.
-- **Arquitetura:** `generate_leaflet_from_entries.dart` (domínio) importa o tipo do lookup da presentation; `reader_split_layout.dart` em `core` importa providers do pdf_reader; `offline_settings_screen.dart` (531) e `playlist_tile_actions.dart` (425) ainda grandes; ciclo de import entre `metadata_row.dart` e `carousel_louvor_chip.dart` por duas constantes; `offlineMissingDownloadProvider` e `LeafletDocument.fromPdfIds` mortos; `InvalidPdfPathException` cai na mensagem genérica do leitor; `_tabLabel` do shell com literais PT (convenção antiga da nav); `Title` re-enviado a cada rebuild do shell; `.gitignore` `test/**/failures/` esconderia um futuro `test/unit/core/failures/`.
+- **Arquitetura:** `generate_leaflet_from_entries.dart` (domínio) importa o tipo do lookup da presentation; `offline_settings_screen.dart` (531) e `playlist_tile_actions.dart` (425) ainda grandes; ciclo de import entre `metadata_row.dart` e `carousel_louvor_chip.dart` por duas constantes; `offlineMissingDownloadProvider` e `LeafletDocument.fromPdfIds` mortos; `InvalidPdfPathException` cai na mensagem genérica do leitor; `_tabLabel` do shell com literais PT (convenção antiga da nav); `Title` re-enviado a cada rebuild do shell; `.gitignore` `test/**/failures/` esconderia um futuro `test/unit/core/failures/`.
 - **Testes:** `standardTestOverrides` omite prefs quando `null`; `pumpApp` criado mas não adotado; `playlist_add_dedupe_test` e `reconcile_offline_index_benchmark_test` sensíveis à carga (o primeiro agora pinado ao Isar fake).
 - **Deploy:** migration `0009_create_short_links.sql` **precisa ser aplicada** e o Worker publicado antes do web app (`wrangler.jsonc` ganhou as rotas `plpcg.com/l/*` e `plpcg.com/api/links*`); `dart_defines/*.json` ganharam `FF_EVENTS`/`FF_SOCIAL`/`FF_ADMIN_UPLOAD` (o build de produção esconde «Eventos»).
 
+### K.3b Ondas 4.1 e 4.2 — correções da validação manual (2026-09-12)
+
+| Commit | O quê |
+|---|---|
+| `e1a5b3e` | rail com os mesmos `PlpcgNavItem` da barra inferior (ícones SVG, Garamond, brilho) — C6 |
+| `d41fa55` | texto branco no estado vazio da Home (era vinho sobre vinho) — C4 |
+| `4815aa4` | painel lateral e botão da toolbar removidos; o olho da barra abre a lista — C7 |
+| `ff8c100` | «Duas páginas em tela larga» fora do menu; spread só automático — C8 |
+| `3e265cf` | «Rascunho» na chip salva a lista com nome (`saveActivePlaylist`); «Salvar como lista» e o menu «⋮» saem, fica só compartilhar (`Icons.adaptive.share`); nome limitado a 1/5 da barra — C11 |
+
+Pendência do mesmo padrão: o banner antigo de «catálogo desatualizado» em `home_screen.dart` também pinta vinho sobre vinho (anterior à onda; não mexido).
+
 ### K.4 Próxima onda recomendada
 
-1. **Validação em culto:** uma passada manual no navegador do que só o olho pega — fullscreen com mini-player e FAB, spread em projetor, última página, split view a 900–1200 px, autoscroll da cifra, link curto de ponta a ponta (depois de aplicar a migration).
+1. **Validação em culto:** uma passada manual no navegador do que só o olho pega — fullscreen com mini-player e FAB, spread em projetor, última página, autoscroll da cifra, link curto de ponta a ponta (migration `0009` e Worker já publicados em 2026-09-12; web app ainda não). Em curso — ver K.3b.
 2. **Sobras de UX:** C15 (varredura l10n/toque/semântica), capo e loop A–B se houver demanda, reordenar no painel com mouse, `pumpApp` nos testes existentes.
 3. **Arquitetura:** E8 nos demais features (catalog, playlists, audio), E12 (separar publicação), E5 (mortos listados em K.3), remoção do `applyInitialFit` por página.
 4. **Performance:** A9 (SW próprio) depois da decisão de CDN; A16 se o artefato de deploy importar.
