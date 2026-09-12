@@ -289,15 +289,17 @@ void main() {
 
       // Flags padrão de teste → tabs [library, home, social, profile];
       // última destination = Perfil (índice 3).
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      final rail = tester.widget<PlpcgNavigationRail>(
+        find.byType(PlpcgNavigationRail),
+      );
       expect(rail.destinations.length, 4);
       expect(rail.selectedIndex, 1);
 
-      rail.onDestinationSelected!(3);
+      rail.onDestinationSelected(3);
       await tester.pumpAndSettle();
 
-      final updatedRail = tester.widget<NavigationRail>(
-        find.byType(NavigationRail),
+      final updatedRail = tester.widget<PlpcgNavigationRail>(
+        find.byType(PlpcgNavigationRail),
       );
       expect(
         updatedRail.selectedIndex,

@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/color_extensions.dart';
-import 'plpcg_bottom_nav_bar.dart';
+import 'nav_item.dart';
 
 /// Rail de navegação do shell em telas largas (C6, `kRailBreakpoint`) —
-/// substitui [PlpcgBottomNavBar] mantendo as mesmas
+/// substitui `PlpcgBottomNavBar` mantendo as mesmas
 /// [PlpcgBottomNavDestination] e o mesmo índice posicional (derivado de
-/// `appTabsFor`, ver [ShellScaffold]).
+/// `appTabsFor`, ver `ShellScaffold`).
 ///
-/// `extended: false` — só ícone + rótulo curto abaixo, sem o rail expandido
-/// do Material. Fundo/tokens seguem [AppColors] (mesma identidade visual da
-/// bottom bar).
+/// Mesma identidade visual da bottom bar: fundo [AppColors.background],
+/// borda dourada de 4px separando o rail do corpo, e os mesmos
+/// [PlpcgNavItem] — ícones SVG/Material próprios, rótulo em EB Garamond
+/// quando ativo e o feixe [LightBeam] dourado sob o rótulo selecionado — só
+/// dispostos verticalmente ([Axis.vertical]) em vez de numa `Row`. Nenhum
+/// widget `NavigationRail` do Material é usado.
 class PlpcgNavigationRail extends StatelessWidget {
   const PlpcgNavigationRail({
     required this.selectedIndex,
@@ -19,6 +21,12 @@ class PlpcgNavigationRail extends StatelessWidget {
     required this.destinations,
     super.key,
   });
+
+  /// Largura total do rail (itens + borda dourada), dentro da faixa 96–112px
+  /// pedida para preservar o ritmo visual da bottom bar num layout vertical.
+  static const double width = 104;
+
+  static const double _itemWidth = width - 4;
 
   /// Índice da aba ativa — mesmo valor passado a [PlpcgBottomNavBar].
   final int selectedIndex;
@@ -32,95 +40,47 @@ class PlpcgNavigationRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold zera `MediaQuery.padding` neste slot — usar viewPadding, como
+    // a bottom bar faz para a safe area inferior (aqui, a lateral esquerda).
+    final viewPadding = MediaQuery.viewPaddingOf(context);
+
     return ColoredBox(
       color: AppColors.background,
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        // `stretch` garante que a coluna ocupe toda a altura disponível —
+        // os itens ficam alinhados no topo (comportamento padrão de
+        // `SingleChildScrollView` quando o conteúdo é menor que o viewport)
+        // e a borda dourada acompanha a altura inteira do rail, como o
+        // divisor horizontal da bottom bar acompanha a largura inteira.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NavigationRail(
-            backgroundColor: AppColors.background,
-            extended: false,
-            labelType: NavigationRailLabelType.all,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onDestinationSelected,
-            selectedIconTheme: const IconThemeData(color: AppColors.gold),
-            unselectedIconTheme: IconThemeData(
-              color: AppColors.textLight.withValues(alpha: 0.72),
+          SizedBox(
+            width: _itemWidth + viewPadding.left,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(viewPadding.left, 12, 0, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < destinations.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(top: i == 0 ? 0 : 12),
+                      child: RepaintBoundary(
+                        child: PlpcgNavItem(
+                          destination: destinations[i],
+                          selected: i == selectedIndex,
+                          onTap: () => onDestinationSelected(i),
+                          axis: Axis.vertical,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-            selectedLabelTextStyle: const TextStyle(
-              color: AppColors.gold,
-              fontWeight: FontWeight.w700,
-            ),
-            unselectedLabelTextStyle: const TextStyle(color: Color(0x8CFFFFFF)),
-            destinations: [
-              for (final destination in destinations)
-                NavigationRailDestination(
-                  icon: _PlpcgRailIcon(destination: destination),
-                  label: Text(
-                    destination.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
           ),
           const VerticalDivider(width: 4, thickness: 4, color: AppColors.gold),
         ],
       ),
     );
-  }
-}
-
-/// Ícone de uma [PlpcgBottomNavDestination] no rail — mesmas três variantes
-/// da bottom bar (ícone Material, SVG da logo, avatar), sem a animação de
-/// escala/feixe (o rail já é estático como o resto do Material `NavigationRail`).
-class _PlpcgRailIcon extends StatelessWidget {
-  const _PlpcgRailIcon({required this.destination});
-
-  final PlpcgBottomNavDestination destination;
-
-  @override
-  Widget build(BuildContext context) {
-    final svgAsset = destination.svgAsset;
-    if (svgAsset != null) {
-      return SvgPicture.asset(
-        svgAsset,
-        width: 24,
-        height: 24,
-        fit: BoxFit.contain,
-      );
-    }
-
-    final avatar = destination.avatarImage;
-    if (avatar != null) {
-      return ClipOval(
-        child: Image(
-          image: avatar,
-          width: 24,
-          height: 24,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) =>
-              const Icon(Icons.person, color: AppColors.textLight),
-        ),
-      );
-    }
-
-    // `Icon(Icons.xxx)` direto — mesmos literais já usados em
-    // [PlpcgBottomNavBar] (tree-shake do Flutter Web).
-    return switch (destination.icon) {
-      Icons.event => const Icon(Icons.event, color: AppColors.textLight),
-      Icons.library_books => const Icon(
-        Icons.library_books,
-        color: AppColors.textLight,
-      ),
-      Icons.groups => const Icon(Icons.groups, color: AppColors.textLight),
-      Icons.person => const Icon(Icons.person, color: AppColors.textLight),
-      Icons.playlist_play => const Icon(
-        Icons.playlist_play,
-        color: AppColors.textLight,
-      ),
-      final icon? => Icon(icon, color: AppColors.textLight),
-      null => const Icon(Icons.circle, color: AppColors.textLight),
-    };
   }
 }
