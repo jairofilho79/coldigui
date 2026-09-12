@@ -47,6 +47,7 @@ class PdfReaderPdfView extends ConsumerStatefulWidget {
     this.requiresReattach = false,
     this.refreshViewportAfterNavigation,
     this.onPageChanged,
+    this.onViewerReady,
     super.key,
   });
 
@@ -63,6 +64,13 @@ class PdfReaderPdfView extends ConsumerStatefulWidget {
 
   /// Callback opcional quando a página visível muda (scroll).
   final ValueChanged<int>? onPageChanged;
+
+  /// Notifica (uma vez por [handle], pós-frame) quando `handle.loadingState`
+  /// atinge [PdfReaderLoadingState.success] — dispara no momento real em que
+  /// o viewer pdfrx anexa o controller, não num post-frame "cego" agendado
+  /// antes disso (Important 2, onda 4: restauração da última página e fit
+  /// inicial dependiam de um post-frame que corria cedo demais).
+  final VoidCallback? onViewerReady;
 
   @override
   ConsumerState<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
@@ -81,15 +89,17 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
   VoidCallback? _loadingStateListener;
   final _reattachGuard = PdfReattachGuard();
   late PdfReaderViewportPolicy _viewportPolicy;
+  PdfReaderViewerHandle? _readyNotifiedForHandle;
 
   @override
   void initState() {
     super.initState();
     _viewportPolicy = PdfReaderViewportPolicy(initialPage: widget.handle.page);
+    _attachLoadingStateListener(widget.handle);
     if (widget.requiresReattach) {
-      _attachLoadingStateListener(widget.handle);
       _scheduleReattachIfCached();
     }
+    _notifyReadyIfNeeded();
   }
 
   @override
@@ -101,17 +111,15 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
         initialPage: widget.handle.page,
       );
       _reattachGuard.complete();
+      _readyNotifiedForHandle = null;
+      _attachLoadingStateListener(widget.handle);
       if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.handle);
         _scheduleReattachIfCached();
       }
-    } else if (oldWidget.requiresReattach != widget.requiresReattach) {
-      if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.handle);
-        _scheduleReattachIfCached();
-      } else {
-        _detachLoadingStateListener();
-      }
+      _notifyReadyIfNeeded();
+    } else if (oldWidget.requiresReattach != widget.requiresReattach &&
+        widget.requiresReattach) {
+      _scheduleReattachIfCached();
     }
   }
 
@@ -126,6 +134,7 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
     _loadingStateListener = () {
       if (handle.loadingState.value == PdfReaderLoadingState.success) {
         _scheduleReattachIfCached();
+        _notifyReadyIfNeeded();
       }
     };
     handle.loadingState.addListener(_loadingStateListener!);
@@ -139,6 +148,25 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
     }
     _listeningHandle = null;
     _loadingStateListener = null;
+  }
+
+  /// Notifica [PdfReaderPdfView.onViewerReady] uma única vez por [handle],
+  /// pós-frame — cobre tanto a transição ao vivo (listener acima) quanto o
+  /// caso de um handle já pronto ao montar (reattach do cache LRU).
+  void _notifyReadyIfNeeded() {
+    final handle = widget.handle;
+    if (identical(_readyNotifiedForHandle, handle)) return;
+    if (handle.loadingState.value != PdfReaderLoadingState.success) return;
+
+    _readyNotifiedForHandle = handle;
+    final callback = widget.onViewerReady;
+    if (callback == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!identical(widget.handle, handle)) return;
+      callback();
+    });
   }
 
   void _scheduleReattachIfCached() {

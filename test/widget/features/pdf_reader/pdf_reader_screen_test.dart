@@ -50,9 +50,13 @@ class _ThrowingResolvePdfForReader extends Fake implements ResolvePdfForReader {
   }
 }
 
-/// Handle de teste para C8 (última página): [isViewerReady] fixo em `true`
-/// (o teste não monta um `PdfViewer` real anexado) e [animateToPage]
-/// gravado em vez de delegar ao controller de verdade.
+/// Handle de teste para C8 (última página) / Important 2 (onda 4):
+/// [isViewerReady] segue [loadingState] de verdade (não fixo em `true`) —
+/// começa `loading` e só fica pronto quando o teste dispara a notificação
+/// (`loadingState.value = success`), simulando o `onViewerReady` real do
+/// pdfrx chegar DEPOIS do primeiro frame. [animateToPage] é gravado em vez de
+/// delegar ao controller de verdade (o teste não monta um `PdfViewer` real
+/// anexado).
 class _RestoreTrackingHandle extends TrackablePdfReaderViewerHandle {
   _RestoreTrackingHandle({
     required super.document,
@@ -63,7 +67,7 @@ class _RestoreTrackingHandle extends TrackablePdfReaderViewerHandle {
   final List<int> animateToPageCalls = [];
 
   @override
-  bool get isViewerReady => true;
+  bool get isViewerReady => loadingState.value == PdfReaderLoadingState.success;
 
   @override
   Future<void> animateToPage({
@@ -77,13 +81,11 @@ class _RestoreTrackingHandle extends TrackablePdfReaderViewerHandle {
 
 _RestoreTrackingHandle _createRestoreTrackingHandle({int pageCount = 5}) {
   final document = FakePdfDocument(pageCount: pageCount);
-  final handle = _RestoreTrackingHandle(
+  return _RestoreTrackingHandle(
     document: document,
     documentRef: PdfDocumentRefDirect(document, autoDispose: false),
     viewerController: PdfViewerController(),
   );
-  handle.loadingState.value = PdfReaderLoadingState.success;
-  return handle;
 }
 
 const _carouselItems = <CarouselItem>[
@@ -644,6 +646,13 @@ void main() {
       );
 
       await tester.pump();
+
+      // O viewer pdfrx só notifica pronto DEPOIS do primeiro frame — Important
+      // 2 (onda 4): sem a restauração escutar essa notificação (em vez de um
+      // post-frame cego agendado antes disso), a restauração nunca aconteceria.
+      handle.loadingState.value = PdfReaderLoadingState.success;
+      await tester.pump();
+
       for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 100));
         if (handle.animateToPageCalls.isNotEmpty) break;
@@ -690,6 +699,8 @@ void main() {
       ),
     );
 
+    await tester.pump();
+    handle.loadingState.value = PdfReaderLoadingState.success;
     await tester.pump();
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 100));

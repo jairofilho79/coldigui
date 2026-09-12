@@ -107,67 +107,63 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     });
   }
 
-  void _scheduleApplyInitialFit(PdfReaderViewerHandle sessionHandle) {
-    void applyFit() {
-      if (!mounted) return;
-      final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
-      final currentSession = ref
-          .read(pdfReaderSessionProvider(currentFilePath))
-          .value;
-      if (currentSession == null ||
-          !identical(currentSession.handle, sessionHandle)) {
-        return;
-      }
-      if (!sessionHandle.isViewerReady) {
-        return;
-      }
+  /// Disparado por [PdfReaderPdfView.onViewerReady] — o único momento em que
+  /// o controller pdfrx está de fato anexado (Important 2, onda 4: o antigo
+  /// post-frame agendado na resolução da sessão corria antes disso e nunca
+  /// era refeito, então fit inicial e restauração de página nunca aconteciam
+  /// numa abertura real). Decide fit e restauração juntos, uma vez por
+  /// documento.
+  void _handleViewerReady(PdfReaderSession session, String pdfId) {
+    if (!mounted) return;
+    final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
+    final currentSession = ref
+        .read(pdfReaderSessionProvider(currentFilePath))
+        .value;
+    if (currentSession == null ||
+        !identical(currentSession.handle, session.handle)) {
+      return;
+    }
+
+    if (_appliedFitForPath != session.filePath) {
+      _appliedFitForPath = session.filePath;
       ref.read(pdfReaderViewSettingsProvider.notifier).applyInitialFit();
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => applyFit());
+    _restoreLastPageOnce(session, pdfId);
   }
 
   /// Restaura a última página lembrada — uma vez por abertura de documento,
-  /// pós-frame (após `onViewerReady`), só quando a rota não traz
-  /// [_pageQueryParam] (spec A.3 C8).
-  void _scheduleRestoreLastPage(PdfReaderSession session, String pdfId) {
+  /// só quando a rota não traz [_pageQueryParam] (spec A.3 C8). Marca a
+  /// decisão mesmo quando não há nada a restaurar, para destravar
+  /// [_handlePageChanged] (que fica suprimido até a decisão ser tomada).
+  void _restoreLastPageOnce(PdfReaderSession session, String pdfId) {
     if (_restoredLastPageForPath == session.filePath) return;
+    _restoredLastPageForPath = session.filePath;
 
-    void restore() {
-      if (!mounted) return;
-      final currentFilePath = widget.queryParams[UrlSyncParams.file] ?? '';
-      final currentSession = ref
-          .read(pdfReaderSessionProvider(currentFilePath))
-          .value;
-      if (currentSession == null ||
-          !identical(currentSession.handle, session.handle)) {
-        return;
-      }
-      if (!session.handle.isViewerReady) return;
-      _restoredLastPageForPath = session.filePath;
+    if (widget.queryParams.containsKey(_pageQueryParam)) return;
+    if (pdfId.isEmpty) return;
 
-      if (widget.queryParams.containsKey(_pageQueryParam)) return;
-      if (pdfId.isEmpty) return;
+    final pagesCount = session.handle.pagesCount ?? 0;
+    if (pagesCount <= 1) return;
 
-      final pagesCount = session.handle.pagesCount ?? 0;
-      if (pagesCount <= 1) return;
-
-      final savedPage = ref
-          .read(readerPreferencesDatasourceProvider)
-          .lastPageFor(pdfId);
-      if (savedPage == null || savedPage <= 1 || savedPage > pagesCount) {
-        return;
-      }
-
-      session.handle.animateToPage(pageNumber: savedPage);
+    final savedPage = ref
+        .read(readerPreferencesDatasourceProvider)
+        .lastPageFor(pdfId);
+    if (savedPage == null || savedPage <= 1 || savedPage > pagesCount) {
+      return;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => restore());
+    session.handle.animateToPage(pageNumber: savedPage);
   }
 
   /// Salva a página vista com debounce (spec A.3 C8) — cancelado no dispose.
-  void _handlePageChanged(int page, String pdfId) {
+  ///
+  /// Suprimido até a decisão de restauração (Important 2) ser tomada: sem
+  /// isso, o `onPageChanged(1)` inicial do pdfrx sobrescrevia a página
+  /// lembrada antes da restauração ter a chance de rodar.
+  void _handlePageChanged(int page, String pdfId, String filePath) {
     if (pdfId.isEmpty) return;
+    if (_restoredLastPageForPath != filePath) return;
     _saveLastPageTimer?.cancel();
     _saveLastPageTimer = Timer(_saveLastPageDebounce, () {
       ref.read(readerPreferencesDatasourceProvider).saveLastPage(pdfId, page);
@@ -332,21 +328,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
 
     final sessionAsync = ref.watch(pdfReaderSessionProvider(filePath));
 
-    ref.listen(pdfReaderSessionProvider(filePath), (previous, next) {
-      next.whenData((session) {
-        if (_appliedFitForPath != session.filePath) {
-          _appliedFitForPath = session.filePath;
-          _scheduleApplyInitialFit(session.handle);
-        }
-        _scheduleRestoreLastPage(session, pdfId);
-      });
-    });
-
     ref.listen(readerFullscreenProvider, (previous, next) {
       if (previous == next) return;
       final session = ref.read(pdfReaderSessionProvider(filePath)).value;
-      if (session == null) return;
-      _scheduleApplyInitialFit(session.handle);
+      if (session == null || !session.handle.isViewerReady) return;
+      ref.read(pdfReaderViewSettingsProvider.notifier).applyInitialFit();
     });
 
     final sessionLoaded = sessionAsync.maybeWhen(
@@ -439,7 +425,8 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           refreshViewportAfterNavigation: () => ref
               .read(pdfReaderViewSettingsProvider.notifier)
               .applyInitialFit(),
-          onPageChanged: (page) => _handlePageChanged(page, pdfId),
+          onPageChanged: (page) => _handlePageChanged(page, pdfId, filePath),
+          onViewerReady: () => _handleViewerReady(session, pdfId),
         ),
       ),
     );
