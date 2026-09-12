@@ -2129,18 +2129,6 @@ abstract class AppLocalizations {
   /// **'Busque por título ou número'**
   String get homeEmptyHint;
 
-  /// Cartão da lista ativa na Home sem consulta (C4)
-  ///
-  /// In pt, this message translates to:
-  /// **'Lista ativa: {nome} · {n, plural, one{1 louvor} other{{n} louvores}}'**
-  String homeEmptyActiveList(String nome, int n);
-
-  /// Botão do cartão da lista ativa na Home sem consulta (C4)
-  ///
-  /// In pt, this message translates to:
-  /// **'Abrir no leitor'**
-  String get homeEmptyOpenActive;
-
   /// Título das chips de materiais recentes na Home sem consulta (C4)
   ///
   /// In pt, this message translates to:

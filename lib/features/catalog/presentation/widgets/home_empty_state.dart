@@ -5,8 +5,6 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../playlists/domain/entities/saved_playlist.dart';
-import '../../../playlists/presentation/providers/active_playlist_provider.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../providers/catalog_filters_provider.dart';
 import '../providers/catalog_material_lookup_provider.dart';
@@ -19,8 +17,9 @@ import '../providers/recently_opened_provider.dart';
 ///
 /// Dois ramos mutuamente exclusivos, escolhidos só por [HomeSearchState.query]
 /// (o chamador só monta este widget quando `state.groups` já está vazio):
-/// - sem consulta: cartão da lista ativa + chips "abertos recentemente" +
-///   hint de busca;
+/// - sem consulta: chips "abertos recentemente" + hint de busca (o cartão da
+///   lista ativa que a onda 4 pôs aqui saiu na 4.2: a barra do carousel já
+///   mostra a lista, o louvor em foco e o botão de abrir — product owner);
 /// - consulta sem resultado: "nenhum louvor" + dicas + limpar filtros (se
 ///   houver filtro fora do padrão) + aviso Coldigom (se a busca remota falhou
 ///   e o dispositivo está offline).
@@ -69,7 +68,6 @@ class _NoQueryContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final activePlaylist = ref.watch(activePlaylistProvider);
     final recentIds = ref.watch(recentlyOpenedProvider);
     final lookup = ref.watch(catalogMaterialLookupProvider);
 
@@ -77,16 +75,9 @@ class _NoQueryContent extends ConsumerWidget {
       for (final id in recentIds) ?_resolveMaterial(lookup, id),
     ];
 
-    final hasActivePlaylist =
-        activePlaylist != null && activePlaylist.entries.isNotEmpty;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (hasActivePlaylist) ...[
-          _ActivePlaylistCard(playlist: activePlaylist, l10n: l10n),
-          const SizedBox(height: 20),
-        ],
         if (recentMaterials.isNotEmpty) ...[
           Text(
             l10n.homeEmptyRecent,
@@ -125,52 +116,6 @@ class _NoQueryContent extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ActivePlaylistCard extends ConsumerWidget {
-  const _ActivePlaylistCard({required this.playlist, required this.l10n});
-
-  final SavedPlaylist playlist;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              l10n.homeEmptyActiveList(playlist.nome, playlist.entries.length),
-              // Fundo dourado translúcido sobre o vinho do `Scaffold` da Home
-              // (product owner, onda 4.1): `AppTypography.body` é vinho, para
-              // o card creme — aqui o texto continua sobre fundo escuro.
-              style: AppTypography.body.copyWith(color: AppColors.textLight),
-            ),
-          ),
-          const SizedBox(width: 12),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.textLight),
-            onPressed: () {
-              final lookup = ref.read(catalogMaterialLookupProvider);
-              final material = _resolveMaterial(
-                lookup,
-                playlist.entries.first.id,
-              );
-              if (material == null) return;
-              ref.read(openMaterialProvider).open(context, ref, material);
-            },
-            child: Text(l10n.homeEmptyOpenActive),
-          ),
-        ],
-      ),
     );
   }
 }

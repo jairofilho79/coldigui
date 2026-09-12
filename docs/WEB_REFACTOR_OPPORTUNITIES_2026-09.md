@@ -767,7 +767,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 | C8 + C16 (leitor) | `a3954e0`, `97366ad`, `2ab3e71`, `4d35b76`, `8e199ca`, `75f4972`, `c607f36`, `9427f8b` | ajuste (`Z`), fullscreen web, última página, ir para página (`G`), spread em viewport largo |
 | C9 + C10 + A14 (cifra) | `ac76885`, `9500380`, `dddae1b`, `78d0ce9`, `322a6de`, `d0715cd`, `f5bc42b` | tom por louvor, sliver + memo, autoscroll, duas colunas pela largura disponível |
 | C7 (split view) | `4ab554a`, `cac2713`, `8772a75` | `ActiveListPanel` no leitor e na cifra a partir de 900 px |
-| C4 (Home) | `b3491b4`, `87c0366`, `a6c6084` | estados vazios com lista ativa, recentes, «sem resultados», Coldigom offline |
+| C4 (Home) | `b3491b4`, `87c0366`, `a6c6084` | estados vazios com recentes, «sem resultados», Coldigom offline (o cartão da lista ativa saiu na 4.2) |
 | C5 (card) | `485fad4`, `abeb28f`, `a47b05b`, `1055011` | ícones de material, «+» sempre com troca, destaque do termo |
 | C11 + C16 (listas) | `539d7a7`, `a3760cb`, `d777450`, `b3887f9`, `fc74aac`, `f30cc59`, `dfb970d` | nome na barra, apagar com desfazer, duplicar, folheto direto |
 | C12 (player) | `7979eb6`, `971c863`, `86ff3a2`, `3cdb710`, `cb9ca89`, `89faa2f`, `885bf6e`, `87e3bb2` | ±10 s (`J`/`L`), velocidade, marcador tocando, posição retomada |
@@ -817,6 +817,8 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 | `4815aa4` | painel lateral e botão da toolbar removidos; o olho da barra abre a lista — C7 |
 | `ff8c100` | «Duas páginas em tela larga» fora do menu; spread só automático — C8 |
 | `3e265cf` | «Rascunho» na chip salva a lista com nome (`saveActivePlaylist`); «Salvar como lista» e o menu «⋮» saem, fica só compartilhar (`Icons.adaptive.share`); nome limitado a 1/5 da barra — C11 |
+
+| `dfa61ee` | cartão «Lista ativa: … · Abrir no leitor» removido do estado vazio da Home — redundante com a barra do carousel (lista, louvor em foco e abrir); ficam «Abertos recentemente» e a dica — C4 |
 
 Pendência do mesmo padrão: o banner antigo de «catálogo desatualizado» em `home_screen.dart` também pinta vinho sobre vinho (anterior à onda; não mexido).
 

@@ -719,22 +719,6 @@
   "@homeEmptyHint": {
     "description": "Hint da Home sem consulta nem lista ativa/recentes (C4)"
   },
-  "homeEmptyActiveList": "Lista ativa: {nome} · {n, plural, one{1 louvor} other{{n} louvores}}",
-  "@homeEmptyActiveList": {
-    "description": "Cartão da lista ativa na Home sem consulta (C4)",
-    "placeholders": {
-      "nome": {
-        "type": "String"
-      },
-      "n": {
-        "type": "int"
-      }
-    }
-  },
-  "homeEmptyOpenActive": "Abrir no leitor",
-  "@homeEmptyOpenActive": {
-    "description": "Botão do cartão da lista ativa na Home sem consulta (C4)"
-  },
   "homeEmptyRecent": "Abertos recentemente",
   "@homeEmptyRecent": {
     "description": "Título das chips de materiais recentes na Home sem consulta (C4)"

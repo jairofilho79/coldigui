@@ -656,8 +656,6 @@
   "sessionExpiredBanner": "Session expired",
   "sessionExpiredSignInAgain": "Sign in again",
   "homeEmptyHint": "Search by title or number",
-  "homeEmptyActiveList": "Active list: {nome} · {n, plural, one{1 song} other{{n} songs}}",
-  "homeEmptyOpenActive": "Open in reader",
   "homeEmptyRecent": "Recently opened",
   "homeNoResults": "No songs found for “{query}”",
   "homeNoResultsTips": "Try another term, or check the number and spelling.",

@@ -1248,20 +1248,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeEmptyHint => 'Busque por título ou número';
 
   @override
-  String homeEmptyActiveList(String nome, int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n louvores',
-      one: '1 louvor',
-    );
-    return 'Lista ativa: $nome · $_temp0';
-  }
-
-  @override
-  String get homeEmptyOpenActive => 'Abrir no leitor';
-
-  @override
   String get homeEmptyRecent => 'Abertos recentemente';
 
   @override

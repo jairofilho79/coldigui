@@ -1233,20 +1233,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeEmptyHint => 'Search by title or number';
 
   @override
-  String homeEmptyActiveList(String nome, int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n songs',
-      one: '1 song',
-    );
-    return 'Active list: $nome · $_temp0';
-  }
-
-  @override
-  String get homeEmptyOpenActive => 'Open in reader';
-
-  @override
   String get homeEmptyRecent => 'Recently opened';
 
   @override

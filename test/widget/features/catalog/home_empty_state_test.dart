@@ -168,7 +168,7 @@ void main() {
       expect(find.text('Busque por título ou número'), findsOneWidget);
     });
 
-    testWidgets('lista ativa com entradas mostra "Lista ativa: …"', (
+    testWidgets('lista ativa não vira cartão — a barra já a mostra', (
       tester,
     ) async {
       final prefs = await SharedPreferences.getInstance();
@@ -194,35 +194,9 @@ void main() {
         ],
       );
 
-      expect(
-        find.text('Lista ativa: Culto de domingo · 2 louvores'),
-        findsOneWidget,
-      );
-      expect(find.text('Abrir no leitor'), findsOneWidget);
-    });
-
-    testWidgets('lista ativa sem entradas não mostra o cartão', (tester) async {
-      final prefs = await SharedPreferences.getInstance();
-      final playlist = SavedPlaylist(
-        playlistId: 'p1',
-        nome: 'Rascunho',
-        entries: const [],
-        createdAt: DateTime.utc(2026, 9, 1),
-      );
-
-      await _pump(
-        tester,
-        state: _state(),
-        prefs: prefs,
-        overrides: [
-          activePlaylistProvider.overrideWithValue(playlist),
-          recentlyOpenedProvider.overrideWith(
-            () => _FixedRecentlyOpened(const []),
-          ),
-        ],
-      );
-
       expect(find.textContaining('Lista ativa:'), findsNothing);
+      expect(find.text('Abrir no leitor'), findsNothing);
+      expect(find.text('Busque por título ou número'), findsOneWidget);
     });
 
     testWidgets(
@@ -417,7 +391,7 @@ void main() {
 
   group('contraste sobre o fundo vinho (onda 4.1, feedback do product owner)', () {
     testWidgets(
-      'sem consulta: cartão de lista ativa, rótulo de recentes e hint em branco',
+      'sem consulta: rótulo de recentes e hint em branco',
       (tester) async {
         final prefs = await SharedPreferences.getInstance();
         final playlist = SavedPlaylist(
@@ -444,17 +418,6 @@ void main() {
           ],
         );
 
-        expect(
-          _textColor(tester, 'Lista ativa: Culto de domingo · 1 louvor'),
-          AppColors.textLight,
-        );
-        expect(
-          _buttonForegroundColor(
-            tester,
-            find.widgetWithText(TextButton, 'Abrir no leitor'),
-          ),
-          AppColors.textLight,
-        );
         expect(_textColor(tester, 'Abertos recentemente'), AppColors.textLight);
         expect(
           _textColor(tester, 'Busque por título ou número'),
