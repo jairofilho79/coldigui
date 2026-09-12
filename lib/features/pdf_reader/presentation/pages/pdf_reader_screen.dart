@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:coldigui/core/failures/app_failure.dart';
+import 'package:coldigui/core/l10n/failure_message.dart';
 import 'package:coldigui/core/presentation/widgets/reader_split_layout.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
@@ -239,26 +241,21 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             titulo: louvor.nome,
           );
       context.replace(location);
-    } on PdfOfflineUnavailableException catch (e) {
+    } on Object catch (error) {
+      // Escada única via AppFailure (E8): a mensagem sai de `failureMessage`
+      // — `OfflineFailure` mantém a snackbar com ação "Baixar", as demais
+      // caem na snackbar genérica.
       if (mounted) {
-        showPdfOfflineUnavailableSnackbar(context, message: e.message);
-      }
-    } on PdfExternallyDeletedException {
-      if (mounted) {
-        // A exceção não carrega mais literal PT: o texto vem do l10n (D.6).
-        showPdfOfflineUnavailableSnackbar(
-          context,
-          message: l10n?.pdfExternallyDeleted,
-        );
-      }
-    } on PdfFetchFailedException catch (e) {
-      if (mounted) showAppSnackbar(context, e.message);
-    } on Object {
-      if (mounted) {
-        showAppSnackbar(
-          context,
-          l10n?.pdfActionError ?? 'Não foi possível concluir a ação',
-        );
+        final failure = AppFailure.from(error);
+        final message = l10n == null ? null : failureMessage(l10n, failure);
+        if (failure is OfflineFailure) {
+          showPdfOfflineUnavailableSnackbar(context, message: message);
+        } else {
+          showAppSnackbar(
+            context,
+            message ?? 'Não foi possível concluir a ação',
+          );
+        }
       }
     } finally {
       if (mounted) {
