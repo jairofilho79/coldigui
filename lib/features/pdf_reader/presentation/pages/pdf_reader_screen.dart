@@ -422,8 +422,11 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             );
           }
           return _ReaderMessage(
+            // Sem literal PT na exceção (E8 fix round 1): o texto sai do
+            // l10n; sem `context` cai no fallback genérico (D.6).
             message: unwrapped is PdfLocalReadFailedException
-                ? (l10n?.pdfLocalReadFailedMessage ?? unwrapped.message)
+                ? (l10n?.pdfLocalReadFailedMessage ??
+                      pdfReaderErrorMessage(unwrapped))
                 : pdfReaderErrorMessage(unwrapped),
             onRetry: () => ref.invalidate(pdfReaderSessionProvider(filePath)),
           );

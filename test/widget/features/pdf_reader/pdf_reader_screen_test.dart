@@ -165,7 +165,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Esquema de URL não permitido'), findsOneWidget);
+    // InvalidPdfPathException não carrega mais literal PT (E8 fix round 1):
+    // cai no fallback genérico de pdfReaderErrorMessage.
+    expect(find.text('Não foi possível abrir o PDF'), findsOneWidget);
     expect(find.text('Tentar novamente'), findsOneWidget);
   });
 
@@ -235,33 +237,30 @@ void main() {
     expect(find.byIcon(Icons.share), findsNothing);
   });
 
-  test('pdfReaderErrorMessage formata InvalidPdfPathException', () {
-    const error = InvalidPdfPathException('teste');
-    expect(pdfReaderErrorMessage(error), 'teste');
-  });
-
   test('pdfReaderErrorMessage formata exceções offline', () {
     const offline = PdfOfflineUnavailableException(pdfId: 'x');
     const fetchFailed = PdfFetchFailedException('erro fetch');
-    const readFailed = PdfLocalReadFailedException(pdfId: 'w');
 
     expect(pdfReaderErrorMessage(offline), offline.message);
     expect(pdfReaderErrorMessage(fetchFailed), 'erro fetch');
-    expect(pdfReaderErrorMessage(readFailed), readFailed.message);
   });
 
-  test(
-    'pdfReaderErrorMessage cai no genérico para removido/corrompido (D.6)',
-    () {
-      // As duas perderam o literal PT: quem tem `context` mostra o texto do
-      // l10n; este fallback sem l10n só pode dizer o genérico.
-      const deleted = PdfExternallyDeletedException(pdfId: 'y');
-      const corrupted = PdfLocalCorruptedException(pdfId: 'z');
+  test('pdfReaderErrorMessage cai no genérico para removido/corrompido/caminho '
+      'inválido/leitura falhou (D.6, E8 fix round 1)', () {
+    // As quatro perderam o literal PT: quem tem `context` mostra o texto
+    // do l10n (pdfExternallyDeleted/pdfLocalCorrupted/pdfLocalReadFailedMessage);
+    // este fallback sem l10n só pode dizer o genérico. InvalidPdfPathException
+    // nunca teve chave l10n própria — sempre caiu aqui.
+    const deleted = PdfExternallyDeletedException(pdfId: 'y');
+    const corrupted = PdfLocalCorruptedException(pdfId: 'z');
+    const invalidPath = InvalidPdfPathException('Esquema de URL não permitido');
+    const readFailed = PdfLocalReadFailedException(pdfId: 'w');
 
-      expect(pdfReaderErrorMessage(deleted), 'Não foi possível abrir o PDF');
-      expect(pdfReaderErrorMessage(corrupted), 'Não foi possível abrir o PDF');
-    },
-  );
+    expect(pdfReaderErrorMessage(deleted), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(corrupted), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(invalidPath), 'Não foi possível abrir o PDF');
+    expect(pdfReaderErrorMessage(readFailed), 'Não foi possível abrir o PDF');
+  });
 
   testWidgets('PdfReaderScreen exibe fallback genérico com retry para '
       'PdfLocalReadFailedException (B3 — não apaga PDF por erro genérico)', (
@@ -294,10 +293,53 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text(readFailed.message), findsOneWidget);
+    // Sem l10n neste MaterialApp: cai no genérico (E8 fix round 1) — a chave
+    // pdfLocalReadFailedMessage é coberta com l10n no teste seguinte.
+    expect(find.text('Não foi possível abrir o PDF'), findsOneWidget);
     expect(find.text('Tentar novamente'), findsOneWidget);
     expect(find.text('Baixar novamente'), findsNothing);
   });
+
+  testWidgets(
+    'PdfReaderScreen exibe a chave l10n para PdfLocalReadFailedException '
+    'quando l10n está disponível (E8 fix round 1)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      const readFailed = PdfLocalReadFailedException(pdfId: 'pdf-2');
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider(
+              '/tmp/read-failed.pdf',
+            ).overrideWith((ref) => Future.error(readFailed)),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': '/tmp/read-failed.pdf',
+                  'pdfId': 'pdf-2',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      expect(find.text(l10n.pdfLocalReadFailedMessage), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+      expect(find.text('Baixar novamente'), findsNothing);
+    },
+  );
 
   testWidgets('PdfReaderScreen exibe Baixar novamente para PDF corrompido', (
     tester,

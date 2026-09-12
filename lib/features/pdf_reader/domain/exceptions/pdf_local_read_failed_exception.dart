@@ -7,18 +7,15 @@
 /// do leitor trata pelo fallback genérico com retry via
 /// `ref.invalidate(pdfReaderSessionProvider)`.
 class PdfLocalReadFailedException implements Exception {
-  const PdfLocalReadFailedException({
-    required this.pdfId,
-    this.message = 'Não foi possível ler o arquivo. Tente novamente.',
-  });
+  const PdfLocalReadFailedException({required this.pdfId});
 
   /// Identificador do PDF na tabela offline.
   final String pdfId;
 
-  /// Mensagem amigável exibida na UI — ver `pdfLocalReadFailedMessage`
-  /// em `lib/l10n/app_pt.arb` / `app_en.arb`.
-  final String message;
-
+  /// Sem `message` em PT (E8 fix round 1): o texto do usuário sai da chave
+  /// l10n `pdfLocalReadFailedMessage` (`lib/l10n/app_pt.arb` / `app_en.arb`),
+  /// lida por quem tem `context`; sem `context`, `pdfReaderErrorMessage`
+  /// cai no fallback genérico.
   @override
-  String toString() => 'PdfLocalReadFailedException: $message';
+  String toString() => 'PdfLocalReadFailedException($pdfId)';
 }
