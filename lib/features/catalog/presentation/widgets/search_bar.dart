@@ -49,11 +49,19 @@ class SearchBar extends StatefulWidget {
     this.initialValue = '',
     this.focusNode,
     this.onSubmitted,
+    this.capabilities,
   });
 
   /// [FocusNode] externo — a Home usa para o atalho `Ctrl+K` / `/`.
   /// Quando `null`, o widget cria e descarta o seu.
   final FocusNode? focusNode;
+
+  /// Capacidades da plataforma usadas em [shouldAutofocusSearch] (C1).
+  ///
+  /// `null` cai em [currentPlatformCapabilities] — mantém os testes que
+  /// montam [SearchBar] sem `ProviderScope` funcionando (T2). Em produção o
+  /// pai com `ref` (`home_screen.dart`) passa `platformCapabilitiesProvider`.
+  final PlatformCapabilities? capabilities;
 
   /// Enter no campo. Recebe o texto atual.
   final ValueChanged<String>? onSubmitted;
@@ -153,7 +161,9 @@ class _SearchBarState extends State<SearchBar> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   autofocus: shouldAutofocusSearch(
-                    isWeb: currentPlatformCapabilities().isWeb,
+                    isWeb:
+                        (widget.capabilities ?? currentPlatformCapabilities())
+                            .isWeb,
                     platform: defaultTargetPlatform,
                   ),
                   textInputAction: TextInputAction.search,

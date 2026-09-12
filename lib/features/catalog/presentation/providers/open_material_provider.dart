@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/platform/platform_capabilities.dart';
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
@@ -53,7 +55,16 @@ typedef AudioMaterialOpener =
     });
 
 /// Abre o YouTube externo; `false` quando a URL é inválida ou o launch falha.
-typedef YoutubeMaterialOpener = Future<bool> Function(YoutubeMaterial material);
+///
+/// [capabilities] é lida de `platformCapabilitiesProvider` por [OpenMaterial]
+/// (ref-bearing) e passada para dentro — o opener de produção
+/// (`openYoutubeMaterial`) não lê o provider nem `currentPlatformCapabilities`
+/// direto (T2, Global Constraint).
+typedef YoutubeMaterialOpener =
+    Future<bool> Function(
+      YoutubeMaterial material, {
+      required PlatformCapabilities capabilities,
+    });
 
 /// Ponto único de abertura de material do app.
 ///
@@ -115,7 +126,11 @@ class OpenMaterial {
                 ),
           );
         case YoutubeMaterialRef(:final material):
-          final opened = await openYoutube(material);
+          final capabilities = ref.read(platformCapabilitiesProvider);
+          final opened = await openYoutube(
+            material,
+            capabilities: capabilities,
+          );
           if (!opened && context.mounted) {
             showAppSnackbar(
               context,

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/platform/platform_capabilities.dart';
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -362,6 +364,65 @@ void main() {
       await tester.pump();
 
       expect(tester.widget<TextField>(field).controller!.text, 'hello');
+    },
+  );
+
+  testWidgets(
+    'SearchBar autofoca com capabilities.isWeb=true, mesmo sem ProviderScope '
+    '(T2 — currentPlatformCapabilities() só como default do parâmetro)',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: Scaffold(
+            body: SearchBar(
+              hintText: 'Buscar',
+              onQueryChanged: (_) {},
+              capabilities: PlatformCapabilities.web,
+            ),
+          ),
+        ),
+      );
+
+      // Plataforma de teste é Android (não-desktop, `defaultTargetPlatform`):
+      // sem `capabilities.isWeb`, o autofoco ficaria false (UC-01, C1).
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.autofocus, isTrue);
+    },
+  );
+
+  testWidgets(
+    'HomeScreen repassa platformCapabilitiesProvider ao SearchBar (T2 — '
+    'sem currentPlatformCapabilities() direto no widget)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: _homeSearchTestOverrides(
+            prefs: prefs,
+            catalog: catalog,
+            extra: [
+              platformCapabilitiesProvider.overrideWithValue(
+                PlatformCapabilities.web,
+              ),
+            ],
+          ),
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const HomeScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.autofocus, isTrue);
     },
   );
 }

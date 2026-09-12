@@ -9,7 +9,14 @@ import 'package:url_launcher/url_launcher.dart';
 /// Na web abre em nova aba (`_blank`).
 /// Retorna `false` se a URL for inválida ou o launch falhar — quem chama avisa
 /// o usuário (`openMaterialProvider` mostra `youtubeOpenError`).
-Future<bool> openYoutubeMaterial(YoutubeMaterial material) async {
+///
+/// [capabilities] vem de `platformCapabilitiesProvider` — quem chama é
+/// `OpenMaterial.open()` (ref-bearing), não este utilitário (T2, Global
+/// Constraint: `kIsWeb`/plataforma fora de `core`/`data` só via provider).
+Future<bool> openYoutubeMaterial(
+  YoutubeMaterial material, {
+  required PlatformCapabilities capabilities,
+}) async {
   final uri = YoutubeUrl.tryParse(material.url);
   if (uri == null) return false;
 
@@ -17,7 +24,7 @@ Future<bool> openYoutubeMaterial(YoutubeMaterial material) async {
     return await launchUrl(
       uri,
       mode: LaunchMode.externalApplication,
-      webOnlyWindowName: currentPlatformCapabilities().isWeb ? '_blank' : null,
+      webOnlyWindowName: capabilities.isWeb ? '_blank' : null,
     );
   } on Object catch (e) {
     debugPrint('[catalog] falha ao abrir YouTube: $e');
