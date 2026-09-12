@@ -147,6 +147,20 @@ final audioSessionPlayerFactoryProvider = Provider<AudioPlayer Function()>(
   (ref) => AudioPlayer.new,
 );
 
+/// Tempo máximo aceitável de `buffering` antes de virar erro visível.
+///
+/// Bug real (web, avanço automático dentro da fila): quando o just_audio
+/// troca de faixa sozinho (fim natural da anterior) e o carregamento da
+/// próxima trava — rede lenta, asset ausente, `just_audio_web` engole a
+/// falha do `<audio>` sem nunca completar nem emitir `errorStream` — o
+/// `processingState` fica preso em `loading`/`buffering` para sempre.
+/// `buffering: true` desabilita o play/pause (mini player e tela cheia) sem
+/// nenhum sinal de erro: o usuário "não consegue nem desligar nem pausar
+/// nada" e parece que o player sumiu. Mesma lógica do `isarOpenTimeout`
+/// (`core/database/isar_provider.dart`) — nunca deixar o app preso num
+/// spinner para sempre.
+const audioBufferingTimeout = Duration(seconds: 20);
+
 /// Última posição de reprodução gravada (C12) — `SharedPreferences`.
 final audioPlaybackPositionStoreProvider = Provider<AudioPlaybackPositionStore>(
   (ref) => AudioPlaybackPositionStore(ref.watch(sharedPreferencesProvider)),
@@ -162,6 +176,10 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   bool _mediaSessionAttached = false;
   final _mediaSessionPositionThrottle = MediaSessionPositionThrottle();
   late AudioPlaybackPositionStore _positionStore;
+
+  /// Arma quando `buffering` vira `true`; dispara [audioBufferingTimeout]
+  /// depois sem sinal nenhum de progresso — ver [audioBufferingTimeout].
+  Timer? _bufferingWatchdog;
 
   /// C12: no máximo uma gravação a cada 5 s enquanto toca (mesmo padrão do
   /// [_mediaSessionPositionThrottle], janela maior).
@@ -217,13 +235,15 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _player = player;
     _subscriptions.addAll([
       player.playerStateStream.listen((playerState) {
+        final buffering =
+            playerState.processingState == ProcessingState.loading ||
+            playerState.processingState == ProcessingState.buffering;
         state = state.copyWith(
           playing: playerState.playing,
-          buffering:
-              playerState.processingState == ProcessingState.loading ||
-              playerState.processingState == ProcessingState.buffering,
+          buffering: buffering,
         );
         _mediaSession?.updatePlaybackState(playing: playerState.playing);
+        _updateBufferingWatchdog(buffering);
       }),
       player.positionStream.listen((position) {
         ref
@@ -295,6 +315,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         // fila que está entrando.
         if (_applyingSources) return;
         debugPrint('[audio] erro do player: $error');
+        _cancelBufferingWatchdog();
         state = state.copyWith(
           errorMessage: error.toString(),
           playing: false,
@@ -303,6 +324,44 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       }),
     ]);
     return player;
+  }
+
+  /// Arma/desarma o [_bufferingWatchdog] conforme [buffering] muda.
+  ///
+  /// Só arma um timer novo quando não há um já em voo — `buffering` pode
+  /// reemitir `true` várias vezes seguidas (`playerStateStream` do
+  /// `just_audio`) sem que isso deva reiniciar a contagem a cada tick.
+  void _updateBufferingWatchdog(bool buffering) {
+    if (!buffering) {
+      _cancelBufferingWatchdog();
+      return;
+    }
+    if (_bufferingWatchdog != null) return;
+    final gen = _generation;
+    _bufferingWatchdog = Timer(audioBufferingTimeout, () {
+      _bufferingWatchdog = null;
+      // A fila mudou nesse meio-tempo (`retryCurrent`/nova faixa) — quem
+      // está tocando agora tem seu próprio watchdog; este já não fala por
+      // ninguém.
+      if (gen != _generation) return;
+      // Já saiu de buffering por conta própria entre o timer disparar e
+      // rodar (corrida inofensiva) — nada a fazer.
+      if (!state.buffering) return;
+      debugPrint(
+        '[audio] buffering travado por mais de $audioBufferingTimeout — '
+        'vira erro visível',
+      );
+      state = state.copyWith(
+        errorMessage: 'Carregamento travado',
+        playing: false,
+        buffering: false,
+      );
+    });
+  }
+
+  void _cancelBufferingWatchdog() {
+    _bufferingWatchdog?.cancel();
+    _bufferingWatchdog = null;
   }
 
   @override
@@ -319,6 +378,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
         unawaited(sub.cancel());
       }
       _subscriptions.clear();
+      _cancelBufferingWatchdog();
       _sourceResolver?.revokeAll();
       _mediaSession?.detach();
       unawaited(_player?.dispose());
@@ -444,6 +504,10 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   }) async {
     if (tracks.isEmpty) return;
     final gen = ++_generation;
+    // Fila nova: o watchdog da faixa anterior (se algum ficou armado) não
+    // fala mais por ninguém — o `gen` já cuidaria disso no disparo, mas
+    // cancelar aqui evita um `Timer` real pendurado à toa.
+    _cancelBufferingWatchdog();
     final safeIndex = startIndex.clamp(0, tracks.length - 1);
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
@@ -673,10 +737,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     } on Object catch (e) {
       _reportTransportFailure('stop', e);
     }
+    _cancelBufferingWatchdog();
     ref.read(audioPlayerPositionProvider.notifier).reset();
     _mediaSessionPositionThrottle.reset();
     _positionStoreThrottle.reset();
-    state = state.copyWith(playing: false);
+    state = state.copyWith(playing: false, buffering: false);
   }
 
   /// Encerra o player: para e limpa fila/posição (diferente de [stop]).
@@ -685,6 +750,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     // depois do fechamento. O contador de trocas de fonte não se mexe aqui —
     // é do player, e quem o incrementou devolve no próprio `finally`.
     _generation++;
+    _cancelBufferingWatchdog();
     try {
       await _player?.stop();
       // Fix round 3 (Minor): `close()` não descarta `_player` — o mesmo

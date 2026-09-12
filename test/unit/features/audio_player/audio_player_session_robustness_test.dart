@@ -5,6 +5,7 @@ import 'package:coldigui/features/audio_player/data/datasources/audio_playback_p
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -993,6 +994,131 @@ void main() {
       await notifier.stop();
 
       expect(AudioPlaybackPositionStore(prefs).read(), isNull);
+    });
+  });
+
+  group('watchdog de buffering travado', () {
+    // Reproduz o bug relatado: tocar o áudio de um louvor fora da lista
+    // ativa enfileira as variantes do grupo (MIDI/Playback/vozes) e, ao
+    // terminar uma faixa, o just_audio avança sozinho pra próxima — se o
+    // carregamento dela travar (rede, asset ausente) sem nunca completar
+    // nem emitir erro, o player fica com `processingState` preso em
+    // `loading`/`buffering` para sempre. Sem isto, `buffering: true` nunca
+    // volta a `false` e desabilita o play/pause pra sempre (mini player e
+    // tela cheia), sem qualquer sinal de erro — "não consegue nem desligar
+    // nem pausar nada".
+    test(
+      'buffering que nunca resolve vira erro visível depois do timeout',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        fakeAsync((async) {
+          final container = ProviderContainer(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(prefs),
+              audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+            ],
+          );
+          addTearDown(container.dispose);
+          final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+          unawaited(notifier.playQueue([_track('a1'), _track('a2')]));
+          async.flushMicrotasks();
+
+          // A faixa atual termina e o player avança sozinho (avanço
+          // automático) — carregando a próxima, sem nunca sair de
+          // `loading`/`buffering` (carregamento travado).
+          player.playerStates.add(PlayerState(true, ProcessingState.loading));
+          async.flushMicrotasks();
+          expect(container.read(audioPlayerSessionProvider).buffering, isTrue);
+
+          // Antes do timeout: continua buffering, sem erro.
+          async.elapse(audioBufferingTimeout - const Duration(seconds: 1));
+          var state = container.read(audioPlayerSessionProvider);
+          expect(state.buffering, isTrue);
+          expect(state.errorMessage, isNull);
+
+          // Passa do timeout: buffering trava permanentemente sem
+          // resolver — vira erro visível e libera os controles.
+          async.elapse(const Duration(seconds: 2));
+          state = container.read(audioPlayerSessionProvider);
+          expect(state.buffering, isFalse);
+          expect(state.playing, isFalse);
+          expect(state.errorMessage, isNotNull);
+        });
+      },
+    );
+
+    test('buffering que resolve antes do timeout não gera erro', () async {
+      final prefs = await SharedPreferences.getInstance();
+      fakeAsync((async) {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+        unawaited(notifier.playQueue([_track('a1'), _track('a2')]));
+        async.flushMicrotasks();
+
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        async.elapse(const Duration(seconds: 5));
+        player.playerStates.add(PlayerState(true, ProcessingState.ready));
+        async.flushMicrotasks();
+
+        // O resto do timeout original passa sem disparar erro nenhum — o
+        // watchdog foi desarmado quando saiu de buffering.
+        async.elapse(audioBufferingTimeout);
+        final state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isFalse);
+        expect(state.errorMessage, isNull);
+      });
+    });
+
+    test('nova fila desarma o watchdog antigo — não apaga o buffering legítimo '
+        'da fila nova', () async {
+      final prefs = await SharedPreferences.getInstance();
+      fakeAsync((async) {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+        unawaited(notifier.playQueue([_track('a1')]));
+        async.flushMicrotasks();
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        // Perto do fim do timeout antigo, o usuário manda tocar outra
+        // fila — supera a anterior antes dela disparar.
+        async.elapse(audioBufferingTimeout - const Duration(seconds: 1));
+        unawaited(notifier.playQueue([_track('b1')]));
+        async.flushMicrotasks();
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        // O timer antigo venceria aqui, mas a fila mudou (geração
+        // diferente) — não pode apagar o buffering legítimo da fila nova.
+        async.elapse(const Duration(seconds: 2));
+        var state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isTrue);
+        expect(state.errorMessage, isNull);
+
+        // O timeout da fila nova, contado a partir do próprio buffering
+        // dela, ainda dispara normalmente.
+        async.elapse(audioBufferingTimeout);
+        state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isFalse);
+        expect(state.errorMessage, isNotNull);
+      });
     });
   });
 }
