@@ -466,7 +466,6 @@
   "audioClosePlayer": "Close and return to search",
   "audioOpenSheetMusic": "Sheet music for this hymn",
   "audioFollowReader": "Follow the audio",
-  "carouselPlayGroupAudio": "Play this hymn's audio",
   "audioFlagAdd": "Add audio flag",
   "audioFlagAddTitle": "New audio flag",
   "audioFlagLabelHint": "Optional label",

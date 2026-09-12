@@ -481,10 +481,6 @@
   "@audioFollowReader": {
     "description": "Tooltip do toggle que troca o material do leitor quando a faixa muda"
   },
-  "carouselPlayGroupAudio": "Tocar áudio deste louvor",
-  "@carouselPlayGroupAudio": {
-    "description": "Tooltip do botão que toca o áudio do louvor aberto no leitor"
-  },
   "audioFlagAdd": "Adicionar marcador",
   "audioFlagAddTitle": "Novo marcador",
   "audioFlagLabelHint": "Rótulo opcional",

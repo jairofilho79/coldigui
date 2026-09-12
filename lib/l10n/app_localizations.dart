@@ -1421,12 +1421,6 @@ abstract class AppLocalizations {
   /// **'Seguir o áudio'**
   String get audioFollowReader;
 
-  /// Tooltip do botão que toca o áudio do louvor aberto no leitor
-  ///
-  /// In pt, this message translates to:
-  /// **'Tocar áudio deste louvor'**
-  String get carouselPlayGroupAudio;
-
   /// No description provided for @audioFlagAdd.
   ///
   /// In pt, this message translates to:

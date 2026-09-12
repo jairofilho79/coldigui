@@ -27,8 +27,6 @@ class CarouselNavigatorBar extends StatelessWidget {
     this.onNext,
     this.onChipTap,
     this.onOpenPlayer,
-    this.openPlayerIcon = Icons.open_in_full,
-    this.openPlayerTooltip,
     this.swapMaterial,
     this.loading = false,
     this.trailingActions = const [],
@@ -47,15 +45,8 @@ class CarouselNavigatorBar extends StatelessWidget {
 
   /// Ação principal do item focado — omitida (`null`) quando indisponível.
   ///
-  /// No shell abre `/leitor`; no leitor toca o áudio do louvor exibido
-  /// (ver [openPlayerIcon] / [openPlayerTooltip]).
+  /// No shell abre `/leitor`; ausente no leitor (sem alternativa útil ali).
   final VoidCallback? onOpenPlayer;
-
-  /// Ícone do slot [onOpenPlayer] — `open_in_full` (abrir no leitor) por padrão.
-  final IconData openPlayerIcon;
-
-  /// Tooltip do slot [onOpenPlayer] — "Abrir no leitor" por padrão.
-  final String? openPlayerTooltip;
 
   /// Botão layers (trocar material). Omitido se o louvor não tem alternativa.
   final Widget? swapMaterial;
@@ -97,12 +88,9 @@ class CarouselNavigatorBar extends StatelessWidget {
         if (onOpenPlayer != null)
           IconButton(
             style: carouselBarIconButtonStyle,
-            tooltip:
-                openPlayerTooltip ??
-                l10n?.playlistOpenInReader ??
-                'Abrir no leitor',
+            tooltip: l10n?.playlistOpenInReader ?? 'Abrir no leitor',
             onPressed: loading ? null : onOpenPlayer,
-            icon: Icon(openPlayerIcon),
+            icon: const Icon(Icons.open_in_full),
           ),
         IconButton(
           style: carouselBarIconButtonStyle,

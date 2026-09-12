@@ -897,76 +897,80 @@ void main() {
     expect(router.state.uri.queryParameters['pdfId'], 'a');
   });
 
-  testWidgets('modo leitor oferece tocar áudio do louvor aberto', (
-    tester,
-  ) async {
-    final pdfId = encodePdfId('assets/praises/p1/partitura.pdf');
-    final louvor = Louvor.fromManifest(
-      nome: 'Louvor D',
-      numero: '004',
-      categoria: 'Partitura',
-      classificacao: 'Coro',
-      pdf: 'partitura.pdf',
-      pdfId: pdfId,
-      groupId: 'p1',
-      source: LouvorDataSource.coldigom,
-    );
-    const track = AudioTrack(
-      audioId: 'aud-p1',
-      r2Key: 'assets/praises/p1/a.mp3',
-      nome: 'Louvor D',
-      numero: '004',
-      groupId: 'p1',
-      categoria: 'Áudio',
-      classificacao: 'Coro',
-    );
+  testWidgets(
+    'modo leitor não oferece mais tocar áudio (botão removido — risco de '
+    'misclique)',
+    (tester) async {
+      final pdfId = encodePdfId('assets/praises/p1/partitura.pdf');
+      final louvor = Louvor.fromManifest(
+        nome: 'Louvor D',
+        numero: '004',
+        categoria: 'Partitura',
+        classificacao: 'Coro',
+        pdf: 'partitura.pdf',
+        pdfId: pdfId,
+        groupId: 'p1',
+        source: LouvorDataSource.coldigom,
+      );
+      const track = AudioTrack(
+        audioId: 'aud-p1',
+        r2Key: 'assets/praises/p1/a.mp3',
+        nome: 'Louvor D',
+        numero: '004',
+        groupId: 'p1',
+        categoria: 'Áudio',
+        classificacao: 'Coro',
+      );
 
-    final router = GoRouter(
-      initialLocation: RoutePaths.home,
-      routes: [
-        GoRoute(
-          path: RoutePaths.home,
-          builder: (_, _) => const Scaffold(body: CarouselChips()),
-        ),
-        GoRoute(
-          path: RoutePaths.reader,
-          builder: (_, _) => const Scaffold(body: CarouselChips()),
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          activePlaylistEditorProvider.overrideWith(
-            () => FakeActiveEditor(_entriesOf([pdfId])),
+      final router = GoRouter(
+        initialLocation: RoutePaths.home,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: CarouselChips()),
           ),
-          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
-          coldigomLouvoresCacheProvider.overrideWith(
-            () => _FakeColdigomLouvoresCache({pdfId: louvor}),
-          ),
-          coldigomAudioTracksCacheProvider.overrideWith(
-            () => _FakeColdigomAudioTracksCache({track.audioId: track}),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, _) => const Scaffold(body: CarouselChips()),
           ),
         ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            activePlaylistEditorProvider.overrideWith(
+              () => FakeActiveEditor(_entriesOf([pdfId])),
+            ),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
+            coldigomLouvoresCacheProvider.overrideWith(
+              () => _FakeColdigomLouvoresCache({pdfId: louvor}),
+            ),
+            coldigomAudioTracksCacheProvider.overrideWith(
+              () => _FakeColdigomAudioTracksCache({track.audioId: track}),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    router.go('${RoutePaths.reader}?pdfId=$pdfId&titulo=Louvor%20D');
-    await tester.pumpAndSettle();
+      router.go('${RoutePaths.reader}?pdfId=$pdfId&titulo=Louvor%20D');
+      await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
-    expect(find.byTooltip('Tocar áudio deste louvor'), findsOneWidget);
-    expect(find.byIcon(Icons.open_in_full), findsNothing);
-  });
+      // Mesmo com áudio disponível para o louvor aberto, o slot "abrir" da
+      // barra 2 não mostra mais o play — o botão foi removido por aumentar a
+      // probabilidade de misclique sem ser útil para a maioria das pessoas.
+      expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+      expect(find.byIcon(Icons.open_in_full), findsNothing);
+    },
+  );
 
   group('seguir o áudio (listener do shell)', () {
     final chordP1Id = encodePdfId('assets/praises/p1/cifra.chord');

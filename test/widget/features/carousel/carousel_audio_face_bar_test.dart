@@ -3,7 +3,6 @@ import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
-import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
@@ -170,42 +169,27 @@ void main() {
     expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
   });
 
-  testWidgets('exibe partitura e seguir quando o louvor tocando tem material', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(
-      buildSubject(
-        prefs: prefs,
-        entries: [groupPdfEntry],
-        coldigomCache: {groupPdfId: groupLouvor},
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'não mostra mais partitura nem seguir-o-áudio (botões removidos — risco '
+    'de misclique)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(
+        buildSubject(
+          prefs: prefs,
+          entries: [groupPdfEntry],
+          coldigomCache: {groupPdfId: groupLouvor},
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.menu_book), findsOneWidget);
-    expect(find.byTooltip('Partitura/cifra deste louvor'), findsOneWidget);
-    expect(find.byTooltip('Seguir o áudio'), findsOneWidget);
-    expect(find.byIcon(Icons.link), findsOneWidget);
-  });
-
-  testWidgets('toggle de seguir o áudio inverte o ícone', (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(
-      buildSubject(
-        prefs: prefs,
-        entries: [groupPdfEntry],
-        coldigomCache: {groupPdfId: groupLouvor},
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Seguir o áudio'));
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.link_off), findsOneWidget);
-    expect(prefs.getBool(kAudioFollowReaderPrefsKey), isFalse);
-  });
+      expect(find.byIcon(Icons.menu_book), findsNothing);
+      expect(find.byIcon(Icons.link), findsNothing);
+      expect(find.byIcon(Icons.link_off), findsNothing);
+      expect(find.byTooltip('Partitura/cifra deste louvor'), findsNothing);
+      expect(find.byTooltip('Seguir o áudio'), findsNothing);
+    },
+  );
 
   testWidgets('erro do player mostra a mensagem e "Tentar novamente"', (
     tester,
@@ -378,23 +362,6 @@ void main() {
     expect(swap.materialId, 'pdf-1');
     expect(swap.entryKey, 'pdf-1#1');
     expect(swap.audioId, isNull);
-  });
-
-  testWidgets('oculta partitura quando o louvor tocando não tem material', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(
-      buildSubject(prefs: prefs, entries: const [pdfEntry]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.menu_book), findsNothing);
-    expect(
-      find.byTooltip('Seguir o áudio'),
-      findsOneWidget,
-      reason: 'o toggle é preferência global, não depende do material da faixa',
-    );
   });
 
   group('setas de louvor (D5)', () {

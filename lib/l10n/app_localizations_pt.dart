@@ -809,9 +809,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioFollowReader => 'Seguir o áudio';
 
   @override
-  String get carouselPlayGroupAudio => 'Tocar áudio deste louvor';
-
-  @override
   String get audioFlagAdd => 'Adicionar marcador';
 
   @override

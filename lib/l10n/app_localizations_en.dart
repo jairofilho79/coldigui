@@ -803,9 +803,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioFollowReader => 'Follow the audio';
 
   @override
-  String get carouselPlayGroupAudio => 'Play this hymn\'s audio';
-
-  @override
   String get audioFlagAdd => 'Add audio flag';
 
   @override

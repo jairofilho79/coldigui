@@ -3,12 +3,10 @@ import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
-import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -18,7 +16,6 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_materia
 import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -30,12 +27,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// D4 — a fila do player é a reunião: os quatro pontos de play preferem os
+/// D4 — a fila do player é a reunião: os pontos de play preferem os
 /// áudios da lista ativa quando a faixa tocada já está nela.
 ///
-/// Antes da Tarefa 14 só o carousel no leitor respeitava a lista; card, sheet
+/// Antes da Tarefa 14 nenhum desses pontos respeitava a lista; card, sheet
 /// de troca e o opener único mandavam a fila do grupo, e o playback parava no
-/// fim do arranjo em vez de emendar no próximo louvor da reunião.
+/// fim do arranjo em vez de emendar no próximo louvor da reunião. (O carousel
+/// no leitor também tinha um ponto de play próprio — removido depois por
+/// risco de misclick.)
 
 const _trackDaLista = AudioTrack(
   audioId: 'aud-lista',
@@ -93,24 +92,6 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
     queue = tracks;
     this.startIndex = startIndex;
   }
-}
-
-class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
-  _FakeAudioCache(this.initial);
-
-  final Map<String, AudioTrack> initial;
-
-  @override
-  Map<String, AudioTrack> build() => initial;
-}
-
-class _FakeLouvoresCache extends ColdigomLouvoresCacheNotifier {
-  _FakeLouvoresCache(this.initial);
-
-  final Map<String, Louvor> initial;
-
-  @override
-  Map<String, Louvor> build() => initial;
 }
 
 /// A face de áudio da lista ativa com a faixa alvo **na segunda** posição.
@@ -371,86 +352,5 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(received?.map((t) => t.audioId).toList(), ['aud-lista', 'aud-alvo']);
-  });
-
-  testWidgets('CarouselChips no leitor: a fila é a lista ativa', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final audio = _RecordingAudioSession();
-    final pdfId = encodePdfId('assets/praises/p1/partitura.pdf');
-    final louvor = Louvor.fromManifest(
-      nome: 'Aleluia',
-      numero: '001',
-      categoria: 'Partitura',
-      classificacao: 'Coro',
-      pdf: 'partitura.pdf',
-      pdfId: pdfId,
-      groupId: 'p1',
-      source: LouvorDataSource.coldigom,
-    );
-
-    final router = GoRouter(
-      initialLocation: RoutePaths.home,
-      routes: [
-        GoRoute(
-          path: RoutePaths.home,
-          builder: (_, _) => const Scaffold(body: CarouselChips()),
-        ),
-        GoRoute(
-          path: RoutePaths.reader,
-          builder: (_, _) => const Scaffold(body: CarouselChips()),
-        ),
-        GoRoute(
-          path: RoutePaths.audio,
-          builder: (_, _) => const Scaffold(body: Text('player')),
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          isarAvailableProvider.overrideWithValue(true),
-          activePlaylistEditorProvider.overrideWith(
-            () => FakeActiveEditor([
-              PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
-            ]),
-          ),
-          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
-          audioPlayerSessionProvider.overrideWith(() => audio),
-          coldigomLouvoresCacheProvider.overrideWith(
-            () => _FakeLouvoresCache({pdfId: louvor}),
-          ),
-          coldigomAudioTracksCacheProvider.overrideWith(
-            () => _FakeAudioCache(const {
-              'aud-lista': _trackDaLista,
-              'aud-alvo': _trackAlvo,
-            }),
-          ),
-          ..._activeQueueOverrides(),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    router.go('${RoutePaths.reader}?pdfId=$pdfId&titulo=Aleluia');
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.play_circle_outline));
-    await tester.pumpAndSettle();
-
-    expect(audio.queue?.map((t) => t.audioId).toList(), [
-      'aud-lista',
-      'aud-alvo',
-    ]);
-    expect(audio.startIndex, 1);
   });
 }

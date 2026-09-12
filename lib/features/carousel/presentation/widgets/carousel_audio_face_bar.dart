@@ -70,7 +70,6 @@ class CarouselAudioFaceBar extends ConsumerWidget {
     // Ponte D1: o material do louvor **tocando**, não o chip focado — o
     // carousel pode estar em outro louvor enquanto a faixa toca.
     final trackMaterialId = resolveMaterialForGroup(ref, track?.groupId);
-    final followingAudio = ref.watch(audioFollowReaderProvider);
 
     // Setas de louvor (D5 — spec A.1 emendada, fix round 1): a posição atual
     // é a faixa **tocando** (a sessão), nunca o foco da face PDF — chaves de
@@ -236,25 +235,6 @@ class CarouselAudioFaceBar extends ConsumerWidget {
               icon: const Icon(Icons.open_in_full),
               onPressed: () => pushAudioPlayerRoute(context, track),
             ),
-          if (track != null && trackMaterialId != null)
-            IconButton(
-              style: carouselBarIconButtonStyle,
-              tooltip: l10n.audioOpenSheetMusic,
-              icon: const Icon(Icons.menu_book),
-              onPressed: () => openMaterialForGroupInReader(
-                ref: ref,
-                context: context,
-                groupId: track.groupId,
-              ),
-            ),
-          // Preferência global: aparece sempre, mesmo quando a faixa tocando
-          // não tem material para abrir no leitor.
-          IconButton(
-            style: carouselBarIconButtonStyle,
-            tooltip: l10n.audioFollowReader,
-            icon: Icon(followingAudio ? Icons.link : Icons.link_off),
-            onPressed: () => toggleAudioFollowReader(ref),
-          ),
           if (pdfItems.isNotEmpty)
             IconButton(
               style: carouselBarIconButtonStyle,
