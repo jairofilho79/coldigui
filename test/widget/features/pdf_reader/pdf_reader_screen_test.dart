@@ -2,8 +2,14 @@ import 'dart:convert';
 
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
+import 'package:coldigui/features/offline/domain/usecases/resolve_pdf_for_reader.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -17,6 +23,7 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_v
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -25,6 +32,23 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
+
+/// Resolver de teste (fix round 1) — sempre falha com o erro dado, sem tocar
+/// rede/Isar; usado para exercitar os catches de `_redownloadCorruptedPdf`.
+class _ThrowingResolvePdfForReader extends Fake implements ResolvePdfForReader {
+  _ThrowingResolvePdfForReader(this._error);
+
+  final Object _error;
+
+  @override
+  Future<LocalPdfSource> call({
+    required String pdfId,
+    required String remotePath,
+    ProgressCallback? onProgress,
+  }) async {
+    throw _error;
+  }
+}
 
 /// Handle de teste para C8 (última página): [isViewerReady] fixo em `true`
 /// (o teste não monta um `PdfViewer` real anexado) e [animateToPage]
@@ -313,6 +337,74 @@ void main() {
     expect(find.text('Baixar novamente'), findsOneWidget);
     expect(find.text('Tentar novamente'), findsNothing);
   });
+
+  testWidgets(
+    'redownload de PDF removido externamente mantém texto e ação Baixar '
+    '(fix round 1)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      // pdfId real (Base64 do caminho relativo) — LouvorPdfPath.fromLouvor
+      // decodifica via PdfPathNormalizer.getPdfRelPath e lança FormatException
+      // com um id não codificado como 'pdf-1'.
+      final pdfId = encodePdfId('ColAdultos/001.pdf');
+      final corrupted = PdfLocalCorruptedException(pdfId: pdfId);
+      final louvor = Louvor(
+        nome: 'Aleluia',
+        numero: '001',
+        categoria: 'ColAdultos',
+        classificacao: 'Partitura',
+        pdf: 'ColAdultos/001.pdf',
+        pdfId: pdfId,
+        groupId: '001:aleluia',
+        searchTitleNorm: 'aleluia',
+        searchContentTokens: const [],
+        searchCompactContent: '',
+      );
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider(
+              '/tmp/corrupt.pdf',
+            ).overrideWith((ref) => Future.error(corrupted)),
+            catalogMaterialLookupProvider.overrideWithValue(
+              CatalogMaterialLookup(plpcgLouvoresByPdfId: {pdfId: louvor}),
+            ),
+            resolvePdfForReaderProvider.overrideWithValue(
+              _ThrowingResolvePdfForReader(
+                PdfExternallyDeletedException(pdfId: pdfId),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': '/tmp/corrupt.pdf',
+                  'pdfId': pdfId,
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Baixar novamente'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+      expect(find.text(l10n.pdfExternallyDeleted), findsOneWidget);
+      expect(find.text(l10n.pdfOfflineGoToSettings), findsOneWidget);
+    },
+  );
 
   testWidgets('PdfReaderScreen exibe botão share com sessão carregada', (
     tester,

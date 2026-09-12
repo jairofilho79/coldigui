@@ -241,6 +241,17 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             titulo: louvor.nome,
           );
       context.replace(location);
+    } on PdfExternallyDeletedException {
+      // Caso especial (fix round 1): PdfExternallyDeletedException tem texto
+      // e ação ("Baixar") próprios — `l10n.pdfExternallyDeleted` é mais
+      // específico que o genérico de `NotFoundFailure`/`failureNotFound`.
+      // A exceção não carrega mais literal PT: o texto vem do l10n (D.6).
+      if (mounted) {
+        showPdfOfflineUnavailableSnackbar(
+          context,
+          message: l10n?.pdfExternallyDeleted,
+        );
+      }
     } on Object catch (error) {
       // Escada única via AppFailure (E8): a mensagem sai de `failureMessage`
       // — `OfflineFailure` mantém a snackbar com ação "Baixar", as demais
