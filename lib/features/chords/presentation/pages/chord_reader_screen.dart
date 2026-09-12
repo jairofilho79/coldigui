@@ -293,7 +293,6 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     final semitones = ref.watch(chordReaderTransposeProvider(r2Key));
     final songAsync = ref.watch(chordSongProvider(r2Key));
     final autoscroll = ref.watch(chordAutoscrollProvider);
-    final columns = isWideWidth(MediaQuery.sizeOf(context).width) ? 2 : 1;
     final sidePanelOpen = ref.watch(readerSidePanelOpenProvider);
     final panel = ActiveListPanel(onOpen: _openFromPanel);
     // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
@@ -347,68 +346,83 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                 Expanded(
                   child: ReaderSplitLayout(
                     panel: ColoredBox(color: palette.background, child: panel),
-                    child: songAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (_, _) => _Unavailable(
-                        message: l10n.chordReaderUnavailable,
-                        palette: palette,
-                      ),
-                      data: (song) {
-                        if (song == null) {
-                          return _Unavailable(
+                    // Important 4 (onda 4): colunas pela largura DISPONÍVEL
+                    // (depois do painel lateral tirar `panelWidth`), não pela
+                    // largura da tela inteira — `LayoutBuilder` aqui já mede
+                    // o espaço real desta área (dentro do `Expanded` acima,
+                    // ao lado do painel quando ele está aberto).
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns =
+                            constraints.maxWidth >= kWideLayoutBreakpoint
+                            ? 2
+                            : 1;
+                        return songAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, _) => _Unavailable(
                             message: l10n.chordReaderUnavailable,
                             palette: palette,
-                          );
-                        }
-                        return NotificationListener<UserScrollNotification>(
-                          // A11: rolar com o dedo/mouse é o jeito mais claro
-                          // de dizer "eu assumo daqui" — para o autoscroll na
-                          // hora, sem esperar o usuário achar o botão de
-                          // pausa.
-                          onNotification: (notification) {
-                            if (notification.direction !=
-                                ScrollDirection.idle) {
-                              ref.read(chordAutoscrollProvider.notifier).stop();
-                            }
-                            return false;
-                          },
-                          child: CustomScrollView(
-                            controller: _scrollController,
-                            slivers: [
-                              SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  12,
-                                ),
-                                sliver: SliverToBoxAdapter(
-                                  child: _ChordHeader(
-                                    song: song,
-                                    semitones: semitones,
-                                    palette: palette,
-                                  ),
-                                ),
-                              ),
-                              SliverPadding(
-                                padding: EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  bottomPadding,
-                                ),
-                                sliver: ChordProView(
-                                  song: song,
-                                  palette: palette,
-                                  fontSize: fontSize,
-                                  semitones: semitones,
-                                  memo: _transposeMemo,
-                                  columns: columns,
-                                ),
-                              ),
-                            ],
                           ),
+                          data: (song) {
+                            if (song == null) {
+                              return _Unavailable(
+                                message: l10n.chordReaderUnavailable,
+                                palette: palette,
+                              );
+                            }
+                            return NotificationListener<UserScrollNotification>(
+                              // A11: rolar com o dedo/mouse é o jeito mais
+                              // claro de dizer "eu assumo daqui" — para o
+                              // autoscroll na hora, sem esperar o usuário
+                              // achar o botão de pausa.
+                              onNotification: (notification) {
+                                if (notification.direction !=
+                                    ScrollDirection.idle) {
+                                  ref
+                                      .read(chordAutoscrollProvider.notifier)
+                                      .stop();
+                                }
+                                return false;
+                              },
+                              child: CustomScrollView(
+                                controller: _scrollController,
+                                slivers: [
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      12,
+                                    ),
+                                    sliver: SliverToBoxAdapter(
+                                      child: _ChordHeader(
+                                        song: song,
+                                        semitones: semitones,
+                                        palette: palette,
+                                      ),
+                                    ),
+                                  ),
+                                  SliverPadding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      bottomPadding,
+                                    ),
+                                    sliver: ChordProView(
+                                      song: song,
+                                      palette: palette,
+                                      fontSize: fontSize,
+                                      semitones: semitones,
+                                      memo: _transposeMemo,
+                                      columns: columns,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

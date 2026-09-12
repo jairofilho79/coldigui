@@ -442,7 +442,10 @@ void main() {
     testWidgets('largura ampla com muitas linhas usa duas colunas', (
       tester,
     ) async {
-      tester.view.physicalSize = const Size(1200, 800);
+      // Important 4 (onda 4): a decisão passou a usar a largura DISPONÍVEL
+      // (depois do painel lateral de 320px, aberto por padrão) — 1300px
+      // garante 980px de sobra, acima de kWideLayoutBreakpoint (900).
+      tester.view.physicalSize = const Size(1300, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
@@ -464,6 +467,33 @@ void main() {
       final view = tester.widget<ChordProView>(find.byType(ChordProView));
       expect(view.columns, 1);
     });
+
+    // Important 4 (onda 4): a decisão tem que ler a largura DISPONÍVEL (já
+    // descontado o painel lateral de 320px — `ReaderSplitLayout`), não a
+    // largura da tela inteira. Em 1000px com o painel aberto (default),
+    // sobram 680px pro conteúdo — menos que kWideLayoutBreakpoint (900) —
+    // então tem que cair para 1 coluna, mesmo a tela inteira tendo 1000px
+    // (>= 900).
+    testWidgets(
+      'largura total ampla mas com painel lateral aberto usa uma coluna',
+      (tester) async {
+        tester.view.physicalSize = const Size(1000, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await _pump(
+          tester,
+          available: true,
+          songOverride: longSong,
+          carouselItems: _carouselItems,
+        );
+
+        expect(find.byType(ActiveListPanel), findsOneWidget);
+
+        final view = tester.widget<ChordProView>(find.byType(ChordProView));
+        expect(view.columns, 1);
+      },
+    );
   });
 
   group('autoscroll em execucao (C9)', () {
