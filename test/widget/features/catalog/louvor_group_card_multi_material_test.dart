@@ -123,6 +123,22 @@ void main() {
   );
 
   testWidgets(
+    'toque no «+» com material já presente mostra «Já está na seleção», '
+    'não «Adicionado à lista»',
+    (tester) async {
+      final editor = await pumpCard(tester);
+      editor.addToActiveResult = AddToActiveOutcome.alreadyPresent;
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(editor.added, [(id: 'pdf1', kind: MaterialKind.pdf)]);
+      expect(find.text(pt.carouselAlreadyAdded), findsOneWidget);
+      expect(find.text(pt.cardAddedSwapMaterial), findsNothing);
+    },
+  );
+
+  testWidgets(
     '«Trocar material» abre o MaterialSheet e a escolha troca a entrada',
     (tester) async {
       final editor = await pumpCard(tester);

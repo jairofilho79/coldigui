@@ -169,11 +169,17 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     // acabou de entrar (added) ou a que já estava lá (alreadyPresent), e em
     // ambos os casos é a que faz sentido trocar.
     final key = _lastActiveKeyFor(material.id);
+    // alreadyPresent não é "adicionado" — mesma mensagem que o caminho de
+    // material único (`addMaterialToActivePlaylist`) usa para o mesmo
+    // desfecho; a ação de trocar continua valendo (a entrada já existe).
+    final message = outcome == AddToActiveOutcome.alreadyPresent
+        ? l10n.carouselAlreadyAdded
+        : l10n.cardAddedSwapMaterial;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
-          content: Text(l10n.cardAddedSwapMaterial),
+          content: Text(message),
           action: key == null
               ? null
               : SnackBarAction(
