@@ -390,6 +390,24 @@ void main() {
       expect(session.seekByCalls, isEmpty);
     });
 
+    testWidgets('Ctrl+J e Ctrl+L não mexem no seek (só o F ignorava o '
+        'modificador)', (tester) async {
+      final session = _FakeAudioSession();
+      await _pumpShortcuts(
+        tester,
+        path: RoutePaths.home,
+        overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyJ);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyL);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(session.seekByCalls, isEmpty);
+    });
+
     testWidgets('com botão focado aciona o botão, não o seek', (tester) async {
       final session = _FakeAudioSession();
       var pressed = 0;

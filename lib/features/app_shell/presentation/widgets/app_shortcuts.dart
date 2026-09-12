@@ -248,6 +248,10 @@ class AppShortcuts extends ConsumerWidget {
     }
 
     if (key == LogicalKeyboardKey.keyJ || key == LogicalKeyboardKey.keyL) {
+      // Mesmo padrão do F: um atalho do navegador/SO com o mesmo
+      // modificador (ex.: Ctrl+J abre downloads em vários navegadores) tem
+      // prioridade — sem isto o seek disparava junto.
+      if (commandModifier) return KeyEventResult.ignored;
       // Mesma guarda do Espaço: um botão/campo com foco tem prioridade.
       if (keyboardFocusIsOnSpaceActivatableControl()) {
         return KeyEventResult.ignored;
