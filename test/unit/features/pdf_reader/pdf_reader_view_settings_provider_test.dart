@@ -55,10 +55,7 @@ void main() {
     test('fora do fullscreen usa a preferência salva', () {
       final container = buildContainer(
         fullscreen: false,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageFit,
-          spreadEnabled: true,
-        ),
+        settings: const PdfReaderViewSettings(fitMode: PdfFitMode.pageFit),
       );
 
       expect(
@@ -70,10 +67,7 @@ void main() {
     test('em fullscreen força page-width mesmo com preferência page-fit', () {
       final container = buildContainer(
         fullscreen: true,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageFit,
-          spreadEnabled: true,
-        ),
+        settings: const PdfReaderViewSettings(fitMode: PdfFitMode.pageFit),
       );
 
       expect(
@@ -88,53 +82,31 @@ void main() {
   // `calcMatrixFitWidthForRect`/equivalente para a linha nesta versão).
   // Enquanto o fit efetivo for `pageWidth`, o spread some (a 2ª página do
   // par ficaria fora da viewport); volta assim que o fit efetivo for
-  // `pageFit`.
+  // `pageFit`. Onda 4.1: sem preferência do usuário — automático.
   group('pdfReaderEffectiveSpreadEnabledProvider', () {
-    test('preferência desligada permanece desligada', () {
+    test('fit page-fit fica ativo', () {
       final container = buildContainer(
         fullscreen: false,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageFit,
-          spreadEnabled: false,
-        ),
-      );
-
-      expect(container.read(pdfReaderEffectiveSpreadEnabledProvider), isFalse);
-    });
-
-    test('preferência ligada com fit page-fit fica ativa', () {
-      final container = buildContainer(
-        fullscreen: false,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageFit,
-          spreadEnabled: true,
-        ),
+        settings: const PdfReaderViewSettings(fitMode: PdfFitMode.pageFit),
       );
 
       expect(container.read(pdfReaderEffectiveSpreadEnabledProvider), isTrue);
     });
 
-    test('preferência ligada com fit page-width fica desativada '
+    test('fit page-width fica desativado '
         '(page-width enquadraria só 1 página do par)', () {
       final container = buildContainer(
         fullscreen: false,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageWidth,
-          spreadEnabled: true,
-        ),
+        settings: const PdfReaderViewSettings(fitMode: PdfFitMode.pageWidth),
       );
 
       expect(container.read(pdfReaderEffectiveSpreadEnabledProvider), isFalse);
     });
 
-    test('preferência ligada + fit page-fit, mas fullscreen força '
-        'page-width -> desativada', () {
+    test('fit page-fit, mas fullscreen força page-width -> desativado', () {
       final container = buildContainer(
         fullscreen: true,
-        settings: const PdfReaderViewSettings(
-          fitMode: PdfFitMode.pageFit,
-          spreadEnabled: true,
-        ),
+        settings: const PdfReaderViewSettings(fitMode: PdfFitMode.pageFit),
       );
 
       expect(container.read(pdfReaderEffectiveSpreadEnabledProvider), isFalse);

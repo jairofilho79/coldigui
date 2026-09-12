@@ -312,11 +312,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final fitMode = ref.watch(
       pdfReaderViewSettingsProvider.select((settings) => settings.fitMode),
     );
-    final spreadEnabled = ref.watch(
-      pdfReaderViewSettingsProvider.select(
-        (settings) => settings.spreadEnabled,
-      ),
-    );
     // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
     // (hideChrome + faixa tocando) — reserva o espaço do mini-player para o
     // FAB de saída e o conteúdo não ficarem por baixo dele.
@@ -335,9 +330,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       onToggleFitMode: () =>
           ref.read(pdfReaderViewSettingsProvider.notifier).toggleFitMode(),
       fitModeIsPageWidth: fitMode == PdfFitMode.pageWidth,
-      onToggleSpread: () =>
-          ref.read(pdfReaderViewSettingsProvider.notifier).toggleSpread(),
-      spreadEnabled: spreadEnabled,
       onShare: sessionLoaded
           ? (origin) => _sharePdf(filePath, titulo, sharePositionOrigin: origin)
           : null,
@@ -348,9 +340,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           l10n?.readerExitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
       fitModeTooltip:
           l10n?.readerFitModeTooltip ?? 'Ajustar largura/página (Z)',
-      moreOptionsTooltip: l10n?.readerMoreOptionsTooltip ?? 'Mais opções',
-      spreadToggleLabel:
-          l10n?.readerSpreadToggleLabel ?? 'Duas páginas em tela larga',
       body: sessionAsync.when(
         loading: () => const PdfPageSkeleton(),
         error: (error, _) {
@@ -421,16 +410,12 @@ class _ReaderScaffold extends StatelessWidget {
     this.onToggleFullscreen,
     this.onToggleFitMode,
     this.fitModeIsPageWidth = false,
-    this.onToggleSpread,
-    this.spreadEnabled = true,
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
     this.fullscreenTooltip,
     this.exitFullscreenTooltip,
     this.fitModeTooltip,
-    this.moreOptionsTooltip,
-    this.spreadToggleLabel,
   });
 
   final String titulo;
@@ -451,24 +436,12 @@ class _ReaderScaffold extends StatelessWidget {
   /// `true` quando o fit atual é page-width — decide o ícone preenchido vs. contorno.
   final bool fitModeIsPageWidth;
 
-  /// Alterna «duas páginas em tela larga» — item no menu (spec A.4 C8).
-  final VoidCallback? onToggleSpread;
-
-  /// `true` quando o spread está ligado — decide a marca de seleção do item.
-  final bool spreadEnabled;
-
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
   final String? fullscreenTooltip;
   final String? exitFullscreenTooltip;
   final String? fitModeTooltip;
-
-  /// Tooltip do botão de menu (`Icons.more_vert`) que abre o item de spread.
-  final String? moreOptionsTooltip;
-
-  /// Rótulo do item «Duas páginas em tela larga» no menu.
-  final String? spreadToggleLabel;
 
   /// Roda a ação da barra 3 e devolve o foco ao handler de teclado do leitor.
   ///
@@ -549,21 +522,6 @@ class _ReaderScaffold extends StatelessWidget {
                     icon: const Icon(Icons.fullscreen),
                     onPressed: () =>
                         _runAndRestoreKeyboardFocus(onToggleFullscreen!),
-                  ),
-                if (onToggleSpread != null)
-                  PopupMenuButton<void>(
-                    tooltip: moreOptionsTooltip ?? 'Mais opções',
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => [
-                      CheckedPopupMenuItem<void>(
-                        checked: spreadEnabled,
-                        onTap: () =>
-                            _runAndRestoreKeyboardFocus(onToggleSpread!),
-                        child: Text(
-                          spreadToggleLabel ?? 'Duas páginas em tela larga',
-                        ),
-                      ),
-                    ],
                   ),
                 if (filePath != null)
                   PdfReaderPageIndicator(filePath: filePath!),

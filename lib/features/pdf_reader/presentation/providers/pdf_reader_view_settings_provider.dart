@@ -35,18 +35,14 @@ final pdfReaderEffectiveFitModeProvider = Provider<PdfFitMode>((ref) {
 ///
 /// pdfrx 2.4.4 só oferece `calcMatrixFitWidthForPage`/`calcMatrixFitHeightForPage`
 /// — não existe um `calcMatrixFitWidthForRect`/equivalente nesta versão para
-/// enquadrar a LINHA (par de páginas) inteira. Com fit `pageWidth` e spread
-/// ligado, `applyFitMode` enquadraria só a página do par, deixando a segunda
-/// fora da viewport (a página 2 do par fica invisível). Mais simples e
-/// correto que reimplementar o cálculo de matriz à mão sobre APIs internas
-/// do pdfrx: desativar o spread enquanto o fit efetivo é `pageWidth` — a
-/// preferência do usuário continua salva ([PdfReaderViewSettings.spreadEnabled])
-/// e volta a valer assim que o fit efetivo for `pageFit`.
+/// enquadrar a LINHA (par de páginas) inteira. Com fit `pageWidth`, o spread
+/// enquadraria só a página do par, deixando a segunda fora da viewport (a
+/// página 2 do par fica invisível). Automático, sem preferência do usuário
+/// (onda 4.1): ligado sempre que o fit efetivo é `pageFit` — a checagem de
+/// viewport largo (`viewportAspect > kSpreadMinViewportAspect`) e de mais de
+/// uma página fica por conta de `spreadPageLayout`, chamado com o resultado
+/// deste provider.
 final pdfReaderEffectiveSpreadEnabledProvider = Provider<bool>((ref) {
-  final spreadEnabled = ref.watch(
-    pdfReaderViewSettingsProvider.select((settings) => settings.spreadEnabled),
-  );
-  if (!spreadEnabled) return false;
   return ref.watch(pdfReaderEffectiveFitModeProvider) != PdfFitMode.pageWidth;
 });
 
@@ -77,12 +73,5 @@ class PdfReaderViewSettingsNotifier extends Notifier<PdfReaderViewSettings> {
     await ref.read(readerPreferencesDatasourceProvider).saveFitMode(next);
     state = state.copyWith(fitMode: next);
     await ref.read(setZoomAndFitModeProvider).call(mode: next);
-  }
-
-  /// Alterna «duas páginas em tela larga» e persiste (spec A.4 C8).
-  Future<void> toggleSpread() async {
-    final next = !state.spreadEnabled;
-    await ref.read(readerPreferencesDatasourceProvider).saveSpreadEnabled(next);
-    state = state.copyWith(spreadEnabled: next);
   }
 }

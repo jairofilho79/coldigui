@@ -27,26 +27,19 @@ enum PdfFitMode {
 /// Preferências de visualização do leitor — fit mode persistido (UC-11 Fase 2.3).
 ///
 /// Navegação usa scroll vertical contínuo fixo em [PdfReaderPdfView]; sem toggle horizontal.
+///
+/// Duas páginas lado a lado em viewport largo é automático (sem preferência
+/// do usuário, onda 4.1) — ver `pdfReaderEffectiveSpreadEnabledProvider` e
+/// `spreadPageLayout`.
 class PdfReaderViewSettings {
-  const PdfReaderViewSettings({
-    required this.fitMode,
-    this.spreadEnabled = true,
-  });
+  const PdfReaderViewSettings({required this.fitMode});
 
   final PdfFitMode fitMode;
 
-  /// Duas páginas lado a lado em viewport largo (spec A.4 C8). Default:
-  /// ligado — só tem efeito visual com `viewportAspect > 1.3` e documento
-  /// com mais de uma página (ver `spreadPageLayout`).
-  final bool spreadEnabled;
-
-  /// Default: page-fit com scroll vertical contínuo, spread ligado.
+  /// Default: page-fit com scroll vertical contínuo.
   static const defaults = PdfReaderViewSettings(fitMode: PdfFitMode.pageFit);
 
-  PdfReaderViewSettings copyWith({PdfFitMode? fitMode, bool? spreadEnabled}) {
-    return PdfReaderViewSettings(
-      fitMode: fitMode ?? this.fitMode,
-      spreadEnabled: spreadEnabled ?? this.spreadEnabled,
-    );
+  PdfReaderViewSettings copyWith({PdfFitMode? fitMode}) {
+    return PdfReaderViewSettings(fitMode: fitMode ?? this.fitMode);
   }
 }

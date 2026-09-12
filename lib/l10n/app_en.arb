@@ -43,8 +43,6 @@
   "readerGoToPageFieldLabel": "Page number",
   "readerGoToPageCancel": "Cancel",
   "readerGoToPageConfirm": "Go",
-  "readerMoreOptionsTooltip": "More options",
-  "readerSpreadToggleLabel": "Two pages in wide layout",
   "louvorPdfDownloading": "Downloading...",
   "louvorPdfDownloadingWithProgress": "Downloading... {percent}%",
   "@louvorPdfDownloadingWithProgress": {

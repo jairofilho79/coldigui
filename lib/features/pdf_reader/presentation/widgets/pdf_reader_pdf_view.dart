@@ -35,8 +35,9 @@ const kPdfWebMaxImageBytesCachedOnMemory = 32 << 20;
 /// (ADR-002; o layout de páginas em spread, spec A.4, exige os tipos
 /// `PdfPage`/`PdfPageLayout`/`PdfViewerParams` do pacote).
 ///
-/// Scroll vertical contínuo (layout padrão pdfrx) ou duas páginas lado a
-/// lado em viewport largo (spec A.4 C8, [PdfReaderViewSettings.spreadEnabled]).
+/// Scroll vertical contínuo (layout padrão pdfrx) ou duas páginas lado a lado
+/// em viewport largo, automático via `pdfReaderEffectiveSpreadEnabledProvider`
+/// (spec A.4 C8; onda 4.1 removeu a preferência do usuário).
 /// `ValueKey(handle)` evita duas instâncias simultâneas do mesmo handle.
 /// Handles reutilizados do cache LRU exigem `_scheduleReattachIfCached` via
 /// [PdfReaderViewerHandle.reattachIfNeeded].
@@ -397,7 +398,7 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
     final handle = widget.handle;
     // Important 1 (onda 4): spread some enquanto o fit efetivo é
     // `pageWidth` — ver doc de [pdfReaderEffectiveSpreadEnabledProvider].
-    final spreadEnabled = ref.watch(pdfReaderEffectiveSpreadEnabledProvider);
+    final spreadActive = ref.watch(pdfReaderEffectiveSpreadEnabledProvider);
     final isWeb = ref.watch(platformCapabilitiesProvider).isWeb;
 
     return LayoutBuilder(
@@ -423,7 +424,7 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
                   backgroundColor: AppColors.pdfArea,
                   onViewerReady: (_, _) => handle.markViewerReady(),
                   onPageChanged: _handleVisiblePageChanged,
-                  layoutPages: spreadEnabled
+                  layoutPages: spreadActive
                       ? (pages, params) => spreadPageLayout(
                           pages,
                           params,

@@ -19,27 +19,6 @@ void main() {
     expect(settings.fitMode, PdfFitMode.pageFit);
   });
 
-  group('spreadEnabled (spec A.4 C8)', () {
-    test('default é ligado (true)', () {
-      expect(datasource.getSpreadEnabled(), isTrue);
-      expect(datasource.loadSettings().spreadEnabled, isTrue);
-    });
-
-    test('salva e restaura desligado', () async {
-      await datasource.saveSpreadEnabled(false);
-
-      expect(datasource.getSpreadEnabled(), isFalse);
-      expect(datasource.loadSettings().spreadEnabled, isFalse);
-    });
-
-    test('salva e restaura ligado após desligar', () async {
-      await datasource.saveSpreadEnabled(false);
-      await datasource.saveSpreadEnabled(true);
-
-      expect(datasource.getSpreadEnabled(), isTrue);
-    });
-  });
-
   test('salva e restaura fit mode', () async {
     await datasource.saveFitMode(PdfFitMode.pageWidth);
     expect(datasource.getFitMode(), PdfFitMode.pageWidth);
