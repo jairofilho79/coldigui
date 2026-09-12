@@ -37,9 +37,10 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 ///
 /// As `StatefulShellBranch` são montadas a partir de [appTabsFor] — com
 /// `FF_EVENTS=false` (padrão) a rota `/eventos` não é registrada; navegar
-/// para ela cai no tratamento padrão do [GoRouter] para rota desconhecida
-/// (não lança). Índices de branch (`selectedIndex`/`goBranch`) são sempre a
-/// posição do item na mesma lista — nunca hardcoded.
+/// para ela (ou qualquer caminho desconhecido) não lança nem fica na página
+/// de erro padrão do [GoRouter] — o `redirect` de nível superior manda pra
+/// Home. Índices de branch (`selectedIndex`/`goBranch`) são sempre a posição
+/// do item na mesma lista — nunca hardcoded.
 ///
 /// `/leitor` adia só a init do pdfrx; offline/leitor no bundle principal (WebKit
 /// dart2js não registra `.part.js` via `<script>` — ver flutter_bootstrap webkit).
@@ -49,6 +50,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
+    // Rota desconhecida/escondida (`/eventos` com a flag off não registra a
+    // rota — comentário acima) não pode parar na página de erro padrão do
+    // GoRouter: manda pra Home, como qualquer outro link inválido.
+    redirect: (context, state) => state.error != null ? RoutePaths.home : null,
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
