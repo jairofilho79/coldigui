@@ -808,7 +808,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 - **Testes:** `standardTestOverrides` omite prefs quando `null`; `pumpApp` criado mas não adotado; `playlist_add_dedupe_test` e `reconcile_offline_index_benchmark_test` sensíveis à carga (o primeiro agora pinado ao Isar fake).
 - **Deploy:** migration `0009_create_short_links.sql` **precisa ser aplicada** e o Worker publicado antes do web app (`wrangler.jsonc` ganhou as rotas `plpcg.com/l/*` e `plpcg.com/api/links*`); `dart_defines/*.json` ganharam `FF_EVENTS`/`FF_SOCIAL`/`FF_ADMIN_UPLOAD` (o build de produção esconde «Eventos»).
 
-### K.3b Ondas 4.1 a 4.3 — correções da validação manual (2026-09-12)
+### K.3b Ondas 4.1 a 4.4 — correções da validação manual (2026-09-12)
 
 | Commit | O quê |
 |---|---|
@@ -819,6 +819,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 | `3e265cf` | «Rascunho» na chip salva a lista com nome (`saveActivePlaylist`); «Salvar como lista» e o menu «⋮» saem, fica só compartilhar (`Icons.adaptive.share`); nome limitado a 1/5 da barra — C11 |
 | `06d1c04` | cartão «Lista ativa: … · Abrir no leitor» removido do estado vazio da Home — redundante com a barra do carousel (lista, louvor em foco e abrir); ficam «Abertos recentemente» e a dica — C4 |
 | `5dc4ea3` | sheet de materiais volta a ter abas por tipo (Partituras / Cifras / Áudio / YouTube) quando há mais de um; rótulo da seção de PDF cai em «Partituras» quando a classificação (ritmo Coldigom) é vazia — reverte parcialmente o «sem abas por tipo» de E3 (`16c829d`): 17 PDFs + 14 áudios escondiam o áudio no fim da lista. Onda 4.3, validado em produção (deploy de `4e00673` em 2026-09-12) |
+| `100dfbc` | sheet de materiais: material já na lista mostrava ✓ «Adicionar de novo», que repetia a entrada (B.1 do sheet) — trocado por `×` («Remover da lista») com diálogo de confirmação; remove todas as ocorrências (`ActivePlaylistEditor.removeById`, o sheet só sabe «está lá» por id). Repetição deliberada continua possível pela própria lista. Onda 4.4 |
 
 Nota da validação em produção: praise `047 Shekinah` sem tom/ritmo/autor/categoria é dado do Worker (campos vazios em `GET /api/praises/:id`), não regressão do sheet — dos 100 primeiros praises, 81 têm tom.
 
