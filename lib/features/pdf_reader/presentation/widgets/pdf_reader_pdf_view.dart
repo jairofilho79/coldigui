@@ -367,11 +367,9 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
 
   Widget _buildPdfContent() {
     final handle = widget.handle;
-    final spreadEnabled = ref.watch(
-      pdfReaderViewSettingsProvider.select(
-        (settings) => settings.spreadEnabled,
-      ),
-    );
+    // Important 1 (onda 4): spread some enquanto o fit efetivo é
+    // `pageWidth` — ver doc de [pdfReaderEffectiveSpreadEnabledProvider].
+    final spreadEnabled = ref.watch(pdfReaderEffectiveSpreadEnabledProvider);
     final isWeb = ref.watch(platformCapabilitiesProvider).isWeb;
 
     return LayoutBuilder(
