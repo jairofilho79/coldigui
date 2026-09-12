@@ -1,6 +1,9 @@
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
@@ -13,13 +16,42 @@ import 'package:coldigui/features/chords/presentation/providers/chord_autoscroll
 import 'package:coldigui/features/chords/presentation/providers/chord_reader_mode_provider.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Fullscreen fixo (Important 3, onda 4) — evita depender do `SystemChrome`
+/// real do [ReaderFullscreenNotifier.build].
+class _FullscreenFixedNotifier extends ReaderFullscreenNotifier {
+  @override
+  bool build() => true;
+}
+
+/// Sessão de áudio de mentira — só `currentTrack` importa aqui.
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+
+  @override
+  AudioPlayerSessionState build() => _state;
+}
+
+const _playingTrack = AudioTrack(
+  audioId: 'aud-1',
+  r2Key: 'assets/praises/p1/a.mp3',
+  nome: 'Louvor',
+  numero: '12',
+  groupId: 'p1',
+  categoria: 'Áudio',
+  classificacao: 'Coro',
+);
 
 const _r2Key = 'assets/praises/p1/m1.chord';
 const _r2KeyB = 'assets/praises/p2/m2.chord';
@@ -43,6 +75,7 @@ Future<SharedPreferences> _pump(
   Map<String, String>? queryParams,
   ChordProSong? songOverride,
   List<CarouselItem>? carouselItems,
+  List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues(const {});
   final prefs = await SharedPreferences.getInstance();
@@ -61,6 +94,7 @@ Future<SharedPreferences> _pump(
         ),
         if (carouselItems != null)
           carouselItemsProvider.overrideWithValue(carouselItems),
+        ...overrides,
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -572,6 +606,55 @@ void main() {
       expect(container.read(readerSidePanelOpenProvider), isFalse);
       expect(find.byType(ActiveListPanel), findsNothing);
       expect(find.byTooltip(l10n.readerSidePanelShowTooltip), findsOneWidget);
+    });
+  });
+
+  group('respiro do mini-player em fullscreen (Important 3)', () {
+    double lastPaddingBottom(WidgetTester tester) {
+      final slivers = tester.widgetList<SliverPadding>(
+        find.byType(SliverPadding),
+      );
+      final padding = slivers.last.padding as EdgeInsets;
+      return padding.bottom;
+    }
+
+    testWidgets('fora do fullscreen usa o respiro padrão (24)', (tester) async {
+      await _pump(tester, available: true);
+
+      expect(lastPaddingBottom(tester), 24);
+    });
+
+    testWidgets('fullscreen sem faixa tocando mantém o respiro padrão (24)', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        available: true,
+        overrides: [
+          readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
+        ],
+      );
+
+      expect(lastPaddingBottom(tester), 24);
+    });
+
+    testWidgets('fullscreen com faixa tocando soma a altura do mini-player', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        available: true,
+        overrides: [
+          readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [_playingTrack]),
+            ),
+          ),
+        ],
+      );
+
+      expect(lastPaddingBottom(tester), 24 + kMiniPlayerBarHeight);
     });
   });
 }

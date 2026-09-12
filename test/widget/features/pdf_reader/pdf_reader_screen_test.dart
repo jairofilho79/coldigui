@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_list_panel.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -32,6 +35,28 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../unit/features/pdf_reader/pdf_reader_test_helpers.dart';
+
+/// Sessão de áudio de mentira — só o que a barra do leitor precisa
+/// (`currentTrack`) para decidir se o overlay do mini-player aparece
+/// (Important 3, onda 4).
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+
+  @override
+  AudioPlayerSessionState build() => _state;
+}
+
+const _playingTrack = AudioTrack(
+  audioId: 'aud-1',
+  r2Key: 'assets/praises/p1/a.mp3',
+  nome: 'Louvor',
+  numero: '12',
+  groupId: 'p1',
+  categoria: 'Áudio',
+  classificacao: 'Coro',
+);
 
 /// Resolver de teste (fix round 1) — sempre falha com o erro dado, sem tocar
 /// rede/Isar; usado para exercitar os catches de `_redownloadCorruptedPdf`.
@@ -238,6 +263,75 @@ void main() {
     expect(find.byIcon(Icons.fullscreen), findsNothing);
     expect(find.byIcon(Icons.share), findsNothing);
   });
+
+  // Important 3 (onda 4): o overlay MiniPlayerBar (44px, bottom: 0) do shell
+  // aparece na mesma condição — fullscreen + faixa tocando — e cobriria a
+  // metade de baixo do FAB sem esse respiro.
+  Future<Positioned> pumpFullscreenFabPositioned(
+    WidgetTester tester, {
+    required List<Override> overrides,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      _readerScope(
+        prefs: prefs,
+        overrides: [
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+            (ref) => Future.error(const InvalidPdfPathException('stub')),
+          ),
+          ...overrides,
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: PdfReaderScreen(
+              queryParams: {
+                'file': 'asset:fixtures/sample.pdf',
+                'titulo': 'Fixture',
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.fullscreen));
+    await tester.pumpAndSettle();
+
+    return tester.widget<Positioned>(
+      find.ancestor(
+        of: find.byIcon(Icons.fullscreen_exit),
+        matching: find.byType(Positioned),
+      ),
+    );
+  }
+
+  testWidgets('sem faixa tocando, fullscreen mantém o FAB em bottom 16 (I3)', (
+    tester,
+  ) async {
+    final positioned = await pumpFullscreenFabPositioned(tester, overrides: []);
+
+    expect(positioned.bottom, 16);
+  });
+
+  testWidgets(
+    'com faixa tocando, fullscreen sobe o FAB acima do mini-player (I3)',
+    (tester) async {
+      final positioned = await pumpFullscreenFabPositioned(
+        tester,
+        overrides: [
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [_playingTrack]),
+            ),
+          ),
+        ],
+      );
+
+      expect(positioned.bottom, 16 + kMiniPlayerBarHeight);
+    },
+  );
 
   test('pdfReaderErrorMessage formata exceções offline', () {
     const offline = PdfOfflineUnavailableException(pdfId: 'x');

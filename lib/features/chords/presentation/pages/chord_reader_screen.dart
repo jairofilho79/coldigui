@@ -12,10 +12,13 @@ import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
+import '../../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import '../../../carousel/presentation/widgets/active_list_panel.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
+import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_side_panel_provider.dart';
 import '../../data/providers/chord_providers.dart';
@@ -293,6 +296,14 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     final columns = isWideWidth(MediaQuery.sizeOf(context).width) ? 2 : 1;
     final sidePanelOpen = ref.watch(readerSidePanelOpenProvider);
     final panel = ActiveListPanel(onOpen: _openFromPanel);
+    // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
+    // — reserva espaço para as últimas linhas não ficarem cobertas por ele.
+    final isFullscreen = ref.watch(readerFullscreenProvider);
+    final hasPlayingTrack = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.currentTrack != null),
+    );
+    final bottomPadding =
+        24.0 + (isFullscreen && hasPlayingTrack ? kMiniPlayerBarHeight : 0);
 
     // Liga/desliga o motor do Ticker junto da intenção do usuário — o
     // provider só guarda o estado, quem move o scroll é este `State`.
@@ -381,11 +392,11 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                                 ),
                               ),
                               SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
+                                padding: EdgeInsets.fromLTRB(
                                   16,
                                   0,
                                   16,
-                                  24,
+                                  bottomPadding,
                                 ),
                                 sliver: ChordProView(
                                   song: song,
