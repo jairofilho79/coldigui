@@ -36,14 +36,13 @@ import 'widgets/stage_wakelock.dart';
 /// Em fullscreen ([readerFullscreenProvider]), oculta barras 1–2 mantendo
 /// `Expanded(child)` para o PDF não perder constraints.
 ///
-/// Navegação: Eventos (se [FeatureFlags.events]), Biblioteca, Pesquisar,
-/// Social (se [FeatureFlags.social]), Perfil — mesma lista de [appTabsFor]
-/// usada pelo router, então os índices de [StatefulNavigationShell] sempre
-/// batem com a posição na lista. Em largura ≥ [kRailBreakpoint] (C6), usa
-/// [PlpcgNavigationRail] à esquerda do corpo em vez de [PlpcgBottomNavBar].
-/// Ambas ocultas em `/leitor`, `/audio` e `/cifra`. Destino central:
-/// **Pesquisar** (logo PLPCG, [RoutePaths.home]). Aba Perfil: avatar + nome
-/// quando autenticado.
+/// Navegação: Eventos (se [FeatureFlags.events]), Listas, Pesquisar, Perfil
+/// — mesma lista de [appTabsFor] usada pelo router, então os índices de
+/// [StatefulNavigationShell] sempre batem com a posição na lista. Em largura
+/// ≥ [kRailBreakpoint] (C6), usa [PlpcgNavigationRail] à esquerda do corpo em
+/// vez de [PlpcgBottomNavBar]. Ambas ocultas em `/leitor`, `/audio` e
+/// `/cifra`. Destino central: **Pesquisar** (logo PLPCG, [RoutePaths.home]).
+/// Aba Perfil: avatar + nome quando autenticado.
 ///
 /// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
 ///
@@ -89,17 +88,13 @@ class ShellScaffold extends ConsumerWidget {
             icon: Icons.event,
             label: 'Eventos',
           ),
-          AppTab.library => const PlpcgBottomNavDestination(
-            icon: Icons.library_books,
-            label: 'Biblioteca',
+          AppTab.playlists => const PlpcgBottomNavDestination(
+            icon: Icons.playlist_play,
+            label: 'Listas',
           ),
           AppTab.home => const PlpcgBottomNavDestination(
             svgAsset: 'assets/branding/logo_colorido_no_bg_logo_only.svg',
             label: 'Pesquisar',
-          ),
-          AppTab.social => const PlpcgBottomNavDestination(
-            icon: Icons.groups,
-            label: 'Social',
           ),
           AppTab.profile => PlpcgBottomNavDestination(
             icon: profileAvatar == null ? Icons.person : null,
@@ -117,11 +112,11 @@ class ShellScaffold extends ConsumerWidget {
       RoutePaths.events => 'Eventos',
       RoutePaths.library => 'Biblioteca',
       RoutePaths.home => 'Pesquisar',
-      RoutePaths.social => 'Social',
       RoutePaths.profile => 'Perfil',
       RoutePaths.about => 'Sobre',
       RoutePaths.offline => 'Offline',
       RoutePaths.playlists => 'Listas',
+      RoutePaths.publicPlaylists => 'Listas públicas',
       RoutePaths.audio => 'Áudio',
       _ => 'PLPCG',
     };

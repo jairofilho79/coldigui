@@ -90,8 +90,8 @@ void main() {
   });
 
   // Branches na mesma ordem de `appTabsFor` com as flags padrão em teste
-  // (FF_EVENTS=false, FF_SOCIAL=true): library, home, social, profile — para
-  // exercitar `goBranch`/`selectedIndex` com o mesmo índice que
+  // (FF_EVENTS=false): playlists, home, profile — para exercitar
+  // `goBranch`/`selectedIndex` com o mesmo índice que
   // `PlpcgBottomNavBar`/`PlpcgNavigationRail` recebem no shell real.
   GoRouter buildRouter({String initialLocation = RoutePaths.home}) {
     return GoRouter(
@@ -104,8 +104,8 @@ void main() {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: RoutePaths.library,
-                  builder: (_, _) => const Scaffold(body: Text('Biblioteca')),
+                  path: RoutePaths.playlists,
+                  builder: (_, _) => const Scaffold(body: Text('Listas')),
                 ),
               ],
             ),
@@ -120,14 +120,6 @@ void main() {
                       builder: (_, _) => const Scaffold(body: Text('Leitor')),
                     ),
                   ],
-                ),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: RoutePaths.social,
-                  builder: (_, _) => const Scaffold(body: Text('Social')),
                 ),
               ],
             ),
@@ -287,15 +279,15 @@ void main() {
       await pumpShell(tester, overrides: []);
       expect(find.text('Home'), findsOneWidget);
 
-      // Flags padrão de teste → tabs [library, home, social, profile];
-      // última destination = Perfil (índice 3).
+      // Flags padrão de teste → tabs [playlists, home, profile];
+      // última destination = Perfil (índice 2).
       final rail = tester.widget<PlpcgNavigationRail>(
         find.byType(PlpcgNavigationRail),
       );
-      expect(rail.destinations.length, 4);
+      expect(rail.destinations.length, 3);
       expect(rail.selectedIndex, 1);
 
-      rail.onDestinationSelected(3);
+      rail.onDestinationSelected(2);
       await tester.pumpAndSettle();
 
       final updatedRail = tester.widget<PlpcgNavigationRail>(
@@ -303,9 +295,9 @@ void main() {
       );
       expect(
         updatedRail.selectedIndex,
-        3,
+        2,
         reason:
-            'goBranch(3) — a última posição de appTabsFor — tem que mover '
+            'goBranch(2) — a última posição de appTabsFor — tem que mover '
             'o navigationShell para a branch Perfil',
       );
     });

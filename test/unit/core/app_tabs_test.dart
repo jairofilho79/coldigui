@@ -4,11 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('appTabsFor', () {
-    test('com as flags padrão, omite events e mantém social', () {
+    test('com as flags padrão: Listas, Pesquisar, Perfil', () {
       expect(appTabsFor(const FeatureFlags()), [
-        AppTab.library,
+        AppTab.playlists,
         AppTab.home,
-        AppTab.social,
         AppTab.profile,
       ]);
     });
@@ -16,28 +15,17 @@ void main() {
     test('events: true inclui a aba Eventos como primeira', () {
       expect(appTabsFor(const FeatureFlags(events: true)), [
         AppTab.events,
-        AppTab.library,
-        AppTab.home,
-        AppTab.social,
-        AppTab.profile,
-      ]);
-    });
-
-    test('social: false omite a aba Social', () {
-      expect(appTabsFor(const FeatureFlags(social: false)), [
-        AppTab.library,
+        AppTab.playlists,
         AppTab.home,
         AppTab.profile,
       ]);
     });
 
-    test('events: true e social: false — só Eventos entra', () {
-      expect(appTabsFor(const FeatureFlags(events: true, social: false)), [
-        AppTab.events,
-        AppTab.library,
-        AppTab.home,
-        AppTab.profile,
-      ]);
+    test('social não é mais aba — a flag não muda a lista', () {
+      expect(
+        appTabsFor(const FeatureFlags(social: false)),
+        appTabsFor(const FeatureFlags(social: true)),
+      );
     });
   });
 }

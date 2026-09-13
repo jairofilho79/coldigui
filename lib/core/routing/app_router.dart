@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_tabs.dart';
+import '../../core/constants/feature_flags.dart';
 import '../../core/providers/feature_flags_provider.dart';
 import '../../core/utils/safe_query_parameters.dart';
 import '../../core/utils/url_sync_params.dart';
@@ -34,7 +35,9 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
 /// `/audio` e `/cifra` são irmãs de `/leitor` na mesma branch.
 ///
-/// Branch Perfil também hospeda `/sobre`, `/offline` e `/listas`.
+/// Branch Listas: `/listas` + sub-rota `/listas/publicas` (só com
+/// `FF_SOCIAL`). Branch Perfil: `/perfil`, `/biblioteca`, `/offline`, `/sobre`.
+/// `/social` (aba antiga) redireciona para `/listas/publicas`.
 ///
 /// As `StatefulShellBranch` são montadas a partir de [appTabsFor] — com
 /// `FF_EVENTS=false` (padrão) a rota `/eventos` não é registrada; navegar
@@ -46,20 +49,27 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 /// `/leitor` adia só a init do pdfrx; offline/leitor no bundle principal (WebKit
 /// dart2js não registra `.part.js` via `<script>` — ver flutter_bootstrap webkit).
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final tabs = appTabsFor(ref.read(featureFlagsProvider));
+  final flags = ref.read(featureFlagsProvider);
+  final tabs = appTabsFor(flags);
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
-    // Rota desconhecida/escondida (`/eventos` com a flag off não registra a
-    // rota — comentário acima) não pode parar na página de erro padrão do
-    // GoRouter: manda pra Home, como qualquer outro link inválido.
-    redirect: (context, state) => state.error != null ? RoutePaths.home : null,
+    // `/social` era aba própria; hoje é sub-rota de Listas — links antigos
+    // seguem funcionando. Qualquer outra rota desconhecida/escondida
+    // (`/eventos` com a flag off não registra a rota — comentário acima)
+    // não pode parar na página de erro padrão do GoRouter: manda pra Home.
+    redirect: (context, state) {
+      if (state.uri.path == RoutePaths.social) {
+        return RoutePaths.publicPlaylists;
+      }
+      return state.error != null ? RoutePaths.home : null;
+    },
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ShellScaffold(navigationShell: navigationShell),
-        branches: [for (final tab in tabs) _branchFor(tab)],
+        branches: [for (final tab in tabs) _branchFor(tab, flags)],
       ),
     ],
   );
@@ -67,7 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 /// `StatefulShellBranch` de [tab] — mesma ordem/rotas usadas quando todas as
 /// flags estavam sempre ligadas; ver [appRouterProvider].
-StatefulShellBranch _branchFor(AppTab tab) {
+StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
   return switch (tab) {
     AppTab.events => StatefulShellBranch(
       routes: [
@@ -78,27 +88,19 @@ StatefulShellBranch _branchFor(AppTab tab) {
         ),
       ],
     ),
-    AppTab.library => StatefulShellBranch(
+    AppTab.playlists => StatefulShellBranch(
       routes: [
         GoRoute(
-          path: RoutePaths.library,
-          builder: (context, state) {
-            final params = safeQueryParameters(state.uri);
-            return LibraryScreen(
-              initialFonte: params[UrlSyncParams.fonte],
-              initialMateriais: params[UrlSyncParams.materiais],
-              initialArranjo: params[UrlSyncParams.arranjo],
-              initialArranjoEspecial: params[UrlSyncParams.arranjoEspecial],
-              initialTonality: params[UrlSyncParams.tonality],
-              initialRhythm: params[UrlSyncParams.rhythm],
-              initialCategory: params[UrlSyncParams.category],
-              initialTags: params[UrlSyncParams.tags],
-              initialMaterialKinds: params[UrlSyncParams.materialKinds],
-              initialOrdenar: params[UrlSyncParams.ordenar],
-              initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
-              initialPagina: params[UrlSyncParams.pagina],
-            );
-          },
+          path: RoutePaths.playlists,
+          builder: (context, state) =>
+              const StorageRequiredGate(child: PlaylistsScreen()),
+          routes: [
+            if (flags.social)
+              GoRoute(
+                path: 'publicas',
+                builder: (context, state) => const PublicPlaylistsScreen(),
+              ),
+          ],
         ),
       ],
     ),
@@ -146,19 +148,31 @@ StatefulShellBranch _branchFor(AppTab tab) {
         ),
       ],
     ),
-    AppTab.social => StatefulShellBranch(
-      routes: [
-        GoRoute(
-          path: RoutePaths.social,
-          builder: (context, state) => const PublicPlaylistsScreen(),
-        ),
-      ],
-    ),
     AppTab.profile => StatefulShellBranch(
       routes: [
         GoRoute(
           path: RoutePaths.profile,
           builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.library,
+          builder: (context, state) {
+            final params = safeQueryParameters(state.uri);
+            return LibraryScreen(
+              initialFonte: params[UrlSyncParams.fonte],
+              initialMateriais: params[UrlSyncParams.materiais],
+              initialArranjo: params[UrlSyncParams.arranjo],
+              initialArranjoEspecial: params[UrlSyncParams.arranjoEspecial],
+              initialTonality: params[UrlSyncParams.tonality],
+              initialRhythm: params[UrlSyncParams.rhythm],
+              initialCategory: params[UrlSyncParams.category],
+              initialTags: params[UrlSyncParams.tags],
+              initialMaterialKinds: params[UrlSyncParams.materialKinds],
+              initialOrdenar: params[UrlSyncParams.ordenar],
+              initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
+              initialPagina: params[UrlSyncParams.pagina],
+            );
+          },
         ),
         GoRoute(
           path: RoutePaths.about,
@@ -168,11 +182,6 @@ StatefulShellBranch _branchFor(AppTab tab) {
           path: RoutePaths.offline,
           builder: (context, state) =>
               const StorageRequiredGate(child: OfflineSettingsScreen()),
-        ),
-        GoRoute(
-          path: RoutePaths.playlists,
-          builder: (context, state) =>
-              const StorageRequiredGate(child: PlaylistsScreen()),
         ),
       ],
     ),
