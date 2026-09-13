@@ -1219,8 +1219,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get socialSearchError => 'Não foi possível buscar. Tente novamente.';
 
   @override
+  String get publicPlaylistsTitle => 'Listas públicas';
+
+  @override
   String get socialSignInRequired =>
-      'Entre com o Google para explorar a aba Social.';
+      'Entre com o Google para explorar as listas públicas.';
 
   @override
   String socialPlaylistCount(int count) {

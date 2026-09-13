@@ -664,7 +664,8 @@
   "socialSearchEmptyHint": "Digite um nome de usuário para encontrar pessoas.",
   "socialSearchNoResults": "Nenhuma pessoa encontrada.",
   "socialSearchError": "Não foi possível buscar. Tente novamente.",
-  "socialSignInRequired": "Entre com o Google para explorar a aba Social.",
+  "publicPlaylistsTitle": "Listas públicas",
+  "socialSignInRequired": "Entre com o Google para explorar as listas públicas.",
   "socialPlaylistCount": "{count, plural, one{1 lista} other{{count} listas}}",
   "@socialPlaylistCount": {
     "placeholders": {

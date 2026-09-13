@@ -10,9 +10,11 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Aba Social — busca de pessoas e importação de listas públicas.
-class SocialScreen extends ConsumerWidget {
-  const SocialScreen({super.key});
+/// Listas públicas (antiga aba Social) — busca de pessoas por @usuário e
+/// importação das listas públicas delas. Sub-rota de Listas
+/// (`/listas/publicas`), aberta pelo `PublicPlaylistsEntryButton`.
+class PublicPlaylistsScreen extends ConsumerWidget {
+  const PublicPlaylistsScreen({super.key});
 
   static const double _maxContentWidth = 896;
 

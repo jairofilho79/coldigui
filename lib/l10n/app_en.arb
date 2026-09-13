@@ -649,7 +649,8 @@
   "socialSearchEmptyHint": "Type a username to find people.",
   "socialSearchNoResults": "No people found.",
   "socialSearchError": "Search failed. Please try again.",
-  "socialSignInRequired": "Sign in with Google to explore Social.",
+  "publicPlaylistsTitle": "Public playlists",
+  "socialSignInRequired": "Sign in with Google to explore public playlists.",
   "socialPlaylistCount": "{count, plural, one{1 playlist} other{{count} playlists}}",
   "@socialPlaylistCount": {
     "placeholders": {

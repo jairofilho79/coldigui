@@ -21,7 +21,7 @@ import '../../features/audio_player/presentation/pages/audio_player_screen.dart'
 import '../../features/pdf_reader/data/pdfrx_bootstrap.dart';
 import '../../features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import '../../features/playlists/presentation/pages/playlists_screen.dart';
-import '../../features/social/presentation/pages/social_screen.dart';
+import '../../features/social/presentation/pages/public_playlists_screen.dart';
 import 'route_paths.dart';
 
 /// Navigator raiz do [GoRouter] — snackbars do [DeepLinkListener] (UC-14).
@@ -150,7 +150,7 @@ StatefulShellBranch _branchFor(AppTab tab) {
       routes: [
         GoRoute(
           path: RoutePaths.social,
-          builder: (context, state) => const SocialScreen(),
+          builder: (context, state) => const PublicPlaylistsScreen(),
         ),
       ],
     ),
