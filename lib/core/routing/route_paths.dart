@@ -42,4 +42,7 @@ abstract final class RoutePaths {
 
   /// Sobre UC-14 ([AboutScreen]) — branch Perfil.
   static const String about = '/sobre';
+
+  /// Material kinds favoritos ([FavoriteMaterialKindsScreen]) — branch Perfil.
+  static const String favoriteMaterialKinds = '/materiais-favoritos';
 }

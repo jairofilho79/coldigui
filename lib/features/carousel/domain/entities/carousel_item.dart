@@ -6,16 +6,17 @@ export '../../../../core/utils/material_id_kind.dart' show MaterialKind;
 
 /// Uma entrada da lista ativa pronta para a UI (D3).
 ///
-/// Deixou de ser uma linha persistida: é uma **view** de `ActiveEntry` de uma
-/// das faces da lista ativa, enriquecida com os metadados do manifest/caches.
-/// [index] é a posição **dentro da face** (0..n-1) e [key] é a chave estável
-/// por ocorrência — duas ocorrências do mesmo louvor têm a mesma [materialId]
-/// e chaves diferentes.
+/// Deixou de ser uma linha persistida: é uma **view** de `ActiveEntry` da
+/// lista ativa (sem faces, spec 2026-09-12 D1 — PDF, cifra, gesto e áudio na
+/// mesma lista), enriquecida com os metadados do manifest/caches.
+/// [index] é a posição **na lista inteira** (0..n-1) e [key] é a chave
+/// estável por ocorrência — duas ocorrências do mesmo louvor têm a mesma
+/// [materialId] e chaves diferentes.
 class CarouselItem {
   /// Sem [key] a chave é a da **primeira** ocorrência ([entryKeyFor] com
   /// `occurrence == 0`, que é o próprio id); sem [kind] o item entra como
   /// [MaterialKind.pdf] — um chip solto (card do catálogo, lista salva) é
-  /// sempre da face de partituras.
+  /// sempre de partitura.
   const CarouselItem({
     required this.materialId,
     MaterialKind? kind,
@@ -32,10 +33,10 @@ class CarouselItem {
   /// Identificador estável do material (Base64 URL-safe do path).
   final String materialId;
 
-  /// Tipo do material — define a face em que o item aparece.
+  /// Tipo do material — PDF, cifra, gesto ou áudio.
   final MaterialKind kind;
 
-  /// Posição dentro da face — contígua 0..n-1.
+  /// Posição na lista ativa inteira — contígua 0..n-1.
   final int index;
 
   /// Chave estável por ocorrência (`id`, `id#1`, …) — ver [entryKeyFor].
@@ -59,6 +60,6 @@ class CarouselItem {
   /// Rótulo legado — tipicamente `numero — nome` (folheto UC-08).
   String get label => numero.isEmpty ? nome : '$numero — $nome';
 
-  /// `true` se o item pertence à face de áudio.
+  /// `true` se o item é uma entrada de áudio.
   bool get isAudio => kind == MaterialKind.audio;
 }

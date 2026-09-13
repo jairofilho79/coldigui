@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -9,11 +10,11 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dar
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -99,7 +100,7 @@ void main() {
   }
 
   test(
-    'carouselItemsProvider filtra a face de partituras e enriquece pelo manifest',
+    'carouselItemsProvider devolve todas as entradas na ordem, com index global',
     () async {
       final c = await boot(
         entries: [
@@ -111,16 +112,72 @@ void main() {
 
       final items = c.read(carouselItemsProvider);
 
-      expect(items.map((i) => i.materialId), [_pdfA, _pdfB]);
-      expect(items.map((i) => i.index), [0, 1]);
-      expect(items.map((i) => i.key), [_pdfA, _pdfB]);
+      expect(items.map((i) => i.materialId), [_pdfA, _audioA, _pdfB]);
+      expect(items.map((i) => i.index), [0, 1, 2]);
+      expect(items.map((i) => i.key), [_pdfA, _audioA, _pdfB]);
       expect(items.first.numero, '001');
       expect(items.first.nome, 'Santo');
       expect(items.last.label, '002 — Aleluia');
     },
   );
 
-  test('audioFaceItemsProvider só áudio', () async {
+  test('readableCarouselItemsProvider filtra áudio e preserva o index', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+    );
+
+    final items = c.read(readableCarouselItemsProvider);
+
+    expect(items.map((i) => i.materialId), [_pdfA, _pdfB]);
+    expect(items.map((i) => i.index), [0, 2]);
+  });
+
+  test('entrada de áudio é enriquecida pela faixa do cache Coldigom', () async {
+    final c = await boot(
+      entries: [PlaylistEntry(id: _audioA, kind: MaterialKind.audio)],
+    );
+    c.read(coldigomAudioTracksCacheProvider.notifier).mergeTracks([
+      AudioTrack(
+        audioId: _audioA,
+        r2Key: 'ColAdultos/001.mp3',
+        nome: 'Santo',
+        numero: '001',
+        groupId: '001',
+        categoria: 'Coro',
+        classificacao: 'ColAdultos',
+      ),
+    ]);
+
+    final item = c.read(carouselItemsProvider).single;
+
+    expect(item.isAudio, isTrue);
+    expect(item.numero, '001');
+    expect(item.nome, 'Santo');
+    expect(item.categoria, 'Coro');
+  });
+
+  test('readerCarouselPositionProvider ignora entradas de áudio', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+    );
+
+    final position = c.read(readerCarouselPositionProvider(_pdfA))!;
+
+    expect(position.currentIndex, 1);
+    expect(position.total, 2);
+    expect(position.nextKey, _pdfB);
+    expect(position.previousKey, isNull);
+  });
+
+  test('audioCarouselItemsProvider só áudio e preserva o index', () async {
     final c = await boot(
       entries: [
         PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
@@ -128,14 +185,14 @@ void main() {
       ],
     );
 
-    final items = c.read(audioFaceItemsProvider);
+    final items = c.read(audioCarouselItemsProvider);
 
     expect(items.map((i) => i.materialId), [_audioA]);
     expect(items.single.kind, MaterialKind.audio);
-    expect(items.single.index, 0);
+    expect(items.single.index, 1);
   });
 
-  test('activeMaterialIdsProvider junta as duas faces', () async {
+  test('activeMaterialIdsProvider junta todos os ids', () async {
     final c = await boot(
       entries: [
         PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
@@ -212,10 +269,10 @@ void main() {
       c.read(carouselFocusedIndexProvider.notifier).focusKey(_pdfB);
       expect(c.read(carouselFocusedIndexProvider), 1);
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfA,
+      ]);
       await _flush();
 
       expect(c.read(carouselItemsProvider).map((i) => i.materialId), [

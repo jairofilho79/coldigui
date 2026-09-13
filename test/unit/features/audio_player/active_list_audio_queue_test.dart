@@ -71,7 +71,7 @@ void main() {
     final c = _track('c');
 
     List<Override> overrides() => [
-      audioFaceItemsProvider.overrideWithValue([
+      audioCarouselItemsProvider.overrideWithValue([
         _audioItem('a', 0),
         // `b` não está em cache — a fila pula, não fura.
         _audioItem('b', 1),
@@ -112,7 +112,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            audioFaceItemsProvider.overrideWithValue(const []),
+            audioCarouselItemsProvider.overrideWithValue(const []),
             catalogMaterialLookupProvider.overrideWithValue(
               CatalogMaterialLookup(audioTracksById: {'a': a}),
             ),

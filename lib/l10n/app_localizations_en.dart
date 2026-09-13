@@ -509,7 +509,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carouselGenerateLeaflet => 'Generate leaflet';
 
   @override
-  String get carouselOpenList => 'View selection';
+  String get carouselOpen => 'Open';
+
+  @override
+  String get carouselMaterial => 'Material';
+
+  @override
+  String get carouselList => 'List';
+
+  @override
+  String get carouselClearShort => 'Clear';
 
   @override
   String get carouselListTitle => 'Temporary selection';
@@ -522,12 +531,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerCarouselNext => 'Next hymn';
-
-  @override
-  String get audioFacePreviousLouvor => 'Previous hymn';
-
-  @override
-  String get audioFaceNextLouvor => 'Next hymn';
 
   @override
   String get readerSwitchMaterial => 'Switch material';
@@ -657,6 +660,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playlistSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sheets',
+      one: '1 sheet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistAudioOnlyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count audios',
+      one: '1 audio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistEmptyCount => 'Empty';
+
+  @override
   String get playlistDeleteLastPdfTitle => 'Remove last song?';
 
   @override
@@ -671,28 +699,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistOpenInAudioPlayer => 'Open in audio player';
-
-  @override
-  String get playlistFacePdf => 'PDFs';
-
-  @override
-  String get playlistFaceAudio => 'Audio';
-
-  @override
-  String get playlistFaceToggleSemantics =>
-      'Switch playlist face between PDFs and audio';
-
-  @override
-  String playlistAudioCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tracks',
-      one: '1 track',
-      zero: 'No audio',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get playlistAudioEmpty => 'This playlist has no audio tracks.';
@@ -867,9 +873,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get miniPlayerNext => 'Next track';
-
-  @override
-  String get audioOpenPlayer => 'Open player';
 
   @override
   String get audioClosePlayer => 'Close and return to search';
@@ -1332,4 +1335,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeColdigomOffline =>
       'No connection — the Coldigom catalog may be incomplete for this search.';
+
+  @override
+  String get favoriteMaterialKindsTitle => 'Favorite materials';
+
+  @override
+  String favoriteMaterialKindsHelp(int max) {
+    return 'Pick up to $max material types. They show first when you open a hymn.';
+  }
+
+  @override
+  String favoriteMaterialKindsYours(int count, int max) {
+    return 'Your favorites ($count of $max)';
+  }
+
+  @override
+  String get favoriteMaterialKindsEmpty => 'No favorites yet';
+
+  @override
+  String get favoriteMaterialKindsAdd => 'Add';
+
+  @override
+  String get favoriteMaterialKindsSearchHint => 'Search material type';
+
+  @override
+  String favoriteMaterialKindsLimitReached(int max) {
+    return 'Limit of $max — remove one to swap';
+  }
+
+  @override
+  String get favoriteMaterialKindsSignInPrompt =>
+      'Sign in with Google to pick your favorite materials.';
+
+  @override
+  String get favoriteMaterialKindsSyncPending => 'Sync pending';
+
+  @override
+  String get favoriteMaterialKindsRemoveTooltip => 'Remove from favorites';
+
+  @override
+  String get favoriteMaterialKindsAddTooltip => 'Add to favorites';
+
+  @override
+  String get favoriteMaterialKindsUnknownKind => 'Unknown';
+
+  @override
+  String get favoriteMaterialKindsLoadError => 'Couldn\'t load material types';
+
+  @override
+  String get favoriteMaterialKindsRetry => 'Try again';
+
+  @override
+  String get favoriteMaterialKindsNoMatch => 'No type with that name';
 }

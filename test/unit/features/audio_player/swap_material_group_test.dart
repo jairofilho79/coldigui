@@ -6,7 +6,8 @@ import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Precedência do botão layers na face de áudio: manda a faixa tocando.
+/// Precedência do botão layers com uma entrada de áudio focada: manda a
+/// faixa tocando.
 void main() {
   final focusedPdfId = encodePdfId('assets/praises/p1/partitura.pdf');
   final focusedChordId = encodePdfId('assets/praises/p1/cifra.pdf');

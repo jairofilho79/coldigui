@@ -17,6 +17,7 @@ import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
 import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
+import '../../features/material_kind_prefs/presentation/pages/favorite_material_kinds_screen.dart';
 import '../../features/offline/presentation/pages/offline_settings_screen.dart';
 import '../../features/audio_player/presentation/pages/audio_player_screen.dart';
 import '../../features/pdf_reader/data/pdfrx_bootstrap.dart';
@@ -181,6 +182,10 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
         GoRoute(
           path: RoutePaths.about,
           builder: (context, state) => const AboutScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.favoriteMaterialKinds,
+          builder: (context, state) => const FavoriteMaterialKindsScreen(),
         ),
         GoRoute(
           path: RoutePaths.offline,

@@ -3,28 +3,28 @@ import 'dart:async';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,12 +35,11 @@ import 'package:go_router/go_router.dart';
 /// Única instância compartilhada em todas as rotas do shell, inclusive `/leitor`
 /// e `/audio`.
 ///
-/// **Face PDF:** chips das entradas não-áudio da lista ativa
-/// ([carouselItemsProvider]).
-/// **Face áudio:** [CarouselAudioFaceBar] quando há sessão ou entradas de
-/// áudio na lista ativa ([audioFaceItemsProvider]).
+/// Sem faces (spec 2026-09-12, D1): chips de toda a lista ativa
+/// ([carouselItemsProvider]) — PDF, cifra, gesto e áudio juntos, na mesma
+/// ordem em que estão na lista. O áudio vive no mini-player, fora daqui.
 ///
-/// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
+/// Retorna [SizedBox.shrink] quando a lista está vazia.
 ///
 /// Monta também o listener de "Seguir o áudio"
 /// ([listenAudioFollowReader]) — é o único widget presente em todas as rotas
@@ -52,48 +51,13 @@ class CarouselChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     listenAudioFollowReader(ref, context);
 
-    final pdfItems = ref.watch(carouselItemsProvider);
-    final audioItems = ref.watch(audioFaceItemsProvider);
-    final face = ref.watch(playlistMediaFaceProvider);
-    // Só isto: a barra é montada em toda rota do shell e não pode reconstruir
-    // a ~5 Hz com o resto do estado da sessão (posição, agora num provider
-    // separado — A7).
-    final hasSessionQueue = ref.watch(
-      audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
-    );
-    final hasPdf = pdfItems.isNotEmpty;
-
-    if (!shouldShowCarouselAudioFace(
-      face: face,
-      hasPdf: hasPdf,
-      hasAudio: audioItems.isNotEmpty || hasSessionQueue,
-    )) {
-      if (!hasPdf) return const SizedBox.shrink();
-      return _CarouselChipsBar(items: pdfItems);
-    }
-    return const CarouselAudioFaceBar();
+    // Só a lista: a barra é montada em toda rota do shell e não pode
+    // reconstruir a ~5 Hz com o estado da sessão de áudio (A7) — o áudio vive
+    // no mini-player, fora daqui.
+    final items = ref.watch(carouselItemsProvider);
+    if (items.isEmpty) return const SizedBox.shrink();
+    return _CarouselChipsBar(items: items);
   }
-}
-
-/// As duas faces são filtros da mesma lista (B.1): a face de áudio aparece
-/// quando o usuário a escolheu e há áudio, ou quando não há **nada** na face de
-/// partituras para mostrar no lugar dela.
-///
-/// [hasAudio] junta as duas origens de áudio — fila da sessão e entradas de
-/// áudio da lista ativa. Após [AudioPlayerSessionNotifier.close] (fila vazia) a
-/// barra continua na face de partituras enquanto houver PDF nela.
-///
-/// Pública (não só `@visibleForTesting`): também decide, em [ShellScaffold],
-/// se a face de áudio já cobre os controles do mini-player (D5) — o
-/// mini-player só aparece quando esta função devolve `false`.
-bool shouldShowCarouselAudioFace({
-  required PlaylistMediaFace face,
-  required bool hasPdf,
-  required bool hasAudio,
-}) {
-  if (!hasPdf && !hasAudio) return false;
-  if (face == PlaylistMediaFace.audio) return hasAudio;
-  return hasAudio && !hasPdf;
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {
@@ -236,6 +200,14 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     );
   }
 
+  /// «Abrir» o item focado: leitor para o que se lê, player para áudio
+  /// (spec 2026-09-12, §3.2). O chip da barra, o botão «Abrir» e o toque no
+  /// sheet de seleção (fora do leitor) despacham todos por aqui.
+  Future<void> _openItem(CarouselItem item) async {
+    if (item.isAudio) return _openAudio(item);
+    return _openInReader(item);
+  }
+
   Future<void> _openInReader(CarouselItem item) async {
     if (_openingReader) return;
     setState(() => _openingReader = true);
@@ -250,6 +222,41 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       );
       if (!mounted) return;
       ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
+    } finally {
+      if (mounted) setState(() => _openingReader = false);
+    }
+  }
+
+  /// Toca [item] no player global — fila híbrida (spec §3.2:
+  /// `queueForTrack`, a lista quando a faixa está nela, senão o grupo).
+  Future<void> _openAudio(CarouselItem item) async {
+    if (_openingReader) return;
+    final lookup = ref.read(catalogMaterialLookupProvider);
+    final track = lookup.audioTrack(item.materialId);
+    if (track == null) {
+      final l10n = AppLocalizations.of(context);
+      showAppSnackbar(
+        context,
+        l10n?.audioPlaybackError ?? 'Não foi possível tocar o áudio',
+      );
+      return;
+    }
+    setState(() => _openingReader = true);
+    try {
+      ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
+      await openAudioInPlayer(
+        ref: ref,
+        context: context,
+        track: track,
+        queue: queueForTrack(
+          track: track,
+          groupTracks: tracksForGroup(
+            track.groupId,
+            lookup.audioTracksById.values.toList(growable: false),
+          ),
+          activeQueue: activeListAudioQueue(ref),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _openingReader = false);
     }
@@ -297,6 +304,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }
 
   Future<void> _replaceReaderWithCarouselItem(CarouselItem selected) async {
+    // Áudio não troca o leitor (é outra face) — abre no player, como faria
+    // fora do leitor (spec §3.2).
+    if (selected.isAudio) return _openAudio(selected);
+
     final activeMaterialId = _resolveReaderMaterialId(readOnly: true);
     if (activeMaterialId != null && selected.materialId == activeMaterialId) {
       return;
@@ -394,13 +405,27 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required bool canGoNext,
     required bool loading,
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
     VoidCallback? onPrevious,
     VoidCallback? onNext,
     VoidCallback? onChipTap,
     required VoidCallback onOpenSelection,
-    VoidCallback? onOpenPlayer,
+    VoidCallback? onOpen,
   }) {
+    // Grupo «louvor» só aparece com alternativa de material — sem isso, o
+    // botão «Material» ficaria sempre oculto e o grupo, vazio.
+    //
+    // Resolvido uma vez aqui (e não dentro do botão) porque uma entrada de
+    // áudio focada não tem `materialId` — o id dela é de faixa, e
+    // `findSwapMaterialGroup` só o reconhece pelo parâmetro `audioId`
+    // (B.6/Crítico #1). O botão recebe o grupo já pronto.
+    final swapGroup = resolveCarouselSwapMaterialGroup(
+      ref,
+      materialId: item.isAudio ? null : item.materialId,
+      audioId: item.isAudio ? item.materialId : null,
+    );
+
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
@@ -417,17 +442,25 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
               chipVariant: CarouselLouvorChipVariant.topBar,
               canGoPrevious: canGoPrevious,
               canGoNext: canGoNext,
+              showLabels: showLabels,
               loading: loading,
               onPrevious: onPrevious,
               onNext: onNext,
               onChipTap: onChipTap,
-              onOpenPlayer: onOpenPlayer,
+              onOpen: onOpen,
               onOpenSelection: onOpenSelection,
-              swapMaterial: CarouselSwapMaterialButton(
-                materialId: item.materialId,
-                entryKey: item.key,
-              ),
-              trailingActions: const [CarouselBarTrailingActions()],
+              swapMaterial: swapGroup == null
+                  ? null
+                  : CarouselSwapMaterialButton(
+                      materialId: item.isAudio ? null : item.materialId,
+                      audioId: item.isAudio ? item.materialId : null,
+                      entryKey: item.key,
+                      group: swapGroup,
+                      showLabel: showLabels,
+                    ),
+              trailingActions: [
+                CarouselBarTrailingActions(showLabels: showLabels),
+              ],
             ),
           ),
         ],
@@ -437,6 +470,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
   Widget _buildShellMode({
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
   }) {
     final focusedIndex = ref
@@ -451,6 +485,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: focusedIndex < items.length - 1,
       loading: _openingReader || _carouselNavLoading,
       showActivePlaylistName: showActivePlaylistName,
+      showLabels: showLabels,
       barWidth: barWidth,
       onPrevious: onReaderWithoutPdfId
           ? (focusedIndex > 0
@@ -462,17 +497,15 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex + 1])
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
-      onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
-      onOpenPlayer: onReaderWithoutPdfId
-          ? null
-          : () => _openInReader(focusedItem),
+      onChipTap: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
+      onOpen: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
           if (onReaderWithoutPdfId) {
             await _replaceReaderWithCarouselItem(item);
           } else {
-            await _openInReader(item);
+            await _openItem(item);
           }
         },
       ),
@@ -482,6 +515,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   Widget _buildReaderMode(
     String materialId, {
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
   }) {
     final position = ref.watch(readerCarouselPositionProvider(materialId));
@@ -495,6 +529,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoNext: false,
         loading: loading,
         showActivePlaylistName: showActivePlaylistName,
+        showLabels: showLabels,
         barWidth: barWidth,
         onOpenSelection: _openReaderSelectionSheet,
       );
@@ -506,6 +541,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: position.canGoNext,
       loading: loading,
       showActivePlaylistName: showActivePlaylistName,
+      showLabels: showLabels,
       barWidth: barWidth,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
@@ -531,6 +567,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         // louvor tem prioridade na largura da barra.
         final showActivePlaylistName =
             constraints.maxWidth >= _activePlaylistNameMinWidth;
+        // Legendas sob os ícones só cabem em barra larga (spec D3).
+        final showLabels = constraints.maxWidth >= carouselBarLabelsMinWidth;
 
         if (_isReaderRoute) {
           final materialId = _readerMaterialId;
@@ -538,6 +576,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             return _buildReaderMode(
               materialId,
               showActivePlaylistName: showActivePlaylistName,
+              showLabels: showLabels,
               barWidth: constraints.maxWidth,
             );
           }
@@ -545,6 +584,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
         return _buildShellMode(
           showActivePlaylistName: showActivePlaylistName,
+          showLabels: showLabels,
           barWidth: constraints.maxWidth,
         );
       },

@@ -194,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CarouselLouvorChip), findsNothing);
-    expect(find.byIcon(Icons.clear_all), findsNothing);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
   });
 
   testWidgets('renderiza apenas um chip visível', (tester) async {
@@ -206,29 +206,39 @@ void main() {
     expect(find.textContaining('Louvor C'), findsNothing);
   });
 
-  testWidgets('setas navegam índice focado e somem nas extremidades', (
-    tester,
-  ) async {
-    await tester.pumpWidget(buildSubject(entries));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'setas navegam índice focado; ficam apagadas (não escondidas) nos '
+    'extremos',
+    (tester) async {
+      await tester.pumpWidget(buildSubject(entries));
+      await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.chevron_left), findsNothing);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      // As zonas de seta do chip são sempre desenhadas (Task 5,
+      // `ChipNavZone`) — nos extremos ficam desabilitadas/apagadas, não
+      // somem do layout.
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Louvor B'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.textContaining('Louvor B'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Louvor C'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsNothing);
-  });
+      expect(find.textContaining('Louvor C'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+
+      // No último item a seta direita está desabilitada: tocar não navega.
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Louvor C'), findsOneWidget);
+    },
+  );
 
   testWidgets('chip da barra não possui botão de remover', (tester) async {
     await tester.pumpWidget(buildSubject(entries));
@@ -242,7 +252,7 @@ void main() {
     await tester.pumpWidget(buildSubject(entries, notifier: notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
 
     final dialog = find.byType(AlertDialog);
@@ -277,14 +287,15 @@ void main() {
     expect(find.byIcon(Icons.more_vert), findsNothing);
     expect(find.byType(PopupMenuButton), findsNothing);
     expect(find.byIcon(Icons.adaptive.share), findsOneWidget);
-    expect(find.byTooltip('Compartilhar'), findsOneWidget);
+    // Barra larga (800 px de teste ≥ 600) mostra legenda, não tooltip (D3).
+    expect(find.text('Compartilhar'), findsOneWidget);
     expect(find.byIcon(Icons.save_outlined), findsNothing);
     expect(find.text('Salvar como lista'), findsNothing);
-    expect(find.byIcon(Icons.clear_all), findsOneWidget);
-    expect(find.byIcon(Icons.open_in_full), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    expect(find.byIcon(Icons.file_open_outlined), findsOneWidget);
   });
 
-  testWidgets('em smartphone compartilhar não esconde limpar nem o olho', (
+  testWidgets('em smartphone compartilhar não esconde limpar nem lista', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -297,10 +308,11 @@ void main() {
 
     expect(find.byIcon(Icons.adaptive.share), findsOneWidget);
     expect(find.byIcon(Icons.more_vert), findsNothing);
-    expect(find.byIcon(Icons.clear_all), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left), findsNothing);
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    // Zonas de seta sempre presentes (Task 5) — a esquerda fica apagada.
+    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.queue_music), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsNothing);
   });
 
@@ -438,7 +450,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.clear_all));
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
 
     expect(find.text('Limpar seleção?'), findsOneWidget);
@@ -534,7 +546,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
 
     await tester.tap(find.textContaining('Louvor B'));
@@ -598,7 +610,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor C'));
     await tester.pumpAndSettle();
@@ -606,7 +618,7 @@ void main() {
     expect(readerActions.navigatedPdfIds, ['c']);
     expect(router.state.uri.queryParameters['pdfId'], 'c');
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor A'));
     await tester.pumpAndSettle();
@@ -654,7 +666,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor B'));
     await tester.pumpAndSettle();
@@ -664,7 +676,7 @@ void main() {
     router.pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Louvor C'));
     await tester.pumpAndSettle();
@@ -696,12 +708,16 @@ void main() {
     expect(prefs.getString('carousel_focused_pdf_id'), 'b');
   });
 
-  testWidgets('item único não exibe setas', (tester) async {
+  testWidgets('item único mostra setas apagadas (sem para onde navegar)', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildSubject([entries.first]));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.chevron_left), findsNothing);
-    expect(find.byIcon(Icons.chevron_right), findsNothing);
+    // As zonas de seta são sempre desenhadas (Task 5, `ChipNavZone`); com um
+    // só item ficam desabilitadas/apagadas, não escondidas.
+    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     expect(find.textContaining('Louvor A'), findsOneWidget);
   });
 
@@ -761,10 +777,10 @@ void main() {
     expect(find.textContaining('#002'), findsOneWidget);
     expect(find.byIcon(Icons.chevron_left), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.queue_music), findsOneWidget);
     expect(find.byIcon(Icons.view_list), findsNothing);
     // D10: sem áudio no louvor aberto, o slot "abrir" não aparece.
-    expect(find.byIcon(Icons.open_in_full), findsNothing);
+    expect(find.byIcon(Icons.file_open_outlined), findsNothing);
     expect(find.byIcon(Icons.play_circle_outline), findsNothing);
   });
 
@@ -876,7 +892,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.visibility_outlined));
+    await tester.tap(find.byIcon(Icons.queue_music));
     await tester.pumpAndSettle();
 
     // Remove a **segunda** ocorrência de A (a terceira linha do modal).
@@ -968,7 +984,7 @@ void main() {
       // barra 2 não mostra mais o play — o botão foi removido por aumentar a
       // probabilidade de misclique sem ser útil para a maioria das pessoas.
       expect(find.byIcon(Icons.play_circle_outline), findsNothing);
-      expect(find.byIcon(Icons.open_in_full), findsNothing);
+      expect(find.byIcon(Icons.file_open_outlined), findsNothing);
     },
   );
 

@@ -106,8 +106,8 @@ String? resolveMaterialForGroup(
   if (groupId == null || groupId.isEmpty) return null;
 
   final carouselItems = listen
-      ? ref.watch(carouselItemsProvider)
-      : ref.read(carouselItemsProvider);
+      ? ref.watch(readableCarouselItemsProvider)
+      : ref.read(readableCarouselItemsProvider);
   final lookup = listen
       ? ref.watch(catalogMaterialLookupProvider)
       : ref.read(catalogMaterialLookupProvider);

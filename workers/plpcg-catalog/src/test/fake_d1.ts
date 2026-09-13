@@ -20,6 +20,9 @@
  * | `SELECT … FROM user_audio_flags …` | as mesmas quatro formas do `user_playlists` (sem `is_published`) |
  * | `INSERT INTO user_audio_flags (…) VALUES (…)` | `INSERT` |
  * | `UPDATE user_audio_flags SET … WHERE user_id = ? AND id = ?` | `UPDATE` |
+ * | `SELECT … FROM user_material_kind_prefs WHERE user_id = ?` | `user_material_kind_prefs` (chave só de `user_id`, não passa por `tableFor`) |
+ * | `INSERT INTO user_material_kind_prefs (…) VALUES (…)` | idem |
+ * | `UPDATE user_material_kind_prefs SET … WHERE user_id = ?` | idem |
  * | `SELECT username FROM users WHERE google_sub = ?` (via `getUsername`) | `FROM users` + `google_sub = ?` |
  * | `SELECT google_sub FROM users WHERE username = ?` (rota social) | `FROM users` + `username = ?` |
  * | `SELECT COUNT(*) … FROM short_links WHERE created_by = ? AND created_at >= ?` (teto de abuso, `links/handlers.ts`) | `SELECT COUNT` + `short_links` |
@@ -86,6 +89,14 @@ export interface AudioFlagRow {
   deleted_at: string | null;
 }
 
+/** Linha de `user_material_kind_prefs` (um documento por usuário). */
+export interface MaterialKindPrefsRow {
+  user_id: string;
+  kind_ids: string;
+  updated_at: string;
+  version: number;
+}
+
 /** O que as duas tabelas têm em comum para o fake: chave e LWW. */
 interface StoredRow {
   id: string;
@@ -102,6 +113,8 @@ export interface FakeD1Options {
   audioFlags?: AudioFlagRow[];
   /** Linhas de `short_links`. */
   shortLinks?: ShortLinkRow[];
+  /** Linhas de `user_material_kind_prefs`. */
+  materialKindPrefs?: MaterialKindPrefsRow[];
 }
 
 function key(userId: string, id: string): string {
@@ -248,6 +261,8 @@ export class FakeD1Database {
   readonly usersByUsername = new Map<string, string>();
   /** Linhas de `short_links`, por `code` — chave simples, não `user_id`+`id`. */
   readonly shortLinks = new Map<string, ShortLinkRow>();
+  /** Linhas de `user_material_kind_prefs`, por `user_id`. */
+  readonly materialKindPrefs = new Map<string, MaterialKindPrefsRow>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
   readonly executed: string[] = [];
 
@@ -255,6 +270,9 @@ export class FakeD1Database {
     for (const row of rows) this.seed(row);
     for (const row of options.audioFlags ?? []) this.seedAudioFlag(row);
     for (const row of options.shortLinks ?? []) this.seedShortLink(row);
+    for (const row of options.materialKindPrefs ?? []) {
+      this.materialKindPrefs.set(row.user_id, row);
+    }
     for (const user of options.users ?? []) {
       this.usernames.set(user.google_sub, user.username);
       this.usersByUsername.set(user.username, user.google_sub);
@@ -296,6 +314,13 @@ export class FakeD1Database {
   runQuery(sql: string, bindings: unknown[]): unknown[] {
     this.executed.push(sql);
     const normalized = sql.replace(/\s+/g, ' ').trim();
+
+    // `user_material_kind_prefs` tem chave só de `user_id` — não passa pelo
+    // `tableFor` genérico (que espera `user_id` + `id`) — por isso o
+    // despacho próprio, antes das três formas comuns abaixo.
+    if (/user_material_kind_prefs/i.test(normalized)) {
+      return this.runMaterialKindPrefs(normalized, bindings);
+    }
 
     if (/^SELECT/i.test(normalized)) {
       if (/FROM users/i.test(normalized)) {
@@ -373,6 +398,43 @@ export class FakeD1Database {
       return this.audioFlags as unknown as Map<string, StoredRow>;
     }
     return null;
+  }
+
+  /**
+   * `user_material_kind_prefs` é a única tabela com chave só de `user_id`:
+   * SELECT por usuário, INSERT com `version = 1` literal e UPDATE cujo WHERE
+   * consome o último binding.
+   */
+  private runMaterialKindPrefs(normalized: string, bindings: unknown[]): unknown[] {
+    if (/^SELECT/i.test(normalized)) {
+      const row = this.materialKindPrefs.get(bindings[0] as string);
+      return row ? [row] : [];
+    }
+    if (/^INSERT INTO/i.test(normalized)) {
+      const { columns, values } = insertPlan(normalized);
+      const cursor = { next: 0 };
+      const row = {} as Record<string, unknown>;
+      columns.forEach((column, i) => {
+        row[column] = resolveToken(values[i], bindings, cursor, undefined);
+      });
+      const built = row as unknown as MaterialKindPrefsRow;
+      this.materialKindPrefs.set(built.user_id, built);
+      return [];
+    }
+    if (/^UPDATE/i.test(normalized)) {
+      const assignments = updatePlan(normalized);
+      const cursor = { next: 0 };
+      const userId = bindings[bindings.length - 1] as string;
+      const current = this.materialKindPrefs.get(userId);
+      if (!current) throw new Error(`fake D1: UPDATE em prefs ausente: ${userId}`);
+      const next = { ...current } as Record<string, unknown>;
+      for (const { column, value } of assignments) {
+        next[column] = resolveToken(value, bindings, cursor, undefined);
+      }
+      this.materialKindPrefs.set(userId, next as unknown as MaterialKindPrefsRow);
+      return [];
+    }
+    throw new Error(`fake D1: prefs não suportado: ${normalized}`);
   }
 
   /** As duas leituras de `users`: por `google_sub` e por `username`. */

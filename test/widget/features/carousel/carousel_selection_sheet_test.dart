@@ -126,9 +126,7 @@ void main() {
     expect(find.byType(CarouselLouvorChip), findsNWidgets(2));
   });
 
-  testWidgets('reorder dispara reorderFace na face de partituras por chaves', (
-    tester,
-  ) async {
+  testWidgets('reorder dispara reorder por chaves', (tester) async {
     final editor = FakeActiveEditor(entries);
 
     await tester.pumpWidget(buildSubject(editor: editor));

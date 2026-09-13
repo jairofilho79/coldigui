@@ -515,7 +515,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselGenerateLeaflet => 'Gerar folheto';
 
   @override
-  String get carouselOpenList => 'Ver seleção';
+  String get carouselOpen => 'Abrir';
+
+  @override
+  String get carouselMaterial => 'Material';
+
+  @override
+  String get carouselList => 'Lista';
+
+  @override
+  String get carouselClearShort => 'Limpar';
 
   @override
   String get carouselListTitle => 'Seleção temporária';
@@ -528,12 +537,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get readerCarouselNext => 'Próximo louvor';
-
-  @override
-  String get audioFacePreviousLouvor => 'Louvor anterior';
-
-  @override
-  String get audioFaceNextLouvor => 'Próximo louvor';
 
   @override
   String get readerSwitchMaterial => 'Trocar material';
@@ -663,6 +666,31 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String playlistSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count partituras',
+      one: '1 partitura',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistAudioOnlyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count áudios',
+      one: '1 áudio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistEmptyCount => 'Vazia';
+
+  @override
   String get playlistDeleteLastPdfTitle => 'Remover último louvor?';
 
   @override
@@ -677,28 +705,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get playlistOpenInAudioPlayer => 'Abrir no reprodutor';
-
-  @override
-  String get playlistFacePdf => 'PDFs';
-
-  @override
-  String get playlistFaceAudio => 'Áudios';
-
-  @override
-  String get playlistFaceToggleSemantics =>
-      'Alternar face da playlist entre PDFs e áudios';
-
-  @override
-  String playlistAudioCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count áudios',
-      one: '1 áudio',
-      zero: 'Nenhum áudio',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get playlistAudioEmpty => 'Esta lista não tem áudios.';
@@ -874,9 +880,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get miniPlayerNext => 'Próxima faixa';
-
-  @override
-  String get audioOpenPlayer => 'Abrir player';
 
   @override
   String get audioClosePlayer => 'Encerrar e voltar à busca';
@@ -1347,4 +1350,57 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get homeColdigomOffline =>
       'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.';
+
+  @override
+  String get favoriteMaterialKindsTitle => 'Materiais favoritos';
+
+  @override
+  String favoriteMaterialKindsHelp(int max) {
+    return 'Escolha até $max tipos de material. Eles aparecem primeiro ao abrir um louvor.';
+  }
+
+  @override
+  String favoriteMaterialKindsYours(int count, int max) {
+    return 'Seus favoritos ($count de $max)';
+  }
+
+  @override
+  String get favoriteMaterialKindsEmpty => 'Nenhum favorito ainda';
+
+  @override
+  String get favoriteMaterialKindsAdd => 'Adicionar';
+
+  @override
+  String get favoriteMaterialKindsSearchHint => 'Buscar tipo de material';
+
+  @override
+  String favoriteMaterialKindsLimitReached(int max) {
+    return 'Limite de $max — remova um para trocar';
+  }
+
+  @override
+  String get favoriteMaterialKindsSignInPrompt =>
+      'Entre com Google para escolher seus materiais favoritos.';
+
+  @override
+  String get favoriteMaterialKindsSyncPending => 'Sincronização pendente';
+
+  @override
+  String get favoriteMaterialKindsRemoveTooltip => 'Remover dos favoritos';
+
+  @override
+  String get favoriteMaterialKindsAddTooltip => 'Adicionar aos favoritos';
+
+  @override
+  String get favoriteMaterialKindsUnknownKind => 'Desconhecido';
+
+  @override
+  String get favoriteMaterialKindsLoadError =>
+      'Não foi possível carregar os tipos de material';
+
+  @override
+  String get favoriteMaterialKindsRetry => 'Tentar de novo';
+
+  @override
+  String get favoriteMaterialKindsNoMatch => 'Nenhum tipo com esse nome';
 }

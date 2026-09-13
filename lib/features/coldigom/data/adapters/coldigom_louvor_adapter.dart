@@ -45,6 +45,7 @@ abstract final class ColdigomLouvorAdapter {
           pdfId: encodePdfId(r2Key),
           groupId: praise.id,
           source: LouvorDataSource.coldigom,
+          materialKindId: material.materialKindId,
         ),
       );
     }
@@ -72,6 +73,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           source: LouvorDataSource.coldigom,
+          materialKindId: material.materialKindId,
         ),
       );
     }
@@ -98,6 +100,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           source: LouvorDataSource.coldigom,
+          materialKindId: material.materialKindId,
         ),
       );
     }
@@ -125,6 +128,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           source: LouvorDataSource.coldigom,
+          materialKindId: material.materialKindId,
         ),
       );
     }
@@ -150,6 +154,7 @@ abstract final class ColdigomLouvorAdapter {
           classificacao: praise.rhythm,
           author: praise.author,
           source: LouvorDataSource.coldigom,
+          materialKindId: material.materialKindId,
         ),
       );
     }

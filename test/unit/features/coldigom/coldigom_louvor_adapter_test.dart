@@ -138,6 +138,68 @@ void main() {
       expect(ColdigomLouvorAdapter.toAudioTracks(praise), isEmpty);
       expect(ColdigomLouvorAdapter.toYoutubeMaterials(praise), isEmpty);
     });
+
+    test('propaga materialKindId para as cinco famílias', () {
+      const praise = PraiseDetailDto(
+        id: 'praise-1',
+        name: 'Grande Deus',
+        number: '001',
+        rhythm: 'Coletânea',
+        materials: [
+          MaterialDto(
+            id: 'p',
+            type: 'pdf',
+            r2Key: 'a/p.pdf',
+            materialKindId: 'k-pdf',
+          ),
+          MaterialDto(
+            id: 'a',
+            type: 'mp3',
+            r2Key: 'a/a.mp3',
+            materialKindId: 'k-audio',
+          ),
+          MaterialDto(
+            id: 'c',
+            type: 'chord',
+            r2Key: 'a/c.chord',
+            materialKindId: 'k-chord',
+          ),
+          MaterialDto(
+            id: 'g',
+            type: 'gestures',
+            r2Key: 'a/g.gestures',
+            materialKindId: 'k-gesture',
+          ),
+          MaterialDto(
+            id: 'y',
+            type: 'youtube',
+            url: 'https://www.youtube.com/watch?v=1Pks43ceAac',
+            materialKindId: 'k-yt',
+          ),
+        ],
+      );
+
+      expect(
+        ColdigomLouvorAdapter.toLouvores(praise).single.materialKindId,
+        'k-pdf',
+      );
+      expect(
+        ColdigomLouvorAdapter.toAudioTracks(praise).single.materialKindId,
+        'k-audio',
+      );
+      expect(
+        ColdigomLouvorAdapter.toChordMaterials(praise).single.materialKindId,
+        'k-chord',
+      );
+      expect(
+        ColdigomLouvorAdapter.toGestureMaterials(praise).single.materialKindId,
+        'k-gesture',
+      );
+      expect(
+        ColdigomLouvorAdapter.toYoutubeMaterials(praise).single.materialKindId,
+        'k-yt',
+      );
+    });
   });
 
   // Migrado de test/widget/features/coldigom/coldigom_material_sheet_test.dart

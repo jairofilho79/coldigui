@@ -12,7 +12,6 @@ import '../../../carousel/presentation/providers/carousel_focused_index_provider
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
@@ -24,7 +23,6 @@ import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_editor.dart';
 import 'active_playlist_provider.dart';
 import 'pending_delete.dart';
-import 'playlist_media_face_provider.dart';
 import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
@@ -418,12 +416,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await _reload();
   }
 
-  /// Para o áudio e volta a face PDF — as duas vistas da seleção somem juntas.
+  /// Para o áudio e esquece o foco — a seleção some inteira.
   Future<void> _releaseMediaSelectionViews() async {
     await ref.read(audioPlayerSessionProvider.notifier).close();
-    await ref
-        .read(playlistMediaFaceProvider.notifier)
-        .setFace(PlaylistMediaFace.pdf);
     ref.read(carouselFocusedKeyProvider.notifier).clear();
   }
 

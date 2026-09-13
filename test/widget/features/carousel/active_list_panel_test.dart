@@ -6,7 +6,6 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +67,7 @@ void main() {
     );
   }
 
-  testWidgets('exibe a face de partituras com metadados', (tester) async {
+  testWidgets('exibe a lista com metadados', (tester) async {
     await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 
@@ -100,9 +99,7 @@ void main() {
     expect(c.decoration, isNull, reason: 'não focada');
   });
 
-  testWidgets('reorder dispara reorderFace na face de partituras por chaves', (
-    tester,
-  ) async {
+  testWidgets('reorder dispara reorder por chaves', (tester) async {
     final editor = FakeActiveEditor(entries);
     await tester.pumpWidget(buildSubject(editor: editor));
     await tester.pumpAndSettle();
@@ -118,7 +115,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(editor.lastReorderFace, PlaylistMediaFace.pdf);
     expect(editor.lastReorder, ['b', 'c', 'a']);
   });
 

@@ -5,13 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
-import '../providers/playlist_media_face_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
-import 'playlist_audio_face_panel.dart';
+import '../utils/playlist_count_label.dart';
 import 'playlist_tile_actions.dart';
 import 'playlist_tile_detail_chips.dart';
 import 'playlist_tile_header.dart';
@@ -79,10 +77,11 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
 
     final l10n = AppLocalizations.of(context)!;
     final playlist = widget.item.playlist;
-    final face = ref.watch(playlistMediaFaceProvider);
-    final countLabel = face == PlaylistMediaFace.audio
-        ? l10n.playlistAudioCount(playlist.audioIds.length)
-        : l10n.playlistPdfCount(playlist.pdfIds.length);
+    final countLabel = playlistCountLabel(
+      l10n,
+      pdfs: playlist.pdfIds.length,
+      audios: playlist.audioIds.length,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -121,7 +120,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                 onPrimaryAction: () =>
                     _handlePrimaryAction(playlist.playlistId),
                 onMenuSelected: (action) => _handleAction(context, action),
-                menuItems: _actions(context, l10n).menuItems(face),
+                menuItems: _actions(context, l10n).menuItems(),
                 onTap: () => setState(() => _expanded = !_expanded),
               ),
               AnimatedCrossFade(
@@ -134,15 +133,14 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
                       thickness: 1,
                       color: AppColors.gold.withValues(alpha: 0.35),
                     ),
-                    if (face == PlaylistMediaFace.audio)
-                      PlaylistAudioFacePanel(playlist: playlist)
-                    else
-                      PlaylistTileDetailChips(
-                        item: widget.item,
-                        loading: _loading,
-                        onPdfTap: (pdfId) =>
-                            _actions(context, l10n).openPdfInReader(pdfId),
-                      ),
+                    PlaylistTileDetailChips(
+                      item: widget.item,
+                      loading: _loading,
+                      onPdfTap: (pdfId) =>
+                          _actions(context, l10n).openPdfInReader(pdfId),
+                      onAudioTap: (track) =>
+                          _actions(context, l10n).openAudioTrack(track),
+                    ),
                   ],
                 ),
                 crossFadeState: _expanded

@@ -9,6 +9,10 @@ import {
   upsertAudioFlag,
 } from './audio_flags/handlers';
 import {
+  getMaterialKindPrefs,
+  putMaterialKindPrefs,
+} from './material_kind_prefs/handlers';
+import {
   getPlaylist,
   listPlaylists,
   playlistIdFromPath,
@@ -304,6 +308,7 @@ async function handleAuthSession(
 function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/playlists')) return 'playlists';
   if (pathname.startsWith('/api/audio-flags')) return 'playlists';
+  if (pathname.startsWith('/api/material-kind-prefs')) return 'playlists';
   if (pathname.startsWith('/api/social')) return 'social';
   if (pathname.startsWith('/api/links')) return 'links';
   if (pathname.startsWith('/l/')) return 'links';
@@ -415,6 +420,27 @@ async function handleAudioFlags(
   return jsonResponse({ error: 'method not allowed' }, { status: 405 });
 }
 
+async function handleMaterialKindPrefs(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (pathname !== '/api/material-kind-prefs') {
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  }
+  if (request.method === 'GET') {
+    return withAuth(request, env, (_req, e, claims) =>
+      getMaterialKindPrefs(e.DB, claims),
+    );
+  }
+  if (request.method === 'PUT') {
+    return withAuth(request, env, (req, e, claims) =>
+      putMaterialKindPrefs(e.DB, claims, req),
+    );
+  }
+  return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+}
+
 async function handleLinks(
   request: Request,
   env: Env,
@@ -500,6 +526,14 @@ export default {
     if (url.pathname.startsWith('/api/audio-flags')) {
       return withCors(
         await handleAudioFlags(request, env, url.pathname),
+        request,
+        'playlists',
+      );
+    }
+
+    if (url.pathname.startsWith('/api/material-kind-prefs')) {
+      return withCors(
+        await handleMaterialKindPrefs(request, env, url.pathname),
         request,
         'playlists',
       );

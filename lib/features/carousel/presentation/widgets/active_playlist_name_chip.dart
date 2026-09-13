@@ -78,16 +78,26 @@ class ActivePlaylistNameChip extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
-              child: Text(
-                label,
-                style: AppTypography.headline.copyWith(
-                  fontSize: 13,
-                  height: 1.1,
-                  color: AppColors.textLight,
-                  shadows: const [],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: AppTypography.headline.copyWith(
+                        fontSize: 13,
+                        height: 1.1,
+                        color: AppColors.textLight,
+                        shadows: const [],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // O lápis diz que dá para nomear/renomear (spec D9).
+                  const Icon(Icons.edit, size: 14, color: AppColors.textLight),
+                ],
               ),
             ),
           ),

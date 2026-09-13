@@ -4,15 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../audio_flags/domain/entities/saved_audio_flag.dart';
+import '../../../audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import '../../../audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import '../providers/audio_player_position_provider.dart';
 import '../providers/audio_player_session_provider.dart';
+import 'audio_seek_bar.dart';
 import 'mini_player_bar_metrics.dart';
 
-/// Mini-player persistente (D5) — 44 px: título, transporte e progresso finos.
+/// Mini-player persistente (D5) — 44 px: título, seek arrastável com
+/// marcadores e transporte.
 ///
-/// Vive no `ShellScaffold`, fora da face de áudio (que já mostra estes
-/// controles — [CarouselAudioFaceBar]) e sobrevive ao fullscreen do leitor
-/// como overlay translúcido ([overlay] = `true`) sobre o `navigationShell`.
+/// Vive no `ShellScaffold`, único lugar com estes controles (sem faces — spec
+/// 2026-09-12, D1) e sobrevive ao fullscreen do leitor como overlay
+/// translúcido ([overlay] = `true`) sobre o `navigationShell`.
 ///
 /// Controles próprios (não reaproveita `AudioTransportControls`, que outra
 /// tarefa da onda edita em paralelo): faixa anterior / play-pausa / próxima,
@@ -51,9 +56,11 @@ class MiniPlayerBar extends ConsumerWidget {
     final errorMessage = ref.watch(
       audioPlayerSessionProvider.select((s) => s.errorMessage),
     );
-    final progress = ref.watch(
-      audioPlayerPositionProvider.select((p) => p.progress),
-    );
+    ref.watch(audioFlagSyncProvider);
+    final positionState = ref.watch(audioPlayerPositionProvider);
+    final flags =
+        ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
+        const <SavedAudioFlag>[];
 
     final fg = overlay ? AppColors.textLight : AppColors.title;
     final title = track.numero.isNotEmpty
@@ -70,90 +77,92 @@ class MiniPlayerBar extends ConsumerWidget {
       color: overlay ? Colors.black.withValues(alpha: 0.72) : AppColors.card,
       child: SizedBox(
         height: kMiniPlayerBarHeight,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 2,
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 2,
-                backgroundColor: fg.withValues(alpha: 0.15),
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.gold),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.label.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (errorMessage != null)
-                      Tooltip(
-                        message: l10n.audioPlaybackError,
-                        child: Icon(
-                          Icons.error_outline,
-                          color: fg,
-                          size: 18,
-                        ),
-                      ),
-                    IconButton(
-                      tooltip: l10n.miniPlayerPrevious,
-                      iconSize: 20,
-                      style: iconButtonStyle,
-                      icon: const Icon(Icons.skip_previous),
-                      onPressed: hasPrevious
-                          ? () => ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .skipToPrevious()
-                          : null,
-                    ),
-                    IconButton(
-                      tooltip: playing ? l10n.audioPause : l10n.audioPlay,
-                      iconSize: 24,
-                      style: iconButtonStyle,
-                      icon: buffering
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: fg,
-                              ),
-                            )
-                          : Icon(playing ? Icons.pause : Icons.play_arrow),
-                      onPressed: buffering
-                          ? null
-                          : () => ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .playPause(),
-                    ),
-                    IconButton(
-                      tooltip: l10n.miniPlayerNext,
-                      iconSize: 20,
-                      style: iconButtonStyle,
-                      icon: const Icon(Icons.skip_next),
-                      onPressed: hasNext
-                          ? () => ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .skipToNext()
-                          : null,
-                    ),
-                  ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                flex: 2,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: AudioSeekBar(
+                  position: positionState.position,
+                  duration: positionState.duration,
+                  onLightBackground: !overlay,
+                  compact: true,
+                  flags: flags,
+                  onFlagTap: (flag) => ref
+                      .read(audioPlayerSessionProvider.notifier)
+                      .seek(flag.position),
+                  onSeek: (value) =>
+                      ref.read(audioPlayerSessionProvider.notifier).seek(value),
+                ),
+              ),
+              if (errorMessage != null)
+                Tooltip(
+                  message: l10n.audioPlaybackError,
+                  child: Icon(
+                    Icons.error_outline,
+                    color: fg,
+                    size: 18,
+                  ),
+                ),
+              IconButton(
+                tooltip: l10n.miniPlayerPrevious,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.skip_previous),
+                onPressed: hasPrevious
+                    ? () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .skipToPrevious()
+                    : null,
+              ),
+              IconButton(
+                tooltip: playing ? l10n.audioPause : l10n.audioPlay,
+                iconSize: 24,
+                style: iconButtonStyle,
+                icon: buffering
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: fg,
+                        ),
+                      )
+                    : Icon(playing ? Icons.pause : Icons.play_arrow),
+                onPressed: buffering
+                    ? null
+                    : () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .playPause(),
+              ),
+              IconButton(
+                tooltip: l10n.miniPlayerNext,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.skip_next),
+                onPressed: hasNext
+                    ? () => ref
+                          .read(audioPlayerSessionProvider.notifier)
+                          .skipToNext()
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     );

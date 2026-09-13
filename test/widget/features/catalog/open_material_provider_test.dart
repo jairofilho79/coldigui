@@ -112,7 +112,7 @@ _mount(
       overrides: [
         openMaterialProvider.overrideWithValue(opener),
         // Lista ativa sem áudio: a fila padrão (D4) cai na própria faixa.
-        audioFaceItemsProvider.overrideWithValue(const []),
+        audioCarouselItemsProvider.overrideWithValue(const []),
         ...extraOverrides,
       ],
       child: MaterialApp(
