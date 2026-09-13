@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/oidc/oidc_callback.dart';
 import '../providers/auth_state_provider.dart';
@@ -83,11 +84,18 @@ class _SignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Dourado com sombra, não `OutlinedButton`: o default do M3 pinta texto e
+    // borda em `primary` (vinho) e, sobre o fundo vinho do app, o botão de
+    // entrar lia como texto vermelho solto em vez de ação principal.
     return SizedBox(
       height: 40,
-      child: OutlinedButton.icon(
+      child: ElevatedButton.icon(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.gold,
+          foregroundColor: AppColors.title,
+          elevation: 2,
+          shadowColor: Colors.black54,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           padding: const EdgeInsets.symmetric(horizontal: 12),
         ),

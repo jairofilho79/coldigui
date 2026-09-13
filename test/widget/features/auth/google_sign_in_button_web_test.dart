@@ -2,6 +2,7 @@
 //
 // Importa a variante web diretamente: depois da spec D2 ela não usa
 // `package:web` nem o plugin, então roda na VM com o navegador fake.
+import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/auth/data/oidc/oidc_callback.dart';
 import 'package:coldigui/features/auth/data/oidc/oidc_redirect_request.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -83,6 +84,21 @@ void main() {
     await pump(tester, browser: FakeOidcBrowser());
     expect(find.text(pt.authSignInWithGoogle), findsOneWidget);
     expect(find.byType(GoogleLogo), findsOneWidget);
+  });
+
+  testWidgets('deslogado: botão dourado com elevação, não texto vinho', (
+    tester,
+  ) async {
+    await pump(tester, browser: FakeOidcBrowser());
+
+    // Sobre o fundo vinho do app, o `OutlinedButton` default do M3 (texto e
+    // borda em `primary`, também vinho) lia como texto vermelho solto — o
+    // botão de entrar é a ação principal do perfil e precisa parecer botão.
+    final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+    final style = button.style!;
+    expect(style.backgroundColor!.resolve(const {}), AppColors.gold);
+    expect(style.foregroundColor!.resolve(const {}), AppColors.title);
+    expect(style.elevation!.resolve(const {}), greaterThan(0));
   });
 
   testWidgets('tap navega para o Google com a rota atual no state', (
