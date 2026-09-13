@@ -29,6 +29,10 @@
       "zone_name": "plpcg.com"
     },
     {
+      "pattern": "plpcg.com/api/material-kind-prefs*",
+      "zone_name": "plpcg.com"
+    },
+    {
       "pattern": "plpcg.com/api/social/*",
       "zone_name": "plpcg.com"
     },
