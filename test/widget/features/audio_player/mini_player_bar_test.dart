@@ -1,3 +1,4 @@
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 /// Sessão de mentira: registra chamadas de transporte/seek em vez de tocar
 /// nada (mesmo padrão do `_FakeAudioSession` de `shell_scaffold_test.dart`).
@@ -327,5 +329,78 @@ void main() {
     expect(find.byIcon(Icons.skip_previous), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.skip_next), findsOneWidget);
+  });
+
+  // Regressão: a barra sem faces (D5, 77ae26a) removeu a `CarouselAudioFaceBar`
+  // e, com ela, o único botão que reabria `/audio` a partir da faixa
+  // realmente tocando (não do foco do carrossel de PDFs). Sem isso, sair de
+  // `/audio` com o áudio ainda tocando não deixa caminho de volta além de
+  // iniciar uma faixa nova.
+  Widget buildWithRouter(_RecordingAudioSession session, {String? initial}) {
+    return ProviderScope(
+      overrides: [
+        audioPlayerSessionProvider.overrideWith(() => session),
+        ...flagOverrides(),
+      ],
+      child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        routerConfig: GoRouter(
+          initialLocation: initial ?? '/',
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (_, _) => const Scaffold(
+                body: Column(children: [MiniPlayerBar(), Text('home')]),
+              ),
+            ),
+            GoRoute(
+              path: RoutePaths.audio,
+              builder: (_, _) => const Scaffold(
+                body: Column(
+                  children: [MiniPlayerBar(), Text('tela de áudio')],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  testWidgets(
+    'com faixa tocando fora de /audio, botão «abrir» leva à tela de áudio',
+    (tester) async {
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [track]),
+      );
+      await tester.pumpWidget(buildWithRouter(session));
+      await tester.pumpAndSettle();
+
+      expect(find.text('tela de áudio'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.open_in_full));
+      await tester.pumpAndSettle();
+
+      expect(find.text('tela de áudio'), findsOneWidget);
+    },
+  );
+
+  testWidgets('já em /audio, botão «abrir» fica desabilitado (no-op)', (
+    tester,
+  ) async {
+    final session = _RecordingAudioSession(
+      const AudioPlayerSessionState(queue: [track]),
+    );
+    await tester.pumpWidget(
+      buildWithRouter(session, initial: RoutePaths.audio),
+    );
+    await tester.pumpAndSettle();
+
+    final open = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.open_in_full),
+    );
+    expect(open.onPressed, isNull);
   });
 }

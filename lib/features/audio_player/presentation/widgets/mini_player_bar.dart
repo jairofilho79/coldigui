@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -9,6 +11,7 @@ import '../../../audio_flags/presentation/providers/audio_flag_sync_provider.dar
 import '../../../audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import '../providers/audio_player_position_provider.dart';
 import '../providers/audio_player_session_provider.dart';
+import '../utils/open_audio_in_player.dart';
 import 'audio_seek_bar.dart';
 import 'mini_player_bar_metrics.dart';
 
@@ -26,6 +29,13 @@ import 'mini_player_bar_metrics.dart';
 ///
 /// Sem faixa tocando ([AudioPlayerSessionState.currentTrack] nulo), não
 /// desenha nada (`SizedBox.shrink`).
+///
+/// Botão «abrir» (fix regressão D5): a `CarouselAudioFaceBar` removida junto
+/// com as faces levava consigo o único caminho de volta a `/audio` que não
+/// dependia do foco do carrossel de PDFs — sem ele, sair da tela com o áudio
+/// ainda tocando não deixava jeito de voltar além de iniciar uma faixa nova.
+/// Aqui o botão usa a faixa da própria sessão ([track]), não o item focado no
+/// carrossel, e some (desabilitado) quando já se está em `/audio`.
 class MiniPlayerBar extends ConsumerWidget {
   const MiniPlayerBar({this.overlay = false, super.key});
 
@@ -61,6 +71,11 @@ class MiniPlayerBar extends ConsumerWidget {
     final flags =
         ref.watch(audioFlagsForTrackProvider(track.audioId)).asData?.value ??
         const <SavedAudioFlag>[];
+
+    // `GoRouter.maybeOf` — alguns widget tests montam a barra sem router.
+    final isOnAudioScreen =
+        GoRouter.maybeOf(context) != null &&
+        GoRouterState.of(context).uri.path == RoutePaths.audio;
 
     final fg = overlay ? AppColors.textLight : AppColors.title;
     final title = track.numero.isNotEmpty
@@ -113,11 +128,7 @@ class MiniPlayerBar extends ConsumerWidget {
               if (errorMessage != null)
                 Tooltip(
                   message: l10n.audioPlaybackError,
-                  child: Icon(
-                    Icons.error_outline,
-                    color: fg,
-                    size: 18,
-                  ),
+                  child: Icon(Icons.error_outline, color: fg, size: 18),
                 ),
               IconButton(
                 tooltip: l10n.miniPlayerPrevious,
@@ -160,6 +171,15 @@ class MiniPlayerBar extends ConsumerWidget {
                           .read(audioPlayerSessionProvider.notifier)
                           .skipToNext()
                     : null,
+              ),
+              IconButton(
+                tooltip: l10n.miniPlayerOpenScreen,
+                iconSize: 20,
+                style: iconButtonStyle,
+                icon: const Icon(Icons.open_in_full),
+                onPressed: isOnAudioScreen
+                    ? null
+                    : () => pushAudioPlayerRoute(context, track),
               ),
             ],
           ),

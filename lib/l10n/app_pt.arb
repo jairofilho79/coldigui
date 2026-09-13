@@ -496,6 +496,10 @@
   "@miniPlayerNext": {
     "description": "Tooltip do botão de próxima faixa no mini-player persistente (D5)"
   },
+  "miniPlayerOpenScreen": "Abrir tela do áudio",
+  "@miniPlayerOpenScreen": {
+    "description": "Tooltip do botão que abre a tela cheia do áudio (/audio) a partir do mini-player persistente — única forma de voltar a ela depois que a barra sem faces (D5) parou de expor essa ação"
+  },
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
   "@audioOpenSheetMusic": {

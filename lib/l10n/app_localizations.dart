@@ -1541,6 +1541,12 @@ abstract class AppLocalizations {
   /// **'Próxima faixa'**
   String get miniPlayerNext;
 
+  /// Tooltip do botão que abre a tela cheia do áudio (/audio) a partir do mini-player persistente — única forma de voltar a ela depois que a barra sem faces (D5) parou de expor essa ação
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir tela do áudio'**
+  String get miniPlayerOpenScreen;
+
   /// No description provided for @audioClosePlayer.
   ///
   /// In pt, this message translates to:

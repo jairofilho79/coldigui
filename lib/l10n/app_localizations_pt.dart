@@ -883,6 +883,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get miniPlayerNext => 'Próxima faixa';
 
   @override
+  String get miniPlayerOpenScreen => 'Abrir tela do áudio';
+
+  @override
   String get audioClosePlayer => 'Encerrar e voltar à busca';
 
   @override
