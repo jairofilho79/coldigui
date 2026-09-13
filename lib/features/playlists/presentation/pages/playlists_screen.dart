@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/providers/feature_flags_provider.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../social/presentation/widgets/public_playlists_entry_button.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../providers/playlist_sync_lifecycle.dart';
 import '../providers/playlist_sync_provider.dart';
@@ -23,6 +25,8 @@ import '../widgets/playlist_sync_error_banner.dart';
 /// **FAB stack:** [FloatingActionButton.extended] importar (sempre visível); na aba
 /// `unsaved`, [FloatingActionButton.small] branco (`heroTag: playlist-delete-all-unsaved`,
 /// `Icons.delete_sweep_outlined`) 12px acima — tooltip [playlistDeleteAllUnsaved].
+/// Com `FF_SOCIAL`, o [PublicPlaylistsEntryButton] («Listas públicas») fica
+/// logo abaixo do banner de sync.
 class PlaylistsScreen extends ConsumerStatefulWidget {
   const PlaylistsScreen({super.key});
 
@@ -241,6 +245,8 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
             ),
           ),
           const PlaylistSyncErrorBanner(),
+          if (ref.watch(featureFlagsProvider).social)
+            const PublicPlaylistsEntryButton(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Align(

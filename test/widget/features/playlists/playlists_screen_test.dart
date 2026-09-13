@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+import 'package:coldigui/core/constants/feature_flags.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/providers/feature_flags_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -73,12 +75,16 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Widget buildSubject(List<PlaylistViewItem> items) {
+  Widget buildSubject(
+    List<PlaylistViewItem> items, {
+    FeatureFlags flags = const FeatureFlags(),
+  }) {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedOutAuth.new),
         playlistsProvider.overrideWith(() => FakePlaylistsNotifier(items)),
+        featureFlagsProvider.overrideWithValue(flags),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -94,6 +100,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Nenhuma lista não salva'), findsOneWidget);
+  });
+
+  testWidgets('com FF_SOCIAL, mostra o botão «Listas públicas»', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject(const []));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listas públicas'), findsOneWidget);
+    expect(find.byIcon(Icons.public), findsOneWidget);
+  });
+
+  testWidgets('sem FF_SOCIAL, o botão «Listas públicas» não aparece', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSubject(const [], flags: const FeatureFlags(social: false)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listas públicas'), findsNothing);
   });
 
   testWidgets('renderiza playlist salva', (tester) async {

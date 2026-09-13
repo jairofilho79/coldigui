@@ -1,0 +1,59 @@
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/widgets/plpcg_primary_app_bar.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+
+/// Spec D2 — em `/listas/publicas` a barra mostra a seta de voltar (mesmo
+/// padrão das rotas imersivas); em `/listas` não.
+void main() {
+  GoRouter buildRouter(String initialLocation) {
+    return GoRouter(
+      initialLocation: initialLocation,
+      routes: [
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (_, _) => const Scaffold(
+            appBar: PlpcgPrimaryAppBar(),
+            body: Text('Listas'),
+          ),
+          routes: [
+            GoRoute(
+              path: 'publicas',
+              builder: (_, _) => const Scaffold(
+                appBar: PlpcgPrimaryAppBar(),
+                body: Text('Públicas'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> pump(WidgetTester tester, String location) async {
+    await tester.pumpWidget(
+      MaterialApp.router(routerConfig: buildRouter(location)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('em /listas não há seta de voltar', (tester) async {
+    await pump(tester, RoutePaths.playlists);
+
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+  });
+
+  testWidgets('em /listas/publicas a seta volta para /listas', (
+    tester,
+  ) async {
+    await pump(tester, RoutePaths.publicPlaylists);
+    expect(find.text('Públicas'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listas'), findsOneWidget);
+    expect(find.text('Públicas'), findsNothing);
+  });
+}

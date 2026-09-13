@@ -11,8 +11,8 @@ import 'plpcg_app_bar_title.dart';
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
 /// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
-/// Em `/leitor`, `/audio`, `/cifra` e `/gestos`, exibe voltar (pop → home)
-/// para padronizar.
+/// Em `/leitor`, `/audio`, `/cifra`, `/gestos` e `/listas/publicas`, exibe voltar
+/// (pop → raiz da aba dona) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const PlpcgPrimaryAppBar({super.key});
@@ -23,27 +23,32 @@ class PlpcgPrimaryAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
-    final isImmersiveMedia =
-        path == RoutePaths.reader ||
-        path == RoutePaths.audio ||
-        path == RoutePaths.chords ||
-        path == RoutePaths.gestos;
+    // Rotas empilhadas sobre uma aba: seta volta com `pop`; sem pilha (deep
+    // link direto), cai na raiz da aba dona.
+    final backFallback = switch (path) {
+      RoutePaths.reader ||
+      RoutePaths.audio ||
+      RoutePaths.chords ||
+      RoutePaths.gestos => RoutePaths.home,
+      RoutePaths.publicPlaylists => RoutePaths.playlists,
+      _ => null,
+    };
 
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: isImmersiveMedia
-          ? IconButton(
+      leading: backFallback == null
+          ? null
+          : IconButton(
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Voltar',
               onPressed: () {
                 if (context.canPop()) {
                   context.pop();
                 } else {
-                  goToShellDestination(context, RoutePaths.home);
+                  goToShellDestination(context, backFallback);
                 }
               },
-            )
-          : null,
+            ),
       // ponytail: go (não push) — descarta /leitor, /audio e sub-rotas do shell
       title: Tooltip(
         message: 'Início',
