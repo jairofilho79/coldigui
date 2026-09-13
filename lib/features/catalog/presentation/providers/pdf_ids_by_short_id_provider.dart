@@ -11,7 +11,6 @@ final pdfIdsByShortIdProvider = Provider<Map<String, String>>((ref) {
   );
   if (louvores == null) return const {};
   return Map<String, String>.unmodifiable({
-    for (final louvor in louvores)
-      if (louvor.shortId case final shortId?) shortId: louvor.pdfId,
+    for (final louvor in louvores) ?louvor.shortId: louvor.pdfId,
   });
 });

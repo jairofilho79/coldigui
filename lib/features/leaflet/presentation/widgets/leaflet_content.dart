@@ -264,8 +264,16 @@ class _ShareQrBand extends StatelessWidget {
 
   static const _qrSize = 132.0;
 
-  /// Link sem esquema para caber numa linha legível sob o QR.
-  String get _displayUrl => shareUrl.replaceFirst(RegExp(r'^https?://'), '');
+  /// Link sem esquema e sem o `&n=…` (nome já impresso no folheto) — só
+  /// origem + `s`, para caber numa linha legível sob o QR
+  /// (ex.: `plpcg.com/?s=1a2f-0000`).
+  String get _displayUrl {
+    final withoutScheme = shareUrl.replaceFirst(RegExp(r'^https?://'), '');
+    final nameParamIndex = withoutScheme.indexOf('&n=');
+    return nameParamIndex == -1
+        ? withoutScheme
+        : withoutScheme.substring(0, nameParamIndex);
+  }
 
   @override
   Widget build(BuildContext context) {

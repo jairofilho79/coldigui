@@ -24,11 +24,11 @@ class ImportResult {
 class ImportSharedPlaylistFromUrl {
   const ImportSharedPlaylistFromUrl(
     this._playlistRepository, {
-    required ShortIdResolver resolveShortIds,
-  }) : _resolveShortIds = resolveShortIds;
+    required this.resolveShortIds,
+  });
 
   final PlaylistRepository _playlistRepository;
-  final ShortIdResolver _resolveShortIds;
+  final ShortIdResolver resolveShortIds;
 
   /// Persiste a nova playlist (ou reaproveita uma existente) e devolve o
   /// [ImportResult].
@@ -59,6 +59,11 @@ class ImportSharedPlaylistFromUrl {
     required PlaylistShareParams params,
     String? excludePlaylistId,
   }) async {
+    // Sem material nenhum, nem vale acordar o resolver (que aguarda o
+    // catálogo) — `shortIds: []` seria um `await` desperdiçado.
+    if (!params.hasMaterial) {
+      throw const InvalidSharePlaylistException();
+    }
     final entries = params.isShortFormat
         ? await _entriesFromShortIds(params.shortIds!)
         : params.entries;
@@ -94,7 +99,7 @@ class ImportSharedPlaylistFromUrl {
   Future<List<PlaylistEntry>> _entriesFromShortIds(
     List<String> shortIds,
   ) async {
-    final pdfIdByShortId = await _resolveShortIds();
+    final pdfIdByShortId = await resolveShortIds();
     final entries = <PlaylistEntry>[];
     for (final shortId in shortIds) {
       final pdfId = pdfIdByShortId[shortId];
@@ -102,7 +107,10 @@ class ImportSharedPlaylistFromUrl {
         _log.warn('shortId desconhecido no catálogo — ignorado: $shortId');
         continue;
       }
-      entries.add(PlaylistEntry.classified(pdfId));
+      // O resolver só devolve PDFs PLPCG (D8) — sem ambiguidade de tipo como
+      // em `PlaylistEntry.classified`, que reclassificaria pela extensão do
+      // path decodificado.
+      entries.add(PlaylistEntry(id: pdfId, kind: MaterialKind.pdf));
     }
     return entries;
   }

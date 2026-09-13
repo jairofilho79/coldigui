@@ -122,4 +122,37 @@ void main() {
     final importedPlaylist = await repository.getById(imported!);
     expect(importedPlaylist?.nome, 'Reimportada');
   });
+
+  // Fix round final (#3, Important): o resolver de shortId espera o catálogo
+  // — se ele falhar (manifest indisponível), o import não pode derrubar quem
+  // chamou. A tela é quem trata o retorno `null`.
+  test(
+    'catálogo indisponível ao resolver shortId retorna null sem lançar',
+    () async {
+      final c = ProviderContainer(
+        overrides: [
+          ...standardTestOverrides(prefs: prefs),
+          playlistRepositoryProvider.overrideWithValue(repository),
+          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+          shortIdResolverProvider.overrideWithValue(
+            () async => throw StateError('catálogo indisponível'),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(playlistsProvider);
+      await _flushAsync();
+
+      final imported = await c
+          .read(playlistsProvider.notifier)
+          .importSharedFromUrl(
+            params: const PlaylistShareParams(
+              shareName: 'X',
+              shortIds: ['0000'],
+            ),
+          );
+
+      expect(imported, isNull);
+    },
+  );
 }

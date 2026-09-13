@@ -73,6 +73,9 @@ void main() {
     // `semanticsLabel` carrega o mesmo link (ver `_ShareQrBand`).
     expect(qr.semanticsLabel, 'https://plpcg.com/?s=1a2f-0000&n=Culto');
     expect(find.text('Abrir lista no PLPCG'), findsOneWidget);
-    expect(find.text('plpcg.com/?s=1a2f-0000&n=Culto'), findsOneWidget);
+    // O nome já aparece impresso no folheto — o link sob o QR mostra só
+    // origem + `s`, sem `&n=…` (#7).
+    expect(find.text('plpcg.com/?s=1a2f-0000'), findsOneWidget);
+    expect(find.text('plpcg.com/?s=1a2f-0000&n=Culto'), findsNothing);
   });
 }

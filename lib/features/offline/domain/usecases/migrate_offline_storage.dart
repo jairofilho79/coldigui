@@ -57,6 +57,12 @@ class MigrateOfflineStorage {
         if (kIsWeb) {
           await local.clearAll();
         }
+        break;
+      case 4:
+        // shortId (set/2026): o checksum antigo casaria 304 e o cache nunca
+        // ganharia o campo — força um download do corpo.
+        await prefs.remove(StorageKeys.manifestChecksum);
+        break;
       default:
         break;
     }

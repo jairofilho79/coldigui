@@ -161,9 +161,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   /// Compara cache e manifest remoto por ordem + campos de identidade.
   ///
-  /// Cobre exatamente os campos que `LouvorCache` persiste — regravar o Isar não
-  /// mudaria mais nada. Barato o bastante (~4600 comparações) para valer a pena
-  /// diante de um `clear()` + `putAll`, que na web é síncrono na thread da UI.
+  /// Cobre exatamente os campos que `LouvorCache` persiste (inclui `shortId`
+  /// desde 2026-09) — regravar o Isar não mudaria mais nada. Barato o bastante
+  /// (~4600 comparações) para valer a pena diante de um `clear()` + `putAll`,
+  /// que na web é síncrono na thread da UI.
   static bool _isSameManifest(List<Louvor> cached, List<Louvor> remote) {
     if (cached.length != remote.length) return false;
     for (var i = 0; i < cached.length; i++) {
@@ -175,7 +176,8 @@ class CatalogRepositoryImpl implements CatalogRepository {
           a.groupId != b.groupId ||
           a.categoria != b.categoria ||
           a.classificacao != b.classificacao ||
-          a.pdf != b.pdf) {
+          a.pdf != b.pdf ||
+          a.shortId != b.shortId) {
         return false;
       }
     }

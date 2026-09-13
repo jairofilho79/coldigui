@@ -93,7 +93,7 @@ class GeneratePlaylistShareUrl {
     for (final entry in entries) {
       if (entry.kind != MaterialKind.pdf) return null;
       final shortId = lookup(entry.id);
-      if (shortId == null) return null;
+      if (shortId == null || !isShortId(shortId)) return null;
       shortIds.add(shortId);
     }
     return shortIds;

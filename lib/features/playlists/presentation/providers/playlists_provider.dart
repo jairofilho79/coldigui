@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/database/isar_provider.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -15,9 +15,7 @@ import '../../../catalog/presentation/providers/louvores_manifest_provider.dart'
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
-import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/invalid_share_playlist_exception.dart';
-import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_editor.dart';
@@ -466,50 +464,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return null;
   }
 
-  /// Compartilha playlist via URL PWA (`/?sharepdfs=…&sharename=…`).
-  ///
-  /// [sharePositionOrigin] é obrigatório no iOS — capturar do contexto antes
-  /// de `await` ([sharePositionOriginFromContextOrFallback]).
-  /// Retorna `false` em playlist ausente/vazia ou falha do share sheet.
-  Future<bool> sharePlaylist({
-    required String playlistId,
-    required String subject,
-    Rect? sharePositionOrigin,
-    ShareFn? share,
-  }) async {
-    playlistShareDebugClearLastFailure();
-    playlistShareDebugLog(
-      'sharePlaylist: início playlistId=$playlistId subject="$subject"',
-    );
-    try {
-      final generateUrl = ref.read(generatePlaylistShareUrlProvider);
-      playlistShareDebugLog('sharePlaylist: gerando URL…');
-      final link = await generateUrl(playlistId: playlistId);
-      playlistShareDebugLog('sharePlaylist: URL gerada (${link.url})');
-      final shareFn = share ?? _defaultSharePlaylistUrl;
-      playlistShareDebugLog(
-        'sharePlaylist: abrindo share sheet nativo '
-        '(origin=$sharePositionOrigin)…',
-      );
-      await shareFn(
-        link.url,
-        subject: subject,
-        sharePositionOrigin: sharePositionOrigin,
-      );
-      playlistShareDebugLog('sharePlaylist: concluído com sucesso');
-      return true;
-    } on PlaylistNotFoundException catch (error, stackTrace) {
-      playlistShareDebugLogError('playlist não encontrada', error, stackTrace);
-      return false;
-    } on EmptyPlaylistShareException catch (error, stackTrace) {
-      playlistShareDebugLogError('playlist sem pdfIds', error, stackTrace);
-      return false;
-    } on Object catch (error, stackTrace) {
-      playlistShareDebugLogError('share sheet nativo', error, stackTrace);
-      return false;
-    }
-  }
-
   Future<void> refreshAfterImport() async {
     await _reload();
   }
@@ -554,6 +508,15 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       return playlistId;
     } on InvalidSharePlaylistException {
       return null;
+    } on StorageUnavailableException {
+      rethrow;
+    } on Object catch (error, stackTrace) {
+      // Catálogo indisponível (short-id resolver depende do manifest, por
+      // exemplo) ou qualquer outra falha inesperada: sem isso, um deep link
+      // curto sem catálogo derrubava a tela em vez de mostrar o erro genérico
+      // de import.
+      playlistShareDebugLogError('import', error, stackTrace);
+      return null;
     }
   }
 
@@ -561,21 +524,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       extractShareParamsFromUserInput(raw);
 }
 
-Future<void> _defaultSharePlaylistUrl(
-  String text, {
-  String? subject,
-  Rect? sharePositionOrigin,
-}) {
-  return SharePlus.instance.share(
-    ShareParams(
-      text: text,
-      subject: subject,
-      sharePositionOrigin: sharePositionOrigin,
-    ),
-  );
-}
-
-/// Callback injetável para testes — espelha [SharePlus.instance.share] do [share_plus].
+/// Callback injetável para testes — espelha `SharePlus.instance.share` do
+/// pacote `share_plus` (implementação real em
+/// `playlist_share_actions_provider.dart`).
 typedef ShareFn =
     Future<void> Function(
       String text, {

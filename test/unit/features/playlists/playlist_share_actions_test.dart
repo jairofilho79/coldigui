@@ -1,3 +1,5 @@
+import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
@@ -8,6 +10,7 @@ import 'package:coldigui/features/leaflet/presentation/widgets/leaflet_content.d
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/ports/share_link_shortener.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/generate_playlist_share_url.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
@@ -15,6 +18,24 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _LoggedInAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async =>
+      const AuthUser(googleSub: 'sub-1', idToken: 'token');
+}
+
+/// Encurtador que só conta chamadas — usado para provar que "Gerar folheto"
+/// (#2 da revisão final) nunca bate no `/l/`, mesmo autenticado.
+class _CountingShortener implements ShareLinkShortener {
+  var callCount = 0;
+
+  @override
+  Future<String> shorten(String query) async {
+    callCount++;
+    return 'https://plpcg.com/l/abc1234';
+  }
+}
 
 class _FakePlaylistRepository implements PlaylistRepository {
   @override
@@ -244,6 +265,53 @@ void main() {
         find.text(AppLocalizations.of(context)!.playlistEmptyCarousel),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'leaflet-only autenticado não chama o encurtador (#2: /l/ é só p/ link)',
+    (tester) async {
+      final shortener = _CountingShortener();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            playlistRepositoryProvider.overrideWithValue(
+              _FakePlaylistRepository(),
+            ),
+            generatePlaylistShareUrlProvider.overrideWithValue(
+              GeneratePlaylistShareUrl(
+                _FakePlaylistRepository(),
+                shareOrigin: 'https://plpcg.com',
+                shortener: shortener,
+              ),
+            ),
+            authStateProvider.overrideWith(_LoggedInAuth.new),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(body: SizedBox()),
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(Scaffold));
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+
+      final ok = await notifier.share(
+        context,
+        shareContext,
+        PlaylistShareOption.leaflet,
+        sharePositionOrigin: null,
+        shareXFiles: (files, {subject, text, sharePositionOrigin}) async {},
+        capture: (boundaryKey) async => const [1, 2, 3],
+      );
+
+      expect(ok, isTrue);
+      expect(shortener.callCount, 0);
     },
   );
 

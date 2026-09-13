@@ -44,7 +44,6 @@ class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     lastOption = option;
     return true;

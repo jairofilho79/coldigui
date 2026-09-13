@@ -137,7 +137,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     // repositório não impede o folheto: fica sem QR.
     String? qrUrl;
     try {
-      final link = await _generateUrl(shareContext.playlistId);
+      // Folheto puro não precisa do encurtador: o formato do QR (curto/longo)
+      // já está decidido localmente por `PlaylistShareLink.isShort`, então a
+      // chamada de rede ao `/l/` seria desperdiçada aqui.
+      final link = await _generateUrl(
+        shareContext.playlistId,
+        allowShortener: false,
+      );
       if (link.isShort) qrUrl = link.url;
     } on Object catch (error, stackTrace) {
       playlistShareDebugLogError('link para QR', error, stackTrace);
@@ -196,13 +202,19 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return true;
   }
 
-  Future<PlaylistShareLink> _generateUrl(String playlistId) {
+  Future<PlaylistShareLink> _generateUrl(
+    String playlistId, {
+    bool allowShortener = true,
+  }) {
     // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
     // longa, que não precisa de conta para ser resolvida no futuro.
+    // [allowShortener] deixa o chamador recusar o `/l/` mesmo autenticado —
+    // o formato curto (`?s=…`) é decidido localmente por `PlaylistShareLink
+    // .isShort`, então o folheto puro não precisa da chamada de rede.
     final authed = ref.read(authStateProvider).asData?.value != null;
     return ref.read(generatePlaylistShareUrlProvider)(
       playlistId: playlistId,
-      short: authed,
+      short: authed && allowShortener,
     );
   }
 

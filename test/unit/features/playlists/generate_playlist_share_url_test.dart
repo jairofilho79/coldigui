@@ -292,6 +292,19 @@ void main() {
       expect(link.isShort, isFalse);
     });
 
+    test(
+      'shortId inválido devolvido pelo lookup (#5) → formato longo',
+      () async {
+        final useCase = GeneratePlaylistShareUrl(
+          repo,
+          shareOrigin: origin,
+          shortIdOf: (id) => id == 'pdf-a' ? '0000' : 'ZZZZ',
+        );
+        final link = await useCase(playlistId: 'p1');
+        expect(link.isShort, isFalse);
+      },
+    );
+
     test('sem lookup (shortIdOf null) → formato longo', () async {
       final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin);
       expect((await useCase(playlistId: 'p1')).isShort, isFalse);

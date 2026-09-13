@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -340,7 +341,11 @@ void main() {
       );
       final saved = await playlistRepository.getById(result.playlist.playlistId);
       expect(saved?.pdfIds, ['pdf-b', 'pdf-a', 'pdf-b']);
-      expect(saved?.entries.every((e) => !e.isAudio), isTrue);
+      expect(
+        saved?.entries.every((e) => e.kind == MaterialKind.pdf),
+        isTrue,
+        reason: 'o resolver só devolve PDFs PLPCG (D8)',
+      );
     });
 
     test('ignora shortId desconhecido e importa o resto', () async {
@@ -361,9 +366,15 @@ void main() {
     });
 
     test('dedupe por conteúdo entre link curto e link longo da mesma lista', () async {
-      resolverMap = {'0000': 'pdf-a', '1a2f': 'pdf-b'};
+      // Ids reais (Base64 do path, terminando em `.pdf`) — com um id fake
+      // como `'pdf-a'` o lado longo classificaria `unknown` (extensão não
+      // decodifica) enquanto o resolver do formato curto sempre devolve
+      // `MaterialKind.pdf` (#6), quebrando a dedupe por um artefato do fixture.
+      final pdfA = encodePdfId('ColAdultos/a.pdf');
+      final pdfB = encodePdfId('ColAdultos/b.pdf');
+      resolverMap = {'0000': pdfA, '1a2f': pdfB};
       final longo = await useCase(
-        params: const PlaylistShareParams(shareName: 'A', sharePdfs: 'pdf-a,pdf-b'),
+        params: PlaylistShareParams(shareName: 'A', sharePdfs: '$pdfA,$pdfB'),
       );
       final curto = await useCase(
         params: const PlaylistShareParams(shareName: 'B', shortIds: ['0000', '1a2f']),
@@ -371,6 +382,31 @@ void main() {
       expect(curto.alreadyExisted, isTrue);
       expect(curto.playlist.playlistId, longo.playlist.playlistId);
     });
+
+    test(
+      'shortIds vazio lança sem chamar o resolver (#4: hasMaterial cedo)',
+      () async {
+        var resolverCalled = false;
+        final useCaseSemMaterial = ImportSharedPlaylistFromUrl(
+          playlistRepository,
+          resolveShortIds: () async {
+            resolverCalled = true;
+            throw StateError('não deveria ser chamado');
+          },
+        );
+
+        await expectLater(
+          useCaseSemMaterial(
+            params: const PlaylistShareParams(
+              shareName: 'X',
+              shortIds: [],
+            ),
+          ),
+          throwsA(isA<InvalidSharePlaylistException>()),
+        );
+        expect(resolverCalled, isFalse);
+      },
+    );
 
     test('resolver é aguardado (deep link antes do catálogo)', () async {
       final completer = Completer<Map<String, String>>();
