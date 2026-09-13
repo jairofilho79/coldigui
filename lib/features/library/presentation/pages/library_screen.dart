@@ -371,7 +371,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         Text(
                           errorText,
                           style: AppTypography.body.copyWith(
-                            color: AppColors.title,
+                            color: AppColors.textLight,
                           ),
                           textAlign: TextAlign.center,
                         ),
