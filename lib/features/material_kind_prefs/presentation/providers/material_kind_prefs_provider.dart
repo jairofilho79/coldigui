@@ -59,6 +59,11 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
 }
 
 /// `kindId → posição` que o sheet consome. Vazio enquanto carrega ou deslogado.
+///
+/// `.value` (não `.asData?.value`) segura o rank anterior durante um
+/// `invalidate` (ex.: após sync) — no Riverpod 3 ele preserva o dado antigo
+/// enquanto o provider recarrega, evitando o sheet piscar desordenado por um
+/// frame.
 final favoriteMaterialKindRankProvider = Provider<Map<String, int>>((ref) {
-  return ref.watch(materialKindPrefsProvider).asData?.value.rank ?? const {};
+  return ref.watch(materialKindPrefsProvider).value?.rank ?? const {};
 });
