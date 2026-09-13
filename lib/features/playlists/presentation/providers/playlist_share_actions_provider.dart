@@ -16,7 +16,6 @@ import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
-import '../widgets/playlist_share_whatsapp_step_dialog.dart';
 
 /// Callback injetável para testes — espelha [captureLeafletPngBytes].
 typedef CaptureWidgetToPngFn = Future<List<int>> Function(
@@ -31,7 +30,7 @@ typedef ShareXFilesFn = Future<void> Function(
   Rect? sharePositionOrigin,
 });
 
-/// Orquestra os 4 modos de compartilhamento (UC-07/UC-08).
+/// Orquestra os 3 modos: link, folheto, folheto+link.
 class PlaylistShareActionsNotifier extends Notifier<void> {
   @override
   void build() {}
@@ -39,15 +38,10 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Executa [option] para [shareContext].
   ///
   /// [sharePositionOrigin] deve ser capturado antes de qualquer `await`.
-  /// Retorna `false` em falha ou cancelamento antes do segundo passo WhatsApp.
-  ///
-  /// O próprio provider mostra o snackbar de falha (mensagem específica para
-  /// [EmptyLeafletException], genérica para as demais exceções) antes de
-  /// retornar `false` — quem chama **não deve** mostrar outro snackbar em
-  /// cima do retorno `false`, porque esse retorno também cobre o
-  /// cancelamento do diálogo de confirmação do WhatsApp (usuário desistiu,
-  /// não é erro) e um segundo snackbar duplicaria o feedback dos casos de
-  /// falha real.
+  /// Retorna `false` em falha — o próprio provider mostra o snackbar
+  /// (mensagem específica para [EmptyLeafletException], genérica para as
+  /// demais exceções) antes de retornar; quem chama **não deve** mostrar
+  /// outro snackbar em cima do retorno `false`.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -56,14 +50,11 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     playlistShareDebugClearLastFailure();
     final l10n = AppLocalizations.of(context)!;
     final shareTextFn = share ?? _defaultShare;
     final shareFilesFn = shareXFiles ?? _defaultShareXFiles;
-    final whatsAppDialogFn =
-        showWhatsAppStepDialog ?? showPlaylistShareWhatsAppStepDialog;
 
     try {
       switch (option) {
@@ -89,17 +80,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             l10n,
             shareFilesFn,
             sharePositionOrigin,
-            capture: capture,
-          );
-        case PlaylistShareOption.linkAndLeafletWhatsApp:
-          return await _shareWhatsAppTwoStep(
-            context,
-            shareContext,
-            l10n,
-            shareTextFn,
-            shareFilesFn,
-            sharePositionOrigin,
-            whatsAppDialogFn,
             capture: capture,
           );
       }
@@ -199,47 +179,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       [xFile],
       subject: shareContext.nome,
       text: message,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    return true;
-  }
-
-  Future<bool> _shareWhatsAppTwoStep(
-    BuildContext context,
-    PlaylistShareContext shareContext,
-    AppLocalizations l10n,
-    ShareFn shareTextFn,
-    ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin,
-    Future<bool> Function(BuildContext context) whatsAppDialogFn, {
-    CaptureWidgetToPngFn? capture,
-  }) async {
-    if (!context.mounted) return false;
-    final overlay = Overlay.of(context);
-    final xFile = await _captureLeafletXFile(
-      overlay,
-      shareContext,
-      l10n,
-      capture: capture,
-    );
-    if (!context.mounted) return false;
-
-    await shareFilesFn(
-      [xFile],
-      subject: l10n.leafletShareSubject,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    if (!context.mounted) return false;
-
-    final continueShare = await whatsAppDialogFn(context);
-    if (!continueShare || !context.mounted) return false;
-
-    final link = await _generateUrl(shareContext.playlistId);
-    if (!context.mounted) return false;
-
-    await shareTextFn(
-      link.url,
-      subject: shareContext.nome,
       sharePositionOrigin: sharePositionOrigin,
     );
     return true;

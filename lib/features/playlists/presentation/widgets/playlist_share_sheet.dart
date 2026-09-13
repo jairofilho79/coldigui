@@ -4,7 +4,7 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/playlist_share_option.dart';
 
-/// Bottom sheet — escolha do modo de compartilhamento (UC-07/UC-08).
+/// Bottom sheet — Folheto (imagem + link) ou Só o link (spec short-id-share D9).
 Future<PlaylistShareOption?> showPlaylistShareSheet(BuildContext context) {
   return showModalBottomSheet<PlaylistShareOption>(
     context: context,
@@ -18,8 +18,6 @@ Future<PlaylistShareOption?> showPlaylistShareSheet(BuildContext context) {
 
 class _PlaylistShareSheetBody extends StatelessWidget {
   const _PlaylistShareSheetBody();
-
-  static const _whatsappGreen = Color(0xFF25D366);
 
   @override
   Widget build(BuildContext context) {
@@ -44,34 +42,17 @@ class _PlaylistShareSheetBody extends StatelessWidget {
                 ),
               ),
               _ShareOptionTile(
-                icon: Icons.link,
-                title: l10n.playlistShareOptionLink,
-                subtitle: l10n.playlistShareOptionLinkSubtitle,
-                onTap: () => Navigator.pop(context, PlaylistShareOption.link),
-              ),
-              _ShareOptionTile(
                 icon: Icons.description_outlined,
-                title: l10n.playlistShareOptionLeaflet,
-                subtitle: l10n.playlistShareOptionLeafletSubtitle,
-                onTap: () =>
-                    Navigator.pop(context, PlaylistShareOption.leaflet),
-              ),
-              _ShareOptionTile(
-                icon: Icons.share_outlined,
                 title: l10n.playlistShareOptionLinkWithLeaflet,
                 subtitle: l10n.playlistShareOptionLinkWithLeafletSubtitle,
                 onTap: () =>
                     Navigator.pop(context, PlaylistShareOption.linkWithLeaflet),
               ),
               _ShareOptionTile(
-                icon: Icons.chat_bubble_outline,
-                iconColor: _whatsappGreen,
-                title: l10n.playlistShareOptionWhatsApp,
-                subtitle: l10n.playlistShareOptionWhatsAppSubtitle,
-                onTap: () => Navigator.pop(
-                  context,
-                  PlaylistShareOption.linkAndLeafletWhatsApp,
-                ),
+                icon: Icons.link,
+                title: l10n.playlistShareOptionLink,
+                subtitle: l10n.playlistShareOptionLinkSubtitle,
+                onTap: () => Navigator.pop(context, PlaylistShareOption.link),
               ),
             ],
           ),
@@ -87,11 +68,9 @@ class _ShareOptionTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.iconColor,
   });
 
   final IconData icon;
-  final Color? iconColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -99,7 +78,7 @@ class _ShareOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.title),
+      leading: Icon(icon, color: AppColors.title),
       title: Text(
         title,
         style: TextStyle(color: AppColors.title, fontWeight: FontWeight.w500),

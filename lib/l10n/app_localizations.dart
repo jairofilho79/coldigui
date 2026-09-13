@@ -1763,65 +1763,17 @@ abstract class AppLocalizations {
   /// **'Quem receber importa a lista no PLPCG'**
   String get playlistShareOptionLinkSubtitle;
 
-  /// No description provided for @playlistShareOptionLeaflet.
-  ///
-  /// In pt, this message translates to:
-  /// **'Só o folheto'**
-  String get playlistShareOptionLeaflet;
-
-  /// No description provided for @playlistShareOptionLeafletSubtitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Imagem com a lista de louvores'**
-  String get playlistShareOptionLeafletSubtitle;
-
   /// No description provided for @playlistShareOptionLinkWithLeaflet.
   ///
   /// In pt, this message translates to:
-  /// **'Link com folheto'**
+  /// **'Folheto'**
   String get playlistShareOptionLinkWithLeaflet;
 
   /// No description provided for @playlistShareOptionLinkWithLeafletSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Imagem e link na mesma mensagem'**
+  /// **'Imagem da lista com o link e QR code'**
   String get playlistShareOptionLinkWithLeafletSubtitle;
-
-  /// No description provided for @playlistShareOptionWhatsApp.
-  ///
-  /// In pt, this message translates to:
-  /// **'Link + folheto'**
-  String get playlistShareOptionWhatsApp;
-
-  /// No description provided for @playlistShareOptionWhatsAppSubtitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Para WhatsApp — envia foto e depois o link'**
-  String get playlistShareOptionWhatsAppSubtitle;
-
-  /// No description provided for @playlistShareWhatsAppStepTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Envie o link'**
-  String get playlistShareWhatsAppStepTitle;
-
-  /// No description provided for @playlistShareWhatsAppStepMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Envie o link no mesmo chat em que você mandou o folheto.'**
-  String get playlistShareWhatsAppStepMessage;
-
-  /// No description provided for @playlistShareWhatsAppStepContinue.
-  ///
-  /// In pt, this message translates to:
-  /// **'Enviar link'**
-  String get playlistShareWhatsAppStepContinue;
-
-  /// No description provided for @playlistShareWhatsAppStepCancel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Agora não'**
-  String get playlistShareWhatsAppStepCancel;
 
   /// No description provided for @playlistShareLinkWithLeafletMessage.
   ///

@@ -395,7 +395,7 @@ void main() {
     },
   );
 
-  testWidgets('tap compartilhar dispara opção folheto no sheet', (
+  testWidgets('compartilhar folheto pelo sheet da barra', (
     tester,
   ) async {
     final playlistsNotifier = FakePlaylistsNotifier();
@@ -423,10 +423,10 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.adaptive.share));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Só o folheto'));
+    await tester.tap(find.text('Folheto'));
     await tester.pumpAndSettle();
 
-    expect(shareNotifier.lastOption, PlaylistShareOption.leaflet);
+    expect(shareNotifier.lastOption, PlaylistShareOption.linkWithLeaflet);
   });
 
   testWidgets('limpar seleção com Nova Lista', (tester) async {

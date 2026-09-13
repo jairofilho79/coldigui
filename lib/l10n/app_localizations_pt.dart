@@ -1022,38 +1022,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Quem receber importa a lista no PLPCG';
 
   @override
-  String get playlistShareOptionLeaflet => 'Só o folheto';
-
-  @override
-  String get playlistShareOptionLeafletSubtitle =>
-      'Imagem com a lista de louvores';
-
-  @override
-  String get playlistShareOptionLinkWithLeaflet => 'Link com folheto';
+  String get playlistShareOptionLinkWithLeaflet => 'Folheto';
 
   @override
   String get playlistShareOptionLinkWithLeafletSubtitle =>
-      'Imagem e link na mesma mensagem';
-
-  @override
-  String get playlistShareOptionWhatsApp => 'Link + folheto';
-
-  @override
-  String get playlistShareOptionWhatsAppSubtitle =>
-      'Para WhatsApp — envia foto e depois o link';
-
-  @override
-  String get playlistShareWhatsAppStepTitle => 'Envie o link';
-
-  @override
-  String get playlistShareWhatsAppStepMessage =>
-      'Envie o link no mesmo chat em que você mandou o folheto.';
-
-  @override
-  String get playlistShareWhatsAppStepContinue => 'Enviar link';
-
-  @override
-  String get playlistShareWhatsAppStepCancel => 'Agora não';
+      'Imagem da lista com o link e QR code';
 
   @override
   String playlistShareLinkWithLeafletMessage(String name, String url) {

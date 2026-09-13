@@ -1014,37 +1014,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Recipients can import the playlist in PLPCG';
 
   @override
-  String get playlistShareOptionLeaflet => 'Leaflet only';
-
-  @override
-  String get playlistShareOptionLeafletSubtitle => 'Image with the hymn list';
-
-  @override
-  String get playlistShareOptionLinkWithLeaflet => 'Link with leaflet';
+  String get playlistShareOptionLinkWithLeaflet => 'Leaflet';
 
   @override
   String get playlistShareOptionLinkWithLeafletSubtitle =>
-      'Image and link in one message';
-
-  @override
-  String get playlistShareOptionWhatsApp => 'Link + leaflet';
-
-  @override
-  String get playlistShareOptionWhatsAppSubtitle =>
-      'For WhatsApp — sends photo then link';
-
-  @override
-  String get playlistShareWhatsAppStepTitle => 'Send the link';
-
-  @override
-  String get playlistShareWhatsAppStepMessage =>
-      'Send the link in the same chat where you sent the leaflet.';
-
-  @override
-  String get playlistShareWhatsAppStepContinue => 'Send link';
-
-  @override
-  String get playlistShareWhatsAppStepCancel => 'Not now';
+      'List image with link and QR code';
 
   @override
   String playlistShareLinkWithLeafletMessage(String name, String url) {

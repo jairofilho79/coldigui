@@ -565,16 +565,8 @@
   "playlistShareSheetTitle": "Share",
   "playlistShareOptionLink": "Link only",
   "playlistShareOptionLinkSubtitle": "Recipients can import the playlist in PLPCG",
-  "playlistShareOptionLeaflet": "Leaflet only",
-  "playlistShareOptionLeafletSubtitle": "Image with the hymn list",
-  "playlistShareOptionLinkWithLeaflet": "Link with leaflet",
-  "playlistShareOptionLinkWithLeafletSubtitle": "Image and link in one message",
-  "playlistShareOptionWhatsApp": "Link + leaflet",
-  "playlistShareOptionWhatsAppSubtitle": "For WhatsApp — sends photo then link",
-  "playlistShareWhatsAppStepTitle": "Send the link",
-  "playlistShareWhatsAppStepMessage": "Send the link in the same chat where you sent the leaflet.",
-  "playlistShareWhatsAppStepContinue": "Send link",
-  "playlistShareWhatsAppStepCancel": "Not now",
+  "playlistShareOptionLinkWithLeaflet": "Leaflet",
+  "playlistShareOptionLinkWithLeafletSubtitle": "List image with link and QR code",
   "playlistShareLinkWithLeafletMessage": "{name}\n\n{url}",
   "@playlistShareLinkWithLeafletMessage": {
     "placeholders": {
