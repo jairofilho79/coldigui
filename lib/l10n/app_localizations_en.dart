@@ -1266,6 +1266,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authSignInRetry => 'Try again';
 
   @override
+  String get authSignInWithGoogle => 'Sign in with Google';
+
+  @override
+  String get authSignInContextMismatchTitle =>
+      'We couldn\'t finish signing you in';
+
+  @override
+  String get authSignInContextMismatchBody =>
+      'Google answered in another window. Tap to try again.';
+
+  @override
+  String get authSignInOpenInBrowserHint =>
+      'If this keeps happening, open v2.plpcg.com in Safari.';
+
+  @override
   String get errorNoConnection =>
       'No internet connection. Check your network and try again.';
 

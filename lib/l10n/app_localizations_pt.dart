@@ -1280,6 +1280,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get authSignInRetry => 'Tentar novamente';
 
   @override
+  String get authSignInWithGoogle => 'Entrar com o Google';
+
+  @override
+  String get authSignInContextMismatchTitle =>
+      'Não conseguimos concluir o login';
+
+  @override
+  String get authSignInContextMismatchBody =>
+      'O Google respondeu em outra janela. Toque para tentar novamente.';
+
+  @override
+  String get authSignInOpenInBrowserHint =>
+      'Se continuar, abra v2.plpcg.com no Safari.';
+
+  @override
   String get errorNoConnection =>
       'Sem conexão com a internet. Verifique sua rede e tente de novo.';
 
