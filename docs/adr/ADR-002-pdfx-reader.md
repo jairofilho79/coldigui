@@ -20,7 +20,8 @@ Substitui **pdfx** (sem SPM nativo; patch local legado para scroll horizontal).
 - Camada de domínio (`OpenPdfDocument`, etc.) não importa pdfrx diretamente
 - `pdfrxFlutterInitialize()` em `lib/main.dart` antes de `runApp`
 - `PdfReaderScreen` fullscreen sem AppBar global do shell
-- Único import pdfrx na presentation: `pdf_reader_pdf_view.dart`
+- Único import pdfrx na presentation: `pdf_reader_pdf_view.dart` (+ `pdf_spread_layout.dart` pelos tipos do layout)
+- Parâmetros do viewer em `buildPdfReaderViewerParams` (`pdf_reader_pdf_view.dart`): seleção de texto e anotações desligadas, sem sombra por frame, `limitRenderingCache: false`, preview a 3× (`PdfRenderScalePolicy`, todas as plataformas), física de scroll da plataforma + roda/trackpad com inércia — set/2026, diagnóstico «pdfrx sob a lupa»
 
 ## Agente Performance — checklist
 
@@ -41,3 +42,4 @@ Substitui **pdfx** (sem SPM nativo; patch local legado para scroll horizontal).
 
 - jun/2026: pdfx 2.9.2 + `scripts/apply_pdfx_patch.sh` (removido na Fase C)
 - jun/2026: migração Fase C para pdfrx — ver [MIGRATION_NATIVE_DEPS.md](../MIGRATION_NATIVE_DEPS.md)
+- set/2026: Flutter 3.47.4 + pdfrx 2.6.1 (fix de preview cancelado/evictado = página em branco «até mexer») e parâmetros para partitura escaneada — spec `docs/superpowers/specs/2026-09-13-leitor-pdfrx-fase1-design.md`
