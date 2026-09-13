@@ -21,7 +21,7 @@ Checklist operacional para o Client ID Web usado pelo Flutter Web e pelo Worker 
    - URIs de redirecionamento autorizados (**obrigatórios** — o login web é por redirect OIDC):
      - `https://v2.plpcg.com/`
      - `http://localhost:8080/`
-     - `http://127.0.0.1:8080/`
+     - `http://127.0.0.1:8080/` (opcional — só se usar esse host em vez de `localhost` no dev local)
      - (barra final obrigatória: `redirect_uri` é `<origin>/`)
 4. Copie o **Client ID** (`….apps.googleusercontent.com`). Não use Client Secret no app nem no Worker deste fluxo.
 
