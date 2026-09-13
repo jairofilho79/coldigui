@@ -7,6 +7,7 @@ import 'package:coldigui/core/utils/chord_reader_url_builder.dart';
 import 'package:coldigui/core/utils/gesture_reader_url_builder.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -264,6 +265,42 @@ class _FakeAudioCacheNotifier extends ColdigomAudioTracksCacheNotifier {
 
   @override
   Map<String, AudioTrack> build() => initial;
+}
+
+/// Editor do teste de toque no chip de áudio (fix round 1, Task 4): além de
+/// registrar `activate` (herdado de [_RecordingActiveEditor]), registra o
+/// `addToActive` que `playAudioInSession`/`openAudioInPlayer` disparam ao
+/// tocar (D4) — sem tocar em Isar/storage de verdade, mesmo padrão do
+/// `_StubActiveEditor` de `play_audio_in_session_storage_test.dart`.
+class _AudioActivatingEditor extends _RecordingActiveEditor {
+  final addedToActive = <String>[];
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    addedToActive.add(materialId);
+    return AddToActiveOutcome.added;
+  }
+}
+
+/// Sessão de áudio de mentira: registra a fila e o índice inicial que
+/// `playQueue` recebeu — mesmo padrão de
+/// `play_entry_points_active_queue_test.dart`.
+class _RecordingAudioSession extends AudioPlayerSessionNotifier {
+  List<AudioTrack>? queue;
+  int? startIndex;
+
+  @override
+  AudioPlayerSessionState build() => const AudioPlayerSessionState();
+
+  @override
+  Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
+    queue = tracks;
+    this.startIndex = startIndex;
+  }
 }
 
 String _pdfId(String relPath) {
@@ -629,6 +666,89 @@ void main() {
     expect(find.text(pdfIdB), findsOneWidget);
   });
 
+  // Fix round 1 (revisão Task 4, Importante 1): o caminho de áudio (chip e
+  // menu «Abrir no reprodutor» chamam o mesmo `openAudioTrack`) não tinha o
+  // teste ponta a ponta simétrico ao do PDF acima — ativa a lista e toca a
+  // fila híbrida (D4) de verdade, sem dublê de `PlaylistTileActions`.
+  testWidgets('toque no chip de áudio ativa a lista e toca a fila (D4)', (
+    tester,
+  ) async {
+    final audioId = _pdfId('ColAdultos/003.mp3');
+    final track = AudioTrack(
+      audioId: audioId,
+      r2Key: 'ColAdultos/003.mp3',
+      nome: 'Toque no áudio',
+      numero: '003',
+      groupId: '003',
+      categoria: 'Áudio',
+      classificacao: 'ColAdultos',
+    );
+    final audioItem = PlaylistViewItem(
+      playlist: SavedPlaylist.fromLegacyLists(
+        playlistId: 'p3',
+        nome: 'Ensaio com áudio',
+        pdfIds: [pdfIdA],
+        audioIds: [audioId],
+        createdAt: DateTime(2026, 6, 10),
+      ),
+      pdfLabels: const ['001 — A'],
+    );
+    final editor = _AudioActivatingEditor();
+    final session = _RecordingAudioSession();
+    final router = GoRouter(
+      initialLocation: RoutePaths.playlists,
+      routes: [
+        GoRoute(
+          path: RoutePaths.playlists,
+          builder: (_, _) => Scaffold(
+            body: PlaylistListTile(item: audioItem, tab: PlaylistTab.saved),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.audio,
+          builder: (_, state) =>
+              Scaffold(body: Text(state.uri.queryParameters['audioId'] ?? '')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          playlistsProvider.overrideWith(
+            () => FakePlaylistsNotifier([audioItem]),
+          ),
+          activePlaylistEditorProvider.overrideWith(() => editor),
+          audioPlayerSessionProvider.overrideWith(() => session),
+          coldigomAudioTracksCacheProvider.overrideWith(
+            () => _FakeAudioCacheNotifier({audioId: track}),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ensaio com áudio'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('003'));
+    await tester.pumpAndSettle();
+
+    // (a) a lista do chip virou a ativa (D6) — mesma asserção usada no
+    // caminho de PDF e no de «Tornar lista ativa».
+    expect(editor.activated, ['p3']);
+    // (b) a sessão recebeu a fila híbrida (D4) com a faixa tocada no início.
+    expect(session.queue?.map((t) => t.audioId).toList(), [audioId]);
+    expect(session.startIndex, 0);
+  });
+
   testWidgets(
     'PDF removido do dispositivo mostra o texto do l10n, não o erro genérico',
     (tester) async {
@@ -776,94 +896,95 @@ void main() {
     expect(find.textContaining('Não foi possível'), findsNothing);
   });
 
-  testWidgets('Abrir no leitor com gesto na primeira posicao vai para /gestos', (
-    tester,
-  ) async {
-    // Mesmo caminho da cifra acima: o gesto entra na lista com o mesmo espaco
-    // de ids do PDF, entao so o materialIdKindOf separa os dois.
-    final gestureId = _pdfId('assets/praises/p1/m1.gestures');
-    final gestureItem = PlaylistViewItem(
-      playlist: SavedPlaylist.fromLegacyLists(
-        playlistId: 'p1',
-        nome: 'Ensaio com gesto',
-        pdfIds: [gestureId, pdfIdB],
-        createdAt: DateTime(2026, 6, 8),
-      ),
-      pdfLabels: ['Gestos — A', '002 — B'],
-    );
-    final gesture = GestureMaterial(
-      gestureId: gestureId,
-      r2Key: 'assets/praises/p1/m1.gestures',
-      nome: 'Comigo habita',
-      numero: '001',
-      groupId: 'p1',
-      categoria: 'Gestos',
-      classificacao: 'ColAdultos',
-    );
-
-    final notifier = _LouvorFindingPlaylistsNotifier([gestureItem]);
-
-    final editor = _RecordingActiveEditor();
-    final openSpy = _OpenMaterialSpy();
-    final router = GoRouter(
-      initialLocation: RoutePaths.playlists,
-      routes: [
-        GoRoute(
-          path: RoutePaths.playlists,
-          builder: (_, _) => Scaffold(
-            body: PlaylistListTile(item: gestureItem, tab: PlaylistTab.saved),
-          ),
+  testWidgets(
+    'Abrir no leitor com gesto na primeira posicao vai para /gestos',
+    (tester) async {
+      // Mesmo caminho da cifra acima: o gesto entra na lista com o mesmo espaco
+      // de ids do PDF, entao so o materialIdKindOf separa os dois.
+      final gestureId = _pdfId('assets/praises/p1/m1.gestures');
+      final gestureItem = PlaylistViewItem(
+        playlist: SavedPlaylist.fromLegacyLists(
+          playlistId: 'p1',
+          nome: 'Ensaio com gesto',
+          pdfIds: [gestureId, pdfIdB],
+          createdAt: DateTime(2026, 6, 8),
         ),
-        GoRoute(
-          path: RoutePaths.reader,
-          builder: (_, state) => Scaffold(
-            body: Text('leitor:${state.uri.queryParameters['pdfId']}'),
-          ),
-        ),
-        GoRoute(
-          path: RoutePaths.gestos,
-          builder: (_, state) => Scaffold(
-            body: Text('gesto:${state.uri.queryParameters['pdfId']}'),
-          ),
-        ),
-      ],
-    );
+        pdfLabels: ['Gestos — A', '002 — B'],
+      );
+      final gesture = GestureMaterial(
+        gestureId: gestureId,
+        r2Key: 'assets/praises/p1/m1.gestures',
+        nome: 'Comigo habita',
+        numero: '001',
+        groupId: 'p1',
+        categoria: 'Gestos',
+        classificacao: 'ColAdultos',
+      );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          playlistsProvider.overrideWith(() => notifier),
-          activePlaylistEditorProvider.overrideWith(() => editor),
-          coldigomGestureMaterialsCacheProvider.overrideWith(
-            () => _FakeGestureCacheNotifier({gestureId: gesture}),
+      final notifier = _LouvorFindingPlaylistsNotifier([gestureItem]);
+
+      final editor = _RecordingActiveEditor();
+      final openSpy = _OpenMaterialSpy();
+      final router = GoRouter(
+        initialLocation: RoutePaths.playlists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.playlists,
+            builder: (_, _) => Scaffold(
+              body: PlaylistListTile(item: gestureItem, tab: PlaylistTab.saved),
+            ),
           ),
-          resolvePdfForReaderProvider.overrideWithValue(
-            _FakeResolvePdfForReader(),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, state) => Scaffold(
+              body: Text('leitor:${state.uri.queryParameters['pdfId']}'),
+            ),
           ),
-          openMaterialProvider.overrideWithValue(openSpy.build()),
+          GoRoute(
+            path: RoutePaths.gestos,
+            builder: (_, state) => Scaffold(
+              body: Text('gesto:${state.uri.queryParameters['pdfId']}'),
+            ),
+          ),
         ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            playlistsProvider.overrideWith(() => notifier),
+            activePlaylistEditorProvider.overrideWith(() => editor),
+            coldigomGestureMaterialsCacheProvider.overrideWith(
+              () => _FakeGestureCacheNotifier({gestureId: gesture}),
+            ),
+            resolvePdfForReaderProvider.overrideWithValue(
+              _FakeResolvePdfForReader(),
+            ),
+            openMaterialProvider.overrideWithValue(openSpy.build()),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(PopupMenuButton<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Abrir no leitor'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abrir no leitor'));
+      await tester.pumpAndSettle();
 
-    expect(editor.activated, ['p1']);
-    expect(openSpy.opened, isA<GestureMaterialRef>());
-    expect(openSpy.opened!.id, gestureId);
-    expect(find.text('gesto:$gestureId'), findsOneWidget);
-    expect(find.textContaining('Não foi possível'), findsNothing);
-  });
+      expect(editor.activated, ['p1']);
+      expect(openSpy.opened, isA<GestureMaterialRef>());
+      expect(openSpy.opened!.id, gestureId);
+      expect(find.text('gesto:$gestureId'), findsOneWidget);
+      expect(find.textContaining('Não foi possível'), findsNothing);
+    },
+  );
 
   testWidgets('Abrir no leitor com id de áudio na face de partituras toca', (
     tester,
