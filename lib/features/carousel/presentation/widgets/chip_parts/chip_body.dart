@@ -20,6 +20,9 @@ class ChipBody extends StatelessWidget {
 
   /// Pressionar e segurar o corpo do chip — ex.: abrir o material favorito
   /// do grupo direto no leitor (card multi-material na Pesquisar).
+  ///
+  /// Só tem efeito com [onTap] também presente — sem ele, o `InkWell` nem é
+  /// criado (ver [build]), então [onLongPress] fica inerte mesmo não-nulo.
   final VoidCallback? onLongPress;
 
   @override
