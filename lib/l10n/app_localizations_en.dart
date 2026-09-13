@@ -572,6 +572,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get leafletFooterGreeting => 'Have a blessed service!';
 
   @override
+  String get leafletShareQrCaption => 'Open the list in PLPCG';
+
+  @override
   String get leafletWeekdayMonday => 'MONDAY';
 
   @override

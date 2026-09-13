@@ -146,4 +146,18 @@ void main() {
       throwsA(isA<EmptyLeafletException>()),
     );
   });
+
+  test('repassa shareUrl para o documento; ausente por padrão', () {
+    final useCase = useCaseWith(const CatalogMaterialLookup());
+    final entries = [PlaylistEntry.classified('pdf-1')];
+
+    final com = useCase(
+      entries: entries,
+      now: generatedAt,
+      shareUrl: 'https://plpcg.com/?s=0000&n=x',
+    );
+    expect(com.shareUrl, 'https://plpcg.com/?s=0000&n=x');
+    final sem = useCase(entries: entries, now: generatedAt);
+    expect(sem.shareUrl, isNull);
+  });
 }

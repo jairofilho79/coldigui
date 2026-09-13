@@ -133,6 +133,16 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
+    // QR só com link curto (D10). Lista sem registro/sem material no
+    // repositório não impede o folheto: fica sem QR.
+    String? qrUrl;
+    try {
+      final link = await _generateUrl(shareContext.playlistId);
+      if (link.isShort) qrUrl = link.url;
+    } on Object catch (error, stackTrace) {
+      playlistShareDebugLogError('link para QR', error, stackTrace);
+      qrUrl = null;
+    }
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
     final xFile = await _captureLeafletXFile(
@@ -140,6 +150,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
+      shareUrl: qrUrl,
     );
     if (!context.mounted) return false;
 
@@ -168,6 +179,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
+      shareUrl: link.isShort ? link.url : null,
     );
     if (!context.mounted) return false;
 
@@ -199,11 +211,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
+    String? shareUrl,
   }) async {
     final document = await resolveLeafletDocument(
       ref,
       entries: shareContext.entries,
       fromCarousel: shareContext.fromCarousel,
+      shareUrl: shareUrl,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
     leafletDebugLog(

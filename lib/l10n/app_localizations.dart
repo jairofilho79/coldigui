@@ -1007,6 +1007,12 @@ abstract class AppLocalizations {
   /// **'Bom culto!'**
   String get leafletFooterGreeting;
 
+  /// No description provided for @leafletShareQrCaption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir lista no PLPCG'**
+  String get leafletShareQrCaption;
+
   /// No description provided for @leafletWeekdayMonday.
   ///
   /// In pt, this message translates to:

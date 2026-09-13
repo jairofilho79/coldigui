@@ -16,7 +16,10 @@ const kLeafletPngFileName = 'folheto-plpcg.png';
 
 /// Captura [document] off-screen e retorna bytes PNG (UC-08).
 ///
-/// Com [capture] customizado, pula overlay — útil em testes com mock.
+/// [LeafletContent] fica montado no overlay durante toda a captura — mesmo
+/// com [capture] customizado (mock de teste) — para que quem substitui a
+/// captura consiga inspecionar o widget realmente montado (ex.: ler
+/// `LeafletContent.document` para provar o que foi resolvido).
 Future<List<int>> captureLeafletPngBytes(
   OverlayState overlay,
   LeafletDocument document,
@@ -24,9 +27,6 @@ Future<List<int>> captureLeafletPngBytes(
   CaptureWidgetToPngFn? capture,
 }) async {
   final captureFn = capture ?? captureWidgetToPng;
-  if (capture != null) {
-    return captureFn(GlobalKey());
-  }
 
   final boundaryKey = GlobalKey();
   late OverlayEntry entry;
