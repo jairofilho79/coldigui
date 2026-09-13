@@ -15,6 +15,10 @@ const carouselBarShellHeight = 60.0;
 /// (Salvar / Compartilhar ficam colados; o ar entre glifos é ~2× este valor).
 const carouselBarHorizontalGap = 8.0;
 
+/// Largura da barra a partir da qual os botões mostram legenda (spec
+/// 2026-09-12, D3); abaixo, só ícone com tooltip.
+const carouselBarLabelsMinWidth = 600.0;
+
 /// Estilo padrão dos [IconButton] da barra de carousel.
 ///
 /// Consumido por [CarouselNavigatorBar] e [CarouselBarTrailingActions].

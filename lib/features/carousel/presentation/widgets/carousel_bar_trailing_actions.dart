@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
@@ -17,14 +17,20 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Ações à direita da barra: compartilhar a lista e limpar.
+/// Ações da lista à direita da barra: compartilhar e limpar (lixeira — o
+/// `clear_all` parecia menu).
 ///
 /// «Salvar como lista» não mora mais aqui: tocar em «Rascunho» na chip do
 /// nome ([ActivePlaylistNameChip]) já salva com nome; o menu de três pontos
 /// virou um botão único de compartilhar com o ícone da plataforma
 /// ([Icons.adaptive.share] — `share` no Android/web, `ios_share` no iOS).
+///
+/// [showLabels] — repassado a [CarouselBarActionButton] (legenda sob o ícone
+/// quando a barra é larga o bastante).
 class CarouselBarTrailingActions extends ConsumerStatefulWidget {
-  const CarouselBarTrailingActions({super.key});
+  const CarouselBarTrailingActions({this.showLabels = true, super.key});
+
+  final bool showLabels;
 
   @override
   ConsumerState<CarouselBarTrailingActions> createState() =>
@@ -50,27 +56,29 @@ class _CarouselBarTrailingActionsState
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: l10n.carouselSharePlaylist,
-          icon: _sharing
-              ? SizedBox(
-                  width: 24,
-                  height: 24,
+        CarouselBarActionButton(
+          icon: Icons.adaptive.share,
+          label: l10n.carouselSharePlaylist,
+          showLabel: widget.showLabels,
+          iconOverride: _sharing
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: AppColors.title,
                   ),
                 )
-              : Icon(Icons.adaptive.share),
+              : null,
           onPressed: _sharing
               ? null
               : () => unawaited(_openShareSheet(context, ref, l10n)),
         ),
-        IconButton(
-          style: carouselBarIconButtonStyle,
+        CarouselBarActionButton(
+          icon: Icons.delete_outline,
+          label: l10n.carouselClearShort,
           tooltip: l10n.carouselClear,
-          icon: const Icon(Icons.clear_all),
+          showLabel: widget.showLabels,
           onPressed: () => _confirmClear(context, ref),
         ),
       ],

@@ -512,6 +512,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carouselOpenList => 'View selection';
 
   @override
+  String get carouselOpen => 'Open';
+
+  @override
+  String get carouselMaterial => 'Material';
+
+  @override
+  String get carouselList => 'List';
+
+  @override
+  String get carouselClearShort => 'Clear';
+
+  @override
   String get carouselListTitle => 'Temporary selection';
 
   @override

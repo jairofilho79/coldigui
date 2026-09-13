@@ -518,6 +518,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselOpenList => 'Ver seleção';
 
   @override
+  String get carouselOpen => 'Abrir';
+
+  @override
+  String get carouselMaterial => 'Material';
+
+  @override
+  String get carouselList => 'Lista';
+
+  @override
+  String get carouselClearShort => 'Limpar';
+
+  @override
   String get carouselListTitle => 'Seleção temporária';
 
   @override

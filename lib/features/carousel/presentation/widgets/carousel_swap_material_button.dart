@@ -4,7 +4,7 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -38,7 +38,8 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
   );
 }
 
-/// Layers na barra de playlist — oculto se o louvor não tem material alternativo.
+/// «Material» na barra de playlist — oculto se o louvor não tem material
+/// alternativo.
 ///
 /// [entryKey] é a chave da **ocorrência** cuja entrada será trocada
 /// ([ActivePlaylistEditor.replaceByKey]). Quem já tem o item focado na mão (a
@@ -49,12 +50,16 @@ class CarouselSwapMaterialButton extends ConsumerWidget {
     this.materialId,
     this.entryKey,
     this.audioId,
+    this.showLabel = true,
     super.key,
   });
 
   final String? materialId;
   final String? entryKey;
   final String? audioId;
+
+  /// Legenda sob o ícone (barra larga) — repassado a [CarouselBarActionButton].
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,10 +71,11 @@ class CarouselSwapMaterialButton extends ConsumerWidget {
     if (group == null) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
-    return IconButton(
-      style: carouselBarIconButtonStyle,
+    return CarouselBarActionButton(
+      icon: Icons.change_circle_outlined,
+      label: l10n.carouselMaterial,
       tooltip: l10n.readerSwitchMaterial,
-      icon: const Icon(Icons.layers_outlined),
+      showLabel: showLabel,
       onPressed: () => showCarouselSwapMaterialSheet(
         context: context,
         ref: ref,

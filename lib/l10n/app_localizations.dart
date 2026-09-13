@@ -893,6 +893,30 @@ abstract class AppLocalizations {
   /// **'Ver seleção'**
   String get carouselOpenList;
 
+  /// No description provided for @carouselOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir'**
+  String get carouselOpen;
+
+  /// No description provided for @carouselMaterial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Material'**
+  String get carouselMaterial;
+
+  /// No description provided for @carouselList.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista'**
+  String get carouselList;
+
+  /// No description provided for @carouselClearShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get carouselClearShort;
+
   /// No description provided for @carouselListTitle.
   ///
   /// In pt, this message translates to:

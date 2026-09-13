@@ -354,13 +354,20 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     required bool canGoNext,
     required bool loading,
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
     VoidCallback? onPrevious,
     VoidCallback? onNext,
     VoidCallback? onChipTap,
     required VoidCallback onOpenSelection,
-    VoidCallback? onOpenPlayer,
+    VoidCallback? onOpen,
   }) {
+    // Grupo «louvor» só aparece com alternativa de material — sem isso, o
+    // botão «Material» ficaria sempre oculto e o grupo, vazio.
+    final hasSwap =
+        resolveCarouselSwapMaterialGroup(ref, materialId: item.materialId) !=
+        null;
+
     return CarouselBarShell(
       applySafeArea: false,
       child: Row(
@@ -377,17 +384,23 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
               chipVariant: CarouselLouvorChipVariant.topBar,
               canGoPrevious: canGoPrevious,
               canGoNext: canGoNext,
+              showLabels: showLabels,
               loading: loading,
               onPrevious: onPrevious,
               onNext: onNext,
               onChipTap: onChipTap,
-              onOpenPlayer: onOpenPlayer,
+              onOpen: onOpen,
               onOpenSelection: onOpenSelection,
-              swapMaterial: CarouselSwapMaterialButton(
-                materialId: item.materialId,
-                entryKey: item.key,
-              ),
-              trailingActions: const [CarouselBarTrailingActions()],
+              swapMaterial: hasSwap
+                  ? CarouselSwapMaterialButton(
+                      materialId: item.materialId,
+                      entryKey: item.key,
+                      showLabel: showLabels,
+                    )
+                  : null,
+              trailingActions: [
+                CarouselBarTrailingActions(showLabels: showLabels),
+              ],
             ),
           ),
         ],
@@ -397,6 +410,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
   Widget _buildShellMode({
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
   }) {
     final focusedIndex = ref
@@ -411,6 +425,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: focusedIndex < items.length - 1,
       loading: _openingReader || _carouselNavLoading,
       showActivePlaylistName: showActivePlaylistName,
+      showLabels: showLabels,
       barWidth: barWidth,
       onPrevious: onReaderWithoutPdfId
           ? (focusedIndex > 0
@@ -423,9 +438,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
       onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
-      onOpenPlayer: onReaderWithoutPdfId
-          ? null
-          : () => _openInReader(focusedItem),
+      onOpen: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
@@ -442,6 +455,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   Widget _buildReaderMode(
     String materialId, {
     required bool showActivePlaylistName,
+    required bool showLabels,
     required double barWidth,
   }) {
     final position = ref.watch(readerCarouselPositionProvider(materialId));
@@ -455,6 +469,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         canGoNext: false,
         loading: loading,
         showActivePlaylistName: showActivePlaylistName,
+        showLabels: showLabels,
         barWidth: barWidth,
         onOpenSelection: _openReaderSelectionSheet,
       );
@@ -466,6 +481,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       canGoNext: position.canGoNext,
       loading: loading,
       showActivePlaylistName: showActivePlaylistName,
+      showLabels: showLabels,
       barWidth: barWidth,
       onPrevious: position.canGoPrevious
           ? () => _navigateCarouselInReader(
@@ -491,6 +507,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         // louvor tem prioridade na largura da barra.
         final showActivePlaylistName =
             constraints.maxWidth >= _activePlaylistNameMinWidth;
+        // Legendas sob os ícones só cabem em barra larga (spec D3).
+        final showLabels = constraints.maxWidth >= carouselBarLabelsMinWidth;
 
         if (_isReaderRoute) {
           final materialId = _readerMaterialId;
@@ -498,6 +516,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
             return _buildReaderMode(
               materialId,
               showActivePlaylistName: showActivePlaylistName,
+              showLabels: showLabels,
               barWidth: constraints.maxWidth,
             );
           }
@@ -505,6 +524,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
 
         return _buildShellMode(
           showActivePlaylistName: showActivePlaylistName,
+          showLabels: showLabels,
           barWidth: constraints.maxWidth,
         );
       },

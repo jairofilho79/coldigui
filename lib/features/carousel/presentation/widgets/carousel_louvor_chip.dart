@@ -302,6 +302,11 @@ class CarouselLouvorChip extends StatelessWidget {
       ),
       clipBehavior: showNavArrows ? Clip.antiAlias : Clip.none,
       padding: showNavArrows ? EdgeInsets.zero : padding,
+      // O `crossAxisAlignment.stretch` exige altura finita vinda de fora
+      // (quem monta o chip com `showNavArrows` — `CarouselNavigatorBar` — dá
+      // essa altura via `SizedBox`, porque a barra da lista ativa é filha
+      // solta de um `Column`, sem `Expanded` (D2), e propagaria altura
+      // infinita para as zonas de seta sem isso).
       child: showNavArrows
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
