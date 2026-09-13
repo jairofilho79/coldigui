@@ -1,3 +1,6 @@
+@TestOn('browser')
+library;
+
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
@@ -12,7 +15,6 @@ import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_open_fa
 import 'package:coldigui/features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -77,17 +79,6 @@ class _FailingLocalAdapter extends PdfrxViewerAdapter {
 }
 
 void main() {
-  // DÍVIDA TÉCNICA (skip condicional, documentado em 2026-09-13 — polimento):
-  // os 4 testes deste arquivo verificam o comportamento B3 na **web** (path
-  // local continua `localFile`, índice offline preservado) e por isso são
-  // pulados em todo `flutter test` no VM — a rotina local. Só executam em
-  // `flutter test --platform chrome test/web/`, hoje apenas no CI
-  // (`.github/workflows/web.yml`). Sanar num polimento futuro junto com
-  // `chrome_smoke_test.dart`: trazer o alvo Chrome para a verificação local
-  // (script ou tag `@Tags(['web'])`) para que estes skips deixem de ser
-  // invisíveis a quem roda a suíte no dia a dia.
-  final skipOnVm = !kIsWeb;
-
   const absolutePath = '/documents/ColAdultos/001.pdf';
   const pdfId = 'ColAdultos__001';
 
@@ -116,7 +107,7 @@ void main() {
         ).resolve(absolutePath).kind,
         PdfSourceKind.localFile,
       );
-    }, skip: skipOnVm);
+    });
 
     test('erro genérico preserva a entrada do índice offline', () async {
       final fixture = buildContainer(() => Exception('falha inesperada'));
@@ -140,7 +131,7 @@ void main() {
         await fixture.repository.findPdfIdByAbsolutePath(absolutePath),
         pdfId,
       );
-    }, skip: skipOnVm);
+    });
 
     test('falha de leitura dos bytes preserva a entrada do índice', () async {
       final fixture = buildContainer(
@@ -161,7 +152,7 @@ void main() {
       );
 
       expect(fixture.repository.removedPdfIds, isEmpty);
-    }, skip: skipOnVm);
+    });
 
     test('bytes lidos sem magic %PDF removem o PDF também na web '
         '(mesmo comportamento do nativo)', () async {
@@ -186,6 +177,6 @@ void main() {
       );
 
       expect(fixture.repository.removedPdfIds, [pdfId]);
-    }, skip: skipOnVm);
+    });
   });
 }

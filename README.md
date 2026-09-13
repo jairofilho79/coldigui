@@ -8,6 +8,19 @@ A busca na Home consulta o manifest PLPCG (chips **vermelhos**) e a API coldigom
 
 API coldigom: `https://coldigom-api.jairofilho79.workers.dev` (`COLDIGOM_API_BASE_URL`)
 
+## Testes
+
+Verificação local completa, igual às etapas de teste do CI (`.github/workflows/web.yml`):
+
+```bash
+./scripts/test_all.sh            # flutter analyze + flutter test (VM) + alvo Chrome
+./scripts/test_all.sh --vm-only  # sem o alvo Chrome
+```
+
+- `flutter test` roda a suíte VM. Os arquivos de `test/web/` marcados `@TestOn('browser')` **não carregam no VM** (não aparecem nem como skipped) — só existem no alvo Chrome:
+  `flutter test --platform chrome --dart-define-from-file=dart_defines/plpcjf.json test/web/`
+- Binários nativos de teste (`isar_plus` em `.dart_tool/isar_plus_test/`, pdfium em `build/native_assets/`) são obtidos/apontados automaticamente por `test/helpers/`; nada a fazer em worktree novo. `./scripts/check_isar_test_race.sh` reproduz a extração concorrente do isar_plus.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
