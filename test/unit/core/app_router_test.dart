@@ -112,6 +112,59 @@ void main() {
       expect(redirected.uri.path, RoutePaths.publicPlaylists);
     });
 
+    testWidgets(
+      '/social com social: false vai direto para a Home (sem página de erro)',
+      (tester) async {
+        final router = buildRouter(const FeatureFlags(social: false));
+        late BuildContext context;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (innerContext) {
+                context = innerContext;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+
+        final legacyMatch = router.configuration.findMatch(
+          Uri.parse(RoutePaths.social),
+        );
+        expect(legacyMatch.isError, isTrue);
+
+        final redirected = await Future.value(
+          router.configuration.redirect(
+            context,
+            legacyMatch,
+            redirectHistory: [],
+          ),
+        );
+
+        expect(redirected.isError, isFalse);
+        expect(redirected.uri.path, RoutePaths.home);
+      },
+    );
+
+    test(
+      '/listas/publicas é aninhada em /listas (pilha de 2 matches)',
+      () {
+        final router = buildRouter(const FeatureFlags());
+
+        final match = router.configuration.findMatch(
+          Uri.parse(RoutePaths.publicPlaylists),
+        );
+        expect(match.isError, isFalse);
+
+        // `findMatch` devolve um único `ShellRouteMatch` de nível superior
+        // (a `StatefulShellRoute`); a pilha de rotas de fato (`/listas` +
+        // `/listas/publicas`) mora em `ShellRouteMatch.matches`.
+        final shellMatch = match.matches.single as ShellRouteMatch;
+        expect(shellMatch.matches.length, 2);
+        expect(shellMatch.matches.first.matchedLocation, RoutePaths.playlists);
+      },
+    );
+
     test(
       'a Home (initialLocation) sempre casa, com qualquer combinação de flags',
       () {

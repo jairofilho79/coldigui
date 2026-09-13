@@ -22,13 +22,13 @@ class PlpcgBottomNavBar extends StatelessWidget {
     super.key,
   });
 
-  /// Índice: 0 Eventos, 1 Biblioteca, 2 Pesquisar (`/`), 3 Social, 4 Perfil.
+  /// Índice da aba ativa — posição em `appTabsFor`, ver [ShellScaffold].
   final int selectedIndex;
 
   /// Callback ao tocar uma aba; [ShellScaffold] mapeia para `navigationShell.goBranch`.
   final ValueChanged<int> onDestinationSelected;
 
-  /// Lista fixa de destinos (tipicamente 5 itens UC-14).
+  /// Destinos na ordem de `appTabsFor` (3 itens; 4 com `FF_EVENTS`).
   final List<PlpcgBottomNavDestination> destinations;
 
   @override

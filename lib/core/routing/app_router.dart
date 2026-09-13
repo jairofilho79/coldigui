@@ -56,12 +56,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.home,
     // `/social` era aba própria; hoje é sub-rota de Listas — links antigos
-    // seguem funcionando. Qualquer outra rota desconhecida/escondida
-    // (`/eventos` com a flag off não registra a rota — comentário acima)
-    // não pode parar na página de erro padrão do GoRouter: manda pra Home.
+    // seguem funcionando. Com `FF_SOCIAL` desligada `/listas/publicas` não é
+    // registrada, então `/social` manda direto pra Home: o go_router não
+    // reaplica o `redirect` de nível superior sobre o novo match de erro
+    // que resultaria de mandar pra uma rota inexistente. Qualquer outra rota
+    // desconhecida/escondida (`/eventos` com a flag off não registra a rota
+    // — comentário acima) não pode parar na página de erro padrão do
+    // GoRouter: manda pra Home.
     redirect: (context, state) {
       if (state.uri.path == RoutePaths.social) {
-        return RoutePaths.publicPlaylists;
+        return flags.social ? RoutePaths.publicPlaylists : RoutePaths.home;
       }
       return state.error != null ? RoutePaths.home : null;
     },
