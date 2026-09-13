@@ -75,6 +75,17 @@ class ProfileScreen extends ConsumerWidget {
               title: 'Listas',
               onTap: () => goToShellDestination(context, RoutePaths.playlists),
             ),
+            if (auth.asData?.value != null) ...[
+              const SizedBox(height: 10),
+              _ProfilePageTile(
+                icon: Icons.star_outline,
+                title: l10n.favoriteMaterialKindsTitle,
+                onTap: () => goToShellDestination(
+                  context,
+                  RoutePaths.favoriteMaterialKinds,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             _ProfilePageTile(
               icon: Icons.cloud_download,

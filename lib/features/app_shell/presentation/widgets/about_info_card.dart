@@ -56,11 +56,7 @@ class AboutInfoCard extends StatelessWidget {
         children: [
           Text(title, style: _titleStyle),
           const SizedBox(height: 10),
-          const Divider(
-            height: 1,
-            thickness: 1.5,
-            color: AppColors.gold,
-          ),
+          const Divider(height: 1, thickness: 1.5, color: AppColors.gold),
           const SizedBox(height: 16),
           for (var i = 0; i < paragraphs.length; i++) ...[
             if (i > 0) const SizedBox(height: 14),

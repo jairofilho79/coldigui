@@ -774,5 +774,36 @@
   "homeColdigomOffline": "Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.",
   "@homeColdigomOffline": {
     "description": "Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)"
-  }
+  },
+  "favoriteMaterialKindsTitle": "Materiais favoritos",
+  "favoriteMaterialKindsHelp": "Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.",
+  "@favoriteMaterialKindsHelp": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "favoriteMaterialKindsYours": "Seus favoritos ({count} de {max})",
+  "@favoriteMaterialKindsYours": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "favoriteMaterialKindsEmpty": "Nenhum favorito ainda",
+  "favoriteMaterialKindsAdd": "Adicionar",
+  "favoriteMaterialKindsSearchHint": "Buscar tipo de material",
+  "favoriteMaterialKindsLimitReached": "Limite de {max} — remova um para trocar",
+  "@favoriteMaterialKindsLimitReached": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+  "favoriteMaterialKindsSignInPrompt": "Entre com Google para escolher seus materiais favoritos.",
+  "favoriteMaterialKindsSyncPending": "Sincronização pendente",
+  "favoriteMaterialKindsRemoveTooltip": "Remover dos favoritos",
+  "favoriteMaterialKindsAddTooltip": "Adicionar aos favoritos",
+  "favoriteMaterialKindsUnknownKind": "Desconhecido",
+  "favoriteMaterialKindsLoadError": "Não foi possível carregar os tipos de material",
+  "favoriteMaterialKindsRetry": "Tentar de novo",
+  "favoriteMaterialKindsNoMatch": "Nenhum tipo com esse nome"
 }

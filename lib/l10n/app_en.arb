@@ -694,5 +694,20 @@
   "homeNoResults": "No songs found for “{query}”",
   "homeNoResultsTips": "Try another term, or check the number and spelling.",
   "homeClearFilters": "Clear filters",
-  "homeColdigomOffline": "No connection — the Coldigom catalog may be incomplete for this search."
+  "homeColdigomOffline": "No connection — the Coldigom catalog may be incomplete for this search.",
+  "favoriteMaterialKindsTitle": "Favorite materials",
+  "favoriteMaterialKindsHelp": "Pick up to {max} material types. They show first when you open a hymn.",
+  "favoriteMaterialKindsYours": "Your favorites ({count} of {max})",
+  "favoriteMaterialKindsEmpty": "No favorites yet",
+  "favoriteMaterialKindsAdd": "Add",
+  "favoriteMaterialKindsSearchHint": "Search material type",
+  "favoriteMaterialKindsLimitReached": "Limit of {max} — remove one to swap",
+  "favoriteMaterialKindsSignInPrompt": "Sign in with Google to pick your favorite materials.",
+  "favoriteMaterialKindsSyncPending": "Sync pending",
+  "favoriteMaterialKindsRemoveTooltip": "Remove from favorites",
+  "favoriteMaterialKindsAddTooltip": "Add to favorites",
+  "favoriteMaterialKindsUnknownKind": "Unknown",
+  "favoriteMaterialKindsLoadError": "Couldn't load material types",
+  "favoriteMaterialKindsRetry": "Try again",
+  "favoriteMaterialKindsNoMatch": "No type with that name"
 }
