@@ -67,7 +67,7 @@ void main() {
     );
   }
 
-  testWidgets('exibe a face de partituras com metadados', (tester) async {
+  testWidgets('exibe a lista com metadados', (tester) async {
     await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.pumpAndSettle();
 

@@ -1157,6 +1157,24 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 louvor} other{{count} louvores}}'**
   String playlistPdfCount(int count);
 
+  /// No description provided for @playlistSheetCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 partitura} other{{count} partituras}}'**
+  String playlistSheetCount(int count);
+
+  /// No description provided for @playlistAudioOnlyCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 áudio} other{{count} áudios}}'**
+  String playlistAudioOnlyCount(int count);
+
+  /// No description provided for @playlistEmptyCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vazia'**
+  String get playlistEmptyCount;
+
   /// No description provided for @playlistDeleteLastPdfTitle.
   ///
   /// In pt, this message translates to:

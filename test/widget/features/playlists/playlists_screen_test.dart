@@ -114,7 +114,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ensaio domingo'), findsOneWidget);
-    expect(find.text('2 louvores'), findsOneWidget);
+    expect(find.text('2 partituras'), findsOneWidget);
   });
 
   testWidgets('exibe FAB importar lista', (tester) async {

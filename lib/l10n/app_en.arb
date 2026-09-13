@@ -394,6 +394,11 @@
       "count": { "type": "int" }
     }
   },
+  "playlistSheetCount": "{count, plural, =1{1 sheet} other{{count} sheets}}",
+  "@playlistSheetCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistAudioOnlyCount": "{count, plural, =1{1 audio} other{{count} audios}}",
+  "@playlistAudioOnlyCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistEmptyCount": "Empty",
   "playlistDeleteLastPdfTitle": "Remove last song?",
   "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
   "playlistActivate": "Make list active",

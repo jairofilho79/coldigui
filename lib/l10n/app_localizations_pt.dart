@@ -663,6 +663,31 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String playlistSheetCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count partituras',
+      one: '1 partitura',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistAudioOnlyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count áudios',
+      one: '1 áudio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get playlistEmptyCount => 'Vazia';
+
+  @override
   String get playlistDeleteLastPdfTitle => 'Remover último louvor?';
 
   @override

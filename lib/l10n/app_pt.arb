@@ -403,6 +403,11 @@
       "count": { "type": "int" }
     }
   },
+  "playlistSheetCount": "{count, plural, =1{1 partitura} other{{count} partituras}}",
+  "@playlistSheetCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistAudioOnlyCount": "{count, plural, =1{1 áudio} other{{count} áudios}}",
+  "@playlistAudioOnlyCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistEmptyCount": "Vazia",
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
   "playlistActivate": "Tornar lista ativa",
