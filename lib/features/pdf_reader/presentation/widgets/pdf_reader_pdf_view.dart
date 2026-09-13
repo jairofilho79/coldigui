@@ -13,7 +13,6 @@ import '../providers/pdf_reader_view_settings_provider.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
-import '../utils/pdf_reader_viewport_policy.dart';
 import '../utils/pdf_spread_layout.dart';
 import 'pdf_reader_page_key_handler.dart';
 
@@ -46,7 +45,6 @@ class PdfReaderPdfView extends ConsumerStatefulWidget {
     required this.handle,
     required this.navigateToPage,
     this.requiresReattach = false,
-    this.refreshViewportAfterNavigation,
     this.onPageChanged,
     this.onViewerReady,
     super.key,
@@ -59,9 +57,6 @@ class PdfReaderPdfView extends ConsumerStatefulWidget {
 
   /// Navegação animada via [PdfReaderViewerHandle.animateToPage].
   final PdfReaderNavigateToPage navigateToPage;
-
-  /// Reaplica fit após troca de página.
-  final Future<void> Function()? refreshViewportAfterNavigation;
 
   /// Callback opcional quando a página visível muda (scroll).
   final ValueChanged<int>? onPageChanged;
@@ -89,13 +84,11 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
   PdfReaderViewerHandle? _listeningHandle;
   VoidCallback? _loadingStateListener;
   final _reattachGuard = PdfReattachGuard();
-  late PdfReaderViewportPolicy _viewportPolicy;
   PdfReaderViewerHandle? _readyNotifiedForHandle;
 
   @override
   void initState() {
     super.initState();
-    _viewportPolicy = PdfReaderViewportPolicy(initialPage: widget.handle.page);
     _attachLoadingStateListener(widget.handle);
     if (widget.requiresReattach) {
       _scheduleReattachIfCached();
@@ -108,9 +101,6 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.handle, widget.handle)) {
       _detachLoadingStateListener();
-      _viewportPolicy = PdfReaderViewportPolicy(
-        initialPage: widget.handle.page,
-      );
       _reattachGuard.complete();
       _readyNotifiedForHandle = null;
       _attachLoadingStateListener(widget.handle);
@@ -194,18 +184,6 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
           );
         }
       }
-    });
-  }
-
-  void _scheduleViewportRefresh({required int pageNumber}) {
-    if (!_viewportPolicy.shouldScheduleRefresh(pageNumber)) return;
-
-    final refresh = widget.refreshViewportAfterNavigation;
-    if (refresh == null) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await refresh();
     });
   }
 
@@ -385,8 +363,12 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
     if (_pageTurnInProgress) return;
     setState(() => _pageTurnInProgress = true);
     try {
+      // Só navega. Reaplicar o fit aqui (comportamento antigo) produzia dois
+      // saltos por virada e, na última página, o `goTo` do fit era clampado
+      // contra a borda do documento e deixava a viewport no rodapé
+      // (auditoria P3/P6). O fit é aplicado na abertura e no toggle de
+      // fullscreen, pela tela.
       await widget.navigateToPage(targetPage);
-      _scheduleViewportRefresh(pageNumber: targetPage);
     } finally {
       if (mounted) {
         setState(() => _pageTurnInProgress = false);

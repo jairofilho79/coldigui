@@ -175,19 +175,17 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final message = outcome == AddToActiveOutcome.alreadyPresent
         ? l10n.carouselAlreadyAdded
         : l10n.cardAddedSwapMaterial;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action: key == null
-              ? null
-              : SnackBarAction(
-                  label: l10n.cardSwapMaterialAction,
-                  onPressed: () => unawaited(_openSwapMaterialSheet(key)),
-                ),
-        ),
-      );
+    showAppSnackbar(
+      context,
+      message,
+      clearPrevious: true,
+      action: key == null
+          ? null
+          : SnackBarAction(
+              label: l10n.cardSwapMaterialAction,
+              onPressed: () => unawaited(_openSwapMaterialSheet(key)),
+            ),
+    );
   }
 
   /// Chave da última ocorrência de [materialId] na lista ativa.

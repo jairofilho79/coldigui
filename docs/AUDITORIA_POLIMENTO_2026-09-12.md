@@ -26,16 +26,16 @@ A app está rápida onde foi medida. Os problemas encontrados são de **navegaç
 
 ## 1. Top 8 — o que atacar primeiro
 
-| # | Item | Eixo | Esforço | Evidência |
-|---|---|---|---|---|
-| P1 | Produção **não** está cross-origin isolated → skwasm roda **single-thread** e nenhum preload de renderer acontece | Perf/infra | S (decisão) + S–M | medido em prod |
-| P2 | `push` para `/leitor`, `/cifra`, `/audio`, `/gestos` **não reflete na URL** → F5, aba descartada ou link copiado voltam à Home | Estab./nav | M | medido em prod |
-| P3 | Virar para a última página do PDF deixa a viewport no **fim da página**, não no topo | Leitor (o "canvas") | S–M | reproduzido 2× em prod |
-| P4 | Sync de URL da busca/filtros usa `go` → **uma entrada de histórico por termo digitado** | Nav (push × replace) | S | medido |
-| P5 | `/listas`, `/offline`, `/sobre` são **becos sem saída**: sem voltar, e tocar "Perfil" de novo não sai deles | Nav/UX | S | medido em prod |
-| P6 | Fit reaplicado a cada virada de página (`refreshViewportAfterNavigation`) → **dois saltos** por virada e provável causa de P3 | Leitor | S | código + frames |
-| P7 | Transição de página padrão da plataforma (slide Cupertino no Mac/iPad) anima o shell inteiro a cada push/pop | Perf percebida | S | screenshot mid-transition |
-| P8 | Snackbars da Home sobrevivem à navegação e cobrem o rodapé do PDF/cifra; em tela larga ficam 100 % da largura | UX | S | screenshot |
+| # | Item | Eixo | Esforço | Evidência | Status |
+|---|---|---|---|---|---|
+| P1 | Produção **não** está cross-origin isolated → skwasm roda **single-thread** e nenhum preload de renderer acontece | Perf/infra | S (decisão) + S–M | medido em prod | ⏳ decisão pendente (medir em tablet; login redirect/FedCM × single-thread) |
+| P2 | `push` para `/leitor`, `/cifra`, `/audio`, `/gestos` **não reflete na URL** → F5, aba descartada ou link copiado voltam à Home | Estab./nav | M | medido em prod | ✅ 92e5c9c — optionURLReflectsImperativeAPIs (go nos openers fica para depois de feat/barra-lista-ativa) |
+| P3 | Virar para a última página do PDF deixa a viewport no **fim da página**, não no topo | Leitor (o "canvas") | S–M | reproduzido 2× em prod | ✅ 279dd68 |
+| P4 | Sync de URL da busca/filtros usa `go` → **uma entrada de histórico por termo digitado** | Nav (push × replace) | S | medido | ✅ 645ada8 |
+| P5 | `/listas`, `/offline`, `/sobre` são **becos sem saída**: sem voltar, e tocar "Perfil" de novo não sai deles | Nav/UX | S | medido em prod | ✅ fechado pelo plano 2026-09-12-nav-listas-perfil.md (merge `b67e2cc` + `9de0b06`, sub-rotas do Perfil com voltar) |
+| P6 | Fit reaplicado a cada virada de página (`refreshViewportAfterNavigation`) → **dois saltos** por virada e provável causa de P3 | Leitor | S | código + frames | ✅ 279dd68 (mesma correção de P3) |
+| P7 | Transição de página padrão da plataforma (slide Cupertino no Mac/iPad) anima o shell inteiro a cada push/pop | Perf percebida | S | screenshot mid-transition | ✅ 567afd1 |
+| P8 | Snackbars da Home sobrevivem à navegação e cobrem o rodapé do PDF/cifra; em tela larga ficam 100 % da largura | UX | S | screenshot | ✅ 53cbd1b |
 
 ---
 
@@ -162,3 +162,14 @@ Os bugs P2–P5 estão em comportamento **de plataforma web** (URL, `history`, `
 - Medições em macOS/Chrome, tela 120 Hz, rede boa, cache quente. **Não** medi em Android/iPad nem em rede ruim — P1 depende disso.
 - API Coldigom falha por CORS quando a app roda em `127.0.0.1` (`[rede] retentativa 1/2 em GET /api/plpcg/praises: connectionError`) — só local; em prod responde.
 - Durante a sessão outra instância rodou `flutter run -d web-server --web-port 8080` e apagou `build/web`; o build release desta auditoria ficou fora da árvore (scratchpad) para não interferir.
+
+---
+
+## I. Execução — 2026-09-12 (`feat/polimento-leitor-nav`)
+
+Plano: `docs/superpowers/plans/2026-09-12-polimento-leitor-nav.md`. Fechados P2, P3, P4, P6, P7, P8 (commits acima). Decisões:
+
+- **P2 pela opção global do go_router**, não por `go` nos openers: os arquivos do carousel/áudio estão em edição em `feat/barra-lista-ativa`. Revisitar quando aquela branch entrar — `go` também resolveria o crescimento da pilha `/leitor` ↔ `/audio` (item B, «Bônus»).
+- **Fit só na abertura e no fullscreen.** Se o usuário fizer pinch-zoom e virar a página, o zoom agora é preservado (antes era resetado pelo fit) — comportamento novo, alinhado ao que um leitor de partitura espera.
+- **Fora do plano:** P1 (decisão + medição em dispositivo), P5 (outro plano), `readerCarouselPositionProvider` autoDispose (arquivo do plano `barra-lista-ativa`), `PdfViewer` fora dos `ValueListenableBuilder` (sem ganho medido), recentes deduplicados e chip sintética com catálogo (UX, decidir com produto).
+- **Skips = dívida técnica documentada (2026-09-13).** A suíte VM fica verde com **10 skips**, todos com comentário `DÍVIDA TÉCNICA` no arquivo: 3 em `test/unit/features/pdf_reader/pdfrx_viewer_adapter_test.dart` (pdfium nativo não carrega no VM — `pdfium_dart` 0.2.5 exige `.dart_tool/native_assets.yaml`; sanar apontando `pdfiumModulePath` num helper de teste, como o Isar), 3 em `test/web/chrome_smoke_test.dart` e 4 em `test/web/pdf_reader_offline_preserved_web_test.dart` (só rodam em `--platform chrome`, hoje apenas no CI; sanar trazendo o alvo Chrome para a verificação local ou tag `@Tags(['web'])`). Ficam para polimentos futuros.

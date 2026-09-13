@@ -30,6 +30,20 @@ abstract final class AppTheme {
       fontFamily: AppTypography.sansFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
+      // Fade em vez do slide da plataforma: na web o `defaultTargetPlatform`
+      // é macOS/iOS em Mac e iPad e o Cupertino slide animava o shell inteiro
+      // a cada push/pop e a cada troca de louvor no leitor (auditoria P7).
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: FadeForwardsPageTransitionsBuilder(),
+        },
+      ),
+      // Flutuante também para os `SnackBar` montados direto (fora de
+      // `showAppSnackbar`) — mesma família visual (auditoria P8).
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       textTheme: AppTypography.textTheme(AppColors.title),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
