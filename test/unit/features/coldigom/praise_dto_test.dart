@@ -17,6 +17,19 @@ void main() {
       final dto = MaterialDto.fromJson({'id': 'm1', 'type': 'pdf'});
       expect(dto.type, 'pdf');
     });
+
+    test('lê material_kind como materialKindId e tolera ausência', () {
+      final withKind = MaterialDto.fromJson({
+        'id': 'm1',
+        'type': 'pdf',
+        'material_kind': 'kind-uuid',
+        'material_kind_name': 'Partitura',
+      });
+      expect(withKind.materialKindId, 'kind-uuid');
+
+      final without = MaterialDto.fromJson({'id': 'm2', 'type': 'pdf'});
+      expect(without.materialKindId, isNull);
+    });
   });
 
   group('PraiseDetailDto.fromJson', () {

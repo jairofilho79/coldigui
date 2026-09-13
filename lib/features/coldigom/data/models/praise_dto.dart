@@ -8,6 +8,7 @@ class MaterialDto {
     this.r2Key,
     this.url,
     this.materialKindName,
+    this.materialKindId,
   });
 
   final String id;
@@ -17,6 +18,10 @@ class MaterialDto {
   /// URL externa (ex.: YouTube). Pode ser null na maioria dos registros.
   final String? url;
   final String? materialKindName;
+
+  /// Id do `material_kind` Coldigom (UUID) — chave dos favoritos do usuário.
+  /// Null no placeholder de letra e em respostas antigas.
+  final String? materialKindId;
 
   factory MaterialDto.fromJson(Map<String, dynamic> json) {
     return MaterialDto(
@@ -28,6 +33,9 @@ class MaterialDto {
       r2Key: json['r2_key'] as String?,
       url: json['url'] as String?,
       materialKindName: json['material_kind_name'] as String?,
+      materialKindId: json['material_kind'] is String
+          ? json['material_kind'] as String
+          : null,
     );
   }
 }

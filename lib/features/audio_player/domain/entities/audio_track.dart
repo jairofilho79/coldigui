@@ -13,6 +13,7 @@ class AudioTrack {
     this.author = '',
     this.source = LouvorDataSource.coldigom,
     this.duration,
+    this.materialKindId,
   });
 
   /// Identificador estável (mesmo codec Base64 do path relativo).
@@ -37,6 +38,9 @@ class AudioTrack {
   /// Duração descoberta pelo player, se já conhecida.
   final Duration? duration;
 
+  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  final String? materialKindId;
+
   AudioTrack copyWith({Duration? duration}) {
     return AudioTrack(
       audioId: audioId,
@@ -49,6 +53,7 @@ class AudioTrack {
       author: author,
       source: source,
       duration: duration ?? this.duration,
+      materialKindId: materialKindId,
     );
   }
 }

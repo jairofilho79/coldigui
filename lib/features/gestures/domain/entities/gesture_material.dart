@@ -16,6 +16,7 @@ class GestureMaterial {
     required this.classificacao,
     this.author = '',
     this.source = LouvorDataSource.coldigom,
+    this.materialKindId,
   });
 
   /// `encodePdfId(r2Key)` — mesmo espaço do `pdfId`.
@@ -34,4 +35,7 @@ class GestureMaterial {
   final String classificacao;
   final String author;
   final LouvorDataSource source;
+
+  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  final String? materialKindId;
 }

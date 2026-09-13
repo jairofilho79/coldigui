@@ -29,6 +29,9 @@ sealed class CatalogMaterial {
 
   /// Label do material exibida na UI (ex.: `Partitura`, `Cifra I`, `Áudio`).
   String get categoria;
+
+  /// Id do `material_kind` Coldigom; `null` quando o acervo não o conhece.
+  String? get materialKindId;
 }
 
 /// PDF (partitura, gestos…) — abre no leitor interno `/leitor`.
@@ -48,6 +51,9 @@ final class PdfMaterial extends CatalogMaterial {
 
   @override
   String get categoria => louvor.categoria;
+
+  @override
+  String? get materialKindId => louvor.materialKindId;
 }
 
 /// Cifra ChordPro — abre em `/cifra`.
@@ -70,6 +76,9 @@ final class ChordMaterialRef extends CatalogMaterial {
 
   @override
   String get categoria => chord.categoria;
+
+  @override
+  String? get materialKindId => chord.materialKindId;
 }
 
 /// Documento de gestos CIAs — abre em `/gestos`.
@@ -89,6 +98,9 @@ final class GestureMaterialRef extends CatalogMaterial {
 
   @override
   String get categoria => gesture.categoria;
+
+  @override
+  String? get materialKindId => gesture.materialKindId;
 }
 
 /// Faixa de áudio Coldigom — toca na sessão global e abre `/audio`.
@@ -108,6 +120,9 @@ final class AudioMaterial extends CatalogMaterial {
 
   @override
   String get categoria => track.categoria;
+
+  @override
+  String? get materialKindId => track.materialKindId;
 }
 
 /// Link YouTube — abre fora do app (app do YouTube ou navegador).
@@ -127,4 +142,7 @@ final class YoutubeMaterialRef extends CatalogMaterial {
 
   @override
   String get categoria => material.categoria;
+
+  @override
+  String? get materialKindId => material.materialKindId;
 }
