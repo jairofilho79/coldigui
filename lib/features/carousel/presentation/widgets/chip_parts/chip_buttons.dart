@@ -80,11 +80,20 @@ class CircleActionButton extends StatelessWidget {
   const CircleActionButton({
     required this.icon,
     required this.onPressed,
+    this.backgroundColor = AppColors.textLight,
+    this.iconColor = AppColors.title,
     super.key,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
+
+  /// Fundo do círculo — branco por padrão ([ChipRemoveButton],
+  /// [CarouselLouvorAddButton]).
+  final Color backgroundColor;
+
+  /// Cor do ícone — vinho por padrão.
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +103,7 @@ class CircleActionButton extends StatelessWidget {
         boxShadow: AppColors.shadowMd,
       ),
       child: Material(
-        color: AppColors.textLight,
+        color: backgroundColor,
         shape: const CircleBorder(
           side: BorderSide(color: AppColors.gold, width: 1.5),
         ),
@@ -106,7 +115,7 @@ class CircleActionButton extends StatelessWidget {
           child: SizedBox(
             width: 24,
             height: 24,
-            child: Icon(icon, size: 16, color: AppColors.title),
+            child: Icon(icon, size: 16, color: iconColor),
           ),
         ),
       ),

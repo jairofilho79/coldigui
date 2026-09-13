@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
+import '../../../carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/catalog_material.dart';
 
@@ -52,11 +52,14 @@ class MaterialAddTrailing extends StatelessWidget {
       );
     }
     if (isAdded) {
-      return IconButton(
-        onPressed: onRemove,
-        tooltip: removeTooltip,
-        icon: const Icon(Icons.close, color: AppColors.title),
-        visualDensity: VisualDensity.compact,
+      return Tooltip(
+        message: removeTooltip,
+        child: CircleActionButton(
+          icon: Icons.close,
+          onPressed: onRemove,
+          backgroundColor: AppColors.offlineMissing,
+          iconColor: AppColors.textLight,
+        ),
       );
     }
     return CarouselLouvorAddButton(onPressed: onAdd);
