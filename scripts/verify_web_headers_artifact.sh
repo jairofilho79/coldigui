@@ -5,7 +5,7 @@ set -euo pipefail
 HEADERS_FILE="${1:-build/web/_headers}"
 
 test -f "$HEADERS_FILE"
-grep -q 'Cross-Origin-Opener-Policy: same-origin' "$HEADERS_FILE"
+grep -qx '  Cross-Origin-Opener-Policy: same-origin' "$HEADERS_FILE"
 grep -q 'Cross-Origin-Embedder-Policy: require-corp' "$HEADERS_FILE"
 grep -q 'flutter_service_worker.js' "$HEADERS_FILE"
 grep -A1 'flutter_service_worker.js' "$HEADERS_FILE" | grep -q 'Cache-Control: no-cache'
