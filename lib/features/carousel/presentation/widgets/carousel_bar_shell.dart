@@ -21,7 +21,7 @@ const carouselBarLabelsMinWidth = 600.0;
 
 /// Estilo padrão dos [IconButton] da barra de carousel.
 ///
-/// Consumido por [CarouselNavigatorBar] e [CarouselBarTrailingActions].
+/// Consumido por [CarouselBarActionButton].
 ///
 /// Usa [AppColors.title] como `foregroundColor`. O estado desabilitado mantém
 /// o mesmo matiz com opacidade reduzida — evita ícones pretos/cinza do tema

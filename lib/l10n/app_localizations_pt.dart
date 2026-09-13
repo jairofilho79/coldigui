@@ -515,9 +515,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselGenerateLeaflet => 'Gerar folheto';
 
   @override
-  String get carouselOpenList => 'Ver seleção';
-
-  @override
   String get carouselOpen => 'Abrir';
 
   @override
@@ -540,12 +537,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get readerCarouselNext => 'Próximo louvor';
-
-  @override
-  String get audioFacePreviousLouvor => 'Louvor anterior';
-
-  @override
-  String get audioFaceNextLouvor => 'Próximo louvor';
 
   @override
   String get readerSwitchMaterial => 'Trocar material';
@@ -714,28 +705,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get playlistOpenInAudioPlayer => 'Abrir no reprodutor';
-
-  @override
-  String get playlistFacePdf => 'PDFs';
-
-  @override
-  String get playlistFaceAudio => 'Áudios';
-
-  @override
-  String get playlistFaceToggleSemantics =>
-      'Alternar face da playlist entre PDFs e áudios';
-
-  @override
-  String playlistAudioCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count áudios',
-      one: '1 áudio',
-      zero: 'Nenhum áudio',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get playlistAudioEmpty => 'Esta lista não tem áudios.';
@@ -911,9 +880,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get miniPlayerNext => 'Próxima faixa';
-
-  @override
-  String get audioOpenPlayer => 'Abrir player';
 
   @override
   String get audioClosePlayer => 'Encerrar e voltar à busca';

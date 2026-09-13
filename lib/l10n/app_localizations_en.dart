@@ -509,9 +509,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get carouselGenerateLeaflet => 'Generate leaflet';
 
   @override
-  String get carouselOpenList => 'View selection';
-
-  @override
   String get carouselOpen => 'Open';
 
   @override
@@ -534,12 +531,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readerCarouselNext => 'Next hymn';
-
-  @override
-  String get audioFacePreviousLouvor => 'Previous hymn';
-
-  @override
-  String get audioFaceNextLouvor => 'Next hymn';
 
   @override
   String get readerSwitchMaterial => 'Switch material';
@@ -708,28 +699,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistOpenInAudioPlayer => 'Open in audio player';
-
-  @override
-  String get playlistFacePdf => 'PDFs';
-
-  @override
-  String get playlistFaceAudio => 'Audio';
-
-  @override
-  String get playlistFaceToggleSemantics =>
-      'Switch playlist face between PDFs and audio';
-
-  @override
-  String playlistAudioCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tracks',
-      one: '1 track',
-      zero: 'No audio',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get playlistAudioEmpty => 'This playlist has no audio tracks.';
@@ -904,9 +873,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get miniPlayerNext => 'Next track';
-
-  @override
-  String get audioOpenPlayer => 'Open player';
 
   @override
   String get audioClosePlayer => 'Close and return to search';

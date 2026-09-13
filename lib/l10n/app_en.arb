@@ -306,7 +306,6 @@
     "description": "Carousel bar share button tooltip (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Generate leaflet",
-  "carouselOpenList": "View selection",
   "carouselOpen": "Open",
   "carouselMaterial": "Material",
   "carouselList": "List",
@@ -315,14 +314,6 @@
   "carouselListClose": "Close",
   "readerCarouselPrevious": "Previous hymn",
   "readerCarouselNext": "Next hymn",
-  "audioFacePreviousLouvor": "Previous hymn",
-  "@audioFacePreviousLouvor": {
-    "description": "Tooltip for the arrow that moves focus to the previous hymn in the audio face of the bar (D5)"
-  },
-  "audioFaceNextLouvor": "Next hymn",
-  "@audioFaceNextLouvor": {
-    "description": "Tooltip for the arrow that moves focus to the next hymn in the audio face of the bar (D5)"
-  },
   "readerSwitchMaterial": "Switch material",
   "@readerSwitchMaterial": {
     "description": "Tooltip for switching PDF material variant in the reader toolbar"
@@ -408,15 +399,6 @@
   "playlistActivate": "Make list active",
   "playlistOpenInReader": "Open in reader",
   "playlistOpenInAudioPlayer": "Open in audio player",
-  "playlistFacePdf": "PDFs",
-  "playlistFaceAudio": "Audio",
-  "playlistFaceToggleSemantics": "Switch playlist face between PDFs and audio",
-  "playlistAudioCount": "{count, plural, =0{No audio} =1{1 track} other{{count} tracks}}",
-  "@playlistAudioCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "playlistAudioEmpty": "This playlist has no audio tracks.",
   "audioPlayerTitle": "Audio",
   "pdfMaterialSection": "Sheet music",
@@ -505,7 +487,6 @@
   "@miniPlayerNext": {
     "description": "Tooltip for the next-track button in the persistent mini-player (D5)"
   },
-  "audioOpenPlayer": "Open player",
   "audioClosePlayer": "Close and return to search",
   "audioOpenSheetMusic": "Sheet music for this hymn",
   "audioFollowReader": "Follow the audio",

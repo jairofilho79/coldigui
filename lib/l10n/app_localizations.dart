@@ -887,12 +887,6 @@ abstract class AppLocalizations {
   /// **'Gerar folheto'**
   String get carouselGenerateLeaflet;
 
-  /// No description provided for @carouselOpenList.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver seleção'**
-  String get carouselOpenList;
-
   /// No description provided for @carouselOpen.
   ///
   /// In pt, this message translates to:
@@ -940,18 +934,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Próximo louvor'**
   String get readerCarouselNext;
-
-  /// Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)
-  ///
-  /// In pt, this message translates to:
-  /// **'Louvor anterior'**
-  String get audioFacePreviousLouvor;
-
-  /// Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)
-  ///
-  /// In pt, this message translates to:
-  /// **'Próximo louvor'**
-  String get audioFaceNextLouvor;
 
   /// Tooltip do ícone de troca de material na barra do leitor PDF
   ///
@@ -1228,30 +1210,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Abrir no reprodutor'**
   String get playlistOpenInAudioPlayer;
-
-  /// No description provided for @playlistFacePdf.
-  ///
-  /// In pt, this message translates to:
-  /// **'PDFs'**
-  String get playlistFacePdf;
-
-  /// No description provided for @playlistFaceAudio.
-  ///
-  /// In pt, this message translates to:
-  /// **'Áudios'**
-  String get playlistFaceAudio;
-
-  /// No description provided for @playlistFaceToggleSemantics.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alternar face da playlist entre PDFs e áudios'**
-  String get playlistFaceToggleSemantics;
-
-  /// No description provided for @playlistAudioCount.
-  ///
-  /// In pt, this message translates to:
-  /// **'{count, plural, =0{Nenhum áudio} =1{1 áudio} other{{count} áudios}}'**
-  String playlistAudioCount(int count);
 
   /// No description provided for @playlistAudioEmpty.
   ///
@@ -1582,12 +1540,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Próxima faixa'**
   String get miniPlayerNext;
-
-  /// No description provided for @audioOpenPlayer.
-  ///
-  /// In pt, this message translates to:
-  /// **'Abrir player'**
-  String get audioOpenPlayer;
 
   /// No description provided for @audioClosePlayer.
   ///

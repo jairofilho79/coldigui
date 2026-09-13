@@ -18,9 +18,6 @@ import 'chip_parts/share_overflow_button.dart';
 
 export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
 
-/// Altura do chip na barra do leitor (variante modal/pill).
-const carouselChipBarHeight = 58.0;
-
 /// Altura do chip na barra superior do shell (variante retangular).
 const carouselChipTopBarHeight = 52.0;
 

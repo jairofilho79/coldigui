@@ -1239,7 +1239,7 @@ Seleção temporária de louvores persistida em Isar ([CarouselEntry]). Substitu
 |-----|---------|-----|--------|-----------|
 | `CarouselLouvorChipVariant` | `lib/features/carousel/presentation/widgets/carousel_louvor_chip.dart` | UC-05 | **Implementado polish chip** | `modal` (pill, `#num — nome` no título) \| `topBar` (retangular 8px, número na linha de metadados) |
 | `CarouselLouvorChip` | idem | UC-05/01/03/04/06 | **Implementado polish chip + abrir leitor + metadados médios + trailing catálogo + share ⋮ + metadataSummary agrupamento jun/2026** | Chip temático PLPCG; metadados responsivos ou [metadataSummary]; `onTap`; `onRemove` (playlists/modal); `onAdd`/`isAdded`/`loading`/`onShare`/`shareLoading` ([LouvorCard]); menu ⋮ UC-04; drag opcional |
-| `carouselChipBarHeight` / `carouselChipTopBarHeight` | idem | UC-05 | **Implementado polish chip** | `58` (modal/leitor) \| `52` (barra shell) — altura na [CarouselNavigatorBar] |
+| `carouselChipTopBarHeight` | idem | UC-05 | **Implementado polish chip** | `52` (barra shell) — altura na [CarouselNavigatorBar] |
 | `carouselChipMaxWidth` | idem | UC-05 | **Implementado polish chip** | `168` — referência de largura compacta na barra |
 | `carouselChipMetadataCompactWidth` | idem | UC-05 | **Implementado metadados médios** | `180` — abaixo: metadados só ícones + [Tooltip] |
 | `carouselChipMetadataMediumWidth` | idem | UC-05 | **Implementado metadados médios** | `280` — entre compact e medium: ícone + texto truncável para classificação **e** categoria; acima: classificação só texto, categoria ícone + texto |
