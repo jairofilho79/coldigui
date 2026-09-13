@@ -1332,4 +1332,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeColdigomOffline =>
       'No connection — the Coldigom catalog may be incomplete for this search.';
+
+  @override
+  String get favoriteMaterialKindsTitle => 'Favorite materials';
+
+  @override
+  String favoriteMaterialKindsHelp(int max) {
+    return 'Pick up to $max material types. They show first when you open a hymn.';
+  }
+
+  @override
+  String favoriteMaterialKindsYours(int count, int max) {
+    return 'Your favorites ($count of $max)';
+  }
+
+  @override
+  String get favoriteMaterialKindsEmpty => 'No favorites yet';
+
+  @override
+  String get favoriteMaterialKindsAdd => 'Add';
+
+  @override
+  String get favoriteMaterialKindsSearchHint => 'Search material type';
+
+  @override
+  String favoriteMaterialKindsLimitReached(int max) {
+    return 'Limit of $max — remove one to swap';
+  }
+
+  @override
+  String get favoriteMaterialKindsSignInPrompt =>
+      'Sign in with Google to pick your favorite materials.';
+
+  @override
+  String get favoriteMaterialKindsSyncPending => 'Sync pending';
+
+  @override
+  String get favoriteMaterialKindsRemoveTooltip => 'Remove from favorites';
+
+  @override
+  String get favoriteMaterialKindsAddTooltip => 'Add to favorites';
+
+  @override
+  String get favoriteMaterialKindsUnknownKind => 'Unknown';
+
+  @override
+  String get favoriteMaterialKindsLoadError => 'Couldn\'t load material types';
+
+  @override
+  String get favoriteMaterialKindsRetry => 'Try again';
+
+  @override
+  String get favoriteMaterialKindsNoMatch => 'No type with that name';
 }

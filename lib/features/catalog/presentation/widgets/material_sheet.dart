@@ -15,6 +15,8 @@ import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
+import '../../../material_kind_prefs/domain/usecases/order_by_favorite_kinds.dart';
+import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/utils/louvor_material_icons.dart';
@@ -221,6 +223,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final group = widget.group;
     final meta = group.coldigomMeta;
     final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
+    // Favoritos da conta (spec D9): sobem dentro de cada aba, o resto mantém
+    // a ordem do servidor. Vazio para deslogado e para o acervo PLPCG.
+    final rank = ref.watch(favoriteMaterialKindRankProvider);
 
     // As cifras do grupo já estão no cache Coldigom: quem monta o grupo
     // (busca/browse, detalhe do praise, catálogo em memória) as funde no data
@@ -298,16 +303,26 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
               child: ListView(
                 children: switch (selectedKind) {
                   null => const [],
-                  MaterialKind.pdf => _pdfTiles(group, activeMaterialIds, l10n),
+                  MaterialKind.pdf => _pdfTiles(
+                    group,
+                    activeMaterialIds,
+                    l10n,
+                    rank,
+                  ),
                   MaterialKind.chord => _chordTiles(
                     group,
                     availableChords,
                     chordsAsync.hasError,
                     activeMaterialIds,
                     l10n,
+                    rank,
                   ),
                   MaterialKind.gesture => [
-                    for (final gesture in gestureMaterials)
+                    for (final gesture in orderByFavoriteKinds(
+                      gestureMaterials,
+                      rank,
+                      kindIdOf: (g) => g.materialKindId,
+                    ))
                       _materialTile(
                         material: GestureMaterialRef(gesture),
                         iconColor: AppColors.title,
@@ -316,7 +331,11 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       ),
                   ],
                   MaterialKind.audio => [
-                    for (final track in audioTracks)
+                    for (final track in orderByFavoriteKinds(
+                      audioTracks,
+                      rank,
+                      kindIdOf: (t) => t.materialKindId,
+                    ))
                       _materialTile(
                         material: AudioMaterial(track),
                         iconColor: AppColors.title,
@@ -326,7 +345,11 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       ),
                   ],
                   MaterialKind.youtube => [
-                    for (final item in youtubeMaterials)
+                    for (final item in orderByFavoriteKinds(
+                      youtubeMaterials,
+                      rank,
+                      kindIdOf: (y) => y.materialKindId,
+                    ))
                       _materialTile(
                         material: YoutubeMaterialRef(item),
                         iconColor: AppColors.youtube,
@@ -336,8 +359,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                   ],
                   // `kinds` só emite os cinco acima; se um dia emitir outro,
                   // que falhe alto em vez de mostrar uma aba vazia.
-                  MaterialKind.unknown =>
-                    throw StateError('kind sem aba: $selectedKind'),
+                  MaterialKind.unknown => throw StateError(
+                    'kind sem aba: $selectedKind',
+                  ),
                 },
               ),
             ),
@@ -354,6 +378,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     LouvorGroup group,
     Set<String> activeMaterialIds,
     AppLocalizations l10n,
+    Map<String, int> rank,
   ) {
     final showSectionLabels = group.sections.length > 1;
     return [
@@ -364,7 +389,13 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                 ? l10n.pdfMaterialSection
                 : section.displayLabel,
           ),
-        for (final entry in section.materials)
+        // Favoritos sobem dentro da seção; o ícone depende da entry (não do
+        // material isolado), então quem é reordenado é a entry, não o PDF.
+        for (final entry in orderByFavoriteKinds(
+          section.materials,
+          rank,
+          kindIdOf: (e) => e.louvor.materialKindId,
+        ))
           _materialTile(
             material: PdfMaterial(entry.louvor),
             icon: LouvorMaterialIcons.forEntry(entry),
@@ -382,9 +413,14 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     bool hasError,
     Set<String> activeMaterialIds,
     AppLocalizations l10n,
+    Map<String, int> rank,
   ) {
     return [
-      for (final chord in availableChords)
+      for (final chord in orderByFavoriteKinds(
+        availableChords,
+        rank,
+        kindIdOf: (c) => c.materialKindId,
+      ))
         _materialTile(
           material: ChordMaterialRef(chord),
           iconColor: AppColors.title,

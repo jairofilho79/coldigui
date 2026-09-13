@@ -22,6 +22,7 @@ class Louvor {
     required this.searchContentTokens,
     required this.searchCompactContent,
     this.source = LouvorDataSource.plpcg,
+    this.materialKindId,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -57,6 +58,9 @@ class Louvor {
   /// Origem dos metadados — PLPCG ou coldigom.
   final LouvorDataSource source;
 
+  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  final String? materialKindId;
+
   /// `groupId` efetivo (manifest ou calculado).
   String get effectiveGroupId =>
       LouvorGroupId.effective(groupId: groupId, numero: numero, nome: nome);
@@ -73,6 +77,7 @@ class Louvor {
     required String pdfId,
     String groupId = '',
     LouvorDataSource source = LouvorDataSource.plpcg,
+    String? materialKindId,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -96,6 +101,7 @@ class Louvor {
       searchContentTokens: tokens.toList(),
       searchCompactContent: searchCompactContent,
       source: source,
+      materialKindId: materialKindId,
     );
   }
 }

@@ -2308,6 +2308,96 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.'**
   String get homeColdigomOffline;
+
+  /// No description provided for @favoriteMaterialKindsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais favoritos'**
+  String get favoriteMaterialKindsTitle;
+
+  /// No description provided for @favoriteMaterialKindsHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.'**
+  String favoriteMaterialKindsHelp(int max);
+
+  /// No description provided for @favoriteMaterialKindsYours.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus favoritos ({count} de {max})'**
+  String favoriteMaterialKindsYours(int count, int max);
+
+  /// No description provided for @favoriteMaterialKindsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum favorito ainda'**
+  String get favoriteMaterialKindsEmpty;
+
+  /// No description provided for @favoriteMaterialKindsAdd.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar'**
+  String get favoriteMaterialKindsAdd;
+
+  /// No description provided for @favoriteMaterialKindsSearchHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar tipo de material'**
+  String get favoriteMaterialKindsSearchHint;
+
+  /// No description provided for @favoriteMaterialKindsLimitReached.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite de {max} — remova um para trocar'**
+  String favoriteMaterialKindsLimitReached(int max);
+
+  /// No description provided for @favoriteMaterialKindsSignInPrompt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com Google para escolher seus materiais favoritos.'**
+  String get favoriteMaterialKindsSignInPrompt;
+
+  /// No description provided for @favoriteMaterialKindsSyncPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sincronização pendente'**
+  String get favoriteMaterialKindsSyncPending;
+
+  /// No description provided for @favoriteMaterialKindsRemoveTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover dos favoritos'**
+  String get favoriteMaterialKindsRemoveTooltip;
+
+  /// No description provided for @favoriteMaterialKindsAddTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar aos favoritos'**
+  String get favoriteMaterialKindsAddTooltip;
+
+  /// No description provided for @favoriteMaterialKindsUnknownKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desconhecido'**
+  String get favoriteMaterialKindsUnknownKind;
+
+  /// No description provided for @favoriteMaterialKindsLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os tipos de material'**
+  String get favoriteMaterialKindsLoadError;
+
+  /// No description provided for @favoriteMaterialKindsRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get favoriteMaterialKindsRetry;
+
+  /// No description provided for @favoriteMaterialKindsNoMatch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum tipo com esse nome'**
+  String get favoriteMaterialKindsNoMatch;
 }
 
 class _AppLocalizationsDelegate
