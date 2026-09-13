@@ -29,6 +29,7 @@ CANONICAL_FIELDS = (
     "pdf",
     "pdfId",
     "groupId",
+    "shortId",
 )
 
 
@@ -70,11 +71,15 @@ def build_insert(entry: dict) -> str:
     pdf = sql_escape(str(entry.get("pdf", "")))
     pdf_id = sql_escape(str(entry["pdfId"]))
     group_id = sql_escape(str(entry.get("groupId", "") or ""))
+    short_id = entry.get("shortId")
+    # shortId é string hex ("0000" é válido) — nunca int(); NULL quando o
+    # manifest ainda não traz o campo (o backfill da migration 0011 preenche).
+    short_id_sql = f"'{sql_escape(str(short_id))}'" if isinstance(short_id, str) and short_id else "NULL"
     return (
         f"INSERT OR REPLACE INTO louvores "
-        f"(pdf_id, nome, numero, classificacao, categoria, pdf, group_id) "
+        f"(pdf_id, nome, numero, classificacao, categoria, pdf, group_id, short_id) "
         f"VALUES ('{pdf_id}', '{nome}', '{numero}', '{classificacao}', "
-        f"'{categoria}', '{pdf}', '{group_id}');"
+        f"'{categoria}', '{pdf}', '{group_id}', {short_id_sql});"
     )
 
 

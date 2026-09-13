@@ -6,7 +6,7 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` incluído) |
+| `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` e `shortId` incluídos) |
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
 | `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, devolve perfil |
 | `PUT` | `/api/auth/username` | Bearer | Define username único (uma vez) |
@@ -58,3 +58,7 @@ Após deploy, validar:
 curl -s https://plpcg.com/api/catalog/checksum
 curl -s https://plpcg.com/api/catalog/louvores | jq 'length'  # 4627
 ```
+
+## Migrations e o D1 compartilhado
+
+O D1 `plpcg-catalog` também é usado pelo `plpcg-admin` (mesmo `database_id`). **Este Worker é o dono das migrations remotas** (`npm run db:migrate:remote`). O admin mantém em `worker/migrations/` só o que precisa para o D1 local dele; a `0011_add_louvores_short_id.sql` daqui tem um espelho lá (`0003_add_short_id.sql`) que **não** deve ser aplicado no remoto.
