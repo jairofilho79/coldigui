@@ -6,7 +6,8 @@ import 'package:go_router/go_router.dart';
 
 /// Spec D2 — em `/listas/publicas` a barra mostra a seta de voltar (mesmo
 /// padrão das rotas imersivas); em `/listas` não. Sub-páginas do Perfil
-/// (`/biblioteca`, `/offline`, `/sobre`) voltam para `/perfil`.
+/// (`/biblioteca`, `/offline`, `/sobre`, `/materiais-favoritos`) voltam para
+/// `/perfil`.
 void main() {
   Widget page(String label) =>
       Scaffold(appBar: const PlpcgPrimaryAppBar(), body: Text(label));
@@ -39,6 +40,10 @@ void main() {
         ),
         GoRoute(path: RoutePaths.offline, builder: (_, _) => page('Offline')),
         GoRoute(path: RoutePaths.about, builder: (_, _) => page('Sobre')),
+        GoRoute(
+          path: RoutePaths.favoriteMaterialKinds,
+          builder: (_, _) => page('Favoritos'),
+        ),
       ],
     );
   }
@@ -77,6 +82,7 @@ void main() {
     (RoutePaths.library, 'Biblioteca'),
     (RoutePaths.offline, 'Offline'),
     (RoutePaths.about, 'Sobre'),
+    (RoutePaths.favoriteMaterialKinds, 'Favoritos'),
   ]) {
     testWidgets('em $path a seta volta para /perfil', (tester) async {
       await pump(tester, path);

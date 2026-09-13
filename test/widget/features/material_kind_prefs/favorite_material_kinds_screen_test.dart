@@ -6,6 +6,7 @@ import 'package:coldigui/features/material_kind_prefs/data/datasources/material_
 import 'package:coldigui/features/material_kind_prefs/presentation/pages/favorite_material_kinds_screen.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/coldigom_material_kinds_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
+import 'package:coldigui/features/material_kind_prefs/presentation/widgets/material_kind_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,7 +104,10 @@ void main() {
   /// O `IconButton` de `+` na linha do kind [name]. `find.byTooltip` acharia
   /// o `Tooltip` interno, não o botão — por isso o predicado.
   Finder addButtonFor(String name) => find.descendant(
-    of: find.ancestor(of: find.text(name), matching: find.byType(ListTile)),
+    of: find.ancestor(
+      of: find.text(name),
+      matching: find.byType(MaterialKindCard),
+    ),
     matching: find.byWidgetPredicate(
       (w) => w is IconButton && w.tooltip == pt.favoriteMaterialKindsAddTooltip,
     ),
@@ -202,12 +206,17 @@ void main() {
     await tester.tap(addButtonFor('Coro'));
     await tester.pumpAndSettle();
 
-    // Handle do segundo item (Coro) arrastado para cima do primeiro.
+    // Handle do segundo item (Coro) arrastado até a posição do primeiro —
+    // pela distância real entre as alças, não por um delta fixo: o
+    // `SliverReorderableList` só troca quando o começo do proxy cai na
+    // metade de cima do item alvo (ou passa dele inteiro).
     final handles = find.byIcon(Icons.drag_handle);
     expect(handles, findsNWidgets(2));
-    final drag = await tester.startGesture(tester.getCenter(handles.at(1)));
+    final from = tester.getCenter(handles.at(1));
+    final to = tester.getCenter(handles.at(0));
+    final drag = await tester.startGesture(from);
     await tester.pump(const Duration(milliseconds: 600));
-    await drag.moveBy(const Offset(0, -120));
+    await drag.moveBy(to - from);
     await tester.pump();
     await drag.up();
     await tester.pumpAndSettle();

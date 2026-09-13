@@ -12,8 +12,8 @@ import 'plpcg_app_bar_title.dart';
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
 /// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
 /// Em `/leitor`, `/audio`, `/cifra`, `/gestos`, `/listas/publicas`,
-/// `/biblioteca`, `/offline` e `/sobre`, exibe voltar (pop → raiz da aba dona)
-/// para padronizar.
+/// `/biblioteca`, `/offline`, `/sobre` e `/materiais-favoritos`, exibe voltar
+/// (pop → raiz da aba dona) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const PlpcgPrimaryAppBar({super.key});
@@ -34,7 +34,8 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       RoutePaths.publicPlaylists => RoutePaths.playlists,
       RoutePaths.library ||
       RoutePaths.offline ||
-      RoutePaths.about => RoutePaths.profile,
+      RoutePaths.about ||
+      RoutePaths.favoriteMaterialKinds => RoutePaths.profile,
       _ => null,
     };
 
