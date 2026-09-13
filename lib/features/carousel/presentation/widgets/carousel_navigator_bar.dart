@@ -75,28 +75,19 @@ class CarouselNavigatorBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hasLouvorGroup = onOpen != null || swapMaterial != null;
-    // A barra é filha solta de um `Column` (sem `Expanded`, D2) — ambiente
-    // de altura infinita. O chip com setas usa `crossAxisAlignment.stretch`
-    // (D5) e precisa de uma altura finita vinda de fora para não quebrar.
-    final chipHeight = chipVariant == CarouselLouvorChipVariant.topBar
-        ? carouselChipTopBarHeight
-        : carouselChipBarHeight;
 
     return Row(
       children: [
         Flexible(
-          child: SizedBox(
-            height: chipHeight,
-            child: CarouselLouvorChip(
-              item: item,
-              variant: chipVariant,
-              showNavArrows: true,
-              canGoPrevious: canGoPrevious,
-              canGoNext: canGoNext,
-              onPrevious: loading ? null : onPrevious,
-              onNext: loading ? null : onNext,
-              onTap: loading ? null : onChipTap,
-            ),
+          child: CarouselLouvorChip(
+            item: item,
+            variant: chipVariant,
+            showNavArrows: true,
+            canGoPrevious: canGoPrevious,
+            canGoNext: canGoNext,
+            onPrevious: loading ? null : onPrevious,
+            onNext: loading ? null : onNext,
+            onTap: loading ? null : onChipTap,
           ),
         ),
         const SizedBox(width: 6),

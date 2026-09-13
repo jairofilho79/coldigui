@@ -285,11 +285,18 @@ class CarouselLouvorChip extends StatelessWidget {
 
     // Com setas o chip vira o próprio carrossel: as zonas ficam coladas nas
     // bordas do Container (por isso o clip e o padding zerado aqui, movido
-    // para dentro de `body`), e o corpo ganha altura mínima de toque (44).
+    // para dentro de `body`), e o corpo ganha altura mínima de toque (44) e
+    // um respiro lateral do tamanho das zonas (senão o texto nasce por
+    // baixo delas).
     final constrainedBody = showNavArrows
         ? ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
-            child: body,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: chipNavZoneWidth,
+              ),
+              child: body,
+            ),
           )
         : body;
 
@@ -302,27 +309,38 @@ class CarouselLouvorChip extends StatelessWidget {
       ),
       clipBehavior: showNavArrows ? Clip.antiAlias : Clip.none,
       padding: showNavArrows ? EdgeInsets.zero : padding,
-      // O `crossAxisAlignment.stretch` exige altura finita vinda de fora
-      // (quem monta o chip com `showNavArrows` — `CarouselNavigatorBar` — dá
-      // essa altura via `SizedBox`, porque a barra da lista ativa é filha
-      // solta de um `Column`, sem `Expanded` (D2), e propagaria altura
-      // infinita para as zonas de seta sem isso).
+      // `Stack`/`Positioned`, não `Row`+`stretch`: o corpo continua dono da
+      // própria altura (como sem setas) e as zonas só acompanham (`top: 0,
+      // bottom: 0`). Isso funciona tanto solto num `Column` sem `Expanded`
+      // (altura infinita, D2) quanto com o textScaler alto (o corpo cresce
+      // e as zonas crescem junto) — um `Row` com `stretch` exige altura
+      // finita vinda de fora, e uma altura fixa não cresce com o texto
+      // (estoura em textScaler alto).
       child: showNavArrows
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          ? Stack(
               children: [
-                ChipNavZone(
-                  icon: Icons.chevron_left,
-                  tooltip: l10n?.readerCarouselPrevious ?? 'Louvor anterior',
-                  enabled: canGoPrevious && onPrevious != null,
-                  onTap: onPrevious,
+                constrainedBody,
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: ChipNavZone(
+                    icon: Icons.chevron_left,
+                    tooltip: l10n?.readerCarouselPrevious ?? 'Louvor anterior',
+                    enabled: canGoPrevious && onPrevious != null,
+                    onTap: onPrevious,
+                  ),
                 ),
-                Expanded(child: constrainedBody),
-                ChipNavZone(
-                  icon: Icons.chevron_right,
-                  tooltip: l10n?.readerCarouselNext ?? 'Próximo louvor',
-                  enabled: canGoNext && onNext != null,
-                  onTap: onNext,
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: ChipNavZone(
+                    icon: Icons.chevron_right,
+                    tooltip: l10n?.readerCarouselNext ?? 'Próximo louvor',
+                    enabled: canGoNext && onNext != null,
+                    onTap: onNext,
+                  ),
                 ),
               ],
             )

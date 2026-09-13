@@ -119,4 +119,70 @@ void main() {
     expect(find.byTooltip('Abrir'), findsOneWidget);
     expect(find.byTooltip('Lista'), findsOneWidget);
   });
+
+  /// Monta a barra dentro de um `Column` sem `Expanded` — é assim que ela
+  /// chega no shell de verdade (D2): altura solta (potencialmente infinita),
+  /// diferente de um `Scaffold` sozinho, que já dá altura finita de graça.
+  Widget wrapInLooseColumn(
+    Widget child, {
+    required double width,
+    required double textScale,
+  }) => MediaQuery(
+    data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('pt'),
+      home: Scaffold(
+        body: SizedBox(width: width, child: Column(children: [child])),
+      ),
+    ),
+  );
+
+  testWidgets('topBar não estoura com textScaler elevado', (tester) async {
+    await tester.pumpWidget(
+      wrapInLooseColumn(
+        CarouselNavigatorBar(
+          item: _testItem,
+          canGoPrevious: true,
+          canGoNext: true,
+          onOpenSelection: () {},
+          onOpen: () {},
+        ),
+        width: 400,
+        textScale: 1.5,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Louvor B'), findsOneWidget);
+  });
+
+  testWidgets(
+    'barra larga (legendas ligadas) não estoura com textScaler elevado',
+    (tester) async {
+      // Largura ≥ `carouselBarLabelsMinWidth`: é onde a chip ganha fonte
+      // maior (linha de metadados não fica em modo compacto) — é essa
+      // combinação (barra larga + textScaler alto) que estourava a altura
+      // fixa do chip antes da correção (D5, `ChipNavZone` via `Stack`).
+      await tester.pumpWidget(
+        wrapInLooseColumn(
+          CarouselNavigatorBar(
+            item: _testItem,
+            canGoPrevious: true,
+            canGoNext: true,
+            onOpenSelection: () {},
+            onOpen: () {},
+          ),
+          width: 900,
+          textScale: 2,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('Louvor B'), findsOneWidget);
+    },
+  );
 }
