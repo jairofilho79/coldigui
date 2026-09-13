@@ -229,12 +229,6 @@ class _NavIcon extends StatelessWidget {
     // `Icon(Icons.xxx)` direto — tree-shake do Flutter Web só inclui esses usos.
     return switch (destination.icon) {
       Icons.event => Icon(Icons.event, color: color, size: size),
-      Icons.library_books => Icon(
-        Icons.library_books,
-        color: color,
-        size: size,
-      ),
-      Icons.groups => Icon(Icons.groups, color: color, size: size),
       Icons.person => Icon(Icons.person, color: color, size: size),
       Icons.playlist_play => Icon(
         Icons.playlist_play,

@@ -3,7 +3,8 @@
 ///
 /// [events]: aba «Eventos» (ainda placeholder — «Em breve»). `FF_EVENTS`,
 /// padrão `false`.
-/// [social]: aba Social. `FF_SOCIAL`, padrão `true`.
+/// [social]: Listas públicas (`/listas/publicas`, antiga aba Social) e o
+/// botão que abre essa tela em Listas. `FF_SOCIAL`, padrão `true`.
 /// [adminUpload]: UC-13, fora do MVP. `FF_ADMIN_UPLOAD`, padrão `false`.
 ///
 /// Consumida via `featureFlagsProvider` (`core/providers/feature_flags_provider.dart`)

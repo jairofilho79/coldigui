@@ -2111,10 +2111,16 @@ abstract class AppLocalizations {
   /// **'Não foi possível buscar. Tente novamente.'**
   String get socialSearchError;
 
+  /// No description provided for @publicPlaylistsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Listas públicas'**
+  String get publicPlaylistsTitle;
+
   /// No description provided for @socialSignInRequired.
   ///
   /// In pt, this message translates to:
-  /// **'Entre com o Google para explorar a aba Social.'**
+  /// **'Entre com o Google para explorar as listas públicas.'**
   String get socialSignInRequired;
 
   /// No description provided for @socialPlaylistCount.

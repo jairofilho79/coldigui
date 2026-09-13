@@ -5,7 +5,7 @@ abstract final class RoutePaths {
   /// Home — pesquisa UC-01/02 ([HomeScreen]).
   static const String home = '/';
 
-  /// Biblioteca paginada UC-03 ([LibraryScreen]).
+  /// Biblioteca paginada UC-03 ([LibraryScreen]) — branch Perfil.
   static const String library = '/biblioteca';
 
   /// Leitor PDF UC-11 — filha do [ShellRoute] com `parentNavigatorKey` fullscreen.
@@ -20,20 +20,25 @@ abstract final class RoutePaths {
   /// Reprodutor de áudio Coldigom — filha da branch Home (mesmo shell/carousel).
   static const String audio = '/audio';
 
-  /// Eventos — placeholder (índice 0 em [PlpcgBottomNavBar]).
+  /// Eventos — placeholder, primeira aba quando `FF_EVENTS` está ligada.
   static const String events = '/eventos';
 
-  /// Social — placeholder (índice 3 em [PlpcgBottomNavBar]).
+  /// Rota antiga da aba Social — só existe para o `redirect` do router
+  /// mandar links antigos para [publicPlaylists]. Nenhuma rota é registrada.
   static const String social = '/social';
 
-  /// Perfil — hub Sobre/Listas/Offline (índice 4 em [PlpcgBottomNavBar]).
+  /// Perfil — hub Biblioteca/Offline/Sobre (última aba).
   static const String profile = '/perfil';
 
   /// Offline UC-09/10 ([OfflineSettingsScreen]) — branch Perfil.
   static const String offline = '/offline';
 
-  /// Playlists UC-06/07 ([PlaylistsScreen]) — branch Perfil.
+  /// Playlists UC-06/07 ([PlaylistsScreen]) — raiz da aba Listas.
   static const String playlists = '/listas';
+
+  /// Listas públicas ([PublicPlaylistsScreen]) — sub-rota de [playlists],
+  /// registrada só com `FF_SOCIAL`.
+  static const String publicPlaylists = '/listas/publicas';
 
   /// Sobre UC-14 ([AboutScreen]) — branch Perfil.
   static const String about = '/sobre';

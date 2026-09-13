@@ -1205,7 +1205,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get socialSearchError => 'Search failed. Please try again.';
 
   @override
-  String get socialSignInRequired => 'Sign in with Google to explore Social.';
+  String get publicPlaylistsTitle => 'Public playlists';
+
+  @override
+  String get socialSignInRequired =>
+      'Sign in with Google to explore public playlists.';
 
   @override
   String socialPlaylistCount(int count) {

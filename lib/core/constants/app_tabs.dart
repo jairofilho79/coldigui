@@ -2,10 +2,12 @@ import 'feature_flags.dart';
 
 /// Abas do shell principal (UC-14), ordem fixa de exibição.
 ///
-/// [events] e [social] só aparecem quando a flag correspondente
-/// ([FeatureFlags.events]/[FeatureFlags.social]) está ligada — ver
-/// [appTabsFor]. [library], [home] e [profile] são sempre exibidas.
-enum AppTab { events, library, home, social, profile }
+/// [events] só aparece quando [FeatureFlags.events] está ligada — ver
+/// [appTabsFor]. [playlists], [home] e [profile] são sempre exibidas.
+///
+/// Biblioteca vive na branch Perfil e Listas públicas (a antiga aba Social)
+/// é sub-rota de Listas — nenhuma das duas é aba.
+enum AppTab { events, playlists, home, profile }
 
 /// Abas visíveis para [flags], na ordem fixa de [AppTab].
 ///
@@ -15,8 +17,7 @@ enum AppTab { events, library, home, social, profile }
 /// valor fixo.
 List<AppTab> appTabsFor(FeatureFlags flags) => [
   if (flags.events) AppTab.events,
-  AppTab.library,
+  AppTab.playlists,
   AppTab.home,
-  if (flags.social) AppTab.social,
   AppTab.profile,
 ];

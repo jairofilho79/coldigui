@@ -11,7 +11,7 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
 
-/// Hub do Perfil — login Google, Sobre, Listas e Offline.
+/// Hub do Perfil — login Google, Biblioteca, Offline e Sobre.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -65,21 +65,21 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             _ProfilePageTile(
-              icon: Icons.info_outline,
-              title: 'Sobre',
-              onTap: () => goToShellDestination(context, RoutePaths.about),
-            ),
-            const SizedBox(height: 10),
-            _ProfilePageTile(
-              icon: Icons.playlist_play,
-              title: 'Listas',
-              onTap: () => goToShellDestination(context, RoutePaths.playlists),
+              icon: Icons.library_books,
+              title: 'Biblioteca',
+              onTap: () => goToShellDestination(context, RoutePaths.library),
             ),
             const SizedBox(height: 10),
             _ProfilePageTile(
               icon: Icons.cloud_download,
               title: 'Offline',
               onTap: () => goToShellDestination(context, RoutePaths.offline),
+            ),
+            const SizedBox(height: 10),
+            _ProfilePageTile(
+              icon: Icons.info_outline,
+              title: 'Sobre',
+              onTap: () => goToShellDestination(context, RoutePaths.about),
             ),
           ],
         ),
