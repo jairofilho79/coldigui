@@ -33,6 +33,7 @@ test('PUT cria com version 1 e GET devolve o documento', async () => {
   ).json()) as MaterialKindPrefsJson;
   assert.deepEqual(created, {
     kindIds: ['k1', 'k2'],
+    preferredTypes: {},
     updatedAt: '2026-09-02T10:00:00.000Z',
     version: 1,
   });
@@ -55,6 +56,7 @@ test('PUT mais novo sobrescreve e incrementa version', async () => {
   ).json()) as MaterialKindPrefsJson;
   assert.deepEqual(updated, {
     kindIds: ['k9'],
+    preferredTypes: {},
     updatedAt: '2026-09-03T10:00:00.000Z',
     version: 2,
   });
@@ -76,6 +78,7 @@ test('PUT mais velho devolve 409 com o documento remoto', async () => {
   const remote = (await response.json()) as MaterialKindPrefsJson;
   assert.deepEqual(remote, {
     kindIds: ['remoto'],
+    preferredTypes: {},
     updatedAt: '2026-09-05T10:00:00.000Z',
     version: 3,
   });
@@ -126,4 +129,47 @@ test('lista vazia é aceita — "sem favoritos" não é tombstone', async () => 
   );
   assert.equal(response.status, 200);
   assert.deepEqual(((await response.json()) as MaterialKindPrefsJson).kindIds, []);
+});
+
+test('PUT sem preferredTypes grava {} e GET devolve {}', async () => {
+  const db = new FakeD1Database();
+  const created = (await (
+    await putMaterialKindPrefs(fakeDb(db), claims, putRequest({}))
+  ).json()) as MaterialKindPrefsJson;
+  assert.deepEqual(created.preferredTypes, {});
+
+  const fetched = (await (
+    await getMaterialKindPrefs(fakeDb(db), claims)
+  ).json()) as MaterialKindPrefsJson;
+  assert.deepEqual(fetched.preferredTypes, {});
+});
+
+test('PUT grava e GET devolve o material type preferido por kind', async () => {
+  const db = new FakeD1Database();
+  const created = (await (
+    await putMaterialKindPrefs(
+      fakeDb(db),
+      claims,
+      putRequest({ preferredTypes: { k1: 'chord' } }),
+    )
+  ).json()) as MaterialKindPrefsJson;
+  assert.deepEqual(created.preferredTypes, { k1: 'chord' });
+
+  const fetched = (await (
+    await getMaterialKindPrefs(fakeDb(db), claims)
+  ).json()) as MaterialKindPrefsJson;
+  assert.deepEqual(fetched.preferredTypes, { k1: 'chord' });
+});
+
+test('PUT rejeita preferredTypes não-objeto e com valor não-string', async () => {
+  const db = new FakeD1Database();
+  const cases: Array<Record<string, unknown>> = [
+    { preferredTypes: ['chord'] },
+    { preferredTypes: { k1: 1 } },
+    { preferredTypes: 'chord' },
+  ];
+  for (const body of cases) {
+    const response = await putMaterialKindPrefs(fakeDb(db), claims, putRequest(body));
+    assert.equal(response.status, 400, JSON.stringify(body));
+  }
 });
