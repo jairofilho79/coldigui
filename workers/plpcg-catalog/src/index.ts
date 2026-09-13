@@ -31,31 +31,12 @@ import {
 } from './links/handlers';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
+import { LOUVOR_SELECT_COLUMNS, mapRow, type LouvorRow } from './catalog/louvor_row';
 
 export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID_WEB: string;
   COLDIGOM_API_BASE_URL?: string;
-}
-
-interface LouvorRow {
-  nome: string;
-  numero: string;
-  classificacao: string;
-  categoria: string;
-  pdf: string;
-  pdf_id: string;
-  group_id: string;
-}
-
-interface LouvorJson {
-  nome: string;
-  numero: string;
-  classificacao: string;
-  categoria: string;
-  pdf: string;
-  pdfId: string;
-  groupId: string;
 }
 
 type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social' | 'links';
@@ -178,18 +159,6 @@ function textResponse(body: string, init: ResponseInit = {}): Response {
   return new Response(body, { ...init, headers });
 }
 
-function mapRow(row: LouvorRow): LouvorJson {
-  return {
-    nome: row.nome,
-    numero: row.numero,
-    classificacao: row.classificacao,
-    categoria: row.categoria,
-    pdf: row.pdf,
-    pdfId: row.pdf_id,
-    groupId: row.group_id,
-  };
-}
-
 /** Checksum SHA-256 do catálogo em `catalog_meta`; `null` se não configurado. */
 async function readChecksum(db: D1Database): Promise<string | null> {
   const row = await db
@@ -228,7 +197,7 @@ async function fetchLouvores(
 
   const result = await db
     .prepare(
-      `SELECT nome, numero, classificacao, categoria, pdf, pdf_id, group_id
+      `SELECT ${LOUVOR_SELECT_COLUMNS}
        FROM louvores
        ORDER BY numero, nome`,
     )
