@@ -1,3 +1,4 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/library/domain/entities/library_catalog_mode.dart';
@@ -7,11 +8,26 @@ import 'package:coldigui/features/library/presentation/providers/library_special
 import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('trocar para coldigom limpa filtros PLPCG e reseta página', () {
-    final container = ProviderContainer();
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
+  ProviderContainer createContainer() {
+    final container = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
     addTearDown(container.dispose);
+    return container;
+  }
+
+  test('trocar para coldigom limpa filtros PLPCG e reseta página', () {
+    final container = createContainer();
 
     container.read(catalogFiltersProvider.notifier).toggleArranjo('ColAdultos');
     container
@@ -42,8 +58,7 @@ void main() {
   });
 
   test('trocar para plpcg limpa filtros coldigom', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
+    final container = createContainer();
 
     container
         .read(libraryCatalogModeProvider.notifier)

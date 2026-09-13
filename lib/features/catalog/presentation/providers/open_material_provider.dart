@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/platform/platform_capabilities.dart';
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../audio_player/presentation/utils/active_list_audio_queue.dart';
 import '../../../audio_player/presentation/utils/open_audio_in_player.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
@@ -12,12 +15,17 @@ import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../offline/presentation/utils/pdf_offline_error_ui.dart';
-import '../../../pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/youtube_material.dart';
 import '../utils/open_louvor_in_reader.dart';
 import '../utils/open_youtube_material.dart';
+import 'material_open_failure.dart';
+
+/// [classifyMaterialOpenFailure] mudou de arquivo para quebrar o ciclo de
+/// imports (ver `material_open_failure.dart`); quem já importava daqui continua
+/// enxergando a escada.
+export 'material_open_failure.dart';
 
 /// Abre um PDF no leitor interno (`openLouvorInReader` em produção).
 typedef PdfMaterialOpener =
@@ -57,7 +65,16 @@ typedef AudioMaterialOpener =
     });
 
 /// Abre o YouTube externo; `false` quando a URL é inválida ou o launch falha.
-typedef YoutubeMaterialOpener = Future<bool> Function(YoutubeMaterial material);
+///
+/// [capabilities] é lida de `platformCapabilitiesProvider` por [OpenMaterial]
+/// (ref-bearing) e passada para dentro — o opener de produção
+/// (`openYoutubeMaterial`) não lê o provider nem `currentPlatformCapabilities`
+/// direto (T2, Global Constraint).
+typedef YoutubeMaterialOpener =
+    Future<bool> Function(
+      YoutubeMaterial material, {
+      required PlatformCapabilities capabilities,
+    });
 
 /// Ponto único de abertura de material do app.
 ///
@@ -85,8 +102,9 @@ class OpenMaterial {
   /// Abre [material] pelo caminho do seu [CatalogMaterial.kind].
   ///
   /// [audioQueue] só vale para [AudioMaterial]: é a fila em que a faixa toca.
-  /// Quem tem o grupo passa `group.audioTracks`; sem isso o player pararia no
-  /// fim do arranjo tocado.
+  /// Quem tem o grupo passa `group.audioTracks`; sem isso a fila sai de
+  /// [queueForTrack] sobre a lista ativa (D4) — faixa da reunião toca a
+  /// reunião, faixa de fora toca sozinha.
   ///
   /// Falhas viram snackbar por [presentMaterialOpenError] — a escada de
   /// exceções de abertura vive num lugar só.
@@ -110,10 +128,23 @@ class OpenMaterial {
             ref: ref,
             context: context,
             track: track,
-            queue: audioQueue,
+            // Sem fila do chamador, a reunião decide (D4): a faixa que já está
+            // na lista ativa toca na lista inteira; a de fora toca sozinha,
+            // como antes.
+            queue:
+                audioQueue ??
+                queueForTrack(
+                  track: track,
+                  groupTracks: [track],
+                  activeQueue: activeListAudioQueue(ref),
+                ),
           );
         case YoutubeMaterialRef(:final material):
-          final opened = await openYoutube(material);
+          final capabilities = ref.read(platformCapabilitiesProvider);
+          final opened = await openYoutube(
+            material,
+            capabilities: capabilities,
+          );
           if (!opened && context.mounted) {
             showAppSnackbar(
               context,
@@ -131,70 +162,6 @@ class OpenMaterial {
 final openMaterialProvider = Provider<OpenMaterial>(
   (ref) => const OpenMaterial(),
 );
-
-/// Falha de abertura já classificada pela escada única.
-///
-/// [message] é a mensagem própria da exceção — `null` quando o erro não tem uma
-/// e a tela deve mostrar o texto genérico. [stage] é o rótulo usado nos logs de
-/// diagnóstico da playlist; [logWithStack] diz se o log deve levar o stack
-/// trace (falhas de I/O) ou só o detalhe.
-class MaterialOpenFailure {
-  const MaterialOpenFailure({
-    required this.stage,
-    required this.message,
-    required this.logWithStack,
-  });
-
-  final String stage;
-  final String? message;
-  final bool logWithStack;
-}
-
-/// Escada única de exceções de abertura de material.
-///
-/// Mesma ordem que vivia duplicada em `openCarouselPdfInReader` e em
-/// `PlaylistListTile._openPdfInReader`. [genericStage] nomeia o caso final nos
-/// logs de quem chama.
-MaterialOpenFailure classifyMaterialOpenFailure(
-  Object error, {
-  String genericStage = 'abrir material',
-}) {
-  return switch (error) {
-    InvalidPdfPathException() => const MaterialOpenFailure(
-      stage: 'caminho PDF inválido',
-      message: null,
-      logWithStack: true,
-    ),
-    PdfOfflineUnavailableException(:final message) => MaterialOpenFailure(
-      stage: 'PDF offline indisponível',
-      message: message,
-      logWithStack: false,
-    ),
-    // Sem `message`: as duas exceções abaixo não carregam mais literal PT, e o
-    // texto sai de `userMessageFor` (chaves `pdfExternallyDeleted` /
-    // `pdfLocalCorrupted`). O `stage` continua nomeando o caso nos logs.
-    PdfExternallyDeletedException() => const MaterialOpenFailure(
-      stage: 'PDF removido externamente',
-      message: null,
-      logWithStack: false,
-    ),
-    PdfLocalCorruptedException() => const MaterialOpenFailure(
-      stage: 'PDF local corrompido',
-      message: null,
-      logWithStack: false,
-    ),
-    PdfFetchFailedException(:final message) => MaterialOpenFailure(
-      stage: 'falha ao baixar PDF',
-      message: message,
-      logWithStack: true,
-    ),
-    _ => MaterialOpenFailure(
-      stage: genericStage,
-      message: null,
-      logWithStack: true,
-    ),
-  };
-}
 
 /// Mostra a snackbar da falha [error] ao abrir material.
 ///

@@ -1,6 +1,9 @@
 // test/widget/features/catalog/open_material_provider_test.dart
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/platform/platform_capabilities.dart';
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
@@ -13,6 +16,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _louvor = Louvor.fromManifest(
@@ -62,6 +66,7 @@ class _OpenerSpy {
   bool youtubeResult = true;
   Object? pdfError;
   List<AudioTrack>? audioQueue;
+  PlatformCapabilities? receivedYoutubeCapabilities;
 
   OpenMaterial build() {
     return OpenMaterial(
@@ -83,8 +88,9 @@ class _OpenerSpy {
             calls.add('audio:${track.audioId}');
             audioQueue = queue;
           },
-      openYoutube: (material) async {
+      openYoutube: (material, {required capabilities}) async {
         calls.add('youtube:${material.id}');
+        receivedYoutubeCapabilities = capabilities;
         return youtubeResult;
       },
     );
@@ -93,13 +99,22 @@ class _OpenerSpy {
 
 /// Monta um app mínimo e devolve `open(context, ref, material)` pronto.
 Future<Future<void> Function(CatalogMaterial, {List<AudioTrack>? audioQueue})>
-_mount(WidgetTester tester, OpenMaterial opener) async {
+_mount(
+  WidgetTester tester,
+  OpenMaterial opener, {
+  List<Override> extraOverrides = const [],
+}) async {
   late Future<void> Function(CatalogMaterial, {List<AudioTrack>? audioQueue})
   open;
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [openMaterialProvider.overrideWithValue(opener)],
+      overrides: [
+        openMaterialProvider.overrideWithValue(opener),
+        // Lista ativa sem áudio: a fila padrão (D4) cai na própria faixa.
+        audioFaceItemsProvider.overrideWithValue(const []),
+        ...extraOverrides,
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -146,8 +161,9 @@ void main() {
       await open(const AudioMaterial(_track));
 
       expect(spy.calls, ['audio:audio1']);
-      // Sem fila explícita o opener não inventa uma — quem tem o grupo passa.
-      expect(spy.audioQueue, isNull);
+      // Sem fila explícita e com a faixa fora da lista ativa (vazia aqui), a
+      // fila é só a faixa (D4) — quem tem o grupo passa a do grupo.
+      expect(spy.audioQueue, const [_track]);
     });
 
     testWidgets('AudioMaterial repassa a fila de quem tem o grupo', (
@@ -183,6 +199,27 @@ void main() {
       expect(spy.calls, ['youtube:yt1']);
       expect(find.byType(SnackBar), findsNothing);
     });
+
+    testWidgets(
+      'YoutubeMaterialRef repassa platformCapabilitiesProvider ao opener '
+      '(T2 — sem currentPlatformCapabilities() direto na presentation)',
+      (tester) async {
+        final spy = _OpenerSpy();
+        final open = await _mount(
+          tester,
+          spy.build(),
+          extraOverrides: [
+            platformCapabilitiesProvider.overrideWithValue(
+              PlatformCapabilities.web,
+            ),
+          ],
+        );
+
+        await open(const YoutubeMaterialRef(_youtube));
+
+        expect(spy.receivedYoutubeCapabilities, PlatformCapabilities.web);
+      },
+    );
 
     testWidgets('YouTube que não abre mostra aviso', (tester) async {
       final spy = _OpenerSpy()..youtubeResult = false;

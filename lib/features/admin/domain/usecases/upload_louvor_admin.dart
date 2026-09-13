@@ -1,5 +1,8 @@
 /// UC-13 — Upload admin de louvor (fora do MVP)
-@Deprecated('UC-13 fora do MVP — FeatureFlags.enableAdminUpload=false')
+@Deprecated(
+  'UC-13 fora do MVP — featureFlagsProvider.adminUpload=false por padrão '
+  '(FF_ADMIN_UPLOAD)',
+)
 class UploadLouvorAdmin {
   const UploadLouvorAdmin();
 

@@ -1,4 +1,5 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,7 +17,7 @@ void main() {
       ),
     ];
 
-    final results = search(catalog, '100');
+    final results = search.callIndexed(PlpcgSearchIndex.build(catalog), '100');
 
     expect(results, hasLength(1));
     expect(results.first.pdfId, 'test-id');

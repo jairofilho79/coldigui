@@ -3,13 +3,15 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/active_entry.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -26,11 +28,17 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     ref.watch(audioFlagSyncProvider);
-    final cache = ref.watch(coldigomAudioTracksCacheProvider);
-    final tracks = [
-      for (final id in playlist.audioIds)
-        if (cache[id] != null) cache[id]!,
+    final lookup = ref.watch(catalogMaterialLookupProvider);
+    // Linhas da face de áudio com a posição na ordem única: o «×» remove
+    // **aquela** ocorrência (B.1). Ids sem faixa em cache ficam de fora, como
+    // em `tracksFor`, sem perder a posição das que ficam.
+    final rows = <_AudioRow>[
+      for (final entry in activeEntriesOf(playlist.entries))
+        if (entry.isAudio)
+          if (lookup.audioTrack(entry.id) case final track?)
+            _AudioRow(entry: entry, track: track),
     ];
+    final tracks = [for (final row in rows) row.track];
     final session = ref.watch(audioPlayerSessionProvider);
     // A posição mora num provider à parte (A7).
     final positionState = ref.watch(audioPlayerPositionProvider);
@@ -114,8 +122,11 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
             AudioTransportControls(
               playing: currentInPlaylist && session.playing,
               buffering: currentInPlaylist && session.buffering,
-              hasPrevious: true,
-              hasNext: tracks.length > 1,
+              // A sessão é quem sabe onde a fila está: hard-codar `true`
+              // deixava "anterior" aceso na primeira faixa. Sem sessão nesta
+              // lista, os controles começam do início (índice 0).
+              hasPrevious: currentInPlaylist && session.hasPrevious,
+              hasNext: currentInPlaylist ? session.hasNext : tracks.length > 1,
               onLightBackground: true,
               onPrevious: () {
                 if (currentInPlaylist) {
@@ -170,9 +181,9 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
                   onPressed: () {
                     ref
                         .read(playlistsProvider.notifier)
-                        .removeAudio(
+                        .removeEntryAt(
                           playlistId: playlist.playlistId,
-                          audioId: tracks[i].audioId,
+                          index: rows[i].entry.index,
                         );
                   },
                   icon: const Icon(Icons.close, color: AppColors.title),
@@ -193,12 +204,38 @@ class PlaylistAudioFacePanel extends ConsumerWidget {
     int index,
   ) async {
     if (tracks.isEmpty) return;
+    final track = tracks[index];
+    // D4: a fila é a reunião quando a faixa já está nela — tocar daqui emenda
+    // no próximo louvor da lista ativa em vez de parar no fim desta lista.
+    final queue = queueForTrack(
+      track: track,
+      groupTracks: tracks,
+      activeQueue: activeListAudioQueue(ref),
+    );
+    // Mesma sequência (esta lista **é** a ativa): o índice tocado vale — e
+    // distingue duas ocorrências do mesmo áudio. Fila diferente: pelo id.
     await openAudioInPlayer(
       ref: ref,
       context: context,
-      track: tracks[index],
-      queue: tracks,
-      startIndex: index,
+      track: track,
+      queue: queue,
+      startIndex: _sameSequence(queue, tracks) ? index : null,
     );
   }
+
+  static bool _sameSequence(List<AudioTrack> a, List<AudioTrack> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].audioId != b[i].audioId) return false;
+    }
+    return true;
+  }
+}
+
+/// Uma linha do painel: a entrada (com posição na ordem única) e a faixa.
+class _AudioRow {
+  const _AudioRow({required this.entry, required this.track});
+
+  final ActiveEntry entry;
+  final AudioTrack track;
 }

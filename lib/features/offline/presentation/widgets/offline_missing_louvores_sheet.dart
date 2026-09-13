@@ -57,8 +57,8 @@ class OfflineMissingLouvoresSheetBody extends ConsumerWidget {
 
   CarouselItem _toCarouselItem(Louvor louvor) {
     return CarouselItem(
-      pdfId: louvor.pdfId,
-      sortOrder: 0,
+      materialId: louvor.pdfId,
+      index: 0,
       numero: louvor.numero,
       nome: louvor.nome,
       categoria: louvor.categoria,

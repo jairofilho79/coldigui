@@ -249,9 +249,19 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   @override
   Future<void> clearAll() => _local.clearAll();
 
-  /// Bytes reais no store (OPFS na web; filesystem no nativo) — quota LRU on-demand.
+  /// Soma [OfflinePdfIndex.fileSize] do índice Isar — quota LRU on-demand
+  /// (A6). Antes escaneava o store (OPFS na web; filesystem no nativo), até
+  /// 3× por download; agora é O(1) sobre o índice, sem tocar o storage.
+  /// `PdfStoragePort.getTotalOfflineBytes` continua sendo usado para
+  /// estatísticas exibidas (`get_offline_stats_by_category`) e reconcile,
+  /// onde o scan real do disco é o ponto.
+  ///
+  /// Com Isar indisponível, [OfflinePdfLocalDatasource.sumFileSizes] devolve
+  /// `0` silenciosamente — a quota calculada fica zerada e nada é desalojado
+  /// (direção segura: subestimar o uso nunca libera espaço além do
+  /// necessário, só menos do que deveria).
   @override
-  Future<int> totalCachedBytes() => _store.getTotalOfflineBytes();
+  Future<int> totalCachedBytes() => _local.sumFileSizes();
 
   @override
   Future<void> flushPendingTouchLastAccessed() async {

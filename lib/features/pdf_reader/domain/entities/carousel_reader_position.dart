@@ -1,34 +1,48 @@
-/// Posição do louvor atual dentro do carousel no leitor (UC-11, Fase 4.7).
+/// Posição do item corrente dentro da face de partituras, vista do leitor.
 ///
-/// [previousPdfId] e [nextPdfId] são `null` nas extremidades — sem wrap circular.
-/// Consumida por [readerCarouselPositionProvider] e [CarouselChips] no modo leitor.
+/// Depois do D3 a seleção admite o mesmo louvor repetido, então "onde estou"
+/// deixou de ser respondível só pelo id: a identidade de uma entrada é a
+/// [currentKey] (a chave por ocorrência de `ActiveEntry`). Os vizinhos vêm em
+/// par — [previousKey]/[nextKey] dizem **qual ocorrência** focar e
+/// [previousMaterialId]/[nextMaterialId] dizem **o que abrir** na rota.
+///
+/// Sem wrap circular: as extremidades dão `null` nos dois lados.
 class CarouselReaderPosition {
   const CarouselReaderPosition({
     required this.currentIndex,
     required this.total,
-    this.previousPdfId,
-    this.nextPdfId,
+    required this.currentKey,
+    this.previousKey,
+    this.nextKey,
+    this.previousMaterialId,
+    this.nextMaterialId,
   });
 
-  /// Índice 1-based na seleção ordenada.
+  /// Índice 1-based na face de partituras da lista ativa.
   final int currentIndex;
 
-  /// Total de itens no carousel.
+  /// Total de itens na face de partituras.
   final int total;
 
-  /// PDF anterior ou `null` no primeiro item.
-  final String? previousPdfId;
+  /// Chave da ocorrência corrente (`id`, `id#1`, …).
+  final String currentKey;
 
-  /// Próximo PDF ou `null` no último item.
-  final String? nextPdfId;
+  /// Chave da ocorrência anterior, ou `null` no primeiro item.
+  final String? previousKey;
 
-  bool get canGoPrevious => previousPdfId != null;
+  /// Chave da próxima ocorrência, ou `null` no último item.
+  final String? nextKey;
 
-  bool get canGoNext => nextPdfId != null;
+  /// Material anterior ou `null` no primeiro item.
+  final String? previousMaterialId;
+
+  /// Próximo material ou `null` no último item.
+  final String? nextMaterialId;
+
+  bool get canGoPrevious => previousMaterialId != null;
+
+  bool get canGoNext => nextMaterialId != null;
 }
 
 /// Direção de navegação no carousel do leitor.
-enum CarouselReaderDirection {
-  previous,
-  next,
-}
+enum CarouselReaderDirection { previous, next }

@@ -5,13 +5,12 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/domain/entities/carousel_item.dart';
-import '../../../carousel/presentation/utils/build_carousel_metadata_map.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../playlists/domain/exceptions/empty_carousel_exception.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../playlists/domain/entities/playlist_entry.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../data/providers/leaflet_providers.dart';
 import '../../domain/entities/leaflet_document.dart';
+import '../../domain/exceptions/empty_leaflet_exception.dart';
 import '../utils/leaflet_capture.dart';
 import '../utils/leaflet_debug_log.dart';
 import '../widgets/leaflet_content_labels.dart';
@@ -32,7 +31,7 @@ class LeafletActionsNotifier extends Notifier<void> {
 
   /// Gera PNG da seleção atual e abre share sheet nativo.
   ///
-  /// Retorna `false` se seleção vazia ([EmptyCarouselException] → snackbar
+  /// Retorna `false` se seleção vazia ([EmptyLeafletException] → snackbar
   /// `playlistEmptyCarousel`) ou falha na captura/share (`leafletGenerateFailed`).
   Future<bool> generateAndShare(
     BuildContext context, {
@@ -45,12 +44,14 @@ class LeafletActionsNotifier extends Notifier<void> {
 
     try {
       leafletDebugLog('generateAndShare: início');
-      final metadata = buildCarouselMetadataMap(
-        plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
-        coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-      );
-      final document = await ref.read(generateLeafletFromSelectionProvider)(
-        pdfIdToMetadata: metadata,
+      final entries = ref
+          .read(activeEntriesProvider)
+          .map((activeEntry) => activeEntry.entry)
+          .toList(growable: false);
+      final document = await resolveLeafletDocument(
+        ref,
+        entries: entries,
+        fromCarousel: true,
       );
       final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
 
@@ -69,7 +70,7 @@ class LeafletActionsNotifier extends Notifier<void> {
         sharePositionOrigin: shareOrigin,
       );
       return true;
-    } on EmptyCarouselException catch (error, stackTrace) {
+    } on EmptyLeafletException catch (error, stackTrace) {
       leafletDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -113,21 +114,34 @@ Future<void> _defaultShareXFiles(
   );
 }
 
-/// Resolve [LeafletDocument] para carousel ou playlist salva.
+/// Rótulos do folheto pelo [lookup] — cifra antes de PDF, áudio por último,
+/// como nos chips.
+///
+/// O folheto (domain) não conhece o lookup (presentation); esta é a ponte.
+LeafletLabelOf leafletLabelOf(CatalogMaterialLookup lookup) {
+  return (materialId) {
+    final chord = lookup.chord(materialId);
+    if (chord != null) return (numero: chord.numero, nome: chord.nome);
+    final louvor = lookup.louvor(materialId);
+    if (louvor != null) return (numero: louvor.numero, nome: louvor.nome);
+    final audioTrack = lookup.audioTrack(materialId);
+    if (audioTrack != null) {
+      return (numero: audioTrack.numero, nome: audioTrack.nome);
+    }
+    return null;
+  };
+}
+
+/// Resolve [LeafletDocument] para [entries] — playlist salva ou seleção ativa
+/// ([fromCarousel]), já unificadas por quem chama (D8: inclui áudio).
 Future<LeafletDocument> resolveLeafletDocument(
   Ref ref, {
-  required List<String> pdfIds,
+  required List<PlaylistEntry> entries,
   required bool fromCarousel,
-  required Map<String, CarouselItemMetadata> metadata,
 }) async {
-  if (fromCarousel) {
-    return ref.read(generateLeafletFromSelectionProvider)(
-      pdfIdToMetadata: metadata,
-    );
-  }
-  return ref.read(generateLeafletFromPdfIdsProvider)(
-    pdfIds: pdfIds,
-    pdfIdToMetadata: metadata,
+  return ref.read(generateLeafletFromEntriesProvider)(
+    entries: entries,
+    now: DateTime.now(),
   );
 }
 

@@ -1,13 +1,15 @@
 import 'dart:async';
 
-import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
+import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -46,12 +48,18 @@ int audioQueueStartIndex({
 }
 
 /// Inicia playback na sessão global sem navegar (gesto iOS no mesmo tap).
-Future<void> playAudioInSession({
+///
+/// Devolve o desfecho da entrada na lista ativa. Tocar não depende do storage
+/// (o áudio vem da rede): sem Isar a faixa toca e o resultado é
+/// [AddToActiveOutcome.storageUnavailable] — quem tem `BuildContext`
+/// ([openAudioInPlayer]) o traduz em snackbar. Nada é pré-julgado no toque
+/// (A8): a decisão é do editor, não de `isarAvailableProvider`.
+Future<AddToActiveOutcome> playAudioInSession({
   required WidgetRef ref,
   required AudioTrack track,
   List<AudioTrack>? queue,
   int? startIndex,
-}) {
+}) async {
   final tracks = queue == null || queue.isEmpty ? [track] : queue;
   final index = audioQueueStartIndex(
     tracks: tracks,
@@ -64,23 +72,21 @@ Future<void> playAudioInSession({
         .read(playlistMediaFaceProvider.notifier)
         .setFace(PlaylistMediaFace.audio),
   );
-  // Mesma porteira de `addMaterialToActivePlaylist`: sem Isar a escrita na
-  // lista ativa não tem para onde ir, e aqui ela sai de um future não
-  // aguardado — falhar viraria erro assíncrono sem nenhum retorno. Tocar
-  // continua valendo (o áudio vem da rede).
-  if (ref.read(isarAvailableProvider)) {
-    unawaited(
-      ref
-          .read(playlistsProvider.notifier)
-          .addAudioToActivePlaylist(track.audioId),
-    );
-  }
-  return ref
+  // Os dois começam no mesmo tick: `playQueue` precisa sair do gesto (iOS), e
+  // `addToActive` nunca lança por falta de storage — devolve o desfecho.
+  final add = ref
+      .read(activePlaylistEditorProvider.notifier)
+      .addToActive(track.audioId, kind: MaterialKind.audio);
+  await ref
       .read(audioPlayerSessionProvider.notifier)
       .playQueue(tracks, startIndex: index);
+  return add;
 }
 
 /// Abre a rota `/audio` e inicia a faixa (ou fila) na sessão global.
+///
+/// Sem storage a faixa toca e a rota abre normalmente; só a lista ativa não
+/// gravou, e é isso que a snackbar diz.
 Future<void> openAudioInPlayer({
   required WidgetRef ref,
   required BuildContext context,
@@ -98,5 +104,11 @@ Future<void> openAudioInPlayer({
   if (pushRoute) {
     pushAudioPlayerRoute(context, track);
   }
-  await play;
+  final outcome = await play;
+  if (outcome != AddToActiveOutcome.storageUnavailable) return;
+  if (!context.mounted) return;
+  showAppSnackbar(
+    context,
+    AppLocalizations.of(context)!.playlistStorageUnavailable,
+  );
 }

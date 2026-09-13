@@ -15,6 +15,10 @@ class AudioTransportControls extends StatelessWidget {
     required this.pauseTooltip,
     required this.previousTooltip,
     required this.nextTooltip,
+    this.onSeekBack10,
+    this.onSeekForward10,
+    this.seekBack10Tooltip,
+    this.seekForward10Tooltip,
     this.onLightBackground = false,
     this.compact = false,
     super.key,
@@ -31,6 +35,13 @@ class AudioTransportControls extends StatelessWidget {
   final String pauseTooltip;
   final String previousTooltip;
   final String nextTooltip;
+
+  /// «−10 s» / «+10 s» (C12) — `null` esconde o botão correspondente. Quem
+  /// não passa (ex.: a barra compacta do shell) mantém só prev/play/next.
+  final VoidCallback? onSeekBack10;
+  final VoidCallback? onSeekForward10;
+  final String? seekBack10Tooltip;
+  final String? seekForward10Tooltip;
 
   /// Fundo creme/card → [AppColors.title]; fundo escuro → [AppColors.textLight].
   final bool onLightBackground;
@@ -95,17 +106,50 @@ class AudioTransportControls extends StatelessWidget {
       ),
       icon: const Icon(Icons.skip_next),
     );
+    final seekBack10 = onSeekBack10 == null
+        ? null
+        : IconButton(
+            tooltip: seekBack10Tooltip,
+            onPressed: onSeekBack10,
+            iconSize: skipSize,
+            style: IconButton.styleFrom(
+              foregroundColor: fg,
+              disabledForegroundColor: fg.withValues(alpha: 0.3),
+            ),
+            icon: const Icon(Icons.replay_10),
+          );
+    final seekForward10 = onSeekForward10 == null
+        ? null
+        : IconButton(
+            tooltip: seekForward10Tooltip,
+            onPressed: onSeekForward10,
+            iconSize: skipSize,
+            style: IconButton.styleFrom(
+              foregroundColor: fg,
+              disabledForegroundColor: fg.withValues(alpha: 0.3),
+            ),
+            icon: const Icon(Icons.forward_10),
+          );
 
     // Compacto: IconButtons colados como Salvar/Compartilhar (sem SizedBox).
-    // Tela cheia: gap explícito entre botões maiores.
+    // Tela cheia: gap explícito entre botões maiores. ±10 s (C12) ficam ao
+    // redor do play, entre ele e prev/next.
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         previous,
         if (!compact) const SizedBox(width: 12),
+        if (seekBack10 != null) ...[
+          seekBack10,
+          if (!compact) const SizedBox(width: 12),
+        ],
         playPause,
         if (!compact) const SizedBox(width: 12),
+        if (seekForward10 != null) ...[
+          seekForward10,
+          if (!compact) const SizedBox(width: 12),
+        ],
         next,
       ],
     );

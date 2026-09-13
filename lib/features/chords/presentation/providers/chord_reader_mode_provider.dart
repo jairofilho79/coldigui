@@ -56,12 +56,20 @@ final chordReaderFontSizeProvider =
       ChordReaderFontSizeNotifier.new,
     );
 
-/// Transposição em semitons da cifra aberta.
+/// Transposição em semitons da cifra aberta, por `chordId` (C10).
 ///
-/// **Não** é persistida: cada abertura começa no tom original. Guardar por
-/// cifra faria a mesma cifra abrir num tom que o usuário não escolheu naquela
-/// sessão, e o botão de zerar não estaria à vista para explicar por quê.
+/// **Não** é persistida entre sessões: fechar o app volta ao tom original.
+/// Mas dentro da mesma sessão cada louvor guarda seu próprio tom — a família
+/// é quem garante isso: abrir outro louvor não herda a transposição do
+/// anterior (cada `chordId` novo começa do zero em [build]), e voltar ao
+/// mesmo louvor mantém o tom escolhido, porque o estado daquele `chordId`
+/// continua vivo (não é `autoDispose`) enquanto o app roda.
 class ChordReaderTransposeNotifier extends Notifier<int> {
+  ChordReaderTransposeNotifier(this.chordId);
+
+  /// Chave da cifra dona deste estado — mesma usada por [chordSongProvider].
+  final String chordId;
+
   /// Além de seis semitons em qualquer direção é a mesma nota pelo outro nome.
   static const int limit = 6;
 
@@ -82,6 +90,6 @@ class ChordReaderTransposeNotifier extends Notifier<int> {
 }
 
 final chordReaderTransposeProvider =
-    NotifierProvider<ChordReaderTransposeNotifier, int>(
+    NotifierProvider.family<ChordReaderTransposeNotifier, int, String>(
       ChordReaderTransposeNotifier.new,
     );

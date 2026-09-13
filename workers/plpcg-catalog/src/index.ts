@@ -20,6 +20,11 @@ import {
   searchSocialUsers,
   socialUsernameFromPath,
 } from './social/handlers';
+import {
+  createShortLink,
+  resolveShortLink,
+  shortLinkCodeFromPath,
+} from './links/handlers';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
 
@@ -49,7 +54,7 @@ interface LouvorJson {
   groupId: string;
 }
 
-type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social';
+type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social' | 'links';
 
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
@@ -97,6 +102,15 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
       headers.set('Access-Control-Expose-Headers', 'ETag');
     } else if (mode === 'social') {
       headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      headers.set(
+        'Access-Control-Allow-Headers',
+        'Authorization, Content-Type',
+      );
+    } else if (mode === 'links') {
+      // `POST /api/links` (autenticado) e `GET /l/:code` (público, D7) — o
+      // GET não precisa de CORS de verdade (navegação de topo, não fetch),
+      // mas herda o mesmo modo por simplicidade de roteamento.
+      headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       headers.set(
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type',
@@ -291,6 +305,8 @@ function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/playlists')) return 'playlists';
   if (pathname.startsWith('/api/audio-flags')) return 'playlists';
   if (pathname.startsWith('/api/social')) return 'social';
+  if (pathname.startsWith('/api/links')) return 'links';
+  if (pathname.startsWith('/l/')) return 'links';
   if (pathname.startsWith('/api/auth/')) return 'auth';
   if (pathname.startsWith('/api/coldigom/')) return 'catalog';
   return 'catalog';
@@ -399,6 +415,37 @@ async function handleAudioFlags(
   return jsonResponse({ error: 'method not allowed' }, { status: 405 });
 }
 
+async function handleLinks(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (pathname === '/api/links') {
+    if (request.method === 'POST') {
+      return withAuth(request, env, (req, e, claims) =>
+        createShortLink(e.DB, claims, req),
+      );
+    }
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+  return jsonResponse({ error: 'not found' }, { status: 404 });
+}
+
+async function handleShortLinkRedirect(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<Response> {
+  if (request.method !== 'GET') {
+    return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+  }
+  const code = shortLinkCodeFromPath(pathname);
+  if (code === null) {
+    return jsonResponse({ error: 'not found' }, { status: 404 });
+  }
+  return resolveShortLink(env.DB, code);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -463,6 +510,22 @@ export default {
         await proxyColdigomAsset(request, env, url.pathname),
         request,
         'catalog',
+      );
+    }
+
+    if (url.pathname.startsWith('/api/links')) {
+      return withCors(
+        await handleLinks(request, env, url.pathname),
+        request,
+        'links',
+      );
+    }
+
+    if (url.pathname.startsWith('/l/')) {
+      return withCors(
+        await handleShortLinkRedirect(request, env, url.pathname),
+        request,
+        'links',
       );
     }
 

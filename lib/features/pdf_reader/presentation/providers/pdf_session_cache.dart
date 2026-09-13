@@ -1,10 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
 import 'reader_route_params_provider.dart';
 
-/// Capacidade padrão do cache LRU de sessões PDF no carousel.
+/// Capacidade do cache LRU de sessões PDF no carousel — nativo.
 const kPdfSessionCacheMaxSize = 3;
+
+/// Capacidade do cache LRU de sessões PDF no carousel — web, teto de
+/// memória mais apertado (spec A.13).
+const kPdfSessionCacheMaxSizeWeb = 2;
 
 /// Cache LRU de [PdfReaderViewerHandle] por [filePath] para troca rápida no carousel.
 ///
@@ -48,8 +53,14 @@ class PdfSessionCache {
 }
 
 /// Cache compartilhado de sessões PDF; limpo ao sair de `/leitor`.
+///
+/// `maxSize` decidido por [platformCapabilitiesProvider] — teto de memória
+/// mais apertado na web (spec A.13).
 final pdfSessionCacheProvider = Provider<PdfSessionCache>((ref) {
-  final cache = PdfSessionCache();
+  final isWeb = ref.watch(platformCapabilitiesProvider).isWeb;
+  final cache = PdfSessionCache(
+    maxSize: isWeb ? kPdfSessionCacheMaxSizeWeb : kPdfSessionCacheMaxSize,
+  );
   ref.onDispose(cache.clear);
 
   ref.listen(readerRouteParamsProvider, (previous, next) {

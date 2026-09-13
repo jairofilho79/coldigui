@@ -2,7 +2,7 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_page_key_handler.dart';
@@ -215,26 +215,28 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const [
-              CarouselItem(
-                pdfId: 'pdf-1',
-                sortOrder: 0,
-                numero: '001',
-                nome: 'Um',
-                categoria: 'Partitura',
-                classificacao: 'ColAdultos',
-              ),
-              CarouselItem(
-                pdfId: 'pdf-2',
-                sortOrder: 1,
-                numero: '002',
-                nome: 'Dois',
-                categoria: 'Partitura',
-                classificacao: 'ColAdultos',
-              ),
-            ]),
-          ),
+          carouselItemsProvider.overrideWithValue(const [
+            CarouselItem(
+              materialId: 'pdf-1',
+              kind: MaterialKind.pdf,
+              index: 0,
+              key: 'pdf-1',
+              numero: '001',
+              nome: 'Um',
+              categoria: 'Partitura',
+              classificacao: 'ColAdultos',
+            ),
+            CarouselItem(
+              materialId: 'pdf-2',
+              kind: MaterialKind.pdf,
+              index: 1,
+              key: 'pdf-2',
+              numero: '002',
+              nome: 'Dois',
+              categoria: 'Partitura',
+              classificacao: 'ColAdultos',
+            ),
+          ]),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
           readerRouteParamsProvider.overrideWith(
             () => _FakeReaderRouteParams(const {UrlSyncParams.pdfId: 'pdf-1'}),
@@ -344,13 +346,4 @@ class _FakeReaderRouteParams extends ReaderRouteParamsNotifier {
 
   @override
   Map<String, String> build() => initial;
-}
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-
-  @override
-  List<CarouselItem> build() => initial;
 }

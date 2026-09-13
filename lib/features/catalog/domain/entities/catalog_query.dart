@@ -1,5 +1,5 @@
-import '../../presentation/providers/catalog_filters_provider.dart';
 import '../constants/catalog_materials.dart';
+import 'catalog_filter_state.dart';
 import 'louvor_group.dart';
 
 /// Uma pergunta ao catálogo: texto + filtros UC-02 + página.

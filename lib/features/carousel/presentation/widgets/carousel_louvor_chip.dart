@@ -1,14 +1,21 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/core/presentation/widgets/highlighted_text.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/core/utils/share_position_origin.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_classification.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/offline_availability_badge.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+
+import 'chip_parts/chip_body.dart';
+import 'chip_parts/chip_buttons.dart';
+import 'chip_parts/metadata_row.dart';
+import 'chip_parts/share_overflow_button.dart';
+
+export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
 
 /// Altura do chip na barra do leitor (variante modal/pill).
 const carouselChipBarHeight = 58.0;
@@ -31,7 +38,6 @@ const carouselChipMetadataMediumWidth = 280.0;
 const _modalChipRadius = 24.0;
 const _topBarChipRadius = 8.0;
 const _compactWidth = carouselChipMetadataCompactWidth;
-const _mediumWidth = carouselChipMetadataMediumWidth;
 
 /// Layout do chip — barra superior do shell vs modal/leitor.
 enum CarouselLouvorChipVariant {
@@ -51,7 +57,7 @@ enum CarouselLouvorChipVariant {
 /// (`onAdd`, `isAdded`, `loading`, `onShare`, `shareLoading`).
 ///
 /// A linha de metadados (classificação + categoria) é responsiva à largura do
-/// chip ([LayoutBuilder]):
+/// chip ([LayoutBuilder]) — ver [ChipMetadataRow]:
 ///
 /// - &lt; [carouselChipMetadataCompactWidth]: só ícones com [Tooltip].
 /// - [carouselChipMetadataCompactWidth]–[carouselChipMetadataMediumWidth]:
@@ -65,11 +71,19 @@ enum CarouselLouvorChipVariant {
 ///
 /// [onTap] abre o louvor no leitor (UC-04/05) — toque no corpo do chip, sem
 /// interferir no trailing nem no drag handle do modal.
+///
+/// Corpo, botões, linha de metadados e menu de compartilhar (E4) vivem em
+/// `chip_parts/` ([ChipBody], [ChipRemoveButton]/[ChipAddButton]/
+/// [ChipAddedIndicator]/[CircleActionButton], [ChipMetadataRow]
+/// (com `MaterialKindsRow` na variante de card, C5), [ShareOverflowButton]).
 class CarouselLouvorChip extends StatelessWidget {
   const CarouselLouvorChip({
     required this.item,
     this.variant = CarouselLouvorChipVariant.modal,
     this.metadataSummary,
+    this.materialKindsGroup,
+    this.onMaterialKindTap,
+    this.highlightQuery,
     this.showDragHandle = false,
     this.onTap,
     this.onRemove,
@@ -88,8 +102,21 @@ class CarouselLouvorChip extends StatelessWidget {
   /// `topBar` na barra do shell; `modal` (pill) em listas, modal e leitor.
   final CarouselLouvorChipVariant variant;
 
-  /// Substitui categoria/classificação — ex.: "2 entradas com 1 arranjo".
+  /// Substitui categoria/classificação — ex.: progresso de download. Tem
+  /// prioridade sobre [materialKindsGroup].
   final String? metadataSummary;
+
+  /// Variante de card da Home/Biblioteca (C5): quando presente, a linha de
+  /// metadados vira [MaterialKindsRow] — ícones por tipo de material do
+  /// grupo — no lugar de classificação/categoria.
+  final LouvorGroup? materialKindsGroup;
+
+  /// Toque num ícone de [materialKindsGroup] — ex.: abrir o `MaterialSheet`.
+  final void Function(MaterialKind kind)? onMaterialKindTap;
+
+  /// Termo buscado (Home) a destacar no título — cor ouro do tema (C5). Sem
+  /// termo ou sem match, o título renderiza normal.
+  final String? highlightQuery;
 
   /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
@@ -128,9 +155,9 @@ class CarouselLouvorChip extends StatelessWidget {
         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold),
       );
     }
-    if (onRemove != null) return _RemoveButton(onPressed: onRemove!);
-    if (isAdded) return const _AddedIndicator();
-    if (onAdd != null) return _AddButton(onPressed: onAdd!);
+    if (onRemove != null) return ChipRemoveButton(onPressed: onRemove!);
+    if (isAdded) return const ChipAddedIndicator();
+    if (onAdd != null) return ChipAddButton(onPressed: onAdd!);
     return null;
   }
 
@@ -169,7 +196,7 @@ class CarouselLouvorChip extends StatelessWidget {
             const SizedBox(width: 4),
           ],
           Expanded(
-            child: _ChipBody(
+            child: ChipBody(
               borderRadius: BorderRadius.circular(chipRadius),
               onTap: onTap,
               child: LayoutBuilder(
@@ -180,8 +207,9 @@ class CarouselLouvorChip extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _titleLine(item, _isTopBar),
+                      HighlightedText(
+                        text: _titleLine(item, _isTopBar),
+                        query: highlightQuery ?? '',
                         style: AppTypography.headline.copyWith(
                           fontSize: width < _compactWidth ? 12 : 14,
                           height: 1.1,
@@ -192,10 +220,12 @@ class CarouselLouvorChip extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      _MetadataRow(
+                      ChipMetadataRow(
                         width: width,
                         numero: _isTopBar ? item.numero : null,
                         summary: metadataSummary,
+                        materialKindsGroup: materialKindsGroup,
+                        onMaterialKindTap: onMaterialKindTap,
                         classificationLabel: classificationLabel,
                         categoria: item.categoria,
                         categoryIcon: categoryIcon,
@@ -213,7 +243,7 @@ class CarouselLouvorChip extends StatelessWidget {
           ],
           if (onShare != null) ...[
             const SizedBox(width: 2),
-            _ShareOverflowButton(
+            ShareOverflowButton(
               onShare: onShare!,
               shareLabel:
                   AppLocalizations.of(context)?.sharePdf ?? 'Compartilhar',
@@ -228,364 +258,5 @@ class CarouselLouvorChip extends StatelessWidget {
   static String _titleLine(CarouselItem item, bool topBar) {
     if (topBar || item.numero.isEmpty) return item.nome;
     return '#${item.numero} — ${item.nome}';
-  }
-}
-
-class _MetadataRow extends StatelessWidget {
-  const _MetadataRow({
-    required this.width,
-    required this.classificationLabel,
-    required this.categoria,
-    required this.categoryIcon,
-    this.numero,
-    this.summary,
-    this.offlineAvailability = PdfOfflineAvailability.notAvailable,
-  });
-
-  final double width;
-  final String? numero;
-  final String? summary;
-  final String classificationLabel;
-  final String categoria;
-  final IconData categoryIcon;
-  final PdfOfflineAvailability offlineAvailability;
-
-  Widget _offlineBadge() {
-    if (offlineAvailability == PdfOfflineAvailability.notAvailable) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: OfflineAvailabilityBadge(availability: offlineAvailability),
-    );
-  }
-
-  Widget? _numeroLeading(TextStyle metaStyle) {
-    if (numero == null || numero!.isEmpty) return null;
-    return Text(
-      '#$numero',
-      style: metaStyle.copyWith(fontWeight: FontWeight.w700),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final metaStyle = AppTypography.body.copyWith(
-      fontSize: width < _compactWidth ? 10 : 11,
-      height: 1.1,
-      color: AppColors.textLight.withValues(alpha: 0.9),
-      fontWeight: FontWeight.w500,
-    );
-    final numeroWidget = _numeroLeading(metaStyle);
-
-    if (summary != null) {
-      return Row(
-        children: [
-          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
-          Flexible(
-            child: Text(
-              summary!,
-              style: metaStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          _offlineBadge(),
-        ],
-      );
-    }
-
-    if (width < _compactWidth) {
-      return FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (numeroWidget != null) ...[
-              numeroWidget,
-              const SizedBox(width: 6),
-            ],
-            if (classificationLabel.isNotEmpty)
-              Tooltip(
-                message: classificationLabel,
-                child: Icon(
-                  Icons.collections_bookmark_outlined,
-                  size: 14,
-                  color: AppColors.textLight.withValues(alpha: 0.9),
-                ),
-              ),
-            if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
-              const SizedBox(width: 6),
-            if (categoria.isNotEmpty)
-              Tooltip(
-                message: categoria,
-                child: Icon(
-                  categoryIcon,
-                  size: 14,
-                  color: AppColors.textLight.withValues(alpha: 0.9),
-                ),
-              ),
-            _offlineBadge(),
-          ],
-        ),
-      );
-    }
-
-    if (width < _mediumWidth) {
-      return Row(
-        children: [
-          if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
-          if (classificationLabel.isNotEmpty) ...[
-            Tooltip(
-              message: classificationLabel,
-              child: Icon(
-                Icons.collections_bookmark_outlined,
-                size: 14,
-                color: AppColors.textLight.withValues(alpha: 0.9),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                classificationLabel,
-                style: metaStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-          if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('·', style: metaStyle),
-            ),
-          if (categoria.isNotEmpty) ...[
-            Tooltip(
-              message: categoria,
-              child: Icon(
-                categoryIcon,
-                size: 14,
-                color: AppColors.textLight.withValues(alpha: 0.9),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                categoria,
-                style: metaStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-          _offlineBadge(),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        if (numeroWidget != null) ...[numeroWidget, const SizedBox(width: 6)],
-        if (classificationLabel.isNotEmpty)
-          Flexible(
-            child: Text(
-              classificationLabel,
-              style: metaStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text('·', style: metaStyle),
-          ),
-        if (categoria.isNotEmpty) ...[
-          Icon(
-            categoryIcon,
-            size: 14,
-            color: AppColors.textLight.withValues(alpha: 0.9),
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              categoria,
-              style: metaStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-        _offlineBadge(),
-      ],
-    );
-  }
-}
-
-class _ChipBody extends StatelessWidget {
-  const _ChipBody({
-    required this.borderRadius,
-    required this.child,
-    this.onTap,
-  });
-
-  final BorderRadius borderRadius;
-  final Widget child;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (onTap == null) return child;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(onTap: onTap, borderRadius: borderRadius, child: child),
-    );
-  }
-}
-
-class _RemoveButton extends StatelessWidget {
-  const _RemoveButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return _CircleActionButton(icon: Icons.close, onPressed: onPressed);
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return CarouselLouvorAddButton(onPressed: onPressed);
-  }
-}
-
-/// Botão "+" circular — chip vermelho e sheet de materiais agrupados.
-class CarouselLouvorAddButton extends StatelessWidget {
-  const CarouselLouvorAddButton({required this.onPressed, super.key});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return _CircleActionButton(icon: Icons.add, onPressed: onPressed);
-  }
-}
-
-class _AddedIndicator extends StatelessWidget {
-  const _AddedIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.textLight.withValues(alpha: 0.85),
-          width: 1.5,
-        ),
-      ),
-      child: const SizedBox(
-        width: 24,
-        height: 24,
-        child: Icon(Icons.check, size: 16, color: AppColors.textLight),
-      ),
-    );
-  }
-}
-
-enum _LouvorChipMenuAction { share }
-
-class _ShareOverflowButton extends StatelessWidget {
-  const _ShareOverflowButton({
-    required this.onShare,
-    required this.shareLabel,
-    this.loading = false,
-  });
-
-  final void Function(Rect sharePositionOrigin) onShare;
-  final String shareLabel;
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<_LouvorChipMenuAction>(
-      padding: EdgeInsets.zero,
-      iconSize: 20,
-      splashRadius: 18,
-      tooltip: shareLabel,
-      icon: loading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.gold,
-              ),
-            )
-          : Icon(
-              Icons.more_vert,
-              size: 20,
-              color: AppColors.textLight.withValues(alpha: 0.9),
-            ),
-      color: AppColors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(color: AppColors.gold, width: 1.5),
-      ),
-      onSelected: (_) {
-        onShare(sharePositionOriginFromContextOrFallback(context));
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _LouvorChipMenuAction.share,
-          enabled: !loading,
-          child: Text(shareLabel),
-        ),
-      ],
-    );
-  }
-}
-
-class _CircleActionButton extends StatelessWidget {
-  const _CircleActionButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: AppColors.shadowMd,
-      ),
-      child: Material(
-        color: AppColors.textLight,
-        shape: const CircleBorder(
-          side: BorderSide(color: AppColors.gold, width: 1.5),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          splashColor: AppColors.gold.withValues(alpha: 0.25),
-          highlightColor: AppColors.gold.withValues(alpha: 0.12),
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: Icon(icon, size: 16, color: AppColors.title),
-          ),
-        ),
-      ),
-    );
   }
 }

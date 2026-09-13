@@ -1,4 +1,5 @@
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
@@ -7,6 +8,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_filters
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/recently_opened_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
@@ -167,6 +169,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final manifestAsync = ref.watch(louvoresManifestProvider);
+    // Mantém o `recentlyOpenedProvider` com um observador vivo enquanto a
+    // Home existe — sem isto os `ref.listen` internos dele (leitor/cifra,
+    // sessão de áudio) não disparam (Riverpod 3.3, ver docstring do provider).
+    ref.watch(recentlyOpenedProvider);
 
     ref.listen<String>(homeSearchUrlSyncQueryProvider, (_, _) {
       if (!_urlSyncEnabled) return;
@@ -180,12 +186,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
 
-    // Reconexão (C.8): volta a rede com o manifest em erro → tenta de novo
-    // sozinho, sem esperar o usuário tocar em "Tentar de novo".
+    // Reconexão (C.8): volta a rede com o manifest ou a página remota em erro
+    // → tenta de novo sozinho, sem esperar o usuário tocar em "Tentar de novo".
     ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
       if (next.value != true) return;
       if (ref.read(louvoresManifestProvider).hasError) {
         ref.invalidate(louvoresManifestProvider);
+      }
+      if (ref.read(homeSearchStateProvider).remoteFailed) {
+        retryRemoteSearch(ref);
       }
     });
 
@@ -218,9 +227,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     hintText: l10n.searchHint,
                     initialValue: _searchBarInitialValue,
                     focusNode: _searchFocusNode,
+                    capabilities: ref.read(platformCapabilitiesProvider),
                     onQueryChanged: (value) {
-                      ref.read(homeSearchRawQueryProvider.notifier).state =
-                          value;
+                      ref
+                          .read(homeSearchQueryProvider.notifier)
+                          .setQuery(value);
                     },
                     // Enter abre o primeiro resultado — mesma ação do toque.
                     onSubmitted: (_) => activateFirstHomeSearchResult(),

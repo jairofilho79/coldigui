@@ -114,10 +114,6 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
     ref.read(carouselFocusedKeyProvider.notifier).focus(key);
   }
 
-  /// Foca a **primeira** ocorrência de [pdfId].
-  @Deprecated('use focusKey')
-  void focusPdfId(String pdfId) => focusKey(entryKeyFor(pdfId, 0));
-
   /// Volta ao primeiro item — usado ao trocar de lista ativa.
   void reset() => ref.read(carouselFocusedKeyProvider.notifier).clear();
 

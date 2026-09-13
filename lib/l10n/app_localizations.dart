@@ -104,6 +104,24 @@ abstract class AppLocalizations {
   /// **'PLPCG'**
   String get appTitle;
 
+  /// Título da aba do navegador no leitor/cifra com número (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{numero} — {nome} · PLPCG'**
+  String browserTitleLouvor(String numero, String nome);
+
+  /// Título da aba do navegador no leitor/cifra sem número (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{nome} · PLPCG'**
+  String browserTitleLouvorSemNumero(String nome);
+
+  /// Título da aba do navegador fora do leitor/cifra/áudio (C14)
+  ///
+  /// In pt, this message translates to:
+  /// **'{label} · PLPCG'**
+  String browserTitleTab(String label);
+
   /// No description provided for @searchHint.
   ///
   /// In pt, this message translates to:
@@ -175,6 +193,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Sair da tela cheia (Esc)'**
   String get readerExitFullscreenTooltip;
+
+  /// No description provided for @readerFitModeTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajustar largura/página (Z)'**
+  String get readerFitModeTooltip;
+
+  /// No description provided for @readerGoToPageTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para página'**
+  String get readerGoToPageTitle;
+
+  /// No description provided for @readerGoToPageFieldLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Número da página'**
+  String get readerGoToPageFieldLabel;
+
+  /// No description provided for @readerGoToPageCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get readerGoToPageCancel;
+
+  /// No description provided for @readerGoToPageConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir'**
+  String get readerGoToPageConfirm;
 
   /// No description provided for @louvorPdfDownloading.
   ///
@@ -265,36 +313,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Arranjo especial'**
   String get filtersSpecialArrangementTitle;
-
-  /// No description provided for @catalogRefreshAction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atualizar lista'**
-  String get catalogRefreshAction;
-
-  /// No description provided for @catalogRefreshLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Catálogo'**
-  String get catalogRefreshLabel;
-
-  /// No description provided for @catalogRefreshMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixar a versão mais recente do catálogo'**
-  String get catalogRefreshMessage;
-
-  /// No description provided for @catalogRefreshSuccess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Catálogo atualizado'**
-  String get catalogRefreshSuccess;
-
-  /// No description provided for @catalogRefreshError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível atualizar o catálogo'**
-  String get catalogRefreshError;
 
   /// No description provided for @catalogStaleBanner.
   ///
@@ -469,30 +487,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{failedCount, plural, one{Download concluído com 1 arquivo com falha} other{Download concluído com {failedCount} arquivos com falha}}'**
   String offlineDownloadCompletedWithFailures(int failedCount);
-
-  /// No description provided for @offlineDownloadError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível concluir o download offline'**
-  String get offlineDownloadError;
-
-  /// No description provided for @offlineDownloadTimeout.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conexão lenta. Toque em Retomar quando a rede melhorar.'**
-  String get offlineDownloadTimeout;
-
-  /// No description provided for @offlineDownloadNetworkError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sem conexão. Verifique a internet e retome.'**
-  String get offlineDownloadNetworkError;
-
-  /// No description provided for @offlineDownloadNoSpace.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sem espaço no dispositivo. Libere espaço e tente novamente.'**
-  String get offlineDownloadNoSpace;
 
   /// No description provided for @offlineKeepAppOpenDuringDownload.
   ///
@@ -845,6 +839,30 @@ abstract class AppLocalizations {
   /// **'Já está na seleção'**
   String get carouselAlreadyAdded;
 
+  /// Tooltip do × no trailing do sheet de materiais quando o material já está na lista ativa
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover da lista'**
+  String get materialRemoveTooltip;
+
+  /// No description provided for @materialRemoveConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover da lista?'**
+  String get materialRemoveConfirmTitle;
+
+  /// No description provided for @materialRemoveConfirmMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'«{name}» sai da lista ativa.'**
+  String materialRemoveConfirmMessage(String name);
+
+  /// No description provided for @materialRemoved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Removido da lista'**
+  String get materialRemoved;
+
   /// No description provided for @carouselRemoveTooltip.
   ///
   /// In pt, this message translates to:
@@ -857,13 +875,7 @@ abstract class AppLocalizations {
   /// **'Adicionar à seleção'**
   String get carouselAddTooltip;
 
-  /// No description provided for @carouselSavePlaylist.
-  ///
-  /// In pt, this message translates to:
-  /// **'Salvar como lista'**
-  String get carouselSavePlaylist;
-
-  /// Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08).
+  /// Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08).
   ///
   /// In pt, this message translates to:
   /// **'Compartilhar'**
@@ -874,12 +886,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Gerar folheto'**
   String get carouselGenerateLeaflet;
-
-  /// No description provided for @carouselOverflowMenu.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mais ações'**
-  String get carouselOverflowMenu;
 
   /// No description provided for @carouselOpenList.
   ///
@@ -911,11 +917,35 @@ abstract class AppLocalizations {
   /// **'Próximo louvor'**
   String get readerCarouselNext;
 
+  /// Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Louvor anterior'**
+  String get audioFacePreviousLouvor;
+
+  /// Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo louvor'**
+  String get audioFaceNextLouvor;
+
   /// Tooltip do ícone de troca de material na barra do leitor PDF
   ///
   /// In pt, this message translates to:
   /// **'Trocar material'**
   String get readerSwitchMaterial;
+
+  /// Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionado à lista'**
+  String get cardAddedSwapMaterial;
+
+  /// Ação da snackbar de `cardAddedSwapMaterial` — reabre o sheet de materiais no fluxo de troca da entrada recém-adicionada
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar material'**
+  String get cardSwapMaterialAction;
 
   /// No description provided for @readerCarouselPosition.
   ///
@@ -1085,17 +1115,29 @@ abstract class AppLocalizations {
   /// **'Excluir'**
   String get playlistDelete;
 
-  /// No description provided for @playlistDeleteConfirmTitle.
+  /// Snackbar depois de apagar uma lista, com ação Desfazer (C11)
   ///
   /// In pt, this message translates to:
-  /// **'Excluir lista?'**
-  String get playlistDeleteConfirmTitle;
+  /// **'Lista removida'**
+  String get playlistDeletedUndo;
 
-  /// No description provided for @playlistDeleteConfirmMessage.
+  /// Item do menu do tile que cria uma cópia da lista (C11)
   ///
   /// In pt, this message translates to:
-  /// **'Esta lista será removida permanentemente.'**
-  String get playlistDeleteConfirmMessage;
+  /// **'Duplicar'**
+  String get playlistDuplicate;
+
+  /// Nome default da cópia criada por «Duplicar» (C11)
+  ///
+  /// In pt, this message translates to:
+  /// **'{nome} (cópia)'**
+  String playlistCopyName(String nome);
+
+  /// Rótulo da lista ativa não salva na barra do carousel (C11)
+  ///
+  /// In pt, this message translates to:
+  /// **'Rascunho'**
+  String get playlistDraftLabel;
 
   /// No description provided for @playlistFavoriteOn.
   ///
@@ -1127,11 +1169,11 @@ abstract class AppLocalizations {
   /// **'A lista ficará vazia e será excluída.'**
   String get playlistDeleteLastPdfMessage;
 
-  /// No description provided for @playlistLoadIntoCarousel.
+  /// No description provided for @playlistActivate.
   ///
   /// In pt, this message translates to:
-  /// **'Carregar no carousel'**
-  String get playlistLoadIntoCarousel;
+  /// **'Tornar lista ativa'**
+  String get playlistActivate;
 
   /// No description provided for @playlistOpenInReader.
   ///
@@ -1180,6 +1222,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Áudio'**
   String get audioPlayerTitle;
+
+  /// No description provided for @pdfMaterialSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Partituras'**
+  String get pdfMaterialSection;
 
   /// No description provided for @audioMaterialSection.
   ///
@@ -1379,11 +1427,23 @@ abstract class AppLocalizations {
   /// **'Fechar'**
   String get gestureFocusClose;
 
-  /// No description provided for @pdfMaterialSection.
+  /// No description provided for @chordAutoscrollPlay.
   ///
   /// In pt, this message translates to:
-  /// **'PDF'**
-  String get pdfMaterialSection;
+  /// **'Iniciar rolagem automática'**
+  String get chordAutoscrollPlay;
+
+  /// No description provided for @chordAutoscrollPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar rolagem automática'**
+  String get chordAutoscrollPause;
+
+  /// No description provided for @chordAutoscrollSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da rolagem: {speed}'**
+  String chordAutoscrollSpeed(int speed);
 
   /// No description provided for @coldigomMetaTonality.
   ///
@@ -1445,6 +1505,42 @@ abstract class AppLocalizations {
   /// **'Próximo'**
   String get audioNext;
 
+  /// Tooltip do botão que volta 10 s no áudio (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar 10 s'**
+  String get audioSeekBack10;
+
+  /// Tooltip do botão que avança 10 s no áudio (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Avançar 10 s'**
+  String get audioSeekForward10;
+
+  /// Tooltip do menu de velocidade de reprodução (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade de reprodução'**
+  String get audioSpeed;
+
+  /// Rótulo de uma velocidade de reprodução no menu, ex.: 1,25× (C12)
+  ///
+  /// In pt, this message translates to:
+  /// **'{value}×'**
+  String audioSpeedValue(String value);
+
+  /// Tooltip do botão de faixa anterior no mini-player persistente (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Faixa anterior'**
+  String get miniPlayerPrevious;
+
+  /// Tooltip do botão de próxima faixa no mini-player persistente (D5)
+  ///
+  /// In pt, this message translates to:
+  /// **'Próxima faixa'**
+  String get miniPlayerNext;
+
   /// No description provided for @audioOpenPlayer.
   ///
   /// In pt, this message translates to:
@@ -1469,23 +1565,11 @@ abstract class AppLocalizations {
   /// **'Seguir o áudio'**
   String get audioFollowReader;
 
-  /// Tooltip do botão que toca o áudio do louvor aberto no leitor
-  ///
-  /// In pt, this message translates to:
-  /// **'Tocar áudio deste louvor'**
-  String get carouselPlayGroupAudio;
-
   /// No description provided for @audioFlagAdd.
   ///
   /// In pt, this message translates to:
   /// **'Adicionar marcador'**
   String get audioFlagAdd;
-
-  /// No description provided for @audioFlagPauseToAdd.
-  ///
-  /// In pt, this message translates to:
-  /// **'Pause para adicionar um marcador'**
-  String get audioFlagPauseToAdd;
 
   /// No description provided for @audioFlagAddTitle.
   ///
@@ -1559,23 +1643,17 @@ abstract class AppLocalizations {
   /// **'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.'**
   String get audioWebIosPwaNotice;
 
-  /// No description provided for @playlistLoadConfirmTitle.
+  /// Snackbar depois de tornar uma lista a lista ativa
   ///
   /// In pt, this message translates to:
-  /// **'Substituir seleção?'**
-  String get playlistLoadConfirmTitle;
+  /// **'Lista «{nome}» ativa'**
+  String playlistActivated(String nome);
 
-  /// No description provided for @playlistLoadConfirmMessage.
+  /// Ação de desfazer em snackbars
   ///
   /// In pt, this message translates to:
-  /// **'A seleção atual será substituída pelos louvores desta lista.'**
-  String get playlistLoadConfirmMessage;
-
-  /// No description provided for @playlistLoaded.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lista carregada no carousel'**
-  String get playlistLoaded;
+  /// **'Desfazer'**
+  String get undo;
 
   /// No description provided for @playlistEmptyPdfList.
   ///
@@ -1648,6 +1726,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Lista importada'**
   String get playlistImported;
+
+  /// Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista já estava salva: {nome}'**
+  String playlistImportAlreadySaved(String nome);
 
   /// No description provided for @playlistImportInvalidUrl.
   ///
@@ -2129,6 +2213,48 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir a ação. Tente de novo.'**
   String get errorGeneric;
 
+  /// failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Verifique sua rede e tente de novo.'**
+  String get failureNetwork;
+
+  /// failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException
+  ///
+  /// In pt, this message translates to:
+  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
+  String get failureOffline;
+
+  /// failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível encontrar. O item pode ter sido removido.'**
+  String get failureNotFound;
+
+  /// failureMessage (E8): StorageFailure — StorageUnavailableException, PdfStorageWriteException, InsufficientDiskSpaceException, PdfLocalCorruptedException
+  ///
+  /// In pt, this message translates to:
+  /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
+  String get failureStorage;
+
+  /// failureMessage (E8): AuthFailure — HTTP 401/403
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sessão expirou. Entre novamente para continuar.'**
+  String get failureAuth;
+
+  /// failureMessage (E8): ConflictFailure — HTTP 409, PlaylistConflictException, AudioFlagConflictException
+  ///
+  /// In pt, this message translates to:
+  /// **'Conflito de sincronização. Tente novamente.'**
+  String get failureConflict;
+
+  /// failureMessage (E8): UnknownFailure — fallback para erro não classificado
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível concluir a ação. Tente de novo.'**
+  String get failureUnknown;
+
   /// Título do banner de sessão expirada no perfil e nas listas
   ///
   /// In pt, this message translates to:
@@ -2140,6 +2266,42 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Entrar de novo'**
   String get sessionExpiredSignInAgain;
+
+  /// Hint da Home sem consulta nem lista ativa/recentes (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Busque por título ou número'**
+  String get homeEmptyHint;
+
+  /// Título das chips de materiais recentes na Home sem consulta (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Abertos recentemente'**
+  String get homeEmptyRecent;
+
+  /// Título da Home quando a busca não encontrou nada (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum louvor para «{query}»'**
+  String homeNoResults(String query);
+
+  /// Dicas da Home quando a busca não encontrou nada (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Tente outro termo, ou confira o número e a grafia.'**
+  String get homeNoResultsTips;
+
+  /// Botão da Home sem resultado, visível só com filtro fora do padrão (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar filtros'**
+  String get homeClearFilters;
+
+  /// Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.'**
+  String get homeColdigomOffline;
 }
 
 class _AppLocalizationsDelegate

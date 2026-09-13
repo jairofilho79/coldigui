@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
@@ -80,6 +81,11 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     MaterialKind? kind,
     bool allowDuplicate = false,
   }) async {
+    // O app monta durante a abertura do Isar (A8): um toque nos primeiros
+    // segundos do boot frio espera o banco decidir em vez de responder
+    // «armazenamento indisponível» para um banco que só está abrindo.
+    await awaitIsarSettled(ref);
+    if (!ref.mounted) return AddToActiveOutcome.storageUnavailable;
     try {
       return await _addToActive(
         materialId,
@@ -119,13 +125,16 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
       return AddToActiveOutcome.added;
     }
 
-    if (!allowDuplicate && active.entries.any((e) => e.id == materialId)) {
+    final occurrencesBefore = active.entries
+        .where((e) => e.id == materialId)
+        .length;
+    if (!allowDuplicate && occurrencesBefore > 0) {
       _focusAfterAdd(entry);
       return AddToActiveOutcome.alreadyPresent;
     }
 
     await _persistEntries(active.playlistId, [...active.entries, entry]);
-    _focusAfterAdd(entry);
+    _focusAfterAdd(entry, occurrence: occurrencesBefore);
     return AddToActiveOutcome.added;
   }
 
@@ -135,6 +144,8 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// a reunião importada tem que repetir também. Devolve quantas entraram.
   Future<int> addEntriesToActive(List<PlaylistEntry> entries) async {
     if (entries.isEmpty) return 0;
+    await awaitIsarSettled(ref);
+    if (!ref.mounted) return 0;
     try {
       await _settlePendingReorder();
       final activeId = ref.read(activePlaylistIdProvider);
@@ -180,10 +191,41 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
 
     final next = [...entries]..removeAt(index);
     // Override até o reload: a barra mostra a lista já sem a entrada, em vez
-    // de piscar o conteúdo antigo enquanto a escrita acontece.
+    // de piscar o conteúdo antigo enquanto a escrita acontece. `finally`: uma
+    // escrita que falha (lista já apagada, storage fora) não pode deixar o
+    // override preso mostrando uma remoção que não aconteceu.
     state = next;
-    await _persistEntries(activeId, next);
-    state = null;
+    try {
+      await _persistEntries(activeId, next);
+    } finally {
+      if (ref.mounted) state = null;
+    }
+  }
+
+  /// Remove **todas** as ocorrências de [materialId] da lista ativa.
+  ///
+  /// É o `×` do sheet de materiais: ele só sabe que o material «está na
+  /// lista» (por id, não por chave), então tirar dali significa que o ✓ some
+  /// — inclusive quando o material foi repetido. Lança
+  /// [StorageUnavailableException] como [removeByKey].
+  Future<void> removeById(String materialId) async {
+    await _settlePendingReorder();
+    final activeId = ref.read(activePlaylistIdProvider);
+    if (activeId == null) return;
+    final entries = _entries;
+    final next = [
+      for (final entry in entries)
+        if (entry.id != materialId) entry,
+    ];
+    if (next.length == entries.length) return;
+
+    // Mesmo override otimista de removeByKey.
+    state = next;
+    try {
+      await _persistEntries(activeId, next);
+    } finally {
+      if (ref.mounted) state = null;
+    }
   }
 
   /// Troca a entrada de chave [key] por [replacement], na mesma posição.
@@ -200,8 +242,11 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     final next = [...entries];
     next[index] = replacement;
     state = next;
-    await _persistEntries(activeId, next);
-    state = null;
+    try {
+      await _persistEntries(activeId, next);
+    } finally {
+      if (ref.mounted) state = null;
+    }
     return true;
   }
 
@@ -285,6 +330,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     _pendingPlaylistId = null;
   }
 
+  /// Grava a reordenação pendente. Roda de um [Timer] (sem quem espere) ou de
+  /// [_settlePendingReorder], então o erro de escrita é registrado aqui, não
+  /// propagado: propagar de um Timer seria erro assíncrono sem dono, e a
+  /// mutação que chamou o settle ainda vai gravar por cima.
   Future<void> _flushPendingReorder() async {
     final pending = _pendingReorder;
     final playlistId = _pendingPlaylistId;
@@ -292,10 +341,17 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     _pendingReorder = null;
     _pendingPlaylistId = null;
 
-    await _persistEntries(playlistId, pending);
-    // O override só sai depois do reload: assim a barra nunca pisca a ordem
-    // antiga entre a escrita e o estado novo de `playlistsProvider`.
-    state = null;
+    try {
+      await _persistEntries(playlistId, pending);
+    } on Object catch (e, stackTrace) {
+      _log.error('reordenação de $playlistId não foi gravada', e, stackTrace);
+    } finally {
+      // O override só sai depois do reload: assim a barra nunca pisca a ordem
+      // antiga entre a escrita e o estado novo de `playlistsProvider`. E só
+      // quando nenhuma reordenação mais nova chegou durante o `await` — senão
+      // a barra piscaria a ordem recém-gravada até o próximo flush.
+      if (ref.mounted && _pendingReorder == null) state = null;
+    }
   }
 
   /// Desanexa a lista ativa — a lista continua existindo, só deixa de ser a
@@ -378,16 +434,17 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     }
   }
 
-  /// Foca a primeira ocorrência do material recém-adicionado.
+  /// Foca a ocorrência [occurrence] (0-based) do material recém-adicionado —
+  /// com `allowDuplicate`, a **nova**, não a primeira.
   ///
   /// Áudio não: a chave focada é a da face de partituras, e um `audioId` nunca
   /// resolve lá — persisti-la deixaria a pref com um valor morto, e o índice
   /// cairia no fallback de clamp em vez de ficar onde estava.
-  void _focusAfterAdd(PlaylistEntry entry) {
+  void _focusAfterAdd(PlaylistEntry entry, {int occurrence = 0}) {
     if (entry.isAudio) return;
     ref
         .read(carouselFocusedKeyProvider.notifier)
-        .focus(entryKeyFor(entry.id, 0));
+        .focus(entryKeyFor(entry.id, occurrence));
   }
 
   static int _indexOfKey(List<PlaylistEntry> entries, String key) {

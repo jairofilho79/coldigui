@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/database/isar_provider.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
-import '../../../playlists/presentation/providers/playlists_provider.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/catalog_material.dart';
 
 /// Só PDF e áudio entram numa lista — cifra e YouTube não têm entrada própria.
@@ -14,22 +13,31 @@ bool canAddMaterialToPlaylist(CatalogMaterial material) {
   return material is PdfMaterial || material is AudioMaterial;
 }
 
-/// Trailing `+` / spinner / ✓ de uma linha do sheet de materiais.
+/// Trailing `+` / spinner / `×` de uma linha do sheet.
 ///
-/// Extraído sem mudanças dos dois sheets antigos (era `_MaterialAddTrailing`,
-/// duplicado verbatim em `louvor_material_sheet.dart` e
-/// `coldigom_material_sheet.dart`).
+/// Com [isAdded] a linha vira um `×` que tira o material da lista: o ✓ com
+/// «Adicionar de novo» repetia a entrada sem que ninguém quisesse (onda 4.4),
+/// e a repetição continua possível pela própria lista. A remoção pede
+/// confirmação — isso é do chamador, em [onRemove].
 class MaterialAddTrailing extends StatelessWidget {
   const MaterialAddTrailing({
     required this.isAdded,
     required this.isAdding,
     required this.onAdd,
+    required this.onRemove,
+    required this.removeTooltip,
     super.key,
   });
 
   final bool isAdded;
+
+  /// Escrita em voo (adição ou remoção): vira spinner.
   final bool isAdding;
   final VoidCallback onAdd;
+  final VoidCallback onRemove;
+
+  /// Tooltip do `×` (`l10n.materialRemoveTooltip`).
+  final String removeTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -44,16 +52,11 @@ class MaterialAddTrailing extends StatelessWidget {
       );
     }
     if (isAdded) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.title, width: 1.5),
-        ),
-        child: const SizedBox(
-          width: 24,
-          height: 24,
-          child: Icon(Icons.check, size: 16, color: AppColors.title),
-        ),
+      return IconButton(
+        onPressed: onRemove,
+        tooltip: removeTooltip,
+        icon: const Icon(Icons.close, color: AppColors.title),
+        visualDensity: VisualDensity.compact,
       );
     }
     return CarouselLouvorAddButton(onPressed: onAdd);
@@ -62,39 +65,37 @@ class MaterialAddTrailing extends StatelessWidget {
 
 /// Adiciona [material] à lista ativa e mostra a snackbar do resultado.
 ///
-/// Mesmos providers e chaves l10n que os handlers do `LouvorGroupCard`
-/// (`_handleAddMaterialToCarousel` / `_handleAddAudioToPlaylist`), que só
-/// existiam para ser repassados aos sheets.
+/// Passa pelo [ActivePlaylistEditor] (B.3): o `kind` vem do próprio
+/// [CatalogMaterial], não da extensão do id. [allowDuplicate] é o caminho de
+/// «Adicionar de novo» — uma segunda ocorrência do mesmo material.
+///
+/// Não pré-julga o storage no toque (A8): a decisão é do editor, e só
+/// [AddToActiveOutcome.storageUnavailable] — o desfecho real da escrita —
+/// vira a snackbar de storage. Um `isarAvailableProvider` lido aqui
+/// colapsaria «ainda abrindo» em «indisponível».
 Future<void> addMaterialToActivePlaylist({
   required BuildContext context,
   required WidgetRef ref,
   required CatalogMaterial material,
+  bool allowDuplicate = false,
 }) async {
   final l10n = AppLocalizations.of(context)!;
 
-  if (!ref.read(isarAvailableProvider)) {
-    if (context.mounted) {
-      showAppSnackbar(context, l10n.playlistStorageUnavailable);
-    }
-    return;
-  }
+  // canAddMaterialToPlaylist barra cifra e YouTube antes de chegar aqui.
+  if (!canAddMaterialToPlaylist(material)) return;
 
-  final playlists = ref.read(playlistsProvider.notifier);
-  final added = switch (material) {
-    PdfMaterial(:final louvor) => await playlists.addLouvorToActivePlaylist(
-      louvor.pdfId,
-    ),
-    AudioMaterial(:final track) => await playlists.addAudioToActivePlaylist(
-      track.audioId,
-    ),
-    // canAddMaterialToPlaylist barra os outros antes de chegar aqui.
-    ChordMaterialRef() || GestureMaterialRef() || YoutubeMaterialRef() => null,
-  };
-  if (added == null) return;
+  final outcome = await ref
+      .read(activePlaylistEditorProvider.notifier)
+      .addToActive(
+        material.id,
+        kind: material.kind,
+        allowDuplicate: allowDuplicate,
+      );
 
   if (!context.mounted) return;
-  showAppSnackbar(
-    context,
-    added ? l10n.carouselAdded : l10n.carouselAlreadyAdded,
-  );
+  showAppSnackbar(context, switch (outcome) {
+    AddToActiveOutcome.added => l10n.carouselAdded,
+    AddToActiveOutcome.alreadyPresent => l10n.carouselAlreadyAdded,
+    AddToActiveOutcome.storageUnavailable => l10n.playlistStorageUnavailable,
+  });
 }

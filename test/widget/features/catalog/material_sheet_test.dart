@@ -1,8 +1,9 @@
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -108,22 +109,42 @@ class _OpenMaterialSpy extends OpenMaterial {
 }
 
 class _RecordingPlaylistsNotifier extends PlaylistsNotifier {
-  final List<String> addedPdfIds = [];
-  final List<String> addedAudioIds = [];
-
   @override
   List<PlaylistViewItem> build() => const [];
+}
+
+/// Registra cada `addToActive` do sheet — o `+` passa pelo editor (B.3).
+class _RecordingActiveEditor extends ActivePlaylistEditor {
+  _RecordingActiveEditor({
+    this.outcome = AddToActiveOutcome.added,
+    this.removeThrows = false,
+  });
+
+  /// O que o editor responde — o sheet só traduz o resultado em snackbar.
+  final AddToActiveOutcome outcome;
+
+  /// `removeById` sem storage: lança como o editor real.
+  final bool removeThrows;
+  final List<({String id, MaterialKind? kind, bool allowDuplicate})> added = [];
+  final List<String> removed = [];
 
   @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async {
-    addedPdfIds.add(pdfId);
-    return true;
+  List<PlaylistEntry>? build() => null;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
+    return outcome;
   }
 
   @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async {
-    addedAudioIds.add(audioId);
-    return true;
+  Future<void> removeById(String materialId) async {
+    if (removeThrows) throw const StorageUnavailableException('teste');
+    removed.add(materialId);
   }
 }
 
@@ -142,7 +163,10 @@ Future<void> _pumpSheet(
   required LouvorGroup group,
   _OpenMaterialSpy? opener,
   PlaylistsNotifier Function()? playlists,
+  ActivePlaylistEditor Function()? editor,
+  List<ActiveEntry> activeEntries = const [],
   bool canAddToPlaylist = true,
+  IsarStatus isarStatus = IsarStatus.available,
   List<Override> overrides = const [],
 }) async {
   // O sheet é uma ListView e o modal ocupa 75% da altura: na janela padrão
@@ -151,11 +175,13 @@ Future<void> _pumpSheet(
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
+  late WidgetRef capturedRef;
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        isarAvailableProvider.overrideWithValue(true),
-        activeEntriesProvider.overrideWithValue(const []),
+        isarStatusProvider.overrideWithValue(isarStatus),
+        activeEntriesProvider.overrideWithValue(activeEntries),
+        if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
         if (opener != null) openMaterialProvider.overrideWithValue(opener),
         ...overrides,
@@ -167,21 +193,29 @@ Future<void> _pumpSheet(
         // esperam as strings em português.
         locale: const Locale('pt'),
         home: Consumer(
-          builder: (context, ref, _) => Scaffold(
-            body: ElevatedButton(
-              onPressed: () => showMaterialSheet(
-                context,
-                ref,
-                group,
-                canAddToPlaylist: canAddToPlaylist,
+          builder: (context, ref, _) {
+            capturedRef = ref;
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () => showMaterialSheet(
+                  context,
+                  ref,
+                  group,
+                  canAddToPlaylist: canAddToPlaylist,
+                ),
+                child: const Text('abrir'),
               ),
-              child: const Text('abrir'),
-            ),
-          ),
+            );
+          },
         ),
       ),
     ),
   );
+  // Quem monta o grupo (busca/browse, detalhe do praise) já fundiu as cifras
+  // no cache pelo escritor — o sheet só lê (C.3). O teste repete o contrato.
+  capturedRef
+      .read(coldigomCacheWriterProvider)
+      .mergeChords(group.chordMaterials);
   await tester.tap(find.text('abrir'));
   await tester.pumpAndSettle();
 }
@@ -216,7 +250,7 @@ void main() {
       expect(opener.opened!.id, 'pdf2');
     });
 
-    testWidgets('seção única não mostra rótulo de classificação', (
+    testWidgets('seção única e nada mais não mostra rótulo nenhum', (
       tester,
     ) async {
       final group = LouvorGroup.fromLouvores([
@@ -229,6 +263,72 @@ void main() {
       expect(find.text('Básico'), findsNothing);
       expect(find.text('Partitura'), findsOneWidget);
       expect(find.text('Cifra'), findsOneWidget);
+    });
+
+    // Dois tipos → abas «Partituras» | «Cifras»; a seção única de PDF não
+    // ganha rótulo (a aba já diz o que é).
+    testWidgets('uma seção de PDF com cifras vira duas abas', (tester) async {
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        chordMaterials: [_chord('Cifra I', 'k1')],
+      );
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
+      );
+
+      expect(find.text('Básico'), findsNothing);
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Cifras'), findsOneWidget);
+      expect(find.text('Partitura'), findsOneWidget);
+      expect(find.text('Cifra I'), findsNothing);
+
+      await tester.tap(find.text('Cifras'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cifra I'), findsOneWidget);
+      expect(find.text('Partitura'), findsNothing);
+    });
+
+    testWidgets('seção sem classificação usa «Partituras» como rótulo', (
+      tester,
+    ) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1', classificacao: ''),
+        _pdf(categoria: 'Cifra', pdfId: 'pdf2', classificacao: 'Fox'),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Fox'), findsOneWidget);
+    });
+
+    // Praise Coldigom de seção única sem cifra/áudio/YouTube: um bloco só.
+    testWidgets('praise de bloco único não mostra rótulo', (tester) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(
+          categoria: 'Partitura',
+          pdfId: 'pdf1',
+          source: LouvorDataSource.coldigom,
+        ),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Básico'), findsNothing);
+      expect(find.text('Partituras'), findsNothing);
+      expect(find.text('Cifras'), findsNothing);
+      expect(find.text('Áudio'), findsNothing);
+      expect(find.text('YouTube'), findsNothing);
+      expect(find.text('Partitura'), findsOneWidget);
     });
   });
 
@@ -248,15 +348,21 @@ void main() {
       );
 
       expect(find.text('YouTube'), findsOneWidget);
+      // PDF tem botão +; a aba de YouTube nem tile com + tem.
+      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
+      expect(find.text('Gestos CIAs'), findsNothing);
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Gestos CIAs'), findsOneWidget);
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
 
       final youtubeIcon = tester.widget<Icon>(
         find.byIcon(LouvorMaterialIcons.youtube),
       );
       expect(youtubeIcon.color, AppColors.youtube);
 
-      // PDF tem botão +; tile YouTube não.
-      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
       final youtubeTile = tester.widget<ListTile>(
         find.widgetWithText(ListTile, 'Gestos CIAs'),
       );
@@ -271,7 +377,7 @@ void main() {
   });
 
   group('cabeçalho Coldigom', () {
-    testWidgets('meta, número separado do nome e listas por tipo', (
+    testWidgets('meta, número separado do nome e abas por tipo', (
       tester,
     ) async {
       final group = LouvorGroup.fromLouvores(
@@ -308,9 +414,10 @@ void main() {
       expect(find.text('Tom'), findsOneWidget);
       expect(find.text('Dm'), findsOneWidget);
       expect(find.text('Autor'), findsOneWidget);
-      // Duas vezes: autor no bloco de meta e subtítulo da faixa de áudio.
-      expect(find.text('CIAS'), findsNWidgets(2));
+      expect(find.text('CIAS'), findsOneWidget);
       expect(find.text('Ritmo'), findsOneWidget);
+      // Só no bloco de meta: a seção única de PDF não ganha rótulo, a aba
+      // «Partituras» já diz o que é.
       expect(find.text('Básico'), findsOneWidget);
       expect(find.text('Categoria'), findsOneWidget);
       expect(find.text('Clamor'), findsOneWidget);
@@ -320,11 +427,27 @@ void main() {
       // Título concatenado antigo do sheet PLPCG não existe.
       expect(find.text('692 — Comigo habita'), findsNothing);
 
+      // Abas: PDF aberta, as outras só com o rótulo.
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
       expect(find.text('Partitura'), findsOneWidget);
       expect(find.text('Cifra I'), findsOneWidget);
-      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('Playback'), findsNothing);
+      expect(find.text('Gestos CIAs'), findsNothing);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Partitura'), findsNothing);
       expect(find.text('Playback'), findsOneWidget);
-      expect(find.text('YouTube'), findsOneWidget);
+      // Autor no bloco de meta e no subtítulo da faixa.
+      expect(find.text('CIAS'), findsNWidgets(2));
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Playback'), findsNothing);
       expect(find.text('Gestos CIAs'), findsOneWidget);
     });
 
@@ -368,7 +491,8 @@ void main() {
         ],
       );
 
-      expect(find.text('Cifras'), findsOneWidget);
+      // Tipo único: sem abas nem rótulo.
+      expect(find.text('Cifras'), findsNothing);
       expect(find.text('Cifra I'), findsOneWidget);
       expect(find.text('Cifra II'), findsNothing);
     });
@@ -454,8 +578,7 @@ void main() {
           ],
         );
 
-        // Erro não some com a seção: a linha de retry ocupa o lugar da cifra.
-        expect(find.text('Cifras'), findsOneWidget);
+        // Erro não some com a lista: a linha de retry ocupa o lugar da cifra.
         expect(
           find.text('Cifra indisponível · tentar de novo'),
           findsOneWidget,
@@ -524,19 +647,30 @@ void main() {
       expect(opener.opened, isA<GestureMaterialRef>());
     });
 
-    testWidgets('abrir o sheet aquece coldigomGestureMaterialsCacheProvider', (
+    testWidgets('PDF com gestos vira duas abas; a de Gestos lista o documento', (
       tester,
     ) async {
-      final material = gesture();
-      await _pumpSheet(tester, group: groupWithGestures([material]));
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        gestureMaterials: [gesture()],
+      );
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialSheet)),
-      );
-      expect(
-        container.read(coldigomGestureMaterialsCacheProvider),
-        containsPair(material.gestureId, isA<GestureMaterial>()),
-      );
+      await _pumpSheet(tester, group: group);
+
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Gestos'), findsOneWidget);
+      expect(find.byIcon(Icons.pan_tool_outlined), findsNothing);
+
+      await tester.tap(find.text('Gestos'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.pan_tool_outlined), findsOneWidget);
+      expect(find.text('Partitura'), findsNothing);
     });
   });
 
@@ -551,6 +685,11 @@ void main() {
       await _pumpSheet(tester, group: group, opener: opener);
 
       expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('Playback'), findsNothing);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Playback'), findsOneWidget);
       expect(find.text('CIAS'), findsOneWidget);
 
@@ -592,6 +731,8 @@ void main() {
 
       await _pumpSheet(tester, group: group, opener: opener);
 
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Instrumental'));
       await tester.pumpAndSettle();
 
@@ -616,29 +757,201 @@ void main() {
   });
 
   group('ações de trailing', () {
-    testWidgets('+ do PDF e do áudio chamam os providers de lista', (
+    testWidgets('+ do PDF e do áudio entram pelo editor com o kind certo', (
       tester,
     ) async {
-      final playlists = _RecordingPlaylistsNotifier();
+      final editor = _RecordingActiveEditor();
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
         audioTracks: const [_track],
       ).first;
 
-      await _pumpSheet(tester, group: group, playlists: () => playlists);
+      await _pumpSheet(tester, group: group, editor: () => editor);
 
-      expect(find.byType(CarouselLouvorAddButton), findsNWidgets(2));
+      expect(find.byType(CarouselLouvorAddButton), findsOneWidget);
 
-      await tester.tap(find.byType(CarouselLouvorAddButton).first);
+      await tester.tap(find.byType(CarouselLouvorAddButton));
       await tester.pumpAndSettle();
-      expect(playlists.addedPdfIds, ['pdf1']);
-
-      await tester.tap(find.byType(CarouselLouvorAddButton).last);
-      await tester.pumpAndSettle();
-      expect(playlists.addedAudioIds, ['audio1']);
+      expect(editor.added, [
+        (id: 'pdf1', kind: MaterialKind.pdf, allowDuplicate: false),
+      ]);
 
       // O + não fecha o sheet.
       expect(find.text('Partitura'), findsOneWidget);
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+      expect(editor.added.last, (
+        id: 'audio1',
+        kind: MaterialKind.audio,
+        allowDuplicate: false,
+      ));
+      expect(find.text('Playback'), findsOneWidget);
+    });
+
+    testWidgets('material já na lista mostra × e remove após confirmar', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      expect(find.text('Adicionar de novo'), findsNothing);
+      expect(find.byTooltip('Remover da lista'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Remover da lista'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remover da lista?'), findsOneWidget);
+      expect(find.text('«Partitura» sai da lista ativa.'), findsOneWidget);
+
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(editor.removed, ['pdf1']);
+      expect(editor.added, isEmpty);
+      expect(find.text('Removido da lista'), findsOneWidget);
+    });
+
+    testWidgets('cancelar a confirmação não remove nada', (tester) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      await tester.tap(find.byTooltip('Remover da lista'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(editor.removed, isEmpty);
+      expect(find.text('Remover da lista?'), findsNothing);
+      // O sheet continua aberto, com o × no lugar.
+      expect(find.byTooltip('Remover da lista'), findsOneWidget);
+    });
+
+    testWidgets('remover sem storage vira a snackbar de storage', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor(removeThrows: true);
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        activeEntries: const [
+          ActiveEntry(
+            index: 0,
+            entry: PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            key: 'pdf1',
+          ),
+        ],
+      );
+
+      await tester.tap(find.byTooltip('Remover da lista'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Removido da lista'), findsNothing);
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    // A8: enquanto o Isar ainda **abre** (web fria), o `+` não pré-julga o
+    // storage no toque — quem decide é o editor, que espera a abertura.
+    testWidgets('com o Isar abrindo, o + entra pelo editor sem pré-julgar', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor();
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        isarStatus: IsarStatus.opening,
+      );
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(editor.added, hasLength(1));
+      expect(find.text('Adicionado à seleção'), findsOneWidget);
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('storageUnavailable do editor vira a snackbar de storage', (
+      tester,
+    ) async {
+      final editor = _RecordingActiveEditor(
+        outcome: AddToActiveOutcome.storageUnavailable,
+      );
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        editor: () => editor,
+        isarStatus: IsarStatus.opening,
+      );
+
+      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Armazenamento local indisponível. Listas não podem ser salvas.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Adicionado à seleção'), findsNothing);
     });
 
     testWidgets('canAddToPlaylist falso esconde todos os +', (tester) async {
@@ -654,6 +967,9 @@ void main() {
         playlists: _RecordingPlaylistsNotifier.new,
       );
 
+      expect(find.byType(CarouselLouvorAddButton), findsNothing);
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
       expect(find.byType(CarouselLouvorAddButton), findsNothing);
     });
   });

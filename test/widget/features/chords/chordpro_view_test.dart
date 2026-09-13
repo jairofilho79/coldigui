@@ -1,20 +1,25 @@
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
+import 'package:coldigui/features/chords/presentation/utils/transpose_label_memo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> _pump(WidgetTester tester, String source,
-    {ChordReaderMode mode = ChordReaderMode.light}) {
+/// [ChordProView] é um sliver — precisa estar dentro de um [CustomScrollView],
+/// nunca direto no `body` de um [Scaffold].
+Widget _host(Widget sliver) {
+  return MaterialApp(
+    home: Scaffold(body: CustomScrollView(slivers: [sliver])),
+  );
+}
+
+Future<void> _pump(
+  WidgetTester tester,
+  String source, {
+  ChordReaderMode mode = ChordReaderMode.light,
+}) {
   return tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: ChordProView(
-          song: parseChordPro(source),
-          palette: mode.palette,
-        ),
-      ),
-    ),
+    _host(ChordProView(song: parseChordPro(source), palette: mode.palette)),
   );
 }
 
@@ -40,15 +45,15 @@ void main() {
     expect(find.text('Deus e Amor   '), findsOneWidget);
   });
 
-  testWidgets('um espaco e tres espacos renderizam textos diferentes',
-      (tester) async {
+  testWidgets('um espaco e tres espacos renderizam textos diferentes', (
+    tester,
+  ) async {
     await _pump(tester, 'Deus e Amor [C]\n');
     expect(find.text('Deus e Amor '), findsOneWidget);
     expect(find.text('Deus e Amor   '), findsNothing);
   });
 
-  testWidgets('tres espacos ocupam mais largura que um espaco',
-      (tester) async {
+  testWidgets('tres espacos ocupam mais largura que um espaco', (tester) async {
     // find.text casa por Text.data, entao um softWrap/overflow que engula os
     // espacos passaria verde. So a largura renderizada prova a promessa.
     await _pump(tester, 'Deus e Amor [C]\nDeus e Amor   [C]\n');
@@ -59,8 +64,7 @@ void main() {
     );
   });
 
-  testWidgets('celula sem acorde quebra em vez de ser cortada',
-      (tester) async {
+  testWidgets('celula sem acorde quebra em vez de ser cortada', (tester) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -117,13 +121,11 @@ void main() {
 
     testWidgets('fontSize escala letra e acorde juntos', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChordProView(
-              song: parseChordPro('ha[Cm]bi\n'),
-              palette: ChordReaderMode.light.palette,
-              fontSize: 24,
-            ),
+        _host(
+          ChordProView(
+            song: parseChordPro('ha[Cm]bi\n'),
+            palette: ChordReaderMode.light.palette,
+            fontSize: 24,
           ),
         ),
       );
@@ -137,13 +139,11 @@ void main() {
 
     testWidgets('transposicao muda os acordes e nao a letra', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChordProView(
-              song: parseChordPro('{key: G}\n\nha[G]bi [Am]ta [D7/F#]la\n'),
-              palette: ChordReaderMode.light.palette,
-              semitones: 2,
-            ),
+        _host(
+          ChordProView(
+            song: parseChordPro('{key: G}\n\nha[G]bi [Am]ta [D7/F#]la\n'),
+            palette: ChordReaderMode.light.palette,
+            semitones: 2,
           ),
         ),
       );
@@ -159,17 +159,16 @@ void main() {
       expect(find.text('Am'), findsNothing);
     });
 
-    testWidgets('transposicao respeita a grafia do tom de destino',
-        (tester) async {
+    testWidgets('transposicao respeita a grafia do tom de destino', (
+      tester,
+    ) async {
       // G subindo um vira Lab (bemois), nao Sol# (oito sustenidos).
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChordProView(
-              song: parseChordPro('{key: G}\n\nca[G]sa [C]la\n'),
-              palette: ChordReaderMode.light.palette,
-              semitones: 1,
-            ),
+        _host(
+          ChordProView(
+            song: parseChordPro('{key: G}\n\nca[G]sa [C]la\n'),
+            palette: ChordReaderMode.light.palette,
+            semitones: 1,
           ),
         ),
       );
@@ -179,21 +178,126 @@ void main() {
       expect(find.text('G#'), findsNothing);
     });
 
-    testWidgets('transposicao nao mexe em marcadores como [*2x]',
-        (tester) async {
+    testWidgets('transposicao nao mexe em marcadores como [*2x]', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ChordProView(
-              song: parseChordPro('{key: G}\n\nca[*2x]sa\n'),
-              palette: ChordReaderMode.light.palette,
-              semitones: 3,
-            ),
+        _host(
+          ChordProView(
+            song: parseChordPro('{key: G}\n\nca[*2x]sa\n'),
+            palette: ChordReaderMode.light.palette,
+            semitones: 3,
           ),
         ),
       );
 
       expect(find.text('*2x'), findsOneWidget);
     });
+  });
+
+  group('memo de transposicao (A14)', () {
+    testWidgets('usa o memo em vez de recalcular direto', (tester) async {
+      var calls = 0;
+      final memo = TransposeLabelMemo(
+        transpose: (chord, semitones, {required bool preferFlats}) {
+          calls++;
+          return 'X';
+        },
+      );
+
+      await tester.pumpWidget(
+        _host(
+          ChordProView(
+            song: parseChordPro('ha[Cm]bi [Cm]la\n'),
+            palette: ChordReaderMode.light.palette,
+            semitones: 1,
+            memo: memo,
+          ),
+        ),
+      );
+
+      // As duas celulas [Cm] batem na mesma chave: o memo poupa a segunda.
+      expect(find.text('X'), findsNWidgets(2));
+      expect(calls, 1);
+    });
+  });
+
+  group('colunas em tela larga (C9)', () {
+    testWidgets('columns 1 renderiza tudo numa lista so', (tester) async {
+      final source = List.generate(40, (i) => 'linha $i\n').join();
+
+      await tester.pumpWidget(
+        _host(
+          ChordProView(
+            song: parseChordPro(source),
+            palette: ChordReaderMode.light.palette,
+          ),
+        ),
+      );
+
+      expect(find.text('linha 0'), findsOneWidget);
+      expect(find.byType(SliverCrossAxisGroup), findsNothing);
+
+      // A lista e virtualizada (A14): a ultima linha so aparece apos rolar.
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, -4000),
+        3000,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('linha 39'), findsOneWidget);
+    });
+
+    testWidgets('columns 2 com linhas suficientes divide em duas listas', (
+      tester,
+    ) async {
+      final source = List.generate(40, (i) => 'linha $i\n').join();
+
+      await tester.pumpWidget(
+        _host(
+          ChordProView(
+            song: parseChordPro(source),
+            palette: ChordReaderMode.light.palette,
+            columns: 2,
+          ),
+        ),
+      );
+
+      expect(find.byType(SliverCrossAxisGroup), findsOneWidget);
+      // Nenhuma linha se perde na divisão: a primeira fica na esquerda, a
+      // ultima (apos rolar) na direita.
+      expect(find.text('linha 0'), findsOneWidget);
+
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, -4000),
+        3000,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('linha 39'), findsOneWidget);
+    });
+
+    testWidgets(
+      'columns 2 com poucas linhas cai para uma coluna cheia (sem SliverCrossAxisGroup)',
+      (tester) async {
+        // splitLinesForColumns só divide a partir de 24 linhas — com menos,
+        // a segunda coluna ficaria vazia mesmo com columns: 2. Sem o
+        // fallback, o conteúdo renderizaria preso à metade esquerda da
+        // largura, com a direita em branco — em vez disso cai para o
+        // SliverList de coluna única, ocupando a largura inteira.
+        await tester.pumpWidget(
+          _host(
+            ChordProView(
+              song: parseChordPro('so uma linha\n'),
+              palette: ChordReaderMode.light.palette,
+              columns: 2,
+            ),
+          ),
+        );
+
+        expect(find.text('so uma linha'), findsOneWidget);
+        expect(find.byType(SliverCrossAxisGroup), findsNothing);
+      },
+    );
   });
 }

@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/gesture_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../playlists/presentation/providers/playlists_provider.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/gesture_material.dart';
 
 /// Resultado de decodificar um id de material como documento de gestos.
@@ -44,17 +43,17 @@ GestureRoute gestureRouteFor(
 /// Abre [gesture] em `/gestos`, entrando na lista ativa como o PDF faz.
 ///
 /// Espelha `openChordInReader`: o documento é buscado pelo
-/// `gestureDocumentProvider` na própria tela.
+/// `gestureDocumentProvider` na própria tela. Os gestos do grupo entram no
+/// cache no data, por quem monta o grupo (`ColdigomCacheWriter`) — a
+/// presentation não escreve cache (C.3).
 Future<void> openGestureInReader({
   required WidgetRef ref,
   required BuildContext context,
   required GestureMaterial gesture,
 }) async {
-  ref.read(coldigomCacheWriterProvider).mergeGestures([gesture]);
-
   await ref
-      .read(playlistsProvider.notifier)
-      .addLouvorToActivePlaylist(gesture.gestureId);
+      .read(activePlaylistEditorProvider.notifier)
+      .addToActive(gesture.gestureId, kind: MaterialKind.gesture);
 
   if (!context.mounted) return;
 

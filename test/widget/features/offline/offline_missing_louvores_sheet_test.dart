@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
@@ -11,16 +12,6 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  // `openLouvorInReader` espera o resolve **e** o add da lista ativa no mesmo
-  // `Future.wait`; sem este override o teste pendura no Isar.
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
 
 /// Resolve que encontra o índice apontando para um arquivo apagado.
 class _DeletedPdfDownloadNotifier extends LouvorPdfDownloadNotifier {
@@ -65,7 +56,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             louvorPdfDownloadProvider.overrideWith(
               _DeletedPdfDownloadNotifier.new,
             ),

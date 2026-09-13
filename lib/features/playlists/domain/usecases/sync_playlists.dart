@@ -49,6 +49,16 @@ class PlaylistSyncResult {
   /// Primeiro erro a mostrar ao usuário — pull perde para nada, é o mais cedo.
   Object? get error => pullError ?? pushError;
 
+  /// `true` se alguma linha do banco mudou nesta rodada — a tela precisa
+  /// recarregar. Um push sozinho conta: ele muda `version`/`syncStatus`, que a
+  /// lista mostra. Conflito sem cópia não altera linha nenhuma.
+  bool get movedRows =>
+      pulled > 0 ||
+      pushed > 0 ||
+      deleted > 0 ||
+      deletedRemotely > 0 ||
+      conflictCopies.isNotEmpty;
+
   static const skippedAuth = PlaylistSyncResult(skipped: true);
 }
 

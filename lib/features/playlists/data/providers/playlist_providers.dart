@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
+import '../../../../core/providers/dio_provider.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
+import '../../domain/ports/share_link_shortener.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/usecases/delete_all_unsaved_playlists.dart';
 import '../../domain/usecases/delete_playlist.dart';
+import '../../domain/usecases/duplicate_playlist.dart';
 import '../../domain/usecases/ensure_active_playlist.dart';
 import '../../domain/usecases/favorite_playlist.dart';
 import '../../domain/usecases/generate_playlist_share_url.dart';
@@ -16,6 +20,7 @@ import '../../domain/usecases/toggle_playlist_favorite.dart';
 import '../../domain/usecases/unfavorite_playlist.dart';
 import '../../domain/usecases/update_playlist.dart';
 import '../datasources/playlist_local_datasource.dart';
+import '../datasources/share_link_shortener_remote.dart';
 import '../repositories/playlist_repository_impl.dart';
 
 /// DI — CRUD Isar [Playlist] via [isarProvider].
@@ -40,6 +45,11 @@ final updatePlaylistProvider = Provider<UpdatePlaylist>((ref) {
 /// UC-06 — excluir playlist.
 final deletePlaylistProvider = Provider<DeletePlaylist>((ref) {
   return DeletePlaylist(ref.watch(playlistRepositoryProvider));
+});
+
+/// UC-06 — duplicar playlist (C11).
+final duplicatePlaylistProvider = Provider<DuplicatePlaylist>((ref) {
+  return DuplicatePlaylist(ref.watch(playlistRepositoryProvider));
 });
 
 /// UC-06 — alternar favorito (legado; preferir favorite/unfavorite).
@@ -87,11 +97,26 @@ final migrateCarouselStoreProvider = Provider<MigrateCarouselStore>((ref) {
   );
 });
 
-/// UC-07 — gerar URL de compartilhamento (Fase 4.4).
+/// D7 — encurtador de link de compartilhamento (`POST /api/links`).
+///
+/// `idToken` é resolvido a cada chamada de [ShareLinkShortener.shorten] (não
+/// na hora de montar o provider): a rota exige autenticação, e a instância
+/// sobrevive a logins/logouts sem precisar ser recriada.
+final shareLinkShortenerProvider = Provider<ShareLinkShortener>((ref) {
+  return ShareLinkShortenerRemote(
+    ref.watch(dioProvider),
+    idToken: () => ref.read(authStateProvider).value?.idToken,
+  );
+});
+
+/// UC-07 — gerar URL de compartilhamento (Fase 4.4; link curto, D7).
 final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
   ref,
 ) {
-  return GeneratePlaylistShareUrl(ref.watch(playlistRepositoryProvider));
+  return GeneratePlaylistShareUrl(
+    ref.watch(playlistRepositoryProvider),
+    shortener: ref.watch(shareLinkShortenerProvider),
+  );
 });
 
 /// UC-07 — importar playlist compartilhada (Fase 4.4).

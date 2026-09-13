@@ -1,3 +1,4 @@
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
@@ -5,6 +6,7 @@ import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags
 import 'package:coldigui/features/audio_flags/presentation/widgets/add_audio_flag_dialog.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_list.dart';
 import 'package:coldigui/features/audio_flags/presentation/widgets/audio_flag_sync_error_row.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -14,7 +16,6 @@ import 'package:coldigui/features/audio_player/presentation/widgets/audio_transp
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_web_platform_hint.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,7 +47,7 @@ class AudioPlayerScreen extends ConsumerWidget {
         track.nome,
       if (track != null && track.author.isNotEmpty) track.author,
     ];
-    final canAddFlag = track != null && !session.playing;
+    final canAddFlag = audioPlayerCanAddFlag(track);
     // Ponte D1: partitura/cifra do louvor da faixa e toggle "seguir o áudio".
     final materialPdfId = resolveMaterialForGroup(ref, track?.groupId);
     final followingAudio = ref.watch(audioFollowReaderProvider);
@@ -120,9 +121,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                           ),
                         ),
                       IconButton(
-                        tooltip: canAddFlag
-                            ? l10n.audioFlagAdd
-                            : l10n.audioFlagPauseToAdd,
+                        tooltip: l10n.audioFlagAdd,
                         onPressed: !canAddFlag
                             ? null
                             : () => _addFlag(
@@ -148,6 +147,38 @@ class AudioPlayerScreen extends ConsumerWidget {
                               : AppColors.textLight.withValues(alpha: 0.55),
                         ),
                       ),
+                      if (track != null)
+                        PopupMenuButton<double>(
+                          tooltip: l10n.audioSpeed,
+                          initialValue: session.speed,
+                          onSelected: (value) => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .setSpeed(value),
+                          itemBuilder: (context) => [
+                            for (final option in kAudioSpeedOptions)
+                              PopupMenuItem<double>(
+                                value: option,
+                                child: Text(
+                                  l10n.audioSpeedValue(
+                                    formatAudioSpeed(option),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Center(
+                              child: Text(
+                                l10n.audioSpeedValue(
+                                  formatAudioSpeed(session.speed),
+                                ),
+                                style: AppTypography.label.copyWith(
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -185,6 +216,18 @@ class AudioPlayerScreen extends ConsumerWidget {
                           .read(audioPlayerSessionProvider.notifier)
                           .skipToNext();
                     },
+                    onSeekBack10: track == null
+                        ? null
+                        : () => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .seekBy(const Duration(seconds: -10)),
+                    onSeekForward10: track == null
+                        ? null
+                        : () => ref
+                              .read(audioPlayerSessionProvider.notifier)
+                              .seekBy(const Duration(seconds: 10)),
+                    seekBack10Tooltip: l10n.audioSeekBack10,
+                    seekForward10Tooltip: l10n.audioSeekForward10,
                     playTooltip: l10n.audioPlay,
                     pauseTooltip: l10n.audioPause,
                     previousTooltip: l10n.audioPrevious,
@@ -244,7 +287,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                   ],
                 ],
               ),
-              if (kIsWeb)
+              if (ref.watch(platformCapabilitiesProvider).isWeb)
                 AudioWebPlatformHint(
                   message: isIosWebStandalonePwa
                       ? l10n.audioWebIosPwaNotice
@@ -273,4 +316,21 @@ class AudioPlayerScreen extends ConsumerWidget {
           label: label,
         );
   }
+}
+
+/// C12 [decisão]: o marcador pode ser adicionado com o áudio tocando — a
+/// posição vale a do momento do toque, precisão suficiente (cai a exigência
+/// de pausar antes).
+@visibleForTesting
+bool audioPlayerCanAddFlag(AudioTrack? track) => track != null;
+
+/// Velocidades oferecidas no menu do `/audio` (C12).
+const List<double> kAudioSpeedOptions = [0.75, 1.0, 1.25, 1.5];
+
+/// Formata a velocidade pro rótulo do menu — vírgula decimal, sem zero à
+/// direita (`1.0` -> `1`, `1.25` -> `1,25`).
+@visibleForTesting
+String formatAudioSpeed(double speed) {
+  if (speed == speed.roundToDouble()) return speed.toInt().toString();
+  return speed.toString().replaceAll('.', ',');
 }

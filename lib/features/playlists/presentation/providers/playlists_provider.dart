@@ -10,9 +10,8 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../domain/entities/playlist_media_face.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
@@ -24,25 +23,11 @@ import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_editor.dart';
 import 'active_playlist_provider.dart';
+import 'pending_delete.dart';
 import 'playlist_media_face_provider.dart';
 import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
-
-/// Lista ativa resolvida — retorno de
-/// [PlaylistsNotifier.resolveActivePlaylistFromCarousel].
-///
-/// Usado por [CarouselBarTrailingActions._sharePlaylist] e
-/// [PlaylistsNotifier.sharePlaylist] antes de gerar URL PWA.
-class ResolvedActivePlaylist {
-  const ResolvedActivePlaylist({required this.playlistId, required this.nome});
-
-  /// ID estável da playlist ([SavedPlaylist.playlistId]).
-  final String playlistId;
-
-  /// Nome exibido no share sheet (`subject` do share nativo).
-  final String nome;
-}
 
 /// Playlist enriquecida com labels do manifest para exibição na UI.
 class PlaylistViewItem {
@@ -54,11 +39,19 @@ class PlaylistViewItem {
 
 /// Estado reativo das playlists — UC-06 (CRUD, load, abas) e UC-07 (share/import).
 ///
-/// Toda mutação da **seleção** passa pelo [ActivePlaylistEditor] (D3): os
-/// métodos daqui que ainda falam em carousel são invólucros de compatibilidade
-/// até a Tarefa 16.
+/// Toda mutação da **seleção** passa pelo [ActivePlaylistEditor] (D3);
+/// [addLouvorToActivePlaylist]/[addAudioToActivePlaylist] são a porta de quem
+/// abre um material e quer garanti-lo na lista ativa.
 class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   var _sessionHydrated = false;
+
+  /// Exclusão adiada em curso (C11) — só uma por vez, ver [deleteWithUndo].
+  PendingDelete? _pendingDelete;
+
+  /// `playlistId` de [_pendingDelete] — usado por [_reload] para não
+  /// ressuscitar a lista enquanto a exclusão ainda não comitou (fix round 1,
+  /// Important 1).
+  String? _pendingDeleteId;
 
   @override
   List<PlaylistViewItem> build() {
@@ -71,17 +64,21 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     ref.listen(isarStatusProvider, (_, next) {
       if (next == IsarStatus.available) unawaited(_reload());
     });
+    ref.onDispose(() {
+      final pending = _pendingDelete;
+      if (pending != null && !pending.isSettled) unawaited(pending.commit());
+    });
     Future.microtask(_reload);
     return const [];
   }
 
   List<String> _labelsForPdfIds(
     List<String> pdfIds,
-    Map<String, Louvor> byPdfId,
+    CatalogMaterialLookup lookup,
   ) {
     return pdfIds
         .map((id) {
-          final louvor = byPdfId[id];
+          final louvor = lookup.louvor(id);
           if (louvor == null) return _fallbackLabel(id);
           return '${louvor.numero} — ${louvor.nome}';
         })
@@ -95,14 +92,32 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   Future<void> _reload() async {
     final repository = ref.read(playlistRepositoryProvider);
-    final byPdfId = ref.read(louvoresByPdfIdProvider);
+    final lookup = ref.read(catalogMaterialLookupProvider);
+
+    // Fix round 1 — Important 1 / fix round 2 — Minor: o repositório ainda
+    // tem a linha enquanto a exclusão está na graça (o commit real só roda
+    // depois); um reload disparado nesse meio-tempo (`playlist_sync_provider
+    // .dart` chama `reload()` após todo sync com `movedRows`, e qualquer
+    // mutação autenticada pode disparar isso dentro dos 5 s) não pode
+    // ressuscitar a lista que o usuário acabou de apagar. Resolvido **antes**
+    // do `await` abaixo — não depois: um `commit()` concorrente assenta
+    // `_pendingDelete!.isSettled` de forma síncrona (antes do próprio
+    // `_onCommit` terminar), então checar depois do `await getAll()` corre o
+    // risco de ver `isSettled == true` mesmo quando a leitura em voo capturou
+    // um snapshot de antes da exclusão de verdade.
+    final pendingDelete = _pendingDelete;
+    final hiddenId = (pendingDelete != null && !pendingDelete.isSettled)
+        ? _pendingDeleteId
+        : null;
+
     final playlists = await repository.getAll();
 
     state = playlists
+        .where((playlist) => playlist.playlistId != hiddenId)
         .map(
           (playlist) => PlaylistViewItem(
             playlist: playlist,
-            pdfLabels: _labelsForPdfIds(playlist.pdfIds, byPdfId),
+            pdfLabels: _labelsForPdfIds(playlist.pdfIds, lookup),
           ),
         )
         .toList(growable: false);
@@ -152,29 +167,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     };
   }
 
+  /// Sync na nuvem se autenticado. A tela recarrega dentro do próprio
+  /// [PlaylistSyncNotifier] quando a rodada mexe em alguma linha.
   void _syncCloudIfAuthed() {
-    unawaited(
-      ref.read(playlistSyncProvider.notifier).sync().then((result) async {
-        if (!result.skipped &&
-            (result.pulled > 0 || result.pushed > 0 || result.deleted > 0)) {
-          await _reload();
-        }
-      }),
-    );
-  }
-
-  /// Garante lista ativa contendo [pdfId] e retorna o id da lista.
-  ///
-  /// Invólucro de [EnsureActivePlaylist] (D3).
-  Future<String> ensurePlaylistForLouvor(String pdfId) async {
-    final result = await ref.read(ensureActivePlaylistProvider)(
-      entry: PlaylistEntry.classified(pdfId),
-      activePlaylistId: ref.read(activePlaylistIdProvider),
-    );
-    ref.read(activePlaylistIdProvider.notifier).set(result.playlistId);
-    await _reload();
-    ref.read(carouselFocusedKeyProvider.notifier).focus(entryKeyFor(pdfId, 0));
-    return result.playlistId;
+    unawaited(ref.read(playlistSyncProvider.notifier).sync());
   }
 
   /// Adiciona louvor à lista ativa; cria lista não salva se necessário.
@@ -260,54 +256,35 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     _syncCloudIfAuthed();
   }
 
-  Future<void> removePdf({
+  /// Remove a entrada na posição [index] de `entries` (ordem única) — **uma**
+  /// ocorrência, nunca todas as do mesmo id (B.1).
+  ///
+  /// A lista ativa passa pelo [ActivePlaylistEditor] (`removeByKey`), que
+  /// assenta a reordenação em voo antes de gravar e mantém o override até o
+  /// reload; qualquer outra vai direto a [UpdatePlaylist] com `entries:` — um
+  /// rascunho que fica vazio é apagado por ele. Posição fora da lista: no-op.
+  Future<void> removeEntryAt({
     required String playlistId,
-    required String pdfId,
+    required int index,
   }) async {
     final current = state
-        .firstWhere((item) => item.playlist.playlistId == playlistId)
-        .playlist;
-    // Remove por id na ordem única e reprojeta a face de partituras.
-    final nextIds = <String>[
-      for (final entry in current.entries)
-        if (!entry.isAudio && entry.id != pdfId) entry.id,
-    ];
+        .where((item) => item.playlist.playlistId == playlistId)
+        .map((item) => item.playlist)
+        .firstOrNull;
+    if (current == null) return;
+    if (index < 0 || index >= current.entries.length) return;
 
+    if (ref.read(activePlaylistIdProvider) == playlistId) {
+      final key = activeEntriesOf(current.entries)[index].key;
+      await ref.read(activePlaylistEditorProvider.notifier).removeByKey(key);
+      return;
+    }
+
+    final next = [...current.entries]..removeAt(index);
     await ref.read(updatePlaylistProvider)(
       playlistId: playlistId,
-      pdfIds: nextIds,
+      entries: next,
     );
-    if (nextIds.isEmpty &&
-        current.audioIds.isEmpty &&
-        ref.read(activePlaylistIdProvider) == playlistId) {
-      ref.read(activePlaylistIdProvider.notifier).clear();
-    }
-    await _reload();
-    if (current.salva) _syncCloudIfAuthed();
-  }
-
-  Future<void> removeAudio({
-    required String playlistId,
-    required String audioId,
-  }) async {
-    final current = state
-        .firstWhere((item) => item.playlist.playlistId == playlistId)
-        .playlist;
-    // Remove por id na ordem única e reprojeta a face de áudio.
-    final nextIds = <String>[
-      for (final entry in current.entries)
-        if (entry.isAudio && entry.id != audioId) entry.id,
-    ];
-
-    await ref.read(updatePlaylistProvider)(
-      playlistId: playlistId,
-      audioIds: nextIds,
-    );
-    if (nextIds.isEmpty &&
-        current.pdfIds.isEmpty &&
-        ref.read(activePlaylistIdProvider) == playlistId) {
-      ref.read(activePlaylistIdProvider.notifier).clear();
-    }
     await _reload();
     if (current.salva) _syncCloudIfAuthed();
   }
@@ -321,23 +298,111 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return next;
   }
 
-  Future<void> delete(String playlistId) async {
-    final existing = state
-        .where((item) => item.playlist.playlistId == playlistId)
-        .map((e) => e.playlist)
-        .firstOrNull;
-    final authed = ref.read(authStateProvider).asData?.value != null;
-    if (existing?.salva == true && !authed) {
-      // Sem conta: hard delete (sem tombstone órfão).
-      await ref.read(playlistRepositoryProvider).hardDelete(playlistId);
-    } else {
-      await ref.read(deletePlaylistProvider)(playlistId: playlistId);
+  /// Apaga imediatamente (sem desfazer) — atalho para [deleteWithUndo] com
+  /// `grace: Duration.zero` seguido de `commit`.
+  Future<void> delete(String playlistId) =>
+      deleteWithUndo(playlistId, grace: Duration.zero).commit();
+
+  /// C11 — exclusão adiada: some do estado agora, mas o repositório só é
+  /// tocado depois de [grace] (5 s por padrão) — ou antes, se [PendingDelete]
+  /// é comitado explicitamente (outro `deleteWithUndo`, o `dispose` do
+  /// notifier ou o chamador). [PendingDelete.undo] recoloca o item sem nunca
+  /// ter chegado ao repositório.
+  ///
+  /// Qualquer `deleteWithUndo` anterior ainda pendente é comitado antes
+  /// deste começar: o item dele já sumiu do estado, não faz sentido guardar
+  /// duas exclusões "em voo" ao mesmo tempo.
+  ///
+  /// Repositório e "autenticado" são resolvidos **agora** (não dentro do
+  /// `commit`): a exclusão de verdade pode rodar depois que o notifier já
+  /// foi descartado (`ref.onDispose`), quando `ref.read` não é mais seguro
+  /// (mesmo padrão de [ActivePlaylistEditor]).
+  PendingDelete deleteWithUndo(
+    String playlistId, {
+    Duration grace = const Duration(seconds: 5),
+  }) {
+    final previousPending = _pendingDelete;
+    if (previousPending != null && !previousPending.isSettled) {
+      unawaited(previousPending.commit());
     }
-    if (ref.read(activePlaylistIdProvider) == playlistId) {
+
+    final index = state.indexWhere(
+      (item) => item.playlist.playlistId == playlistId,
+    );
+    final removed = index == -1 ? null : state[index];
+    if (removed != null) {
+      state = [...state]..removeAt(index);
+    }
+
+    // Fix round 2 (Minor): a seleção ativa não pode continuar apontando pra
+    // uma lista que já sumiu do estado — limpa já aqui (não só no `commit`,
+    // que só roda depois da graça ou nem roda se o usuário desfizer); o
+    // `undo` restaura.
+    final wasActive =
+        removed != null && ref.read(activePlaylistIdProvider) == playlistId;
+    if (wasActive) {
       ref.read(activePlaylistIdProvider.notifier).clear();
     }
+
+    final repository = ref.read(playlistRepositoryProvider);
+    final deletePlaylist = ref.read(deletePlaylistProvider);
+    final authed = ref.read(authStateProvider).asData?.value != null;
+    // Sem conta: hard delete (sem tombstone órfão) — mesma regra de antes.
+    final hardDelete = removed?.playlist.salva == true && !authed;
+
+    final pending = PendingDelete(
+      grace: grace,
+      onUndo: () async {
+        if (removed == null || !ref.mounted) return;
+        if (state.any((item) => item.playlist.playlistId == playlistId)) {
+          return;
+        }
+        final next = [...state];
+        next.insert(index.clamp(0, next.length), removed);
+        state = next;
+        if (wasActive) {
+          ref.read(activePlaylistIdProvider.notifier).set(playlistId);
+        }
+      },
+      onCommit: () async {
+        if (hardDelete) {
+          await repository.hardDelete(playlistId);
+        } else {
+          await deletePlaylist(playlistId: playlistId);
+        }
+        if (!ref.mounted) return;
+        if (ref.read(activePlaylistIdProvider) == playlistId) {
+          ref.read(activePlaylistIdProvider.notifier).clear();
+        }
+        await _reload();
+        if (!ref.mounted) return;
+        if (authed && (removed?.playlist.salva ?? true)) {
+          _syncCloudIfAuthed();
+        }
+      },
+    );
+    _pendingDelete = pending;
+    _pendingDeleteId = playlistId;
+    return pending;
+  }
+
+  /// C11 — duplica playlist: cria cópia salva com as mesmas entradas e o
+  /// nome [copyName] (já formatado pelo chamador — ARB `playlistCopyName`).
+  /// Devolve o `playlistId` da cópia.
+  Future<String> duplicate(
+    String playlistId, {
+    required String copyName,
+  }) async {
+    final copy = await ref.read(duplicatePlaylistProvider)(
+      playlistId: playlistId,
+      copyName: copyName,
+    );
     await _reload();
-    if (authed && (existing?.salva ?? true)) _syncCloudIfAuthed();
+    ref
+        .read(playlistsUiProvider.notifier)
+        .selectTab(PlaylistTab.saved, scrollToPlaylistId: copy.playlistId);
+    _syncCloudIfAuthed();
+    return copy.playlistId;
   }
 
   Future<void> deleteAllUnsaved() async {
@@ -374,55 +439,24 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 
-  /// Torna [playlistId] a lista ativa (D6 — «Tornar lista ativa»).
-  ///
-  /// Retorna `false` se a playlist não existir — instrumentação via
-  /// [playlistOpenDebugLog*] em [kDebugMode].
-  Future<bool> loadIntoCarousel(String playlistId) async {
-    playlistOpenDebugLog('activate: início playlistId=$playlistId');
-    try {
-      final existing = await ref
-          .read(playlistRepositoryProvider)
-          .getById(playlistId);
-      if (existing == null) {
-        playlistOpenDebugLogFailure('activate', 'playlist $playlistId ausente');
-        return false;
-      }
-      await ref
-          .read(activePlaylistEditorProvider.notifier)
-          .activate(playlistId);
-      playlistOpenDebugLog(
-        'activate: ok — ${existing.entries.length} entradas na lista ativa',
-      );
-      return true;
-    } on PlaylistNotFoundException catch (error, stackTrace) {
-      playlistOpenDebugLogError('activate: lista ausente', error, stackTrace);
-      return false;
-    } on Object catch (error, stackTrace) {
-      playlistOpenDebugLogError('activate', error, stackTrace);
-      return false;
-    }
-  }
-
   /// Busca louvor no manifest carregado — usado ao abrir PDF de playlist no leitor.
   ///
-  /// Lookup O(1) em [louvoresByPdfIdProvider] (A4). Retorna `null` se o
-  /// manifest ainda não carregou ou o [pdfId] for órfão. Em debug, registra
-  /// estado do manifest e falhas via [playlistOpenDebugLog*].
+  /// Lookup O(1) pelo [catalogMaterialLookupProvider] (A4/C.3). Retorna `null`
+  /// se o manifest ainda não carregou ou o [pdfId] for órfão. Em debug,
+  /// registra estado do manifest e falhas via [playlistOpenDebugLog*].
   Louvor? findLouvorByPdfId(String pdfId) {
     final manifestAsync = ref.read(louvoresManifestProvider);
-    final byPdfId = ref.read(louvoresByPdfIdProvider);
-    final coldigomCache = ref.read(coldigomLouvoresCacheProvider);
+    final lookup = ref.read(catalogMaterialLookupProvider);
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
       'manifest=${manifestAsync.isLoading
           ? 'loading'
           : manifestAsync.hasError
           ? 'error'
-          : '${byPdfId.length} itens'} '
-      'coldigomCache=${coldigomCache.length}',
+          : '${lookup.plpcgLouvoresByPdfId.length} itens'} '
+      'coldigomCache=${lookup.coldigomLouvoresByPdfId.length}',
     );
-    final louvor = byPdfId[pdfId] ?? coldigomCache[pdfId];
+    final louvor = lookup.louvor(pdfId);
     if (louvor != null) {
       playlistOpenDebugLog(
         'findLouvorByPdfId: encontrado numero=${louvor.numero} '
@@ -435,25 +469,6 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       'pdfId=$pdfId ausente no manifest e cache coldigom',
     );
     return null;
-  }
-
-  /// Lista ativa para ações como compartilhar (invólucro até a Tarefa 16).
-  ///
-  /// Não existe mais carousel a reconciliar: a lista ativa **é** a seleção.
-  /// Retorna `null` quando não há lista ativa ou ela está vazia.
-  @Deprecated('use activePlaylistProvider')
-  Future<ResolvedActivePlaylist?> resolveActivePlaylistFromCarousel() async {
-    final activeId = ref.read(activePlaylistIdProvider);
-    if (activeId == null) {
-      playlistShareDebugLog('resolve: sem lista ativa — abortando');
-      return null;
-    }
-    final active = await ref.read(playlistRepositoryProvider).getById(activeId);
-    if (active == null || active.entries.isEmpty) {
-      playlistShareDebugLog('resolve: lista ativa ausente ou vazia');
-      return null;
-    }
-    return ResolvedActivePlaylist(playlistId: activeId, nome: active.nome);
   }
 
   /// Compartilha playlist via URL PWA (`/?sharepdfs=…&sharename=…`).
@@ -523,15 +538,30 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     String shareItems = '',
   }) async {
     try {
-      final playlistId = await ref.read(importSharedPlaylistFromUrlProvider)(
+      // Fix round 2 (Minor): a lista pendente de exclusão adiada (C11, ainda
+      // sem `deletedAt` no repositório) não pode ser reaproveitada pela
+      // dedupe por conteúdo (spec C.2).
+      final pendingDelete = _pendingDelete;
+      final excludePlaylistId =
+          (pendingDelete != null && !pendingDelete.isSettled)
+          ? _pendingDeleteId
+          : null;
+      final result = await ref.read(importSharedPlaylistFromUrlProvider)(
         sharePdfs: sharePdfs,
         shareAudios: shareAudios,
         shareItems: shareItems,
         shareName: shareName,
+        excludePlaylistId: excludePlaylistId,
       );
-      ref.read(activePlaylistIdProvider.notifier).set(playlistId);
-      await _reload();
-      ref.read(carouselFocusedKeyProvider.notifier).clear();
+      final playlistId = result.playlist.playlistId;
+      // D6: a importada vira a ativa pelo mesmo caminho do «Tornar lista
+      // ativa» — a lista que era ativa continua salva, com a ordem pendente
+      // dela levada a disco antes da troca. Vale também quando a importada é
+      // a existente reaproveitada pela dedupe (spec C.2): ela também vira a
+      // ativa.
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlistId);
       return playlistId;
     } on InvalidSharePlaylistException {
       return null;

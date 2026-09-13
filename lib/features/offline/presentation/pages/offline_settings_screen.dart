@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/failures/app_failure.dart';
+import '../../../../core/l10n/failure_message.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/byte_format.dart';
@@ -10,7 +12,6 @@ import '../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
 import '../../data/providers/offline_providers.dart';
-import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/entities/offline_stats.dart';
 import '../providers/offline_bulk_download_provider.dart';
 import '../providers/offline_cache_status_provider.dart';
@@ -19,6 +20,10 @@ import '../providers/offline_maintenance_lock_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
+import 'offline_settings_widgets/category_filter_chip.dart';
+import 'offline_settings_widgets/checkpoint_banner.dart';
+import 'offline_settings_widgets/keep_app_open_banner.dart';
+import 'offline_settings_widgets/progress_section.dart';
 
 /// Mensagem do snackbar de conclusão do bulk download (Task 3/B4 — fix
 /// round 1).
@@ -159,9 +164,9 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     } on StorageUnavailableException catch (e) {
       debugPrint('[offline] limpar falhou: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineStorageUnavailable)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failureMessage(l10n, AppFailure.from(e)))),
+      );
       return;
     } finally {
       lock.release(OfflineMaintenanceOwner.clear);
@@ -199,19 +204,10 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     final selectionState = ref.watch(offlineCategorySelectionProvider);
 
     ref.listen(offlineBulkDownloadProvider, (previous, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != previous?.errorMessage) {
-        final message = switch (next.errorMessage) {
-          'offlineStorageUnavailable' => l10n.offlineStorageUnavailable,
-          'offlineInsufficientDiskSpace' => l10n.offlineInsufficientDiskSpace,
-          'offlineDownloadNoSpace' => l10n.offlineDownloadNoSpace,
-          'offlineDownloadTimeout' => l10n.offlineDownloadTimeout,
-          'offlineDownloadNetworkError' => l10n.offlineDownloadNetworkError,
-          _ => l10n.offlineDownloadError,
-        };
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+      if (next.failure != null && next.failure != previous?.failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failureMessage(l10n, next.failure!))),
+        );
       }
       if ((next.status == OfflineBulkDownloadStatus.completed ||
               next.status == OfflineBulkDownloadStatus.completedWithWarnings) &&
@@ -453,7 +449,7 @@ class _OfflineContent extends StatelessWidget {
         ),
         if (bulkState.hasCheckpoint && !bulkState.isActive) ...[
           const SizedBox(height: 14),
-          _CheckpointBanner(
+          CheckpointBanner(
             l10n: l10n,
             onDismiss: onDismissCheckpoint,
             onResume: onResumeCheckpoint,
@@ -465,7 +461,7 @@ class _OfflineContent extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (final material in CatalogMaterials.uiMaterials)
-              _CategoryFilterChip(
+              CategoryFilterChip(
                 label: _categoryLabel(material),
                 selected: selectionState.selected.contains(material),
                 enabled: !maintenanceBusy,
@@ -479,11 +475,11 @@ class _OfflineContent extends StatelessWidget {
         ),
         if (bulkState.isActive) ...[
           const SizedBox(height: 16),
-          _KeepAppOpenBanner(l10n: l10n),
+          KeepAppOpenBanner(l10n: l10n),
         ],
         if (bulkState.isActive && bulkState.progress != null) ...[
           const SizedBox(height: 12),
-          _ProgressSection(progress: bulkState.progress!),
+          ProgressSection(progress: bulkState.progress!),
         ],
         const SizedBox(height: 16),
         Row(
@@ -522,206 +518,6 @@ class _OfflineContent extends StatelessWidget {
             child: Text(l10n.offlineClearCache),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _CategoryFilterChip extends StatelessWidget {
-  const _CategoryFilterChip({
-    required this.label,
-    required this.selected,
-    required this.enabled,
-    required this.onSelected,
-    this.onLongPress,
-  });
-
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final ValueChanged<bool> onSelected;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final chip = FilterChip(
-      label: Text(label),
-      selected: selected,
-      showCheckmark: false,
-      selectedColor: AppColors.gold.withValues(alpha: 0.3),
-      backgroundColor: AppColors.card,
-      side: BorderSide(
-        color: selected
-            ? AppColors.gold
-            : AppColors.title.withValues(alpha: 0.4),
-        width: selected ? 2 : 1.5,
-      ),
-      onSelected: enabled ? onSelected : null,
-    );
-
-    if (onLongPress == null || !enabled) return chip;
-
-    return GestureDetector(onLongPress: onLongPress, child: chip);
-  }
-}
-
-class _KeepAppOpenBanner extends StatelessWidget {
-  const _KeepAppOpenBanner({required this.l10n});
-
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.title.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.info_outline,
-            size: 18,
-            color: AppColors.title.withValues(alpha: 0.75),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              l10n.offlineKeepAppOpenDuringDownload,
-              style: AppTypography.body.copyWith(
-                color: AppColors.title.withValues(alpha: 0.85),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CheckpointBanner extends StatelessWidget {
-  const _CheckpointBanner({
-    required this.l10n,
-    required this.onDismiss,
-    required this.onResume,
-  });
-
-  final AppLocalizations l10n;
-  final VoidCallback onDismiss;
-  final VoidCallback onResume;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.gold.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(l10n.offlineResumeBanner, style: AppTypography.body),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: onDismiss,
-                child: Text(l10n.offlineDismissCheckpoint),
-              ),
-              TextButton(
-                onPressed: onResume,
-                child: Text(l10n.offlineResumeDownload),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressSection extends StatelessWidget {
-  const _ProgressSection({required this.progress});
-
-  final OfflineDownloadProgress progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final isPdfOnlyProgress = progress.totalParts == 0;
-    final phaseLabel = isPdfOnlyProgress
-        ? switch (progress.phase) {
-            OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
-            _ => l10n.offlinePhaseFetching,
-          }
-        : switch (progress.phase) {
-            OfflineDownloadPhase.fetching => l10n.offlinePhaseFetching,
-            OfflineDownloadPhase.extracting => l10n.offlinePhaseExtracting,
-            OfflineDownloadPhase.storing => l10n.offlinePhaseStoring,
-            OfflineDownloadPhase.syncing => l10n.offlinePhaseSyncing,
-          };
-
-    final hasZipProgress =
-        !isPdfOnlyProgress &&
-        progress.zipBytesReceived != null &&
-        progress.zipBytesTotal != null &&
-        progress.zipBytesTotal! > 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LinearProgressIndicator(
-          value: progress.pdfFraction,
-          color: AppColors.gold,
-          backgroundColor: AppColors.title.withValues(alpha: 0.12),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          isPdfOnlyProgress
-              ? l10n.offlineProgressDetailWeb(
-                  progress.currentCategory,
-                  progress.donePdfs,
-                  progress.totalPdfs,
-                  phaseLabel,
-                )
-              : l10n.offlineProgressDetail(
-                  progress.currentCategory,
-                  progress.currentPart,
-                  progress.totalParts,
-                  progress.donePdfs,
-                  progress.totalPdfs,
-                  phaseLabel,
-                ),
-          style: AppTypography.body.copyWith(
-            color: AppColors.title.withValues(alpha: 0.75),
-          ),
-        ),
-        if (hasZipProgress) ...[
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress.zipFraction,
-            color: AppColors.gold,
-            backgroundColor: AppColors.title.withValues(alpha: 0.12),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.offlineFetchProgress(
-              progress.currentPart,
-              progress.totalParts,
-              formatCompactBytes(progress.zipBytesReceived!),
-              formatCompactBytes(progress.zipBytesTotal!),
-            ),
-            style: AppTypography.body.copyWith(
-              color: AppColors.title.withValues(alpha: 0.75),
-            ),
-          ),
-        ],
       ],
     );
   }

@@ -35,9 +35,9 @@ String encodeShareItems(List<PlaylistEntry> entries) => entries
 ///
 /// Token inválido = sem `:`, com prefixo fora da tabela, com prefixo vazio ou
 /// com id vazio. Segmentos vazios (`a,,b`, vírgula final) são tolerados, como
-/// nos CSVs legados. Ids repetidos deduplicam pela primeira ocorrência —
-/// mesma regra de [parsePdfIdsFromSharePdfs], para que a ordem única continue
-/// sem repetições.
+/// nos CSVs legados. Ids repetidos **ficam**: a lista pode repetir um louvor
+/// («Adicionar de novo»), e o link tem que reproduzir a reunião como ela é —
+/// só os CSVs legados ([parsePdfIdsFromSharePdfs]) continuam deduplicando.
 ///
 /// O tipo decodificado passa por [resolveWireKind], como no caminho de sync
 /// ([PlaylistEntry.fromJson]): uma URL escrita à mão (ou montada por um app
@@ -49,7 +49,6 @@ String encodeShareItems(List<PlaylistEntry> entries) => entries
 /// playlist pela metade.
 List<PlaylistEntry>? decodeShareItems(String raw) {
   final entries = <PlaylistEntry>[];
-  final seen = <String>{};
   for (final part in raw.split(',')) {
     final token = part.trim();
     if (token.isEmpty) continue;
@@ -58,7 +57,6 @@ List<PlaylistEntry>? decodeShareItems(String raw) {
     final kind = _shareItemKinds[token.substring(0, separator)];
     if (kind == null) return null;
     final id = token.substring(separator + 1);
-    if (!seen.add(id)) continue;
     entries.add(PlaylistEntry(id: id, kind: resolveWireKind(kind, id)));
   }
   return entries.isEmpty ? null : entries;

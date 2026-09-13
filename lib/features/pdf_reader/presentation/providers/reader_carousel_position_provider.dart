@@ -1,30 +1,47 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
+import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../domain/entities/carousel_reader_position.dart';
 
-/// Posição do louvor atual no carousel do leitor (Fase 4.7).
+/// Posição do material aberto no leitor dentro da face de partituras (B.5).
 ///
-/// Derivada de [carouselLouvoresProvider] (estado em memória) para evitar
-/// flicker/loading do antigo [FutureProvider] e manter setas/modal habilitados.
+/// Deriva de [carouselItemsProvider] — a view da lista ativa — em vez de um
+/// repositório próprio: o leitor não tem estado de seleção nenhum.
 ///
-/// Se [currentPdfId] não estiver na seleção, usa o índice focado do shell como
-/// fallback para permitir navegação entre itens do carousel.
+/// Qual ocorrência é a corrente, com o mesmo louvor repetido na lista:
+/// 1. a **focada**, quando ela é deste [currentMaterialId] — foi por ela que o
+///    usuário chegou aqui (chip, seta, teclado);
+/// 2. senão a **primeira** ocorrência do id (deep link, "seguir o áudio");
+/// 3. senão — id que não está na face, como uma cifra aberta de fora — a
+///    ocorrência focada, para as setas continuarem levando a algum lugar.
 final readerCarouselPositionProvider =
-    Provider.family<CarouselReaderPosition?, String>((ref, currentPdfId) {
-  final items = ref.watch(carouselLouvoresProvider);
-  if (items.isEmpty) return null;
+    Provider.family<CarouselReaderPosition?, String>((ref, currentMaterialId) {
+      final items = ref.watch(carouselItemsProvider);
+      if (items.isEmpty) return null;
 
-  var index = items.indexWhere((item) => item.pdfId == currentPdfId);
-  if (index < 0) {
-    index = ref.watch(carouselFocusedIndexProvider).clamp(0, items.length - 1);
-  }
+      final focused = ref.watch(focusedCarouselItemProvider);
 
-  return CarouselReaderPosition(
-    currentIndex: index + 1,
-    total: items.length,
-    previousPdfId: index > 0 ? items[index - 1].pdfId : null,
-    nextPdfId: index < items.length - 1 ? items[index + 1].pdfId : null,
-  );
-});
+      int index;
+      if (focused != null && focused.materialId == currentMaterialId) {
+        index = focused.index;
+      } else {
+        index = items.indexWhere(
+          (item) => item.materialId == currentMaterialId,
+        );
+        if (index < 0) index = focused?.index ?? 0;
+      }
+      index = index.clamp(0, items.length - 1);
+
+      final previous = index > 0 ? items[index - 1] : null;
+      final next = index < items.length - 1 ? items[index + 1] : null;
+
+      return CarouselReaderPosition(
+        currentIndex: index + 1,
+        total: items.length,
+        currentKey: items[index].key,
+        previousKey: previous?.key,
+        nextKey: next?.key,
+        previousMaterialId: previous?.materialId,
+        nextMaterialId: next?.materialId,
+      );
+    });

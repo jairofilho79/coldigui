@@ -5,8 +5,8 @@ import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_media_face.dart';
@@ -30,17 +30,6 @@ Set<String> collectColdigomPraiseIds({
     if (praiseId != null) ids.add(praiseId);
   }
   return ids;
-}
-
-/// Faixas do cache na ordem de [audioIds], ignorando IDs sem hit.
-List<AudioTrack> tracksForAudioIds(
-  Iterable<String> audioIds,
-  Map<String, AudioTrack> cache,
-) {
-  return [
-    for (final id in audioIds)
-      if (cache[id] != null) cache[id]!,
-  ];
 }
 
 /// Índice da faixa persistida, ou 0.
@@ -99,10 +88,7 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
     collectColdigomPraiseIds(pdfIds: pdfIds, audioIds: audioIds),
   );
 
-  final tracks = tracksForAudioIds(
-    audioIds,
-    ref.read(coldigomAudioTracksCacheProvider),
-  );
+  final tracks = ref.read(catalogMaterialLookupProvider).tracksFor(audioIds);
   if (tracks.isEmpty) {
     if (ref.read(playlistMediaFaceProvider) == PlaylistMediaFace.audio) {
       await ref

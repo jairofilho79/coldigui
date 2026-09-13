@@ -1,3 +1,4 @@
+import 'package:coldigui/core/widgets/light_beam.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,4 +66,50 @@ void main() {
 
     expect(tappedIndex, 1);
   });
+
+  testWidgets(
+    'trocar o rótulo recalcula a largura do feixe (A15 — memoização fora do build)',
+    (tester) async {
+      Widget buildWithLabel(String label) {
+        return MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(800, 600)),
+            child: Scaffold(
+              bottomNavigationBar: PlpcgBottomNavBar(
+                selectedIndex: 1,
+                onDestinationSelected: (_) {},
+                destinations: [
+                  const PlpcgBottomNavDestination(
+                    icon: Icons.library_books,
+                    label: 'Biblioteca',
+                  ),
+                  PlpcgBottomNavDestination(icon: Icons.search, label: label),
+                  const PlpcgBottomNavDestination(
+                    icon: Icons.playlist_play,
+                    label: 'Listas',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildWithLabel('AB'));
+      await tester.pumpAndSettle();
+      final shortWidth = tester
+          .widgetList<LightBeam>(find.byType(LightBeam))
+          .elementAt(1)
+          .width;
+
+      await tester.pumpWidget(buildWithLabel('Uma Label Bem Mais Comprida'));
+      await tester.pumpAndSettle();
+      final longWidth = tester
+          .widgetList<LightBeam>(find.byType(LightBeam))
+          .elementAt(1)
+          .width;
+
+      expect(longWidth, greaterThan(shortWidth));
+    },
+  );
 }

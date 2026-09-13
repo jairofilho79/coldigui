@@ -1,3 +1,4 @@
+import '../../../support/fakes/fake_auth_remote_datasource.dart';
 import 'package:coldigui/features/auth/data/auth_remote_datasource.dart';
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -6,17 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-/// Fake que substitui a chamada de rede real por um comportamento controlado
-/// pelo teste (sucesso, [AuthUnauthorizedException] ou [DioException]).
-class _FakeAuthRemoteDatasource extends AuthRemoteDatasource {
-  _FakeAuthRemoteDatasource(this._behavior) : super(Dio());
-
-  final Future<AuthUser> Function(String idToken) _behavior;
-
-  @override
-  Future<AuthUser> establishSession(String idToken) => _behavior(idToken);
-}
 
 void main() {
   const storedUser = AuthUser(
@@ -41,7 +31,7 @@ void main() {
       overrides: [
         authSessionStoreProvider.overrideWithValue(store),
         authRemoteDatasourceProvider.overrideWithValue(
-          _FakeAuthRemoteDatasource(behavior),
+          FakeAuthRemoteDatasource(behavior),
         ),
         if (initializer != null)
           googleSignInInitializerProvider.overrideWithValue(initializer),

@@ -9,14 +9,14 @@ Map<String, String> computeCatalogPdfIdRemappings({
   required List<Louvor> previousLouvores,
   required List<Louvor> newLouvores,
 }) {
-  final previousPdfIdByKey = <String, String>{};
+  final oldPdfIdByKey = <String, String>{};
   for (final louvor in previousLouvores) {
-    previousPdfIdByKey[catalogPdfRemapKey(louvor)] = louvor.pdfId;
+    oldPdfIdByKey[catalogPdfRemapKey(louvor)] = louvor.pdfId;
   }
 
   final remappings = <String, String>{};
   for (final louvor in newLouvores) {
-    final oldPdfId = previousPdfIdByKey[catalogPdfRemapKey(louvor)];
+    final oldPdfId = oldPdfIdByKey[catalogPdfRemapKey(louvor)];
     if (oldPdfId != null && oldPdfId != louvor.pdfId) {
       remappings[oldPdfId] = louvor.pdfId;
     }

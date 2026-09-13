@@ -44,4 +44,21 @@ abstract final class StorageKeys {
 
   /// Claro/escuro do leitor de cifras (`light` | `dark`).
   static const String chordReaderMode = 'chordReaderMode';
+
+  /// Filtros de material/arranjo do catálogo (JSON, UC-02) — C13.
+  static const String catalogFilters = 'catalogFilters';
+
+  /// Itens por página da Biblioteca (UC-03) — C13.
+  static const String libraryItemsPerPage = 'libraryItemsPerPage';
+
+  /// Ids de material abertos recentemente na Home, JSON (C4).
+  static const String recentlyOpened = 'recentlyOpened';
+
+  /// LRU (50) da última página vista por `pdfId` — JSON `[{"id":..,"p":..}]`
+  /// (UC-11 / spec A.3 C8, "lembrar última página").
+  static const String pdfLastPages = 'pdfLastPages';
+
+  /// Última posição do player de áudio, JSON `{"trackId":..,"positionMs":..}`
+  /// (spec B.4 C12, retomar posição no boot).
+  static const String audioLastPosition = 'audioLastPosition';
 }

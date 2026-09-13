@@ -1,0 +1,323 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import 'dart:io';
+import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/features/app_shell/presentation/shell_scaffold.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_bottom_nav_bar.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/plpcg_navigation_rail.dart';
+import 'package:coldigui/features/app_shell/presentation/widgets/stage_wakelock.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar.dart';
+import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
+import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:isar_plus/isar_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Sessão de mentira: só o que o shell precisa (`currentTrack`, fila).
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+
+  @override
+  AudioPlayerSessionState build() => _state;
+}
+
+/// Sem sync real: nem auth, nem conectividade.
+class _FixedPlaylistSync extends PlaylistSyncNotifier {
+  @override
+  PlaylistSyncState build() => const PlaylistSyncState();
+}
+
+/// Deslogado, sem tocar no SDK do Google.
+class _FixedAuthNotifier extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async => null;
+}
+
+/// Fullscreen sempre ligado — não chama `SystemChrome`.
+class _FixedFullscreenNotifier extends ReaderFullscreenNotifier {
+  @override
+  bool build() => true;
+}
+
+/// Registra em vez de falar com o plugin de wakelock.
+class _NoopWakelock implements StageWakelockController {
+  @override
+  Future<void> enable() async {}
+
+  @override
+  Future<void> disable() async {}
+}
+
+void main() {
+  const track = AudioTrack(
+    audioId: 'aud-1',
+    r2Key: 'assets/praises/p1/a.mp3',
+    nome: 'Louvor',
+    numero: '12',
+    groupId: 'p1',
+    categoria: 'Áudio',
+    classificacao: 'Coro',
+  );
+  const pdfEntry = PlaylistEntry(id: 'pdf-1', kind: MaterialKind.pdf);
+  const audioEntry = PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio);
+
+  late Isar isar;
+
+  setUpAll(() async {
+    final dir = await Directory.systemTemp.createTemp('shell_scaffold_test_');
+    isar = Isar.open(schemas: [PlaylistSchema], directory: dir.path);
+  });
+
+  tearDownAll(() {
+    isar.close();
+  });
+
+  // Branches na mesma ordem de `appTabsFor` com as flags padrão em teste
+  // (FF_EVENTS=false, FF_SOCIAL=true): library, home, social, profile — para
+  // exercitar `goBranch`/`selectedIndex` com o mesmo índice que
+  // `PlpcgBottomNavBar`/`PlpcgNavigationRail` recebem no shell real.
+  GoRouter buildRouter({String initialLocation = RoutePaths.home}) {
+    return GoRouter(
+      initialLocation: initialLocation,
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              ShellScaffold(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.library,
+                  builder: (_, _) => const Scaffold(body: Text('Biblioteca')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.home,
+                  builder: (_, _) => const Scaffold(body: Text('Home')),
+                  routes: [
+                    GoRoute(
+                      path: 'leitor',
+                      builder: (_, _) => const Scaffold(body: Text('Leitor')),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.social,
+                  builder: (_, _) => const Scaffold(body: Text('Social')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.profile,
+                  builder: (_, _) => const Scaffold(body: Text('Perfil')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> pumpShell(
+    WidgetTester tester, {
+    required List<Override> overrides,
+    String initialLocation = RoutePaths.home,
+  }) async {
+    final router = buildRouter(initialLocation: initialLocation);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(
+            await SharedPreferences.getInstance(),
+          ),
+          isarInitializerProvider.overrideWith((ref) async => isar),
+          playlistSyncProvider.overrideWith(_FixedPlaylistSync.new),
+          authStateProvider.overrideWith(_FixedAuthNotifier.new),
+          stageWakelockProvider.overrideWithValue(_NoopWakelock()),
+          ...overrides,
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('com faixa e face PDF, o mini-player aparece no shell', (
+    tester,
+  ) async {
+    await pumpShell(
+      tester,
+      overrides: [
+        activePlaylistEditorProvider.overrideWith(
+          () => FakeActiveEditor([pdfEntry]),
+        ),
+        audioPlayerSessionProvider.overrideWith(
+          () =>
+              _FakeAudioSession(const AudioPlayerSessionState(queue: [track])),
+        ),
+      ],
+    );
+
+    expect(find.byType(MiniPlayerBar), findsOneWidget);
+    final bar = tester.widget<MiniPlayerBar>(find.byType(MiniPlayerBar));
+    expect(bar.overlay, isFalse);
+  });
+
+  testWidgets(
+    'com a face de áudio visível, o mini-player some (ela já mostra os controles)',
+    (tester) async {
+      await pumpShell(
+        tester,
+        overrides: [
+          activePlaylistEditorProvider.overrideWith(
+            () => FakeActiveEditor([audioEntry]),
+          ),
+          playlistMediaFaceProvider.overrideWith(
+            () => _FixedFace(PlaylistMediaFace.audio),
+          ),
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [track]),
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byType(MiniPlayerBar), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'em fullscreen, o mini-player aparece como overlay sobre o navigationShell',
+    (tester) async {
+      await pumpShell(
+        tester,
+        initialLocation: '${RoutePaths.home}leitor',
+        overrides: [
+          readerFullscreenProvider.overrideWith(_FixedFullscreenNotifier.new),
+          activePlaylistEditorProvider.overrideWith(
+            () => FakeActiveEditor([pdfEntry]),
+          ),
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [track]),
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byType(MiniPlayerBar), findsOneWidget);
+      final bar = tester.widget<MiniPlayerBar>(find.byType(MiniPlayerBar));
+      expect(bar.overlay, isTrue);
+      expect(find.byType(Stack), findsWidgets);
+    },
+  );
+
+  group('C6 — NavigationRail em tela larga', () {
+    testWidgets(
+      'em 1200 px, mostra PlpcgNavigationRail e esconde PlpcgBottomNavBar',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await pumpShell(tester, overrides: []);
+
+        expect(find.byType(PlpcgNavigationRail), findsOneWidget);
+        expect(find.byType(PlpcgBottomNavBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'em 400 px, mostra PlpcgBottomNavBar e esconde PlpcgNavigationRail',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await pumpShell(tester, overrides: []);
+
+        expect(find.byType(PlpcgBottomNavBar), findsOneWidget);
+        expect(find.byType(PlpcgNavigationRail), findsNothing);
+      },
+    );
+
+    testWidgets('selecionar a última destination do rail navega para a branch '
+        'correspondente (goBranch pelo índice da lista)', (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await pumpShell(tester, overrides: []);
+      expect(find.text('Home'), findsOneWidget);
+
+      // Flags padrão de teste → tabs [library, home, social, profile];
+      // última destination = Perfil (índice 3).
+      final rail = tester.widget<PlpcgNavigationRail>(
+        find.byType(PlpcgNavigationRail),
+      );
+      expect(rail.destinations.length, 4);
+      expect(rail.selectedIndex, 1);
+
+      rail.onDestinationSelected(3);
+      await tester.pumpAndSettle();
+
+      final updatedRail = tester.widget<PlpcgNavigationRail>(
+        find.byType(PlpcgNavigationRail),
+      );
+      expect(
+        updatedRail.selectedIndex,
+        3,
+        reason:
+            'goBranch(3) — a última posição de appTabsFor — tem que mover '
+            'o navigationShell para a branch Perfil',
+      );
+    });
+  });
+}
+
+/// Face fixa — sem depender de SharedPreferences.
+class _FixedFace extends PlaylistMediaFaceNotifier {
+  _FixedFace(this._face);
+
+  final PlaylistMediaFace _face;
+
+  @override
+  PlaylistMediaFace build() => _face;
+}

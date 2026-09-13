@@ -17,7 +17,7 @@ import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
-import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';

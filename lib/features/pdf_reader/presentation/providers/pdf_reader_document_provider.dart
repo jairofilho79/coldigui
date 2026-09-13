@@ -8,7 +8,6 @@ import '../../data/adapters/pdfrx_viewer_adapter.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
 import '../../data/providers/pdf_reader_viewer_providers.dart';
 import '../../data/utils/pdf_source_resolver.dart';
-import '../../domain/exceptions/invalid_pdf_path_exception.dart';
 import '../../domain/exceptions/pdf_local_open_failure.dart';
 import '../../domain/exceptions/pdf_local_read_failed_exception.dart';
 import '../../domain/usecases/open_pdf_document.dart';
@@ -220,22 +219,19 @@ Object unwrapProviderError(Object error) {
 
 /// Mensagem amigável para erros de abertura PDF na UI.
 ///
-/// `PdfExternallyDeletedException` e `PdfLocalCorruptedException` não aparecem
-/// aqui: elas perderam o literal PT e o texto delas sai do l10n
-/// (`pdfExternallyDeleted` / `pdfLocalCorrupted`) em quem tem `context` — este
-/// fallback só cobre quem não tem (spec D.6).
+/// `PdfExternallyDeletedException`, `PdfLocalCorruptedException`,
+/// `InvalidPdfPathException` e `PdfLocalReadFailedException` não aparecem
+/// aqui (E8 fix round 1): nenhuma carrega literal PT — as duas com chave l10n
+/// própria (`pdfExternallyDeleted` / `pdfLocalCorrupted` /
+/// `pdfLocalReadFailedMessage`) mostram esse texto em quem tem `context`;
+/// `InvalidPdfPathException` nunca teve chave própria. Este fallback só cobre
+/// quem não tem `context` (spec D.6).
 String pdfReaderErrorMessage(Object error) {
   error = unwrapProviderError(error);
-  if (error is InvalidPdfPathException) {
-    return error.message;
-  }
   if (error is PdfOfflineUnavailableException) {
     return error.message;
   }
   if (error is PdfFetchFailedException) {
-    return error.message;
-  }
-  if (error is PdfLocalReadFailedException) {
     return error.message;
   }
   return 'Não foi possível abrir o PDF';

@@ -1,3 +1,4 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/category_filters.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
@@ -12,14 +13,22 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('modo coldigom usa filtros Coldigom em vez de PLPCG', (
     tester,
   ) async {
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           coldigomLibraryFacetsProvider.overrideWith(
             (ref) async => const ColdigomLibraryFacets(
               options: ColdigomFilterOptionsDto(

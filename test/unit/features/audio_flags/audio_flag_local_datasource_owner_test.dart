@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:coldigui/core/database/collections/audio_flag.dart';
 import 'package:coldigui/core/database/collections/playlist_sync_status.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/audio_flags/data/datasources/audio_flag_local_datasource.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -215,6 +216,119 @@ void main() {
       final pending = await datasource.findPendingPush(sub: 'sub-1');
 
       expect(pending.map((r) => r.flagId), ['pendente']);
+    });
+  });
+
+  group('findTombstones', () {
+    test('entrega os do sub e os sem dono, nunca os de outro', () async {
+      final gone = DateTime.utc(2026, 6, 1);
+      await seed(
+        flagId: 'minha',
+        ownerSub: 'sub-1',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: gone,
+      );
+      await seed(
+        flagId: 'orfa',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: gone,
+      );
+      await seed(
+        flagId: 'alheia',
+        ownerSub: 'sub-2',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: gone,
+      );
+
+      final tombstones = await datasource.findTombstones(sub: 'sub-1');
+
+      // O tombstone da outra conta fica no aparelho até ela voltar: mandar o
+      // DELETE dele com o token desta conta dá 404 e acende a linha de erro do
+      // player a cada boot.
+      expect(tombstones.map((r) => r.flagId).toList()..sort(), [
+        'minha',
+        'orfa',
+      ]);
+    });
+
+    test('sem sub só os órfãos entram', () async {
+      final gone = DateTime.utc(2026, 6, 1);
+      await seed(
+        flagId: 'orfa',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: gone,
+      );
+      await seed(
+        flagId: 'minha',
+        ownerSub: 'sub-1',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: gone,
+      );
+
+      final tombstones = await datasource.findTombstones();
+
+      expect(tombstones.map((r) => r.flagId), ['orfa']);
+    });
+
+    test('ignora linha viva e tombstone já synced do próprio dono', () async {
+      await seed(
+        flagId: 'viva',
+        ownerSub: 'sub-1',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+      );
+      await seed(
+        flagId: 'ja-apagada',
+        ownerSub: 'sub-1',
+        deletedAt: DateTime.utc(2026, 6, 1),
+      );
+      await seed(
+        flagId: 'pendente',
+        ownerSub: 'sub-1',
+        syncStatus: PlaylistSyncStatus.pendingPush,
+        deletedAt: DateTime.utc(2026, 6, 1),
+      );
+
+      final tombstones = await datasource.findTombstones(sub: 'sub-1');
+
+      expect(tombstones.map((r) => r.flagId), ['pendente']);
+    });
+  });
+
+  group('Isar indisponível', () {
+    // Sem banco, a adoção e a purga **não podem** fingir sucesso: o notifier
+    // persistiria o `sub` como adotado e o próximo boot não repetiria a
+    // adoção — as linhas ficariam sem dono e sem subir para sempre.
+    const unavailable = AudioFlagLocalDatasource.unavailable();
+
+    test('adoptForSub lança StorageUnavailableException', () async {
+      await expectLater(
+        unavailable.adoptForSub('sub-1'),
+        throwsA(
+          isA<StorageUnavailableException>().having(
+            (e) => e.operation,
+            'operation',
+            'audioFlags.adoptForSub',
+          ),
+        ),
+      );
+    });
+
+    test('purgeSyncedOwnedBy lança StorageUnavailableException', () async {
+      await expectLater(
+        unavailable.purgeSyncedOwnedBy('sub-1'),
+        throwsA(
+          isA<StorageUnavailableException>().having(
+            (e) => e.operation,
+            'operation',
+            'audioFlags.purgeSyncedOwnedBy',
+          ),
+        ),
+      );
+    });
+
+    test('as leituras seguem devolvendo vazio', () async {
+      expect(await unavailable.findTombstones(sub: 'sub-1'), isEmpty);
+      expect(await unavailable.findPendingPush(sub: 'sub-1'), isEmpty);
     });
   });
 

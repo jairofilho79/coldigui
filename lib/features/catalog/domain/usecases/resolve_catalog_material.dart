@@ -11,14 +11,10 @@ import '../entities/catalog_material.dart';
 ///
 /// Quem resolve é a porta [CatalogSource]: nenhum chamador escolhe acervo nem
 /// conhece cache.
-Future<CatalogMaterial?> resolveCatalogMaterial(Ref ref, String materialId) {
-  return ref.read(catalogSourceProvider).materialById(materialId);
-}
-
-/// [resolveCatalogMaterial] a partir de um widget.
 ///
-/// `Ref` e `WidgetRef` não têm supertipo público no Riverpod 3, e o desvio de
-/// material da playlist roda dentro de um `ConsumerState`.
+/// Só existe a variante `WidgetRef`: o desvio de material da playlist roda
+/// dentro de um `ConsumerState`, e `Ref`/`WidgetRef` não têm supertipo público
+/// no Riverpod 3 — a gêmea com `Ref` ficou sem chamador e saiu.
 Future<CatalogMaterial?> resolveCatalogMaterialFromWidget(
   WidgetRef ref,
   String materialId,

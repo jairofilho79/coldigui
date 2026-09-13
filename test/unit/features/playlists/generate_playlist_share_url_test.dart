@@ -3,9 +3,30 @@ import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_playlist_share_exception.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/playlist_not_found_exception.dart';
+import 'package:coldigui/features/playlists/domain/ports/share_link_shortener.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/generate_playlist_share_url.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeShortener implements ShareLinkShortener {
+  _FakeShortener.ok(this._url) : _error = null;
+  _FakeShortener.throwing(Object error) : _error = error, _url = null;
+
+  final String? _url;
+  final Object? _error;
+
+  var callCount = 0;
+  String? lastQuery;
+
+  @override
+  Future<String> shorten(String query) async {
+    callCount++;
+    lastQuery = query;
+    final error = _error;
+    if (error != null) throw error;
+    return _url!;
+  }
+}
 
 class _FakePlaylistRepository implements PlaylistRepository {
   _FakePlaylistRepository(this._playlists);
@@ -166,5 +187,61 @@ void main() {
       () => useCase(playlistId: 'p1'),
       throwsA(isA<EmptyPlaylistShareException>()),
     );
+  });
+
+  group('link curto (D7)', () {
+    GeneratePlaylistShareUrl useCaseWith(ShareLinkShortener? shortener) =>
+        GeneratePlaylistShareUrl(
+          _FakePlaylistRepository({
+            'p1': SavedPlaylist.fromLegacyLists(
+              playlistId: 'p1',
+              nome: 'Ensaio',
+              pdfIds: const ['a', 'b'],
+              createdAt: DateTime(2026, 1, 1),
+            ),
+          }),
+          shareOrigin: origin,
+          shortener: shortener,
+        );
+
+    test('short: false não chama o shortener — devolve a URL longa', () async {
+      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
+      final useCase = useCaseWith(shortener);
+
+      final url = await useCase(playlistId: 'p1');
+
+      expect(shortener.callCount, 0);
+      expect(url, contains('sharepdfs='));
+    });
+
+    test('short: true com shortener ok devolve a URL curta', () async {
+      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
+      final useCase = useCaseWith(shortener);
+
+      final url = await useCase(playlistId: 'p1', short: true);
+
+      expect(url, 'https://plpcg.com/l/abc1234');
+      expect(shortener.callCount, 1);
+      expect(shortener.lastQuery, contains('sharepdfs='));
+      expect(shortener.lastQuery, isNot(contains('?')));
+    });
+
+    test('short: true com shortener que lança cai na URL longa', () async {
+      final shortener = _FakeShortener.throwing(StateError('boom'));
+      final useCase = useCaseWith(shortener);
+
+      final url = await useCase(playlistId: 'p1', short: true);
+
+      expect(url, contains('sharepdfs='));
+      expect(url, startsWith(origin));
+    });
+
+    test('short: true sem shortener configurado devolve a URL longa', () async {
+      final useCase = useCaseWith(null);
+
+      final url = await useCase(playlistId: 'p1', short: true);
+
+      expect(url, contains('sharepdfs='));
+    });
   });
 }

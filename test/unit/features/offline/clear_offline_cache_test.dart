@@ -1,14 +1,15 @@
+import '../../../support/fakes/fake_isar.dart';
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'offline_test_helpers.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_selected_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
+import 'package:coldigui/features/offline/data/datasources/offline_selected_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
@@ -17,21 +18,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'offline_test_helpers.dart';
-
 class _StubCatalogLocal extends CatalogLocalDatasource {
-  _StubCatalogLocal() : super(_FakeIsar());
+  _StubCatalogLocal() : super(FakeIsar());
 
   @override
   Future<Map<String, String>> loadPdfIdToCategoriaMap() async => const {};
 }
 
 // Isar não é usado pelo stub — apenas satisfaz o construtor.
-class _FakeIsar implements Isar {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
-}
-
 void main() {
   late Directory tempDir;
   late Directory docsDir;

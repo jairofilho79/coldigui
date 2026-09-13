@@ -100,10 +100,10 @@ class _FakePlaylistRepository implements PlaylistRepository {
 }
 
 void main() {
-  const shareContext = PlaylistShareContext(
+  final shareContext = PlaylistShareContext(
     playlistId: 'p1',
     nome: 'Ensaio',
-    pdfIds: ['pdf-a'],
+    entries: [PlaylistEntry.classified('pdf-a')],
   );
 
   testWidgets('link only chama Share.share com URL', (tester) async {
@@ -164,4 +164,54 @@ void main() {
       '&sharepdfs=pdf-a',
     );
   });
+
+  testWidgets(
+    'leaflet com lista só de áudio gera folheto (não mostra playlistEmptyCarousel)',
+    (tester) async {
+      final audioOnlyContext = PlaylistShareContext(
+        playlistId: 'p1',
+        nome: 'Ensaio',
+        entries: [PlaylistEntry.audio('audio-1')],
+      );
+      var shared = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            playlistRepositoryProvider.overrideWithValue(
+              _FakePlaylistRepository(),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(body: SizedBox()),
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(Scaffold));
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+
+      final ok = await notifier.share(
+        context,
+        audioOnlyContext,
+        PlaylistShareOption.leaflet,
+        sharePositionOrigin: null,
+        shareXFiles: (files, {subject, text, sharePositionOrigin}) async {
+          shared = true;
+        },
+        capture: (boundaryKey) async => const [1, 2, 3],
+      );
+
+      expect(ok, isTrue);
+      expect(shared, isTrue);
+      expect(
+        find.text(AppLocalizations.of(context)!.playlistEmptyCarousel),
+        findsNothing,
+      );
+    },
+  );
 }

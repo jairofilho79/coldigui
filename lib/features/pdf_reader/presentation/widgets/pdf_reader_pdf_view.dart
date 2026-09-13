@@ -1,31 +1,54 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../data/models/pdf_reader_viewer_handle.dart';
+import '../providers/pdf_reader_view_settings_provider.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
 import '../utils/pdf_reader_viewport_policy.dart';
+import '../utils/pdf_spread_layout.dart';
 import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
-/// Widget pdfrx encapsulado — único ponto de import `pdfrx` na presentation (ADR-002).
+/// Teto de escala de rasterização na web — `2×devicePixelRatio` (spec A.13).
 ///
-/// Scroll vertical contínuo (layout padrão pdfrx). `ValueKey(handle)` evita
-/// duas instâncias simultâneas do mesmo handle. Handles reutilizados do
-/// cache LRU exigem `_scheduleReattachIfCached` via [PdfReaderViewerHandle.reattachIfNeeded].
-class PdfReaderPdfView extends StatefulWidget {
+/// Sem teto, `pdfrx` pode pedir escalas muito acima do necessário (zoom alto
+/// em telas de alto DPI), estourando memória de imagem decodificada no
+/// navegador.
+const kPdfWebRenderScaleDprMultiplier = 2;
+
+/// Teto de bytes de imagem cacheados em memória na web — 32 MiB (spec A.13).
+const kPdfWebMaxImageBytesCachedOnMemory = 32 << 20;
+
+/// Widget pdfrx encapsulado — pontos de import `pdfrx` na presentation
+/// restritos a este arquivo e a [spreadPageLayout]/[defaultPdfPageLayout]
+/// (ADR-002; o layout de páginas em spread, spec A.4, exige os tipos
+/// `PdfPage`/`PdfPageLayout`/`PdfViewerParams` do pacote).
+///
+/// Scroll vertical contínuo (layout padrão pdfrx) ou duas páginas lado a lado
+/// em viewport largo, automático via `pdfReaderEffectiveSpreadEnabledProvider`
+/// (spec A.4 C8; onda 4.1 removeu a preferência do usuário).
+/// `ValueKey(handle)` evita duas instâncias simultâneas do mesmo handle.
+/// Handles reutilizados do cache LRU exigem `_scheduleReattachIfCached` via
+/// [PdfReaderViewerHandle.reattachIfNeeded].
+class PdfReaderPdfView extends ConsumerStatefulWidget {
   const PdfReaderPdfView({
     required this.handle,
     required this.navigateToPage,
     this.requiresReattach = false,
     this.refreshViewportAfterNavigation,
     this.onPageChanged,
+    this.onViewerReady,
     super.key,
   });
 
@@ -43,11 +66,18 @@ class PdfReaderPdfView extends StatefulWidget {
   /// Callback opcional quando a página visível muda (scroll).
   final ValueChanged<int>? onPageChanged;
 
+  /// Notifica (uma vez por [handle], pós-frame) quando `handle.loadingState`
+  /// atinge [PdfReaderLoadingState.success] — dispara no momento real em que
+  /// o viewer pdfrx anexa o controller, não num post-frame "cego" agendado
+  /// antes disso (Important 2, onda 4: restauração da última página e fit
+  /// inicial dependiam de um post-frame que corria cedo demais).
+  final VoidCallback? onViewerReady;
+
   @override
-  State<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
+  ConsumerState<PdfReaderPdfView> createState() => _PdfReaderPdfViewState();
 }
 
-class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
+class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
   var _activePointers = 0;
   int? _trackingPointer;
   int? _pageAtPointerDown;
@@ -60,15 +90,17 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
   VoidCallback? _loadingStateListener;
   final _reattachGuard = PdfReattachGuard();
   late PdfReaderViewportPolicy _viewportPolicy;
+  PdfReaderViewerHandle? _readyNotifiedForHandle;
 
   @override
   void initState() {
     super.initState();
     _viewportPolicy = PdfReaderViewportPolicy(initialPage: widget.handle.page);
+    _attachLoadingStateListener(widget.handle);
     if (widget.requiresReattach) {
-      _attachLoadingStateListener(widget.handle);
       _scheduleReattachIfCached();
     }
+    _notifyReadyIfNeeded();
   }
 
   @override
@@ -80,17 +112,15 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
         initialPage: widget.handle.page,
       );
       _reattachGuard.complete();
+      _readyNotifiedForHandle = null;
+      _attachLoadingStateListener(widget.handle);
       if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.handle);
         _scheduleReattachIfCached();
       }
-    } else if (oldWidget.requiresReattach != widget.requiresReattach) {
-      if (widget.requiresReattach) {
-        _attachLoadingStateListener(widget.handle);
-        _scheduleReattachIfCached();
-      } else {
-        _detachLoadingStateListener();
-      }
+      _notifyReadyIfNeeded();
+    } else if (oldWidget.requiresReattach != widget.requiresReattach &&
+        widget.requiresReattach) {
+      _scheduleReattachIfCached();
     }
   }
 
@@ -105,6 +135,7 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
     _loadingStateListener = () {
       if (handle.loadingState.value == PdfReaderLoadingState.success) {
         _scheduleReattachIfCached();
+        _notifyReadyIfNeeded();
       }
     };
     handle.loadingState.addListener(_loadingStateListener!);
@@ -118,6 +149,25 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
     }
     _listeningHandle = null;
     _loadingStateListener = null;
+  }
+
+  /// Notifica [PdfReaderPdfView.onViewerReady] uma única vez por [handle],
+  /// pós-frame — cobre tanto a transição ao vivo (listener acima) quanto o
+  /// caso de um handle já pronto ao montar (reattach do cache LRU).
+  void _notifyReadyIfNeeded() {
+    final handle = widget.handle;
+    if (identical(_readyNotifiedForHandle, handle)) return;
+    if (handle.loadingState.value != PdfReaderLoadingState.success) return;
+
+    _readyNotifiedForHandle = handle;
+    final callback = widget.onViewerReady;
+    if (callback == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!identical(widget.handle, handle)) return;
+      callback();
+    });
   }
 
   void _scheduleReattachIfCached() {
@@ -346,9 +396,18 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
 
   Widget _buildPdfContent() {
     final handle = widget.handle;
+    // Important 1 (onda 4): spread some enquanto o fit efetivo é
+    // `pageWidth` — ver doc de [pdfReaderEffectiveSpreadEnabledProvider].
+    final spreadActive = ref.watch(pdfReaderEffectiveSpreadEnabledProvider);
+    final isWeb = ref.watch(platformCapabilitiesProvider).isWeb;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasWidth = constraints.maxWidth;
+        final viewportAspect = constraints.maxHeight > 0
+            ? constraints.maxWidth / constraints.maxHeight
+            : 0.0;
+
         return Listener(
           onPointerDown: _onPointerDown,
           onPointerMove: _onPointerMove,
@@ -365,6 +424,24 @@ class _PdfReaderPdfViewState extends State<PdfReaderPdfView> {
                   backgroundColor: AppColors.pdfArea,
                   onViewerReady: (_, _) => handle.markViewerReady(),
                   onPageChanged: _handleVisiblePageChanged,
+                  layoutPages: spreadActive
+                      ? (pages, params) => spreadPageLayout(
+                          pages,
+                          params,
+                          viewportAspect: viewportAspect,
+                          fallback: defaultPdfPageLayout,
+                        )
+                      : null,
+                  getPageRenderingScale: isWeb
+                      ? (context, page, controller, estimatedScale) => math.min(
+                          estimatedScale,
+                          kPdfWebRenderScaleDprMultiplier *
+                              MediaQuery.devicePixelRatioOf(context),
+                        )
+                      : null,
+                  maxImageBytesCachedOnMemory: isWeb
+                      ? kPdfWebMaxImageBytesCachedOnMemory
+                      : const PdfViewerParams().maxImageBytesCachedOnMemory,
                   loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
                     return const Center(
                       child: CircularProgressIndicator(color: AppColors.gold),

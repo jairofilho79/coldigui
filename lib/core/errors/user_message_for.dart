@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../features/auth/data/auth_remote_datasource.dart';
-import '../../features/catalog/presentation/providers/open_material_provider.dart';
+import '../../features/catalog/presentation/providers/material_open_failure.dart';
 import '../../features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../features/pdf_reader/domain/exceptions/pdf_local_open_failure.dart';
 import '../../features/pdf_reader/domain/exceptions/pdf_local_read_failed_exception.dart';

@@ -200,6 +200,35 @@ class _MemoryPlaylistRepository implements PlaylistRepository {
 }
 
 void main() {
+  group('PlaylistSyncResult.movedRows', () {
+    test('false quando nada se mexeu (ou a sync foi pulada)', () {
+      expect(const PlaylistSyncResult().movedRows, isFalse);
+      expect(PlaylistSyncResult.skippedAuth.movedRows, isFalse);
+      expect(
+        const PlaylistSyncResult(conflicts: 1).movedRows,
+        isFalse,
+        reason: 'conflito sem cópia não altera linha nenhuma',
+      );
+    });
+
+    test('true para pull, push, delete, exclusão remota ou cópia', () {
+      expect(const PlaylistSyncResult(pulled: 1).movedRows, isTrue);
+      expect(
+        const PlaylistSyncResult(pushed: 1).movedRows,
+        isTrue,
+        reason: 'um push muda version/syncStatus que a tela mostra',
+      );
+      expect(const PlaylistSyncResult(deleted: 1).movedRows, isTrue);
+      expect(const PlaylistSyncResult(deletedRemotely: 1).movedRows, isTrue);
+      expect(
+        const PlaylistSyncResult(
+          conflictCopies: ['Culto (cópia local)'],
+        ).movedRows,
+        isTrue,
+      );
+    });
+  });
+
   test('sem idToken não chama rede', () async {
     var fetchCalled = false;
     final sync = SyncPlaylists(

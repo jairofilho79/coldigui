@@ -1,6 +1,28 @@
 {
   "@@locale": "pt",
   "appTitle": "PLPCG",
+  "browserTitleLouvor": "{numero} — {nome} · PLPCG",
+  "@browserTitleLouvor": {
+    "description": "Título da aba do navegador no leitor/cifra com número (C14)",
+    "placeholders": {
+      "numero": { "type": "String" },
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleLouvorSemNumero": "{nome} · PLPCG",
+  "@browserTitleLouvorSemNumero": {
+    "description": "Título da aba do navegador no leitor/cifra sem número (C14)",
+    "placeholders": {
+      "nome": { "type": "String" }
+    }
+  },
+  "browserTitleTab": "{label} · PLPCG",
+  "@browserTitleTab": {
+    "description": "Título da aba do navegador fora do leitor/cifra/áudio (C14)",
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
   "searchHint": "Buscar por número ou título",
   "searchLabel": "Buscar",
   "searchClear": "Limpar busca",
@@ -16,6 +38,11 @@
   "pdfActionError": "Não foi possível concluir a ação",
   "readerFullscreenTooltip": "Tela cheia (F)",
   "readerExitFullscreenTooltip": "Sair da tela cheia (Esc)",
+  "readerFitModeTooltip": "Ajustar largura/página (Z)",
+  "readerGoToPageTitle": "Ir para página",
+  "readerGoToPageFieldLabel": "Número da página",
+  "readerGoToPageCancel": "Cancelar",
+  "readerGoToPageConfirm": "Ir",
   "louvorPdfDownloading": "Baixando...",
   "louvorPdfDownloadingWithProgress": "Baixando... {percent}%",
   "@louvorPdfDownloadingWithProgress": {
@@ -60,11 +87,6 @@
   },
   "specialArrangementPadrao": "Padrão",
   "filtersSpecialArrangementTitle": "Arranjo especial",
-  "catalogRefreshAction": "Atualizar lista",
-  "catalogRefreshLabel": "Catálogo",
-  "catalogRefreshMessage": "Baixar a versão mais recente do catálogo",
-  "catalogRefreshSuccess": "Catálogo atualizado",
-  "catalogRefreshError": "Não foi possível atualizar o catálogo",
   "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
   "catalogLoadError": "Não foi possível carregar o catálogo",
   "retry": "Tentar novamente",
@@ -112,10 +134,6 @@
       "failedCount": { "type": "int" }
     }
   },
-  "offlineDownloadError": "Não foi possível concluir o download offline",
-  "offlineDownloadTimeout": "Conexão lenta. Toque em Retomar quando a rede melhorar.",
-  "offlineDownloadNetworkError": "Sem conexão. Verifique a internet e retome.",
-  "offlineDownloadNoSpace": "Sem espaço no dispositivo. Libere espaço e tente novamente.",
   "offlineKeepAppOpenDuringDownload": "Mantenha o app aberto durante o download.",
   "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
   "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
@@ -278,23 +296,49 @@
   "carouselClearDeleteList": "Apagar lista",
   "carouselAdded": "Adicionado à seleção",
   "carouselAlreadyAdded": "Já está na seleção",
+  "materialRemoveTooltip": "Remover da lista",
+  "@materialRemoveTooltip": {
+    "description": "Tooltip do × no trailing do sheet de materiais quando o material já está na lista ativa"
+  },
+  "materialRemoveConfirmTitle": "Remover da lista?",
+  "materialRemoveConfirmMessage": "«{name}» sai da lista ativa.",
+  "@materialRemoveConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "materialRemoved": "Removido da lista",
   "carouselRemoveTooltip": "Remover",
   "carouselAddTooltip": "Adicionar à seleção",
-  "carouselSavePlaylist": "Salvar como lista",
   "carouselSharePlaylist": "Compartilhar",
   "@carouselSharePlaylist": {
-    "description": "Menu overflow e tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
+    "description": "Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Gerar folheto",
-  "carouselOverflowMenu": "Mais ações",
   "carouselOpenList": "Ver seleção",
   "carouselListTitle": "Seleção temporária",
   "carouselListClose": "Fechar",
   "readerCarouselPrevious": "Louvor anterior",
   "readerCarouselNext": "Próximo louvor",
+  "audioFacePreviousLouvor": "Louvor anterior",
+  "@audioFacePreviousLouvor": {
+    "description": "Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)"
+  },
+  "audioFaceNextLouvor": "Próximo louvor",
+  "@audioFaceNextLouvor": {
+    "description": "Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)"
+  },
   "readerSwitchMaterial": "Trocar material",
   "@readerSwitchMaterial": {
     "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
+  },
+  "cardAddedSwapMaterial": "Adicionado à lista",
+  "@cardAddedSwapMaterial": {
+    "description": "Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa"
+  },
+  "cardSwapMaterialAction": "Trocar material",
+  "@cardSwapMaterialAction": {
+    "description": "Ação da snackbar de `cardAddedSwapMaterial` — reabre o sheet de materiais no fluxo de troca da entrada recém-adicionada"
   },
   "readerCarouselPosition": "{current} de {total}",
   "@readerCarouselPosition": {
@@ -330,8 +374,27 @@
   "playlistRenameTitle": "Renomear lista",
   "playlistRenameConfirm": "Salvar",
   "playlistDelete": "Excluir",
-  "playlistDeleteConfirmTitle": "Excluir lista?",
-  "playlistDeleteConfirmMessage": "Esta lista será removida permanentemente.",
+  "playlistDeletedUndo": "Lista removida",
+  "@playlistDeletedUndo": {
+    "description": "Snackbar depois de apagar uma lista, com ação Desfazer (C11)"
+  },
+  "playlistDuplicate": "Duplicar",
+  "@playlistDuplicate": {
+    "description": "Item do menu do tile que cria uma cópia da lista (C11)"
+  },
+  "playlistCopyName": "{nome} (cópia)",
+  "@playlistCopyName": {
+    "description": "Nome default da cópia criada por «Duplicar» (C11)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDraftLabel": "Rascunho",
+  "@playlistDraftLabel": {
+    "description": "Rótulo da lista ativa não salva na barra do carousel (C11)"
+  },
   "playlistFavoriteOn": "Marcar como favorita",
   "playlistFavoriteOff": "Remover dos favoritos",
   "playlistPdfCount": "{count, plural, =1{1 louvor} other{{count} louvores}}",
@@ -342,7 +405,7 @@
   },
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
-  "playlistLoadIntoCarousel": "Carregar no carousel",
+  "playlistActivate": "Tornar lista ativa",
   "playlistOpenInReader": "Abrir no leitor",
   "playlistOpenInAudioPlayer": "Abrir no reprodutor",
   "playlistFacePdf": "PDFs",
@@ -356,6 +419,7 @@
   },
   "playlistAudioEmpty": "Esta lista não tem áudios.",
   "audioPlayerTitle": "Áudio",
+  "pdfMaterialSection": "Partituras",
   "audioMaterialSection": "Áudio",
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Cifras",
@@ -394,7 +458,16 @@
   "gestureFocusNext": "próximo:",
   "gestureFocusEnd": "fim",
   "gestureFocusClose": "Fechar",
-  "pdfMaterialSection": "PDF",
+  "chordAutoscrollPlay": "Iniciar rolagem automática",
+  "chordAutoscrollPause": "Pausar rolagem automática",
+  "chordAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@chordAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
   "coldigomMetaTonality": "Tom",
   "coldigomMetaAuthor": "Autor",
   "coldigomMetaRhythm": "Ritmo",
@@ -405,6 +478,33 @@
   "audioPause": "Pausar",
   "audioPrevious": "Anterior",
   "audioNext": "Próximo",
+  "audioSeekBack10": "Voltar 10 s",
+  "@audioSeekBack10": {
+    "description": "Tooltip do botão que volta 10 s no áudio (C12)"
+  },
+  "audioSeekForward10": "Avançar 10 s",
+  "@audioSeekForward10": {
+    "description": "Tooltip do botão que avança 10 s no áudio (C12)"
+  },
+  "audioSpeed": "Velocidade de reprodução",
+  "@audioSpeed": {
+    "description": "Tooltip do menu de velocidade de reprodução (C12)"
+  },
+  "audioSpeedValue": "{value}×",
+  "@audioSpeedValue": {
+    "description": "Rótulo de uma velocidade de reprodução no menu, ex.: 1,25× (C12)",
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "miniPlayerPrevious": "Faixa anterior",
+  "@miniPlayerPrevious": {
+    "description": "Tooltip do botão de faixa anterior no mini-player persistente (D5)"
+  },
+  "miniPlayerNext": "Próxima faixa",
+  "@miniPlayerNext": {
+    "description": "Tooltip do botão de próxima faixa no mini-player persistente (D5)"
+  },
   "audioOpenPlayer": "Abrir player",
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
@@ -415,12 +515,7 @@
   "@audioFollowReader": {
     "description": "Tooltip do toggle que troca o material do leitor quando a faixa muda"
   },
-  "carouselPlayGroupAudio": "Tocar áudio deste louvor",
-  "@carouselPlayGroupAudio": {
-    "description": "Tooltip do botão que toca o áudio do louvor aberto no leitor"
-  },
   "audioFlagAdd": "Adicionar marcador",
-  "audioFlagPauseToAdd": "Pause para adicionar um marcador",
   "audioFlagAddTitle": "Novo marcador",
   "audioFlagLabelHint": "Rótulo opcional",
   "audioFlagCancel": "Cancelar",
@@ -439,9 +534,19 @@
     "description": "Tooltip do ícone no player que revela o aviso de segundo plano na Web"
   },
   "audioWebIosPwaNotice": "No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.",
-  "playlistLoadConfirmTitle": "Substituir seleção?",
-  "playlistLoadConfirmMessage": "A seleção atual será substituída pelos louvores desta lista.",
-  "playlistLoaded": "Lista carregada no carousel",
+  "playlistActivated": "Lista «{nome}» ativa",
+  "@playlistActivated": {
+    "description": "Snackbar depois de tornar uma lista a lista ativa",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
+  "undo": "Desfazer",
+  "@undo": {
+    "description": "Ação de desfazer em snackbars"
+  },
   "playlistEmptyPdfList": "Esta lista não tem louvores.",
   "playlistShare": "Compartilhar",
   "playlistImport": "Importar lista",
@@ -470,6 +575,15 @@
     }
   },
   "playlistImported": "Lista importada",
+  "playlistImportAlreadySaved": "Lista já estava salva: {nome}",
+  "@playlistImportAlreadySaved": {
+    "description": "Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)",
+    "placeholders": {
+      "nome": {
+        "type": "String"
+      }
+    }
+  },
   "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
   "playlistShareError": "Não foi possível compartilhar a lista.",
@@ -596,6 +710,34 @@
   "@errorGeneric": {
     "description": "userMessageFor: fallback para erro não classificado (C.5)"
   },
+  "failureNetwork": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
+  "@failureNetwork": {
+    "description": "failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException"
+  },
+  "failureOffline": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "@failureOffline": {
+    "description": "failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException"
+  },
+  "failureNotFound": "Não foi possível encontrar. O item pode ter sido removido.",
+  "@failureNotFound": {
+    "description": "failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException"
+  },
+  "failureStorage": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
+  "@failureStorage": {
+    "description": "failureMessage (E8): StorageFailure — StorageUnavailableException, PdfStorageWriteException, InsufficientDiskSpaceException, PdfLocalCorruptedException"
+  },
+  "failureAuth": "Sua sessão expirou. Entre novamente para continuar.",
+  "@failureAuth": {
+    "description": "failureMessage (E8): AuthFailure — HTTP 401/403"
+  },
+  "failureConflict": "Conflito de sincronização. Tente novamente.",
+  "@failureConflict": {
+    "description": "failureMessage (E8): ConflictFailure — HTTP 409, PlaylistConflictException, AudioFlagConflictException"
+  },
+  "failureUnknown": "Não foi possível concluir a ação. Tente de novo.",
+  "@failureUnknown": {
+    "description": "failureMessage (E8): UnknownFailure — fallback para erro não classificado"
+  },
   "sessionExpiredBanner": "Sessão expirada",
   "@sessionExpiredBanner": {
     "description": "Título do banner de sessão expirada no perfil e nas listas"
@@ -603,5 +745,34 @@
   "sessionExpiredSignInAgain": "Entrar de novo",
   "@sessionExpiredSignInAgain": {
     "description": "Ação do banner de sessão expirada"
+  },
+  "homeEmptyHint": "Busque por título ou número",
+  "@homeEmptyHint": {
+    "description": "Hint da Home sem consulta nem lista ativa/recentes (C4)"
+  },
+  "homeEmptyRecent": "Abertos recentemente",
+  "@homeEmptyRecent": {
+    "description": "Título das chips de materiais recentes na Home sem consulta (C4)"
+  },
+  "homeNoResults": "Nenhum louvor para «{query}»",
+  "@homeNoResults": {
+    "description": "Título da Home quando a busca não encontrou nada (C4)",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoResultsTips": "Tente outro termo, ou confira o número e a grafia.",
+  "@homeNoResultsTips": {
+    "description": "Dicas da Home quando a busca não encontrou nada (C4)"
+  },
+  "homeClearFilters": "Limpar filtros",
+  "@homeClearFilters": {
+    "description": "Botão da Home sem resultado, visível só com filtro fora do padrão (C4)"
+  },
+  "homeColdigomOffline": "Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.",
+  "@homeColdigomOffline": {
+    "description": "Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)"
   }
 }

@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/routing/app_router.dart';
@@ -78,18 +78,6 @@ class _ThrowingCountingSyncDeepLinkState extends SyncDeepLinkState {
   }
 }
 
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  var refreshCalled = false;
-
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<void> refreshAfterImport() async {
-    refreshCalled = true;
-  }
-}
-
 void main() {
   late ImportSharedPlaylistFromUrl importUseCase;
 
@@ -105,7 +93,7 @@ void main() {
   testWidgets('deep link success navega para home e exibe snackbar', (
     tester,
   ) async {
-    final fakePlaylists = _FakePlaylistsNotifier();
+    final fakePlaylists = FakePlaylistsNotifier();
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: RoutePaths.playlists,
@@ -159,6 +147,69 @@ void main() {
     expect(fakePlaylists.refreshCalled, isTrue);
   });
 
+  testWidgets(
+    'deep link com alreadyExisted exibe snackbar com o nome da lista existente',
+    (tester) async {
+      final fakePlaylists = FakePlaylistsNotifier();
+      final router = GoRouter(
+        navigatorKey: rootNavigatorKey,
+        initialLocation: RoutePaths.playlists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+          ),
+          GoRoute(
+            path: RoutePaths.playlists,
+            builder: (_, _) => const Scaffold(body: Text('Listas Screen')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appRouterProvider.overrideWithValue(router),
+            deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            syncDeepLinkStateProvider.overrideWithValue(
+              _StubSyncDeepLinkState(
+                SyncDeepLinkResult.success(
+                  'playlist-id',
+                  alreadyExisted: true,
+                  nome: 'Ensaio de sábado',
+                ),
+                importUseCase,
+              ),
+            ),
+            playlistsProvider.overrideWith(() => fakePlaylists),
+          ],
+          child: DeepLinkListener(
+            child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              routerConfig: router,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final state = tester.state<DeepLinkListenerState>(
+        find.byType(DeepLinkListener),
+      );
+      await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home Screen'), findsOneWidget);
+      expect(
+        find.text('Lista já estava salva: Ensaio de sábado'),
+        findsOneWidget,
+      );
+      expect(fakePlaylists.refreshCalled, isTrue);
+    },
+  );
+
   testWidgets('deep link inválido exibe snackbar de erro', (tester) async {
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
@@ -179,7 +230,7 @@ void main() {
           syncDeepLinkStateProvider.overrideWithValue(
             _StubSyncDeepLinkState(SyncDeepLinkResult.invalid, importUseCase),
           ),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: DeepLinkListener(
           child: MaterialApp.router(
@@ -226,7 +277,7 @@ void main() {
           syncDeepLinkStateProvider.overrideWithValue(
             SyncDeepLinkState(importUseCase),
           ),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: DeepLinkListener(
           child: MaterialApp.router(
@@ -274,7 +325,7 @@ void main() {
                 importUseCase,
               ),
             ),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           ],
           child: DeepLinkListener(
             child: MaterialApp.router(
@@ -327,7 +378,7 @@ void main() {
                 importUseCase,
               ),
             ),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           ],
           child: DeepLinkListener(
             child: MaterialApp.router(
@@ -379,7 +430,7 @@ void main() {
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
           syncDeepLinkStateProvider.overrideWithValue(countingUseCase),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: DeepLinkListener(
           now: () => currentTime,
@@ -437,7 +488,7 @@ void main() {
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
           syncDeepLinkStateProvider.overrideWithValue(throwingUseCase),
-          playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+          playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
         child: DeepLinkListener(
           now: () => currentTime,

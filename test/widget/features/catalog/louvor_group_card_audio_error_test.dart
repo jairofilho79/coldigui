@@ -1,9 +1,9 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -12,6 +12,7 @@ import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_down
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -19,25 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<bool> addAudioToActivePlaylist(String audioId) async => true;
-
-  // `openLouvorInReader` resolve o PDF e adiciona à lista ativa dentro de um
-  // `Future.wait`, que só completa quando **os dois** terminam — sem este
-  // override o teste ficaria pendurado no Isar e o erro nunca chegaria à UI.
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
 
 /// Sessão de áudio que sempre falha ao tocar — `playQueue` é o único `await`
 /// de `openAudioInPlayer`, então o erro chega ao `catch` do card.
@@ -138,8 +120,8 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+            activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             audioPlayerSessionProvider.overrideWith(_FailingAudioSession.new),
           ],
           child: MaterialApp.router(
@@ -182,8 +164,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
-            carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+            playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
             louvorPdfDownloadProvider.overrideWith(
               _DeletedPdfDownloadNotifier.new,
             ),

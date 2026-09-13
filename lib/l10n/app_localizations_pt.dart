@@ -12,6 +12,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'PLPCG';
 
   @override
+  String browserTitleLouvor(String numero, String nome) {
+    return '$numero — $nome · PLPCG';
+  }
+
+  @override
+  String browserTitleLouvorSemNumero(String nome) {
+    return '$nome · PLPCG';
+  }
+
+  @override
+  String browserTitleTab(String label) {
+    return '$label · PLPCG';
+  }
+
+  @override
   String get searchHint => 'Buscar por número ou título';
 
   @override
@@ -46,6 +61,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get readerExitFullscreenTooltip => 'Sair da tela cheia (Esc)';
+
+  @override
+  String get readerFitModeTooltip => 'Ajustar largura/página (Z)';
+
+  @override
+  String get readerGoToPageTitle => 'Ir para página';
+
+  @override
+  String get readerGoToPageFieldLabel => 'Número da página';
+
+  @override
+  String get readerGoToPageCancel => 'Cancelar';
+
+  @override
+  String get readerGoToPageConfirm => 'Ir';
 
   @override
   String get louvorPdfDownloading => 'Baixando...';
@@ -99,22 +129,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get filtersSpecialArrangementTitle => 'Arranjo especial';
-
-  @override
-  String get catalogRefreshAction => 'Atualizar lista';
-
-  @override
-  String get catalogRefreshLabel => 'Catálogo';
-
-  @override
-  String get catalogRefreshMessage =>
-      'Baixar a versão mais recente do catálogo';
-
-  @override
-  String get catalogRefreshSuccess => 'Catálogo atualizado';
-
-  @override
-  String get catalogRefreshError => 'Não foi possível atualizar o catálogo';
 
   @override
   String get catalogStaleBanner =>
@@ -217,22 +231,6 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get offlineDownloadError =>
-      'Não foi possível concluir o download offline';
-
-  @override
-  String get offlineDownloadTimeout =>
-      'Conexão lenta. Toque em Retomar quando a rede melhorar.';
-
-  @override
-  String get offlineDownloadNetworkError =>
-      'Sem conexão. Verifique a internet e retome.';
-
-  @override
-  String get offlineDownloadNoSpace =>
-      'Sem espaço no dispositivo. Libere espaço e tente novamente.';
 
   @override
   String get offlineKeepAppOpenDuringDownload =>
@@ -491,22 +489,30 @@ class AppLocalizationsPt extends AppLocalizations {
   String get carouselAlreadyAdded => 'Já está na seleção';
 
   @override
+  String get materialRemoveTooltip => 'Remover da lista';
+
+  @override
+  String get materialRemoveConfirmTitle => 'Remover da lista?';
+
+  @override
+  String materialRemoveConfirmMessage(String name) {
+    return '«$name» sai da lista ativa.';
+  }
+
+  @override
+  String get materialRemoved => 'Removido da lista';
+
+  @override
   String get carouselRemoveTooltip => 'Remover';
 
   @override
   String get carouselAddTooltip => 'Adicionar à seleção';
 
   @override
-  String get carouselSavePlaylist => 'Salvar como lista';
-
-  @override
   String get carouselSharePlaylist => 'Compartilhar';
 
   @override
   String get carouselGenerateLeaflet => 'Gerar folheto';
-
-  @override
-  String get carouselOverflowMenu => 'Mais ações';
 
   @override
   String get carouselOpenList => 'Ver seleção';
@@ -524,7 +530,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerCarouselNext => 'Próximo louvor';
 
   @override
+  String get audioFacePreviousLouvor => 'Louvor anterior';
+
+  @override
+  String get audioFaceNextLouvor => 'Próximo louvor';
+
+  @override
   String get readerSwitchMaterial => 'Trocar material';
+
+  @override
+  String get cardAddedSwapMaterial => 'Adicionado à lista';
+
+  @override
+  String get cardSwapMaterialAction => 'Trocar material';
 
   @override
   String readerCarouselPosition(int current, int total) {
@@ -614,11 +632,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistDelete => 'Excluir';
 
   @override
-  String get playlistDeleteConfirmTitle => 'Excluir lista?';
+  String get playlistDeletedUndo => 'Lista removida';
 
   @override
-  String get playlistDeleteConfirmMessage =>
-      'Esta lista será removida permanentemente.';
+  String get playlistDuplicate => 'Duplicar';
+
+  @override
+  String playlistCopyName(String nome) {
+    return '$nome (cópia)';
+  }
+
+  @override
+  String get playlistDraftLabel => 'Rascunho';
 
   @override
   String get playlistFavoriteOn => 'Marcar como favorita';
@@ -645,7 +670,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'A lista ficará vazia e será excluída.';
 
   @override
-  String get playlistLoadIntoCarousel => 'Carregar no carousel';
+  String get playlistActivate => 'Tornar lista ativa';
 
   @override
   String get playlistOpenInReader => 'Abrir no leitor';
@@ -680,6 +705,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get audioPlayerTitle => 'Áudio';
+
+  @override
+  String get pdfMaterialSection => 'Partituras';
 
   @override
   String get audioMaterialSection => 'Áudio';
@@ -787,7 +815,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get gestureFocusClose => 'Fechar';
 
   @override
-  String get pdfMaterialSection => 'PDF';
+  String get chordAutoscrollPlay => 'Iniciar rolagem automática';
+
+  @override
+  String get chordAutoscrollPause => 'Pausar rolagem automática';
+
+  @override
+  String chordAutoscrollSpeed(int speed) {
+    return 'Velocidade da rolagem: $speed';
+  }
 
   @override
   String get coldigomMetaTonality => 'Tom';
@@ -820,6 +856,26 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioNext => 'Próximo';
 
   @override
+  String get audioSeekBack10 => 'Voltar 10 s';
+
+  @override
+  String get audioSeekForward10 => 'Avançar 10 s';
+
+  @override
+  String get audioSpeed => 'Velocidade de reprodução';
+
+  @override
+  String audioSpeedValue(String value) {
+    return '$value×';
+  }
+
+  @override
+  String get miniPlayerPrevious => 'Faixa anterior';
+
+  @override
+  String get miniPlayerNext => 'Próxima faixa';
+
+  @override
   String get audioOpenPlayer => 'Abrir player';
 
   @override
@@ -832,13 +888,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get audioFollowReader => 'Seguir o áudio';
 
   @override
-  String get carouselPlayGroupAudio => 'Tocar áudio deste louvor';
-
-  @override
   String get audioFlagAdd => 'Adicionar marcador';
-
-  @override
-  String get audioFlagPauseToAdd => 'Pause para adicionar um marcador';
 
   @override
   String get audioFlagAddTitle => 'Novo marcador';
@@ -880,14 +930,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'No iPhone com o app instalado na tela inicial, o áudio pode pausar ao bloquear a tela ou trocar de app. Mantenha o app aberto para ouvir.';
 
   @override
-  String get playlistLoadConfirmTitle => 'Substituir seleção?';
+  String playlistActivated(String nome) {
+    return 'Lista «$nome» ativa';
+  }
 
   @override
-  String get playlistLoadConfirmMessage =>
-      'A seleção atual será substituída pelos louvores desta lista.';
-
-  @override
-  String get playlistLoaded => 'Lista carregada no carousel';
+  String get undo => 'Desfazer';
 
   @override
   String get playlistEmptyPdfList => 'Esta lista não tem louvores.';
@@ -942,6 +990,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get playlistImported => 'Lista importada';
+
+  @override
+  String playlistImportAlreadySaved(String nome) {
+    return 'Lista já estava salva: $nome';
+  }
 
   @override
   String get playlistImportInvalidUrl =>
@@ -1238,8 +1291,57 @@ class AppLocalizationsPt extends AppLocalizations {
   String get errorGeneric => 'Não foi possível concluir a ação. Tente de novo.';
 
   @override
+  String get failureNetwork =>
+      'Sem conexão com a internet. Verifique sua rede e tente de novo.';
+
+  @override
+  String get failureOffline =>
+      'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
+
+  @override
+  String get failureNotFound =>
+      'Não foi possível encontrar. O item pode ter sido removido.';
+
+  @override
+  String get failureStorage =>
+      'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
+
+  @override
+  String get failureAuth =>
+      'Sua sessão expirou. Entre novamente para continuar.';
+
+  @override
+  String get failureConflict => 'Conflito de sincronização. Tente novamente.';
+
+  @override
+  String get failureUnknown =>
+      'Não foi possível concluir a ação. Tente de novo.';
+
+  @override
   String get sessionExpiredBanner => 'Sessão expirada';
 
   @override
   String get sessionExpiredSignInAgain => 'Entrar de novo';
+
+  @override
+  String get homeEmptyHint => 'Busque por título ou número';
+
+  @override
+  String get homeEmptyRecent => 'Abertos recentemente';
+
+  @override
+  String homeNoResults(String query) {
+    return 'Nenhum louvor para «$query»';
+  }
+
+  @override
+  String get homeNoResultsTips =>
+      'Tente outro termo, ou confira o número e a grafia.';
+
+  @override
+  String get homeClearFilters => 'Limpar filtros';
+
+  @override
+  String get homeColdigomOffline =>
+      'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.';
 }

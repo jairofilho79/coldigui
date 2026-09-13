@@ -1,5 +1,6 @@
+import '../../../support/fakes/fake_catalog_repository.dart';
+import '../../../support/fakes/fake_isar.dart';
 import 'dart:async';
-
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -21,89 +22,6 @@ Louvor _louvor(String pdfId) => Louvor.fromManifest(
   pdfId: pdfId,
 );
 
-class _FakeCatalogRepository implements CatalogRepository {
-  _FakeCatalogRepository({
-    this.cached = const [],
-    this.remote = const [],
-    this.remoteError,
-    this.checksumUnchanged = false,
-    this.syncedChecksum,
-    this.remoteChecksum,
-  });
-
-  final List<Louvor> cached;
-  final List<Louvor> remote;
-  final Object? remoteError;
-
-  /// Simula `/api/catalog/checksum` respondendo 204 (nada mudou).
-  final bool checksumUnchanged;
-
-  /// Checksum devolvido pelo sync para o notifier persistir.
-  final String? syncedChecksum;
-
-  /// Resposta de `GET /api/catalog/checksum` (prefetch do boot, A8).
-  final String? remoteChecksum;
-
-  var loadManifestCalls = 0;
-  var syncCalls = 0;
-  var checksumCalls = 0;
-  var loadCachedCalls = 0;
-  List<Louvor>? lastSyncCached;
-  String? lastKnownChecksum;
-
-  /// `false` enquanto o datasource local é o `unavailable()` do modo degradado.
-  var isarOpen = true;
-
-  @override
-  Future<List<Louvor>> loadCachedLouvores() async {
-    loadCachedCalls++;
-    return isarOpen ? List.of(cached) : const [];
-  }
-
-  @override
-  Future<ManifestSyncOutcome> syncManifest({
-    required List<Louvor> cached,
-    String? knownChecksum,
-  }) async {
-    syncCalls++;
-    lastSyncCached = cached;
-    lastKnownChecksum = knownChecksum;
-    if (remoteError != null) throw remoteError!;
-
-    if (checksumUnchanged) {
-      return ManifestSyncOutcome(louvores: cached, cacheReplaced: false);
-    }
-
-    return ManifestSyncOutcome(
-      louvores: List.of(remote),
-      cacheReplaced: true,
-      checksum: syncedChecksum,
-    );
-  }
-
-  @override
-  Future<List<Louvor>> loadManifest() async {
-    loadManifestCalls++;
-    if (remoteError != null) throw remoteError!;
-    return List.of(remote);
-  }
-
-  @override
-  Future<List<Louvor>> forceRefreshManifest() async => loadManifest();
-
-  @override
-  Future<void> cacheManifest(List<Louvor> louvores) async {}
-
-  @override
-  Future<String?> fetchManifestChecksum() async {
-    checksumCalls++;
-    return remoteChecksum;
-  }
-
-  @override
-  Future<bool> isCatalogStale() async => false;
-}
-
 void main() {
   late SharedPreferences prefs;
 
@@ -113,7 +31,7 @@ void main() {
   });
 
   ProviderContainer createContainer(
-    _FakeCatalogRepository repository, {
+    FakeCatalogRepository repository, {
     bool isarAvailable = true,
   }) {
     final container = ProviderContainer(
@@ -141,7 +59,7 @@ void main() {
   /// `unavailable()` para o datasource real quando o Isar abre): sem isso o
   /// teste não veria o notifier ser reconstruído no meio do boot.
   ProviderContainer createOpeningContainer(
-    _FakeCatalogRepository repository,
+    FakeCatalogRepository repository,
     Future<Isar> Function() opener,
   ) {
     final container = ProviderContainer(
@@ -161,7 +79,7 @@ void main() {
   test(
     'retorna cache imediatamente e sincroniza remoto em background',
     () async {
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         remote: [_louvor('remote-1')],
       );
@@ -188,7 +106,7 @@ void main() {
   );
 
   test('sem cache aguarda fetch remoto', () async {
-    final repository = _FakeCatalogRepository(remote: [_louvor('remote-only')]);
+    final repository = FakeCatalogRepository(remote: [_louvor('remote-only')]);
 
     final container = createContainer(repository);
 
@@ -204,7 +122,7 @@ void main() {
   });
 
   test('sem Isar disponível ignora cache e busca remoto', () async {
-    final repository = _FakeCatalogRepository(
+    final repository = FakeCatalogRepository(
       cached: [_louvor('cached-1')],
       remote: [_louvor('remote-1')],
     );
@@ -219,7 +137,7 @@ void main() {
   });
 
   test('mantém cache quando refresh remoto falha', () async {
-    final repository = _FakeCatalogRepository(
+    final repository = FakeCatalogRepository(
       cached: [_louvor('cached-1')],
       remoteError: Exception('offline'),
     );
@@ -243,7 +161,7 @@ void main() {
         });
         prefs = await SharedPreferences.getInstance();
 
-        final repository = _FakeCatalogRepository(
+        final repository = FakeCatalogRepository(
           cached: [_louvor('cached-1')],
           checksumUnchanged: true,
         );
@@ -265,7 +183,7 @@ void main() {
       });
       prefs = await SharedPreferences.getInstance();
 
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         remote: [_louvor('remote-1')],
         checksumUnchanged: true,
@@ -317,7 +235,7 @@ void main() {
       });
       prefs = await SharedPreferences.getInstance();
 
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         remote: [_louvor('remote-1')],
         syncedChecksum: 'novo',
@@ -332,7 +250,7 @@ void main() {
     });
 
     test('boot frio sem cache já persiste o checksum baixado (A3)', () async {
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         remote: [_louvor('remote-only')],
         syncedChecksum: 'checksum-do-boot-1',
       );
@@ -355,7 +273,7 @@ void main() {
       });
       prefs = await SharedPreferences.getInstance();
 
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         checksumUnchanged: true,
       );
@@ -372,7 +290,7 @@ void main() {
   group('boot com o Isar ainda abrindo (A8)', () {
     test('pede o checksum antes do Isar resolver', () async {
       final isarGate = Completer<Isar>();
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         remote: [_louvor('remote-1')],
         remoteChecksum: 'fresco',
@@ -397,7 +315,7 @@ void main() {
         reason: 'a decisão cache-first só acontece depois do Isar resolver',
       );
 
-      isarGate.complete(_FakeIsar());
+      isarGate.complete(FakeIsar());
       final manifest = await booted;
       await pumpEventQueue();
 
@@ -415,7 +333,7 @@ void main() {
     });
 
     test('Isar que falha ao abrir cai para o remoto', () async {
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         remote: [_louvor('remote-1')],
       );
@@ -440,7 +358,7 @@ void main() {
         });
         prefs = await SharedPreferences.getInstance();
 
-        final repository = _FakeCatalogRepository(
+        final repository = FakeCatalogRepository(
           cached: [_louvor('cached-1')],
           remote: [_louvor('remote-1')],
           remoteChecksum: 'novo',
@@ -448,7 +366,7 @@ void main() {
 
         final container = createOpeningContainer(
           repository,
-          () async => _FakeIsar(),
+          () async => FakeIsar(),
         );
 
         await container.read(louvoresManifestProvider.future);
@@ -478,7 +396,7 @@ void main() {
       // `checksumUnchanged` devolve o cache com `cacheReplaced: false` e
       // `checksum: null` — é o que `CatalogRepositoryImpl` faz quando a busca
       // do corpo falha (ele engole o erro e preserva o cache).
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         checksumUnchanged: true,
         remoteChecksum: 'novo',
@@ -486,7 +404,7 @@ void main() {
 
       final container = createOpeningContainer(
         repository,
-        () async => _FakeIsar(),
+        () async => FakeIsar(),
       );
 
       await container.read(louvoresManifestProvider.future);
@@ -507,7 +425,7 @@ void main() {
       });
       prefs = await SharedPreferences.getInstance();
 
-      final repository = _FakeCatalogRepository(
+      final repository = FakeCatalogRepository(
         cached: [_louvor('cached-1')],
         checksumUnchanged: true,
         remoteChecksum: 'igual',
@@ -515,7 +433,7 @@ void main() {
 
       final container = createOpeningContainer(
         repository,
-        () async => _FakeIsar(),
+        () async => FakeIsar(),
       );
 
       await container.read(louvoresManifestProvider.future);
@@ -531,7 +449,7 @@ void main() {
 
       final container = createOpeningContainer(
         repository,
-        () async => _FakeIsar(),
+        () async => FakeIsar(),
       );
 
       final manifest = await container.read(louvoresManifestProvider.future);
@@ -565,17 +483,8 @@ void main() {
   );
 }
 
-/// Fake mínimo de [Isar] — só [close] é chamado por [isarInitializerProvider].
-class _FakeIsar implements Isar {
-  @override
-  bool close({bool deleteFromDisk = false}) => true;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 /// Repositório cujo `GET /checksum` falha — rede parcial no boot.
-class _FailingChecksumRepository extends _FakeCatalogRepository {
+class _FailingChecksumRepository extends FakeCatalogRepository {
   _FailingChecksumRepository({required super.cached})
     : super(checksumUnchanged: true);
 
@@ -588,7 +497,7 @@ class _FailingChecksumRepository extends _FakeCatalogRepository {
 /// Repositório cujo `syncManifest` só termina quando o teste liberar.
 ///
 /// Permite descartar o `ProviderContainer` com o refresh de background em voo.
-class _GatedSyncRepository extends _FakeCatalogRepository {
+class _GatedSyncRepository extends FakeCatalogRepository {
   _GatedSyncRepository({required super.cached})
     : super(remote: const [], syncedChecksum: 'novo');
 
@@ -619,7 +528,7 @@ class _GatedSyncRepository extends _FakeCatalogRepository {
 ///
 /// Espelha o `markSyncedNow()` que `CatalogRepositoryImpl.syncManifest` executa
 /// quando o checksum confirma que o catálogo remoto não mudou.
-class _StaleFlippingRepository extends _FakeCatalogRepository {
+class _StaleFlippingRepository extends FakeCatalogRepository {
   _StaleFlippingRepository({required super.cached})
     : super(checksumUnchanged: true);
 

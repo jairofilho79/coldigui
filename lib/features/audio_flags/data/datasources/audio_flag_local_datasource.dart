@@ -2,8 +2,14 @@ import 'package:isar_plus/isar_plus.dart';
 
 import '../../../../core/database/collections/audio_flag.dart';
 import '../../../../core/database/collections/playlist_sync_status.dart';
+import '../../../../core/database/storage_unavailable_exception.dart';
 
 /// CRUD Isar para [AudioFlag].
+///
+/// Isar indisponível (modo degradado): as leituras devolvem vazio/`null`, mas
+/// a adoção e a purga por conta **lançam [StorageUnavailableException]** — um
+/// no-op silencioso faria o notifier de sync persistir o `sub` como adotado, e
+/// o próximo boot nunca mais repetiria a adoção.
 class AudioFlagLocalDatasource {
   const AudioFlagLocalDatasource(this._isar);
 
@@ -48,15 +54,22 @@ class AudioFlagLocalDatasource {
         .toList(growable: false);
   }
 
-  Future<List<AudioFlag>> findTombstones() async {
+  /// Tombstones que a conta [sub] pode enviar: os dela e os ainda sem dono.
+  ///
+  /// Mesmo filtro em memória de [findPendingPush], pelo mesmo motivo:
+  /// `ownerSub` não é indexado e a lista de tombstones é curta.
+  Future<List<AudioFlag>> findTombstones({String? sub}) async {
     final isar = _isar;
     if (isar == null) return const [];
-    return isar.audioFlags
+    final rows = isar.audioFlags
         .where()
         .deletedAtIsNotNull()
         .and()
         .syncStatusIndexEqualTo(PlaylistSyncStatus.pendingPush.index)
         .findAll();
+    return rows
+        .where((row) => row.ownerSub == null || row.ownerSub == sub)
+        .toList(growable: false);
   }
 
   Future<void> insert(AudioFlag flag) async {
@@ -100,7 +113,9 @@ class AudioFlagLocalDatasource {
   /// Linhas de outra conta ficam intocadas: elas não sobem no push desta.
   Future<void> adoptForSub(String sub) async {
     final isar = _isar;
-    if (isar == null) return;
+    if (isar == null) {
+      throw const StorageUnavailableException('audioFlags.adoptForSub');
+    }
     await isar.write((isar) {
       final coll = isar.audioFlags;
       final rows = coll.where().deletedAtIsNull().findAll();
@@ -119,7 +134,9 @@ class AudioFlagLocalDatasource {
   /// login dela. `pendingPush`/`conflict` ficam no aparelho, com o dono antigo.
   Future<int> purgeSyncedOwnedBy(String previousSub) async {
     final isar = _isar;
-    if (isar == null) return 0;
+    if (isar == null) {
+      throw const StorageUnavailableException('audioFlags.purgeSyncedOwnedBy');
+    }
     return isar.write((isar) {
       final coll = isar.audioFlags;
       final doomed = coll

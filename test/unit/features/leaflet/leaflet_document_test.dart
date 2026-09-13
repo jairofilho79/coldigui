@@ -6,16 +6,16 @@ void main() {
   test('fromCarouselItems preserva ordem e numera 1-based', () {
     const items = [
       CarouselItem(
-        pdfId: 'a',
-        sortOrder: 0,
+        materialId: 'a',
+        index: 0,
         numero: '001',
         nome: 'Louvor A',
         categoria: 'Partitura',
         classificacao: 'ColAdultos',
       ),
       CarouselItem(
-        pdfId: 'b',
-        sortOrder: 1,
+        materialId: 'b',
+        index: 1,
         numero: '002',
         nome: 'Louvor B',
         categoria: 'Partitura',
@@ -42,16 +42,16 @@ void main() {
   test('fromCarouselItems ordena por sortOrder', () {
     const items = [
       CarouselItem(
-        pdfId: 'b',
-        sortOrder: 1,
+        materialId: 'b',
+        index: 1,
         numero: '002',
         nome: 'B',
         categoria: '',
         classificacao: '',
       ),
       CarouselItem(
-        pdfId: 'a',
-        sortOrder: 0,
+        materialId: 'a',
+        index: 0,
         numero: '001',
         nome: 'A',
         categoria: '',

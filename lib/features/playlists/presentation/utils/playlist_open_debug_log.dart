@@ -39,7 +39,7 @@ void playlistOpenDebugLogError(
 }
 
 /// Registra falha lógica sem exceção — ex.: louvor ausente no manifest ou
-/// [PlaylistsNotifier.loadIntoCarousel] retornou `false`.
+/// lista sem face de partituras para abrir.
 void playlistOpenDebugLogFailure(String stage, String detail) {
   if (!kDebugMode) return;
   playlistOpenLastStage = stage;

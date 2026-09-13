@@ -117,6 +117,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           itensPorPagina: widget.initialItensPorPagina,
           pagina: widget.initialPagina,
         );
+    // C13: default de itens/página pela largura — só quando não há valor
+    // gravado nem `itensPorPagina` na URL (no-op nos demais casos).
+    ref
+        .read(libraryViewSettingsProvider.notifier)
+        .setDefaultForWidth(MediaQuery.sizeOf(context).width);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _urlSyncEnabled = true;
     });

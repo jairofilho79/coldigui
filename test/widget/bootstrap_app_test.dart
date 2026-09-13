@@ -1,20 +1,11 @@
+import '../support/fakes/fake_isar.dart';
 import 'dart:async';
-
 import 'package:coldigui/app.dart';
 import 'package:coldigui/bootstrap_app.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
-
-/// Fake mínimo de [Isar] — só [close] é chamado por [isarInitializerProvider].
-class _FakeIsar implements Isar {
-  @override
-  bool close({bool deleteFromDisk = false}) => true;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 void main() {
   Future<void> pumpBootstrap(
@@ -42,12 +33,12 @@ void main() {
       reason: 'A8: o app não espera o Isar para montar',
     );
 
-    completer.complete(_FakeIsar());
+    completer.complete(FakeIsar());
     await tester.pumpAndSettle();
   });
 
   testWidgets('mantém ColdiguiApp quando o Isar abre', (tester) async {
-    await pumpBootstrap(tester, () async => _FakeIsar());
+    await pumpBootstrap(tester, () async => FakeIsar());
     await tester.pumpAndSettle();
 
     expect(find.byType(ColdiguiApp), findsOneWidget);

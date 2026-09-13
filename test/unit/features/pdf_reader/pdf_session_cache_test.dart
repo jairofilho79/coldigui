@@ -1,9 +1,40 @@
+import 'package:coldigui/core/platform/platform_capabilities.dart';
+import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_session_cache.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'pdf_reader_test_helpers.dart';
 
 void main() {
+  group('pdfSessionCacheProvider — maxSize por plataforma (spec A.13)', () {
+    test('web → maxSize 2', () {
+      final container = ProviderContainer(
+        overrides: [
+          platformCapabilitiesProvider.overrideWithValue(
+            PlatformCapabilities.web,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(pdfSessionCacheProvider).maxSize, 2);
+    });
+
+    test('nativo → maxSize 3', () {
+      final container = ProviderContainer(
+        overrides: [
+          platformCapabilitiesProvider.overrideWithValue(
+            PlatformCapabilities.native,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(pdfSessionCacheProvider).maxSize, 3);
+    });
+  });
+
   group('PdfSessionCache', () {
     test('acquire retorna handle previamente liberado', () {
       final cache = PdfSessionCache(maxSize: 2);

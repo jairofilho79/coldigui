@@ -10,8 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _itemA = CarouselItem(
-  pdfId: 'pdf-a',
-  sortOrder: 0,
+  materialId: 'pdf-a',
+  index: 0,
   numero: '001',
   nome: 'A',
   categoria: 'Partitura',
@@ -19,8 +19,8 @@ const _itemA = CarouselItem(
 );
 
 const _itemB = CarouselItem(
-  pdfId: 'pdf-b',
-  sortOrder: 1,
+  materialId: 'pdf-b',
+  index: 1,
   numero: '002',
   nome: 'B',
   categoria: 'Cifra nível I',

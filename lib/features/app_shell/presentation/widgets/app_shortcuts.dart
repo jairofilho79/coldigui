@@ -8,7 +8,6 @@ import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
-import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -84,10 +83,14 @@ bool keyboardFocusIsOnSpaceActivatableControl() {
 
 /// Troca de louvor pelo teclado dentro do leitor (PDF ou cifra).
 ///
-/// Percorre o mesmo caminho das setas da barra 2: posição no carousel ->
-/// [ReaderCarouselActionsNotifier.navigateToPdfId] -> `replace` da rota. Fica
-/// aqui, e não em cada leitor, porque `Ctrl+→` tem que se comportar igual nos
-/// dois — e o leitor de cifras não pode importar o widget do leitor de PDF.
+/// Percorre o mesmo caminho das setas da barra 2: posição na face de
+/// partituras -> [ReaderCarouselActionsNotifier.navigateToKey] -> `replace` da
+/// rota. Fica aqui, e não em cada leitor, porque `N`/`P` e `Ctrl+→` têm que se
+/// comportar igual nos dois — e o leitor de cifras não pode importar o widget
+/// do leitor de PDF.
+///
+/// A navegação é **por chave**: com o mesmo louvor repetido na lista, o
+/// vizinho do id é ambíguo, o da ocorrência não.
 ///
 /// Retorna `false` quando não há vizinho naquela direção.
 Future<bool> navigateReaderCarouselByKeyboard({
@@ -101,18 +104,17 @@ Future<bool> navigateReaderCarouselByKeyboard({
   final position = ref.read(readerCarouselPositionProvider(currentPdfId));
   if (position == null) return false;
 
-  final targetPdfId = switch (direction) {
-    CarouselReaderDirection.previous => position.previousPdfId,
-    CarouselReaderDirection.next => position.nextPdfId,
+  final targetKey = switch (direction) {
+    CarouselReaderDirection.previous => position.previousKey,
+    CarouselReaderDirection.next => position.nextKey,
   };
-  if (targetPdfId == null) return false;
-
-  ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(targetPdfId);
+  if (targetKey == null) return false;
 
   try {
+    // `navigateToKey` foca a ocorrência antes de resolver a rota.
     final location = await ref
         .read(readerCarouselActionsProvider.notifier)
-        .navigateToPdfId(targetPdfId: targetPdfId);
+        .navigateToKey(key: targetKey);
     if (!context.mounted) return false;
 
     if (location == null) {
@@ -148,6 +150,7 @@ void _showReaderActionError(BuildContext context) {
 /// | `Ctrl+K` / `Cmd+K` / `/` | vai para a Home e foca a busca |
 /// | `Espaço` | play/pause (fora do leitor PDF, que consome a tecla) |
 /// | `Ctrl+Espaço` / `Cmd+Espaço` | play/pause também dentro do leitor |
+/// | `J` / `L` | ±10 s no áudio (mesma guarda de foco do Espaço) — C12 |
 /// | `F` | tela cheia no leitor PDF, no de cifras e no de gestos |
 /// | `Esc` | sai da tela cheia |
 class AppShortcuts extends ConsumerWidget {
@@ -190,6 +193,14 @@ class AppShortcuts extends ConsumerWidget {
     final session = ref.read(audioPlayerSessionProvider);
     if (session.currentTrack == null) return false;
     ref.read(audioPlayerSessionProvider.notifier).playPause();
+    return true;
+  }
+
+  /// `J`/`L` (C12): ±10 s no áudio em foco.
+  bool _seekBy(WidgetRef ref, Duration delta) {
+    final session = ref.read(audioPlayerSessionProvider);
+    if (session.currentTrack == null) return false;
+    ref.read(audioPlayerSessionProvider.notifier).seekBy(delta);
     return true;
   }
 
@@ -236,6 +247,23 @@ class AppShortcuts extends ConsumerWidget {
         return KeyEventResult.ignored;
       }
       return _playPause(ref) ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (key == LogicalKeyboardKey.keyJ || key == LogicalKeyboardKey.keyL) {
+      // Mesmo padrão do F: um atalho do navegador/SO com o mesmo
+      // modificador (ex.: Ctrl+J abre downloads em vários navegadores) tem
+      // prioridade — sem isto o seek disparava junto.
+      if (commandModifier) return KeyEventResult.ignored;
+      // Mesma guarda do Espaço: um botão/campo com foco tem prioridade.
+      if (keyboardFocusIsOnSpaceActivatableControl()) {
+        return KeyEventResult.ignored;
+      }
+      final delta = key == LogicalKeyboardKey.keyJ
+          ? const Duration(seconds: -10)
+          : const Duration(seconds: 10);
+      return _seekBy(ref, delta)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
 
     if (key == LogicalKeyboardKey.keyF) {

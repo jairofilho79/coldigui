@@ -1,32 +1,71 @@
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
+import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/pages/chord_reader_screen.dart';
+import 'package:coldigui/features/chords/presentation/providers/chord_autoscroll_provider.dart';
 import 'package:coldigui/features/chords/presentation/providers/chord_reader_mode_provider.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Fullscreen fixo (Important 3, onda 4) — evita depender do `SystemChrome`
+/// real do [ReaderFullscreenNotifier.build].
+class _FullscreenFixedNotifier extends ReaderFullscreenNotifier {
+  @override
+  bool build() => true;
+}
+
+/// Sessão de áudio de mentira — só `currentTrack` importa aqui.
+class _FakeAudioSession extends AudioPlayerSessionNotifier {
+  _FakeAudioSession(this._state);
+
+  final AudioPlayerSessionState _state;
+
+  @override
+  AudioPlayerSessionState build() => _state;
+}
+
+const _playingTrack = AudioTrack(
+  audioId: 'aud-1',
+  r2Key: 'assets/praises/p1/a.mp3',
+  nome: 'Louvor',
+  numero: '12',
+  groupId: 'p1',
+  categoria: 'Áudio',
+  classificacao: 'Coro',
+);
+
 const _r2Key = 'assets/praises/p1/m1.chord';
+const _r2KeyB = 'assets/praises/p2/m2.chord';
 
 Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required bool available,
   Map<String, String>? queryParams,
+  ChordProSong? songOverride,
+  List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues(const {});
   final prefs = await SharedPreferences.getInstance();
-  final song = parseChordPro(
-    '{title: Comigo habita}\n{key: Eb}\n\nA [Bb]noite ha[Cm]bi\n',
-  );
+  final song =
+      songOverride ??
+      parseChordPro(
+        '{title: Comigo habita}\n{key: Eb}\n\nA [Bb]noite ha[Cm]bi\n',
+      );
 
   await tester.pumpWidget(
     ProviderScope(
@@ -35,6 +74,7 @@ Future<SharedPreferences> _pump(
         chordSongProvider.overrideWith(
           (ref, key) async => available ? song : null,
         ),
+        ...overrides,
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -166,6 +206,28 @@ void main() {
       expect(depois.left, antes.left);
       expect(find.text('-1'), findsOneWidget);
     });
+
+    testWidgets('play/pause e velocidade do autoscroll ficam na barra', (
+      tester,
+    ) async {
+      await _pump(tester, available: true);
+
+      expect(find.byTooltip('Iniciar rolagem automática'), findsOneWidget);
+
+      // Um `pump()` so, nao `pumpAndSettle()`: a musica de teste e curta
+      // (sem `maxScrollExtent`), entao o motor do autoscroll pararia sozinho
+      // se deixassemos varios frames do Ticker rodarem aqui.
+      await tester.tap(find.byTooltip('Iniciar rolagem automática'));
+      await tester.pump();
+
+      expect(find.byTooltip('Pausar rolagem automática'), findsOneWidget);
+
+      // Tocar no rotulo de velocidade avanca de 3 para 4.
+      await tester.tap(find.text('3x'));
+      await tester.pump();
+
+      expect(find.text('4x'), findsOneWidget);
+    });
   });
 
   group('teclado', () {
@@ -176,7 +238,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.equal);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), 1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
       // O cabecalho tem que acompanhar: o musico le o tom que vai tocar.
       expect(find.text('-1'), findsNothing);
     });
@@ -188,7 +250,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.numpadAdd);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), 1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
     });
 
     testWidgets('- desce meio tom', (tester) async {
@@ -198,7 +260,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.minus);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), -1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), -1);
       expect(find.text('-1'), findsOneWidget);
     });
 
@@ -209,7 +271,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.numpadSubtract);
       await tester.pumpAndSettle();
 
-      expect(container.read(chordReaderTransposeProvider), -1);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), -1);
     });
 
     testWidgets('Ctrl+= nao transpoe (fica com o zoom do navegador)', (
@@ -220,7 +282,7 @@ void main() {
 
       await _sendWithControl(tester, LogicalKeyboardKey.equal);
 
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 0);
     });
 
     testWidgets('Ctrl+seta para cima aumenta o corpo da letra', (tester) async {
@@ -261,7 +323,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(container.read(chordReaderFontSizeProvider), fonte);
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider(_r2Key)), 0);
     });
 
     testWidgets('Ctrl+setas laterais sem pdfId nao quebram', (tester) async {
@@ -278,7 +340,261 @@ void main() {
       await _sendWithControl(tester, LogicalKeyboardKey.arrowLeft);
 
       expect(tester.takeException(), isNull);
-      expect(container.read(chordReaderTransposeProvider), 0);
+      expect(container.read(chordReaderTransposeProvider('')), 0);
+    });
+
+    testWidgets('S liga e desliga o autoscroll', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('[ e ] regulam a velocidade do autoscroll', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketRight);
+      await tester.pump();
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed + 1,
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.pump();
+      expect(
+        container.read(chordAutoscrollProvider).speed,
+        kChordAutoscrollDefaultSpeed - 1,
+      );
+    });
+  });
+
+  group('transposicao por louvor (C10)', () {
+    testWidgets(
+      'trocar de louvor nao herda o tom, mas preserva o do anterior na sessao',
+      (tester) async {
+        await _pump(
+          tester,
+          available: true,
+          queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Louvor A'},
+        );
+        final container = _containerOf(tester);
+
+        await tester.tap(find.byTooltip('Subir meio tom'));
+        await tester.pumpAndSettle();
+        expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
+
+        // Troca para outro louvor sem desmontar a tela (mesma navegacao por
+        // `context.replace` que o app faz).
+        await _pump(
+          tester,
+          available: true,
+          queryParams: {'pdfId': encodePdfId(_r2KeyB), 'titulo': 'Louvor B'},
+        );
+
+        // O novo louvor comeca do tom original.
+        expect(container.read(chordReaderTransposeProvider(_r2KeyB)), 0);
+        // O louvor anterior continua com o tom escolhido, na mesma sessao.
+        expect(container.read(chordReaderTransposeProvider(_r2Key)), 1);
+      },
+    );
+  });
+
+  group('colunas em tela larga (C9)', () {
+    final longSong = parseChordPro(
+      List.generate(40, (i) => 'linha $i\n').join(),
+    );
+
+    testWidgets('largura ampla com muitas linhas usa duas colunas', (
+      tester,
+    ) async {
+      // Important 4 (onda 4): a decisão usa a largura DISPONÍVEL, que sem
+      // painel lateral equivale à largura da tela — 1300px é bem acima de
+      // kWideLayoutBreakpoint (900).
+      tester.view.physicalSize = const Size(1300, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, songOverride: longSong);
+
+      final view = tester.widget<ChordProView>(find.byType(ChordProView));
+      expect(view.columns, 2);
+    });
+
+    testWidgets('largura estreita usa uma coluna mesmo com muitas linhas', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(600, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester, available: true, songOverride: longSong);
+
+      final view = tester.widget<ChordProView>(find.byType(ChordProView));
+      expect(view.columns, 1);
+    });
+  });
+
+  group('autoscroll em execucao (C9)', () {
+    // Musica longa o bastante para ter maxScrollExtent > 0 numa viewport de
+    // teste — sem isso o motor pararia sozinho no primeiro tick (nada para
+    // rolar) e nenhum dos cenarios abaixo teria como acontecer.
+    final longSong = parseChordPro(
+      List.generate(80, (i) => 'linha $i\n').join(),
+    );
+
+    Future<void> pumpNarrowLongSong(
+      WidgetTester tester, {
+      Map<String, String>? queryParams,
+    }) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(
+        tester,
+        available: true,
+        songOverride: longSong,
+        queryParams: queryParams,
+      );
+    }
+
+    double scrollOffset(WidgetTester tester) => tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+
+    testWidgets('avanca o scroll com o tempo', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      // O primeiro tick do Ticker so marca o relogio (dt ainda desconhecido);
+      // o(s) seguinte(s) e que de fato avancam o scroll.
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(scrollOffset(tester), greaterThan(0));
+
+      // Nao deixar o autoscroll vazar ligado para o proximo teste.
+      container.read(chordAutoscrollProvider.notifier).stop();
+      await tester.pump();
+    });
+
+    testWidgets('para ao chegar no fim da rolagem', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).setSpeed(5);
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      // Salto bem maior que qualquer maxScrollExtent possivel aqui — garante
+      // que o motor ultrapassa o fim e para sozinho (medido: ~2312px para 80
+      // linhas; 5 minutos a velocidade 5 (300 px/s) dao ~90000px de folga).
+      await tester.pump(const Duration(minutes: 5));
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('para ao trocar de louvor', (tester) async {
+      await pumpNarrowLongSong(
+        tester,
+        queryParams: {'pdfId': encodePdfId(_r2Key), 'titulo': 'Louvor A'},
+      );
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      // Avanco curto: a musica e longa o bastante para nao chegar no fim.
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      // Troca de louvor sem desmontar a tela — mesmo padrao da C10.
+      await pumpNarrowLongSong(
+        tester,
+        queryParams: {'pdfId': encodePdfId(_r2KeyB), 'titulo': 'Louvor B'},
+      );
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('rolagem manual do usuario para o autoscroll', (tester) async {
+      await pumpNarrowLongSong(tester);
+      final container = _containerOf(tester);
+
+      container.read(chordAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      expect(container.read(chordAutoscrollProvider).running, isTrue);
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -100));
+      await tester.pump();
+
+      expect(container.read(chordAutoscrollProvider).running, isFalse);
+    });
+  });
+
+  group('respiro do mini-player em fullscreen (Important 3)', () {
+    double lastPaddingBottom(WidgetTester tester) {
+      final slivers = tester.widgetList<SliverPadding>(
+        find.byType(SliverPadding),
+      );
+      final padding = slivers.last.padding as EdgeInsets;
+      return padding.bottom;
+    }
+
+    testWidgets('fora do fullscreen usa o respiro padrão (24)', (tester) async {
+      await _pump(tester, available: true);
+
+      expect(lastPaddingBottom(tester), 24);
+    });
+
+    testWidgets('fullscreen sem faixa tocando mantém o respiro padrão (24)', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        available: true,
+        overrides: [
+          readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
+        ],
+      );
+
+      expect(lastPaddingBottom(tester), 24);
+    });
+
+    testWidgets('fullscreen com faixa tocando soma a altura do mini-player', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        available: true,
+        overrides: [
+          readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [_playingTrack]),
+            ),
+          ),
+        ],
+      );
+
+      expect(lastPaddingBottom(tester), 24 + kMiniPlayerBarHeight);
     });
   });
 }

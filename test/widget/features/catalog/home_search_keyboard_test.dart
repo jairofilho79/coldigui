@@ -1,14 +1,15 @@
+import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/home_search_worker.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -20,8 +21,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Louvor _louvor({required String categoria}) => Louvor.fromManifest(
   nome: 'Aleluia',
@@ -39,22 +38,6 @@ LouvorGroup _multiMaterialGroup() => LouvorGroup.fromLouvores([
   _louvor(categoria: 'Partitura'),
   _louvor(categoria: 'Cifra'),
 ]).first;
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  @override
-  List<PlaylistViewItem> build() => const [];
-
-  @override
-  Future<String> ensurePlaylistForLouvor(String pdfId) async => 'fake-playlist';
-
-  @override
-  Future<bool> addLouvorToActivePlaylist(String pdfId) async => true;
-}
 
 class _EmptyColdigomRepo implements ColdigomSearchRepository {
   @override
@@ -95,18 +78,20 @@ Future<void> _pumpHome(
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(true),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-        carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
-        playlistsProvider.overrideWith(_FakePlaylistsNotifier.new),
+        playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         coldigomSearchRepositoryProvider.overrideWithValue(
           _EmptyColdigomRepo(),
         ),
-        homeSearchPipelineExecutorProvider.overrideWith(
-          (ref) =>
-              (input) async => runHomeSearchPipeline(input),
-        ),
         // O pipeline de busca tem cobertura própria; aqui interessa só o que
         // o teclado faz com a lista já pronta.
-        homeSearchGroupResultsProvider.overrideWithValue(results),
+        homeSearchStateProvider.overrideWithValue(
+          HomeSearchState(
+            query: 'aleluia',
+            page: 1,
+            localGroups: results,
+            remote: const AsyncData(CatalogSearchPage.empty),
+          ),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

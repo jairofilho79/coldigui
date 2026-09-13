@@ -8,10 +8,10 @@ import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
+import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../domain/utils/find_material_for_group.dart';
 import 'audio_player_session_provider.dart';
 
@@ -106,27 +106,21 @@ String? resolveMaterialForGroup(
   if (groupId == null || groupId.isEmpty) return null;
 
   final carouselItems = listen
-      ? ref.watch(carouselLouvoresProvider)
-      : ref.read(carouselLouvoresProvider);
-  final coldigomCache = listen
-      ? ref.watch(coldigomLouvoresCacheProvider)
-      : ref.read(coldigomLouvoresCacheProvider);
-  final chordCache = listen
-      ? ref.watch(coldigomChordMaterialsCacheProvider)
-      : ref.read(coldigomChordMaterialsCacheProvider);
-  final gestureCache = listen
-      ? ref.watch(coldigomGestureMaterialsCacheProvider)
-      : ref.read(coldigomGestureMaterialsCacheProvider);
+      ? ref.watch(carouselItemsProvider)
+      : ref.read(carouselItemsProvider);
+  final lookup = listen
+      ? ref.watch(catalogMaterialLookupProvider)
+      : ref.read(catalogMaterialLookupProvider);
   final manifest = listen
       ? ref.watch(louvoresManifestProvider)
       : ref.read(louvoresManifestProvider);
 
   return findMaterialForGroup(
     groupId: groupId,
-    carouselPdfIds: [for (final item in carouselItems) item.pdfId],
-    byPdfId: coldigomCache,
-    chordsById: chordCache,
-    gesturesById: gestureCache,
+    carouselPdfIds: [for (final item in carouselItems) item.materialId],
+    byPdfId: lookup.coldigomLouvoresByPdfId,
+    chordsById: lookup.chordsById,
+    gesturesById: lookup.gesturesById,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -142,24 +136,18 @@ String? resolveGroupIdForMaterial(
 }) {
   if (materialId == null || materialId.isEmpty) return null;
 
-  final coldigomCache = listen
-      ? ref.watch(coldigomLouvoresCacheProvider)
-      : ref.read(coldigomLouvoresCacheProvider);
-  final chordCache = listen
-      ? ref.watch(coldigomChordMaterialsCacheProvider)
-      : ref.read(coldigomChordMaterialsCacheProvider);
-  final gestureCache = listen
-      ? ref.watch(coldigomGestureMaterialsCacheProvider)
-      : ref.read(coldigomGestureMaterialsCacheProvider);
+  final lookup = listen
+      ? ref.watch(catalogMaterialLookupProvider)
+      : ref.read(catalogMaterialLookupProvider);
   final manifest = listen
       ? ref.watch(louvoresManifestProvider)
       : ref.read(louvoresManifestProvider);
 
   return groupIdForMaterialId(
     materialId: materialId,
-    byPdfId: coldigomCache,
-    chordsById: chordCache,
-    gesturesById: gestureCache,
+    byPdfId: lookup.coldigomLouvoresByPdfId,
+    chordsById: lookup.chordsById,
+    gesturesById: lookup.gesturesById,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -180,7 +168,7 @@ Future<void> openMaterialForGroupInReader({
   await openCarouselPdfInReader(
     ref: ref,
     context: context,
-    pdfId: targetPdfId,
+    materialId: targetPdfId,
     navigate: (location) async {
       if (onReader) {
         context.replace(location);
@@ -190,7 +178,18 @@ Future<void> openMaterialForGroupInReader({
     },
   );
   if (!context.mounted) return;
-  ref.read(carouselFocusedIndexProvider.notifier).focusPdfId(targetPdfId);
+
+  // O foco é por ocorrência: a **focada** vence quando já é deste material
+  // (o usuário pode estar na segunda ocorrência dele), senão vale a primeira —
+  // a mesma escolha de [resolveMaterialForGroup]. Fora da face (louvor que não
+  // está na lista) `focusKey` é no-op e o foco fica onde está.
+  final focused = ref.read(focusedCarouselItemProvider);
+  if (focused != null && focused.materialId == targetPdfId) return;
+
+  final items = ref.read(carouselItemsProvider);
+  final index = items.indexWhere((item) => item.materialId == targetPdfId);
+  if (index < 0) return;
+  ref.read(carouselFocusedIndexProvider.notifier).focusKey(items[index].key);
 }
 
 /// `true` em `/leitor`, `/cifra` ou `/gestos`; `false` sem GoRouter (testes de

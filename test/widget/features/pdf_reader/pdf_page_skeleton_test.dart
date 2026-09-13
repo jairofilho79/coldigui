@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/pages/pdf_reader_screen.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/pdf_reader_document_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_page_skeleton.dart';
@@ -12,11 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  @override
-  List<CarouselItem> build() => const [];
-}
 
 class _FixedOfflineCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
@@ -35,7 +29,7 @@ ProviderScope _readerScope({
       offlineCacheStatusProvider.overrideWith(
         _FixedOfflineCacheStatusNotifier.new,
       ),
-      carouselLouvoresProvider.overrideWith(_FakeCarouselNotifier.new),
+      carouselItemsProvider.overrideWithValue(const []),
       ...overrides,
     ],
     child: child,

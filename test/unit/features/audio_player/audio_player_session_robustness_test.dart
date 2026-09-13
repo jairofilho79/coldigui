@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/audio_player/data/datasources/audio_playback_position_store.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -16,13 +18,30 @@ class _ControllablePlayer extends AudioPlayer {
   final indexes = StreamController<int?>.broadcast();
   final positions = StreamController<Duration>.broadcast();
   final durations = StreamController<Duration?>.broadcast();
+  final playerStates = StreamController<PlayerState>.broadcast();
   final setSourcesCalls = <List<AudioSource>>[];
+  final initialPositions = <Duration?>[];
   final pendingSetSources = <Completer<Duration?>>[];
+  final seekCalls = <Duration?>[];
+  final setSpeedCalls = <double>[];
 
   /// Quando `true`, `setAudioSources` espera um `complete` explícito do teste.
   bool blockSetSources = false;
   Object? playError;
   int playCalls = 0;
+
+  /// Sobrescreve o getter do `AudioPlayer` real (lido por `playPause`) — o
+  /// teste ajusta direto (`player.playing = true`) para escolher o ramo.
+  @override
+  bool playing = false;
+
+  /// Sobrescreve o getter do `AudioPlayer` real: no just_audio de verdade,
+  /// `currentIndex` é o valor síncrono do mesmo subject que alimenta
+  /// `currentIndexStream` — já reflete a troca antes do listener do stream
+  /// rodar (C12 fix round 3). O teste ajusta direto, junto com `indexes.add`,
+  /// pra simular essa ordem.
+  @override
+  int? currentIndex;
 
   @override
   Stream<PlayerException> get errorStream => errors.stream;
@@ -37,6 +56,9 @@ class _ControllablePlayer extends AudioPlayer {
   Stream<Duration?> get durationStream => durations.stream;
 
   @override
+  Stream<PlayerState> get playerStateStream => playerStates.stream;
+
+  @override
   Future<Duration?> setAudioSources(
     List<AudioSource> audioSources, {
     bool preload = true,
@@ -45,6 +67,7 @@ class _ControllablePlayer extends AudioPlayer {
     ShuffleOrder? shuffleOrder,
   }) {
     setSourcesCalls.add(audioSources);
+    initialPositions.add(initialPosition);
     if (!blockSetSources) return Future.value(null);
     final completer = Completer<Duration?>();
     pendingSetSources.add(completer);
@@ -62,7 +85,14 @@ class _ControllablePlayer extends AudioPlayer {
   Future<void> pause() async {}
 
   @override
-  Future<void> seek(Duration? position, {int? index}) async {}
+  Future<void> seek(Duration? position, {int? index}) async {
+    seekCalls.add(position);
+  }
+
+  @override
+  Future<void> setSpeed(double speed) async {
+    setSpeedCalls.add(speed);
+  }
 
   @override
   Future<void> seekToNext() async {
@@ -83,10 +113,11 @@ class _ControllablePlayer extends AudioPlayer {
     await indexes.close();
     await positions.close();
     await durations.close();
+    await playerStates.close();
   }
 }
 
-AudioTrack _track(String id) => AudioTrack(
+AudioTrack _track(String id, {Duration? duration}) => AudioTrack(
   audioId: id,
   r2Key: 'assets/praises/p1/$id.mp3',
   nome: id.toUpperCase(),
@@ -94,6 +125,7 @@ AudioTrack _track(String id) => AudioTrack(
   groupId: 'p1',
   categoria: 'Áudio',
   classificacao: 'Coro',
+  duration: duration,
 );
 
 /// `r2Key` absoluto e malformado: `Uri.parse` estoura em `_playbackUriForTrack`
@@ -572,6 +604,521 @@ void main() {
       now = now.add(const Duration(milliseconds: 100));
       throttle.reset();
       expect(throttle.shouldSend(), isTrue);
+    });
+
+    test('minInterval customizado (5s, reuso pra posição persistida)', () {
+      var now = DateTime(2026);
+      final throttle = MediaSessionPositionThrottle(
+        now: () => now,
+        minInterval: const Duration(seconds: 5),
+      );
+
+      expect(throttle.shouldSend(), isTrue);
+      now = now.add(const Duration(seconds: 3));
+      expect(throttle.shouldSend(), isFalse);
+      now = now.add(const Duration(seconds: 3));
+      expect(throttle.shouldSend(), isTrue);
+    });
+  });
+
+  group('seekBy (C12)', () {
+    test('clamp no início: não passa de zero', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.durations.add(const Duration(minutes: 1));
+      player.positions.add(const Duration(seconds: 10));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: -15));
+
+      expect(player.seekCalls.single, Duration.zero);
+    });
+
+    test('clamp no fim: não passa da duração', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.durations.add(const Duration(minutes: 1));
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: 10));
+
+      expect(player.seekCalls.single, const Duration(minutes: 1));
+    });
+
+    test('sem duração conhecida, +10s não trava em zero', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      player.positions.add(const Duration(seconds: 10));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.seekBy(const Duration(seconds: 10));
+
+      expect(player.seekCalls.single, const Duration(seconds: 20));
+    });
+  });
+
+  group('setSpeed (C12)', () {
+    test('sessão nasce com velocidade 1.0', () async {
+      final container = await makeContainer();
+      expect(container.read(audioPlayerSessionProvider).speed, 1.0);
+    });
+
+    test('atualiza o estado e chama o player', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      await notifier.setSpeed(1.5);
+
+      expect(container.read(audioPlayerSessionProvider).speed, 1.5);
+      expect(player.setSpeedCalls, contains(1.5));
+    });
+
+    test('é reaplicada em _applyQueue — troca de faixa não reseta', () async {
+      final container = await makeContainer();
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+      await notifier.setSpeed(1.25);
+      player.setSpeedCalls.clear();
+
+      await notifier.playQueue([_track('a2')]);
+
+      expect(
+        container.read(audioPlayerSessionProvider).speed,
+        1.25,
+        reason: 'a velocidade escolhida persiste entre faixas',
+      );
+      expect(
+        player.setSpeedCalls,
+        contains(1.25),
+        reason: '_applyQueue reaplica a velocidade na fonte nova',
+      );
+    });
+
+    // C12 fix round 3: `close()` zera a velocidade em memória (volta a
+    // `AudioPlayerSessionState` padrão), mas nunca chama `setSpeed` no
+    // player — que continua tocando na velocidade antiga. Como `close()`
+    // não descarta `_player` (só chama `stop()`), o mesmo player de verdade
+    // é reaproveitado na próxima fila; `_applyQueue` pulava `setSpeed`
+    // achando que 1.0 é o padrão inofensivo, deixando o player grudado em
+    // 1.5x mesmo com o estado (e a UI) mostrando 1.0x.
+    test(
+      'close() não deixa velocidade antiga grudada no player reaproveitado',
+      () async {
+        final container = await makeContainer();
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+        await notifier.setSpeed(1.5);
+        player.setSpeedCalls.clear();
+
+        await notifier.close();
+        await notifier.playQueue([_track('a2')]);
+
+        expect(container.read(audioPlayerSessionProvider).speed, 1.0);
+        expect(
+          player.setSpeedCalls,
+          contains(1.0),
+          reason:
+              '_applyQueue tem que reaplicar 1.0 no player, que ficou em '
+              '1.5 depois do close()',
+        );
+      },
+    );
+  });
+
+  group('posição persistida (C12)', () {
+    test(
+      'restoreQueue com trackId igual passa a posição gravada ao player',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        await AudioPlaybackPositionStore(
+          prefs,
+        ).write('a1', const Duration(seconds: 30));
+
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.restoreQueue([
+          _track('a1', duration: const Duration(minutes: 3)),
+        ]);
+
+        expect(player.initialPositions.single, const Duration(seconds: 30));
+      },
+    );
+
+    test(
+      'restoreQueue com trackId diferente ignora a posição gravada',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        await AudioPlaybackPositionStore(
+          prefs,
+        ).write('b1', const Duration(seconds: 30));
+
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.restoreQueue([
+          _track('a1', duration: const Duration(minutes: 3)),
+        ]);
+
+        expect(player.initialPositions.single, isNull);
+      },
+    );
+
+    test('posição a menos de 5s do fim não é restaurada', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(
+        prefs,
+      ).write('a1', const Duration(minutes: 3) - const Duration(seconds: 3));
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([
+        _track('a1', duration: const Duration(minutes: 3)),
+      ]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
+    // C12 fix round 1: `AudioTrack.duration` nunca é populado em produção —
+    // o gate de "perto do fim" precisa da duração gravada no próprio store,
+    // não da faixa.
+    test('usa a duração gravada no store quando a faixa não tem duration '
+        '(caso real de produção)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(prefs).write(
+        'a1',
+        const Duration(minutes: 1),
+        duration: const Duration(minutes: 3),
+      );
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([_track('a1')]);
+
+      expect(player.initialPositions.single, const Duration(minutes: 1));
+    });
+
+    test('posição a menos de 5s da duração gravada no store não é restaurada '
+        '(faixa sem duration)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(prefs).write(
+        'a1',
+        const Duration(minutes: 3) - const Duration(seconds: 2),
+        duration: const Duration(minutes: 3),
+      );
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.restoreQueue([_track('a1')]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
+    test('playQueue (tocar da lista/busca) começa sempre do zero', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      await AudioPlaybackPositionStore(
+        prefs,
+      ).write('a1', const Duration(seconds: 30));
+
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([
+        _track('a1', duration: const Duration(minutes: 3)),
+      ]);
+
+      expect(player.initialPositions.single, isNull);
+    });
+
+    test('stop() grava a posição atual antes de zerar', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.stop();
+
+      final store = AudioPlaybackPositionStore(prefs);
+      expect(store.read()?.trackId, 'a1');
+      expect(store.read()?.position, const Duration(seconds: 55));
+    });
+
+    test('stop() grava também a duração observada (C12 fix round 1)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1')]);
+
+      player.durations.add(const Duration(minutes: 3));
+      player.positions.add(const Duration(seconds: 55));
+      await Future<void>.delayed(Duration.zero);
+
+      await notifier.stop();
+
+      final store = AudioPlaybackPositionStore(prefs);
+      expect(store.read()?.duration, const Duration(minutes: 3));
+    });
+
+    test('duração da faixa anterior não é gravada sob o id da faixa nova '
+        '(C12 fix round 2)', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1'), _track('a2')]);
+
+      // Duração de a1 conhecida.
+      player.durations.add(const Duration(seconds: 200));
+      await Future<void>.delayed(Duration.zero);
+
+      // O player avança sozinho pra faixa seguinte (troca em fila, sem
+      // passar por _applyQueue) — durationStream ainda não emitiu nada
+      // pra a2.
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+
+      player.playerStates.add(PlayerState(true, ProcessingState.ready));
+      await Future<void>.delayed(Duration.zero);
+      player.positions.add(const Duration(seconds: 5));
+      await Future<void>.delayed(Duration.zero);
+
+      final store = AudioPlaybackPositionStore(prefs);
+      final result = store.read();
+      expect(result?.trackId, 'a2');
+      expect(
+        result?.duration,
+        isNull,
+        reason: 'a duração de a1 não pode ser atribuída a a2',
+      );
+    });
+
+    // C12 fix round 3: o just_audio emite `durationStream` (já da faixa
+    // nova) ANTES do `currentIndexStream` numa troca dentro da fila — mas o
+    // getter síncrono `player.currentIndex` já reflete o índice novo nesse
+    // momento. Marcar `_durationForAudioId` a partir dele (não de
+    // `state.currentTrack`, que só muda quando o `currentIndexStream`
+    // chega) evita perder a duração certa da faixa nova.
+    test('duração da faixa nova que chega antes do currentIndexStream não se '
+        'perde', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+      await notifier.playQueue([_track('a1'), _track('a2')]);
+
+      // Duração de a1 conhecida.
+      player.durations.add(const Duration(seconds: 200));
+      await Future<void>.delayed(Duration.zero);
+
+      // O player já trocou de faixa (currentIndex síncrono reflete isso)
+      // e manda a duração nova ANTES do currentIndexStream.
+      player.currentIndex = 1;
+      player.durations.add(const Duration(seconds: 180));
+      await Future<void>.delayed(Duration.zero);
+
+      player.indexes.add(1);
+      await Future<void>.delayed(Duration.zero);
+
+      player.playerStates.add(PlayerState(true, ProcessingState.ready));
+      await Future<void>.delayed(Duration.zero);
+      player.positions.add(const Duration(seconds: 5));
+      await Future<void>.delayed(Duration.zero);
+
+      final store = AudioPlaybackPositionStore(prefs);
+      final result = store.read();
+      expect(result?.trackId, 'a2');
+      expect(
+        result?.duration,
+        const Duration(seconds: 180),
+        reason: 'a duração de a2 já tinha chegado — não pode ser perdida',
+      );
+    });
+
+    test(
+      'pausar grava a posição imediatamente (não espera a janela de 5s)',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        player.playing = true;
+        player.positions.add(const Duration(seconds: 12));
+        await Future<void>.delayed(Duration.zero);
+
+        await notifier.playPause();
+
+        final store = AudioPlaybackPositionStore(prefs);
+        expect(store.read()?.trackId, 'a1');
+        expect(store.read()?.position, const Duration(seconds: 12));
+      },
+    );
+
+    test(
+      'grava a primeira posição tocando, mas não de novo antes de 5s',
+      () async {
+        final container = await makeContainer();
+        final prefs = container.read(sharedPreferencesProvider);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+        await notifier.playQueue([_track('a1')]);
+
+        player.playerStates.add(PlayerState(true, ProcessingState.ready));
+        await Future<void>.delayed(Duration.zero);
+        expect(container.read(audioPlayerSessionProvider).playing, isTrue);
+
+        player.positions.add(const Duration(seconds: 1));
+        await Future<void>.delayed(Duration.zero);
+
+        final store = AudioPlaybackPositionStore(prefs);
+        expect(store.read()?.position, const Duration(seconds: 1));
+
+        player.positions.add(const Duration(seconds: 2));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          store.read()?.position,
+          const Duration(seconds: 1),
+          reason: 'dentro da janela de 5s a próxima gravação espera',
+        );
+      },
+    );
+
+    test('sem faixa em foco, nada é gravado', () async {
+      final container = await makeContainer();
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+      await notifier.stop();
+
+      expect(AudioPlaybackPositionStore(prefs).read(), isNull);
+    });
+  });
+
+  group('watchdog de buffering travado', () {
+    // Reproduz o bug relatado: tocar o áudio de um louvor fora da lista
+    // ativa enfileira as variantes do grupo (MIDI/Playback/vozes) e, ao
+    // terminar uma faixa, o just_audio avança sozinho pra próxima — se o
+    // carregamento dela travar (rede, asset ausente) sem nunca completar
+    // nem emitir erro, o player fica com `processingState` preso em
+    // `loading`/`buffering` para sempre. Sem isto, `buffering: true` nunca
+    // volta a `false` e desabilita o play/pause pra sempre (mini player e
+    // tela cheia), sem qualquer sinal de erro — "não consegue nem desligar
+    // nem pausar nada".
+    test(
+      'buffering que nunca resolve vira erro visível depois do timeout',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        fakeAsync((async) {
+          final container = ProviderContainer(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(prefs),
+              audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+            ],
+          );
+          addTearDown(container.dispose);
+          final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+          unawaited(notifier.playQueue([_track('a1'), _track('a2')]));
+          async.flushMicrotasks();
+
+          // A faixa atual termina e o player avança sozinho (avanço
+          // automático) — carregando a próxima, sem nunca sair de
+          // `loading`/`buffering` (carregamento travado).
+          player.playerStates.add(PlayerState(true, ProcessingState.loading));
+          async.flushMicrotasks();
+          expect(container.read(audioPlayerSessionProvider).buffering, isTrue);
+
+          // Antes do timeout: continua buffering, sem erro.
+          async.elapse(audioBufferingTimeout - const Duration(seconds: 1));
+          var state = container.read(audioPlayerSessionProvider);
+          expect(state.buffering, isTrue);
+          expect(state.errorMessage, isNull);
+
+          // Passa do timeout: buffering trava permanentemente sem
+          // resolver — vira erro visível e libera os controles.
+          async.elapse(const Duration(seconds: 2));
+          state = container.read(audioPlayerSessionProvider);
+          expect(state.buffering, isFalse);
+          expect(state.playing, isFalse);
+          expect(state.errorMessage, isNotNull);
+        });
+      },
+    );
+
+    test('buffering que resolve antes do timeout não gera erro', () async {
+      final prefs = await SharedPreferences.getInstance();
+      fakeAsync((async) {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+        unawaited(notifier.playQueue([_track('a1'), _track('a2')]));
+        async.flushMicrotasks();
+
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        async.elapse(const Duration(seconds: 5));
+        player.playerStates.add(PlayerState(true, ProcessingState.ready));
+        async.flushMicrotasks();
+
+        // O resto do timeout original passa sem disparar erro nenhum — o
+        // watchdog foi desarmado quando saiu de buffering.
+        async.elapse(audioBufferingTimeout);
+        final state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isFalse);
+        expect(state.errorMessage, isNull);
+      });
+    });
+
+    test('nova fila desarma o watchdog antigo — não apaga o buffering legítimo '
+        'da fila nova', () async {
+      final prefs = await SharedPreferences.getInstance();
+      fakeAsync((async) {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+        unawaited(notifier.playQueue([_track('a1')]));
+        async.flushMicrotasks();
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        // Perto do fim do timeout antigo, o usuário manda tocar outra
+        // fila — supera a anterior antes dela disparar.
+        async.elapse(audioBufferingTimeout - const Duration(seconds: 1));
+        unawaited(notifier.playQueue([_track('b1')]));
+        async.flushMicrotasks();
+        player.playerStates.add(PlayerState(true, ProcessingState.loading));
+        async.flushMicrotasks();
+
+        // O timer antigo venceria aqui, mas a fila mudou (geração
+        // diferente) — não pode apagar o buffering legítimo da fila nova.
+        async.elapse(const Duration(seconds: 2));
+        var state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isTrue);
+        expect(state.errorMessage, isNull);
+
+        // O timeout da fila nova, contado a partir do próprio buffering
+        // dela, ainda dispara normalmente.
+        async.elapse(audioBufferingTimeout);
+        state = container.read(audioPlayerSessionProvider);
+        expect(state.buffering, isFalse);
+        expect(state.errorMessage, isNotNull);
+      });
     });
   });
 }

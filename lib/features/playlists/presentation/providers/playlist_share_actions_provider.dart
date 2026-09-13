@@ -3,16 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/utils/build_carousel_metadata_map.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_share_option.dart';
-import '../../domain/exceptions/empty_carousel_exception.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../providers/playlists_provider.dart';
@@ -92,7 +90,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             capture: capture,
           );
       }
-    } on EmptyCarouselException catch (error, stackTrace) {
+    } on EmptyLeafletException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -230,7 +228,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }
 
   Future<String> _generateUrl(String playlistId) {
-    return ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
+    // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
+    // longa, que não precisa de conta para ser resolvida no futuro.
+    final authed = ref.read(authStateProvider).asData?.value != null;
+    return ref.read(generatePlaylistShareUrlProvider)(
+      playlistId: playlistId,
+      short: authed,
+    );
   }
 
   Future<XFile> _captureLeafletXFile(
@@ -239,15 +243,10 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final metadata = buildCarouselMetadataMap(
-      plpcgCatalog: ref.read(louvoresManifestProvider).value?.louvores,
-      coldigomCache: ref.read(coldigomLouvoresCacheProvider),
-    );
     final document = await resolveLeafletDocument(
       ref,
-      pdfIds: shareContext.pdfIds,
+      entries: shareContext.entries,
       fromCarousel: shareContext.fromCarousel,
-      metadata: metadata,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
     leafletDebugLog(

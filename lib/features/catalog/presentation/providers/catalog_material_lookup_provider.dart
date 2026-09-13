@@ -6,6 +6,7 @@ import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/louvor.dart';
+import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/youtube_material.dart';
 import 'louvores_by_pdf_id_provider.dart';
 
@@ -66,6 +67,15 @@ final class CatalogMaterialLookup {
   /// Documento de gestos em cache, ou `null`.
   GestureMaterial? gesture(String gestureId) => gesturesById[gestureId];
 
+  /// Cifras em cache do praise [groupId], ordenadas por categoria.
+  ///
+  /// Varre o cache (pequeno: só o que já foi aquecido) — o sheet e o leitor
+  /// de cifra perguntam por louvor, não por id de cifra.
+  List<ChordMaterial> chordsOfGroup(String groupId) => [
+    for (final chord in chordsById.values)
+      if (chord.groupId == groupId) chord,
+  ]..sort((a, b) => a.categoria.compareTo(b.categoria));
+
   /// Metadados do praise Coldigom, ou `null`.
   ColdigomPraiseMetadata? praiseMeta(String groupId) =>
       praiseMetaByGroupId[groupId];
@@ -73,6 +83,18 @@ final class CatalogMaterialLookup {
   /// Links de YouTube do praise; lista vazia quando não há.
   List<YoutubeMaterial> youtube(String groupId) =>
       youtubeByGroupId[groupId] ?? const [];
+
+  /// [group] com a [ColdigomPraiseMetadata] em cache anexada, quando falta.
+  ///
+  /// Quem não é Coldigom não tem entrada no cache, então não precisa de
+  /// checagem por acervo. Só lê o cache — nunca busca na rede: um praise cujo
+  /// detalhe ainda não foi carregado abre o sheet sem o cabeçalho de
+  /// metadados.
+  LouvorGroup withPraiseMeta(LouvorGroup group) {
+    if (group.coldigomMeta != null) return group;
+    final meta = praiseMeta(group.groupId);
+    return meta == null ? group : group.withColdigomMeta(meta);
+  }
 
   /// Faixas na ordem de [audioIds], **ignorando** ids sem hit no cache.
   ///

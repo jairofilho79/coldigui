@@ -61,11 +61,12 @@ class _MemoryAudioFlagRepository implements AudioFlagRepository {
       .toList();
 
   @override
-  Future<List<SavedAudioFlag>> getTombstones() async => map.values
+  Future<List<SavedAudioFlag>> getTombstones({String? sub}) async => map.values
       .where(
         (f) =>
             f.deletedAt != null &&
-            f.syncStatus == PlaylistSyncStatus.pendingPush,
+            f.syncStatus == PlaylistSyncStatus.pendingPush &&
+            (f.ownerSub == null || f.ownerSub == sub),
       )
       .toList();
 
@@ -532,5 +533,47 @@ void main() {
     expect(result.pushed, 2);
     expect(repo.map['orfa']?.ownerSub, 'sub-1', reason: 'o push adota a órfã');
     expect(repo.map['alheia']?.syncStatus, PlaylistSyncStatus.pendingPush);
+  });
+
+  test('os tombstones de outro dono não vão para o DELETE', () async {
+    final repo = _MemoryAudioFlagRepository();
+    final gone = DateTime.utc(2026, 6, 1);
+    for (final entry in <String, String?>{
+      'sem-dono': null,
+      'minha': 'sub-1',
+      'da-outra-conta': 'sub-2',
+    }.entries) {
+      await repo.upsert(
+        _local(
+          flagId: entry.key,
+          syncStatus: PlaylistSyncStatus.pendingPush,
+          deletedAt: gone,
+          ownerSub: entry.value,
+        ),
+      );
+    }
+
+    final deleted = <String>[];
+    final sync = SyncAudioFlags(
+      repo,
+      (_) async => <RemoteAudioFlag>[],
+      ({required idToken, required flag}) async => flag,
+      ({required idToken, required flagId}) async {
+        deleted.add(flagId);
+      },
+    );
+
+    final result = await sync(idToken: 'token', sub: 'sub-1');
+
+    // Depois da troca A→B, o DELETE do tombstone de A com o token de B daria
+    // 404 → `pushError` → linha de erro no player a cada boot.
+    expect(deleted.toSet(), {'sem-dono', 'minha'});
+    expect(result.deleted, 2);
+    expect(result.pushError, isNull);
+    expect(
+      repo.map.containsKey('da-outra-conta'),
+      isTrue,
+      reason: 'apagar na nuvem da conta anterior não é assunto desta conta',
+    );
   });
 }

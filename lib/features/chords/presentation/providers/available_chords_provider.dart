@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_material.dart';
 
@@ -11,18 +11,14 @@ import '../../domain/entities/chord_material.dart';
 /// resultado alimenta o cache de [chordSongProvider], então abrir o sheet
 /// pré-aquece o leitor: ao tocar na cifra, o conteúdo já está em memória.
 ///
-/// Lê de [coldigomChordMaterialsCacheProvider] em vez de receber a lista por
+/// Lê do [catalogMaterialLookupProvider] em vez de receber a lista por
 /// parâmetro porque chave de `family` precisa de `==` estável, e `List` em Dart
 /// usa identidade.
 final availableChordsProvider = FutureProvider.autoDispose
     .family<List<ChordMaterial>, String>((ref, groupId) async {
-      final chords =
-          ref
-              .watch(coldigomChordMaterialsCacheProvider)
-              .values
-              .where((chord) => chord.groupId == groupId)
-              .toList()
-            ..sort((a, b) => a.categoria.compareTo(b.categoria));
+      final chords = ref
+          .watch(catalogMaterialLookupProvider)
+          .chordsOfGroup(groupId);
 
       if (chords.isEmpty) return const [];
 

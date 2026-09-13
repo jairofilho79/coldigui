@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../carousel/presentation/providers/carousel_louvores_provider.dart';
+import '../../../carousel/presentation/providers/carousel_items_provider.dart';
+import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
-import '../../../coldigom/data/providers/coldigom_providers.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -23,9 +27,10 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 /// Sheet único de escolha de material — PLPCG e Coldigom.
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
-/// deixou de decidir o layout. O grupo é renderizado sempre igual (seções de
-/// PDF, depois [LouvorGroup.extras] por tipo) e o cabeçalho de metadados
-/// aparece quando o grupo tem [LouvorGroup.coldigomMeta].
+/// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
+/// tipo presente (PDF, cifras, gestos, áudio, YouTube) quando há mais de um, senão a
+/// lista direta — e o cabeçalho de metadados aparece quando o grupo tem
+/// [LouvorGroup.coldigomMeta].
 ///
 /// [canAddToPlaylist] `false` esconde os `+` — é o caso da troca de material no
 /// leitor, onde o louvor já está na lista.
@@ -88,26 +93,8 @@ class MaterialSheet extends ConsumerStatefulWidget {
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   String? _addingId;
 
-  @override
-  void initState() {
-    super.initState();
-    final chords = widget.group.chordMaterials;
-    final gestures = widget.group.gestureMaterials;
-    // Pós-frame: mutar provider durante a construção do widget dispara
-    // "setState during build" nos ouvintes do cache.
-    if (chords.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(coldigomCacheWriterProvider).mergeChords(chords);
-      });
-    }
-    if (gestures.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(coldigomCacheWriterProvider).mergeGestures(gestures);
-      });
-    }
-  }
+  /// Aba escolhida; null = a primeira presente.
+  MaterialKind? _selectedKind;
 
   void _handleTap(CatalogMaterial material) {
     Navigator.of(context).pop();
@@ -140,6 +127,32 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     }
   }
 
+  /// `×` da linha: confirma e tira [material] da lista ativa (todas as
+  /// ocorrências — o sheet só sabe que ele «está lá», por id).
+  Future<void> _handleRemove(CatalogMaterial material) async {
+    if (_addingId != null) return;
+    final l10n = AppLocalizations.of(context)!;
+
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: l10n.materialRemoveConfirmTitle,
+      message: l10n.materialRemoveConfirmMessage(material.categoria),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _addingId = material.id);
+    try {
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .removeById(material.id);
+      if (mounted) showAppSnackbar(context, l10n.materialRemoved);
+    } on StorageUnavailableException {
+      if (mounted) showAppSnackbar(context, l10n.playlistStorageUnavailable);
+    } finally {
+      if (mounted) setState(() => _addingId = null);
+    }
+  }
+
   Widget _sectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
@@ -155,17 +168,19 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
 
   /// [icon] só é passado quando a `categoria` decide o ícone — o caso do PDF,
   /// cujo tipo real (Partitura/Cifra/Gestos) o manifest só diz por texto.
-  /// Cifra, áudio e YouTube têm [CatalogMaterial.kind] confiável e caem em
+  /// Cifra, gestos, áudio e YouTube têm [CatalogMaterial.kind] confiável e caem em
   /// [LouvorMaterialIcons.forMaterial].
   Widget _materialTile({
     required CatalogMaterial material,
     required Color iconColor,
-    required Set<String> carouselPdfIds,
+    required Set<String> activeMaterialIds,
+    required AppLocalizations l10n,
     IconData? icon,
     String? subtitle,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
+    final isAdded = activeMaterialIds.contains(material.id);
     return ListTile(
       leading: Icon(
         icon ?? LouvorMaterialIcons.forMaterial(material),
@@ -185,12 +200,13 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ),
       trailing: showAdd
           ? MaterialAddTrailing(
-              // Áudio nunca vira chip do carousel — o ✓ é só de PDF.
-              isAdded:
-                  material is PdfMaterial &&
-                  carouselPdfIds.contains(material.id),
+              // As duas faces são a mesma lista (B.1): áudio já adicionado
+              // também mostra o × de remover.
+              isAdded: isAdded,
               isAdding: _addingId == material.id,
+              removeTooltip: l10n.materialRemoveTooltip,
               onAdd: () => _handleAdd(material),
+              onRemove: () => _handleRemove(material),
             )
           : null,
       onTap: () => _handleTap(material),
@@ -204,8 +220,12 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = widget.group;
     final meta = group.coldigomMeta;
-    final carouselPdfIds = ref.watch(carouselPdfIdsProvider);
+    final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
 
+    // As cifras do grupo já estão no cache Coldigom: quem monta o grupo
+    // (busca/browse, detalhe do praise, catálogo em memória) as funde no data
+    // pelo `ColdigomCacheWriter` — a presentation só lê (C.3).
+    //
     // `.value ?? []` sozinho transformava `AsyncError` em "este louvor não tem
     // cifra"; o estado é lido inteiro para o erro virar uma linha de retry.
     final chordsAsync = group.chordMaterials.isEmpty
@@ -213,12 +233,29 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         : ref.watch(availableChordsProvider(group.groupId));
     final availableChords = chordsAsync.value ?? const <ChordMaterial>[];
 
-    // Um rótulo só não separa nada — grupos de um arranjo (todo praise
-    // Coldigom, por exemplo) mostram a lista direto.
-    final showSectionLabels = group.sections.length > 1;
     final gestureMaterials = group.gestureMaterials;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
+
+    // Abas por tipo (PDF / Cifras / Gestos / Áudio / YouTube) só quando há mais de um
+    // tipo — com 17 PDFs e 14 áudios a lista corrida escondia o áudio no fim
+    // (onda 4.3). Dentro da aba de PDF as seções por classificação continuam
+    // separadas por rótulo quando há mais de uma.
+    final kinds = <MaterialKind>[
+      if (group.totalPdfs > 0) MaterialKind.pdf,
+      if (availableChords.isNotEmpty || chordsAsync.hasError)
+        MaterialKind.chord,
+      if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
+      if (audioTracks.isNotEmpty) MaterialKind.audio,
+      if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
+    ];
+    final showSegments = kinds.length > 1;
+    // Aba escolhida que sumiu (cifras que deixaram de carregar) cai na
+    // primeira em vez de deixar a lista vazia.
+    final selectedIndex = kinds.indexOf(_selectedKind ?? MaterialKind.pdf);
+    final selectedKind = kinds.isEmpty
+        ? null
+        : kinds[selectedIndex < 0 ? 0 : selectedIndex];
 
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
@@ -246,83 +283,222 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ],
             const SizedBox(height: 12),
             const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
+            if (showSegments) ...[
+              const SizedBox(height: 12),
+              _KindSegmentBar(
+                labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
+                selectedIndex: kinds.indexOf(selectedKind!),
+                onSelected: (index) {
+                  setState(() => _selectedKind = kinds[index]);
+                },
+              ),
+            ],
             const SizedBox(height: 8),
             Expanded(
               child: ListView(
-                children: [
-                  for (final section in group.sections) ...[
-                    if (showSectionLabels) _sectionLabel(section.displayLabel),
-                    for (final entry in section.materials)
-                      _materialTile(
-                        material: PdfMaterial(entry.louvor),
-                        icon: LouvorMaterialIcons.forEntry(entry),
-                        iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
-                      ),
-                  ],
-                  if (availableChords.isNotEmpty || chordsAsync.hasError) ...[
-                    _sectionLabel(l10n.chordMaterialSection),
-                    for (final chord in availableChords)
-                      _materialTile(
-                        material: ChordMaterialRef(chord),
-                        iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
-                      ),
-                    // Defensivo: `availableChordsProvider` engole falha de rede
-                    // por cifra (a cifra fica listada), então este ramo só é
-                    // alcançado por erro inesperado. Fica porque o custo é uma
-                    // linha e a alternativa — seção sumindo sem explicação — é
-                    // pior. Contrato pinado em
-                    // `available_chords_provider_test.dart`.
-                    if (chordsAsync.hasError)
-                      ListTile(
-                        leading: const Icon(
-                          Icons.refresh,
-                          color: AppColors.title,
-                        ),
-                        title: Text(
-                          l10n.chordUnavailableRetry,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        onTap: () => ref.invalidate(
-                          availableChordsProvider(group.groupId),
-                        ),
-                      ),
-                  ],
-                  if (gestureMaterials.isNotEmpty) ...[
-                    _sectionLabel(l10n.gesturesMaterialSection),
+                children: switch (selectedKind) {
+                  null => const [],
+                  MaterialKind.pdf => _pdfTiles(group, activeMaterialIds, l10n),
+                  MaterialKind.chord => _chordTiles(
+                    group,
+                    availableChords,
+                    chordsAsync.hasError,
+                    activeMaterialIds,
+                    l10n,
+                  ),
+                  MaterialKind.gesture => [
                     for (final gesture in gestureMaterials)
                       _materialTile(
                         material: GestureMaterialRef(gesture),
                         iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                       ),
                   ],
-                  if (audioTracks.isNotEmpty) ...[
-                    _sectionLabel(l10n.audioMaterialSection),
+                  MaterialKind.audio => [
                     for (final track in audioTracks)
                       _materialTile(
                         material: AudioMaterial(track),
                         iconColor: AppColors.title,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                         subtitle: track.author,
                       ),
                   ],
-                  if (youtubeMaterials.isNotEmpty) ...[
-                    _sectionLabel(l10n.youtubeMaterialSection),
+                  MaterialKind.youtube => [
                     for (final item in youtubeMaterials)
                       _materialTile(
                         material: YoutubeMaterialRef(item),
                         iconColor: AppColors.youtube,
-                        carouselPdfIds: carouselPdfIds,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
                       ),
                   ],
-                ],
+                  // `kinds` só emite os cinco acima; se um dia emitir outro,
+                  // que falhe alto em vez de mostrar uma aba vazia.
+                  MaterialKind.unknown =>
+                    throw StateError('kind sem aba: $selectedKind'),
+                },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// PDFs por seção; o rótulo da seção só quando há mais de uma. Classificação
+  /// vazia (praise Coldigom sem ritmo) cai em «Partituras» em vez de um rótulo
+  /// em branco.
+  List<Widget> _pdfTiles(
+    LouvorGroup group,
+    Set<String> activeMaterialIds,
+    AppLocalizations l10n,
+  ) {
+    final showSectionLabels = group.sections.length > 1;
+    return [
+      for (final section in group.sections) ...[
+        if (showSectionLabels)
+          _sectionLabel(
+            section.displayLabel.trim().isEmpty
+                ? l10n.pdfMaterialSection
+                : section.displayLabel,
+          ),
+        for (final entry in section.materials)
+          _materialTile(
+            material: PdfMaterial(entry.louvor),
+            icon: LouvorMaterialIcons.forEntry(entry),
+            iconColor: AppColors.title,
+            activeMaterialIds: activeMaterialIds,
+            l10n: l10n,
+          ),
+      ],
+    ];
+  }
+
+  List<Widget> _chordTiles(
+    LouvorGroup group,
+    List<ChordMaterial> availableChords,
+    bool hasError,
+    Set<String> activeMaterialIds,
+    AppLocalizations l10n,
+  ) {
+    return [
+      for (final chord in availableChords)
+        _materialTile(
+          material: ChordMaterialRef(chord),
+          iconColor: AppColors.title,
+          activeMaterialIds: activeMaterialIds,
+          l10n: l10n,
+        ),
+      // Defensivo: `availableChordsProvider` engole falha de rede por cifra
+      // (a cifra fica listada), então este ramo só é alcançado por erro
+      // inesperado. Fica porque o custo é uma linha e a alternativa — aba
+      // vazia sem explicação — é pior. Contrato pinado em
+      // `available_chords_provider_test.dart`.
+      if (hasError)
+        ListTile(
+          leading: const Icon(Icons.refresh, color: AppColors.title),
+          title: Text(
+            l10n.chordUnavailableRetry,
+            style: AppTypography.body.copyWith(color: AppColors.textDark),
+          ),
+          onTap: () => ref.invalidate(availableChordsProvider(group.groupId)),
+        ),
+    ];
+  }
+
+  static String _kindLabel(AppLocalizations l10n, MaterialKind kind) {
+    return switch (kind) {
+      MaterialKind.pdf => l10n.pdfMaterialSection,
+      MaterialKind.chord => l10n.chordMaterialSection,
+      MaterialKind.gesture => l10n.gesturesMaterialSection,
+      MaterialKind.audio => l10n.audioMaterialSection,
+      MaterialKind.youtube => l10n.youtubeMaterialSection,
+      MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
+    };
+  }
+}
+
+/// Barra de segmentos por tipo de material — uma aba por kind presente.
+class _KindSegmentBar extends StatelessWidget {
+  const _KindSegmentBar({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.title.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              Expanded(
+                child: _KindSegmentChip(
+                  label: labels[i],
+                  selected: i == selectedIndex,
+                  onTap: () => onSelected(i),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KindSegmentChip extends StatelessWidget {
+  const _KindSegmentChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? AppColors.gold.withValues(alpha: 0.25)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          alignment: Alignment.center,
+          constraints: const BoxConstraints(minHeight: 36),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: selected
+                ? Border.all(color: AppColors.gold, width: 1.5)
+                : null,
+          ),
+          child: Text(
+            label,
+            style: AppTypography.label.copyWith(
+              color: selected
+                  ? AppColors.title
+                  : AppColors.title.withValues(alpha: 0.55),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );

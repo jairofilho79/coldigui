@@ -1,34 +1,28 @@
+import '../../../support/fakes/fake_active_editor.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-  final removed = <String>[];
-  List<String>? lastReorder;
-
-  @override
-  List<CarouselItem> build() => initial;
-
-  @override
-  Future<void> remove(String pdfId) async {
-    removed.add(pdfId);
-    state = state.where((item) => item.pdfId != pdfId).toList(growable: false);
-  }
-
-  @override
-  Future<void> reorder(List<String> pdfIds) async {
-    lastReorder = pdfIds;
-    final byId = {for (final item in state) item.pdfId: item};
-    state = pdfIds.map((pdfId) => byId[pdfId]!).toList(growable: false);
-  }
+Louvor _louvor(String pdfId, String numero, String nome, String classificacao) {
+  return Louvor.fromManifest(
+    nome: nome,
+    numero: numero,
+    categoria: 'Partitura',
+    classificacao: classificacao,
+    pdf: '$pdfId.pdf',
+    pdfId: pdfId,
+    groupId: 'g-$pdfId',
+  );
 }
 
 class _OpenSheetButton extends ConsumerWidget {
@@ -43,41 +37,49 @@ class _OpenSheetButton extends ConsumerWidget {
   }
 }
 
-const _items = [
-  CarouselItem(
-    pdfId: 'a',
-    sortOrder: 0,
-    numero: '001',
-    nome: 'Louvor A',
-    categoria: 'Partitura',
-    classificacao: 'ColAdultos',
-  ),
-  CarouselItem(
-    pdfId: 'b',
-    sortOrder: 1,
-    numero: '002',
-    nome: 'Louvor B',
-    categoria: 'Cifra nível I',
-    classificacao: 'ColCIAs',
-  ),
-];
-
 void main() {
-  testWidgets('remove dispara notifier.remove', (tester) async {
-    final notifier = _FakeCarouselNotifier(_items);
+  late SharedPreferences prefs;
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [carouselLouvoresProvider.overrideWith(() => notifier)],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: _OpenSheetButton()),
-        ),
+  final manifest = {
+    'a': _louvor('a', '001', 'Louvor A', 'ColAdultos'),
+    'b': _louvor('b', '002', 'Louvor B', 'ColCIAs'),
+  };
+
+  const entries = [
+    PlaylistEntry(id: 'a', kind: MaterialKind.pdf),
+    PlaylistEntry(id: 'b', kind: MaterialKind.pdf),
+  ];
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
+  Widget buildSubject({
+    required FakeActiveEditor editor,
+    Widget body = const _OpenSheetButton(),
+  }) {
+    return ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        louvoresByPdfIdProvider.overrideWithValue(manifest),
+        activePlaylistEditorProvider.overrideWith(() => editor),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: Scaffold(body: body),
       ),
     );
+  }
 
+  testWidgets('remover dispara removeByKey com a chave da ocorrência', (
+    tester,
+  ) async {
+    final editor = FakeActiveEditor(entries);
+
+    await tester.pumpWidget(buildSubject(editor: editor));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -91,24 +93,45 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(notifier.removed, ['a']);
+    expect(editor.removedKeys, ['a']);
   });
 
-  testWidgets('reorder dispara notifier.reorder', (tester) async {
-    final notifier = _FakeCarouselNotifier(_items);
+  testWidgets('o mesmo louvor repetido remove só a ocorrência tocada', (
+    tester,
+  ) async {
+    final editor = FakeActiveEditor(const [
+      PlaylistEntry(id: 'a', kind: MaterialKind.pdf),
+      PlaylistEntry(id: 'a', kind: MaterialKind.pdf),
+      PlaylistEntry(id: 'b', kind: MaterialKind.pdf),
+    ]);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [carouselLouvoresProvider.overrideWith(() => notifier)],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: _OpenSheetButton()),
-        ),
-      ),
+    await tester.pumpWidget(buildSubject(editor: editor));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CarouselLouvorChip), findsNWidgets(3));
+
+    // A segunda ocorrência tem a chave `a#1`; a primeira continua `a`.
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byIcon(Icons.close),
+          )
+          .at(1),
     );
+    await tester.pumpAndSettle();
 
+    expect(editor.removedKeys, ['a#1']);
+    expect(find.byType(CarouselLouvorChip), findsNWidgets(2));
+  });
+
+  testWidgets('reorder dispara reorderFace na face de partituras por chaves', (
+    tester,
+  ) async {
+    final editor = FakeActiveEditor(entries);
+
+    await tester.pumpWidget(buildSubject(editor: editor));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -123,33 +146,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(notifier.lastReorder, isNotNull);
+    expect(editor.lastReorder, ['b', 'a']);
   });
 
-  testWidgets('onItemTap dispara ao tocar no chip', (tester) async {
+  testWidgets('toque no chip foca a chave e dispara onItemTap', (tester) async {
+    final editor = FakeActiveEditor(entries);
     CarouselItem? tapped;
 
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(_items),
-          ),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () => showCarouselSelectionSheet(
-                  context,
-                  onItemTap: (item) async => tapped = item,
-                ),
-                child: const Text('open'),
-              ),
+      buildSubject(
+        editor: editor,
+        body: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () => showCarouselSelectionSheet(
+              context,
+              onItemTap: (item) async => tapped = item,
             ),
+            child: const Text('open'),
           ),
         ),
       ),
@@ -161,27 +174,14 @@ void main() {
     await tester.tap(find.textContaining('Louvor B'));
     await tester.pumpAndSettle();
 
-    expect(tapped?.pdfId, 'b');
+    expect(tapped?.materialId, 'b');
+    expect(tapped?.key, 'b');
     expect(find.byType(AlertDialog), findsNothing);
+    expect(prefs.getString('carousel_focused_pdf_id'), 'b');
   });
 
   testWidgets('exibe chips temáticos com metadados', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(_items),
-          ),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: _OpenSheetButton()),
-        ),
-      ),
-    );
-
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -189,5 +189,21 @@ void main() {
     expect(find.textContaining('Coletânea Adultos'), findsOneWidget);
     expect(find.textContaining('Coletânea CIAs'), findsOneWidget);
     expect(find.byIcon(Icons.drag_indicator), findsNWidgets(2));
+  });
+
+  testWidgets('a chave da ocorrência é a ValueKey do item reordenável', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildSubject(editor: FakeActiveEditor(entries)));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final keys = tester
+        .widgetList<ReorderableDragStartListener>(
+          find.byType(ReorderableDragStartListener),
+        )
+        .map((w) => w.key)
+        .toList();
+    expect(keys, [const ValueKey('a'), const ValueKey('b')]);
   });
 }

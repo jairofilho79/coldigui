@@ -6,7 +6,7 @@ import 'louvores_manifest_provider.dart';
 /// `pdfId → Louvor` do manifest PLPCG, construído **uma vez por manifest** (A4).
 ///
 /// Substitui os mapas O(catálogo) refeitos a cada mutação do carousel/lista
-/// (`buildCarouselMetadataMap`, `PlaylistsNotifier._buildLabelMap`,
+/// (o antigo mapa de metadados do folheto, `PlaylistsNotifier._buildLabelMap`,
 /// `findLouvorByPdfId`). Vazio enquanto o manifest não carregou. A instância
 /// só muda quando a lista de louvores do manifest muda — leituras
 /// consecutivas devolvem o mesmo mapa.

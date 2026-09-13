@@ -159,8 +159,8 @@ void main() {
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
         ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, [prevId, nextId]);
@@ -186,8 +186,8 @@ void main() {
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
         ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, [nextId]);
@@ -211,8 +211,8 @@ void main() {
           _louvor('assets/ColAdultos/current.pdf'),
           _louvor('assets/ColAdultos/next.pdf'),
         ],
-        previousPdfId: prevId,
-        nextPdfId: nextId,
+        previousMaterialId: prevId,
+        nextMaterialId: nextId,
       );
 
       expect(resolved, isEmpty);
@@ -232,8 +232,8 @@ void main() {
 
       await useCase(
         catalog: [_louvor('assets/ColAdultos/current.pdf')],
-        previousPdfId: _pdfIdForPath('assets/ColAdultos/missing.pdf'),
-        nextPdfId: null,
+        previousMaterialId: _pdfIdForPath('assets/ColAdultos/missing.pdf'),
+        nextMaterialId: null,
       );
 
       expect(resolved, isEmpty);

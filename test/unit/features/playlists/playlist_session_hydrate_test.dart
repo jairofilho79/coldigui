@@ -77,16 +77,6 @@ void main() {
     });
   });
 
-  test('tracksForAudioIds preserva a ordem e ignora miss', () {
-    expect(
-      tracksForAudioIds(
-        [_audioIdB, 'missing', _audioIdA],
-        {_audioIdA: _trackA, _audioIdB: _trackB},
-      ).map((t) => t.audioId),
-      [_audioIdB, _audioIdA],
-    );
-  });
-
   test('restoreQueueStartIndex usa o audioId persistido', () {
     expect(restoreQueueStartIndex([_trackA, _trackB], _audioIdB), 1);
     expect(restoreQueueStartIndex([_trackA, _trackB], 'missing'), 0);

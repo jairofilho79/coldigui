@@ -574,6 +574,113 @@ void main() {
     expect(sync.calls, before + 1);
   });
 
+  group('reload da tela após a sync (#1)', () {
+    test('sync do boot que trouxe linhas recarrega a tela', () async {
+      // Sub já persistido: o boot faz `sync()` puro, sem adoção — o caminho
+      // que nunca recarregava e deixava o carousel espelhando a lista velha.
+      await prefs.setString(_subKey, 'sub-1');
+      final screen = _CountingPlaylists();
+      final container = buildContainer(
+        repository: _CountingRepository(),
+        sync: _ScriptedSync(result: const PlaylistSyncResult(pulled: 1)),
+        playlists: () => screen,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      container.read(playlistSyncProvider);
+      await settle();
+
+      expect(screen.reloadCalls, 1);
+    });
+
+    test('push sozinho também recarrega (version/syncStatus mudam)', () async {
+      await prefs.setString(_subKey, 'sub-1');
+      final screen = _CountingPlaylists();
+      final container = buildContainer(
+        repository: _CountingRepository(),
+        sync: _ScriptedSync(result: const PlaylistSyncResult(pushed: 1)),
+        playlists: () => screen,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      container.read(playlistSyncProvider);
+      await settle();
+
+      expect(screen.reloadCalls, 1);
+    });
+
+    test('sync que não moveu nada não recarrega', () async {
+      await prefs.setString(_subKey, 'sub-1');
+      final screen = _CountingPlaylists();
+      final container = buildContainer(
+        repository: _CountingRepository(),
+        sync: _ScriptedSync(),
+        playlists: () => screen,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authStateProvider.future);
+      container.read(playlistSyncProvider);
+      await settle();
+      await container.read(playlistSyncProvider.notifier).sync();
+
+      expect(screen.reloadCalls, 0);
+    });
+
+    test(
+      'troca de sub recarrega depois da purga mesmo sem a sync mover',
+      () async {
+        // `_CountingRepository.purgeSyncedOwnedBy` devolve 1: as listas da conta
+        // anterior sumiram do banco e a tela não pode continuar mostrando-as.
+        await prefs.setString(_subKey, 'outro-sub');
+        final screen = _CountingPlaylists();
+        final container = buildContainer(
+          repository: _CountingRepository(),
+          sync: _ScriptedSync(),
+          playlists: () => screen,
+        );
+        addTearDown(container.dispose);
+
+        await container.read(authStateProvider.future);
+        container.read(playlistSyncProvider);
+        await settle();
+
+        expect(screen.reloadCalls, 1);
+      },
+    );
+
+    test(
+      'volta da conectividade recarrega quando a sync trouxe linhas',
+      () async {
+        await prefs.setString(_subKey, 'sub-1');
+        final screen = _CountingPlaylists();
+        final connectivity = StreamController<bool>.broadcast();
+        addTearDown(connectivity.close);
+        final container = buildContainer(
+          repository: _CountingRepository(),
+          sync: _ScriptedSync(result: const PlaylistSyncResult(pulled: 1)),
+          connectivity: connectivity.stream,
+          playlists: () => screen,
+        );
+        addTearDown(container.dispose);
+
+        await container.read(authStateProvider.future);
+        container.listen(playlistSyncProvider, (_, _) {});
+        await settle();
+        final before = screen.reloadCalls;
+
+        connectivity.add(false);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        connectivity.add(true);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+
+        expect(screen.reloadCalls, before + 1);
+      },
+    );
+  });
+
   test('descartar o container no meio da sync não estoura', () async {
     await prefs.setString(_subKey, 'sub-1');
     final gate = Completer<void>();

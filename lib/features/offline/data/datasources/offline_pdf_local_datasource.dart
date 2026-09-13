@@ -8,12 +8,23 @@ import '../../../../core/database/storage_unavailable_exception.dart';
 /// Em modo degradado (`_isar == null`) as **leituras** devolvem vazio e as
 /// **escritas** lançam [StorageUnavailableException] — nunca fingem sucesso
 /// (spec C.1 / B5).
+///
+/// [onIndexChanged] avisa quem deriva estado do índice (o mapa de
+/// disponibilidade, A5) depois de cada escrita que muda **quais** PDFs estão
+/// no índice ou se são persistentes. `touchLastAccessed*` não avisa: só mexe
+/// no LRU, e a disponibilidade não muda. O datasource fica em `data/` e não
+/// conhece Riverpod — quem injeta o callback é o provider de DI.
 class OfflinePdfLocalDatasource {
-  const OfflinePdfLocalDatasource(this._isar);
+  const OfflinePdfLocalDatasource(this._isar, {this.onIndexChanged});
 
-  const OfflinePdfLocalDatasource.unavailable() : _isar = null;
+  const OfflinePdfLocalDatasource.unavailable()
+    : _isar = null,
+      onIndexChanged = null;
 
   final Isar? _isar;
+
+  /// Chamado após cada escrita que altera a disponibilidade (ver classe).
+  final void Function()? onIndexChanged;
 
   /// Lookup O(1) por [pdfId] — sem validação de disco.
   Future<OfflinePdfIndex?> findByPdfId(String pdfId) async {
@@ -65,6 +76,7 @@ class OfflinePdfLocalDatasource {
     await isar.write((isar) {
       _putByPdfId(isar.offlinePdfIndexs, index);
     });
+    onIndexChanged?.call();
   }
 
   /// Remove entrada por [pdfId] — idempotente se ausente.
@@ -77,6 +89,7 @@ class OfflinePdfLocalDatasource {
         coll.delete(existing.id);
       }
     });
+    onIndexChanged?.call();
   }
 
   /// Contagem por [OfflinePdfIndex.category] — agregação em memória.
@@ -90,7 +103,14 @@ class OfflinePdfLocalDatasource {
   }
 
   /// Lista completa do índice — sem validar arquivos no disco.
-  Future<List<OfflinePdfIndex>> findAll() async {
+  Future<List<OfflinePdfIndex>> findAll() async => findAllSync();
+
+  /// Lista completa do índice, **síncrona** — sem validar arquivos no disco.
+  ///
+  /// O Isar Plus responde consultas sem `await`; é isso que deixa o mapa de
+  /// disponibilidade (A5) ser um `Provider` puro, lido uma vez por mudança do
+  /// índice em vez de uma query por card.
+  List<OfflinePdfIndex> findAllSync() {
     final isar = _isar;
     if (isar == null) return const [];
     return isar.offlinePdfIndexs.where().findAll();
@@ -136,6 +156,7 @@ class OfflinePdfLocalDatasource {
         _putByPdfId(coll, index);
       }
     });
+    onIndexChanged?.call();
   }
 
   /// Marca todas as entradas como persistentes — migração v2 (bulk legado).
@@ -150,6 +171,7 @@ class OfflinePdfLocalDatasource {
         coll.put(index);
       }
     });
+    onIndexChanged?.call();
   }
 
   /// Remove todas as entradas do índice offline (UC-10 clear cache).
@@ -158,6 +180,7 @@ class OfflinePdfLocalDatasource {
     await isar.write((isar) {
       isar.offlinePdfIndexs.clear();
     });
+    onIndexChanged?.call();
   }
 
   /// Remove entradas cujo [pdfId] está em [pdfIds].
@@ -178,6 +201,7 @@ class OfflinePdfLocalDatasource {
         }
       }
     });
+    if (removed > 0) onIndexChanged?.call();
     return removed;
   }
 

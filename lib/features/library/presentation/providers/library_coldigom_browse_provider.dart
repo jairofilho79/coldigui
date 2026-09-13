@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../coldigom/data/providers/coldigom_providers.dart';
+import '../../../coldigom/data/providers/coldigom_remote_providers.dart';
 import '../../../coldigom/domain/repositories/coldigom_search_repository.dart';
 import '../../domain/entities/library_catalog_mode.dart';
 import '../../domain/entities/paginated_louvor_groups.dart';

@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -23,6 +25,8 @@ import 'package:coldigui/features/pdf_reader/presentation/providers/reader_adjac
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'pdf_reader_test_helpers.dart';
 
 class _AllowPolicy implements PrefetchNetworkPolicy {
@@ -142,11 +146,13 @@ Louvor _louvor(String relPath) {
   );
 }
 
-CarouselItem _carouselItem(String relPath, int sortOrder) {
-  final pdfId = _pdfIdForPath(relPath);
+CarouselItem _carouselItem(String relPath, int index, {String? key}) {
+  final materialId = _pdfIdForPath(relPath);
   return CarouselItem(
-    pdfId: pdfId,
-    sortOrder: sortOrder,
+    materialId: materialId,
+    kind: MaterialKind.pdf,
+    index: index,
+    key: key ?? materialId,
     numero: '1',
     nome: 'Louvor $relPath',
     categoria: 'ColAdultos',
@@ -162,10 +168,12 @@ void main() {
   final currentPath = 'assets/ColAdultos/current.pdf';
   final nextPath = 'assets/ColAdultos/next.pdf';
   final currentPdfId = _pdfIdForPath(currentPath);
-  final prevPdfId = _pdfIdForPath(prevPath);
-  final nextPdfId = _pdfIdForPath(nextPath);
+  final prevId = _pdfIdForPath(prevPath);
+  final nextId = _pdfIdForPath(nextPath);
 
   test('prefetch dispara após sessão carregar sem bloquear abertura', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     final resolved = <String>[];
     final repository = _FakeOfflineRepository(cachedPdfIds: {currentPdfId});
     final fetch = _TrackingFetchAndStore(resolved);
@@ -183,13 +191,12 @@ void main() {
         prefetchLouvorCatalogProvider.overrideWith(
           (ref) => [_louvor(prevPath), _louvor(currentPath), _louvor(nextPath)],
         ),
-        carouselLouvoresProvider.overrideWith(
-          () => _FixedCarouselNotifier([
-            _carouselItem(prevPath, 0),
-            _carouselItem(currentPath, 1),
-            _carouselItem(nextPath, 2),
-          ]),
-        ),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        carouselItemsProvider.overrideWithValue([
+          _carouselItem(prevPath, 0),
+          _carouselItem(currentPath, 1),
+          _carouselItem(nextPath, 2),
+        ]),
       ],
     );
     addTearDown(container.dispose);
@@ -214,18 +221,70 @@ void main() {
     expect(resolved, isEmpty);
 
     await Future<void>.delayed(Duration.zero);
-    expect(resolved, [prevPdfId, nextPdfId]);
+    expect(resolved, [prevId, nextId]);
 
     prefetchSub.close();
     sessionSub.close();
   });
-}
 
-class _FixedCarouselNotifier extends CarouselLouvoresNotifier {
-  _FixedCarouselNotifier(this._items);
+  test('louvor repetido pré-busca os vizinhos da ocorrência focada', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final resolved = <String>[];
+    final repository = _FakeOfflineRepository(cachedPdfIds: {currentPdfId});
+    final fetch = _TrackingFetchAndStore(resolved);
+    final prefetch = PrefetchAdjacentCarouselPdfs(
+      validateAvailability: ValidatePdfAvailability(repository),
+      resolvePdf: ResolvePdfForReader(repository, fetch),
+      networkPolicy: _AllowPolicy(),
+    );
 
-  final List<CarouselItem> _items;
+    // Face: [prev, current, next, current#1] — a ocorrência focada é a
+    // segunda do `current`, cujo único vizinho é o `next`.
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        pdfViewerAdapterProvider.overrideWithValue(_SessionTestAdapter()),
+        prefetchNetworkPolicyProvider.overrideWithValue(_AllowPolicy()),
+        prefetchAdjacentCarouselPdfsProvider.overrideWithValue(prefetch),
+        prefetchLouvorCatalogProvider.overrideWith(
+          (ref) => [_louvor(prevPath), _louvor(currentPath), _louvor(nextPath)],
+        ),
+        carouselItemsProvider.overrideWithValue([
+          _carouselItem(prevPath, 0),
+          _carouselItem(currentPath, 1),
+          _carouselItem(nextPath, 2),
+          _carouselItem(currentPath, 3, key: '$currentPdfId#1'),
+        ]),
+      ],
+    );
+    addTearDown(container.dispose);
+    container
+        .read(carouselFocusedIndexProvider.notifier)
+        .focusKey('$currentPdfId#1');
 
-  @override
-  List<CarouselItem> build() => _items;
+    final sessionSub = container.listen(
+      pdfReaderSessionProvider(filePath),
+      (_, _) {},
+      fireImmediately: true,
+    );
+    final prefetchSub = container.listen(
+      readerAdjacentPdfPrefetchProvider(
+        ReaderAdjacentPdfPrefetchParams(
+          filePath: filePath,
+          pdfId: currentPdfId,
+        ),
+      ),
+      (_, _) {},
+      fireImmediately: true,
+    );
+
+    await container.read(pdfReaderSessionProvider(filePath).future);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(resolved, [nextId]);
+
+    prefetchSub.close();
+    sessionSub.close();
+  });
 }

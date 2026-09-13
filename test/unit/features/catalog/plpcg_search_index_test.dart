@@ -3,7 +3,7 @@ import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
-import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Louvor _louvor({
@@ -60,24 +60,6 @@ void main() {
   });
 
   group('SearchLouvorByNumberOrText.callIndexed', () {
-    test('reproduz o ranking de call sobre o mesmo catálogo', () {
-      final catalog = [
-        _louvor(nome: 'Senhor Deus', numero: '001', pdfId: 'partial'),
-        _louvor(nome: 'A Ti Senhor', numero: '500', pdfId: 'exact'),
-        _louvor(nome: 'Outro', numero: '017', pdfId: 'numero'),
-      ];
-      const usecase = SearchLouvorByNumberOrText();
-      final index = PlpcgSearchIndex.build(catalog);
-
-      for (final query in ['A Ti Senhor', '17', 'senhor', '', 'nada disso']) {
-        expect(
-          usecase.callIndexed(index, query).map((l) => l.pdfId).toList(),
-          usecase(catalog, query).map((l) => l.pdfId).toList(),
-          reason: 'query "$query"',
-        );
-      }
-    });
-
     test('acha por número normalizado sem normalizar item a item', () {
       final catalog = [_louvor(nome: 'Aleluia', numero: '001', pdfId: 'a')];
       final index = PlpcgSearchIndex.build(catalog);

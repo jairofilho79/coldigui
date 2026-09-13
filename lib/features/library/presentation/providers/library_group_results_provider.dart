@@ -14,6 +14,7 @@ import '../../domain/entities/paginated_louvor_groups.dart';
 import 'library_catalog_mode_provider.dart';
 import 'library_coldigom_browse_provider.dart';
 import 'library_group_worker.dart';
+import 'library_last_good_results_provider.dart';
 import 'library_special_arrangement_provider.dart';
 import 'library_view_settings_provider.dart';
 
@@ -55,12 +56,22 @@ final libraryPlpcgGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
 
 /// Resultados da biblioteca conforme [libraryCatalogModeProvider].
 ///
-/// Coldigom: usa o último valor do browse remoto (loading → empty até chegar).
+/// Coldigom: usa o valor do browse remoto e, quando ele não serve, a última
+/// página boa de [libraryLastGoodResultsProvider] — o banner de erro continua
+/// aparecendo, mas o paginador não some junto (erro na página ≥ 2).
+///
+/// **Em erro o valor do browse não serve, mesmo quando existe.** O Riverpod
+/// carrega o valor anterior junto do `AsyncError`, e esse valor pode ser de
+/// outra consulta: trocar de filtro e ver a primeira busca do filtro novo
+/// falhar mostraria os totais do filtro **anterior**. Em erro quem responde é
+/// o `lastGood`, que se zera quando a consulta muda.
 final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
   final mode = ref.watch(libraryCatalogModeProvider);
   if (mode == LibraryCatalogMode.coldigom) {
-    return ref.watch(libraryColdigomBrowseProvider).value ??
-        PaginatedLouvorGroups.empty;
+    final browse = ref.watch(libraryColdigomBrowseProvider);
+    final lastGood = ref.watch(libraryLastGoodResultsProvider);
+    if (browse.hasError) return lastGood;
+    return browse.value ?? lastGood;
   }
   return ref.watch(libraryPlpcgGroupResultsProvider);
 });

@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/home_url_builder.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
@@ -61,7 +61,7 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
       // Plataforma sem suporte ou simulador — ignorar.
     }
 
-    if (kIsWeb) {
+    if (ref.read(platformCapabilitiesProvider).isWeb) {
       initial = resolveWebInitialDeepLinkUri(initial);
     }
 
@@ -104,7 +104,13 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
           await ref.read(playlistsProvider.notifier).refreshAfterImport();
           if (!mounted) return;
           _navigateAfterImport(sanitizedUri);
-          _showSnackbar((l10n) => l10n.playlistImported);
+          if (result.alreadyExisted) {
+            _showSnackbar(
+              (l10n) => l10n.playlistImportAlreadySaved(result.nome ?? ''),
+            );
+          } else {
+            _showSnackbar((l10n) => l10n.playlistImported);
+          }
         case SyncDeepLinkOutcome.invalid:
           _markProcessed(fingerprint);
           _navigateAfterImport(sanitizedUri);

@@ -1,4 +1,5 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,11 +17,16 @@ Louvor _louvor({
 );
 
 void main() {
-  late SearchLouvorByNumberOrText search;
+  // `call()` não indexado foi removido (A10/E5): só sobrava sem chamador em
+  // `lib/`. A cobertura abaixo continua valendo para `callIndexed`, a única
+  // variante que resta (usada pela Home via `PlpcgSearchIndex`).
+  late List<Louvor> Function(List<Louvor> catalog, String query) search;
   late List<Louvor> catalog;
 
   setUp(() {
-    search = const SearchLouvorByNumberOrText();
+    const usecase = SearchLouvorByNumberOrText();
+    search = (catalog, query) =>
+        usecase.callIndexed(PlpcgSearchIndex.build(catalog), query);
     catalog = [
       _louvor(nome: 'São João', numero: '123', pdfId: 'a'),
       _louvor(nome: 'Aleluia ao Senhor', numero: '456', pdfId: 'b'),

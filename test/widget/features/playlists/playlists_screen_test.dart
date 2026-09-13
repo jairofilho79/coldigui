@@ -1,19 +1,16 @@
 import 'dart:async';
-
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
-import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
-import 'package:coldigui/features/carousel/presentation/providers/carousel_louvores_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
-import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
-import 'package:coldigui/features/playlists/presentation/widgets/import_playlist_dialog.dart';
-import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
+import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,45 +20,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _LoggedOutAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async => null;
-}
-
-class _FakePlaylistsNotifier extends PlaylistsNotifier {
-  _FakePlaylistsNotifier(this.initial, {this.deleteAllUnsavedThrows});
-
-  final List<PlaylistViewItem> initial;
-  final Object? deleteAllUnsavedThrows;
-  ImportPlaylistDialogResult? lastImport;
-  var reloadCalls = 0;
-
-  @override
-  List<PlaylistViewItem> build() => initial;
-
-  @override
-  Future<void> reload() async {
-    reloadCalls++;
-  }
-
-  @override
-  Future<void> deleteAllUnsaved() async {
-    final error = deleteAllUnsavedThrows;
-    if (error != null) throw error;
-  }
-
-  @override
-  Future<String?> importSharedFromUrl({
-    required String shareName,
-    String sharePdfs = '',
-    String shareAudios = '',
-    String shareItems = '',
-  }) async {
-    lastImport = ImportPlaylistDialogResult(
-      sharePdfs: sharePdfs,
-      shareAudios: shareAudios,
-      shareItems: shareItems,
-      shareName: shareName,
-    );
-    return 'imported-id';
-  }
 }
 
 /// Estado de sync fixo, sem `ref.listen` de auth nem rede.
@@ -87,6 +45,10 @@ class _FakeSyncNotifier extends PlaylistSyncNotifier {
   Future<PlaylistSyncResult> sync() async {
     syncCalls++;
     await gate?.future;
+    // Como o notifier real: a tela recarrega quando a rodada moveu linhas.
+    if (result.movedRows && ref.mounted) {
+      await ref.read(playlistsProvider.notifier).reload();
+    }
     return result;
   }
 }
@@ -103,15 +65,6 @@ class _MutableSyncNotifier extends PlaylistSyncNotifier {
   Future<PlaylistSyncResult> sync() async => const PlaylistSyncResult();
 }
 
-class _FakeCarouselNotifier extends CarouselLouvoresNotifier {
-  _FakeCarouselNotifier(this.initial);
-
-  final List<CarouselItem> initial;
-
-  @override
-  List<CarouselItem> build() => initial;
-}
-
 void main() {
   late SharedPreferences prefs;
 
@@ -125,7 +78,7 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedOutAuth.new),
-        playlistsProvider.overrideWith(() => _FakePlaylistsNotifier(items)),
+        playlistsProvider.overrideWith(() => FakePlaylistsNotifier(items)),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -172,16 +125,13 @@ void main() {
   });
 
   testWidgets('importar via FAB dispara importSharedFromUrl', (tester) async {
-    final notifier = _FakePlaylistsNotifier(const []);
+    final notifier = FakePlaylistsNotifier(const []);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const []),
-          ),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -226,19 +176,52 @@ void main() {
     expect(find.text('Lista importada'), findsOneWidget);
   });
 
-  testWidgets('importar URL legada (sem shareitems) segue funcionando', (
-    tester,
-  ) async {
-    final notifier = _FakePlaylistsNotifier(const []);
+  // D6: importar cria uma lista nova e a torna ativa — a anterior continua
+  // salva, então não há "substituição" a confirmar (paridade com o deep link).
+  testWidgets('importar por URL não pede confirmação', (tester) async {
+    final notifier = FakePlaylistsNotifier(const []);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           authStateProvider.overrideWith(_LoggedOutAuth.new),
           playlistsProvider.overrideWith(() => notifier),
-          carouselLouvoresProvider.overrideWith(
-            () => _FakeCarouselNotifier(const []),
-          ),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const PlaylistsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Importar lista'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'sharepdfs=x&sharename=Teste',
+    );
+    await tester.tap(find.text('Importar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Substituir seleção?'), findsNothing);
+    expect(find.text('Confirmar'), findsNothing);
+    expect(notifier.lastImport?.shareName, 'Teste');
+    expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  testWidgets('importar URL legada (sem shareitems) segue funcionando', (
+    tester,
+  ) async {
+    final notifier = FakePlaylistsNotifier(const []);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => notifier),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -275,7 +258,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         authStateProvider.overrideWith(_LoggedOutAuth.new),
         playlistsProvider.overrideWith(
-          () => playlists ?? _FakePlaylistsNotifier(const []),
+          () => playlists ?? FakePlaylistsNotifier(const []),
         ),
         playlistSyncProvider.overrideWith(() => syncNotifier),
       ],
@@ -406,7 +389,7 @@ void main() {
   testWidgets('retry que move linhas recarrega a lista visível', (
     tester,
   ) async {
-    final playlists = _FakePlaylistsNotifier(const []);
+    final playlists = FakePlaylistsNotifier(const []);
     final syncNotifier = _FakeSyncNotifier(
       const PlaylistSyncState(
         lastErrorCause: StorageUnavailableException('sem storage'),
@@ -425,7 +408,7 @@ void main() {
 
   testWidgets('sair da tela no meio do retry não explode', (tester) async {
     final gate = Completer<void>();
-    final playlists = _FakePlaylistsNotifier(const []);
+    final playlists = FakePlaylistsNotifier(const []);
     final syncNotifier = _FakeSyncNotifier(
       const PlaylistSyncState(
         lastErrorCause: StorageUnavailableException('sem storage'),
@@ -450,7 +433,7 @@ void main() {
   });
 
   testWidgets('retry sem novidade não recarrega a lista', (tester) async {
-    final playlists = _FakePlaylistsNotifier(const []);
+    final playlists = FakePlaylistsNotifier(const []);
     final syncNotifier = _FakeSyncNotifier(
       const PlaylistSyncState(
         lastErrorCause: StorageUnavailableException('sem storage'),
@@ -469,9 +452,9 @@ void main() {
   testWidgets('storage indisponível ao limpar rascunhos vira snackbar', (
     tester,
   ) async {
-    final playlists = _FakePlaylistsNotifier(
+    final playlists = FakePlaylistsNotifier(
       const [],
-      deleteAllUnsavedThrows: StorageUnavailableException('sem storage'),
+      StorageUnavailableException('sem storage'),
     );
     await tester.pumpWidget(
       buildWithSync(_FakeSyncNotifier(), playlists: playlists),
