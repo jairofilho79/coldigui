@@ -10,6 +10,7 @@ class ChipBody extends StatelessWidget {
     required this.borderRadius,
     required this.child,
     this.onTap,
+    this.onLongPress,
     super.key,
   });
 
@@ -17,13 +18,25 @@ class ChipBody extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
+  /// Pressionar e segurar o corpo do chip — ex.: abrir o material favorito
+  /// do grupo direto no leitor (card multi-material na Pesquisar).
+  ///
+  /// Só tem efeito com [onTap] também presente — sem ele, o `InkWell` nem é
+  /// criado (ver [build]), então [onLongPress] fica inerte mesmo não-nulo.
+  final VoidCallback? onLongPress;
+
   @override
   Widget build(BuildContext context) {
     if (onTap == null) return child;
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(onTap: onTap, borderRadius: borderRadius, child: child),
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: borderRadius,
+        child: child,
+      ),
     );
   }
 }

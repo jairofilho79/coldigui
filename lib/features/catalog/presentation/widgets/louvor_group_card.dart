@@ -36,6 +36,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// Tap: sublista se [LouvorGroup.totalMaterials] > 1; senão abre PDF/áudio direto.
 /// Trailing +: adiciona ao carousel só com 1 PDF; com vários, + fica no sheet.
+/// Long press: abre direto o material favorito do grupo (mesma resolução
+/// do "+"); sem favorito adicionável, cai no mesmo caminho do tap.
 class LouvorGroupCard extends ConsumerStatefulWidget {
   const LouvorGroupCard({required this.group, super.key});
 
@@ -133,6 +135,26 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   /// toque num ícone de `MaterialKindsRow` (C5).
   Future<void> _openMaterialSheet() async {
     await showMaterialSheet(context, ref, _resolvedGroup);
+  }
+
+  /// Pressionar e segurar o card: com favorito disponível — [preferredMaterial],
+  /// o mesmo resolvido pelo "+" — abre-o direto, sem passar pelo sheet.
+  ///
+  /// Sem favorito adicionável (ex.: grupo só com YouTube), cai no mesmo
+  /// caminho do [_handleTap] de hoje — nada muda para esses casos.
+  Future<void> _handleLongPress(CatalogMaterial? preferredMaterial) async {
+    if (preferredMaterial == null) {
+      await _handleTap();
+      return;
+    }
+    await ref
+        .read(openMaterialProvider)
+        .open(
+          context,
+          ref,
+          preferredMaterial,
+          audioQueue: widget.group.audioTracks,
+        );
   }
 
   /// Mesmo caminho do `+` do sheet: o editor decide e a snackbar traduz o
@@ -330,6 +352,9 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
         highlightQuery: highlightQuery,
         onTap: isLoading ? null : _handleTap,
+        onLongPress: isLoading
+            ? null
+            : () => unawaited(_handleLongPress(preferredMaterial)),
         onAdd: onAdd,
         isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
