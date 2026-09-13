@@ -28,7 +28,7 @@ A app está rápida onde foi medida. Os problemas encontrados são de **navegaç
 
 | # | Item | Eixo | Esforço | Evidência | Status |
 |---|---|---|---|---|---|
-| P1 | Produção **não** está cross-origin isolated → skwasm roda **single-thread** e nenhum preload de renderer acontece | Perf/infra | S (decisão) + S–M | medido em prod | ⏳ decisão pendente (medir em tablet; login redirect/FedCM × single-thread) |
+| P1 | Produção **não** está cross-origin isolated → skwasm roda **single-thread** e nenhum preload de renderer acontece | Perf/infra | S (decisão) + S–M | medido em prod | ✅ resolvido 2026-09-13 — login web por redirect OIDC; COOP same-origin (spec 2026-09-13-google-login-redirect-coop-design.md) |
 | P2 | `push` para `/leitor`, `/cifra`, `/audio`, `/gestos` **não reflete na URL** → F5, aba descartada ou link copiado voltam à Home | Estab./nav | M | medido em prod | ✅ 92e5c9c — optionURLReflectsImperativeAPIs (go nos openers fica para depois de feat/barra-lista-ativa) |
 | P3 | Virar para a última página do PDF deixa a viewport no **fim da página**, não no topo | Leitor (o "canvas") | S–M | reproduzido 2× em prod | ✅ 279dd68 |
 | P4 | Sync de URL da busca/filtros usa `go` → **uma entrada de histórico por termo digitado** | Nav (push × replace) | S | medido | ✅ 645ada8 |
@@ -53,6 +53,8 @@ A app está rápida onde foi medida. Os problemas encontrados são de **navegaç
   2. Manter `allow-popups` e **assumir** single-thread: então remover o preload morto do `index.html` e o `supportsSkwasmPreload`, e atualizar os docs de perf para não prometerem multi-thread.
   3. Servir o **leitor** num path com `same-origin` e o login noutro — complexo demais para o ganho.
 - **Recomendação:** medir P1 num Android/iPad de referência (scroll + virada de página) antes de escolher; se a diferença for perceptível, opção 1.
+
+**Resolução (2026-09-13):** opção 1 — login por redirect OIDC para todos os navegadores, COOP `same-origin`. Validação em produção pendente do checklist da spec (crossOriginIsolated, PWA iOS).
 
 ---
 
@@ -143,7 +145,7 @@ Os bugs P2–P5 estão em comportamento **de plataforma web** (URL, `history`, `
 1. **P3 + P6** (leitor, S–M): é o relato de usuário; corrigir e escrever o teste do item E.3.
 2. **P2 + P4 + P5** (navegação, M): mesma família — `go` nos openers, `Router.neglect` no sync, aninhar sub-rotas do Perfil, `goBranch(initialLocation:)`. Depois, item E.2.
 3. **P7 + P8** (S): tema — `pageTransitionsTheme`, `snackBarTheme`, `clearSnackBars` nas rotas imersivas.
-4. **P1** (decisão): medir num tablet real com e sem `same-origin`; decidir login redirect/FedCM × single-thread; alinhar `index.html` e docs ao que for escolhido.
+4. **P1** (decisão): ~~medir num tablet real com e sem `same-origin`; decidir login redirect/FedCM × single-thread; alinhar `index.html` e docs ao que for escolhido.~~ ✅ resolvido 2026-09-13 — login web por redirect OIDC; COOP same-origin (spec 2026-09-13-google-login-redirect-coop-design.md).
 5. Menores: `PdfReattachGuard` duplicado, `PdfViewer` fora dos builders, `readerCarouselPositionProvider` autoDispose, recentes deduplicados, chip sintética com catálogo.
 
 ---

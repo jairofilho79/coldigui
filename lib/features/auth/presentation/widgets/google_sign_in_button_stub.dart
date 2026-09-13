@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_state_provider.dart';
 
-/// Botão nativo / fallback — Web usa GIS `renderButton`.
+/// Botão nativo / fallback — Web usa o redirect OIDC (`google_sign_in_button_web.dart`).
 class GoogleSignInButton extends ConsumerWidget {
   const GoogleSignInButton({super.key});
 
@@ -26,7 +27,9 @@ class GoogleSignInButton extends ConsumerWidget {
               }
             },
       icon: const Icon(Icons.login),
-      label: Text(busy ? 'Entrando…' : 'Entrar com o Google'),
+      label: Text(
+        busy ? 'Entrando…' : AppLocalizations.of(context)!.authSignInWithGoogle,
+      ),
     );
   }
 }

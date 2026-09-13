@@ -6,6 +6,7 @@ import '../../../../core/routing/route_paths.dart';
 import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/data/oidc/oidc_callback.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
@@ -52,11 +53,16 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        userMessageFor(l10n, e),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 16),
+                      // O botão já mostra a própria UI de D15 para esse
+                      // erro (título + texto + ação) — duplicar o texto
+                      // genérico aqui deixaria a mensagem repetida.
+                      if (e is! OidcContextMismatchException) ...[
+                        Text(
+                          userMessageFor(l10n, e),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       const Center(child: GoogleSignInButton()),
                     ],
                   ),

@@ -10,6 +10,11 @@ import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/utils/retryable_init.dart';
 import '../../data/auth_remote_datasource.dart';
 import '../../data/auth_session_store.dart';
+import '../../data/oidc/oidc_browser.dart';
+import '../../data/oidc/oidc_browser_factory.dart';
+import '../../data/oidc/oidc_callback.dart';
+import '../../data/oidc/oidc_callback_inbox.dart';
+import '../../data/oidc/oidc_redirect_request.dart';
 import '../../domain/entities/auth_user.dart';
 
 final authSessionStoreProvider = Provider<AuthSessionStore>((ref) {
@@ -19,6 +24,22 @@ final authSessionStoreProvider = Provider<AuthSessionStore>((ref) {
 final authRemoteDatasourceProvider = Provider<AuthRemoteDatasource>((ref) {
   return AuthRemoteDatasource(ref.watch(dioProvider));
 });
+
+/// Client ID OAuth Web. Costura de teste: `String.fromEnvironment` é vazio no
+/// `flutter test`, então quem precisa do id lê daqui, nunca de [AppConfig].
+final googleClientIdProvider = Provider<String>(
+  (ref) => AppConfig.googleClientIdWeb,
+);
+
+/// Acesso ao navegador para o login por redirect (spec §3.4).
+final oidcBrowserProvider = Provider<OidcBrowser>((ref) => createOidcBrowser());
+
+/// Callback do Google capturado em `main()` (spec D5/D9). `main.dart`
+/// sobrescreve com o inbox preenchido; o default vazio serve a testes e ao
+/// nativo.
+final oidcCallbackInboxProvider = Provider<OidcCallbackInbox>(
+  (ref) => OidcCallbackInbox(),
+);
 
 /// Estado de autenticação Google (null = deslogado).
 final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
@@ -132,6 +153,38 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       unavailability.report(unavailable: true);
     }
 
+    // Callback do redirect OIDC tem precedência sobre a sessão armazenada
+    // (spec D9): o usuário acabou de escolher uma conta no Google.
+    final pending = ref.read(oidcCallbackInboxProvider).take();
+    switch (pending) {
+      case OidcCallbackSuccess(:final idToken):
+        try {
+          return await _establishAndStore(idToken);
+        } on Object {
+          ref.read(authSessionStoreProvider).clear();
+          rethrow;
+        }
+      case OidcCallbackInvalid(:final reason, :final isContextMismatch):
+        if (isContextMismatch) {
+          // Botão Voltar depois do login re-dispara o callback já consumido
+          // (request/csrf não batem mais) sobre uma aba que já tem sessão
+          // válida — spec D9/D15. Só é de fato um mismatch de contexto (e
+          // vale a pena pedir para entrar de novo) quando não há sessão
+          // guardada; havendo uma, ela é o resultado certo.
+          if (ref.read(authSessionStoreProvider).read() == null) {
+            throw OidcContextMismatchException(reason);
+          }
+          debugPrint(
+            '[auth] callback OIDC em contexto sem request ($reason) — '
+            'mantendo a sessão armazenada',
+          );
+        } else {
+          throw StateError('oidc_$reason');
+        }
+      case OidcCallbackCancelled() || null:
+        break;
+    }
+
     final stored = ref.read(authSessionStoreProvider).read();
     if (stored == null) return null;
 
@@ -199,6 +252,27 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     }
   }
 
+  /// Login web por redirect OIDC (spec D1/§3.6): gera nonce/csrf, guarda-os
+  /// em `sessionStorage` e manda a página inteira para o Google. Não há
+  /// `AsyncLoading` — esta página deixa de existir; quem continua é o
+  /// `build()` da próxima carga, via [oidcCallbackInboxProvider].
+  void startGoogleRedirect({required String returnTo}) {
+    final clientId = ref.read(googleClientIdProvider);
+    if (clientId.isEmpty) {
+      throw StateError('google_client_id_missing');
+    }
+    final browser = ref.read(oidcBrowserProvider);
+    final request = OidcRedirectRequest.generate();
+    browser.writeRequest(request.toJson());
+    browser.navigate(
+      request.authorizationUri(
+        clientId: clientId,
+        origin: browser.origin,
+        returnTo: returnTo,
+      ),
+    );
+  }
+
   /// Renova o `id_token` sem UI e devolve o token novo, ou `null`.
   ///
   /// `null` **conclusivo** (o refresher devolveu nada, vazio ou o mesmo token,
@@ -257,16 +331,22 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
     state = const AsyncLoading();
     try {
-      final user = await ref
-          .read(authRemoteDatasourceProvider)
-          .establishSession(idToken);
-      ref.read(authSessionStoreProvider).write(user);
-      ref.read(sessionExpiredProvider.notifier).clear();
-      state = AsyncData(user);
+      state = AsyncData(await _establishAndStore(idToken));
     } on Object catch (error, stack) {
       state = AsyncError(error, stack);
       rethrow;
     }
+  }
+
+  /// Troca o `id_token` por sessão no Worker e persiste — caminho comum ao
+  /// plugin (nativo) e ao redirect OIDC (web).
+  Future<AuthUser> _establishAndStore(String idToken) async {
+    final user = await ref
+        .read(authRemoteDatasourceProvider)
+        .establishSession(idToken);
+    ref.read(authSessionStoreProvider).write(user);
+    ref.read(sessionExpiredProvider.notifier).clear();
+    return user;
   }
 
   Future<void> signOut() async {

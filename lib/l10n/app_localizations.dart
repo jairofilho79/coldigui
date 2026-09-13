@@ -2183,6 +2183,30 @@ abstract class AppLocalizations {
   /// **'Tentar novamente'**
   String get authSignInRetry;
 
+  /// No description provided for @authSignInWithGoogle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar com o Google'**
+  String get authSignInWithGoogle;
+
+  /// No description provided for @authSignInContextMismatchTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não conseguimos concluir o login'**
+  String get authSignInContextMismatchTitle;
+
+  /// No description provided for @authSignInContextMismatchBody.
+  ///
+  /// In pt, this message translates to:
+  /// **'O Google respondeu em outra janela. Toque para tentar novamente.'**
+  String get authSignInContextMismatchBody;
+
+  /// No description provided for @authSignInOpenInBrowserHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se continuar, abra v2.plpcg.com no Safari.'**
+  String get authSignInOpenInBrowserHint;
+
   /// userMessageFor: DioException de conexão (C.5)
   ///
   /// In pt, this message translates to:

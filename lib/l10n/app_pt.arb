@@ -681,6 +681,10 @@
   "deferredLoaderRetry": "Tentar novamente",
   "authSignInUnavailable": "Login indisponível no momento.",
   "authSignInRetry": "Tentar novamente",
+  "authSignInWithGoogle": "Entrar com o Google",
+  "authSignInContextMismatchTitle": "Não conseguimos concluir o login",
+  "authSignInContextMismatchBody": "O Google respondeu em outra janela. Toque para tentar novamente.",
+  "authSignInOpenInBrowserHint": "Se continuar, abra v2.plpcg.com no Safari.",
   "errorNoConnection": "Sem conexão com a internet. Verifique sua rede e tente de novo.",
   "@errorNoConnection": {
     "description": "userMessageFor: DioException de conexão (C.5)"
