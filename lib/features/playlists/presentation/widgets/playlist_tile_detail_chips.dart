@@ -1,6 +1,8 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart'
+    show fallbackCarouselNome;
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +39,10 @@ class PlaylistTileDetailChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final lookup = ref.read(catalogMaterialLookupProvider);
+    // `watch` (não `read`): sem isso o chip de uma entrada de áudio ainda não
+    // cacheada fica preso no fallback para sempre — não reconstrói quando o
+    // cache Coldigom termina de aquecer (Importante #4).
+    final lookup = ref.watch(catalogMaterialLookupProvider);
     // Lista inteira, na ordem, com chave por ocorrência: o «×» remove
     // **aquela** ocorrência (B.1). `pdfLabels` é a projeção só das entradas
     // legíveis, então ela anda com um cursor próprio.
@@ -46,12 +51,12 @@ class PlaylistTileDetailChips extends ConsumerWidget {
 
     final chips = <Widget>[];
     for (final entry in entries) {
+      // Uma faixa só por entrada de áudio (antes era resolvida duas vezes:
+      // uma para o item do chip, outra para o `onTap`).
+      final track = entry.isAudio ? lookup.audioTrack(entry.id) : null;
       final CarouselItem chipItem;
       if (entry.isAudio) {
-        chipItem = _audioItemFor(
-          entry: entry,
-          track: lookup.audioTrack(entry.id),
-        );
+        chipItem = _audioItemFor(entry: entry, track: track);
       } else {
         chipItem = _carouselItemFor(
           entry: entry,
@@ -62,17 +67,22 @@ class PlaylistTileDetailChips extends ConsumerWidget {
         );
         pdfCursor++;
       }
-      final track = entry.isAudio ? lookup.audioTrack(entry.id) : null;
+      // Áudio ainda sem faixa em cache: nem nome, nem destino de toque —
+      // `loading` empresta o spinner que o chip já tem para outras ações
+      // assíncronas como sinal visual, em vez de um chip mudo (Importante
+      // #4). Ele some sozinho quando o `watch` acima reconstrói com a faixa.
+      final trackPending = entry.isAudio && track == null;
 
       if (chips.isNotEmpty) chips.add(const SizedBox(height: 8));
       chips.add(
         CarouselLouvorChip(
           key: ValueKey(entry.key),
           item: chipItem,
-          onTap: loading
+          loading: loading || trackPending,
+          onTap: loading || trackPending
               ? null
               : entry.isAudio
-              ? (track == null ? null : () => onAudioTap(track))
+              ? () => onAudioTap(track!)
               : () => onPdfTap(entry.id),
           onRemove: loading
               ? null
@@ -115,7 +125,7 @@ class PlaylistTileDetailChips extends ConsumerWidget {
       index: entry.index,
       key: entry.key,
       numero: track?.numero ?? '',
-      nome: track?.nome ?? entry.id,
+      nome: track?.nome ?? fallbackCarouselNome(entry.id),
       categoria: track?.categoria ?? '',
       classificacao: track?.classificacao ?? '',
       source: track?.source ?? louvorDataSourceFromPdfId(entry.id),

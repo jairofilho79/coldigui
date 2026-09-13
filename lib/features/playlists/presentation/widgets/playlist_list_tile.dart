@@ -9,6 +9,7 @@ import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
+import '../utils/playlist_count_label.dart';
 import 'playlist_tile_actions.dart';
 import 'playlist_tile_detail_chips.dart';
 import 'playlist_tile_header.dart';
@@ -76,7 +77,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
 
     final l10n = AppLocalizations.of(context)!;
     final playlist = widget.item.playlist;
-    final countLabel = _countLabel(
+    final countLabel = playlistCountLabel(
       l10n,
       pdfs: playlist.pdfIds.length,
       audios: playlist.audioIds.length,
@@ -178,19 +179,6 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
   void _setExpanded(bool value) {
     if (!mounted) return;
     setState(() => _expanded = value);
-  }
-
-  /// «3 partituras · 1 áudio»; omite a parte zerada; «Vazia» sem nada.
-  static String _countLabel(
-    AppLocalizations l10n, {
-    required int pdfs,
-    required int audios,
-  }) {
-    final parts = <String>[
-      if (pdfs > 0) l10n.playlistSheetCount(pdfs),
-      if (audios > 0) l10n.playlistAudioOnlyCount(audios),
-    ];
-    return parts.isEmpty ? l10n.playlistEmptyCount : parts.join(' · ');
   }
 
   static String _categoryLabel(

@@ -426,11 +426,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// Foca a ocorrência [occurrence] (0-based) do material recém-adicionado —
   /// com `allowDuplicate`, a **nova**, não a primeira.
   ///
-  /// Áudio não: a chave focada é a da face de partituras, e um `audioId` nunca
-  /// resolve lá — persisti-la deixaria a pref com um valor morto, e o índice
-  /// cairia no fallback de clamp em vez de ficar onde estava.
+  /// Sem faces (spec 2026-09-12, D1): a lista ativa é uma só, com PDF, cifra,
+  /// gesto e áudio juntos — um áudio recém-adicionado foca o próprio chip
+  /// como qualquer outro tipo.
   void _focusAfterAdd(PlaylistEntry entry, {int occurrence = 0}) {
-    if (entry.isAudio) return;
     ref
         .read(carouselFocusedKeyProvider.notifier)
         .focus(entryKeyFor(entry.id, occurrence));

@@ -118,4 +118,83 @@ void main() {
     expect(tappedAudio, [_audioA]);
     expect(tappedPdf, isEmpty);
   });
+
+  testWidgets(
+    'áudio ainda sem faixa em cache usa fallback e fica inerte até o cache '
+    'aquecer (Importante #4)',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final tappedAudio = <String>[];
+
+      final playlist = SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Culto',
+        entries: [PlaylistEntry(id: _audioA, kind: MaterialKind.audio)],
+        createdAt: DateTime(2026, 9, 12),
+        salva: true,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          ...standardTestOverrides(prefs: prefs),
+          louvoresManifestOverride(
+            const LouvoresManifest(louvores: [], availableArranjos: {}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: Scaffold(
+              body: PlaylistTileDetailChips(
+                item: PlaylistViewItem(playlist: playlist, pdfLabels: const []),
+                loading: false,
+                onPdfTap: (id) async {},
+                onAudioTap: (track) async => tappedAudio.add(track.audioId),
+              ),
+            ),
+          ),
+        ),
+      );
+      // Não `pumpAndSettle`: o spinner do chip (Importante #4) anima para
+      // sempre enquanto a faixa não chega.
+      await tester.pump();
+
+      // Fallback: nem o id cru (base64), nem uma string vazia — e o toque
+      // não faz nada enquanto a faixa não chega.
+      expect(find.textContaining(_audioA), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await tester.tap(find.byType(CircularProgressIndicator));
+      await tester.pump();
+      expect(tappedAudio, isEmpty);
+
+      // Cache aquece: o `watch` reconstrói o chip com nome, ícone e toque de
+      // verdade, sem precisar reabrir a tela (era `ref.read` antes do fix).
+      container.read(coldigomAudioTracksCacheProvider.notifier).mergeTracks([
+        AudioTrack(
+          audioId: _audioA,
+          r2Key: 'ColAdultos/001.mp3',
+          nome: 'Santo',
+          numero: '001',
+          groupId: '001',
+          categoria: 'Áudio',
+          classificacao: 'ColAdultos',
+        ),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Santo'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.tap(find.textContaining('Santo'));
+      await tester.pump();
+      expect(tappedAudio, [_audioA]);
+    },
+  );
 }

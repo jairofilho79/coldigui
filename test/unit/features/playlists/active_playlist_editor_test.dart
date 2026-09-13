@@ -741,26 +741,24 @@ void main() {
     expect(sync.calls, 0);
   });
 
-  test(
-    'adicionar áudio não persiste chave de foco da face de partituras',
-    () async {
-      await repository.create(
-        nome: 'Ativa',
-        entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
-        playlistId: 'p1',
-        salva: false,
-      );
-      final c = await boot(activeId: 'p1');
+  test('adicionar áudio foca a chave do novo chip, como qualquer outro tipo '
+      '(spec 2026-09-12, D1: sem faces)', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
 
-      await c
-          .read(activePlaylistEditorProvider.notifier)
-          .addToActive(_audioA, kind: MaterialKind.audio);
-      await _flush();
+    await c
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(_audioA, kind: MaterialKind.audio);
+    await _flush();
 
-      expect((await repository.getById('p1'))!.audioIds, [_audioA]);
-      expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), isNull);
-    },
-  );
+    expect((await repository.getById('p1'))!.audioIds, [_audioA]);
+    expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), _audioA);
+  });
 
   test('addToActive com allowDuplicate foca a ocorrência nova', () async {
     await repository.create(

@@ -379,6 +379,7 @@ void main() {
 
     expect(find.text('Tornar lista ativa'), findsOneWidget);
     expect(find.text('Abrir no leitor'), findsOneWidget);
+    expect(find.text('Abrir no reprodutor'), findsOneWidget);
     expect(find.text('Compartilhar'), findsOneWidget);
     expect(find.text('Duplicar'), findsOneWidget);
     expect(find.text('Gerar folheto'), findsOneWidget);
