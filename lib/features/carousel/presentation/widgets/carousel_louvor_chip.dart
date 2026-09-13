@@ -93,6 +93,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.highlightQuery,
     this.showDragHandle = false,
     this.onTap,
+    this.onLongPress,
     this.onRemove,
     this.onAdd,
     this.onShare,
@@ -135,6 +136,10 @@ class CarouselLouvorChip extends StatelessWidget {
 
   /// Toque no corpo do chip — tipicamente [openCarouselPdfInReader].
   final VoidCallback? onTap;
+
+  /// Pressionar e segurar o corpo do chip — no card da Pesquisar (C5),
+  /// abre direto o material favorito do grupo, sem passar pelo sheet.
+  final VoidCallback? onLongPress;
 
   /// Botão "X" no trailing — usado no modal de seleção e em [PlaylistListTile].
   final VoidCallback? onRemove;
@@ -229,6 +234,7 @@ class CarouselLouvorChip extends StatelessWidget {
             child: ChipBody(
               borderRadius: BorderRadius.circular(chipRadius),
               onTap: onTap,
+              onLongPress: onLongPress,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
