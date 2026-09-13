@@ -9,7 +9,7 @@ O leitor PDF é feature central com gestos, zoom, modos de navegação e integra
 
 ## Decisão
 
-Usar **pdfrx** (^2.4.4, PDFium + SPM via `pdfium_flutter`) como viewer PDF no Flutter.
+Usar **pdfrx** (^2.6.1, PDFium + SPM via `pdfium_flutter`; exige Flutter ≥ 3.47) como viewer PDF no Flutter.
 
 Substitui **pdfx** (sem SPM nativo; patch local legado para scroll horizontal).
 

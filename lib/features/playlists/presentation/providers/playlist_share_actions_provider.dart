@@ -18,17 +18,17 @@ import '../utils/playlist_share_debug_log.dart';
 import '../widgets/playlist_share_whatsapp_step_dialog.dart';
 
 /// Callback injetável para testes — espelha [captureLeafletPngBytes].
-typedef CaptureWidgetToPngFn =
-    Future<List<int>> Function(GlobalKey boundaryKey);
+typedef CaptureWidgetToPngFn = Future<List<int>> Function(
+  GlobalKey boundaryKey,
+);
 
 /// Callback injetável para testes — espelha `Share.shareXFiles`.
-typedef ShareXFilesFn =
-    Future<void> Function(
-      List<XFile> files, {
-      String? subject,
-      String? text,
-      Rect? sharePositionOrigin,
-    });
+typedef ShareXFilesFn = Future<void> Function(
+  List<XFile> files, {
+  String? subject,
+  String? text,
+  Rect? sharePositionOrigin,
+});
 
 /// Orquestra os 4 modos de compartilhamento (UC-07/UC-08).
 class PlaylistShareActionsNotifier extends Notifier<void> {
@@ -59,9 +59,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     try {
       switch (option) {
         case PlaylistShareOption.link:
-          return _shareLinkOnly(shareContext, shareTextFn, sharePositionOrigin);
+          return await _shareLinkOnly(
+            shareContext,
+            shareTextFn,
+            sharePositionOrigin,
+          );
         case PlaylistShareOption.leaflet:
-          return _shareLeafletOnly(
+          return await _shareLeafletOnly(
             context,
             shareContext,
             l10n,
@@ -70,7 +74,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             capture: capture,
           );
         case PlaylistShareOption.linkWithLeaflet:
-          return _shareLinkWithLeaflet(
+          return await _shareLinkWithLeaflet(
             context,
             shareContext,
             l10n,
@@ -79,7 +83,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             capture: capture,
           );
         case PlaylistShareOption.linkAndLeafletWhatsApp:
-          return _shareWhatsAppTwoStep(
+          return await _shareWhatsAppTwoStep(
             context,
             shareContext,
             l10n,
@@ -93,9 +97,8 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     } on EmptyLeafletException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.playlistEmptyCarousel)));
       }
       return false;
     } on PlaylistNotFoundException catch (error, stackTrace) {
