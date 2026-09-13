@@ -2,8 +2,9 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_act
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _wrap(Widget child) =>
-    MaterialApp(home: Scaffold(body: Center(child: child)));
+Widget _wrap(Widget child) => MaterialApp(
+  home: Scaffold(body: Center(child: child)),
+);
 
 void main() {
   testWidgets('com legenda: ícone + texto, sem tooltip', (tester) async {
@@ -24,6 +25,26 @@ void main() {
 
     await tester.tap(find.text('Abrir'));
     expect(pressed, 1);
+  });
+
+  testWidgets('com legenda e tooltip explícito: mantém o tooltip (Minor #10)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        CarouselBarActionButton(
+          icon: Icons.delete_outline,
+          label: 'Limpar',
+          tooltip: 'Limpar seleção',
+          onPressed: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Limpar'), findsOneWidget);
+    // A legenda curta («Limpar») não diz "seleção" sozinha — o tooltip
+    // continua disponível em barra larga, não só no modo ícone.
+    expect(find.byTooltip('Limpar seleção'), findsOneWidget);
   });
 
   testWidgets('sem legenda: IconButton com tooltip', (tester) async {

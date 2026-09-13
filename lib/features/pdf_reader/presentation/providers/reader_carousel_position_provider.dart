@@ -13,7 +13,7 @@ import '../../domain/entities/carousel_reader_position.dart';
 /// 1. a **focada**, quando ela é deste [currentMaterialId] — foi por ela que o
 ///    usuário chegou aqui (chip, seta, teclado);
 /// 2. senão a **primeira** ocorrência do id (deep link, "seguir o áudio");
-/// 3. senão — id que não está na face, como uma cifra aberta de fora — a
+/// 3. senão — id que não está na lista, como uma cifra aberta de fora — a
 ///    ocorrência focada, para as setas continuarem levando a algum lugar.
 final readerCarouselPositionProvider =
     Provider.family<CarouselReaderPosition?, String>((ref, currentMaterialId) {

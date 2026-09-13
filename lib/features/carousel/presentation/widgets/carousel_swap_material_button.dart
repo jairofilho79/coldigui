@@ -44,13 +44,20 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
 ///
 /// [entryKey] é a chave da **ocorrência** cuja entrada será trocada
 /// ([ActivePlaylistEditor.replaceByKey]). Quem já tem o item focado na mão (a
-/// barra do shell) passa a chave dele; a face de áudio passa só o
-/// [materialId] da faixa tocando, e a chave é resolvida na face de partituras.
+/// barra do shell) passa a chave dele; quando só o id da faixa tocando está
+/// disponível (o mini-player, fora da lista), a chave é resolvida pela
+/// primeira ocorrência do id na lista ativa.
+///
+/// [group] é opcional: quem já resolveu o grupo (ex.: a barra do shell, para
+/// decidir se monta este botão) passa-o pronto e evita resolver duas vezes;
+/// sem ele, o botão resolve por conta própria a partir de [materialId]/
+/// [audioId] — é o caso dos demais chamadores.
 class CarouselSwapMaterialButton extends ConsumerWidget {
   const CarouselSwapMaterialButton({
     this.materialId,
     this.entryKey,
     this.audioId,
+    this.group,
     this.showLabel = true,
     super.key,
   });
@@ -58,18 +65,26 @@ class CarouselSwapMaterialButton extends ConsumerWidget {
   final String? materialId;
   final String? entryKey;
   final String? audioId;
+  final LouvorGroup? group;
 
   /// Legenda sob o ícone (barra larga) — repassado a [CarouselBarActionButton].
   final bool showLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final group = resolveCarouselSwapMaterialGroup(
-      ref,
-      materialId: materialId,
-      audioId: audioId,
-    );
+    final group =
+        this.group ??
+        resolveCarouselSwapMaterialGroup(
+          ref,
+          materialId: materialId,
+          audioId: audioId,
+        );
     if (group == null) return const SizedBox.shrink();
+
+    // Uma entrada de áudio focada chega só em `audioId` (spec D1: uma
+    // entrada só tem um dos dois ids) — o guard de troca do sheet chaveia em
+    // `currentMaterialId` e precisa do id que existir, qualquer que seja.
+    final currentMaterialId = materialId ?? audioId;
 
     final l10n = AppLocalizations.of(context)!;
     return CarouselBarActionButton(
@@ -81,7 +96,7 @@ class CarouselSwapMaterialButton extends ConsumerWidget {
         context: context,
         ref: ref,
         group: group,
-        currentMaterialId: materialId,
+        currentMaterialId: currentMaterialId,
         currentEntryKey: entryKey,
       ),
     );
@@ -150,7 +165,7 @@ Future<void> showCarouselSwapMaterialSheet({
   );
 }
 
-/// Chave da primeira ocorrência de [materialId] na face de partituras.
+/// Chave da primeira ocorrência de [materialId] na lista ativa.
 String? _keyForMaterialId(WidgetRef ref, String materialId) {
   for (final item in ref.read(carouselItemsProvider)) {
     if (item.materialId == materialId) return item.key;

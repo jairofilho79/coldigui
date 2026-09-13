@@ -415,9 +415,16 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }) {
     // Grupo «louvor» só aparece com alternativa de material — sem isso, o
     // botão «Material» ficaria sempre oculto e o grupo, vazio.
-    final hasSwap =
-        resolveCarouselSwapMaterialGroup(ref, materialId: item.materialId) !=
-        null;
+    //
+    // Resolvido uma vez aqui (e não dentro do botão) porque uma entrada de
+    // áudio focada não tem `materialId` — o id dela é de faixa, e
+    // `findSwapMaterialGroup` só o reconhece pelo parâmetro `audioId`
+    // (B.6/Crítico #1). O botão recebe o grupo já pronto.
+    final swapGroup = resolveCarouselSwapMaterialGroup(
+      ref,
+      materialId: item.isAudio ? null : item.materialId,
+      audioId: item.isAudio ? item.materialId : null,
+    );
 
     return CarouselBarShell(
       applySafeArea: false,
@@ -442,13 +449,15 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
               onChipTap: onChipTap,
               onOpen: onOpen,
               onOpenSelection: onOpenSelection,
-              swapMaterial: hasSwap
-                  ? CarouselSwapMaterialButton(
-                      materialId: item.materialId,
+              swapMaterial: swapGroup == null
+                  ? null
+                  : CarouselSwapMaterialButton(
+                      materialId: item.isAudio ? null : item.materialId,
+                      audioId: item.isAudio ? item.materialId : null,
                       entryKey: item.key,
+                      group: swapGroup,
                       showLabel: showLabels,
-                    )
-                  : null,
+                    ),
               trailingActions: [
                 CarouselBarTrailingActions(showLabels: showLabels),
               ],

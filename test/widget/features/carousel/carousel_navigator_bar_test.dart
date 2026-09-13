@@ -19,7 +19,9 @@ Widget _wrap(Widget child, {double width = 900}) => MaterialApp(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
   locale: const Locale('pt'),
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
 void main() {
@@ -64,6 +66,46 @@ void main() {
     expect(selectionTapped, isTrue);
     expect(openTapped, isTrue);
   });
+
+  testWidgets(
+    'loading: setas e Abrir ficam inertes; Lista continua funcionando',
+    (tester) async {
+      var previousTapped = false;
+      var nextTapped = false;
+      var selectionTapped = false;
+      var openTapped = false;
+
+      await tester.pumpWidget(
+        _wrap(
+          CarouselNavigatorBar(
+            item: _testItem,
+            canGoPrevious: true,
+            canGoNext: true,
+            loading: true,
+            onPrevious: () => previousTapped = true,
+            onNext: () => nextTapped = true,
+            onOpenSelection: () => selectionTapped = true,
+            onOpen: () => openTapped = true,
+          ),
+        ),
+      );
+
+      expect(find.byType(ChipNavZone), findsNWidgets(2));
+      expect(find.text('Abrir'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Louvor anterior'));
+      await tester.tap(find.byTooltip('Próximo louvor'));
+      await tester.tap(find.text('Abrir'));
+      await tester.tap(find.text('Lista'));
+
+      expect(previousTapped, isFalse);
+      expect(nextTapped, isFalse);
+      expect(openTapped, isFalse);
+      // «Lista» segue fora do escopo do `loading` (spec D2/D6): a pessoa
+      // ainda precisa poder abrir o modal e mexer na lista.
+      expect(selectionTapped, isTrue);
+    },
+  );
 
   testWidgets('setas continuam presentes (apagadas) nos extremos', (
     tester,
@@ -134,7 +176,10 @@ void main() {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('pt'),
       home: Scaffold(
-        body: SizedBox(width: width, child: Column(children: [child])),
+        body: SizedBox(
+          width: width,
+          child: Column(children: [child]),
+        ),
       ),
     ),
   );

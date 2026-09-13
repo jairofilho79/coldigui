@@ -45,7 +45,7 @@ class CarouselBarActionButton extends StatelessWidget {
       );
     }
 
-    return TextButton(
+    final button = TextButton(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.title,
         disabledForegroundColor: AppColors.title.withValues(alpha: 0.38),
@@ -75,6 +75,12 @@ class CarouselBarActionButton extends StatelessWidget {
         ],
       ),
     );
+
+    // Só quando [tooltip] existe (ex.: «Limpar», cuja legenda curta não diz
+    // "seleção" sozinha, spec §7) — «Abrir»/«Lista» já são autoexplicativos
+    // com a legenda visível e não ganham tooltip redundante.
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip!, child: button);
   }
 }
 

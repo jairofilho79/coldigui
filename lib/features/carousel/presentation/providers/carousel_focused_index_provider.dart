@@ -8,7 +8,7 @@ import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../domain/entities/carousel_item.dart';
 import 'carousel_items_provider.dart';
 
-/// Chave da entrada focada na face de partituras — `null` = «a primeira».
+/// Chave da entrada focada na lista ativa — `null` = «a primeira».
 ///
 /// Vive **separada** do índice de propósito: quem foca (o
 /// `ActivePlaylistEditor`, o `PlaylistsNotifier`) está a montante da lista
@@ -35,7 +35,7 @@ class CarouselFocusedKeyNotifier extends Notifier<String?> {
     unawaited(_persist(key));
   }
 
-  /// Volta ao começo da face — o índice resolve para 0.
+  /// Volta ao começo da lista — o índice resolve para 0.
   void clear() {
     if (state == null) return;
     state = null;
@@ -52,13 +52,13 @@ class CarouselFocusedKeyNotifier extends Notifier<String?> {
   }
 }
 
-/// Chave focada na face de partituras — ver [CarouselFocusedKeyNotifier].
+/// Chave focada na lista ativa — ver [CarouselFocusedKeyNotifier].
 final carouselFocusedKeyProvider =
     NotifierProvider<CarouselFocusedKeyNotifier, String?>(
       CarouselFocusedKeyNotifier.new,
     );
 
-/// Índice do louvor visível na barra do carousel (face de partituras).
+/// Índice do item visível na barra do carousel (lista ativa inteira).
 ///
 /// Resolve [carouselFocusedKeyProvider] contra [carouselItemsProvider]:
 /// chave nula → primeiro item; chave que não existe mais → o índice anterior,
@@ -107,7 +107,7 @@ class CarouselFocusedIndexNotifier extends Notifier<int> {
         .focus(items[_currentIndex + 1].key);
   }
 
-  /// Foca a ocorrência de chave [key], se ela existir na face.
+  /// Foca a ocorrência de chave [key], se ela existir na lista.
   void focusKey(String key) {
     final items = ref.read(carouselItemsProvider);
     if (!items.any((item) => item.key == key)) return;

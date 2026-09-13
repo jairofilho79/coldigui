@@ -31,7 +31,8 @@ Widget carouselSelectionReorderProxyDecorator(
   );
 }
 
-/// Abre modal com a **face de partituras** da lista ativa, reordenável.
+/// Abre modal com **a lista ativa inteira** (PDF, cifra, gesto e áudio
+/// juntos, spec 2026-09-12 D1), reordenável.
 ///
 /// O corpo (lista reordenável) é `ActiveListPanel` — spec A.6 C7 — reutilizado
 /// também no painel lateral do leitor de PDF e da cifra.
