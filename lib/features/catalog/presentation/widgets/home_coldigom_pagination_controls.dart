@@ -35,9 +35,7 @@ class HomeColdigomPaginationControls extends ConsumerWidget {
             visualDensity: VisualDensity.compact,
             style: IconButton.styleFrom(
               foregroundColor: AppColors.textLight,
-              disabledForegroundColor: AppColors.textLight.withValues(
-                alpha: 0.38,
-              ),
+              disabledForegroundColor: Colors.grey.shade400,
             ),
             onPressed: page > 1
                 ? () => ref.read(homeSearchPageProvider.notifier).previous()
@@ -53,9 +51,7 @@ class HomeColdigomPaginationControls extends ConsumerWidget {
             visualDensity: VisualDensity.compact,
             style: IconButton.styleFrom(
               foregroundColor: AppColors.textLight,
-              disabledForegroundColor: AppColors.textLight.withValues(
-                alpha: 0.38,
-              ),
+              disabledForegroundColor: Colors.grey.shade400,
             ),
             onPressed: hasNext
                 ? () => ref.read(homeSearchPageProvider.notifier).next()
