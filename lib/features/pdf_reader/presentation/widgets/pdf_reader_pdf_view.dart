@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,26 +11,108 @@ import '../providers/pdf_reader_view_settings_provider.dart';
 import '../utils/pdf_page_edge_tap_policy.dart';
 import '../utils/pdf_page_keyboard_policy.dart';
 import '../utils/pdf_page_swipe_policy.dart';
+import '../utils/pdf_render_scale_policy.dart';
 import '../utils/pdf_spread_layout.dart';
 import 'pdf_reader_page_key_handler.dart';
 
 /// Callback para navegação programática com indicador estável (UC-11).
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
-/// Teto de escala de rasterização na web — `2×devicePixelRatio` (spec A.13).
-///
-/// Sem teto, `pdfrx` pode pedir escalas muito acima do necessário (zoom alto
-/// em telas de alto DPI), estourando memória de imagem decodificada no
-/// navegador.
-const kPdfWebRenderScaleDprMultiplier = 2;
+/// Teto de bytes de imagem cacheados em memória na web — 64 MiB (spec A.13
+/// dizia 32 MiB, calibrados para preview a 2,78×). Spread = duas páginas ~A5
+/// (420×586 pt, medida dos scans do catálogo) a até 3× ≈ 1260×1758 px × 4 B ≈
+/// 8,9 MB cada, mais os tiles do pinch; com 32 MiB o par visível era
+/// evictado e re-renderizado ao voltar (diagnóstico pdfrx, Fase 1.3).
+const kPdfWebMaxImageBytesCachedOnMemory = 64 << 20;
 
-/// Teto de bytes de imagem cacheados em memória na web — 32 MiB (spec A.13).
-const kPdfWebMaxImageBytesCachedOnMemory = 32 << 20;
+/// Provider de tamanho do pdfrx com o preview de cada página rasterizado a
+/// até [PdfRenderScalePolicy.ceiling] (limitado a 2×DPR pela política; default
+/// do pacote: 200/72 ≈ 2,78×). Os tiles «real size» entram sempre que
+/// `zoom × DPR` passa dessa escala — em tela 3× já a partir de ~1,1× do
+/// fit-width, não só em pinch forte. Precisa ser `const`:
+/// `PdfViewerParams.doChangesRequireReload` compara o provider por `==`.
+/// Demais campos (maxScale 8, minScale 0.1, fit alternativo como mínimo) são
+/// os defaults que o app já usava.
+const kPdfReaderSizeDelegateProvider = PdfViewerSizeDelegateProviderLegacy(
+  onePassRenderingScaleThreshold: PdfRenderScalePolicy.ceiling,
+);
+
+/// Monta os [PdfViewerParams] do leitor — função pura para os testes lerem
+/// cada parâmetro sem montar um `PdfViewer` (diagnóstico pdfrx, Fase 1).
+///
+/// [scrollPhysics] vem de `PdfViewerParams.getScrollPhysics(context)` no
+/// `build` (precisa de `BuildContext`); [layoutPages] é o spread ou `null`.
+@visibleForTesting
+PdfViewerParams buildPdfReaderViewerParams({
+  required bool isWeb,
+  required ScrollPhysics scrollPhysics,
+  required PdfViewerReadyCallback onViewerReady,
+  required PdfPageChangedCallback onPageChanged,
+  PdfPageLayoutFunction? layoutPages,
+}) {
+  return PdfViewerParams(
+    backgroundColor: AppColors.pdfArea,
+    onViewerReady: onViewerReady,
+    onPageChanged: onPageChanged,
+    layoutPages: layoutPages,
+    // Fase 1.2 — partitura escaneada não tem texto selecionável nem
+    // anotações. Com seleção ligada (default) o pdfrx carrega o texto
+    // estruturado de toda página no cacheExtent, no mesmo worker que
+    // renderiza, e instala o reconhecedor de long-press. Desligada, o menu
+    // de contexto padrão fica vazio — long-press não abre nada.
+    textSelectionParams: const PdfTextSelectionParams(enabled: false),
+    // Sem FPDF_FFLDraw por página.
+    annotationRenderingMode: PdfAnnotationRenderingMode.none,
+    // A sombra default é um blur por página em todo frame do CustomPaint.
+    pageDropShadow: null,
+    // Deixa o PDFium manter o JPEG decodificado entre renders (scans).
+    limitRenderingCache: false,
+    // Fase 1.3 — uma política de escala para todas as plataformas (antes só
+    // a web tinha teto, e sem o 3.0).
+    sizeDelegateProvider: kPdfReaderSizeDelegateProvider,
+    // pdfrx só chama este callback com `estimatedScale` fixo em
+    // `onePassRenderingScaleThreshold` (3.0) — o resultado é sempre
+    // `min(3.0, 2×DPR)`, nunca reage ao zoom atual.
+    getPageRenderingScale: (context, page, controller, estimatedScale) =>
+        PdfRenderScalePolicy.resolve(
+          estimatedScale: estimatedScale,
+          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+        ),
+    maxImageBytesCachedOnMemory: isWeb
+        ? kPdfWebMaxImageBytesCachedOnMemory
+        : const PdfViewerParams().maxImageBytesCachedOnMemory,
+    // Fase 1.4 — física da plataforma (bounce iOS / overscroll fixo Android;
+    // #677 corrigido em 2.4.8) e roda/trackpad com inércia em vez de saltos
+    // de 20% por tick.
+    scrollPhysics: scrollPhysics,
+    interactionDelegateProvider:
+        const PdfViewerScrollInteractionDelegateProviderPhysics(),
+    loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.gold),
+      );
+    },
+    errorBannerBuilder: (context, error, stackTrace, reload) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            error.toString(),
+            style: const TextStyle(color: AppColors.textLight),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    },
+  );
+}
 
 /// Widget pdfrx encapsulado — pontos de import `pdfrx` na presentation
-/// restritos a este arquivo e a [spreadPageLayout]/[defaultPdfPageLayout]
-/// (ADR-002; o layout de páginas em spread, spec A.4, exige os tipos
-/// `PdfPage`/`PdfPageLayout`/`PdfViewerParams` do pacote).
+/// restritos a este arquivo ([buildPdfReaderViewerParams] concentra os
+/// parâmetros do viewer — diagnóstico pdfrx, Fase 1) e a
+/// [spreadPageLayout]/[defaultPdfPageLayout] (ADR-002; o layout de páginas em
+/// spread, spec A.4, exige os tipos `PdfPage`/`PdfPageLayout`/`PdfViewerParams`
+/// do pacote).
 ///
 /// Scroll vertical contínuo (layout padrão pdfrx) ou duas páginas lado a lado
 /// em viewport largo, automático via `pdfReaderEffectiveSpreadEnabledProvider`
@@ -402,8 +482,9 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
                 handle.documentRef,
                 key: ValueKey(handle),
                 controller: handle.viewerController,
-                params: PdfViewerParams(
-                  backgroundColor: AppColors.pdfArea,
+                params: buildPdfReaderViewerParams(
+                  isWeb: isWeb,
+                  scrollPhysics: PdfViewerParams.getScrollPhysics(context),
                   onViewerReady: (_, _) => handle.markViewerReady(),
                   onPageChanged: _handleVisiblePageChanged,
                   layoutPages: spreadActive
@@ -414,33 +495,6 @@ class _PdfReaderPdfViewState extends ConsumerState<PdfReaderPdfView> {
                           fallback: defaultPdfPageLayout,
                         )
                       : null,
-                  getPageRenderingScale: isWeb
-                      ? (context, page, controller, estimatedScale) => math.min(
-                          estimatedScale,
-                          kPdfWebRenderScaleDprMultiplier *
-                              MediaQuery.devicePixelRatioOf(context),
-                        )
-                      : null,
-                  maxImageBytesCachedOnMemory: isWeb
-                      ? kPdfWebMaxImageBytesCachedOnMemory
-                      : const PdfViewerParams().maxImageBytesCachedOnMemory,
-                  loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: AppColors.gold),
-                    );
-                  },
-                  errorBannerBuilder: (context, error, stackTrace, reload) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          error.toString(),
-                          style: const TextStyle(color: AppColors.textLight),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    );
-                  },
                 ),
               ),
               if (_swipeFeedbackDirection != null)

@@ -111,7 +111,10 @@ class _CarouselBarTrailingActionsState
 
     setState(() => _sharing = true);
     try {
-      final shared = await ref
+      // Falha ou cancelamento: o próprio provider decide se mostra snackbar
+      // (ele diferencia cancelamento de erro — ver doc de
+      // `PlaylistShareActionsNotifier.share`).
+      await ref
           .read(playlistShareActionsProvider.notifier)
           .share(
             context,
@@ -124,9 +127,6 @@ class _CarouselBarTrailingActionsState
             option,
             sharePositionOrigin: shareOrigin,
           );
-      if (!shared && context.mounted) {
-        showPlaylistShareErrorSnackbar(context, l10n);
-      }
     } finally {
       if (mounted) setState(() => _sharing = false);
     }

@@ -389,7 +389,10 @@ class PlaylistTileActions {
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
     onLoadingChanged(true);
     try {
-      final shared = await ref
+      // Falha ou cancelamento: o próprio provider decide se mostra snackbar
+      // (ele diferencia cancelamento de erro — ver doc de
+      // `PlaylistShareActionsNotifier.share`).
+      await ref
           .read(playlistShareActionsProvider.notifier)
           .share(
             context,
@@ -401,9 +404,6 @@ class PlaylistTileActions {
             PlaylistShareOption.leaflet,
             sharePositionOrigin: shareOrigin,
           );
-      if (!shared && context.mounted) {
-        showPlaylistShareErrorSnackbar(context, l10n);
-      }
     } finally {
       onLoadingChanged(false);
     }
@@ -450,7 +450,10 @@ class PlaylistTileActions {
             'PlaylistListTile.share: id=${playlist.playlistId} '
             'option=$option pdfIds (${playlist.pdfIds.length})',
           );
-          final shared = await ref
+          // Falha ou cancelamento: o próprio provider decide se mostra
+          // snackbar (ele diferencia cancelamento de erro — ver doc de
+          // `PlaylistShareActionsNotifier.share`).
+          await ref
               .read(playlistShareActionsProvider.notifier)
               .share(
                 context,
@@ -462,9 +465,6 @@ class PlaylistTileActions {
                 option,
                 sharePositionOrigin: shareOrigin,
               );
-          if (!shared && context.mounted) {
-            showPlaylistShareErrorSnackbar(context, l10n);
-          }
         } finally {
           onLoadingChanged(false);
         }
