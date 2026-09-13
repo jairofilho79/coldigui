@@ -219,6 +219,28 @@ void main() {
   );
 
   testWidgets(
+    'com lista só de áudio e faixa corrente, o mini-player aparece (antes a '
+    'face de áudio cobria)',
+    (tester) async {
+      await pumpShell(
+        tester,
+        overrides: [
+          activePlaylistEditorProvider.overrideWith(
+            () => FakeActiveEditor([audioEntry]),
+          ),
+          audioPlayerSessionProvider.overrideWith(
+            () => _FakeAudioSession(
+              const AudioPlayerSessionState(queue: [track]),
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byType(MiniPlayerBar), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'em fullscreen, o mini-player aparece como overlay sobre o navigationShell',
     (tester) async {
       await pumpShell(
