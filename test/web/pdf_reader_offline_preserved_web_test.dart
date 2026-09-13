@@ -77,6 +77,15 @@ class _FailingLocalAdapter extends PdfrxViewerAdapter {
 }
 
 void main() {
+  // DÍVIDA TÉCNICA (skip condicional, documentado em 2026-09-13 — polimento):
+  // os 4 testes deste arquivo verificam o comportamento B3 na **web** (path
+  // local continua `localFile`, índice offline preservado) e por isso são
+  // pulados em todo `flutter test` no VM — a rotina local. Só executam em
+  // `flutter test --platform chrome test/web/`, hoje apenas no CI
+  // (`.github/workflows/web.yml`). Sanar num polimento futuro junto com
+  // `chrome_smoke_test.dart`: trazer o alvo Chrome para a verificação local
+  // (script ou tag `@Tags(['web'])`) para que estes skips deixem de ser
+  // invisíveis a quem roda a suíte no dia a dia.
   final skipOnVm = !kIsWeb;
 
   const absolutePath = '/documents/ColAdultos/001.pdf';

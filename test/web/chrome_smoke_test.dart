@@ -7,6 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Expansão futura: boot com [ColdiguiApp], catálogo e PDF remoto com mocks.
 void main() {
+  // DÍVIDA TÉCNICA (skip condicional, documentado em 2026-09-13 — polimento):
+  // estes 3 testes só têm sentido compilados para a web e por isso aparecem
+  // como «skipped» em todo `flutter test` no VM (a rotina local). Eles rodam
+  // de verdade só em `flutter test --platform chrome test/web/` — hoje apenas
+  // no CI (`.github/workflows/web.yml`); a auditoria de 2026-09 registrou que
+  // essa execução «não foi re-executada» nas últimas ondas localmente. Sanar
+  // num polimento futuro: incluir o alvo Chrome no script de verificação
+  // local (ou numa tag `@Tags(['web'])` filtrada por `--exclude-tags`) para
+  // que a suíte VM não liste skips que ninguém confere.
   final skipOnVm = !kIsWeb;
 
   group('chrome smoke', () {
