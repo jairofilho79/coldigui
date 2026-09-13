@@ -32,7 +32,7 @@ https://plpcg.com/?s=1a2f-0c3d-ffe1&n=Culto%20de%20domingo
 
 | Item | Regra |
 |---|---|
-| `s` | `shortId`s em hex minúsculo separados por `-` (não sofre URL-encode, nunca ocorre em hex). Ordem = ordem da lista. Repetidos permitidos (v2 repete louvor; o plpcjf deduplica como já faz com `sharepdfs`). |
+| `s` | `shortId`s em hex minúsculo separados por `-` (não sofre URL-encode, nunca ocorre em hex). Ordem = ordem da lista. Repetidos permitidos na leitura (o v2 repete louvor; o plpcjf deduplica no caminho curto porque a UI dele nunca repete louvor — `addToCarousel` recusa duplicata). |
 | token | `[0-9a-f]{4,8}`. Maiúsculas são normalizadas para minúsculas na leitura; token fora do padrão é ignorado como desconhecido (D8). |
 | `n` | nome da lista, `encodeURIComponent`. **Obrigatório** — é o que marca a URL como share, no lugar de `sharename`. |
 | Prioridade na leitura | `s` presente (com `n`) → usa `s` e **ignora** `shareitems`/`sharepdfs`/`shareaudios`/`sharename` se vierem juntos. Sem `s` → comportamento atual. |
