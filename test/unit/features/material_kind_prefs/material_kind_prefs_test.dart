@@ -73,5 +73,55 @@ void main() {
     expect(MaterialKindPrefs.empty.kindIds, isEmpty);
     expect(MaterialKindPrefs.empty.rank, isEmpty);
     expect(MaterialKindPrefs.empty.updatedAt.millisecondsSinceEpoch, 0);
+    expect(MaterialKindPrefs.empty.preferredTypeByKind, isEmpty);
   });
+
+  test('validated sem preferredTypeByKind vira mapa vazio', () {
+    final prefs = MaterialKindPrefs.validated(
+      kindIds: const ['a'],
+      updatedAt: at,
+    );
+    expect(prefs.preferredTypeByKind, isEmpty);
+  });
+
+  test('validated preserva o material type preferido por kind', () {
+    final prefs = MaterialKindPrefs.validated(
+      kindIds: const ['a', 'b'],
+      updatedAt: at,
+      preferredTypeByKind: const {'a': 'chord'},
+    );
+    expect(prefs.preferredTypeByKind, {'a': 'chord'});
+  });
+
+  test('copyWith troca só o preferredTypeByKind quando informado', () {
+    final prefs = MaterialKindPrefs.validated(
+      kindIds: const ['a'],
+      updatedAt: at,
+      preferredTypeByKind: const {'a': 'pdf'},
+    );
+    final updated = prefs.copyWith(preferredTypeByKind: const {'a': 'chord'});
+    expect(updated.preferredTypeByKind, {'a': 'chord'});
+    expect(updated.kindIds, ['a']);
+  });
+
+  test('round-trip JSON preserva preferredTypeByKind', () {
+    final prefs = MaterialKindPrefs.validated(
+      kindIds: const ['x'],
+      updatedAt: at,
+      preferredTypeByKind: const {'x': 'chord'},
+    );
+    final restored = MaterialKindPrefs.fromJson(prefs.toJson());
+    expect(restored!.preferredTypeByKind, {'x': 'chord'});
+  });
+
+  test(
+    'fromJson sem preferredTypeByKind vira mapa vazio (documento antigo)',
+    () {
+      final restored = MaterialKindPrefs.fromJson({
+        'kindIds': ['a'],
+        'updatedAt': '2026-01-01T00:00:00.000Z',
+      });
+      expect(restored!.preferredTypeByKind, isEmpty);
+    },
+  );
 }

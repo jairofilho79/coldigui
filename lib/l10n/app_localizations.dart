@@ -2422,6 +2422,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhum tipo com esse nome'**
   String get favoriteMaterialKindsNoMatch;
+
+  /// No description provided for @favoriteMaterialKindsTypePreferenceTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher formato preferido'**
+  String get favoriteMaterialKindsTypePreferenceTooltip;
+
+  /// No description provided for @favoriteMaterialKindsTypePreferenceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato preferido de {kind}'**
+  String favoriteMaterialKindsTypePreferenceTitle(String kind);
+
+  /// No description provided for @favoriteMaterialKindsTypePreferenceHelp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste para ordenar — o primeiro da lista é o formato preferido.'**
+  String get favoriteMaterialKindsTypePreferenceHelp;
 }
 
 class _AppLocalizationsDelegate

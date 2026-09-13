@@ -93,6 +93,8 @@ export interface AudioFlagRow {
 export interface MaterialKindPrefsRow {
   user_id: string;
   kind_ids: string;
+  /** Opcional nos seeds de teste — linhas antigas não tinham a coluna. */
+  preferred_types?: string;
   updated_at: string;
   version: number;
 }

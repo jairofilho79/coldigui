@@ -9,4 +9,9 @@ abstract final class ColdigomEndpoints {
   static const tags = '/api/tags';
 
   static String praiseDetail(String id) => '/api/praises/$id';
+
+  /// Material types (pdf/chord/...) que de fato existem para um material
+  /// kind — calculado sob demanda pelo Worker, sem tabela própria no app.
+  static String materialTypesForKind(String kindId) =>
+      '$materialKinds/$kindId/types';
 }

@@ -8,6 +8,7 @@ const MAX_KIND_ID_LENGTH = 128;
 interface MaterialKindPrefsRow {
   user_id: string;
   kind_ids: string;
+  preferred_types: string;
   updated_at: string;
   version: number;
 }
@@ -15,12 +16,31 @@ interface MaterialKindPrefsRow {
 export interface MaterialKindPrefsJson {
   /** Ordem = preferência (índice 0 é o favorito nº 1). */
   kindIds: string[];
+  /** Material type preferido (pdf/chord/...) por kind favoritado. */
+  preferredTypes: Record<string, string>;
   updatedAt: string;
   version: number;
 }
 
-const SELECT_SQL = `SELECT user_id, kind_ids, updated_at, version
+const SELECT_SQL = `SELECT user_id, kind_ids, preferred_types, updated_at, version
        FROM user_material_kind_prefs WHERE user_id = ?`;
+
+function parsePreferredTypes(raw: string | undefined): Record<string, string> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const result: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof v === 'string') result[k] = v;
+      }
+      return result;
+    }
+  } catch {
+    // Linha corrompida não derruba o GET: devolve vazio e o próximo PUT conserta.
+  }
+  return {};
+}
 
 function rowToJson(row: MaterialKindPrefsRow): MaterialKindPrefsJson {
   let kindIds: string[] = [];
@@ -32,7 +52,12 @@ function rowToJson(row: MaterialKindPrefsRow): MaterialKindPrefsJson {
   } catch {
     // Linha corrompida não derruba o GET: devolve vazio e o próximo PUT conserta.
   }
-  return { kindIds, updatedAt: row.updated_at, version: row.version };
+  return {
+    kindIds,
+    preferredTypes: parsePreferredTypes(row.preferred_types),
+    updatedAt: row.updated_at,
+    version: row.version,
+  };
 }
 
 function isIsoDate(value: unknown): value is string {
@@ -45,6 +70,7 @@ function isIsoDate(value: unknown): value is string {
 
 interface PutBody {
   kindIds?: unknown;
+  preferredTypes?: unknown;
   updatedAt?: unknown;
 }
 
@@ -62,6 +88,20 @@ function validatePutBody(body: PutBody): string | null {
     if (id.length > MAX_KIND_ID_LENGTH) return 'kindId too long';
     if (seen.has(id)) return 'kindIds must be unique';
     seen.add(id);
+  }
+  if (body.preferredTypes !== undefined) {
+    if (
+      typeof body.preferredTypes !== 'object' ||
+      body.preferredTypes === null ||
+      Array.isArray(body.preferredTypes)
+    ) {
+      return 'preferredTypes must be an object';
+    }
+    for (const value of Object.values(body.preferredTypes as Record<string, unknown>)) {
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        return 'preferredTypes values must be non-empty strings';
+      }
+    }
   }
   if (!isIsoDate(body.updatedAt)) return 'updatedAt required';
   return null;
@@ -98,8 +138,10 @@ export async function putMaterialKindPrefs(
   if (validationError) return json({ error: validationError }, 400);
 
   const kindIds = body.kindIds as string[];
+  const preferredTypes = (body.preferredTypes ?? {}) as Record<string, string>;
   const updatedAt = body.updatedAt as string;
   const serialized = JSON.stringify(kindIds);
+  const serializedTypes = JSON.stringify(preferredTypes);
 
   const existing = await db
     .prepare(SELECT_SQL)
@@ -109,12 +151,12 @@ export async function putMaterialKindPrefs(
   if (!existing) {
     await db
       .prepare(
-        `INSERT INTO user_material_kind_prefs (user_id, kind_ids, updated_at, version)
-         VALUES (?, ?, ?, 1)`,
+        `INSERT INTO user_material_kind_prefs (user_id, kind_ids, preferred_types, updated_at, version)
+         VALUES (?, ?, ?, ?, 1)`,
       )
-      .bind(claims.sub, serialized, updatedAt)
+      .bind(claims.sub, serialized, serializedTypes, updatedAt)
       .run();
-    return json({ kindIds, updatedAt, version: 1 } satisfies MaterialKindPrefsJson);
+    return json({ kindIds, preferredTypes, updatedAt, version: 1 } satisfies MaterialKindPrefsJson);
   }
 
   if (updatedAt < existing.updated_at) {
@@ -124,10 +166,10 @@ export async function putMaterialKindPrefs(
   const version = existing.version + 1;
   await db
     .prepare(
-      `UPDATE user_material_kind_prefs SET kind_ids = ?, updated_at = ?, version = ?
+      `UPDATE user_material_kind_prefs SET kind_ids = ?, preferred_types = ?, updated_at = ?, version = ?
        WHERE user_id = ?`,
     )
-    .bind(serialized, updatedAt, version, claims.sub)
+    .bind(serialized, serializedTypes, updatedAt, version, claims.sub)
     .run();
-  return json({ kindIds, updatedAt, version } satisfies MaterialKindPrefsJson);
+  return json({ kindIds, preferredTypes, updatedAt, version } satisfies MaterialKindPrefsJson);
 }

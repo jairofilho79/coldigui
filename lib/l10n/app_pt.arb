@@ -804,5 +804,13 @@
   "favoriteMaterialKindsUnknownKind": "Desconhecido",
   "favoriteMaterialKindsLoadError": "Não foi possível carregar os tipos de material",
   "favoriteMaterialKindsRetry": "Tentar de novo",
-  "favoriteMaterialKindsNoMatch": "Nenhum tipo com esse nome"
+  "favoriteMaterialKindsNoMatch": "Nenhum tipo com esse nome",
+  "favoriteMaterialKindsTypePreferenceTooltip": "Escolher formato preferido",
+  "favoriteMaterialKindsTypePreferenceTitle": "Formato preferido de {kind}",
+  "@favoriteMaterialKindsTypePreferenceTitle": {
+    "placeholders": {
+      "kind": { "type": "String" }
+    }
+  },
+  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido."
 }

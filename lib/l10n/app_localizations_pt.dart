@@ -1422,4 +1422,17 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get favoriteMaterialKindsNoMatch => 'Nenhum tipo com esse nome';
+
+  @override
+  String get favoriteMaterialKindsTypePreferenceTooltip =>
+      'Escolher formato preferido';
+
+  @override
+  String favoriteMaterialKindsTypePreferenceTitle(String kind) {
+    return 'Formato preferido de $kind';
+  }
+
+  @override
+  String get favoriteMaterialKindsTypePreferenceHelp =>
+      'Arraste para ordenar — o primeiro da lista é o formato preferido.';
 }

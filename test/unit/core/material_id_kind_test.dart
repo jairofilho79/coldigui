@@ -116,4 +116,23 @@ void main() {
       expect(materialIdKindOf(id), MaterialKind.pdf);
     });
   });
+
+  group('materialKindOfRawType', () {
+    test('reconhece pdf, chord, gestures, youtube e mp3/audio', () {
+      expect(materialKindOfRawType('pdf'), MaterialKind.pdf);
+      expect(materialKindOfRawType('chord'), MaterialKind.chord);
+      expect(materialKindOfRawType('gestures'), MaterialKind.gesture);
+      expect(materialKindOfRawType('youtube'), MaterialKind.youtube);
+      expect(materialKindOfRawType('mp3'), MaterialKind.audio);
+      expect(materialKindOfRawType('audio'), MaterialKind.audio);
+    });
+
+    test('ignora caixa', () {
+      expect(materialKindOfRawType('PDF'), MaterialKind.pdf);
+    });
+
+    test('tipo desconhecido cai em unknown', () {
+      expect(materialKindOfRawType('lyrics'), MaterialKind.unknown);
+    });
+  });
 }

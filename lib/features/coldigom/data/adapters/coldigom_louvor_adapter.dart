@@ -30,7 +30,7 @@ abstract final class ColdigomLouvorAdapter {
     final louvores = <Louvor>[];
 
     for (final material in praise.materials) {
-      if (_kindOfType(material.type) != MaterialKind.pdf) continue;
+      if (materialKindOfRawType(material.type) != MaterialKind.pdf) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -58,7 +58,7 @@ abstract final class ColdigomLouvorAdapter {
     final tracks = <AudioTrack>[];
 
     for (final material in praise.materials) {
-      if (_kindOfType(material.type) != MaterialKind.audio) continue;
+      if (materialKindOfRawType(material.type) != MaterialKind.audio) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -86,7 +86,9 @@ abstract final class ColdigomLouvorAdapter {
     final items = <YoutubeMaterial>[];
 
     for (final material in praise.materials) {
-      if (_kindOfType(material.type) != MaterialKind.youtube) continue;
+      if (materialKindOfRawType(material.type) != MaterialKind.youtube) {
+        continue;
+      }
       if (!YoutubeUrl.isValid(material.url)) continue;
 
       items.add(
@@ -113,7 +115,7 @@ abstract final class ColdigomLouvorAdapter {
     final items = <ChordMaterial>[];
 
     for (final material in praise.materials) {
-      if (_kindOfType(material.type) != MaterialKind.chord) continue;
+      if (materialKindOfRawType(material.type) != MaterialKind.chord) continue;
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
 
@@ -140,7 +142,9 @@ abstract final class ColdigomLouvorAdapter {
   static List<GestureMaterial> toGestureMaterials(PraiseDetailDto praise) {
     final items = <GestureMaterial>[];
     for (final material in praise.materials) {
-      if (_kindOfType(material.type) != MaterialKind.gesture) continue;
+      if (materialKindOfRawType(material.type) != MaterialKind.gesture) {
+        continue;
+      }
       final r2Key = material.r2Key;
       if (r2Key == null || r2Key.isEmpty) continue;
       items.add(
@@ -159,18 +163,6 @@ abstract final class ColdigomLouvorAdapter {
       );
     }
     return items;
-  }
-
-  /// Único ponto que traduz o `type` do worker para o vocabulário do app.
-  static MaterialKind _kindOfType(String type) {
-    return switch (type.toLowerCase()) {
-      'pdf' => MaterialKind.pdf,
-      'chord' => MaterialKind.chord,
-      'gestures' => MaterialKind.gesture,
-      'mp3' || 'audio' => MaterialKind.audio,
-      'youtube' => MaterialKind.youtube,
-      _ => MaterialKind.unknown,
-    };
   }
 
   static String _basename(String path) {

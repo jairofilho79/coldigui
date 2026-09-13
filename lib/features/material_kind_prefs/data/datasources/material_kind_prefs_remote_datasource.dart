@@ -49,6 +49,7 @@ class MaterialKindPrefsRemoteDatasource {
       ApiEndpoints.materialKindPrefs,
       data: {
         'kindIds': prefs.kindIds,
+        'preferredTypes': prefs.preferredTypeByKind,
         'updatedAt': prefs.updatedAt.toUtc().toIso8601String(),
       },
       options: _auth(idToken),
@@ -75,6 +76,7 @@ class MaterialKindPrefsRemoteDatasource {
   MaterialKindPrefs _parse(Map<String, dynamic> data) {
     final parsed = MaterialKindPrefs.fromJson({
       'kindIds': data['kindIds'],
+      'preferredTypeByKind': data['preferredTypes'],
       'updatedAt': data['updatedAt'],
       'pendingPush': false,
     });

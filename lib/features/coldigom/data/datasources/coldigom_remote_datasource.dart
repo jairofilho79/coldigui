@@ -182,4 +182,18 @@ class ColdigomRemoteDatasource {
         ColdigomMaterialKindDto.fromJson(item as Map<String, dynamic>),
     ];
   }
+
+  /// Types (`pdf`/`chord`/...) que de fato existem entre os materiais de
+  /// [kindId] (`GET /api/materials/kinds/:kindId/types`). Calculado sob
+  /// demanda pelo Worker a cada chamada — poucos registros por kind, sem
+  /// necessidade de cache local.
+  Future<List<String>> fetchMaterialTypesForKind(String kindId) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      ColdigomEndpoints.materialTypesForKind(kindId),
+    );
+    final data = response.data;
+    if (data == null) return const [];
+    final list = data['data'] as List<dynamic>? ?? const [];
+    return list.whereType<String>().toList(growable: false);
+  }
 }
