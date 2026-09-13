@@ -798,7 +798,7 @@ Residuais da onda final (não bloqueiam): falha do refresh preventivo marca a se
 
 ### K.3 Pendências conhecidas (não bloqueiam)
 
-- **Leitor:** `applyInitialFit` continua sendo re-aplicado a cada troca de página (comportamento antigo); navegação por página com spread avança uma página por vez; `_HoverFade` do overlay sem teste de hit-test; `readerCarouselPositionProvider` não é autoDispose.
+- **Leitor:** `applyInitialFit` por troca de página **fechado** em `279dd68` (auditoria de polimento, P3); navegação por página com spread avança uma página por vez; `_HoverFade` do overlay sem teste de hit-test; `readerCarouselPositionProvider` não é autoDispose.
 - **Cifra:** `stop()` adiado do autoscroll pode cancelar um reinício no mesmo frame (token de geração); `chord_reader_screen.dart` com 616 linhas.
 - **Listas:** chip do nome observa a entidade inteira; `duplicate` recebe `copyName` do tile. (Renomear rascunho sem sair de «Rascunho» era o bug corrigido em `3e265cf`.)
 - **Player:** `audioPlayerPositionProvider.duration` não é zerado numa troca dentro da fila (UI pode mostrar a duração anterior por um tick); `setSpeed` grava o estado antes do player; `MediaSessionPositionThrottle` reutilizado para o store com o nome antigo.

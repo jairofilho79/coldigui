@@ -10,6 +10,10 @@ import 'package:go_router/go_router.dart';
 /// (auditoria P4). [Router.neglect] marca o report como `neglect`, que o
 /// engine traduz em `replaceState`.
 ///
+/// Assume `redirect` **síncrono** no [GoRouter] (é o caso do app): com um
+/// redirect assíncrono o report marcado como `neglect` sairia antes da URL
+/// nova e a mudança real voltaria a virar `pushState`.
+///
 /// [context] precisa estar abaixo do [Router] (qualquer tela do app serve).
 void goReplacingUrl(BuildContext context, GoRouter router, String location) {
   Router.neglect(context, () => router.go(location));

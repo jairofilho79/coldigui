@@ -950,4 +950,73 @@ void main() {
       reason: 'a virada de página reaplicou o fit (auditoria P3)',
     );
   });
+
+  // A revisão final apontou um risco residual: sem fit por página,
+  // `_handleViewerReady` é o ÚNICO ponto que aplica o fit na abertura —
+  // inclusive para handles reaproveitados do `PdfSessionCache` (LRU), que já
+  // chegam com `isViewerReady == true` (loadingState `success`) ANTES do
+  // primeiro pump da tela. Este teste garante que o caminho `fromCache: true`
+  // também recebe o fit inicial exatamente uma vez, e que a virada de página
+  // seguinte não o reaplica.
+  testWidgets(
+    'handle vindo do cache LRU (fromCache) também aplica o fit exatamente uma vez (P3)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final handle = _createRestoreTrackingHandle(pageCount: 3);
+      final fitPort = _CountingFitPort();
+
+      // Handle de cache: já está pronto ANTES da tela montar (diferente do
+      // caminho de abertura "a frio", onde o pdfrx avisa depois do 1º frame).
+      handle.loadingState.value = PdfReaderLoadingState.success;
+
+      await tester.pumpWidget(
+        _readerScope(
+          prefs: prefs,
+          overrides: [
+            pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith(
+              (ref) async => PdfReaderSession(
+                handle: handle,
+                filePath: 'asset:fixtures/sample.pdf',
+                fromCache: true,
+              ),
+            ),
+            setZoomAndFitModeProvider.overrideWithValue(
+              SetZoomAndFitMode(fitPort),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: PdfReaderScreen(
+                queryParams: {
+                  'file': 'asset:fixtures/sample.pdf',
+                  'pdfId': 'pdf-x',
+                  'titulo': 'Fixture',
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (fitPort.applyFitModeCalls.isNotEmpty) break;
+      }
+      expect(
+        fitPort.applyFitModeCalls,
+        hasLength(1),
+        reason: 'handle do cache LRU deve receber o fit inicial uma única vez',
+      );
+
+      // Seta → próxima página: navega, mas NÃO pode pedir fit de novo.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(fitPort.applyFitModeCalls, hasLength(1));
+      expect(handle.animateToPageCalls, [2]);
+    },
+  );
 }
