@@ -68,40 +68,48 @@ class PlaylistTileDetailChips extends ConsumerWidget {
         pdfCursor++;
       }
       // Áudio ainda sem faixa em cache: nem nome, nem destino de toque —
-      // `loading` empresta o spinner que o chip já tem para outras ações
-      // assíncronas como sinal visual, em vez de um chip mudo (Importante
-      // #4). Ele some sozinho quando o `watch` acima reconstrói com a faixa.
+      // mas o «×» continua removendo, senão uma lista salva não-ativa (o
+      // único aquecimento de cache é `hydratePlaylistSession`, e é só da
+      // ativa) fica com uma entrada presa sem cache e sem jeito de tirá-la
+      // depois de um cold boot (achado do re-review ao Importante #4).
+      // `Opacity` é só o sinal visual — nada de `loading` aqui: o trailing
+      // do chip dá prioridade ao spinner de `loading` sobre o «×»
+      // (`CarouselLouvorChip._trailingAction`), e esconderia o botão de
+      // remover.
       final trackPending = entry.isAudio && track == null;
 
       if (chips.isNotEmpty) chips.add(const SizedBox(height: 8));
       chips.add(
-        CarouselLouvorChip(
-          key: ValueKey(entry.key),
-          item: chipItem,
-          loading: loading || trackPending,
-          onTap: loading || trackPending
-              ? null
-              : entry.isAudio
-              ? () => onAudioTap(track!)
-              : () => onPdfTap(entry.id),
-          onRemove: loading
-              ? null
-              : () async {
-                  if (entries.length == 1) {
-                    final confirmed = await showConfirmDialog(
-                      context: context,
-                      title: l10n.playlistDeleteLastPdfTitle,
-                      message: l10n.playlistDeleteLastPdfMessage,
-                    );
-                    if (confirmed != true || !context.mounted) return;
-                  }
-                  await ref
-                      .read(playlistsProvider.notifier)
-                      .removeEntryAt(
-                        playlistId: item.playlist.playlistId,
-                        index: entry.index,
+        Opacity(
+          opacity: trackPending ? 0.6 : 1,
+          child: CarouselLouvorChip(
+            key: ValueKey(entry.key),
+            item: chipItem,
+            loading: loading,
+            onTap: loading || trackPending
+                ? null
+                : entry.isAudio
+                ? () => onAudioTap(track!)
+                : () => onPdfTap(entry.id),
+            onRemove: loading
+                ? null
+                : () async {
+                    if (entries.length == 1) {
+                      final confirmed = await showConfirmDialog(
+                        context: context,
+                        title: l10n.playlistDeleteLastPdfTitle,
+                        message: l10n.playlistDeleteLastPdfMessage,
                       );
-                },
+                      if (confirmed != true || !context.mounted) return;
+                    }
+                    await ref
+                        .read(playlistsProvider.notifier)
+                        .removeEntryAt(
+                          playlistId: item.playlist.playlistId,
+                          index: entry.index,
+                        );
+                  },
+          ),
         ),
       );
     }

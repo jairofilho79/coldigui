@@ -1,5 +1,8 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart'
+    show fallbackCarouselNome;
+import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
@@ -14,7 +17,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
 import '../../../support/test_overrides.dart';
+
+/// Grava as chamadas de [removeEntryAt] sem tocar em storage de verdade — o
+/// suficiente para provar que o «×» continua funcionando (re-review ao
+/// Importante #4).
+class _RecordingPlaylistsNotifier extends FakePlaylistsNotifier {
+  _RecordingPlaylistsNotifier(super.initial);
+
+  final removed = <({String playlistId, int index})>[];
+
+  @override
+  Future<void> removeEntryAt({
+    required String playlistId,
+    required int index,
+  }) async {
+    removed.add((playlistId: playlistId, index: index));
+  }
+}
 
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
 final _audioA = encodePdfId('ColAdultos/001.mp3');
@@ -120,20 +141,29 @@ void main() {
   });
 
   testWidgets(
-    'áudio ainda sem faixa em cache usa fallback e fica inerte até o cache '
-    'aquecer (Importante #4)',
+    'áudio ainda sem faixa em cache usa fallback, fica inerte mas continua '
+    'removível, até o cache aquecer (Importante #4 + re-review)',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final tappedAudio = <String>[];
 
+      // Duas entradas (não uma só): `removeEntryAt` some direto, sem o
+      // diálogo de confirmação da última entrada — esse fluxo é de outro
+      // teste, aqui o que importa é o «×» chegando até `removeEntryAt`.
       final playlist = SavedPlaylist(
         playlistId: 'p1',
         nome: 'Culto',
-        entries: [PlaylistEntry(id: _audioA, kind: MaterialKind.audio)],
+        entries: [
+          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+          PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+        ],
         createdAt: DateTime(2026, 9, 12),
         salva: true,
       );
+      final playlistsNotifier = _RecordingPlaylistsNotifier([
+        PlaylistViewItem(playlist: playlist, pdfLabels: const ['001 — Santo']),
+      ]);
 
       final container = ProviderContainer(
         overrides: [
@@ -141,6 +171,11 @@ void main() {
           louvoresManifestOverride(
             const LouvoresManifest(louvores: [], availableArranjos: {}),
           ),
+          // A lista **não** é a ativa (`playlistId` não bate com nenhum
+          // ativo) — é o caso do achado do re-review: uma playlist salva
+          // não-ativa, cujo cache de áudio só aquece se alguém visitá-la, tem
+          // que continuar removível mesmo travada em "carregando".
+          playlistsProvider.overrideWith(() => playlistsNotifier),
         ],
       );
       addTearDown(container.dispose);
@@ -154,7 +189,10 @@ void main() {
             locale: const Locale('pt'),
             home: Scaffold(
               body: PlaylistTileDetailChips(
-                item: PlaylistViewItem(playlist: playlist, pdfLabels: const []),
+                item: PlaylistViewItem(
+                  playlist: playlist,
+                  pdfLabels: const ['001 — Santo'],
+                ),
                 loading: false,
                 onPdfTap: (id) async {},
                 onAudioTap: (track) async => tappedAudio.add(track.audioId),
@@ -163,17 +201,39 @@ void main() {
           ),
         ),
       );
-      // Não `pumpAndSettle`: o spinner do chip (Importante #4) anima para
-      // sempre enquanto a faixa não chega.
       await tester.pump();
 
-      // Fallback: nem o id cru (base64), nem uma string vazia — e o toque
-      // não faz nada enquanto a faixa não chega.
-      expect(find.textContaining(_audioA), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      await tester.tap(find.byType(CircularProgressIndicator));
+      // Chave estável da entrada de áudio (ocorrência única — a própria
+      // `_audioA`) — escopa as buscas ao chip dela, já que a lista agora tem
+      // dois chips (a confirmação de "última entrada" não é o que este
+      // teste cobre).
+      final audioChip = find.byKey(ValueKey(_audioA));
+
+      // Fallback: nem o id cru (base64) inteiro, nem uma string vazia — e o
+      // toque no corpo do chip não faz nada enquanto a faixa não chega. Sem
+      // spinner (isso escondia o «×» — re-review): o sinal visual é só
+      // opacidade.
+      final fallbackName = fallbackCarouselNome(_audioA);
+      expect(find.text(_audioA), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      final fallbackOpacity = tester.widget<Opacity>(
+        find.ancestor(of: audioChip, matching: find.byType(Opacity)).first,
+      );
+      expect(fallbackOpacity.opacity, lessThan(1));
+      await tester.tap(find.text(fallbackName));
       await tester.pump();
       expect(tappedAudio, isEmpty);
+
+      // O «×» continua presente e funcionando: tocá-lo remove a entrada
+      // mesmo sem a faixa em cache.
+      final removeButton = find.descendant(
+        of: audioChip,
+        matching: find.byType(ChipRemoveButton),
+      );
+      expect(removeButton, findsOneWidget);
+      await tester.tap(removeButton);
+      await tester.pump();
+      expect(playlistsNotifier.removed, [(playlistId: 'p1', index: 1)]);
 
       // Cache aquece: o `watch` reconstrói o chip com nome, ícone e toque de
       // verdade, sem precisar reabrir a tela (era `ref.read` antes do fix).
@@ -190,9 +250,14 @@ void main() {
       ]);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Santo'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-      await tester.tap(find.textContaining('Santo'));
+      // Escopado ao chip de áudio: o chip de PDF também mostra «Santo»
+      // (`pdfLabels`).
+      final audioSanto = find.descendant(
+        of: audioChip,
+        matching: find.textContaining('Santo'),
+      );
+      expect(audioSanto, findsOneWidget);
+      await tester.tap(audioSanto);
       await tester.pump();
       expect(tappedAudio, [_audioA]);
     },
