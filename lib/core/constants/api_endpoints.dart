@@ -38,6 +38,11 @@ abstract final class ApiEndpoints {
   static String audioFlag(String id) =>
       '/api/audio-flags/${Uri.encodeComponent(id)}';
 
+  /// Material kinds favoritos do usuário — Worker + D1
+  /// `user_material_kind_prefs`. `GET` (`204` se nunca salvou) e `PUT`
+  /// (`409` devolve o documento remoto mais novo).
+  static const String materialKindPrefs = '/api/material-kind-prefs';
+
   /// Links curtos de compartilhamento — Worker + D1 `short_links` (D7).
   ///
   /// `POST` + Bearer + `{ query }` → `{ code, url }` (`201` novo, `200`
