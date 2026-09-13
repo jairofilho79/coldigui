@@ -48,8 +48,8 @@ const _saveLastPageDebounce = Duration(milliseconds: 500);
 /// Barras 1–2 (PLPCG + carousel) vêm do shell compartilhado. Esta tela renderiza
 /// apenas a barra 3 — toolbar PDF — e a área do documento.
 ///
-/// Fit mode é reaplicado pós-frame quando a sessão PDF carrega ou ao alternar
-/// fullscreen ([readerFullscreenProvider]).
+/// Fit mode é aplicado quando o viewer fica pronto ([_handleViewerReady]) e
+/// ao alternar fullscreen — nunca por virada de página (auditoria P3).
 ///
 /// Long-press no indicador `page/total` da barra 3 navega para a primeira página
 /// via [PdfReaderViewerHandle.goToFirstPage]; no-op se `page == 1`.
@@ -381,9 +381,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           requiresReattach: session.fromCache,
           navigateToPage: (pageNumber) =>
               session.handle.animateToPage(pageNumber: pageNumber),
-          refreshViewportAfterNavigation: () => ref
-              .read(pdfReaderViewSettingsProvider.notifier)
-              .applyInitialFit(),
           onPageChanged: (page) => _handlePageChanged(page, pdfId, filePath),
           onViewerReady: () => _handleViewerReady(session, pdfId),
         ),
