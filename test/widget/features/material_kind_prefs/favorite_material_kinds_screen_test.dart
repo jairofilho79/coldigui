@@ -1,4 +1,5 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
@@ -234,6 +235,17 @@ void main() {
       'k-coro',
       'k-partitura',
     ]);
+  });
+
+  testWidgets('campo de busca tem fonte ≥16px (sem zoom do iOS ao focar)', (
+    tester,
+  ) async {
+    await pump(tester);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(
+      field.style?.fontSize,
+      greaterThanOrEqualTo(AppTypography.iosNoZoomFontSize),
+    );
   });
 
   testWidgets('busca filtra sem acento e some do restante o que já é favorito', (

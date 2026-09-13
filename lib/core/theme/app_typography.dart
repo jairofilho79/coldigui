@@ -51,6 +51,24 @@ abstract final class AppTypography {
     color: AppColors.title,
   );
 
+  /// Limiar do iOS Safari: ao focar um `<input>` com `font-size` menor que
+  /// isto, ele dá zoom na página inteira — e o Flutter web replica o
+  /// `TextStyle` do campo no `<input>` oculto que recebe o teclado.
+  static const double iosNoZoomFontSize = 16;
+
+  /// Campos de texto (busca da Home, busca dos Materiais favoritos).
+  ///
+  /// [body] com fonte no [iosNoZoomFontSize]: desde o Flutter 3.47 a viewport
+  /// injetada pelo engine é `maximum-scale=5.0` (WCAG), então só o tamanho da
+  /// fonte impede o auto-zoom do iOS — e, como o canvas captura os toques, o
+  /// usuário não consegue desfazê-lo (`search_bar_input_font_size_test`).
+  static const TextStyle input = TextStyle(
+    fontFamily: sansFamily,
+    fontWeight: FontWeight.w400,
+    fontSize: iosNoZoomFontSize,
+    color: AppColors.title,
+  );
+
   /// Chips e labels de UI.
   static const TextStyle label = TextStyle(
     fontFamily: sansFamily,
@@ -63,6 +81,11 @@ abstract final class AppTypography {
         color: AppColors.title.withValues(alpha: 0.55),
         fontStyle: italic ? FontStyle.italic : FontStyle.normal,
       );
+
+  /// Placeholder dos campos que usam [input] — mesmo corpo, para o texto não
+  /// mudar de tamanho entre vazio e preenchido.
+  static TextStyle inputHint({bool italic = false}) =>
+      hint(italic: italic).copyWith(fontSize: input.fontSize);
 
   static TextTheme textTheme(Color onSurface) => TextTheme(
         displaySmall: displayPlcpg,

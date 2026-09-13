@@ -341,12 +341,12 @@ class _FavoriteMaterialKindsScreenState
               child: TextField(
                 controller: _searchController,
                 focusNode: _searchFocus,
-                style: AppTypography.body.copyWith(height: 1.1),
+                style: AppTypography.input.copyWith(height: 1.1),
                 maxLines: 1,
                 textAlignVertical: TextAlignVertical.center,
                 decoration: InputDecoration(
                   hintText: l10n.favoriteMaterialKindsSearchHint,
-                  hintStyle: AppTypography.hint(italic: true)
+                  hintStyle: AppTypography.inputHint(italic: true)
                       .copyWith(height: 1.1),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,

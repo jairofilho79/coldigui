@@ -39,8 +39,10 @@ bool shouldAutofocusSearch({
 /// e [FocusNode.requestFocus] para manter o teclado aberto. Tooltip via
 /// [AppLocalizations.searchClear].
 ///
-/// **Teclado (C1):** `Enter` dispara [onSubmitted] (a Home abre o primeiro
-/// resultado), `Esc` limpa o campo, e o autofoco segue [shouldAutofocusSearch].
+/// **Teclado (C1):** `Esc` limpa o campo e o autofoco segue
+/// [shouldAutofocusSearch]. `Enter` só confirma a busca ([onSubmitted] fica
+/// disponível, mas a Home não o usa: abrir o primeiro card parecia
+/// produtividade, e na maioria das vezes o usuário quer outro card).
 class SearchBar extends StatefulWidget {
   const SearchBar({
     super.key,
@@ -145,14 +147,13 @@ class _SearchBarState extends State<SearchBar> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
-                  style: AppTypography.body.copyWith(height: 1.1),
+                  style: AppTypography.input.copyWith(height: 1.1),
                   maxLines: 1,
                   textAlignVertical: TextAlignVertical.center,
                   decoration: InputDecoration(
                     hintText: widget.hintText,
-                    hintStyle: AppTypography.hint(
-                      italic: true,
-                    ).copyWith(height: 1.1),
+                    hintStyle: AppTypography.inputHint(italic: true)
+                        .copyWith(height: 1.1),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
