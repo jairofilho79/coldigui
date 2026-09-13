@@ -58,7 +58,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
       audioPlayerSessionProvider.select((s) => s.hasNext),
     );
     final positionState = ref.watch(audioPlayerPositionProvider);
-    final audioItems = ref.watch(audioFaceItemsProvider);
+    final audioItems = ref.watch(audioCarouselItemsProvider);
     final track = _resolveTrack(ref, currentTrack, audioItems);
     final flags = track == null
         ? const <SavedAudioFlag>[]

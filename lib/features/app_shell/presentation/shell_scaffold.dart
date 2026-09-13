@@ -186,7 +186,7 @@ class ShellScaffold extends ConsumerWidget {
           face: ref.watch(playlistMediaFaceProvider),
           hasPdf: ref.watch(carouselItemsProvider).isNotEmpty,
           hasAudio:
-              ref.watch(audioFaceItemsProvider).isNotEmpty ||
+              ref.watch(audioCarouselItemsProvider).isNotEmpty ||
               ref.watch(
                 audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
               ),

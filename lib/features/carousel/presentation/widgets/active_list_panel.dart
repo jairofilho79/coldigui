@@ -20,7 +20,7 @@ import 'carousel_selection_sheet.dart'
 /// `AlertDialog`).
 ///
 /// Mostra a face [face] da lista ativa ([carouselItemsProvider] para
-/// [PlaylistMediaFace.pdf], [audioFaceItemsProvider] para
+/// [PlaylistMediaFace.pdf], [audioCarouselItemsProvider] para
 /// [PlaylistMediaFace.audio]). O item focado na face de partituras
 /// ([carouselFocusedIndexProvider]) ganha destaque visual — a face de áudio
 /// não tem conceito de foco equivalente, então nunca destaca.
@@ -53,7 +53,7 @@ class ActiveListPanel extends ConsumerStatefulWidget {
 class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
   Provider<List<CarouselItem>> get _itemsProvider =>
       widget.face == PlaylistMediaFace.audio
-      ? audioFaceItemsProvider
+      ? audioCarouselItemsProvider
       : carouselItemsProvider;
 
   void _handleReorder(int oldIndex, int newIndex) {

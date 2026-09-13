@@ -131,7 +131,7 @@ void main() {
               audioTracksById: {'aud-a': _trackA, 'aud-b': _trackB},
             ),
           ),
-          audioFaceItemsProvider.overrideWithValue(
+          audioCarouselItemsProvider.overrideWithValue(
             activeFace ?? [_audioItem(_trackA, 0), _audioItem(_trackB, 1)],
           ),
         ],

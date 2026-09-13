@@ -38,7 +38,7 @@ import 'package:go_router/go_router.dart';
 /// **Face PDF:** chips das entradas não-áudio da lista ativa
 /// ([carouselItemsProvider]).
 /// **Face áudio:** [CarouselAudioFaceBar] quando há sessão ou entradas de
-/// áudio na lista ativa ([audioFaceItemsProvider]).
+/// áudio na lista ativa ([audioCarouselItemsProvider]).
 ///
 /// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
 ///
@@ -53,7 +53,7 @@ class CarouselChips extends ConsumerWidget {
     listenAudioFollowReader(ref, context);
 
     final pdfItems = ref.watch(carouselItemsProvider);
-    final audioItems = ref.watch(audioFaceItemsProvider);
+    final audioItems = ref.watch(audioCarouselItemsProvider);
     final face = ref.watch(playlistMediaFaceProvider);
     // Só isto: a barra é montada em toda rota do shell e não pode reconstruir
     // a ~5 Hz com o resto do estado da sessão (posição, agora num provider
