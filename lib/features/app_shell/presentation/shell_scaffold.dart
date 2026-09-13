@@ -15,6 +15,7 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
 import '../../playlists/presentation/providers/playlist_media_face_provider.dart';
 import '../../playlists/presentation/providers/playlist_sync_provider.dart';
 import '../../carousel/presentation/providers/carousel_items_provider.dart';
@@ -151,6 +152,7 @@ class ShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(playlistSyncProvider);
+    ref.watch(materialKindPrefsSyncProvider);
     final path = GoRouterState.of(context).uri.path;
     final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);
