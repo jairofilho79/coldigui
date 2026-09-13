@@ -89,6 +89,7 @@ class LibraryPaginationControls extends ConsumerWidget {
         IconButton(
           tooltip: l10n.pagePrevious,
           visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(foregroundColor: AppColors.textLight),
           onPressed: results.page > 1
               ? () => ref
                     .read(libraryViewSettingsProvider.notifier)
@@ -103,6 +104,7 @@ class LibraryPaginationControls extends ConsumerWidget {
         IconButton(
           tooltip: l10n.pageNext,
           visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(foregroundColor: AppColors.textLight),
           onPressed: results.page < results.totalPages
               ? () => ref
                     .read(libraryViewSettingsProvider.notifier)
