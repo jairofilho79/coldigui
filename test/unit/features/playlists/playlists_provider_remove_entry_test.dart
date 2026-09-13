@@ -7,7 +7,6 @@ import 'package:coldigui/features/playlists/data/datasources/playlist_local_data
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
@@ -118,10 +117,11 @@ void main() {
     );
     final c = await boot(activeId: 'p1');
 
-    await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-      PlaylistMediaFace.pdf,
-      [_pdfC, _pdfB, _pdfA],
-    );
+    await c.read(activePlaylistEditorProvider.notifier).reorder([
+      _pdfC,
+      _pdfB,
+      _pdfA,
+    ]);
     // O tile mostra a ordem do banco ([A, B, C]): posição 0 é A. A remoção
     // não pode ressuscitar a ordem antiga nem apagar C por engano.
     await c

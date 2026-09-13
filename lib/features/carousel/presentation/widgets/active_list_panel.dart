@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/color_extensions.dart';
-import '../../../playlists/domain/entities/playlist_media_face.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/carousel_item.dart';
 import '../providers/carousel_focused_index_provider.dart';
@@ -13,32 +12,19 @@ import 'carousel_louvor_chip.dart';
 import 'carousel_selection_sheet.dart'
     show carouselSelectionReorderProxyDecorator;
 
-/// Lista reordenável da face ativa (spec A.6 C7).
+/// Lista reordenável da lista ativa (spec A.6 C7; sem faces desde a spec
+/// 2026-09-12).
 ///
-/// Extraído do corpo do modal de seleção temporária
-/// ([showCarouselSelectionSheet], que agora só embrulha isto num
-/// `AlertDialog`).
+/// Mostra [carouselItemsProvider] inteiro — partitura, cifra, gesto e áudio na
+/// ordem da lista. O item focado ([carouselFocusedIndexProvider]) ganha
+/// destaque visual.
 ///
-/// Mostra a face [face] da lista ativa ([carouselItemsProvider] para
-/// [PlaylistMediaFace.pdf], [audioCarouselItemsProvider] para
-/// [PlaylistMediaFace.audio]). O item focado na face de partituras
-/// ([carouselFocusedIndexProvider]) ganha destaque visual — a face de áudio
-/// não tem conceito de foco equivalente, então nunca destaca.
-///
-/// Drag reordena e chama [ActivePlaylistEditor.reorderFace] com a nova ordem
-/// de chaves; `×` remove por chave ([ActivePlaylistEditor.removeByKey]) e
-/// avisa [onRemoved] (com a lista já sem a entrada); toque foca a ocorrência
-/// e, se [onOpen] for informado, dispara a mesma navegação das chips do
-/// carousel.
+/// Drag reordena e chama [ActivePlaylistEditor.reorder] com a nova ordem de
+/// chaves; `×` remove por chave ([ActivePlaylistEditor.removeByKey]) e avisa
+/// [onRemoved]; toque foca a ocorrência e, se [onOpen] for informado, dispara
+/// a mesma navegação do chip da barra.
 class ActiveListPanel extends ConsumerStatefulWidget {
-  const ActiveListPanel({
-    this.face = PlaylistMediaFace.pdf,
-    this.onOpen,
-    this.onRemoved,
-    super.key,
-  });
-
-  final PlaylistMediaFace face;
+  const ActiveListPanel({this.onOpen, this.onRemoved, super.key});
 
   /// Toque no item — `null` desliga a navegação (o toque só foca).
   final Future<void> Function(CarouselItem item)? onOpen;
@@ -51,22 +37,17 @@ class ActiveListPanel extends ConsumerStatefulWidget {
 }
 
 class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
-  Provider<List<CarouselItem>> get _itemsProvider =>
-      widget.face == PlaylistMediaFace.audio
-      ? audioCarouselItemsProvider
-      : carouselItemsProvider;
-
   void _handleReorder(int oldIndex, int newIndex) {
-    final items = ref.read(_itemsProvider);
+    final items = ref.read(carouselItemsProvider);
     final reordered = List<CarouselItem>.from(items);
     if (oldIndex < 0 || oldIndex >= reordered.length) return;
     final moved = reordered.removeAt(oldIndex);
     reordered.insert(newIndex.clamp(0, reordered.length), moved);
 
-    // `reorderFace` aplica o override otimista antes de persistir: a lista já
+    // `reorder` aplica o override otimista antes de persistir: a lista já
     // desenha a ordem nova sem esperar a escrita.
     unawaited(
-      ref.read(activePlaylistEditorProvider.notifier).reorderFace(widget.face, [
+      ref.read(activePlaylistEditorProvider.notifier).reorder([
         for (final item in reordered) item.key,
       ]),
     );
@@ -85,10 +66,8 @@ class _ActiveListPanelState extends ConsumerState<ActiveListPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final items = ref.watch(_itemsProvider);
-    final focusedIndex = widget.face == PlaylistMediaFace.pdf
-        ? ref.watch(carouselFocusedIndexProvider)
-        : -1;
+    final items = ref.watch(carouselItemsProvider);
+    final focusedIndex = ref.watch(carouselFocusedIndexProvider);
 
     return ReorderableListView.builder(
       shrinkWrap: true,

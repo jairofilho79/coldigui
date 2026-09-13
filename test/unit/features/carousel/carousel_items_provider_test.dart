@@ -15,7 +15,6 @@ import 'package:coldigui/features/playlists/data/datasources/playlist_local_data
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -270,10 +269,10 @@ void main() {
       c.read(carouselFocusedIndexProvider.notifier).focusKey(_pdfB);
       expect(c.read(carouselFocusedIndexProvider), 1);
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfA,
+      ]);
       await _flush();
 
       expect(c.read(carouselItemsProvider).map((i) => i.materialId), [
