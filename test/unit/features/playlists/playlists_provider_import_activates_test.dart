@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -73,8 +74,10 @@ void main() {
     final imported = await c
         .read(playlistsProvider.notifier)
         .importSharedFromUrl(
-          shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
-          shareName: 'Importada',
+          params: const PlaylistShareParams(
+            shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
+            shareName: 'Importada',
+          ),
         );
     await _flushAsync();
 
@@ -107,7 +110,12 @@ void main() {
 
     final imported = await c
         .read(playlistsProvider.notifier)
-        .importSharedFromUrl(sharePdfs: 'pdf-a', shareName: 'Reimportada');
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            sharePdfs: 'pdf-a',
+            shareName: 'Reimportada',
+          ),
+        );
 
     expect(imported, isNotNull);
     expect(imported, isNot('p1'));

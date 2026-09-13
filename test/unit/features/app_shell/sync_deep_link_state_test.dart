@@ -112,7 +112,10 @@ void main() {
       PlaylistLocalDatasource(isar),
     );
     useCase = SyncDeepLinkState(
-      ImportSharedPlaylistFromUrl(playlistRepository),
+      ImportSharedPlaylistFromUrl(
+        playlistRepository,
+        resolveShortIds: () async => const {},
+      ),
     );
   });
 
@@ -191,7 +194,10 @@ void main() {
         const StorageUnavailableException('playlists.insert'),
       );
       final failingUseCase = SyncDeepLinkState(
-        ImportSharedPlaylistFromUrl(failing),
+        ImportSharedPlaylistFromUrl(
+          failing,
+          resolveShortIds: () async => const {},
+        ),
       );
 
       final result = await failingUseCase(
@@ -231,7 +237,10 @@ void main() {
     () async {
       final failing = _ThrowingPlaylistRepository(StateError('boom'));
       final failingUseCase = SyncDeepLinkState(
-        ImportSharedPlaylistFromUrl(failing),
+        ImportSharedPlaylistFromUrl(
+          failing,
+          resolveShortIds: () async => const {},
+        ),
       );
 
       final result = await failingUseCase(

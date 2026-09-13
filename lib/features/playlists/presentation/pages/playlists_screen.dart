@@ -109,12 +109,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     try {
       playlistId = await ref
           .read(playlistsProvider.notifier)
-          .importSharedFromUrl(
-            sharePdfs: result.sharePdfs,
-            shareAudios: result.shareAudios,
-            shareItems: result.shareItems,
-            shareName: result.shareName,
-          );
+          .importSharedFromUrl(params: result);
     } on StorageUnavailableException catch (e) {
       debugPrint('[playlists] import sem armazenamento: $e');
       if (context.mounted) {

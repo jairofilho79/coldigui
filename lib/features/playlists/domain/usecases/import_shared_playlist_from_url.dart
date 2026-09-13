@@ -1,8 +1,12 @@
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../entities/saved_playlist.dart';
 import '../exceptions/invalid_share_playlist_exception.dart';
+import '../ports/short_id_resolver.dart';
 import '../repositories/playlist_repository.dart';
 import '../utils/content_fingerprint.dart';
+
+final _log = AppLogger.of('playlists');
 
 /// Resultado de [ImportSharedPlaylistFromUrl.call] (D7, spec C.2).
 class ImportResult {
@@ -18,17 +22,24 @@ class ImportResult {
 
 /// UC-07 — Importar playlist compartilhada (Fase 4.4).
 class ImportSharedPlaylistFromUrl {
-  const ImportSharedPlaylistFromUrl(this._playlistRepository);
+  const ImportSharedPlaylistFromUrl(
+    this._playlistRepository, {
+    required ShortIdResolver resolveShortIds,
+  }) : _resolveShortIds = resolveShortIds;
 
   final PlaylistRepository _playlistRepository;
+  final ShortIdResolver _resolveShortIds;
 
   /// Persiste a nova playlist (ou reaproveita uma existente) e devolve o
   /// [ImportResult].
   ///
-  /// [shareItems] (v2, spec A.5) preserva a ordem intercalada e o tipo de cada
-  /// material; quando ausente ou inválido, [sharePdfs]/[shareAudios] valem como
-  /// antes. Quem chama torna a lista ativa (D3) — não existe mais carousel a
-  /// carregar.
+  /// [PlaylistShareParams.entries] (v2, spec A.5) preserva a ordem
+  /// intercalada e o tipo de cada material; quando ausente ou inválido,
+  /// [PlaylistShareParams.sharePdfs]/[PlaylistShareParams.shareAudios] valem
+  /// como antes. No formato curto (`params.isShortFormat`, spec
+  /// short-id-share D8), as entradas vêm de [ShortIdResolver] em vez de
+  /// [PlaylistShareParams.entries]. Quem chama torna a lista ativa (D3) — não
+  /// existe mais carousel a carregar.
   ///
   /// **Dedupe por conteúdo (spec C.2):** antes de criar, procura entre as
   /// listas salvas e não apagadas ([PlaylistRepository.getAll] filtrando
@@ -45,20 +56,13 @@ class ImportSharedPlaylistFromUrl {
   ///
   /// Lança [InvalidSharePlaylistException] se params inválidos.
   Future<ImportResult> call({
-    required String shareName,
-    String sharePdfs = '',
-    String shareAudios = '',
-    String shareItems = '',
+    required PlaylistShareParams params,
     String? excludePlaylistId,
   }) async {
-    final params = PlaylistShareParams(
-      sharePdfs: sharePdfs,
-      shareAudios: shareAudios,
-      shareName: shareName,
-      shareItems: shareItems.isEmpty ? null : shareItems,
-    );
-    final entries = params.entries;
-    final nome = shareName.trim();
+    final entries = params.isShortFormat
+        ? await _entriesFromShortIds(params.shortIds!)
+        : params.entries;
+    final nome = params.shareName.trim();
     if (entries.isEmpty || nome.isEmpty) {
       throw const InvalidSharePlaylistException();
     }
@@ -82,5 +86,24 @@ class ImportSharedPlaylistFromUrl {
     );
     final created = await _playlistRepository.getById(playlistId);
     return ImportResult(playlist: created!, alreadyExisted: false);
+  }
+
+  /// `shortId → pdfId` pelo catálogo (D8): desconhecido é ignorado com aviso;
+  /// repetições são preservadas (a lista pode repetir um louvor). Espera o
+  /// manifest — [ShortIdResolver] só resolve depois de ele existir.
+  Future<List<PlaylistEntry>> _entriesFromShortIds(
+    List<String> shortIds,
+  ) async {
+    final pdfIdByShortId = await _resolveShortIds();
+    final entries = <PlaylistEntry>[];
+    for (final shortId in shortIds) {
+      final pdfId = pdfIdByShortId[shortId];
+      if (pdfId == null) {
+        _log.warn('shortId desconhecido no catálogo — ignorado: $shortId');
+        continue;
+      }
+      entries.add(PlaylistEntry.classified(pdfId));
+    }
+    return entries;
   }
 }

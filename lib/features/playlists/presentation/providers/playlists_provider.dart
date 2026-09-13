@@ -527,10 +527,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   }
 
   Future<String?> importSharedFromUrl({
-    required String shareName,
-    String sharePdfs = '',
-    String shareAudios = '',
-    String shareItems = '',
+    required PlaylistShareParams params,
   }) async {
     try {
       // Fix round 2 (Minor): a lista pendente de exclusão adiada (C11, ainda
@@ -542,10 +539,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
           ? _pendingDeleteId
           : null;
       final result = await ref.read(importSharedPlaylistFromUrlProvider)(
-        sharePdfs: sharePdfs,
-        shareAudios: shareAudios,
-        shareItems: shareItems,
-        shareName: shareName,
+        params: params,
         excludePlaylistId: excludePlaylistId,
       );
       final playlistId = result.playlist.playlistId;

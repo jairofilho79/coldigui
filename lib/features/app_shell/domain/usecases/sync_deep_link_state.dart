@@ -72,7 +72,7 @@ class SyncDeepLinkResult {
 
 /// UC-14 — Sincronizar deep link de playlist com estado local (Fase 4.5).
 ///
-/// Detecta `sharepdfs` + `sharename` na URI e delega a
+/// Detecta `s`+`n` (curto) ou `sharename` (longo) na URI e delega a
 /// [ImportSharedPlaylistFromUrl]. Sem UI — confirmação de carousel não se
 /// aplica (paridade PWA: import automático).
 class SyncDeepLinkState {
@@ -92,12 +92,7 @@ class SyncDeepLinkState {
     }
 
     try {
-      final result = await _importSharedPlaylist(
-        sharePdfs: params.sharePdfs,
-        shareAudios: params.shareAudios,
-        shareItems: params.shareItems ?? '',
-        shareName: params.shareName,
-      );
+      final result = await _importSharedPlaylist(params: params);
       return SyncDeepLinkResult.success(
         result.playlist.playlistId,
         alreadyExisted: result.alreadyExisted,
