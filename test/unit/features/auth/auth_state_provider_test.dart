@@ -359,6 +359,20 @@ void main() {
       );
     });
 
+    test('Invalid(request_missing) com sessão armazenada: mantém a sessão, sem lançar (Back após login)', () async {
+      final container = buildContainer(
+        store: seededStore(),
+        behavior: (_) async => storedUser,
+        inbox: OidcCallbackInbox(
+          const OidcCallbackInvalid(reason: 'request_missing', returnTo: '/'),
+        ),
+      );
+      addTearDown(container.dispose);
+
+      final result = await container.read(authStateProvider.future);
+      expect(result?.googleSub, 'sub-1');
+    });
+
     for (final reason in ['request_missing', 'csrf_mismatch']) {
       test(
         'Invalid($reason): AsyncError com OidcContextMismatchException',

@@ -6,6 +6,7 @@ import 'package:coldigui/features/auth/data/oidc/oidc_callback.dart';
 import 'package:coldigui/features/auth/data/oidc/oidc_redirect_request.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/auth/presentation/widgets/google_logo.dart';
 import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_button_web.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -81,7 +82,7 @@ void main() {
   testWidgets('deslogado: botão com rótulo l10n e logo', (tester) async {
     await pump(tester, browser: FakeOidcBrowser());
     expect(find.text(pt.authSignInWithGoogle), findsOneWidget);
-    expect(find.byType(CustomPaint), findsWidgets);
+    expect(find.byType(GoogleLogo), findsOneWidget);
   });
 
   testWidgets('tap navega para o Google com a rota atual no state', (

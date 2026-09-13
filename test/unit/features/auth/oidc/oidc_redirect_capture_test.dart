@@ -14,6 +14,27 @@ void main() {
     returnTo: '/perfil',
   );
 
+  test('hash qualquer sem state: não toca em storage nem URL', () {
+    final browser = FakeOidcBrowser(
+      fragment: 'foo',
+      storedRequest: request.toJson(),
+    );
+    expect(captureOidcRedirectCallback(browser), isNull);
+    expect(browser.clearRequestCalls, 0);
+    expect(browser.replacedHashes, isEmpty);
+  });
+
+  test('sessionStorage bloqueado (SecurityError do Safari): retorna null, sem quebrar o boot', () {
+    final token = fakeIdToken(nonce: 'n-1');
+    final browser = FakeOidcBrowser(
+      fragment: 'id_token=$token&state=$state',
+      throwOnRead: true,
+    );
+
+    expect(captureOidcRedirectCallback(browser), isNull);
+    expect(browser.replacedHashes, isEmpty);
+  });
+
   test('hash de rota normal: não toca em storage nem URL', () {
     final browser = FakeOidcBrowser(
       fragment: '/leitor?id=1',

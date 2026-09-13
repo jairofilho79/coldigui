@@ -48,6 +48,17 @@ void main() {
       );
       expect(r, isA<OidcCallbackSuccess>());
     });
+
+    test('returnTo com open redirect no state cai para / (D8)', () {
+      final token = fakeIdToken(nonce: 'n-1');
+      final evilState = OidcRedirectRequest.encodeState(
+        csrf: 'c-1',
+        returnTo: 'https://evil.com',
+      );
+      final r = parse('id_token=$token&state=$evilState');
+      expect(r, isA<OidcCallbackSuccess>());
+      expect(r!.returnTo, '/');
+    });
   });
 
   group('cancelamento', () {
@@ -131,6 +142,16 @@ void main() {
       expect(
         OidcCallbackParser.sanitizeReturnTo('/materiais-favoritos'),
         '/materiais-favoritos',
+      );
+      // RFC 3986 pchar/query — vírgula, `+`, `:` e parênteses de querystrings
+      // reais (D8 alargado).
+      expect(
+        OidcCallbackParser.sanitizeReturnTo('/listas/publicas?q=ana,maria'),
+        '/listas/publicas?q=ana,maria',
+      );
+      expect(
+        OidcCallbackParser.sanitizeReturnTo('/leitor?t=a+b:c(1)'),
+        '/leitor?t=a+b:c(1)',
       );
     });
 

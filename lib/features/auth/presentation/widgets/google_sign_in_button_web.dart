@@ -54,12 +54,21 @@ class GoogleSignInButton extends ConsumerWidget {
     );
   }
 
-  /// `returnTo` é a rota atual — sem router (testes de tela isolada) cai em `/`.
+  /// `returnTo` é a rota atual — sem router (testes de tela isolada) cai em
+  /// `/`. `GoRouterState.of` também pode não achar um `GoRoute` no contexto
+  /// mesmo com o router presente (botão reusado fora do builder de uma rota,
+  /// ex.: um diálogo no navigator raiz) — nesse caso cai em `/` também, em
+  /// vez de derrubar o login por um detalhe de onde o botão está montado.
   void _startRedirect(BuildContext context, WidgetRef ref) {
-    final router = GoRouter.maybeOf(context);
-    final returnTo = router == null
-        ? '/'
-        : GoRouterState.of(context).uri.toString();
+    String returnTo = '/';
+    if (GoRouter.maybeOf(context) != null) {
+      try {
+        returnTo = GoRouterState.of(context).uri.toString();
+      } on Object {
+        // Sem rota no contexto imediato (router presente, mas nenhum
+        // `GoRoute` — o caso acima) — mantém `/`.
+      }
+    }
     ref
         .read(authStateProvider.notifier)
         .startGoogleRedirect(returnTo: returnTo);

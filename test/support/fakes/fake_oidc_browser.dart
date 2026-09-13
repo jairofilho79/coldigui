@@ -8,6 +8,7 @@ class FakeOidcBrowser implements OidcBrowser {
     this.fragment = '',
     this.storedRequest,
     bool standalone = false,
+    this.throwOnRead = false,
   }) : origin = origin ?? Uri.parse('https://v2.plpcg.com'),
        isStandaloneDisplay = standalone;
 
@@ -23,8 +24,16 @@ class FakeOidcBrowser implements OidcBrowser {
   final List<String> replacedHashes = [];
   int clearRequestCalls = 0;
 
+  /// Simula `sessionStorage` bloqueado (Safari "block all cookies"): até a
+  /// leitura lança, não só a escrita.
+  final bool throwOnRead;
+
   @override
-  String? readRequest() => storedRequest;
+  String? readRequest() {
+    if (throwOnRead) throw StateError('sessionStorage bloqueado');
+    return storedRequest;
+  }
+
   @override
   void writeRequest(String json) => storedRequest = json;
   @override

@@ -165,8 +165,22 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
           rethrow;
         }
       case OidcCallbackInvalid(:final reason, :final isContextMismatch):
-        if (isContextMismatch) throw OidcContextMismatchException(reason);
-        throw StateError('oidc_$reason');
+        if (isContextMismatch) {
+          // Botão Voltar depois do login re-dispara o callback já consumido
+          // (request/csrf não batem mais) sobre uma aba que já tem sessão
+          // válida — spec D9/D15. Só é de fato um mismatch de contexto (e
+          // vale a pena pedir para entrar de novo) quando não há sessão
+          // guardada; havendo uma, ela é o resultado certo.
+          if (ref.read(authSessionStoreProvider).read() == null) {
+            throw OidcContextMismatchException(reason);
+          }
+          debugPrint(
+            '[auth] callback OIDC em contexto sem request ($reason) — '
+            'mantendo a sessão armazenada',
+          );
+        } else {
+          throw StateError('oidc_$reason');
+        }
       case OidcCallbackCancelled() || null:
         break;
     }

@@ -46,7 +46,12 @@ class OidcContextMismatchException implements Exception {
 }
 
 abstract final class OidcCallbackParser {
-  static final RegExp _returnToPattern = RegExp(r'^/[A-Za-z0-9/_\-?=&%.]*$');
+  // RFC 3986 pchar/query, sem `#` (fim do fragment) nem espaço — larga o
+  // suficiente para querystrings reais (`,`, `+`, `:`, `()` etc.) mas sem
+  // abrir mão de continuar sendo só um caminho do hash router (D8).
+  static final RegExp _returnToPattern = RegExp(
+    r"^/[A-Za-z0-9/_\-?=&%.+,'():@!*~;$]*$",
+  );
 
   /// `fragment` é `location.hash` sem o `#`. Devolve `null` quando não é um
   /// callback do Google — rota normal do hash router (`/leitor?...`), vazio
