@@ -31,6 +31,12 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
   /// Grava localmente com `updatedAt = agora`, marca `pendingPush` e pede
   /// sync. Deslogado: no-op. Lista inválida (>5, duplicata) lança
   /// [ArgumentError] antes de tocar o estado.
+  ///
+  /// O estado é otimista (antes do `await`) e o notifier de sync é capturado
+  /// antes também: o Riverpod 3 recria este notifier num `invalidate` — se
+  /// a sync em curso invalidar durante o `write`, `ref` já não está montado
+  /// e um `return` aqui deixaria o documento pendente sem ninguém pedir o
+  /// push.
   Future<void> save(List<String> kindIds) async {
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
@@ -39,19 +45,18 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
       updatedAt: DateTime.now().toUtc(),
       pendingPush: true,
     );
-    await ref
-        .read(materialKindPrefsRepositoryProvider)
-        .write(user.googleSub, next);
-    if (!ref.mounted) return;
+    final repository = ref.read(materialKindPrefsRepositoryProvider);
+    final syncNotifier = ref.read(materialKindPrefsSyncProvider.notifier);
     state = AsyncData(next);
-    unawaited(_syncQuietly());
+    await repository.write(user.googleSub, next);
+    unawaited(_syncQuietly(syncNotifier));
   }
 
   /// A sync após o save é oportunista: falha vira log, nunca erro na tela —
   /// o documento já está local com `pendingPush` e sobe na próxima rodada.
-  Future<void> _syncQuietly() async {
+  Future<void> _syncQuietly(MaterialKindPrefsSyncNotifier syncNotifier) async {
     try {
-      await ref.read(materialKindPrefsSyncProvider.notifier).sync();
+      await syncNotifier.sync();
     } on Object catch (e) {
       debugPrint('[material-kind-prefs] sync após save falhou: $e');
     }

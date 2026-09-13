@@ -84,7 +84,11 @@ class _FavoriteMaterialKindsScreenState
     final prefsAsync = ref.watch(materialKindPrefsProvider);
     final kindsAsync = ref.watch(coldigomMaterialKindsProvider);
     final syncState = ref.watch(materialKindPrefsSyncProvider);
-    final prefs = prefsAsync.asData?.value ?? MaterialKindPrefs.empty;
+    // `.value` (não `.asData?.value`): quando o provider recarrega porque o
+    // auth reemitiu (refresh de token), o Riverpod 3 entrega `AsyncLoading`
+    // com o valor anterior — `asData` seria `null` e a lista colapsaria para
+    // «Nenhum favorito ainda» por um frame (mesma correção do rank provider).
+    final prefs = prefsAsync.value ?? MaterialKindPrefs.empty;
     final kinds = kindsAsync.asData?.value ?? const <ColdigomMaterialKindDto>[];
     final labels = {for (final kind in kinds) kind.id: kind.name};
     final chosen = prefs.kindIds;
@@ -99,8 +103,12 @@ class _FavoriteMaterialKindsScreenState
                 ).contains(normalizedQuery)))
           kind,
     ];
+    // Online, cada toque fica `pendingPush` só pelos ms até o push: a linha
+    // só aparece se a rodada não está em curso (ou já falhou), senão piscaria
+    // a cada edição.
     final showSyncPending =
-        prefs.pendingPush || syncState.lastErrorCause != null;
+        (prefs.pendingPush && !syncState.isSyncing) ||
+        syncState.lastErrorCause != null;
 
     return CustomScrollView(
       slivers: [
@@ -235,7 +243,10 @@ class _FavoriteMaterialKindsScreenState
                   padding: EdgeInsets.all(16),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-              if (kindsAsync.hasError)
+              // O Riverpod 3 guarda o erro anterior durante o retry
+              // automático (com backoff): `isLoading && hasError` é estado
+              // real — nessa hora fica só o spinner, sem a linha de retry.
+              if (kindsAsync.hasError && !kindsAsync.isLoading)
                 ListTile(
                   leading: const Icon(Icons.refresh, color: AppColors.title),
                   title: Text(l10n.favoriteMaterialKindsLoadError),

@@ -10,6 +10,11 @@ enum MaterialKindPrefsSyncOutcome {
   conflictAdopted,
   noop,
   skipped,
+
+  /// Um `save` mais novo entrou enquanto a rede rodava: a rodada não gravou
+  /// nada (mesmo que o PUT tenha subido o snapshot antigo) e o local segue
+  /// `pendingPush` para a próxima rodada — que o notifier já agenda.
+  superseded,
 }
 
 /// Resultado de [SyncMaterialKindPrefs]. Erros ficam **crus**: quem traduz é a
@@ -52,6 +57,11 @@ typedef PutMaterialKindPrefs =
 /// 1. Se o remoto existe e é mais novo que o local (ou não há local), adota.
 /// 2. Senão, se o local está `pendingPush`, faz PUT; `409` adota o remoto.
 /// Um pull que falha não impede o push — o erro volta no resultado.
+///
+/// Toda gravação passa por [_writeUnlessSuperseded]: o `save` da tela não
+/// espera a rodada, então um toque que cai entre o `read` inicial e o
+/// `write` final é mais novo que tudo que a rodada viu e não pode ser
+/// sobrescrito (nem `pendingPush: false` sem ter subido).
 class SyncMaterialKindPrefs {
   SyncMaterialKindPrefs(this._repository, this._fetch, this._put);
 
@@ -78,9 +88,15 @@ class SyncMaterialKindPrefs {
 
     if (remote != null &&
         (local == null || remote.updatedAt.isAfter(local.updatedAt))) {
-      await _repository.write(sub, remote.copyWith(pendingPush: false));
+      final written = await _writeUnlessSuperseded(
+        sub,
+        snapshot: local,
+        next: remote.copyWith(pendingPush: false),
+      );
       return MaterialKindPrefsSyncResult(
-        MaterialKindPrefsSyncOutcome.pulled,
+        written
+            ? MaterialKindPrefsSyncOutcome.pulled
+            : MaterialKindPrefsSyncOutcome.superseded,
         pullError: pullError,
       );
     }
@@ -94,18 +110,27 @@ class SyncMaterialKindPrefs {
 
     try {
       final saved = await _put(idToken: idToken, prefs: local);
-      await _repository.write(sub, saved.copyWith(pendingPush: false));
+      final written = await _writeUnlessSuperseded(
+        sub,
+        snapshot: local,
+        next: saved.copyWith(pendingPush: false),
+      );
       return MaterialKindPrefsSyncResult(
-        MaterialKindPrefsSyncOutcome.pushed,
+        written
+            ? MaterialKindPrefsSyncOutcome.pushed
+            : MaterialKindPrefsSyncOutcome.superseded,
         pullError: pullError,
       );
     } on MaterialKindPrefsConflict catch (conflict) {
-      await _repository.write(
+      final written = await _writeUnlessSuperseded(
         sub,
-        conflict.remote.copyWith(pendingPush: false),
+        snapshot: local,
+        next: conflict.remote.copyWith(pendingPush: false),
       );
       return MaterialKindPrefsSyncResult(
-        MaterialKindPrefsSyncOutcome.conflictAdopted,
+        written
+            ? MaterialKindPrefsSyncOutcome.conflictAdopted
+            : MaterialKindPrefsSyncOutcome.superseded,
         pullError: pullError,
       );
     } on Object catch (e) {
@@ -116,5 +141,28 @@ class SyncMaterialKindPrefs {
         pushError: e,
       );
     }
+  }
+
+  /// Grava [next] só se o documento local ainda é o [snapshot] que a rodada
+  /// leu no início (ou algo com o mesmo `updatedAt`); `false` quando um
+  /// `save` mais novo chegou no meio — esse fica como está, `pendingPush`,
+  /// e sobe na rodada seguinte.
+  Future<bool> _writeUnlessSuperseded(
+    String sub, {
+    required MaterialKindPrefs? snapshot,
+    required MaterialKindPrefs next,
+  }) async {
+    final current = await _repository.read(sub);
+    final superseded =
+        current != null &&
+        (snapshot == null || current.updatedAt.isAfter(snapshot.updatedAt));
+    if (superseded) {
+      debugPrint(
+        '[material-kind-prefs] save mais novo durante a sync; mantido',
+      );
+      return false;
+    }
+    await _repository.write(sub, next);
+    return true;
   }
 }

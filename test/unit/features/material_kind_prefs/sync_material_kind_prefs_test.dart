@@ -146,4 +146,114 @@ void main() {
     expect(result.outcome, MaterialKindPrefsSyncOutcome.noop);
     expect(repo.map, isEmpty);
   });
+
+  // Um `save` que cai no meio da rodada (entre o `read` inicial e o `write`
+  // final) é mais novo que tudo que a rodada conhece: ela não pode
+  // sobrescrevê-lo — nem com o que acabou de subir, nem com o remoto.
+  group('save durante a rede em voo', () {
+    test(
+      'durante o fetch, no ramo de push: mantém o local mais novo',
+      () async {
+        repo.map['s'] = _doc(['a'], 5, pending: true);
+        final sync = SyncMaterialKindPrefs(
+          repo,
+          (_) async {
+            repo.map['s'] = _doc(['a', 'b'], 6, pending: true);
+            return null;
+          },
+          ({required idToken, required prefs}) async {
+            putCalls.add(prefs);
+            return prefs.copyWith(pendingPush: false);
+          },
+        );
+
+        final result = await sync(idToken: 't', sub: 's');
+
+        expect(putCalls.single.kindIds, ['a']);
+        expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
+        expect(result.changedLocal, isFalse);
+        expect(repo.map['s']!.kindIds, ['a', 'b']);
+        expect(repo.map['s']!.pendingPush, isTrue);
+      },
+    );
+
+    test('durante o fetch, no ramo de pull: não adota o remoto', () async {
+      repo.map['s'] = _doc(['a'], 1);
+      final sync = SyncMaterialKindPrefs(
+        repo,
+        (_) async {
+          repo.map['s'] = _doc(['b'], 9, pending: true);
+          return _doc(['remoto'], 5);
+        },
+        ({required idToken, required prefs}) async {
+          putCalls.add(prefs);
+          return prefs.copyWith(pendingPush: false);
+        },
+      );
+
+      final result = await sync(idToken: 't', sub: 's');
+
+      expect(putCalls, isEmpty);
+      expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
+      expect(result.changedLocal, isFalse);
+      expect(repo.map['s']!.kindIds, ['b']);
+      expect(repo.map['s']!.pendingPush, isTrue);
+    });
+
+    test('sem local, durante o fetch: o save novo vence o remoto', () async {
+      final sync = SyncMaterialKindPrefs(
+        repo,
+        (_) async {
+          repo.map['s'] = _doc(['b'], 9, pending: true);
+          return _doc(['remoto'], 5);
+        },
+        ({required idToken, required prefs}) async {
+          putCalls.add(prefs);
+          return prefs.copyWith(pendingPush: false);
+        },
+      );
+
+      final result = await sync(idToken: 't', sub: 's');
+
+      expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
+      expect(repo.map['s']!.kindIds, ['b']);
+      expect(repo.map['s']!.pendingPush, isTrue);
+    });
+
+    test('durante o PUT que dá 409: não adota o remoto do conflito', () async {
+      repo.map['s'] = _doc(['a'], 5, pending: true);
+      final sync = SyncMaterialKindPrefs(repo, (_) async => null, ({
+        required idToken,
+        required prefs,
+      }) async {
+        repo.map['s'] = _doc(['a', 'b'], 12, pending: true);
+        throw MaterialKindPrefsConflict(_doc(['ganhou'], 10));
+      });
+
+      final result = await sync(idToken: 't', sub: 's');
+
+      expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
+      expect(result.changedLocal, isFalse);
+      expect(repo.map['s']!.kindIds, ['a', 'b']);
+      expect(repo.map['s']!.pendingPush, isTrue);
+    });
+
+    test('save com o mesmo updatedAt não conta como mais novo', () async {
+      repo.map['s'] = _doc(['a'], 5, pending: true);
+      final sync = SyncMaterialKindPrefs(
+        repo,
+        (_) async {
+          repo.map['s'] = _doc(['a'], 5, pending: true);
+          return null;
+        },
+        ({required idToken, required prefs}) async =>
+            prefs.copyWith(pendingPush: false),
+      );
+
+      final result = await sync(idToken: 't', sub: 's');
+
+      expect(result.outcome, MaterialKindPrefsSyncOutcome.pushed);
+      expect(repo.map['s']!.pendingPush, isFalse);
+    });
+  });
 }

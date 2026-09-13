@@ -31,6 +31,8 @@ void main() {
     required AuthNotifier Function() auth,
     MaterialKindPrefs? remote,
     StreamController<bool>? connectivity,
+    // Segura o `fetch` até completar — simula uma rodada em voo.
+    Completer<void>? fetchGate,
   }) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -46,6 +48,7 @@ void main() {
             ref.watch(materialKindPrefsRepositoryProvider),
             (_) async {
               calls.add('fetch');
+              if (fetchGate != null) await fetchGate.future;
               return remote;
             },
             ({required idToken, required prefs}) async {
@@ -94,6 +97,45 @@ void main() {
       MaterialKindPrefsSyncOutcome.skipped,
     );
   });
+
+  test(
+    'sync() durante rodada em voo devolve a mesma e agenda uma rodada extra',
+    () async {
+      final gate = Completer<void>();
+      final (container, calls) = await make(
+        auth: _LoggedIn.new,
+        fetchGate: gate,
+      );
+      container.listen(materialKindPrefsSyncProvider, (_, _) {});
+      final notifier = container.read(materialKindPrefsSyncProvider.notifier);
+      await container.read(authStateProvider.future);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      // O login abriu a primeira rodada; ela está presa no `fetch`.
+      expect(calls, ['fetch']);
+      expect(container.read(materialKindPrefsSyncProvider).isSyncing, isTrue);
+
+      // Três `save`s rápidos pedem sync com a rodada em voo: dedup (nenhuma
+      // rodada nova agora)…
+      final second = notifier.sync();
+      final third = notifier.sync();
+      final fourth = notifier.sync();
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, ['fetch']);
+
+      gate.complete();
+      final results = await Future.wait([second, third, fourth]);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // …e exatamente UMA rodada extra depois, não três: o que foi salvo
+      // durante a primeira sobe nela.
+      expect(calls, ['fetch', 'fetch']);
+      expect(
+        results.map((r) => r.outcome),
+        everyElement(MaterialKindPrefsSyncOutcome.noop),
+      );
+      expect(container.read(materialKindPrefsSyncProvider).isSyncing, isFalse);
+    },
+  );
 
   test('voltar a ficar online dispara sync com debounce', () async {
     MaterialKindPrefsSyncNotifier.reconnectDebounce = const Duration(

@@ -8,6 +8,7 @@ import 'package:coldigui/features/material_kind_prefs/presentation/providers/col
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,6 +34,19 @@ class _NoopSync extends MaterialKindPrefsSyncNotifier {
   @override
   Future<MaterialKindPrefsSyncResult> sync() async =>
       MaterialKindPrefsSyncResult.skippedAuth;
+}
+
+/// Logado, com um «refresh» de token sob demanda: `materialKindPrefsProvider`
+/// observa o auth, então a emissão nova o recarrega (reload) — no Riverpod 3
+/// isso vira `AsyncLoading` com o valor anterior, e `asData` fica `null`.
+class _RefreshingAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async =>
+      const AuthUser(googleSub: 'sub-1', idToken: 'tok');
+
+  void refreshToken() {
+    state = const AsyncData(AuthUser(googleSub: 'sub-1', idToken: 'tok-2'));
+  }
 }
 
 const _kinds = [
@@ -139,6 +153,32 @@ void main() {
       'k-coro',
     ]);
     expect(stored.pendingPush, isTrue);
+  });
+
+  testWidgets('a lista não some por um frame quando o provider recarrega', (
+    tester,
+  ) async {
+    await pump(tester, auth: _RefreshingAuth.new);
+    await tester.tap(addButtonFor('Coro'));
+    await tester.pumpAndSettle();
+    expect(find.text(pt.favoriteMaterialKindsYours(1, 5)), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(FavoriteMaterialKindsScreen)),
+    );
+    (container.read(authStateProvider.notifier) as _RefreshingAuth)
+        .refreshToken();
+    // Frame a frame (não `pumpAndSettle`): a regressão era visível num só —
+    // a lista colapsava para «Nenhum favorito ainda / 0 de 5» até o reload
+    // terminar.
+    for (var i = 0; i < 4; i++) {
+      await tester.pump();
+      expect(find.text(pt.favoriteMaterialKindsEmpty), findsNothing);
+      expect(find.text(pt.favoriteMaterialKindsYours(0, 5)), findsNothing);
+      expect(find.text(pt.favoriteMaterialKindsYours(1, 5)), findsOneWidget);
+    }
+    await tester.pumpAndSettle();
+    expect(removeButtons(), findsOneWidget);
   });
 
   testWidgets('remover pelo × tira da lista e salva', (tester) async {

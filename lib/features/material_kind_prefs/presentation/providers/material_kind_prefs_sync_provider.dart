@@ -56,6 +56,11 @@ class MaterialKindPrefsSyncNotifier
   static Duration reconnectDebounce = const Duration(seconds: 2);
 
   Future<MaterialKindPrefsSyncResult>? _inFlight;
+
+  /// `sync()` chegou com uma rodada em voo: ela já leu o local e não vai ver
+  /// o que foi salvo depois, então uma rodada extra fica agendada para o
+  /// `finally` — uma só, por mais pedidos que cheguem nesse meio-tempo.
+  bool _rerunRequested = false;
   String? _lastSyncedSub;
   Timer? _reconnectTimer;
 
@@ -98,7 +103,10 @@ class MaterialKindPrefsSyncNotifier
     if (user == null) return MaterialKindPrefsSyncResult.skippedAuth;
 
     final existing = _inFlight;
-    if (existing != null) return existing;
+    if (existing != null) {
+      _rerunRequested = true;
+      return existing;
+    }
 
     final future = _run(user.idToken, user.googleSub);
     _inFlight = future;
@@ -106,6 +114,12 @@ class MaterialKindPrefsSyncNotifier
       return await future;
     } finally {
       _inFlight = null;
+      if (_rerunRequested) {
+        _rerunRequested = false;
+        // Coalesce em vez de descartar: sem isso, um `save` durante a rodada
+        // ficaria `pendingPush` até o próximo login ou volta da rede.
+        unawaited(sync());
+      }
     }
   }
 
