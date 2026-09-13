@@ -268,7 +268,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                       l10n.audioPlaybackError,
                       textAlign: TextAlign.center,
                       style: AppTypography.label.copyWith(
-                        color: AppColors.offlineMissing,
+                        color: AppColors.title,
                       ),
                     ),
                     Center(

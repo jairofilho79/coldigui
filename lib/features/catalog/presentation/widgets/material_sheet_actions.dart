@@ -57,7 +57,7 @@ class MaterialAddTrailing extends StatelessWidget {
         child: CircleActionButton(
           icon: Icons.close,
           onPressed: onRemove,
-          backgroundColor: AppColors.offlineMissing,
+          backgroundColor: AppColors.title,
           iconColor: AppColors.textLight,
         ),
       );

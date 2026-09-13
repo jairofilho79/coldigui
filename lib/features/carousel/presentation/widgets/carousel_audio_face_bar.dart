@@ -147,7 +147,7 @@ class CarouselAudioFaceBar extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.label.copyWith(
-                              color: AppColors.offlineMissing,
+                              color: AppColors.title,
                               fontSize: 10,
                               height: 1.0,
                             ),

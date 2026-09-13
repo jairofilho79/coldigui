@@ -30,7 +30,7 @@ class ColdigomLibraryFilters extends ConsumerWidget {
       ),
       error: (_, _) => Text(
         l10n.coldigomLoadError,
-        style: AppTypography.body.copyWith(color: AppColors.offlineMissing),
+        style: AppTypography.body.copyWith(color: AppColors.title),
       ),
       data: (facets) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,

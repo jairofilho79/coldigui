@@ -103,7 +103,7 @@ class MiniPlayerBar extends ConsumerWidget {
                         message: l10n.audioPlaybackError,
                         child: Icon(
                           Icons.error_outline,
-                          color: AppColors.offlineMissing,
+                          color: AppColors.title,
                           size: 18,
                         ),
                       ),

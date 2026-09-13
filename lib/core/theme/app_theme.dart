@@ -21,7 +21,7 @@ abstract final class AppTheme {
       onSecondary: AppColors.title,
       surface: AppColors.card,
       onSurface: AppColors.title,
-      error: AppColors.offlineMissing,
+      error: AppColors.title,
       onError: AppColors.textLight,
     );
 

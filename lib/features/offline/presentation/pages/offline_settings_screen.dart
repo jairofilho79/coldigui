@@ -409,7 +409,7 @@ class _OfflineContent extends StatelessWidget {
                     Text(
                       l10n.offlineStatsTotalMissing(scopedMissing),
                       style: AppTypography.body.copyWith(
-                        color: AppColors.offlineMissing,
+                        color: AppColors.title,
                       ),
                     ),
                   ] else if (!cacheStatus.stats.missingCountReliable &&
@@ -513,7 +513,7 @@ class _OfflineContent extends StatelessWidget {
           child: TextButton(
             onPressed: maintenanceBusy || !canClearCache ? null : onClearCache,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.offlineMissing,
+              foregroundColor: AppColors.title,
             ),
             child: Text(l10n.offlineClearCache),
           ),
