@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -37,11 +38,14 @@ class GestureReaderScreen extends ConsumerStatefulWidget {
   final Map<String, String> queryParams;
 
   @override
-  ConsumerState<GestureReaderScreen> createState() => _GestureReaderScreenState();
+  ConsumerState<GestureReaderScreen> createState() =>
+      _GestureReaderScreenState();
 }
 
 class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
-  late final FocusNode _keyboardFocusNode = FocusNode(debugLabel: 'gestureReaderKeys');
+  late final FocusNode _keyboardFocusNode = FocusNode(
+    debugLabel: 'gestureReaderKeys',
+  );
   final _documentViewKey = GlobalKey<GestureDocumentViewState>();
   var _louvorNavigationInProgress = false;
   var _prefetched = false;
@@ -49,6 +53,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
   @override
   void initState() {
     super.initState();
+    clearSnackbarsOnEnter(context);
     _schedulePublishRouteParams();
   }
 
@@ -172,7 +177,8 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     final fontSize = ref.watch(gestureReaderFontSizeProvider);
     final docAsync = ref.watch(gestureDocumentProvider(_r2Key));
     final dictionary =
-        ref.watch(gestureDictionaryProvider).asData?.value ?? GestureDictionary.empty;
+        ref.watch(gestureDictionaryProvider).asData?.value ??
+        GestureDictionary.empty;
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -227,7 +233,12 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                                 fontSize: fontSize,
                                 onCardTap: flat.isEmpty
                                     ? null
-                                    : (index) => _openFocus(flat, dictionary, index, fontSize),
+                                    : (index) => _openFocus(
+                                        flat,
+                                        dictionary,
+                                        index,
+                                        fontSize,
+                                      ),
                               ),
                             ),
                           ],
@@ -297,13 +308,17 @@ class _GestureReaderToolbar extends ConsumerWidget {
             style: style,
             tooltip: l10n.gesturesReaderDecreaseFont,
             icon: const Icon(Icons.text_decrease),
-            onPressed: GestureReaderFontSize.canDecrease(fontSize) ? size.decrease : null,
+            onPressed: GestureReaderFontSize.canDecrease(fontSize)
+                ? size.decrease
+                : null,
           ),
           IconButton(
             style: style,
             tooltip: l10n.gesturesReaderIncreaseFont,
             icon: const Icon(Icons.text_increase),
-            onPressed: GestureReaderFontSize.canIncrease(fontSize) ? size.increase : null,
+            onPressed: GestureReaderFontSize.canIncrease(fontSize)
+                ? size.increase
+                : null,
           ),
           IconButton(
             style: style,

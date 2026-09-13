@@ -8,6 +8,7 @@ import '../../../../core/layout/breakpoints.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
@@ -57,6 +58,7 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
   @override
   void initState() {
     super.initState();
+    clearSnackbarsOnEnter(context);
     _schedulePublishRouteParams();
   }
 

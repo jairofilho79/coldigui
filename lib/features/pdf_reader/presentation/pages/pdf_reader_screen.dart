@@ -80,6 +80,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
   @override
   void initState() {
     super.initState();
+    clearSnackbarsOnEnter(context);
     _schedulePublishRouteParams();
   }
 

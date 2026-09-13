@@ -39,6 +39,11 @@ abstract final class AppTheme {
             platform: FadeForwardsPageTransitionsBuilder(),
         },
       ),
+      // Flutuante também para os `SnackBar` montados direto (fora de
+      // `showAppSnackbar`) — mesma família visual (auditoria P8).
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       textTheme: AppTypography.textTheme(AppColors.title),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.background,
