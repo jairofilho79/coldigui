@@ -4,6 +4,7 @@ import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
+import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../catalog/presentation/providers/pdf_ids_by_short_id_provider.dart';
 import '../../domain/ports/share_link_shortener.dart';
@@ -119,6 +120,7 @@ final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
   return GeneratePlaylistShareUrl(
     ref.watch(playlistRepositoryProvider),
     shortener: ref.watch(shareLinkShortenerProvider),
+    shortIdOf: (pdfId) => ref.read(louvoresByPdfIdProvider)[pdfId]?.shortId,
   );
 });
 

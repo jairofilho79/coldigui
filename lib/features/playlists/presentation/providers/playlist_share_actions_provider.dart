@@ -10,6 +10,7 @@ import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
+import '../../domain/entities/playlist_share_link.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
@@ -135,9 +136,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
   ) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final link = await _generateUrl(shareContext.playlistId);
     await shareTextFn(
-      url,
+      link.url,
       subject: shareContext.nome,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -178,7 +179,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final link = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
 
@@ -192,7 +193,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
 
     final message = l10n.playlistShareLinkWithLeafletMessage(
       shareContext.nome,
-      url,
+      link.url,
     );
     await shareFilesFn(
       [xFile],
@@ -233,18 +234,18 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     final continueShare = await whatsAppDialogFn(context);
     if (!continueShare || !context.mounted) return false;
 
-    final url = await _generateUrl(shareContext.playlistId);
+    final link = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
 
     await shareTextFn(
-      url,
+      link.url,
       subject: shareContext.nome,
       sharePositionOrigin: sharePositionOrigin,
     );
     return true;
   }
 
-  Future<String> _generateUrl(String playlistId) {
+  Future<PlaylistShareLink> _generateUrl(String playlistId) {
     // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
     // longa, que não precisa de conta para ser resolvida no futuro.
     final authed = ref.read(authStateProvider).asData?.value != null;

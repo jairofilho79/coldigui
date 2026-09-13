@@ -130,9 +130,10 @@ void main() {
       shareOrigin: origin,
     );
 
-    final url = await useCase(playlistId: 'p1');
-    expect(url, contains('sharepdfs='));
-    expect(url, contains('sharename='));
+    final link = await useCase(playlistId: 'p1');
+    expect(link.isShort, isFalse);
+    expect(link.url, contains('sharepdfs='));
+    expect(link.url, contains('sharename='));
   });
 
   test('emite shareitems com a ordem intercalada da playlist', () async {
@@ -153,8 +154,8 @@ void main() {
       shareOrigin: origin,
     );
 
-    final url = await useCase(playlistId: 'p1');
-    final params = parsePlaylistShareParams(Uri.parse(url));
+    final link = await useCase(playlistId: 'p1');
+    final params = parsePlaylistShareParams(Uri.parse(link.url));
     expect(params!.entries, entries);
   });
 
@@ -208,19 +209,19 @@ void main() {
       final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
       final useCase = useCaseWith(shortener);
 
-      final url = await useCase(playlistId: 'p1');
+      final link = await useCase(playlistId: 'p1');
 
       expect(shortener.callCount, 0);
-      expect(url, contains('sharepdfs='));
+      expect(link.url, contains('sharepdfs='));
     });
 
     test('short: true com shortener ok devolve a URL curta', () async {
       final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
       final useCase = useCaseWith(shortener);
 
-      final url = await useCase(playlistId: 'p1', short: true);
+      final link = await useCase(playlistId: 'p1', short: true);
 
-      expect(url, 'https://plpcg.com/l/abc1234');
+      expect(link.url, 'https://plpcg.com/l/abc1234');
       expect(shortener.callCount, 1);
       expect(shortener.lastQuery, contains('sharepdfs='));
       expect(shortener.lastQuery, isNot(contains('?')));
@@ -230,18 +231,83 @@ void main() {
       final shortener = _FakeShortener.throwing(StateError('boom'));
       final useCase = useCaseWith(shortener);
 
-      final url = await useCase(playlistId: 'p1', short: true);
+      final link = await useCase(playlistId: 'p1', short: true);
 
-      expect(url, contains('sharepdfs='));
-      expect(url, startsWith(origin));
+      expect(link.url, contains('sharepdfs='));
+      expect(link.url, startsWith(origin));
     });
 
     test('short: true sem shortener configurado devolve a URL longa', () async {
       final useCase = useCaseWith(null);
 
-      final url = await useCase(playlistId: 'p1', short: true);
+      final link = await useCase(playlistId: 'p1', short: true);
 
-      expect(url, contains('sharepdfs='));
+      expect(link.url, contains('sharepdfs='));
+    });
+  });
+
+  group('formato curto (D7)', () {
+    final repo = _FakePlaylistRepository({
+      'p1': SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Culto de domingo',
+        entries: const [
+          PlaylistEntry(id: 'pdf-b', kind: MaterialKind.pdf),
+          PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+        ],
+        createdAt: DateTime(2026, 1, 1),
+      ),
+      'mista': SavedPlaylist(
+        playlistId: 'mista',
+        nome: 'Mista',
+        entries: const [
+          PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
+          PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+        ],
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    });
+    String? lookup(String pdfId) =>
+        const {'pdf-a': '0000', 'pdf-b': '1a2f'}[pdfId];
+
+    test('todas as entradas PDF com shortId → link curto (vetor do contrato)', () async {
+      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin, shortIdOf: lookup);
+      final link = await useCase(playlistId: 'p1');
+      expect(link.isShort, isTrue);
+      expect(link.url, 'https://plpcg.com/?s=1a2f-0000&n=Culto%20de%20domingo');
+    });
+
+    test('lista com áudio → formato longo', () async {
+      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin, shortIdOf: lookup);
+      final link = await useCase(playlistId: 'mista');
+      expect(link.isShort, isFalse);
+      expect(link.url, contains('shareitems='));
+    });
+
+    test('PDF sem shortId no catálogo → formato longo', () async {
+      final useCase = GeneratePlaylistShareUrl(
+        repo, shareOrigin: origin, shortIdOf: (id) => id == 'pdf-a' ? '0000' : null,
+      );
+      final link = await useCase(playlistId: 'p1');
+      expect(link.isShort, isFalse);
+    });
+
+    test('sem lookup (shortIdOf null) → formato longo', () async {
+      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin);
+      expect((await useCase(playlistId: 'p1')).isShort, isFalse);
+    });
+
+    test('short: true com link curto NÃO chama o encurtador /l/', () async {
+      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc');
+      final useCase = GeneratePlaylistShareUrl(
+        repo,
+        shareOrigin: origin,
+        shortIdOf: lookup,
+        shortener: shortener,
+      );
+      final link = await useCase(playlistId: 'p1', short: true);
+      expect(link.isShort, isTrue);
+      expect(shortener.callCount, 0);
     });
   });
 }

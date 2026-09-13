@@ -484,15 +484,15 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     try {
       final generateUrl = ref.read(generatePlaylistShareUrlProvider);
       playlistShareDebugLog('sharePlaylist: gerando URL…');
-      final url = await generateUrl(playlistId: playlistId);
-      playlistShareDebugLog('sharePlaylist: URL gerada ($url)');
+      final link = await generateUrl(playlistId: playlistId);
+      playlistShareDebugLog('sharePlaylist: URL gerada (${link.url})');
       final shareFn = share ?? _defaultSharePlaylistUrl;
       playlistShareDebugLog(
         'sharePlaylist: abrindo share sheet nativo '
         '(origin=$sharePositionOrigin)…',
       );
       await shareFn(
-        url,
+        link.url,
         subject: subject,
         sharePositionOrigin: sharePositionOrigin,
       );
