@@ -1,5 +1,6 @@
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
@@ -10,7 +11,6 @@ import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart'
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
@@ -32,8 +32,9 @@ Louvor _louvor({required String categoria}) => Louvor.fromManifest(
   groupId: '001:aleluia',
 );
 
-/// Grupo com dois materiais: o toque abre o sheet, sem resolver PDF nenhum —
-/// é o caminho mais barato para provar que o Enter faz o mesmo que o dedo.
+/// Grupo com dois materiais: se algo abrisse o card, o sheet apareceria com
+/// «Cifra»/«Partitura» sem resolver PDF nenhum — prova barata de que o Enter
+/// não abre nada.
 LouvorGroup _multiMaterialGroup() => LouvorGroup.fromLouvores([
   _louvor(categoria: 'Partitura'),
   _louvor(categoria: 'Cifra'),
@@ -160,33 +161,20 @@ void main() {
     expect(tester.widget<TextField>(field).controller!.text, isEmpty);
   });
 
-  testWidgets('Enter na busca abre o primeiro resultado', (tester) async {
+  testWidgets('Enter na busca não abre resultado nenhum', (tester) async {
     final prefs = await SharedPreferences.getInstance();
     await _pumpHome(tester, prefs: prefs, results: [_multiMaterialGroup()]);
 
     await tester.enterText(find.byType(TextField), 'aleluia');
     await tester.pumpAndSettle();
 
-    // O sheet de materiais ainda não existe antes do Enter.
+    // Abrir o primeiro card no Enter parecia produtividade, mas na maioria
+    // das vezes o usuário quer outro card da lista — o Enter só confirma a
+    // busca, e o sheet de materiais continua fechado.
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
     expect(find.text('Cifra'), findsNothing);
-
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Cifra'), findsOneWidget);
-    expect(find.text('Partitura'), findsOneWidget);
-  });
-
-  testWidgets('Enter sem resultados não quebra', (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    await _pumpHome(tester, prefs: prefs);
-
-    await tester.enterText(find.byType(TextField), 'nada');
-    await tester.pumpAndSettle();
-
-    expect(activateFirstHomeSearchResult(), isFalse);
-
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pumpAndSettle();
+    expect(find.text('Partitura'), findsNothing);
   });
 }

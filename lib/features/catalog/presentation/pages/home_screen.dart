@@ -235,8 +235,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           .read(homeSearchQueryProvider.notifier)
                           .setQuery(value);
                     },
-                    // Enter abre o primeiro resultado — mesma ação do toque.
-                    onSubmitted: (_) => activateFirstHomeSearchResult(),
                   ),
                 ),
                 if (manifestAsync.isLoading) ...[

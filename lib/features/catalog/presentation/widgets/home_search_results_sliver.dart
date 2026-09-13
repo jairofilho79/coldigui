@@ -1,5 +1,4 @@
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_coldigom_pagination_controls.dart';
@@ -8,49 +7,6 @@ import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-/// Marca o primeiro resultado para o `Enter` da busca (C1).
-final GlobalKey homeFirstSearchResultKey = GlobalKey(
-  debugLabel: 'homeFirstSearchResult',
-);
-
-/// Abre o primeiro resultado da busca como se o usuário tivesse tocado no card.
-///
-/// Em vez de repetir aqui as regras de abertura (material único vai direto,
-/// vários abrem o sheet, áudio abre o player, Coldigom tem sheet próprio), este
-/// atalho pega o **mesmo** callback que o toque usa — o `onTap` do
-/// [CarouselLouvorChip] montado pelo primeiro [LouvorGroupCard]. Assim a tecla
-/// e o dedo não podem divergir.
-///
-/// Retorna `false` quando não há resultado montado (lista vazia ou rolada para
-/// fora da viewport) ou quando o card está com o toque desabilitado (download
-/// em andamento).
-bool activateFirstHomeSearchResult() {
-  final element = homeFirstSearchResultKey.currentContext as Element?;
-  if (element == null) return false;
-
-  final onTap = _firstChipOnTap(element);
-  if (onTap == null) return false;
-
-  onTap();
-  return true;
-}
-
-VoidCallback? _firstChipOnTap(Element root) {
-  VoidCallback? found;
-  void visit(Element element) {
-    if (found != null) return;
-    final widget = element.widget;
-    if (widget is CarouselLouvorChip) {
-      found = widget.onTap;
-      return;
-    }
-    element.visitChildren(visit);
-  }
-
-  visit(root);
-  return found;
-}
 
 /// O que vai **depois** dos cards, se algo for.
 ///
@@ -113,9 +69,7 @@ class HomeSearchResultsSliver extends ConsumerWidget {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         if (index < results.length) {
-          final card = LouvorGroupCard(group: results[index]);
-          if (index != 0) return card;
-          return KeyedSubtree(key: homeFirstSearchResultKey, child: card);
+          return LouvorGroupCard(group: results[index]);
         }
         switch (trailing!) {
           case HomeSearchTrailingSlot.loading:
