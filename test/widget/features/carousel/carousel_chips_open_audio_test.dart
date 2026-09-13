@@ -130,4 +130,92 @@ void main() {
     // de mentira devolve o `audioId` da query, que é `track.audioId`.
     expect(find.text(track.audioId), findsOneWidget);
   });
+
+  testWidgets(
+    'no leitor, o chip de áudio do sheet «Lista» toca no player em vez de '
+    'trocar a leitura',
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      const pdfEntry = PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf);
+
+      final session = _FakeAudioSession(const AudioPlayerSessionState());
+      // Rotas: `leitor` e `home` como irmãs simples (mesmo padrão de
+      // `carousel_chips_test.dart` — 'modo leitor não oferece mais tocar
+      // áudio (botão removido...)' — para pôr a barra em modo leitor sem o
+      // shell inteiro), mais `audio` para conferir o push do player.
+      final router = GoRouter(
+        initialLocation: RoutePaths.home,
+        routes: [
+          GoRoute(
+            path: RoutePaths.home,
+            builder: (_, _) => const Scaffold(body: CarouselChips()),
+          ),
+          GoRoute(
+            path: RoutePaths.reader,
+            // Precisa ser o `CarouselChips` de verdade (não um placeholder):
+            // é a rota que coloca a própria barra em modo leitor.
+            builder: (_, _) => const Scaffold(body: CarouselChips()),
+          ),
+          GoRoute(
+            path: RoutePaths.audio,
+            builder: (_, state) => Scaffold(
+              body: Text(state.uri.queryParameters['audioId'] ?? ''),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            activePlaylistEditorProvider.overrideWith(
+              () => FakeActiveEditor([pdfEntry, audioEntry]),
+            ),
+            audioPlayerSessionProvider.overrideWith(() => session),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A barra 2 do `CarouselChips` decide o modo (leitor x shell) pela
+      // rota — igual ao app real, o pdf abre com `context.push`, mas aqui
+      // basta simular a rota já aberta.
+      router.go('${RoutePaths.reader}?pdfId=pdf1&titulo=PDF%20aberto');
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(CarouselChips)),
+      );
+      container.read(coldigomAudioTracksCacheProvider.notifier).mergeTracks([
+        track,
+      ]);
+      await tester.pump();
+
+      await tester.tap(find.text('Lista'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining(track.nome));
+      await tester.pumpAndSettle();
+
+      expect(session.playedQueue, isNotNull);
+      expect(
+        session.playedQueue![session.playedStartIndex ?? 0].audioId,
+        track.audioId,
+      );
+      // Foi para o player (empurrou `/audio`) — não tentou trocar o PDF
+      // aberto no leitor (`_replaceReaderWithCarouselItem` desvia áudio para
+      // `_openAudio` antes de chegar no caminho de troca de leitura).
+      expect(find.text(track.audioId), findsOneWidget);
+    },
+  );
 }
