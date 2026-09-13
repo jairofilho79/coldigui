@@ -12,7 +12,8 @@ extension LouvorToCache on Louvor {
     ..categoria = categoria
     ..classificacao = classificacao
     ..pdf = pdf
-    ..groupId = groupId;
+    ..groupId = groupId
+    ..shortId = shortId;
 }
 
 /// Converte documento Isar [LouvorCache] para entidade [Louvor].
@@ -27,5 +28,6 @@ extension LouvorCacheToEntity on LouvorCache {
         pdf: pdf,
         pdfId: pdfId,
         groupId: groupId,
+        shortId: shortId,
       );
 }

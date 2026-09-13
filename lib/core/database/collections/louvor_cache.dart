@@ -21,4 +21,7 @@ class LouvorCache {
 
   /// Agrupamento lógico do louvor — espelha [Louvor.groupId] do D1.
   late String groupId;
+
+  /// Id curto de share — espelha [Louvor.shortId]; `null` quando ausente.
+  String? shortId;
 }
