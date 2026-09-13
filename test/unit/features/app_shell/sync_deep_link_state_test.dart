@@ -103,12 +103,13 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
 void main() {
   late Directory tempDir;
   late Isar isar;
+  late PlaylistRepositoryImpl playlistRepository;
   late SyncDeepLinkState useCase;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('sync_deep_link_');
     isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
-    final playlistRepository = PlaylistRepositoryImpl(
+    playlistRepository = PlaylistRepositoryImpl(
       PlaylistLocalDatasource(isar),
     );
     useCase = SyncDeepLinkState(
@@ -251,4 +252,20 @@ void main() {
       expect(result.reason, isA<StateError>());
     },
   );
+
+  test('importa link curto ?s=&n= resolvendo pelo catálogo', () async {
+    final shortUseCase = SyncDeepLinkState(
+      ImportSharedPlaylistFromUrl(
+        playlistRepository,
+        resolveShortIds: () async => {'0000': 'pdf-a', '1a2f': 'pdf-b'},
+      ),
+    );
+    final result = await shortUseCase(
+      uri: Uri.parse('https://plpcg.com/?s=1a2f-0000&n=Culto'),
+    );
+    expect(result.outcome, SyncDeepLinkOutcome.success);
+    final saved = await playlistRepository.getById(result.playlistId!);
+    expect(saved?.pdfIds, ['pdf-b', 'pdf-a']);
+    expect(saved?.nome, 'Culto');
+  });
 }

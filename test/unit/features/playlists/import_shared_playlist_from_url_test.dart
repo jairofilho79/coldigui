@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
@@ -325,6 +326,64 @@ void main() {
         PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
       ]);
       expect(saved.pdfIds, ['pdf-a', 'pdf-a']);
+    });
+  });
+
+  group('formato curto (shortIds)', () {
+    test('resolve shortId → pdfId na ordem, preservando repetição', () async {
+      resolverMap = {'0000': 'pdf-a', '1a2f': 'pdf-b'};
+      final result = await useCase(
+        params: const PlaylistShareParams(
+          shareName: 'Curta',
+          shortIds: ['1a2f', '0000', '1a2f'],
+        ),
+      );
+      final saved = await playlistRepository.getById(result.playlist.playlistId);
+      expect(saved?.pdfIds, ['pdf-b', 'pdf-a', 'pdf-b']);
+      expect(saved?.entries.every((e) => !e.isAudio), isTrue);
+    });
+
+    test('ignora shortId desconhecido e importa o resto', () async {
+      resolverMap = {'0000': 'pdf-a'};
+      final result = await useCase(
+        params: const PlaylistShareParams(shareName: 'X', shortIds: ['ffff', '0000']),
+      );
+      final saved = await playlistRepository.getById(result.playlist.playlistId);
+      expect(saved?.pdfIds, ['pdf-a']);
+    });
+
+    test('nenhum shortId conhecido → InvalidSharePlaylistException', () async {
+      resolverMap = {};
+      expect(
+        () => useCase(params: const PlaylistShareParams(shareName: 'X', shortIds: ['0000'])),
+        throwsA(isA<InvalidSharePlaylistException>()),
+      );
+    });
+
+    test('dedupe por conteúdo entre link curto e link longo da mesma lista', () async {
+      resolverMap = {'0000': 'pdf-a', '1a2f': 'pdf-b'};
+      final longo = await useCase(
+        params: const PlaylistShareParams(shareName: 'A', sharePdfs: 'pdf-a,pdf-b'),
+      );
+      final curto = await useCase(
+        params: const PlaylistShareParams(shareName: 'B', shortIds: ['0000', '1a2f']),
+      );
+      expect(curto.alreadyExisted, isTrue);
+      expect(curto.playlist.playlistId, longo.playlist.playlistId);
+    });
+
+    test('resolver é aguardado (deep link antes do catálogo)', () async {
+      final completer = Completer<Map<String, String>>();
+      final lateUseCase = ImportSharedPlaylistFromUrl(
+        playlistRepository,
+        resolveShortIds: () => completer.future,
+      );
+      final future = lateUseCase(
+        params: const PlaylistShareParams(shareName: 'X', shortIds: ['0000']),
+      );
+      completer.complete({'0000': 'pdf-a'});
+      final result = await future;
+      expect(result.playlist.pdfIds, ['pdf-a']);
     });
   });
 }
