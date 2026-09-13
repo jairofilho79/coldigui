@@ -114,6 +114,7 @@ class ShellScaffold extends ConsumerWidget {
       RoutePaths.profile => 'Perfil',
       RoutePaths.about => 'Sobre',
       RoutePaths.offline => 'Offline',
+      RoutePaths.favoriteMaterialKinds => 'Materiais favoritos',
       RoutePaths.playlists => 'Listas',
       RoutePaths.publicPlaylists => 'Listas públicas',
       RoutePaths.audio => 'Áudio',

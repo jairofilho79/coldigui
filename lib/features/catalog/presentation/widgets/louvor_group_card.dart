@@ -21,6 +21,7 @@ import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_read
 import 'package:coldigui/features/catalog/presentation/utils/preferred_material_for_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
+import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
@@ -289,14 +290,17 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     // de download continua como texto, prioridade sobre os ícones.
     final metadataSummary = _downloadProgressLabel(activeDownload, l10n);
 
-    // C5: "+" sempre visível — PDF principal, senão o único áudio, senão o
-    // primeiro extra adicionável (cifra/YouTube não têm entrada própria).
-    // O caminho de um único PDF é preservado à parte para manter o "já
-    // adicionado" (✓) e a snackbar genérica do editor.
+    // C5: "+" sempre visível — primeiro favorito adicionável do grupo
+    // (favoriteMaterialKindRankProvider); sem favorito presente, PDF
+    // principal, senão o único áudio, senão o primeiro extra adicionável
+    // (cifra/YouTube não têm entrada própria). O caminho de um único PDF é
+    // preservado à parte para manter o "já adicionado" (✓) e a snackbar
+    // genérica do editor.
     final isSinglePdfOnly = !isMultiMaterial && primary != null;
+    final favoriteRank = ref.watch(favoriteMaterialKindRankProvider);
     final preferredMaterial = isSinglePdfOnly
         ? null
-        : preferredMaterialForGroup(widget.group);
+        : preferredMaterialForGroup(widget.group, rank: favoriteRank);
 
     // A5: um mapa único do índice, lido por `select` — sem query por card.
     final offlineAvailability = primary != null
