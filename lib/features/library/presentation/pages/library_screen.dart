@@ -1,4 +1,5 @@
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
@@ -244,7 +245,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     if (buildLibraryLocationFromUri(uri) == target) return;
-    goRouter.go(target);
+    // Filtros, ordenação e página espelham estado — replaceState (P4).
+    goReplacingUrl(context, goRouter, target);
   }
 
   @override

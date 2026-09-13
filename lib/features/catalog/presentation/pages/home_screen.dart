@@ -1,5 +1,6 @@
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
+import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
@@ -162,7 +163,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (buildHomeLocationFromUri(uri) == target) return;
     _suppressSearchHydrationFromOwnUrlSync = true;
-    goRouter.go(target);
+    // replaceState, não pushState: digitar não pode poluir o voltar (P4).
+    goReplacingUrl(context, goRouter, target);
   }
 
   @override
