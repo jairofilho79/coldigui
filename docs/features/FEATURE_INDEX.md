@@ -1328,6 +1328,12 @@ ShellScaffold
       → IconButton clear_all → showConfirmDialog → clear
 ```
 
+> Nota (2026-09-12): fluxo histórico da Fase 4.1. A barra atual não tem mais
+> `view_list`/`clear_all` soltos — virou grupos de botão com legenda: «Abrir»/
+> «Material» (louvor focado) e «Lista»/«Compartilhar»/«Limpar» (lista ativa),
+> sobre uma lista única sem faces (PDF, cifra, gesto e áudio juntos). Ver
+> `docs/superpowers/specs/2026-09-12-barra-lista-ativa-design.md`.
+
 **Fix drag modal seleção (jun/2026):** [showCarouselSelectionSheet] usa [carouselSelectionReorderProxyDecorator] no `proxyDecorator` do [ReorderableListView] — substitui o `Material` padrão (elevação + sombra retangular) por proxy transparente, eliminando borda visível ao arrastar chips pill no modal "Seleção temporária".
 
 **Fix flicker reorder (jun/2026):** Reordenação no modal disparava múltiplos `_reload()` concorrentes e rebuild duplo do índice focado — dados "piscavam" na barra e no modal. Correções: (1) [CarouselLouvoresNotifier.reorder] — update otimista em memória, persist Isar + sync playlist após [carouselReorderPersistDebounce] (`100ms`), sem `_reload` intermediário; `_reloadGeneration` em `_reload()` ignora corridas; (2) [carouselLouvoresDisplayProvider] — barra [CarouselChips] observa lista debounced ([carouselLouvoresDisplayDebounce]); add/remove/clear imediatos; só reorder coalesce render; modal continua em [carouselLouvoresProvider] para resposta instantânea ao soltar item; (3) [carouselFocusedIndexProvider] — removido `ref.listen` redundante (um rebuild por mudança). Teste: `carousel_louvores_display_provider_test.dart`.
@@ -1372,6 +1378,11 @@ Prioridade do trailing: `loading` → `onRemove` → `isAdded` → `onAdd`; depo
 **Modal carousel — fix v3 (jun/2026):** Corrige bug em que o 2º toque no chip do modal só atualizava a barra sem abrir/trocar o PDF. Causas: (1) `_openingReader` permanecia `true` enquanto `context.push` aguardava `pop`; (2) `focusPdfId` antes da navegação mascarava falhas; (3) `currentPdfId` capturado ao abrir o modal ficava defasado vs URL após `replace`. Correções: priorizar query params do GoRouter sobre [readerRouteParamsProvider]; resolver `pdfId` ativo no toque; `focusPdfId` só após `openCarouselPdfInReader` com sucesso; `_carouselNavLoading` verificado antes de qualquer efeito. Testes: `segundo toque no chip do modal no leitor/shell` em `carousel_chips_test.dart`.
 
 **Overflow barra smartphone (jun/2026):** Em largura < [kCarouselBarExpandedBreakpoint] (600px), [CarouselBarTrailingActions] colapsa salvar/compartilhar/folheto/limpar em menu `more_vert` com itens somente texto ([carouselSavePlaylist], [carouselSharePlaylist], [carouselGenerateLeaflet], [carouselClear]). [CarouselNavigatorBar] mantém setas de troca de PDF e botão lista (`view_list`) sempre visíveis — mais espaço horizontal para o chip. Tablet e maiores preservam os quatro ícones (`save_outlined`, `share_outlined`, `description_outlined`, `clear_all`). Testes: `em smartphone usa menu overflow`, `menu overflow em smartphone dispara compartilhar lista` e `menu overflow em smartphone dispara gerar folheto` em `carousel_chips_test.dart`.
+>
+> Nota (2026-09-12): o menu overflow e os ícones `clear_all`/`view_list`
+> acima foram substituídos pelos grupos «Abrir»/«Material» e «Lista»/
+> «Compartilhar»/«Limpar», com legenda em barra larga (spec
+> `docs/superpowers/specs/2026-09-12-barra-lista-ativa-design.md`, §7).
 
 **Share lista na barra carousel (jun/2026 — UC-07):** Entrada [carouselSharePlaylist] no menu overflow e botão `share_outlined` no layout expandido. Compartilha a seleção do carousel sem exigir visita a `/listas` — paridade PWA `/?sharepdfs=…&sharename=…`. Fluxo: [resolveActivePlaylistFromCarousel] (sincroniza/recupera playlist; corrige falso “lista vazia” após restart) → [GeneratePlaylistShareUrl] → `Share.share` com [sharePositionOriginFromContextOrFallback] (fix iOS). Diagnóstico: [playlistShareDebugLog*]; falha → [showPlaylistShareErrorSnackbar]. Testes: `carousel_chips_test.dart`, `resolve_active_playlist_from_carousel_test.dart`.
 
