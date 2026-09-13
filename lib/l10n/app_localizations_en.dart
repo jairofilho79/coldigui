@@ -1403,4 +1403,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get favoriteMaterialKindsNoMatch => 'No type with that name';
+
+  @override
+  String get favoriteMaterialKindsTypePreferenceTooltip =>
+      'Choose preferred format';
+
+  @override
+  String favoriteMaterialKindsTypePreferenceTitle(String kind) {
+    return 'Preferred format for $kind';
+  }
+
+  @override
+  String get favoriteMaterialKindsTypePreferenceHelp =>
+      'Drag to reorder — the top of the list is the preferred format.';
 }

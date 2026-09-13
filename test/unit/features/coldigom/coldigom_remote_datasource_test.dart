@@ -1,6 +1,38 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:coldigui/features/coldigom/data/constants/coldigom_endpoints.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_remote_datasource.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FixedAdapter implements HttpClientAdapter {
+  _FixedAdapter(this.statusCode, this.body);
+
+  final int statusCode;
+  final Object? body;
+  RequestOptions? lastRequest;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    lastRequest = options;
+    return ResponseBody.fromString(
+      body == null ? '' : jsonEncode(body),
+      statusCode,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
 
 void main() {
   test('PraisesPageDto parseia pagination e summary enriquecido', () {
@@ -111,5 +143,31 @@ void main() {
     });
 
     expect(detail.tagNames, ['PES', 'Coletânea']);
+  });
+
+  group('fetchMaterialTypesForKind', () {
+    (ColdigomRemoteDatasource, _FixedAdapter) make(int status, Object? body) {
+      final adapter = _FixedAdapter(status, body);
+      final dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      dio.httpClientAdapter = adapter;
+      return (ColdigomRemoteDatasource(dio), adapter);
+    }
+
+    test('devolve os types do kind, na ordem do Worker', () async {
+      final (remote, adapter) = make(200, {
+        'data': ['pdf', 'chord'],
+      });
+      final types = await remote.fetchMaterialTypesForKind('k1');
+      expect(types, ['pdf', 'chord']);
+      expect(
+        adapter.lastRequest!.path,
+        '${ColdigomEndpoints.materialKinds}/k1/types',
+      );
+    });
+
+    test('resposta vazia devolve lista vazia', () async {
+      final (remote, _) = make(200, null);
+      expect(await remote.fetchMaterialTypesForKind('k1'), isEmpty);
+    });
   });
 }

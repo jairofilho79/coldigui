@@ -54,6 +54,24 @@ MaterialKind materialIdKindOf(String id) {
   return MaterialKind.unknown;
 }
 
+/// Classifica o `type` bruto do Worker Coldigom (`pdf`/`chord`/`mp3`/
+/// `audio`/`youtube`/`gestures`) em [MaterialKind].
+///
+/// Ao contrário de [materialIdKindOf] (heurística de extensão do id), este é
+/// o `type` que o Worker de fato gravou — a fonte da verdade para favoritos
+/// de material type por kind. Case-insensitive; tipo desconhecido (ex.:
+/// `lyrics`) vira [MaterialKind.unknown].
+MaterialKind materialKindOfRawType(String type) {
+  return switch (type.toLowerCase()) {
+    'pdf' => MaterialKind.pdf,
+    'chord' => MaterialKind.chord,
+    'gestures' => MaterialKind.gesture,
+    'mp3' || 'audio' => MaterialKind.audio,
+    'youtube' => MaterialKind.youtube,
+    _ => MaterialKind.unknown,
+  };
+}
+
 /// Extensões que [materialIdKindOf] reconhece como [MaterialKind.audio].
 ///
 /// Cobre o que um `type: mp3`/`audio` do Worker pode carregar no `r2_key`.

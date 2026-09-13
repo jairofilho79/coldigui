@@ -48,6 +48,7 @@ class _FixedAdapter implements HttpClientAdapter {
 void main() {
   const doc = {
     'kindIds': ['a', 'b'],
+    'preferredTypes': {'a': 'chord'},
     'updatedAt': '2026-09-12T10:00:00.000Z',
     'version': 2,
   };
@@ -58,6 +59,7 @@ void main() {
       final (remote, adapter) = _make(200, doc);
       final prefs = await remote.fetch('tok');
       expect(prefs!.kindIds, ['a', 'b']);
+      expect(prefs.preferredTypeByKind, {'a': 'chord'});
       expect(prefs.pendingPush, isFalse);
       expect(prefs.updatedAt, DateTime.utc(2026, 9, 12, 10));
       expect(adapter.lastRequest!.headers['Authorization'], 'Bearer tok');
@@ -70,20 +72,23 @@ void main() {
     expect(await remote.fetch('tok'), isNull);
   });
 
-  test('put envia kindIds + updatedAt e devolve o documento gravado', () async {
+  test('put envia kindIds + preferredTypes + updatedAt e devolve o documento gravado', () async {
     final (remote, adapter) = _make(200, doc);
     final result = await remote.put(
       idToken: 'tok',
       prefs: MaterialKindPrefs.validated(
         kindIds: const ['a', 'b'],
+        preferredTypeByKind: const {'a': 'chord'},
         updatedAt: DateTime.utc(2026, 9, 12, 10),
         pendingPush: true,
       ),
     );
     expect(result.kindIds, ['a', 'b']);
+    expect(result.preferredTypeByKind, {'a': 'chord'});
     expect(result.pendingPush, isFalse);
     final sent = adapter.lastRequest!.data as Map;
-    expect(sent.keys.toSet(), {'kindIds', 'updatedAt'});
+    expect(sent.keys.toSet(), {'kindIds', 'preferredTypes', 'updatedAt'});
+    expect(sent['preferredTypes'], {'a': 'chord'});
     expect(sent['updatedAt'], '2026-09-12T10:00:00.000Z');
     expect(adapter.lastRequest!.method, 'PUT');
   });

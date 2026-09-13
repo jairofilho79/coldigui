@@ -704,5 +704,13 @@
   "favoriteMaterialKindsUnknownKind": "Unknown",
   "favoriteMaterialKindsLoadError": "Couldn't load material types",
   "favoriteMaterialKindsRetry": "Try again",
-  "favoriteMaterialKindsNoMatch": "No type with that name"
+  "favoriteMaterialKindsNoMatch": "No type with that name",
+  "favoriteMaterialKindsTypePreferenceTooltip": "Choose preferred format",
+  "favoriteMaterialKindsTypePreferenceTitle": "Preferred format for {kind}",
+  "@favoriteMaterialKindsTypePreferenceTitle": {
+    "placeholders": {
+      "kind": { "type": "String" }
+    }
+  },
+  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format."
 }

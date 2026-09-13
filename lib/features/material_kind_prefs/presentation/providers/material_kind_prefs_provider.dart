@@ -40,15 +40,37 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
   Future<void> save(List<String> kindIds) async {
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) return;
+    final current = state.asData?.value;
     final next = MaterialKindPrefs.validated(
       kindIds: kindIds,
+      preferredTypeByKind: current?.preferredTypeByKind ?? const {},
       updatedAt: DateTime.now().toUtc(),
       pendingPush: true,
     );
+    await _writeAndSync(user.googleSub, next);
+  }
+
+  /// Grava o material type preferido de um kind (ex.: cifra em PDF ou em
+  /// chords), sem mexer em [MaterialKindPrefs.kindIds]. Mesmo contrato de
+  /// [save]: otimista, deslogado é no-op, dispara sync.
+  Future<void> setPreferredType(String kindId, String type) async {
+    final user = ref.read(authStateProvider).asData?.value;
+    if (user == null) return;
+    final current = state.asData?.value ?? MaterialKindPrefs.empty;
+    final next = MaterialKindPrefs.validated(
+      kindIds: current.kindIds,
+      preferredTypeByKind: {...current.preferredTypeByKind, kindId: type},
+      updatedAt: DateTime.now().toUtc(),
+      pendingPush: true,
+    );
+    await _writeAndSync(user.googleSub, next);
+  }
+
+  Future<void> _writeAndSync(String googleSub, MaterialKindPrefs next) async {
     final repository = ref.read(materialKindPrefsRepositoryProvider);
     final syncNotifier = ref.read(materialKindPrefsSyncProvider.notifier);
     state = AsyncData(next);
-    await repository.write(user.googleSub, next);
+    await repository.write(googleSub, next);
     unawaited(_syncQuietly(syncNotifier));
   }
 

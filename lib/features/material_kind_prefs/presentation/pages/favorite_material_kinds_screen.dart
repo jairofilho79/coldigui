@@ -15,6 +15,7 @@ import '../providers/coldigom_material_kinds_provider.dart';
 import '../providers/material_kind_prefs_provider.dart';
 import '../providers/material_kind_prefs_sync_provider.dart';
 import '../widgets/material_kind_card.dart';
+import '../widgets/material_type_preference_control.dart';
 
 /// «Materiais favoritos»: até [kMaxFavoriteMaterialKinds] material kinds
 /// Coldigom em ordem de preferência. Salva a cada mudança — sem botão.
@@ -65,6 +66,12 @@ class _FavoriteMaterialKindsScreenState
 
   Future<void> _save(List<String> kindIds) {
     return ref.read(materialKindPrefsProvider.notifier).save(kindIds);
+  }
+
+  Future<void> _setPreferredType(String kindId, String type) {
+    return ref
+        .read(materialKindPrefsProvider.notifier)
+        .setPreferredType(kindId, type);
   }
 
   @override
@@ -214,6 +221,13 @@ class _FavoriteMaterialKindsScreenState
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    MaterialTypePreferenceControl(
+                      kindId: id,
+                      kindName:
+                          labels[id] ?? l10n.favoriteMaterialKindsUnknownKind,
+                      preferredType: prefs.preferredTypeByKind[id],
+                      onChanged: (type) => _setPreferredType(id, type),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       tooltip: l10n.favoriteMaterialKindsRemoveTooltip,

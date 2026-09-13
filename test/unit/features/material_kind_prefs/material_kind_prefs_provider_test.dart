@@ -70,12 +70,8 @@ void main() {
     final container = await make(
       auth: _LoggedIn.new,
       initial: {
-        MaterialKindPrefsLocalDatasource.keyFor(
-          'sub-1',
-        ): '{"kindIds":["a","b"],"updatedAt":"2026-09-01T00:00:00.000Z","pendingPush":false}',
-        MaterialKindPrefsLocalDatasource.keyFor(
-          'sub-2',
-        ): '{"kindIds":["z"],"updatedAt":"2026-09-01T00:00:00.000Z","pendingPush":false}',
+        MaterialKindPrefsLocalDatasource.keyFor('sub-1'): '{"kindIds":["a","b"],"updatedAt":"2026-09-01T00:00:00.000Z","pendingPush":false}',
+        MaterialKindPrefsLocalDatasource.keyFor('sub-2'): '{"kindIds":["z"],"updatedAt":"2026-09-01T00:00:00.000Z","pendingPush":false}',
       },
     );
     final prefs = await container.read(materialKindPrefsProvider.future);
@@ -131,6 +127,61 @@ void main() {
     await container.read(materialKindPrefsProvider.notifier).save(['x']);
     expect(
       container.read(materialKindPrefsProvider).requireValue.kindIds,
+      isEmpty,
+    );
+    expect(sync.calls, 0);
+  });
+
+  test('save preserva o preferredTypeByKind já gravado', () async {
+    final container = await make(auth: _LoggedIn.new, sync: _CountingSync());
+    await container.read(materialKindPrefsProvider.future);
+    await container
+        .read(materialKindPrefsProvider.notifier)
+        .setPreferredType('x', 'chord');
+
+    await container.read(materialKindPrefsProvider.notifier).save(['x', 'y']);
+
+    expect(
+      container
+          .read(materialKindPrefsProvider)
+          .requireValue
+          .preferredTypeByKind,
+      {'x': 'chord'},
+    );
+  });
+
+  test('setPreferredType grava o material type preferido, atualiza o estado e dispara sync', () async {
+    final sync = _CountingSync();
+    final container = await make(auth: _LoggedIn.new, sync: sync);
+    await container.read(materialKindPrefsProvider.future);
+    await container.read(materialKindPrefsProvider.notifier).save(['x']);
+
+    await container
+        .read(materialKindPrefsProvider.notifier)
+        .setPreferredType('x', 'chord');
+
+    final state = container.read(materialKindPrefsProvider).requireValue;
+    expect(state.preferredTypeByKind, {'x': 'chord'});
+    expect(state.kindIds, ['x']);
+    final stored = container
+        .read(materialKindPrefsLocalDatasourceProvider)
+        .read('sub-1');
+    expect(stored!.preferredTypeByKind, {'x': 'chord'});
+    expect(sync.calls, 2); // save() + setPreferredType()
+  });
+
+  test('setPreferredType deslogado é ignorado', () async {
+    final sync = _CountingSync();
+    final container = await make(auth: _LoggedOut.new, sync: sync);
+    await container.read(materialKindPrefsProvider.future);
+    await container
+        .read(materialKindPrefsProvider.notifier)
+        .setPreferredType('x', 'chord');
+    expect(
+      container
+          .read(materialKindPrefsProvider)
+          .requireValue
+          .preferredTypeByKind,
       isEmpty,
     );
     expect(sync.calls, 0);

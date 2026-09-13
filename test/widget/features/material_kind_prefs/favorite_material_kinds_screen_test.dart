@@ -6,6 +6,7 @@ import 'package:coldigui/features/material_kind_prefs/data/datasources/material_
 import 'package:coldigui/features/material_kind_prefs/presentation/pages/favorite_material_kinds_screen.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/coldigom_material_kinds_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
+import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_types_for_kind_provider.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/widgets/material_kind_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +63,10 @@ const _kinds = [
 
 Future<List<ColdigomMaterialKindDto>> _defaultKinds() async => _kinds;
 
+/// Default: nenhum kind tem mais de um material type — o controle de
+/// preferência de type fica invisível a menos que um teste passe `types`.
+Future<List<String>> _noMaterialTypes(String kindId) async => const [];
+
 void main() {
   late AppLocalizations pt;
   late SharedPreferences prefs;
@@ -82,6 +87,7 @@ void main() {
     WidgetTester tester, {
     AuthNotifier Function() auth = _LoggedIn.new,
     Future<List<ColdigomMaterialKindDto>> Function() kinds = _defaultKinds,
+    Future<List<String>> Function(String kindId) types = _noMaterialTypes,
     List<Override> extra = const [],
   }) async {
     tester.view.physicalSize = const Size(800, 1600);
@@ -95,6 +101,9 @@ void main() {
         authStateProvider.overrideWith(auth),
         materialKindPrefsSyncProvider.overrideWith(_NoopSync.new),
         coldigomMaterialKindsProvider.overrideWith((ref) => kinds()),
+        materialTypesForKindProvider.overrideWith(
+          (ref, kindId) => types(kindId),
+        ),
         ...extra,
       ],
     );
@@ -244,6 +253,56 @@ void main() {
     expect(addButtonFor('Voz soprano'), findsOneWidget);
     expect(addButtonFor('Partitura'), findsNothing);
   });
+
+  testWidgets(
+    'kind com mais de um material type mostra o menu e salva a troca',
+    (tester) async {
+      await pump(
+        tester,
+        types: (kindId) async =>
+            kindId == 'k-partitura' ? const ['pdf', 'chord'] : const [],
+      );
+      await tester.tap(addButtonFor('Partitura'));
+      await tester.pumpAndSettle();
+
+      final typeButton = find.byWidgetPredicate(
+        (w) =>
+            w is IconButton &&
+            w.tooltip == pt.favoriteMaterialKindsTypePreferenceTooltip,
+      );
+      expect(typeButton, findsOneWidget);
+
+      await tester.tap(typeButton);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(pt.favoriteMaterialKindsTypePreferenceTitle('Partitura')),
+        findsOneWidget,
+      );
+
+      // O menu usa `ReorderableListView` (a lista de favoritos por trás usa
+      // `SliverReorderableList`) — escopo evita contar a alça da linha por
+      // baixo do modal.
+      final handles = find.descendant(
+        of: find.byType(ReorderableListView),
+        matching: find.byIcon(Icons.drag_handle),
+      );
+      expect(handles, findsNWidgets(2));
+      final from = tester.getCenter(handles.at(1));
+      final to = tester.getCenter(handles.at(0));
+      final drag = await tester.startGesture(from);
+      await tester.pump(const Duration(milliseconds: 600));
+      await drag.moveBy(to - from);
+      await tester.pump();
+      await drag.up();
+      await tester.pumpAndSettle();
+      // Fecha o modal para inspecionar o estado salvo por baixo dele.
+      await tester.tapAt(const Offset(400, 50));
+      await tester.pumpAndSettle();
+
+      final stored = MaterialKindPrefsLocalDatasource(prefs).read('sub-1');
+      expect(stored!.preferredTypeByKind, {'k-partitura': 'chord'});
+    },
+  );
 
   testWidgets(
     'erro ao carregar kinds mostra retry, favoritos salvos ficam pelo id',
