@@ -48,6 +48,10 @@ void main() {
         if (browser != null) oidcBrowserProvider.overrideWithValue(browser),
         googleClientIdProvider.overrideWithValue('cid-test'),
       ],
+      // Riverpod 3 re-tenta `build()` que lança; num container sem listener
+      // o `.future` nunca resolve. `main.dart` já desliga o retry no
+      // `ProviderScope` de produção — aqui é só o harness de teste igualando.
+      retry: (_, _) => null,
     );
   }
 
@@ -436,6 +440,7 @@ void main() {
           googleClientIdProvider.overrideWithValue(''),
           oidcBrowserProvider.overrideWithValue(browser),
         ],
+        retry: (_, _) => null,
       );
       addTearDown(container.dispose);
 

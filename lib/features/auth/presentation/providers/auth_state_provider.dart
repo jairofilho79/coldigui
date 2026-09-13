@@ -42,17 +42,8 @@ final oidcCallbackInboxProvider = Provider<OidcCallbackInbox>(
 );
 
 /// Estado de autenticação Google (null = deslogado).
-///
-/// `retry` desligado: por padrão o Riverpod reagenda `build()` em backoff
-/// quando ele lança algo que não é [Error] — bom para falha de rede
-/// transitória, errado aqui. Um `id_token` de callback OIDC rejeitado pelo
-/// Worker (401) ou um `state`/`nonce` inválido (spec D9/D15) não fica válido
-/// tentando de novo — e sem um observador ativo (como neste `ProviderContainer`
-/// de teste) o retry agendado nunca é executado, e `.future` fica pendente
-/// para sempre. O erro tem que ser imediato.
 final authStateProvider = AsyncNotifierProvider<AuthNotifier, AuthUser?>(
   AuthNotifier.new,
-  retry: (_, _) => null,
 );
 
 /// [GoogleSignIn.initialize] só pode rodar uma vez no processo (plugin web).
