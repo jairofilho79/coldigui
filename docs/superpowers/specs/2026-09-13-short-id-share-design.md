@@ -54,6 +54,7 @@ https://plpcg.com/?s=1a2f-0c3d-ffe1&n=Culto%20de%20domingo
 
 ### 2.2 Manifest
 - `toManifestEntry` inclui `shortId` quando presente (omite se `null`, para não publicar `"shortId": null`). Checksum muda por consequência — é o esperado; clientes rebaixam para o manifest novo.
+- **Checksum do D1 (`catalog_meta.checksum`, ETag do Worker do v2):** `shortId` entra em `CANONICAL_FIELDS`/`canonicalEntry` (`domain/checksum.ts`), senão o backfill não muda o checksum e o v2 nunca baixa o catálogo com `shortId`. `POST /api/admin/manifest/publish` passa a chamar `updateCatalogMeta` **antes** de publicar — «publicar» atualiza as duas projeções (D1 meta + R2 manifest). O `scripts/seed_d1_louvores.py` do coldigui espelha o campo na sua lista canônica.
 
 ### 2.3 UI
 - Lista e formulário de edição mostram `shortId` **somente leitura** (`ui/src/app.ts`). Não há campo editável.
