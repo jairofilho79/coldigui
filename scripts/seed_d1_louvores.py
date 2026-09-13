@@ -9,7 +9,9 @@ Uso:
 
 Depois:
   wrangler d1 execute plpcg-catalog --local --file workers/plpcg-catalog/seed/001_louvores.sql
-  wrangler d1 execute plpcg-catalog --remote --file workers/plpcg-catalog/seed/001_louvores.sql
+
+Só para D1 local, após a migration 0011 aplicada; no remoto o catálogo é do
+admin (nunca rodar este seed contra --remote).
 """
 
 from __future__ import annotations
@@ -41,6 +43,9 @@ def canonical_entry(entry: dict) -> dict:
     return {field: entry.get(field, "") or "" for field in CANONICAL_FIELDS}
 
 
+# O valor aqui é só o ETag inicial do Worker (D1 recém-semeado). O admin
+# recalcula o dele com sua própria implementação (ordenação localeCompare +
+# escaping de JSON do JS), então os dois não são byte-a-byte iguais por design.
 def compute_checksum(entries: list[dict]) -> str:
     canonical = [canonical_entry(e) for e in entries]
     canonical.sort(key=lambda e: e["pdfId"])
@@ -61,6 +66,41 @@ def validate_entries(entries: list[dict]) -> tuple[list[dict], int]:
             continue
         valid.append(item)
     return valid, skipped
+
+
+def check_short_ids(entries: list[dict]) -> None:
+    """Avisa sobre shortId ausente e aborta em shortId duplicado.
+
+    Com o índice UNIQUE em `short_id`, um INSERT OR REPLACE colidindo em
+    shortId apagaria silenciosamente a outra linha — por isso duplicata é
+    erro fatal, não warning.
+    """
+    seen: dict[str, str] = {}
+    missing = 0
+    for entry in entries:
+        short_id = entry.get("shortId")
+        pdf_id = str(entry.get("pdfId", "?"))
+        if not isinstance(short_id, str) or not short_id:
+            missing += 1
+            continue
+        if short_id in seen:
+            print(
+                f"Erro: shortId duplicado {short_id!r} em pdfId={pdf_id!r} "
+                f"e pdfId={seen[short_id]!r} — INSERT OR REPLACE apagaria uma "
+                "das duas linhas (índice UNIQUE em short_id). Corrija o "
+                "manifest antes de gerar o seed.",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        seen[short_id] = pdf_id
+    if missing:
+        print(
+            f"Aviso: {missing} entrada(s) sem shortId string — essas linhas "
+            "vão para o D1 com short_id = NULL. Rode o backfill da migration "
+            "0011 (ou renomeie/salve a linha no admin, que aloca um shortId) "
+            "antes de considerar o catálogo completo.",
+            file=sys.stderr,
+        )
 
 
 def build_insert(entry: dict) -> str:
@@ -113,13 +153,15 @@ def main() -> int:
         print("Erro: nenhuma entrada válida", file=sys.stderr)
         return 1
 
+    check_short_ids(entries)
+
     checksum = compute_checksum(entries)
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     lines: list[str] = [
         "-- Gerado por scripts/seed_d1_louvores.py — não editar manualmente",
         "DELETE FROM louvores;",
-        "DELETE FROM catalog_meta;",
+        "DELETE FROM catalog_meta WHERE key IN ('checksum', 'row_count');",
     ]
 
     for i in range(0, len(entries), BATCH_SIZE):

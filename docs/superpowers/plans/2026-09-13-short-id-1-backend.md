@@ -931,6 +931,10 @@ Só depois de os Planos 2 e 3 estarem **prontos para deploy** (os leitores preci
 
 - [ ] **Step 1: coldigui Worker — migration remota e deploy**
 
+- Conferir que `feat/short-id-share` contém o HEAD de `web/integration`
+  (`git log --oneline feat/short-id-share..web/integration` vazio) — o deploy
+  publica o `wrangler.jsonc` inteiro.
+
 Run (no worktree, `workers/plpcg-catalog`):
 ```bash
 npm run db:migrate:remote
@@ -938,7 +942,9 @@ npm run deploy
 npx wrangler d1 execute plpcg-catalog --remote --json --command "SELECT COUNT(*) AS total, COUNT(DISTINCT short_id) AS distintos, SUM(short_id IS NULL) AS nulos FROM louvores; SELECT value FROM catalog_meta WHERE key='short_id_next';"
 curl -s https://plpcg.com/api/catalog/louvores | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d), sum('shortId' in x for x in d))"
 ```
-Expected: `total == distintos`, `nulos == 0`; o `curl` mostra `4627 4627` (o ETag ainda é o antigo até a Task 9.2 — clientes só rebaixam depois dela).
+Deploy só depois da migration confirmada — `npm run db:migrate:remote` sem
+erro e a query acima com `nulos == 0` antes de seguir para o `npm run deploy`.
+Expected: `total == distintos`, `nulos == 0`; o `curl` mostra `4633 4633` (o ETag ainda é o antigo até a Task 9.2 — clientes só rebaixam depois dela).
 
 - [ ] **Step 2: plpcg-admin — deploy e publicar**
 
@@ -947,8 +953,16 @@ Verificar:
 ```bash
 curl -s https://plpcg.com/louvores-manifest.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d), sum('shortId' in x for x in d), d[0].get('shortId'))"
 curl -s https://plpcg.com/api/catalog/checksum
+npx wrangler d1 execute plpcg-catalog --remote --json --command "SELECT SUM(short_id IS NULL) AS nulos FROM louvores"
 ```
-Expected: `4627 4627 <hex>`; o checksum é **diferente** do valor anterior à publicação (anote-o antes).
+Expected: `4633 4633 <hex>`; o checksum é **diferente** do valor anterior à publicação (anote-o antes); `nulos` = `0`.
+
+Se `nulos` vier diferente de `0`: ler `short_id_next` em `catalog_meta`
+(`SELECT value FROM catalog_meta WHERE key='short_id_next'`) e, para cada
+`pdf_id` com `short_id IS NULL`, `UPDATE louvores SET short_id = '<next>'
+WHERE pdf_id = '<id>'` e avançar o contador (`hex(next+1)`, mesma lógica de
+`services/short-id.ts`) — ou, mais simples, abrir a linha no admin e salvar
+com um pdf renomeado uma vez, o que já aloca um `shortId`.
 
 - [ ] **Step 3: Merge**
 
