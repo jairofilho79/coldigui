@@ -21,7 +21,7 @@ Substitui **pdfx** (sem SPM nativo; patch local legado para scroll horizontal).
 - `pdfrxFlutterInitialize()` em `lib/main.dart` antes de `runApp`
 - `PdfReaderScreen` fullscreen sem AppBar global do shell
 - Único import pdfrx na presentation: `pdf_reader_pdf_view.dart` (+ `pdf_spread_layout.dart` pelos tipos do layout)
-- Parâmetros do viewer em `buildPdfReaderViewerParams` (`pdf_reader_pdf_view.dart`): seleção de texto e anotações desligadas, sem sombra por frame, `limitRenderingCache: false`, preview a 3× (`PdfRenderScalePolicy`, todas as plataformas), física de scroll da plataforma + roda/trackpad com inércia — set/2026, diagnóstico «pdfrx sob a lupa»
+- Parâmetros do viewer em `buildPdfReaderViewerParams` (`pdf_reader_pdf_view.dart`): seleção de texto e anotações desligadas, sem sombra por frame, `limitRenderingCache: false`, preview a até 3×, limitado a 2×DPR (`PdfRenderScalePolicy`, todas as plataformas), física de scroll da plataforma + roda/trackpad com inércia — set/2026, diagnóstico «pdfrx sob a lupa»
 
 ## Agente Performance — checklist
 

@@ -99,6 +99,17 @@ class _FakePlaylistRepository implements PlaylistRepository {
   }) => throw UnimplementedError();
 }
 
+class _EmptyEntriesPlaylistRepository extends _FakePlaylistRepository {
+  @override
+  Future<SavedPlaylist?> getById(String playlistId) async {
+    return SavedPlaylist.fromLegacyLists(
+      playlistId: playlistId,
+      nome: 'Ensaio',
+      createdAt: DateTime(2026, 6, 8),
+    );
+  }
+}
+
 void main() {
   final shareContext = PlaylistShareContext(
     playlistId: 'p1',
@@ -212,6 +223,49 @@ void main() {
         find.text(AppLocalizations.of(context)!.playlistEmptyCarousel),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'playlist sem entradas: EmptyPlaylistShareException retorna false e '
+    'mostra exatamente um snackbar (o provider é o único dono do feedback)',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            playlistRepositoryProvider.overrideWithValue(
+              _EmptyEntriesPlaylistRepository(),
+            ),
+            generatePlaylistShareUrlProvider.overrideWithValue(
+              GeneratePlaylistShareUrl(
+                _EmptyEntriesPlaylistRepository(),
+                shareOrigin: 'https://plpcg.com',
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: const Scaffold(body: SizedBox()),
+          ),
+        ),
+      );
+
+      final context = tester.element(find.byType(Scaffold));
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+
+      final ok = await notifier.share(
+        context,
+        shareContext,
+        PlaylistShareOption.link,
+        sharePositionOrigin: null,
+      );
+      await tester.pump();
+
+      expect(ok, isFalse);
+      expect(find.byType(SnackBar), findsOneWidget);
     },
   );
 }

@@ -39,6 +39,14 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   ///
   /// [sharePositionOrigin] deve ser capturado antes de qualquer `await`.
   /// Retorna `false` em falha ou cancelamento antes do segundo passo WhatsApp.
+  ///
+  /// O próprio provider mostra o snackbar de falha (mensagem específica para
+  /// [EmptyLeafletException], genérica para as demais exceções) antes de
+  /// retornar `false` — quem chama **não deve** mostrar outro snackbar em
+  /// cima do retorno `false`, porque esse retorno também cobre o
+  /// cancelamento do diálogo de confirmação do WhatsApp (usuário desistiu,
+  /// não é erro) e um segundo snackbar duplicaria o feedback dos casos de
+  /// falha real.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -103,9 +111,15 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       return false;
     } on PlaylistNotFoundException catch (error, stackTrace) {
       playlistShareDebugLogError('playlist não encontrada', error, stackTrace);
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
       return false;
     } on EmptyPlaylistShareException catch (error, stackTrace) {
       playlistShareDebugLogError('playlist sem pdfIds', error, stackTrace);
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
       return false;
     } on Object catch (error, stackTrace) {
       playlistShareDebugLogError('share', error, stackTrace);

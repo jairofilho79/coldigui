@@ -139,7 +139,7 @@ Usar **pdfrx** (^2.6.1, PDFium + SPM via `pdfium_flutter`; exige Flutter ≥ 3.4
 ```bash
 git add pubspec.yaml pubspec.lock docs/DEP_UPGRADE_BACKLOG.md docs/adr/ADR-002-pdfx-reader.md
 # + os arquivos com correção de lint do Step 4, se houver
-git commit -m "chore(deps): Flutter 3.47.4 e pdfrx 2.6.1 (fix de preview cancelado/evictado)" -m "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j"
+git commit -m "$(printf '%s\n\n%s\n%s' "chore(deps): Flutter 3.47.4 e pdfrx 2.6.1 (fix de preview cancelado/evictado)" "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j")"
 ```
 
 ---
@@ -247,7 +247,7 @@ Expected: 5 testes PASS. `flutter analyze lib/features/pdf_reader/presentation/u
 
 ```bash
 git add lib/features/pdf_reader/presentation/utils/pdf_render_scale_policy.dart test/unit/features/pdf_reader/pdf_render_scale_policy_test.dart
-git commit -m "feat(leitor): PdfRenderScalePolicy — teto de escala 3× calibrado pelos scans" -m "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j"
+git commit -m "$(printf '%s\n\n%s\n%s' "feat(leitor): PdfRenderScalePolicy — teto de escala 3× calibrado pelos scans" "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j")"
 ```
 
 ---
@@ -664,7 +664,7 @@ Seção «## Histórico», acrescentar ao final:
 
 ```bash
 git add lib/features/pdf_reader/presentation/widgets/pdf_reader_pdf_view.dart test/unit/features/pdf_reader/pdf_reader_viewer_params_test.dart test/widget/features/pdf_reader/pdf_reader_pdf_view_test.dart docs/adr/ADR-002-pdfx-reader.md
-git commit -m "feat(leitor): params do PdfViewer para partitura — sem texto/sombra, escala 3×, física da plataforma" -m "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" -m "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j"
+git commit -m "$(printf '%s\n\n%s\n%s' "feat(leitor): params do PdfViewer para partitura — sem texto/sombra, escala 3×, física da plataforma" "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" "Claude-Session: https://claude.ai/code/session_01X2ZyEPGitn4bV7FhAk7u4j")"
 ```
 
 ---
@@ -673,5 +673,5 @@ git commit -m "feat(leitor): params do PdfViewer para partitura — sem texto/so
 
 1. `./scripts/test_all.sh` (analyze + VM + Chrome) verde no worktree.
 2. `flutter build web --wasm --dart-define-from-file=dart_defines/plpcjf.json` sem erro (o CI também roda `verify_web_headers_artifact.sh` e o gate de boot `measure_web_boot.sh --check`; se o gate de boot regredir por causa do bundle novo do pdfrx, é finding para o dono decidir — não recalibrar `docs/web_perf_baseline.json` neste plano).
-3. `git log web/integration..HEAD --oneline` mostra exatamente 3 commits (Task 1, 2, 3), cada um com as linhas de atribuição.
+3. `git log web/integration..HEAD --oneline` mostra os commits das tasks (1 por task) mais o commit do plano/spec e o da correção pós-revisão, cada um com as linhas de atribuição.
 4. Entregar ao dono a lista de verificação manual da spec §5 (aba visível em v2.plpcg.com após deploy; iOS/Android em `flutter run --profile`) — o plano não a executa.

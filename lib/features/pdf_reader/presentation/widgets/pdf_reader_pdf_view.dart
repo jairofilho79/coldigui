@@ -19,16 +19,17 @@ import 'pdf_reader_page_key_handler.dart';
 typedef PdfReaderNavigateToPage = Future<void> Function(int pageNumber);
 
 /// Teto de bytes de imagem cacheados em memória na web — 64 MiB (spec A.13
-/// dizia 32 MiB, calibrados para preview a 2,78×). Spread = duas páginas A5
-/// (420×586 pt) a 3× ≈ 1260×1758 px × 4 B ≈ 8,9 MB cada, mais os tiles do
-/// pinch; com 32 MiB o par visível era evictado e re-renderizado ao voltar
-/// (diagnóstico pdfrx, Fase 1.3).
+/// dizia 32 MiB, calibrados para preview a 2,78×). Spread = duas páginas ~A5
+/// (420×586 pt, medida dos scans do catálogo) a até 3× ≈ 1260×1758 px × 4 B ≈
+/// 8,9 MB cada, mais os tiles do pinch; com 32 MiB o par visível era
+/// evictado e re-renderizado ao voltar (diagnóstico pdfrx, Fase 1.3).
 const kPdfWebMaxImageBytesCachedOnMemory = 64 << 20;
 
 /// Provider de tamanho do pdfrx com o preview de cada página rasterizado a
-/// [PdfRenderScalePolicy.ceiling] (default do pacote: 200/72 ≈ 2,78×). Com o
-/// teto igual ao da política, o preview já é a imagem final na maioria dos
-/// zooms e os tiles «real size» só entram em pinch forte. Precisa ser `const`:
+/// até [PdfRenderScalePolicy.ceiling] (limitado a 2×DPR pela política; default
+/// do pacote: 200/72 ≈ 2,78×). Os tiles «real size» entram sempre que
+/// `zoom × DPR` passa dessa escala — em tela 3× já a partir de ~1,1× do
+/// fit-width, não só em pinch forte. Precisa ser `const`:
 /// `PdfViewerParams.doChangesRequireReload` compara o provider por `==`.
 /// Demais campos (maxScale 8, minScale 0.1, fit alternativo como mínimo) são
 /// os defaults que o app já usava.
@@ -69,6 +70,9 @@ PdfViewerParams buildPdfReaderViewerParams({
     // Fase 1.3 — uma política de escala para todas as plataformas (antes só
     // a web tinha teto, e sem o 3.0).
     sizeDelegateProvider: kPdfReaderSizeDelegateProvider,
+    // pdfrx só chama este callback com `estimatedScale` fixo em
+    // `onePassRenderingScaleThreshold` (3.0) — o resultado é sempre
+    // `min(3.0, 2×DPR)`, nunca reage ao zoom atual.
     getPageRenderingScale: (context, page, controller, estimatedScale) =>
         PdfRenderScalePolicy.resolve(
           estimatedScale: estimatedScale,
