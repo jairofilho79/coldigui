@@ -10,9 +10,9 @@ import 'mini_player_bar_metrics.dart';
 
 /// Mini-player persistente (D5) — 44 px: título, transporte e progresso finos.
 ///
-/// Vive no `ShellScaffold`, fora da face de áudio (que já mostra estes
-/// controles — [CarouselAudioFaceBar]) e sobrevive ao fullscreen do leitor
-/// como overlay translúcido ([overlay] = `true`) sobre o `navigationShell`.
+/// Vive no `ShellScaffold`, único lugar com estes controles (sem faces — spec
+/// 2026-09-12, D1) e sobrevive ao fullscreen do leitor como overlay
+/// translúcido ([overlay] = `true`) sobre o `navigationShell`.
 ///
 /// Controles próprios (não reaproveita `AudioTransportControls`, que outra
 /// tarefa da onda edita em paralelo): faixa anterior / play-pausa / próxima,

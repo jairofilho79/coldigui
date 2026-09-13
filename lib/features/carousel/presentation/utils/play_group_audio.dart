@@ -10,9 +10,6 @@ import '../../../audio_player/presentation/utils/open_audio_in_player.dart';
 /// Fila pela regra única de [queueForTrack]: quando a faixa preferida do
 /// grupo já está na lista ativa, a fila é a lista inteira — tocar emenda no
 /// próximo da reunião; senão, a fila é só o grupo.
-///
-/// Compartilhado por `CarouselChips` (D10 — tocar o áudio do louvor aberto no
-/// leitor) e `CarouselAudioFaceBar` (D5 — setas de louvor anterior/próximo).
 Future<void> playGroupAudio(WidgetRef ref, List<AudioTrack> groupTracks) async {
   if (groupTracks.isEmpty) return;
   final target = findAudioForGroup(groupTracks.first.groupId, groupTracks);

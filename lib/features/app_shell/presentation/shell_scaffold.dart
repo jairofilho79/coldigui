@@ -15,9 +15,7 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
-import '../../playlists/presentation/providers/playlist_media_face_provider.dart';
 import '../../playlists/presentation/providers/playlist_sync_provider.dart';
-import '../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
 import '../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -48,10 +46,10 @@ import 'widgets/stage_wakelock.dart';
 /// [navigationShell] mantém o estado de cada aba via [StatefulShellRoute].
 ///
 /// Mini-player persistente (D5, [MiniPlayerBar]): entre a barra de chips e o
-/// corpo sempre que há faixa tocando **e** a face de áudio não está visível
-/// (ela já mostra esses controles — [shouldShowCarouselAudioFace]); em
-/// fullscreen, sobrevive como overlay translúcido sobre o `navigationShell`.
-/// No layout com rail, mini-player e chips ficam na coluna à direita do rail.
+/// corpo sempre que há faixa corrente — sem faces (spec 2026-09-12, D1), o
+/// áudio vive só no mini-player; em fullscreen, sobrevive como overlay
+/// translúcido sobre o `navigationShell`. No layout com rail, mini-player e
+/// chips ficam na coluna à direita do rail.
 ///
 /// Título da aba (C14, [browserTitle]): o corpo do `Scaffold` fica dentro de
 /// um [Title] — mecanismo do Flutter para o `<title>` da aba no web
@@ -179,18 +177,7 @@ class ShellScaffold extends ConsumerWidget {
       tabLabel: _tabLabel(path),
     );
 
-    final showMiniPlayer =
-        !hideChrome &&
-        currentTrack != null &&
-        !shouldShowCarouselAudioFace(
-          face: ref.watch(playlistMediaFaceProvider),
-          hasPdf: ref.watch(carouselItemsProvider).isNotEmpty,
-          hasAudio:
-              ref.watch(audioCarouselItemsProvider).isNotEmpty ||
-              ref.watch(
-                audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
-              ),
-        );
+    final showMiniPlayer = !hideChrome && currentTrack != null;
 
     final tabs = appTabsFor(ref.read(featureFlagsProvider));
     final destinations = _destinations(ref, tabs);

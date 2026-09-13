@@ -13,11 +13,9 @@ import 'package:coldigui/features/carousel/data/datasources/carousel_local_datas
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,7 +65,6 @@ void main() {
   test('boot durante a abertura do Isar não apaga a playlist ativa', () async {
     SharedPreferences.setMockInitialValues({
       kActivePlaylistIdPrefsKey: 'pl-1',
-      'playlist_media_face': PlaylistMediaFace.audio.name,
     });
     final prefs = await SharedPreferences.getInstance();
 
@@ -101,8 +98,6 @@ void main() {
       'pl-1',
       reason: 'o boot não pode apagar o id ativo enquanto o Isar abre',
     );
-    expect(container.read(playlistMediaFaceProvider), PlaylistMediaFace.audio);
-
     opening.complete(FakeIsar());
     await _flushAsync();
 
@@ -123,7 +118,6 @@ void main() {
   test('Isar que nunca abre não hidrata nem toca nas prefs', () async {
     SharedPreferences.setMockInitialValues({
       kActivePlaylistIdPrefsKey: 'pl-1',
-      'playlist_media_face': PlaylistMediaFace.audio.name,
     });
     final prefs = await SharedPreferences.getInstance();
 
@@ -150,6 +144,5 @@ void main() {
 
     expect(repository.getByIdCalls, 0);
     expect(prefs.getString(kActivePlaylistIdPrefsKey), 'pl-1');
-    expect(container.read(playlistMediaFaceProvider), PlaylistMediaFace.audio);
   });
 }

@@ -7,11 +7,8 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_she
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
-import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_share_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/utils/playlist_share_debug_log.dart';
@@ -20,7 +17,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Ações à direita da barra: toggle de face, compartilhar a lista e limpar.
+/// Ações à direita da barra: compartilhar a lista e limpar.
 ///
 /// «Salvar como lista» não mora mais aqui: tocar em «Rascunho» na chip do
 /// nome ([ActivePlaylistNameChip]) já salva com nome; o menu de três pontos
@@ -49,23 +46,10 @@ class _CarouselBarTrailingActionsState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final face = ref.watch(playlistMediaFaceProvider);
-    final isAudioFace = face == PlaylistMediaFace.audio;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          style: carouselBarIconButtonStyle,
-          tooltip: isAudioFace ? l10n.playlistFacePdf : l10n.playlistFaceAudio,
-          icon: Icon(
-            isAudioFace
-                ? Icons.picture_as_pdf_outlined
-                : LouvorMaterialIcons.audio,
-          ),
-          onPressed: () =>
-              ref.read(playlistMediaFaceProvider.notifier).toggle(),
-        ),
         IconButton(
           style: carouselBarIconButtonStyle,
           tooltip: l10n.carouselSharePlaylist,

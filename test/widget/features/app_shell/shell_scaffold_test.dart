@@ -15,9 +15,7 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -200,16 +198,13 @@ void main() {
   });
 
   testWidgets(
-    'com a face de áudio visível, o mini-player some (ela já mostra os controles)',
+    'com faixa corrente e PDFs na lista, o mini-player aparece (não há mais face de áudio)',
     (tester) async {
       await pumpShell(
         tester,
         overrides: [
           activePlaylistEditorProvider.overrideWith(
-            () => FakeActiveEditor([audioEntry]),
-          ),
-          playlistMediaFaceProvider.overrideWith(
-            () => _FixedFace(PlaylistMediaFace.audio),
+            () => FakeActiveEditor([pdfEntry, audioEntry]),
           ),
           audioPlayerSessionProvider.overrideWith(
             () => _FakeAudioSession(
@@ -219,7 +214,7 @@ void main() {
         ],
       );
 
-      expect(find.byType(MiniPlayerBar), findsNothing);
+      expect(find.byType(MiniPlayerBar), findsOneWidget);
     },
   );
 
@@ -310,14 +305,4 @@ void main() {
       );
     });
   });
-}
-
-/// Face fixa — sem depender de SharedPreferences.
-class _FixedFace extends PlaylistMediaFaceNotifier {
-  _FixedFace(this._face);
-
-  final PlaylistMediaFace _face;
-
-  @override
-  PlaylistMediaFace build() => _face;
 }

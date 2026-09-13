@@ -9,9 +9,7 @@ import '../../../catalog/presentation/providers/catalog_material_lookup_provider
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../../data/providers/playlist_providers.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import 'active_playlist_provider.dart';
-import 'playlist_media_face_provider.dart';
 import 'playlist_session_prefs.dart';
 import 'playlists_provider.dart';
 
@@ -89,14 +87,7 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
   );
 
   final tracks = ref.read(catalogMaterialLookupProvider).tracksFor(audioIds);
-  if (tracks.isEmpty) {
-    if (ref.read(playlistMediaFaceProvider) == PlaylistMediaFace.audio) {
-      await ref
-          .read(playlistMediaFaceProvider.notifier)
-          .setFace(PlaylistMediaFace.pdf);
-    }
-    return true;
-  }
+  if (tracks.isEmpty) return true;
 
   final focusedAudioId = ref
       .read(sharedPreferencesProvider)

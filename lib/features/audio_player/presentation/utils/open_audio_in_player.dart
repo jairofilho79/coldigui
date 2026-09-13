@@ -6,9 +6,7 @@ import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,11 +65,6 @@ Future<AddToActiveOutcome> playAudioInSession({
     startIndex: startIndex,
   );
 
-  unawaited(
-    ref
-        .read(playlistMediaFaceProvider.notifier)
-        .setFace(PlaylistMediaFace.audio),
-  );
   // Os dois começam no mesmo tick: `playQueue` precisa sair do gesto (iOS), e
   // `addToActive` nunca lança por falta de storage — devolve o desfecho.
   final add = ref

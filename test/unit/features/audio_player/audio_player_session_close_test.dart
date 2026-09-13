@@ -4,8 +4,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -110,79 +108,5 @@ void main() {
       container.read(audioPlayerSessionProvider).restoredWithoutPlayback,
       isFalse,
     );
-  });
-
-  // As duas origens de áudio (fila da sessão e entradas de áudio da lista
-  // ativa) entram juntas em `hasAudio` desde a Tarefa 12 — a face é um filtro
-  // da mesma lista, não um estado à parte.
-  group('shouldShowCarouselAudioFace', () {
-    test(
-      'após close (fila vazia + face PDF) não mostra áudio enquanto houver PDF',
-      () {
-        expect(
-          shouldShowCarouselAudioFace(
-            face: PlaylistMediaFace.pdf,
-            hasPdf: true,
-            hasAudio: true,
-          ),
-          isFalse,
-        );
-      },
-    );
-
-    test('sem PDF e sem áudio nenhum, a barra some', () {
-      expect(
-        shouldShowCarouselAudioFace(
-          face: PlaylistMediaFace.pdf,
-          hasPdf: false,
-          hasAudio: false,
-        ),
-        isFalse,
-      );
-    });
-
-    test('lista só de áudio mostra a face de áudio mesmo na face PDF', () {
-      expect(
-        shouldShowCarouselAudioFace(
-          face: PlaylistMediaFace.pdf,
-          hasPdf: false,
-          hasAudio: true,
-        ),
-        isTrue,
-      );
-    });
-
-    test('face áudio explícita reabre a barra', () {
-      expect(
-        shouldShowCarouselAudioFace(
-          face: PlaylistMediaFace.audio,
-          hasPdf: true,
-          hasAudio: true,
-        ),
-        isTrue,
-      );
-    });
-
-    test('face áudio sem áudio nenhum fica na face PDF', () {
-      expect(
-        shouldShowCarouselAudioFace(
-          face: PlaylistMediaFace.audio,
-          hasPdf: true,
-          hasAudio: false,
-        ),
-        isFalse,
-      );
-    });
-
-    test('sessão ativa sem PDF mostra face áudio', () {
-      expect(
-        shouldShowCarouselAudioFace(
-          face: PlaylistMediaFace.pdf,
-          hasPdf: false,
-          hasAudio: true,
-        ),
-        isTrue,
-      );
-    });
   });
 }

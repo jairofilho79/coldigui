@@ -4,13 +4,11 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_audio_face_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_trailing_actions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -23,8 +21,6 @@ import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,12 +31,11 @@ import 'package:go_router/go_router.dart';
 /// Única instância compartilhada em todas as rotas do shell, inclusive `/leitor`
 /// e `/audio`.
 ///
-/// **Face PDF:** chips das entradas não-áudio da lista ativa
-/// ([carouselItemsProvider]).
-/// **Face áudio:** [CarouselAudioFaceBar] quando há sessão ou entradas de
-/// áudio na lista ativa ([audioCarouselItemsProvider]).
+/// Sem faces (spec 2026-09-12, D1): chips de toda a lista ativa
+/// ([carouselItemsProvider]) — PDF, cifra, gesto e áudio juntos, na mesma
+/// ordem em que estão na lista. O áudio vive no mini-player, fora daqui.
 ///
-/// Retorna [SizedBox.shrink] quando não há PDFs nem áudio relevante.
+/// Retorna [SizedBox.shrink] quando a lista está vazia.
 ///
 /// Monta também o listener de "Seguir o áudio"
 /// ([listenAudioFollowReader]) — é o único widget presente em todas as rotas
@@ -52,48 +47,13 @@ class CarouselChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     listenAudioFollowReader(ref, context);
 
-    final pdfItems = ref.watch(carouselItemsProvider);
-    final audioItems = ref.watch(audioCarouselItemsProvider);
-    final face = ref.watch(playlistMediaFaceProvider);
-    // Só isto: a barra é montada em toda rota do shell e não pode reconstruir
-    // a ~5 Hz com o resto do estado da sessão (posição, agora num provider
-    // separado — A7).
-    final hasSessionQueue = ref.watch(
-      audioPlayerSessionProvider.select((s) => s.queue.isNotEmpty),
-    );
-    final hasPdf = pdfItems.isNotEmpty;
-
-    if (!shouldShowCarouselAudioFace(
-      face: face,
-      hasPdf: hasPdf,
-      hasAudio: audioItems.isNotEmpty || hasSessionQueue,
-    )) {
-      if (!hasPdf) return const SizedBox.shrink();
-      return _CarouselChipsBar(items: pdfItems);
-    }
-    return const CarouselAudioFaceBar();
+    // Só a lista: a barra é montada em toda rota do shell e não pode
+    // reconstruir a ~5 Hz com o estado da sessão de áudio (A7) — o áudio vive
+    // no mini-player, fora daqui.
+    final items = ref.watch(carouselItemsProvider);
+    if (items.isEmpty) return const SizedBox.shrink();
+    return _CarouselChipsBar(items: items);
   }
-}
-
-/// As duas faces são filtros da mesma lista (B.1): a face de áudio aparece
-/// quando o usuário a escolheu e há áudio, ou quando não há **nada** na face de
-/// partituras para mostrar no lugar dela.
-///
-/// [hasAudio] junta as duas origens de áudio — fila da sessão e entradas de
-/// áudio da lista ativa. Após [AudioPlayerSessionNotifier.close] (fila vazia) a
-/// barra continua na face de partituras enquanto houver PDF nela.
-///
-/// Pública (não só `@visibleForTesting`): também decide, em [ShellScaffold],
-/// se a face de áudio já cobre os controles do mini-player (D5) — o
-/// mini-player só aparece quando esta função devolve `false`.
-bool shouldShowCarouselAudioFace({
-  required PlaylistMediaFace face,
-  required bool hasPdf,
-  required bool hasAudio,
-}) {
-  if (!hasPdf && !hasAudio) return false;
-  if (face == PlaylistMediaFace.audio) return hasAudio;
-  return hasAudio && !hasPdf;
 }
 
 class _CarouselChipsBar extends ConsumerStatefulWidget {
