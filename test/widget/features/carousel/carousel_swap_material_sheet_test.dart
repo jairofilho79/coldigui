@@ -2,6 +2,7 @@ import '../../../support/fakes/fake_playlists_notifier.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
@@ -84,17 +85,54 @@ const _trackB = AudioTrack(
   source: LouvorDataSource.coldigom,
 );
 
+/// Ids "de verdade" (Base64 de um path com extensão de áudio) — só com isso
+/// `materialIdKindOf` classifica a entrada focada como
+/// [MaterialKind.audio] e o sheet troca por chave em vez de só tocar por
+/// cima. `_trackA`/`_trackB` acima usam ids soltos porque os testes que já
+/// existiam nunca passavam por `materialIdKindOf`.
+final _voiceAudioId1 = encodePdfId('assets/praises/g1/voz1.mp3');
+final _voiceAudioId2 = encodePdfId('assets/praises/g1/voz2.mp3');
+
+final _voiceTrackA = AudioTrack(
+  audioId: _voiceAudioId1,
+  r2Key: 'assets/praises/g1/voz1.mp3',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'g1',
+  categoria: 'Playback',
+  classificacao: 'Básico',
+  source: LouvorDataSource.coldigom,
+);
+
+final _voiceTrackB = AudioTrack(
+  audioId: _voiceAudioId2,
+  r2Key: 'assets/praises/g1/voz2.mp3',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'g1',
+  categoria: 'Instrumental',
+  classificacao: 'Básico',
+  source: LouvorDataSource.coldigom,
+);
+
 // ------------------------------------------------------------------- fakes
 
-/// Editor da lista ativa com uma entrada só — a partitura `pdf1`.
+/// Editor da lista ativa com uma entrada só — a partitura `pdf1` por padrão
+/// (ou [initialEntries], para o cenário de troca de voz de áudio).
 class _RecordingActiveEditor extends ActivePlaylistEditor {
+  _RecordingActiveEditor({
+    this.initialEntries = const [
+      PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+    ],
+  });
+
+  final List<PlaylistEntry> initialEntries;
+
   /// `(chave da ocorrência, entrada nova)` de cada [replaceByKey].
   final List<(String, PlaylistEntry)> replaced = [];
 
   @override
-  List<PlaylistEntry>? build() => const [
-    PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
-  ];
+  List<PlaylistEntry>? build() => initialEntries;
 
   @override
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
@@ -151,12 +189,17 @@ class _Harness {
 Future<_Harness> _pumpSwapSheet(
   WidgetTester tester, {
   required LouvorGroup group,
+  String currentMaterialId = 'pdf1',
+  String? currentEntryKey = 'pdf1',
+  List<PlaylistEntry> initialActiveEntries = const [
+    PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+  ],
 }) async {
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final carousel = _RecordingActiveEditor();
+  final carousel = _RecordingActiveEditor(initialEntries: initialActiveEntries);
   final readerActions = _FakeReaderCarouselActions();
   final audio = _RecordingAudioSession();
   final prefs = await SharedPreferences.getInstance();
@@ -181,8 +224,8 @@ Future<_Harness> _pumpSwapSheet(
                       context: context,
                       ref: ref,
                       group: group,
-                      currentMaterialId: 'pdf1',
-                      currentEntryKey: 'pdf1',
+                      currentMaterialId: currentMaterialId,
+                      currentEntryKey: currentEntryKey,
                     ),
                     child: const Text('trocar'),
                   ),
@@ -354,4 +397,76 @@ void main() {
     expect(find.text('leitor'), findsOneWidget);
     expect(find.text('player'), findsNothing);
   });
+
+  testWidgets(
+    'entrada focada já é áudio: escolher outra voz troca a entrada por chave '
+    '(spec §3.2)',
+    (tester) async {
+      final group = LouvorGroup.fromLouvores(
+        [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+        audioTracks: [_voiceTrackA, _voiceTrackB],
+      ).first;
+
+      // A lista ativa já tem a voz 1 (não `pdf1`) — o `|◀ ▶|` de dentro do
+      // grupo agora troca a entrada, não só toca por cima dela.
+      final harness = await _pumpSwapSheet(
+        tester,
+        group: group,
+        currentMaterialId: _voiceAudioId1,
+        currentEntryKey: _voiceAudioId1,
+        initialActiveEntries: [
+          PlaylistEntry(id: _voiceAudioId1, kind: MaterialKind.audio),
+        ],
+      );
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Instrumental'));
+      await tester.pumpAndSettle();
+
+      expect(harness.carousel.replaced, [
+        (
+          _voiceAudioId1,
+          PlaylistEntry(id: _voiceAudioId2, kind: MaterialKind.audio),
+        ),
+      ]);
+      expect(harness.audio.queue?.map((t) => t.audioId).toList(), [
+        _voiceAudioId1,
+        _voiceAudioId2,
+      ]);
+      expect(harness.audio.startIndex, 1);
+    },
+  );
+
+  testWidgets(
+    'entrada focada é áudio: escolher a MESMA voz não chama replaceByKey',
+    (tester) async {
+      final group = LouvorGroup.fromLouvores(
+        [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+        audioTracks: [_voiceTrackA, _voiceTrackB],
+      ).first;
+
+      final harness = await _pumpSwapSheet(
+        tester,
+        group: group,
+        currentMaterialId: _voiceAudioId1,
+        currentEntryKey: _voiceAudioId1,
+        initialActiveEntries: [
+          PlaylistEntry(id: _voiceAudioId1, kind: MaterialKind.audio),
+        ],
+      );
+
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Playback'));
+      await tester.pumpAndSettle();
+
+      expect(harness.carousel.replaced, isEmpty);
+      expect(harness.audio.queue?.map((t) => t.audioId).toList(), [
+        _voiceAudioId1,
+        _voiceAudioId2,
+      ]);
+      expect(harness.audio.startIndex, 0);
+    },
+  );
 }

@@ -1,4 +1,5 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
@@ -119,6 +120,20 @@ Future<void> showCarouselSwapMaterialSheet({
             selectedLouvor: louvor,
           );
         case AudioMaterial(:final track):
+          // A entrada focada já é um áudio: escolher outra voz **troca** a
+          // entrada (spec 2026-09-12, §3.2) — o `|◀ ▶|` de dentro do grupo
+          // saiu da barra e este é o lugar dele agora.
+          if (currentEntryKey != null &&
+              currentMaterialId != null &&
+              materialIdKindOf(currentMaterialId) == MaterialKind.audio &&
+              track.audioId != currentMaterialId) {
+            await ref
+                .read(activePlaylistEditorProvider.notifier)
+                .replaceByKey(
+                  currentEntryKey,
+                  PlaylistEntry(id: track.audioId, kind: MaterialKind.audio),
+                );
+          }
           await playAudioInSession(
             ref: ref,
             track: track,

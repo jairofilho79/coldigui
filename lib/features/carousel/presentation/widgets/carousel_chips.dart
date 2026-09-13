@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
+import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
@@ -15,6 +18,7 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_navigator_bar.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
 import 'package:coldigui/features/pdf_reader/domain/exceptions/invalid_pdf_path_exception.dart';
@@ -196,6 +200,14 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     );
   }
 
+  /// «Abrir» o item focado: leitor para o que se lê, player para áudio
+  /// (spec 2026-09-12, §3.2). O chip da barra, o botão «Abrir» e o toque no
+  /// sheet de seleção (fora do leitor) despacham todos por aqui.
+  Future<void> _openItem(CarouselItem item) async {
+    if (item.isAudio) return _openAudio(item);
+    return _openInReader(item);
+  }
+
   Future<void> _openInReader(CarouselItem item) async {
     if (_openingReader) return;
     setState(() => _openingReader = true);
@@ -210,6 +222,41 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       );
       if (!mounted) return;
       ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
+    } finally {
+      if (mounted) setState(() => _openingReader = false);
+    }
+  }
+
+  /// Toca [item] no player global — fila híbrida (spec §3.2:
+  /// `queueForTrack`, a lista quando a faixa está nela, senão o grupo).
+  Future<void> _openAudio(CarouselItem item) async {
+    if (_openingReader) return;
+    final lookup = ref.read(catalogMaterialLookupProvider);
+    final track = lookup.audioTrack(item.materialId);
+    if (track == null) {
+      final l10n = AppLocalizations.of(context);
+      showAppSnackbar(
+        context,
+        l10n?.audioPlaybackError ?? 'Não foi possível tocar o áudio',
+      );
+      return;
+    }
+    setState(() => _openingReader = true);
+    try {
+      ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
+      await openAudioInPlayer(
+        ref: ref,
+        context: context,
+        track: track,
+        queue: queueForTrack(
+          track: track,
+          groupTracks: tracksForGroup(
+            track.groupId,
+            lookup.audioTracksById.values.toList(growable: false),
+          ),
+          activeQueue: activeListAudioQueue(ref),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _openingReader = false);
     }
@@ -257,6 +304,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   }
 
   Future<void> _replaceReaderWithCarouselItem(CarouselItem selected) async {
+    // Áudio não troca o leitor (é outra face) — abre no player, como faria
+    // fora do leitor (spec §3.2).
+    if (selected.isAudio) return _openAudio(selected);
+
     final activeMaterialId = _resolveReaderMaterialId(readOnly: true);
     if (activeMaterialId != null && selected.materialId == activeMaterialId) {
       return;
@@ -437,15 +488,15 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex + 1])
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
-      onChipTap: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
-      onOpen: onReaderWithoutPdfId ? null : () => _openInReader(focusedItem),
+      onChipTap: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
+      onOpen: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
           if (onReaderWithoutPdfId) {
             await _replaceReaderWithCarouselItem(item);
           } else {
-            await _openInReader(item);
+            await _openItem(item);
           }
         },
       ),
