@@ -42,10 +42,12 @@ void main() {
 
     final started = await Future.wait(
       List.generate(processes, (_) {
-        return Process.start(_dartExecutable(), [
-          script.path,
-          tempDir.path,
-        ], workingDirectory: Directory.current.path);
+        return Process.start(
+          _dartExecutable(),
+          [script.path, tempDir.path],
+          workingDirectory: Directory.current.path,
+          runInShell: Platform.isWindows,
+        );
       }),
     );
 
