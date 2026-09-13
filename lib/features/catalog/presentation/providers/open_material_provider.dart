@@ -11,6 +11,8 @@ import '../../../audio_player/presentation/utils/active_list_audio_queue.dart';
 import '../../../audio_player/presentation/utils/open_audio_in_player.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
+import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../offline/presentation/utils/pdf_offline_error_ui.dart';
 import '../../domain/entities/catalog_material.dart';
@@ -39,6 +41,14 @@ typedef ChordMaterialOpener =
       required WidgetRef ref,
       required BuildContext context,
       required ChordMaterial chord,
+    });
+
+/// Abre um documento de gestos em `/gestos` (`openGestureInReader` em produção).
+typedef GestureMaterialOpener =
+    Future<void> Function({
+      required WidgetRef ref,
+      required BuildContext context,
+      required GestureMaterial gesture,
     });
 
 /// Toca uma faixa e abre `/audio` (`openAudioInPlayer` em produção).
@@ -78,12 +88,14 @@ class OpenMaterial {
   const OpenMaterial({
     this.openPdf = openLouvorInReader,
     this.openChord = openChordInReader,
+    this.openGesture = openGestureInReader,
     this.openAudio = openAudioInPlayer,
     this.openYoutube = openYoutubeMaterial,
   });
 
   final PdfMaterialOpener openPdf;
   final ChordMaterialOpener openChord;
+  final GestureMaterialOpener openGesture;
   final AudioMaterialOpener openAudio;
   final YoutubeMaterialOpener openYoutube;
 
@@ -109,6 +121,8 @@ class OpenMaterial {
           await openPdf(ref: ref, context: context, louvor: louvor);
         case ChordMaterialRef(:final chord):
           await openChord(ref: ref, context: context, chord: chord);
+        case GestureMaterialRef(:final gesture):
+          await openGesture(ref: ref, context: context, gesture: gesture);
         case AudioMaterial(:final track):
           await openAudio(
             ref: ref,
@@ -144,7 +158,7 @@ class OpenMaterial {
   }
 }
 
-/// Ponto único de abertura de material (PDF, cifra, áudio, YouTube).
+/// Ponto único de abertura de material (PDF, cifra, gestos, áudio, YouTube).
 final openMaterialProvider = Provider<OpenMaterial>(
   (ref) => const OpenMaterial(),
 );

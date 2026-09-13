@@ -10,8 +10,8 @@ const _chord1 = PlaylistEntry(id: 'cif-1', kind: MaterialKind.chord);
 /// `encodePdfId('assets/chords/a.chord')` — id cuja extensão diz `chord`.
 const _chordId = 'YXNzZXRzL2Nob3Jkcy9hLmNob3Jk';
 
-/// `encodePdfId('assets/gestures/a.gest')`.
-const _gestureId = 'YXNzZXRzL2dlc3R1cmVzL2EuZ2VzdA';
+/// `encodePdfId('assets/gestures/a.gestures')`.
+const _gestureId = 'YXNzZXRzL2dlc3R1cmVzL2EuZ2VzdHVyZXM';
 
 /// `encodePdfId('assets/praises/a/001.mp3')` — extensão de áudio.
 const _audioExtId = 'YXNzZXRzL3ByYWlzZXMvYS8wMDEubXAz';

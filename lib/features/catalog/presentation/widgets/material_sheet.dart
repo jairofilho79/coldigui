@@ -28,7 +28,7 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
 /// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
-/// tipo presente (PDF, cifras, áudio, YouTube) quando há mais de um, senão a
+/// tipo presente (PDF, cifras, gestos, áudio, YouTube) quando há mais de um, senão a
 /// lista direta — e o cabeçalho de metadados aparece quando o grupo tem
 /// [LouvorGroup.coldigomMeta].
 ///
@@ -168,7 +168,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
 
   /// [icon] só é passado quando a `categoria` decide o ícone — o caso do PDF,
   /// cujo tipo real (Partitura/Cifra/Gestos) o manifest só diz por texto.
-  /// Cifra, áudio e YouTube têm [CatalogMaterial.kind] confiável e caem em
+  /// Cifra, gestos, áudio e YouTube têm [CatalogMaterial.kind] confiável e caem em
   /// [LouvorMaterialIcons.forMaterial].
   Widget _materialTile({
     required CatalogMaterial material,
@@ -233,10 +233,11 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         : ref.watch(availableChordsProvider(group.groupId));
     final availableChords = chordsAsync.value ?? const <ChordMaterial>[];
 
+    final gestureMaterials = group.gestureMaterials;
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
 
-    // Abas por tipo (PDF / Cifras / Áudio / YouTube) só quando há mais de um
+    // Abas por tipo (PDF / Cifras / Gestos / Áudio / YouTube) só quando há mais de um
     // tipo — com 17 PDFs e 14 áudios a lista corrida escondia o áudio no fim
     // (onda 4.3). Dentro da aba de PDF as seções por classificação continuam
     // separadas por rótulo quando há mais de uma.
@@ -244,6 +245,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       if (group.totalPdfs > 0) MaterialKind.pdf,
       if (availableChords.isNotEmpty || chordsAsync.hasError)
         MaterialKind.chord,
+      if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
       if (audioTracks.isNotEmpty) MaterialKind.audio,
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
     ];
@@ -304,6 +306,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                     activeMaterialIds,
                     l10n,
                   ),
+                  MaterialKind.gesture => [
+                    for (final gesture in gestureMaterials)
+                      _materialTile(
+                        material: GestureMaterialRef(gesture),
+                        iconColor: AppColors.title,
+                        activeMaterialIds: activeMaterialIds,
+                        l10n: l10n,
+                      ),
+                  ],
                   MaterialKind.audio => [
                     for (final track in audioTracks)
                       _materialTile(
@@ -323,9 +334,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         l10n: l10n,
                       ),
                   ],
-                  // `kinds` só emite os quatro acima; se um dia emitir outro,
+                  // `kinds` só emite os cinco acima; se um dia emitir outro,
                   // que falhe alto em vez de mostrar uma aba vazia.
-                  MaterialKind.gesture || MaterialKind.unknown =>
+                  MaterialKind.unknown =>
                     throw StateError('kind sem aba: $selectedKind'),
                 },
               ),
@@ -401,9 +412,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     return switch (kind) {
       MaterialKind.pdf => l10n.pdfMaterialSection,
       MaterialKind.chord => l10n.chordMaterialSection,
+      MaterialKind.gesture => l10n.gesturesMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
-      MaterialKind.gesture ||
       MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
     };
   }

@@ -91,7 +91,7 @@ Encaixes fora da feature: T4 (`material_id_kind`, `storage_keys`), T5 (`isar_app
 
 - [ ] **Step 1: Criar os fixtures**
 
-`test/fixtures/gestures/182_quero_viver.json` — copiar **exatamente** o JSON da spec §3 (exemplo real 182). Não altere ids nem letras.
+`test/fixtures/gestures/182_quero_viver.json` — copiar **exatamente** o JSON da spec §3.1 ("Exemplo real (182…)"): 12 itens de raiz, 14 cartões. Não altere ids nem letras.
 
 `test/fixtures/gestures/181_jerusalem.json`:
 
@@ -183,7 +183,8 @@ void main() {
       expect(doc.isNewerSchema, isFalse);
       expect(doc.title, '182 - QUERO VIVER PRA SEMPRE COM JESUS');
       expect(doc.dictionaryVersion, 1);
-      expect(doc.items, hasLength(16));
+      // 12 itens de raiz: coro(5) + 5 gestos + instrução + 4 gestos + instrução.
+      expect(doc.items, hasLength(12));
       expect(doc.hasGestures, isTrue);
 
       final coro = doc.items.first as ChorusBlock;
@@ -194,7 +195,7 @@ void main() {
       expect(first.lyrics.single.text, 'viver para sempre');
 
       expect(
-        doc.items[10],
+        doc.items[6],
         isA<InstructionCard>().having(
           (i) => i.kind,
           'kind',
@@ -3469,8 +3470,13 @@ Future<RichText> _pump(WidgetTester tester, LyricLine line, {double width = 400}
   return tester.widget<RichText>(find.byType(RichText));
 }
 
-List<TextSpan> _spans(RichText rich) =>
-    (rich.text as TextSpan).children!.cast<TextSpan>();
+/// `Text.rich` envolve o span dado num `TextSpan` raiz (com o estilo do
+/// `DefaultTextStyle`); os spans do gatilho/leitura estão um nível abaixo.
+List<TextSpan> _spans(RichText rich) {
+  final root = rich.text as TextSpan;
+  final ours = root.children!.single as TextSpan;
+  return ours.children!.cast<TextSpan>();
+}
 
 void main() {
   testWidgets('gatilho vermelho negrito + espaço + leitura preta', (tester) async {
@@ -4710,6 +4716,7 @@ Claude-Session: https://claude.ai/code/session_01DuSVKfiGsabi168JixJLB1"
 `test/widget/features/gestures/gesture_document_view_test.dart`:
 
 ```dart
+import 'dart:async';
 import 'dart:io';
 
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
@@ -4856,11 +4863,20 @@ void main() {
   });
 
   testWidgets('scrollToCard rola até o cartão', (tester) async {
+    // Num Column rolável todo cartão está construído e on-stage (só fora da
+    // viewport), então o teste mede posição, não presença.
     final key = await _pump(tester, '182_quero_viver.json', fontSize: 28);
-    expect(find.byKey(gestureCardKey(13)), findsNothing);
-    await key.currentState!.scrollToCard(13);
+    final viewport = tester.getSize(find.byType(GestureDocumentView));
+    expect(tester.getRect(find.byKey(gestureCardKey(13))).top, greaterThan(viewport.height));
+
+    // Não se espera o Future: ensureVisible anima e só resolve com frames,
+    // que no teste vêm do pumpAndSettle.
+    unawaited(key.currentState!.scrollToCard(13));
     await tester.pumpAndSettle();
-    expect(find.byKey(gestureCardKey(13)), findsOneWidget);
+
+    final rect = tester.getRect(find.byKey(gestureCardKey(13)));
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(viewport.height));
   });
 
   testWidgets('largura máxima 720 centralizada', (tester) async {

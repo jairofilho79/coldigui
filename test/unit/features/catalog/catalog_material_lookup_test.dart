@@ -9,6 +9,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_materia
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ import '../../../helpers/louvores_manifest_test_helpers.dart';
 final _plpcgPdfId = encodePdfId('ColAdultos/001.pdf');
 final _coldigomPdfId = encodePdfId('assets/praises/p1/m1.pdf');
 final _coldigomChordId = encodePdfId('assets/praises/p1/m1.chord');
+final _coldigomGestureId = encodePdfId('assets/praises/p1/m1.gestures');
 final _coldigomAudioId = encodePdfId('assets/praises/p1/m1.mp3');
 final _outroAudioId = encodePdfId('assets/praises/p2/m1.mp3');
 
@@ -48,6 +50,16 @@ final _chord = ChordMaterial(
   numero: '692',
   groupId: 'p1',
   categoria: 'Cifra',
+  classificacao: 'Balada',
+);
+
+final _gesture = GestureMaterial(
+  gestureId: _coldigomGestureId,
+  r2Key: 'assets/praises/p1/m1.gestures',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'p1',
+  categoria: 'Gestos',
   classificacao: 'Balada',
 );
 
@@ -92,6 +104,9 @@ Future<ProviderContainer> _container() async {
   container.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords([
     _chord,
   ]);
+  container.read(coldigomGestureMaterialsCacheProvider.notifier).mergeGestures([
+    _gesture,
+  ]);
   container.read(coldigomPraiseMetaCacheProvider.notifier).put('p1', _meta);
   container.read(coldigomYoutubeCacheProvider.notifier).mergeYoutube([
     _youtube,
@@ -118,6 +133,8 @@ void main() {
       expect(lookup.audioTrack('nao-existe'), isNull);
       expect(lookup.chord(_coldigomChordId), same(_chord));
       expect(lookup.chord('nao-existe'), isNull);
+      expect(lookup.gesture(_coldigomGestureId), same(_gesture));
+      expect(lookup.gesture('nao-existe'), isNull);
       expect(lookup.praiseMeta('p1'), same(_meta));
       expect(lookup.praiseMeta('p404'), isNull);
       expect(lookup.youtube('p1').single.id, 'yt-1');

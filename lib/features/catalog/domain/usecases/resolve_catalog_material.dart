@@ -5,10 +5,9 @@ import '../entities/catalog_material.dart';
 
 /// Material endereçável por [materialId], ou `null` se não houver.
 ///
-/// PDF sai do manifest PLPCG ou do cache Coldigom, cifra e áudio saem dos
-/// caches Coldigom; YouTube (id que não vive no espaço de ids do app), gesto
-/// (abre pelo caminho de PDF do leitor) e id inválido devolvem `null` — quem
-/// chama segue pelo caminho que já tinha.
+/// PDF sai do manifest PLPCG ou do cache Coldigom, cifra, gesto e áudio saem
+/// dos caches Coldigom; YouTube (id que não vive no espaço de ids do app) e id
+/// inválido devolvem `null` — quem chama segue pelo caminho que já tinha.
 ///
 /// Quem resolve é a porta [CatalogSource]: nenhum chamador escolhe acervo nem
 /// conhece cache.

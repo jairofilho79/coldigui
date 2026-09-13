@@ -34,6 +34,7 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
     coldigomCache: lookup.coldigomLouvoresByPdfId,
     audioCache: lookup.audioTracksById,
     chordCache: lookup.chordsById,
+    gestureCache: lookup.gesturesById,
   );
 }
 
@@ -121,7 +122,7 @@ Future<void> showCarouselSwapMaterialSheet({
               activeQueue: activeListAudioQueue(ref),
             ),
           );
-        case ChordMaterialRef() || YoutubeMaterialRef():
+        case ChordMaterialRef() || GestureMaterialRef() || YoutubeMaterialRef():
           await ref.read(openMaterialProvider).open(context, ref, material);
       }
     },
@@ -146,7 +147,10 @@ Future<void> _onPdfMaterialSelected({
 }) async {
   if (!context.mounted) return;
   final path = GoRouterState.of(context).uri.path;
-  final onReader = path == RoutePaths.reader || path == RoutePaths.chords;
+  final onReader =
+      path == RoutePaths.reader ||
+      path == RoutePaths.chords ||
+      path == RoutePaths.gestos;
 
   if (currentMaterialId != null &&
       currentMaterialId.isNotEmpty &&

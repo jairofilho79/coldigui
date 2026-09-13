@@ -49,8 +49,8 @@ List<CarouselItem> _faceItems(Ref ref, {required bool audio}) {
   return List<CarouselItem>.unmodifiable(items);
 }
 
-/// Precedência dos metadados: cifra antes de PDF — cifra e PDF dividem o
-/// espaço de ids, e uma cifra em cache é a resposta mais específica.
+/// Precedência dos metadados: cifra/gesto antes de PDF — os três dividem o
+/// espaço de ids, e um material em cache é a resposta mais específica.
 CarouselItem _enrich(
   ActiveEntry entry,
   int faceIndex,
@@ -68,6 +68,21 @@ CarouselItem _enrich(
       categoria: chord.categoria,
       classificacao: chord.classificacao,
       source: chord.source,
+    );
+  }
+
+  final gesture = lookup.gesture(entry.id);
+  if (gesture != null) {
+    return CarouselItem(
+      materialId: entry.id,
+      kind: entry.kind,
+      index: faceIndex,
+      key: entry.key,
+      numero: gesture.numero,
+      nome: gesture.nome,
+      categoria: gesture.categoria,
+      classificacao: gesture.classificacao,
+      source: gesture.source,
     );
   }
 

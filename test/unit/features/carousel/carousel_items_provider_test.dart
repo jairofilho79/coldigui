@@ -7,6 +7,8 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -143,6 +145,33 @@ void main() {
 
     expect(c.read(activeMaterialIdsProvider), {_pdfA, _audioA});
   });
+
+  test(
+    'gesto na lista ativa usa nome, número e categoria do documento de gestos',
+    () async {
+      final gestureId = encodePdfId('assets/praises/p1/m1.gestures');
+      final c = await boot(
+        entries: [PlaylistEntry(id: gestureId, kind: MaterialKind.gesture)],
+      );
+      c.read(coldigomGestureMaterialsCacheProvider.notifier).mergeGestures([
+        GestureMaterial(
+          gestureId: gestureId,
+          r2Key: 'assets/praises/p1/m1.gestures',
+          nome: 'Comigo habita',
+          numero: '692',
+          groupId: 'p1',
+          categoria: 'Gestos',
+          classificacao: 'Balada',
+        ),
+      ]);
+
+      final item = c.read(carouselItemsProvider).single;
+
+      expect(item.numero, '692');
+      expect(item.nome, 'Comigo habita');
+      expect(item.categoria, 'Gestos');
+    },
+  );
 
   test('material sem metadado cai no fallback de nome truncado', () async {
     const orfao = 'idmuitolongodemais';

@@ -46,6 +46,8 @@ CatalogMaterial? _resolveMaterial(CatalogMaterialLookup lookup, String id) {
   if (louvor != null) return PdfMaterial(louvor);
   final chord = lookup.chord(id);
   if (chord != null) return ChordMaterialRef(chord);
+  final gesture = lookup.gesture(id);
+  if (gesture != null) return GestureMaterialRef(gesture);
   final track = lookup.audioTrack(id);
   if (track != null) return AudioMaterial(track);
   return null;
@@ -56,6 +58,7 @@ String _materialLabel(CatalogMaterial material) {
   final (numero, nome) = switch (material) {
     PdfMaterial(:final louvor) => (louvor.numero, louvor.nome),
     ChordMaterialRef(:final chord) => (chord.numero, chord.nome),
+    GestureMaterialRef(:final gesture) => (gesture.numero, gesture.nome),
     AudioMaterial(:final track) => (track.numero, track.nome),
     YoutubeMaterialRef() => ('', material.categoria),
   };

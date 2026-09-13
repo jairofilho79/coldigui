@@ -1,17 +1,19 @@
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import 'louvor.dart';
 import 'youtube_material.dart';
 
-/// Qualquer material abrível de um louvor — PDF, cifra, áudio ou YouTube.
+/// Qualquer material abrível de um louvor — PDF, cifra, gestos, áudio ou
+/// YouTube.
 ///
 /// Fachada `sealed` sobre as entidades que já existem: nenhuma delas muda de
 /// forma (Isar/JSON intactos), cada uma ganha um invólucro aqui. Isso dá ao app
 /// um único vocabulário (`kind`) e um único ponto de abertura
 /// (`openMaterialProvider`), sem ainda unificar as listas de [LouvorGroup].
 ///
-/// `sealed` obriga o `switch` do opener a cobrir os quatro casos — um material
+/// `sealed` obriga o `switch` do opener a cobrir os cinco casos — um material
 /// novo quebra a compilação em vez de cair num `else` silencioso.
 sealed class CatalogMaterial {
   const CatalogMaterial();
@@ -68,6 +70,25 @@ final class ChordMaterialRef extends CatalogMaterial {
 
   @override
   String get categoria => chord.categoria;
+}
+
+/// Documento de gestos CIAs — abre em `/gestos`.
+final class GestureMaterialRef extends CatalogMaterial {
+  const GestureMaterialRef(this.gesture);
+
+  final GestureMaterial gesture;
+
+  @override
+  String get id => gesture.gestureId;
+
+  @override
+  MaterialKind get kind => MaterialKind.gesture;
+
+  @override
+  String get groupId => gesture.groupId;
+
+  @override
+  String get categoria => gesture.categoria;
 }
 
 /// Faixa de áudio Coldigom — toca na sessão global e abre `/audio`.

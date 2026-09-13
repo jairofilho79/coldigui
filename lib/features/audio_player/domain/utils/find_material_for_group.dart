@@ -1,5 +1,6 @@
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../entities/audio_track.dart';
 
 /// Categoria do material de áudio "principal" no acervo Coldigom.
@@ -7,7 +8,8 @@ import '../entities/audio_track.dart';
 /// As demais são variações (Playback, MIDI…) — ver [AudioTrack.categoria].
 const kPrimaryAudioCategoria = 'Áudio';
 
-/// Ponte áudio → partitura: material (PDF ou cifra) do louvor [groupId].
+/// Ponte áudio → partitura: material (PDF, cifra ou gesto) do louvor
+/// [groupId].
 ///
 /// Ordem de preferência:
 /// 1. o material desse louvor que **já está na lista ativa**
@@ -17,13 +19,14 @@ const kPrimaryAudioCategoria = 'Áudio';
 /// 3. senão `null` (louvor sem material de leitura).
 ///
 /// [byPdfId] é o cache Coldigom (`pdfId → Louvor`); [catalog] é o manifest
-/// PLPCG; [chordsById] é o cache de cifras (`chordId` vive no mesmo espaço de
-/// ids do `pdfId`).
+/// PLPCG; [chordsById] é o cache de cifras e [gesturesById] o de gestos
+/// (`chordId`/`gestureId` vivem no mesmo espaço de ids do `pdfId`).
 String? findMaterialForGroup({
   required String groupId,
   required List<String> carouselPdfIds,
   required Map<String, Louvor> byPdfId,
   Map<String, ChordMaterial> chordsById = const {},
+  Map<String, GestureMaterial> gesturesById = const {},
   List<Louvor> catalog = const [],
 }) {
   final gid = groupId.trim();
@@ -34,6 +37,7 @@ String? findMaterialForGroup({
       materialId: pdfId,
       byPdfId: byPdfId,
       chordsById: chordsById,
+      gesturesById: gesturesById,
       catalog: catalog,
     );
     if (materialGroupId == gid) return pdfId;
@@ -48,13 +52,14 @@ String? findMaterialForGroup({
   return null;
 }
 
-/// `groupId` do louvor a que [materialId] (PDF ou cifra) pertence.
+/// `groupId` do louvor a que [materialId] (PDF, cifra ou gesto) pertence.
 ///
 /// Retorna `null` quando o id não está em nenhum dos caches/catálogo.
 String? groupIdForMaterialId({
   required String materialId,
   required Map<String, Louvor> byPdfId,
   Map<String, ChordMaterial> chordsById = const {},
+  Map<String, GestureMaterial> gesturesById = const {},
   List<Louvor> catalog = const [],
 }) {
   if (materialId.isEmpty) return null;
@@ -62,6 +67,12 @@ String? groupIdForMaterialId({
   final chord = chordsById[materialId];
   if (chord != null) {
     final gid = chord.groupId.trim();
+    return gid.isEmpty ? null : gid;
+  }
+
+  final gesture = gesturesById[materialId];
+  if (gesture != null) {
+    final gid = gesture.groupId.trim();
     return gid.isEmpty ? null : gid;
   }
 

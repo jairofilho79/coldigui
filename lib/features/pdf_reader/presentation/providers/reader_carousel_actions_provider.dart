@@ -8,6 +8,7 @@ import '../../../carousel/presentation/providers/carousel_focused_index_provider
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
+import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
 import '../../../offline/data/providers/offline_core_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -35,7 +36,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     return navigateToPdfId(targetPdfId: items[index].materialId);
   }
 
-  /// Resolve rota `/leitor` (ou `/cifra`) para [targetPdfId], ou `null`.
+  /// Resolve rota `/leitor` (ou `/cifra`, `/gestos`) para [targetPdfId], ou `null`.
   ///
   /// Usado por [openCarouselPdfInReader] (shell/modal) e por [navigateToKey].
   Future<String?> navigateToPdfId({required String targetPdfId}) async {
@@ -47,6 +48,9 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
 
     final chordRoute = chordRouteFor(targetPdfId, lookup.chordsById);
     if (chordRoute.isChord) return chordRoute.location;
+
+    final gestureRoute = gestureRouteFor(targetPdfId, lookup.gesturesById);
+    if (gestureRoute.isGesture) return gestureRoute.location;
 
     // O lookup responde manifest PLPCG e cache Coldigom na mesma consulta, em
     // O(1) — nada de varrer o catálogo a cada troca de louvor (A4).

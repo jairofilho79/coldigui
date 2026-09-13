@@ -65,7 +65,8 @@ class ShellScaffold extends ConsumerWidget {
   bool _isImmersiveMediaRoute(String path) {
     return path == RoutePaths.reader ||
         path == RoutePaths.audio ||
-        path == RoutePaths.chords;
+        path == RoutePaths.chords ||
+        path == RoutePaths.gestos;
   }
 
   /// Destinos na mesma ordem/índices de [tabs] (por sua vez, [appTabsFor]) —

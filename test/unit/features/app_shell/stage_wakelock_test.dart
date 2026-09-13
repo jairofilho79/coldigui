@@ -24,6 +24,13 @@ void main() {
         isTrue,
       );
     });
+
+    test('/gestos segura o wakelock', () {
+      expect(
+        shouldHoldWakelock(path: RoutePaths.gestos, playing: false),
+        isTrue,
+      );
+    });
   });
 
   group('shouldHoldWakelock — fora do palco', () {

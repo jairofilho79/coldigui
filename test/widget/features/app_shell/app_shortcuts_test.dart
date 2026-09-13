@@ -112,6 +112,15 @@ void main() {
     expect(container.read(readerFullscreenProvider), isTrue);
   });
 
+  testWidgets('F no leitor de gestos também liga a tela cheia', (tester) async {
+    final container = await _pumpShortcuts(tester, path: RoutePaths.gestos);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pumpAndSettle();
+
+    expect(container.read(readerFullscreenProvider), isTrue);
+  });
+
   testWidgets('F fora do leitor não mexe na tela cheia', (tester) async {
     final container = await _pumpShortcuts(tester, path: RoutePaths.home);
 

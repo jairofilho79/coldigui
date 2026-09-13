@@ -747,6 +747,74 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordReaderResetTranspose => 'Voltar ao tom original';
 
   @override
+  String get gestureNotFound => 'gesto não encontrado';
+
+  @override
+  String get gesturesMaterialLabel => 'Gestos';
+
+  @override
+  String get gesturesMaterialSection => 'Gestos';
+
+  @override
+  String get gesturesReaderTitle => 'Leitor de gestos';
+
+  @override
+  String get gesturesReaderEmpty => 'Este louvor ainda não tem gestos';
+
+  @override
+  String get gesturesReaderUnavailable =>
+      'Gestos indisponíveis · tentar de novo';
+
+  @override
+  String get gesturesReaderIncreaseFont => 'Aumentar letra dos gestos';
+
+  @override
+  String get gesturesReaderDecreaseFont => 'Diminuir letra dos gestos';
+
+  @override
+  String get gesturesReaderFullscreen => 'Tela cheia';
+
+  @override
+  String get gesturesNewerSchemaWarning =>
+      'Documento em formato mais novo; atualize o app.';
+
+  @override
+  String get gestureInstructionInstruments => 'Instrumentos';
+
+  @override
+  String get gestureInstructionRepeatPraise => 'Repetir o louvor';
+
+  @override
+  String get gestureInstructionBackToChorus => 'Voltar ao coro';
+
+  @override
+  String get gestureInstructionBackToChorusAndFinish =>
+      'Voltar ao coro e finalizar';
+
+  @override
+  String gestureContextRepeat(int count) {
+    return '${count}x';
+  }
+
+  @override
+  String get gestureContextChorus => 'CORO';
+
+  @override
+  String get gestureContextFinal => 'FINAL';
+
+  @override
+  String get gestureContextLink => 'ligação';
+
+  @override
+  String get gestureFocusNext => 'próximo:';
+
+  @override
+  String get gestureFocusEnd => 'fim';
+
+  @override
+  String get gestureFocusClose => 'Fechar';
+
+  @override
   String get chordAutoscrollPlay => 'Iniciar rolagem automática';
 
   @override

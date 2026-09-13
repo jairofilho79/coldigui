@@ -120,6 +120,7 @@ String? resolveMaterialForGroup(
     carouselPdfIds: [for (final item in carouselItems) item.materialId],
     byPdfId: lookup.coldigomLouvoresByPdfId,
     chordsById: lookup.chordsById,
+    gesturesById: lookup.gesturesById,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -146,6 +147,7 @@ String? resolveGroupIdForMaterial(
     materialId: materialId,
     byPdfId: lookup.coldigomLouvoresByPdfId,
     chordsById: lookup.chordsById,
+    gesturesById: lookup.gesturesById,
     catalog: manifest.value?.louvores ?? const [],
   );
 }
@@ -190,10 +192,13 @@ Future<void> openMaterialForGroupInReader({
   ref.read(carouselFocusedIndexProvider.notifier).focusKey(items[index].key);
 }
 
-/// `true` em `/leitor` ou `/cifra`; `false` sem GoRouter (testes de widget).
+/// `true` em `/leitor`, `/cifra` ou `/gestos`; `false` sem GoRouter (testes de
+/// widget).
 bool isReaderRoute(BuildContext context) {
   final path = currentRoutePath(context);
-  return path == RoutePaths.reader || path == RoutePaths.chords;
+  return path == RoutePaths.reader ||
+      path == RoutePaths.chords ||
+      path == RoutePaths.gestos;
 }
 
 /// Path da rota atual, ou `null` quando não há GoRouter no contexto.

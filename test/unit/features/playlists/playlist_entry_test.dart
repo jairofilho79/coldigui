@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 final pdfA = encodePdfId('ColAdultos/001.pdf');
 final chordA = encodePdfId('ColAdultos/001.chord');
-final gestureA = encodePdfId('ColAdultos/001.gest');
+final gestureA = encodePdfId('ColAdultos/001.gestures');
 final audioA = encodePdfId('assets/praises/a/001.mp3');
 
 /// Áudio real do Worker com container fora de `kAudioMaterialExtensions`:

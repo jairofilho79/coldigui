@@ -8,6 +8,7 @@ import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../catalog/domain/ports/catalog_source.dart';
 import '../../../catalog/domain/ports/search_cancellation.dart';
 import '../../../chords/domain/entities/chord_material.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
@@ -25,6 +26,7 @@ class ColdigomCatalogSource implements CatalogSource {
     this.louvores = const {},
     this.audioTracks = const {},
     this.chords = const {},
+    this.gestures = const {},
     this.praiseMeta = const {},
     this.youtube = const {},
     this.searchRepository,
@@ -38,6 +40,9 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Cifras Coldigom em cache, por `chordId`.
   final Map<String, ChordMaterial> chords;
+
+  /// Documentos de gestos Coldigom em cache, por `gestureId`.
+  final Map<String, GestureMaterial> gestures;
 
   /// Metadados do praise em cache, por `groupId`.
   final Map<String, ColdigomPraiseMetadata> praiseMeta;
@@ -74,12 +79,22 @@ class ColdigomCatalogSource implements CatalogSource {
       for (final chord in chords.values)
         if (chord.groupId == groupId) chord,
     ];
-    if (pdfs.isEmpty && tracks.isEmpty && groupChords.isEmpty) return null;
+    final groupGestures = [
+      for (final gesture in gestures.values)
+        if (gesture.groupId == groupId) gesture,
+    ];
+    if (pdfs.isEmpty &&
+        tracks.isEmpty &&
+        groupChords.isEmpty &&
+        groupGestures.isEmpty) {
+      return null;
+    }
 
     final groups = LouvorGroup.fromLouvores(
       pdfs,
       audioTracks: tracks,
       chordMaterials: groupChords,
+      gestureMaterials: groupGestures,
       youtubeMaterials: youtube[groupId] ?? const [],
       coldigomMetaByGroupId: praiseMeta,
     );
@@ -98,10 +113,11 @@ class ColdigomCatalogSource implements CatalogSource {
       case MaterialKind.audio:
         final track = audioTracks[materialId];
         return track == null ? null : AudioMaterial(track);
-      // YouTube não vive no espaço de ids do app (o id vem do Worker) e gesto
-      // abre pelo caminho de PDF do leitor — nenhum dos dois é endereçável.
-      case MaterialKind.youtube:
       case MaterialKind.gesture:
+        final gesture = gestures[materialId];
+        return gesture == null ? null : GestureMaterialRef(gesture);
+      // YouTube não vive no espaço de ids do app (o id vem do Worker).
+      case MaterialKind.youtube:
       case MaterialKind.unknown:
         return null;
     }

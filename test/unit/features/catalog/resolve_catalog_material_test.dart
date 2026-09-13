@@ -15,7 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _plpcgPdfId = encodePdfId('ColAdultos/001.pdf');
-final _gestureId = encodePdfId('ColAdultos/001.gest');
+final _gestureId = encodePdfId('ColAdultos/001.gestures');
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
 final _audioId = encodePdfId('assets/praises/p1/m1.mp3');
 final _coldigomPdfId = encodePdfId('assets/praises/p1/m1.pdf');
@@ -34,7 +34,7 @@ final _gesto = Louvor.fromManifest(
   numero: '001',
   categoria: 'Gestos',
   classificacao: 'ColAdultos',
-  pdf: '001.gest',
+  pdf: '001.gestures',
   pdfId: _gestureId,
 );
 
