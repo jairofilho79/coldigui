@@ -12,8 +12,9 @@ import '../../../pdf_reader/presentation/providers/reader_route_params_provider.
 
 final _log = AppLogger.of('catalog');
 
-/// Teto de ids guardados — chips «Abertos recentemente» na Home (B.1/C4).
-const kRecentlyOpenedMaxSize = 8;
+/// Teto de ids guardados — «janela deslizante» de «Abertos recentemente» na
+/// Home (B.1/C4/C6): mantém só os 5 mais recentes para a seção não crescer.
+const kRecentlyOpenedMaxSize = 5;
 
 /// Ids de material abertos recentemente na Home, mais recente primeiro
 /// (B.1/C4).

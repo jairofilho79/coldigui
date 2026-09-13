@@ -5,12 +5,18 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../carousel/domain/entities/carousel_item.dart';
+import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
 import '../../domain/entities/catalog_material.dart';
+import '../../domain/entities/louvor_data_source.dart';
 import '../providers/catalog_filters_provider.dart';
 import '../providers/catalog_material_lookup_provider.dart';
 import '../providers/home_search_state.dart';
 import '../providers/open_material_provider.dart';
 import '../providers/recently_opened_provider.dart';
+
+/// Largura de cada cartão na «janela deslizante» de recentes (C6).
+const _recentCardWidth = 220.0;
 
 /// Estado vazio da Home (C4) — renderizado por `HomeSearchResultsSliver` no
 /// lugar do antigo `SizedBox.shrink()`.
@@ -53,16 +59,53 @@ CatalogMaterial? _resolveMaterial(CatalogMaterialLookup lookup, String id) {
   return null;
 }
 
-/// Label de exibição de um material já resolvido (número + nome).
-String _materialLabel(CatalogMaterial material) {
-  final (numero, nome) = switch (material) {
-    PdfMaterial(:final louvor) => (louvor.numero, louvor.nome),
-    ChordMaterialRef(:final chord) => (chord.numero, chord.nome),
-    GestureMaterialRef(:final gesture) => (gesture.numero, gesture.nome),
-    AudioMaterial(:final track) => (track.numero, track.nome),
-    YoutubeMaterialRef() => ('', material.categoria),
+/// Adapta um [CatalogMaterial] já resolvido para o `item` que
+/// [CarouselLouvorChip] espera — mesmo chip da barra de playlist do leitor
+/// (C6): dá de graça a cor por [LouvorDataSource] (vermelho PLPCG / preto
+/// Coldigom), a borda dourada e a linha "classificação · categoria".
+CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
+  final (numero, nome, classificacao, source) = switch (material) {
+    PdfMaterial(:final louvor) => (
+      louvor.numero,
+      louvor.nome,
+      louvor.classificacao,
+      louvor.source,
+    ),
+    ChordMaterialRef(:final chord) => (
+      chord.numero,
+      chord.nome,
+      chord.classificacao,
+      chord.source,
+    ),
+    GestureMaterialRef(:final gesture) => (
+      gesture.numero,
+      gesture.nome,
+      gesture.classificacao,
+      gesture.source,
+    ),
+    AudioMaterial(:final track) => (
+      track.numero,
+      track.nome,
+      track.classificacao,
+      track.source,
+    ),
+    YoutubeMaterialRef(material: final youtube) => (
+      youtube.numero,
+      youtube.nome,
+      youtube.classificacao,
+      youtube.source,
+    ),
   };
-  return numero.isEmpty ? nome : '$numero $nome';
+  return CarouselItem(
+    materialId: material.id,
+    kind: material.kind,
+    index: index,
+    numero: numero,
+    nome: nome,
+    categoria: material.categoria,
+    classificacao: classificacao,
+    source: source,
+  );
 }
 
 class _NoQueryContent extends ConsumerWidget {
@@ -82,28 +125,51 @@ class _NoQueryContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (recentMaterials.isNotEmpty) ...[
-          Text(
-            l10n.homeEmptyRecent,
-            style: AppTypography.label.copyWith(color: AppColors.textLight),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final material in recentMaterials)
-                // `ActionChip` mantém o fundo creme do `ChipThemeData` — texto
-                // vinho (`AppColors.title`, padrão do tema) fica correto aqui,
-                // mesmo com o restante deste estado vazio no fundo vinho do
-                // `Scaffold` da Home.
-                ActionChip(
-                  key: ValueKey(material.id),
-                  label: Text(_materialLabel(material)),
-                  onPressed: () => ref
-                      .read(openMaterialProvider)
-                      .open(context, ref, material),
-                ),
-            ],
+          // Cartão creme próprio (C6, feedback do product owner): a seção
+          // não fica mais solta sobre o fundo vinho do `Scaffold` — mesmo
+          // contraste que os demais cards do tema (`AppColors.card` + borda
+          // dourada do `CardThemeData`).
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.homeEmptyRecent,
+                    style: AppTypography.label.copyWith(
+                      color: AppColors.title,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // «Janela deslizante» (C6): rolagem horizontal em vez de
+                  // `Wrap` — a seção nunca cresce verticalmente, e o teto de
+                  // [kRecentlyOpenedMaxSize] já garante no máximo 5 cartões.
+                  SizedBox(
+                    height: carouselChipBarHeight,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: recentMaterials.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final material = recentMaterials[index];
+                        return SizedBox(
+                          width: _recentCardWidth,
+                          child: CarouselLouvorChip(
+                            key: ValueKey(material.id),
+                            item: _toCarouselItem(material, index),
+                            onTap: () => ref
+                                .read(openMaterialProvider)
+                                .open(context, ref, material),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 20),
         ],

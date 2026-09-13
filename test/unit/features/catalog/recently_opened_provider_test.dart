@@ -50,18 +50,18 @@ void main() {
     expect(container.read(recentlyOpenedProvider), ['a', 'b']);
   });
 
-  test('teto de 8 ids — o mais antigo cai', () async {
+  test('teto de 5 ids — o mais antigo cai', () async {
     final prefs = await SharedPreferences.getInstance();
     final container = _makeContainer(prefs);
     final notifier = container.read(recentlyOpenedProvider.notifier);
 
-    for (var i = 1; i <= 9; i++) {
+    for (var i = 1; i <= 6; i++) {
       notifier.record('id$i');
     }
 
     final state = container.read(recentlyOpenedProvider);
-    expect(state.length, 8);
-    expect(state.first, 'id9');
+    expect(state.length, 5);
+    expect(state.first, 'id6');
     expect(state.contains('id1'), isFalse);
   });
 

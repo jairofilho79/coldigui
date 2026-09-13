@@ -3,6 +3,7 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/theme/app_theme.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
@@ -258,19 +259,19 @@ void main() {
           ],
         );
 
-        // Id sem hit no lookup não vira chip (B.1: "ids sem lookup são
+        // Id sem hit no lookup não vira card (B.1: "ids sem lookup são
         // pulados").
-        expect(find.byType(ActionChip), findsNWidgets(3));
+        expect(find.byType(CarouselLouvorChip), findsNWidgets(3));
 
-        await tester.tap(find.text('001 Aleluia'));
+        await tester.tap(find.text('#001 — Aleluia'));
         await tester.pumpAndSettle();
         expect(openedIds, ['pdf-1']);
 
-        await tester.tap(find.text('002 Grande é o Senhor'));
+        await tester.tap(find.text('#002 — Grande é o Senhor'));
         await tester.pumpAndSettle();
         expect(openedIds, ['pdf-1', 'chord-1']);
 
-        await tester.tap(find.text('003 Vim Adorar'));
+        await tester.tap(find.text('#003 — Vim Adorar'));
         await tester.pumpAndSettle();
         expect(openedIds, ['pdf-1', 'chord-1', 'audio-1']);
       },
@@ -418,15 +419,17 @@ void main() {
           ],
         );
 
-        expect(_textColor(tester, 'Abertos recentemente'), AppColors.textLight);
+        // O rótulo vive dentro do card creme próprio da seção (C6) — vinho,
+        // como qualquer texto sobre `AppColors.card`, independente do fundo
+        // do `Scaffold` por trás.
+        expect(_textColor(tester, 'Abertos recentemente'), AppColors.title);
         expect(
           _textColor(tester, 'Busque por título ou número'),
           AppColors.textLight.withValues(alpha: 0.7),
         );
-        // O chip continua no fundo creme do `ChipThemeData` — sem `style`
-        // próprio, o `Text` herda o vinho de `labelStyle` por baixo, então
-        // não muda com este fix (nada a asserir no `Text.style`, que é nulo).
-        expect(find.text('001 Aleluia'), findsOneWidget);
+        // O card do material usa `CarouselLouvorChip` — título em branco
+        // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
+        expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
       },
     );
 
