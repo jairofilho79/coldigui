@@ -21,13 +21,13 @@ import '../../domain/entities/audio_track.dart';
 /// Ids sem faixa em cache são pulados: uma lista salva pode citar um áudio
 /// ainda não aquecido, e isso não pode furar a fila.
 List<AudioTrack> activeListAudioQueue(WidgetRef ref) => _queueFrom(
-  ref.read(audioFaceItemsProvider),
+  ref.read(audioCarouselItemsProvider),
   () => ref.read(catalogMaterialLookupProvider),
 );
 
 /// Variante de [activeListAudioQueue] para dentro de um provider.
 List<AudioTrack> activeListAudioQueueOf(Ref ref) => _queueFrom(
-  ref.read(audioFaceItemsProvider),
+  ref.read(audioCarouselItemsProvider),
   () => ref.read(catalogMaterialLookupProvider),
 );
 
@@ -41,8 +41,8 @@ List<AudioTrack> queueForTrack({
   return inActive ? activeQueue : groupTracks;
 }
 
-/// O lookup só é lido quando há o que resolver — sem face de áudio a fila é
-/// vazia e nenhum cache precisa ser tocado.
+/// O lookup só é lido quando há o que resolver — sem entradas de áudio a fila
+/// é vazia e nenhum cache precisa ser tocado.
 List<AudioTrack> _queueFrom(
   List<CarouselItem> audioItems,
   CatalogMaterialLookup Function() lookup,

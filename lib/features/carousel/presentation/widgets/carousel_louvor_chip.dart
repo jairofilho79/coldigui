@@ -12,12 +12,14 @@ import 'package:flutter/material.dart';
 
 import 'chip_parts/chip_body.dart';
 import 'chip_parts/chip_buttons.dart';
+import 'chip_parts/chip_nav_zone.dart';
 import 'chip_parts/metadata_row.dart';
 import 'chip_parts/share_overflow_button.dart';
 
 export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
 
-/// Altura do chip na barra do leitor (variante modal/pill).
+/// Altura do chip na variante modal/pill (usada pelos cartões «Abertos
+/// recentemente» da home).
 const carouselChipBarHeight = 58.0;
 
 /// Altura do chip na barra superior do shell (variante retangular).
@@ -72,10 +74,15 @@ enum CarouselLouvorChipVariant {
 /// [onTap] abre o louvor no leitor (UC-04/05) — toque no corpo do chip, sem
 /// interferir no trailing nem no drag handle do modal.
 ///
-/// Corpo, botões, linha de metadados e menu de compartilhar (E4) vivem em
-/// `chip_parts/` ([ChipBody], [ChipRemoveButton]/[ChipAddButton]/
+/// [showNavArrows] transforma o próprio chip no carrossel: as bordas ganham
+/// zonas «‹ ›» ([ChipNavZone]) para trocar de louvor sem sair da barra — só a
+/// barra do shell/leitor usa (D5).
+///
+/// Corpo, botões, linha de metadados, setas e menu de compartilhar (E4) vivem
+/// em `chip_parts/` ([ChipBody], [ChipRemoveButton]/[ChipAddButton]/
 /// [ChipAddedIndicator]/[CircleActionButton], [ChipMetadataRow]
-/// (com `MaterialKindsRow` na variante de card, C5), [ShareOverflowButton]).
+/// (com `MaterialKindsRow` na variante de card, C5), [ChipNavZone],
+/// [ShareOverflowButton]).
 class CarouselLouvorChip extends StatelessWidget {
   const CarouselLouvorChip({
     required this.item,
@@ -93,6 +100,11 @@ class CarouselLouvorChip extends StatelessWidget {
     this.loading = false,
     this.shareLoading = false,
     this.offlineAvailability = PdfOfflineAvailability.notAvailable,
+    this.showNavArrows = false,
+    this.canGoPrevious = false,
+    this.canGoNext = false,
+    this.onPrevious,
+    this.onNext,
     super.key,
   });
 
@@ -145,6 +157,21 @@ class CarouselLouvorChip extends StatelessWidget {
   /// Badge de disponibilidade offline no catálogo (permanente vs LRU).
   final PdfOfflineAvailability offlineAvailability;
 
+  /// Zonas «‹ ›» nas bordas do chip (só a barra do shell/leitor usa).
+  final bool showNavArrows;
+
+  /// Habilita a zona esquerda — falso nos extremos da lista.
+  final bool canGoPrevious;
+
+  /// Habilita a zona direita — falso nos extremos da lista.
+  final bool canGoNext;
+
+  /// Ação da zona esquerda — sem efeito se [showNavArrows] for falso.
+  final VoidCallback? onPrevious;
+
+  /// Ação da zona direita — sem efeito se [showNavArrows] for falso.
+  final VoidCallback? onNext;
+
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
   Widget? get _trailingAction {
@@ -166,8 +193,16 @@ class CarouselLouvorChip extends StatelessWidget {
     final classificationLabel = LouvorClassification.displayLabel(
       item.classificacao,
     );
+    // Áudio, cifra e gesto já sabem o que são; só PDF depende da categoria
+    // (o manifest mistura Partitura/Cifra/Gestos em `type: pdf`).
     final categoryIcon = LouvorMaterialIcons.forKind(
-      LouvorMaterialIcons.kindForCategory(item.categoria),
+      switch (item.kind) {
+        MaterialKind.pdf ||
+        MaterialKind.unknown => LouvorMaterialIcons.kindForCategory(
+          item.categoria,
+        ),
+        _ => item.kind,
+      },
     );
     final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
     final padding = _isTopBar
@@ -177,14 +212,9 @@ class CarouselLouvorChip extends StatelessWidget {
         ? AppColors.chipColdigom
         : AppColors.title;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(chipRadius),
-        border: Border.all(color: AppColors.gold, width: 2),
-        boxShadow: AppColors.shadowMd,
-      ),
-      padding: padding,
+    final l10n = AppLocalizations.of(context);
+    final body = Padding(
+      padding: showNavArrows ? padding : EdgeInsets.zero,
       child: Row(
         children: [
           if (showDragHandle) ...[
@@ -252,6 +282,70 @@ class CarouselLouvorChip extends StatelessWidget {
           ],
         ],
       ),
+    );
+
+    // Com setas o chip vira o próprio carrossel: as zonas ficam coladas nas
+    // bordas do Container (por isso o clip e o padding zerado aqui, movido
+    // para dentro de `body`), e o corpo ganha altura mínima de toque (44) e
+    // um respiro lateral do tamanho das zonas (senão o texto nasce por
+    // baixo delas).
+    final constrainedBody = showNavArrows
+        ? ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: chipNavZoneWidth,
+              ),
+              child: body,
+            ),
+          )
+        : body;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(chipRadius),
+        border: Border.all(color: AppColors.gold, width: 2),
+        boxShadow: AppColors.shadowMd,
+      ),
+      clipBehavior: showNavArrows ? Clip.antiAlias : Clip.none,
+      padding: showNavArrows ? EdgeInsets.zero : padding,
+      // `Stack`/`Positioned`, não `Row`+`stretch`: o corpo continua dono da
+      // própria altura (como sem setas) e as zonas só acompanham (`top: 0,
+      // bottom: 0`). Isso funciona tanto solto num `Column` sem `Expanded`
+      // (altura infinita, D2) quanto com o textScaler alto (o corpo cresce
+      // e as zonas crescem junto) — um `Row` com `stretch` exige altura
+      // finita vinda de fora, e uma altura fixa não cresce com o texto
+      // (estoura em textScaler alto).
+      child: showNavArrows
+          ? Stack(
+              children: [
+                constrainedBody,
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: ChipNavZone(
+                    icon: Icons.chevron_left,
+                    tooltip: l10n?.readerCarouselPrevious ?? 'Louvor anterior',
+                    enabled: canGoPrevious && onPrevious != null,
+                    onTap: onPrevious,
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: ChipNavZone(
+                    icon: Icons.chevron_right,
+                    tooltip: l10n?.readerCarouselNext ?? 'Próximo louvor',
+                    enabled: canGoNext && onNext != null,
+                    onTap: onNext,
+                  ),
+                ),
+              ],
+            )
+          : constrainedBody,
     );
   }
 

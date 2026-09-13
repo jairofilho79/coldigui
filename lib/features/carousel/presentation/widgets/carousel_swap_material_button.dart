@@ -1,10 +1,11 @@
 import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
-import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_shell.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -38,43 +39,64 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
   );
 }
 
-/// Layers na barra de playlist — oculto se o louvor não tem material alternativo.
+/// «Material» na barra de playlist — oculto se o louvor não tem material
+/// alternativo.
 ///
 /// [entryKey] é a chave da **ocorrência** cuja entrada será trocada
 /// ([ActivePlaylistEditor.replaceByKey]). Quem já tem o item focado na mão (a
-/// barra do shell) passa a chave dele; a face de áudio passa só o
-/// [materialId] da faixa tocando, e a chave é resolvida na face de partituras.
+/// barra do shell) passa a chave dele; quando só o id da faixa tocando está
+/// disponível (o mini-player, fora da lista), a chave é resolvida pela
+/// primeira ocorrência do id na lista ativa.
+///
+/// [group] é opcional: quem já resolveu o grupo (ex.: a barra do shell, para
+/// decidir se monta este botão) passa-o pronto e evita resolver duas vezes;
+/// sem ele, o botão resolve por conta própria a partir de [materialId]/
+/// [audioId] — é o caso dos demais chamadores.
 class CarouselSwapMaterialButton extends ConsumerWidget {
   const CarouselSwapMaterialButton({
     this.materialId,
     this.entryKey,
     this.audioId,
+    this.group,
+    this.showLabel = true,
     super.key,
   });
 
   final String? materialId;
   final String? entryKey;
   final String? audioId;
+  final LouvorGroup? group;
+
+  /// Legenda sob o ícone (barra larga) — repassado a [CarouselBarActionButton].
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final group = resolveCarouselSwapMaterialGroup(
-      ref,
-      materialId: materialId,
-      audioId: audioId,
-    );
+    final group =
+        this.group ??
+        resolveCarouselSwapMaterialGroup(
+          ref,
+          materialId: materialId,
+          audioId: audioId,
+        );
     if (group == null) return const SizedBox.shrink();
 
+    // Uma entrada de áudio focada chega só em `audioId` (spec D1: uma
+    // entrada só tem um dos dois ids) — o guard de troca do sheet chaveia em
+    // `currentMaterialId` e precisa do id que existir, qualquer que seja.
+    final currentMaterialId = materialId ?? audioId;
+
     final l10n = AppLocalizations.of(context)!;
-    return IconButton(
-      style: carouselBarIconButtonStyle,
+    return CarouselBarActionButton(
+      icon: Icons.change_circle_outlined,
+      label: l10n.carouselMaterial,
       tooltip: l10n.readerSwitchMaterial,
-      icon: const Icon(Icons.layers_outlined),
+      showLabel: showLabel,
       onPressed: () => showCarouselSwapMaterialSheet(
         context: context,
         ref: ref,
         group: group,
-        currentMaterialId: materialId,
+        currentMaterialId: currentMaterialId,
         currentEntryKey: entryKey,
       ),
     );
@@ -113,6 +135,20 @@ Future<void> showCarouselSwapMaterialSheet({
             selectedLouvor: louvor,
           );
         case AudioMaterial(:final track):
+          // A entrada focada já é um áudio: escolher outra voz **troca** a
+          // entrada (spec 2026-09-12, §3.2) — o `|◀ ▶|` de dentro do grupo
+          // saiu da barra e este é o lugar dele agora.
+          if (currentEntryKey != null &&
+              currentMaterialId != null &&
+              materialIdKindOf(currentMaterialId) == MaterialKind.audio &&
+              track.audioId != currentMaterialId) {
+            await ref
+                .read(activePlaylistEditorProvider.notifier)
+                .replaceByKey(
+                  currentEntryKey,
+                  PlaylistEntry(id: track.audioId, kind: MaterialKind.audio),
+                );
+          }
           await playAudioInSession(
             ref: ref,
             track: track,
@@ -129,7 +165,7 @@ Future<void> showCarouselSwapMaterialSheet({
   );
 }
 
-/// Chave da primeira ocorrência de [materialId] na face de partituras.
+/// Chave da primeira ocorrência de [materialId] na lista ativa.
 String? _keyForMaterialId(WidgetRef ref, String materialId) {
   for (final item in ref.read(carouselItemsProvider)) {
     if (item.materialId == materialId) return item.key;

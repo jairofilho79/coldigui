@@ -77,6 +77,12 @@ class ChipMetadataRow extends StatelessWidget {
       fontWeight: FontWeight.w500,
     );
     final numeroWidget = _numeroLeading(metaStyle);
+    // Áudio/cifra/gesto têm ícone próprio mesmo sem `categoria` (ex.: faixa
+    // ainda fora do cache chega com `categoria: ''`) — só PDF/unknown, cujo
+    // ícone é [Icons.piano] por padrão, continuam precisando de `categoria`
+    // não vazia para mostrar algo.
+    final showCategoryIcon =
+        categoria.isNotEmpty || categoryIcon != Icons.piano;
 
     if (summary != null) {
       return Row(
@@ -130,9 +136,9 @@ class ChipMetadataRow extends StatelessWidget {
                   color: AppColors.textLight.withValues(alpha: 0.9),
                 ),
               ),
-            if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
+            if (classificationLabel.isNotEmpty && showCategoryIcon)
               const SizedBox(width: 6),
-            if (categoria.isNotEmpty)
+            if (showCategoryIcon)
               Tooltip(
                 message: categoria,
                 child: Icon(
@@ -170,12 +176,12 @@ class ChipMetadataRow extends StatelessWidget {
               ),
             ),
           ],
-          if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
+          if (classificationLabel.isNotEmpty && showCategoryIcon)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text('·', style: metaStyle),
             ),
-          if (categoria.isNotEmpty) ...[
+          if (showCategoryIcon) ...[
             Tooltip(
               message: categoria,
               child: Icon(
@@ -184,15 +190,17 @@ class ChipMetadataRow extends StatelessWidget {
                 color: AppColors.textLight.withValues(alpha: 0.9),
               ),
             ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                categoria,
-                style: metaStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            if (categoria.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  categoria,
+                  style: metaStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
+            ],
           ],
           _offlineBadge(),
         ],
@@ -211,26 +219,28 @@ class ChipMetadataRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-        if (classificationLabel.isNotEmpty && categoria.isNotEmpty)
+        if (classificationLabel.isNotEmpty && showCategoryIcon)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text('·', style: metaStyle),
           ),
-        if (categoria.isNotEmpty) ...[
+        if (showCategoryIcon) ...[
           Icon(
             categoryIcon,
             size: 14,
             color: AppColors.textLight.withValues(alpha: 0.9),
           ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              categoria,
-              style: metaStyle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          if (categoria.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                categoria,
+                style: metaStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
+          ],
         ],
         _offlineBadge(),
       ],

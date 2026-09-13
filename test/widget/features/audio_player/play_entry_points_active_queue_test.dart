@@ -95,7 +95,7 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
 
 /// A face de áudio da lista ativa com a faixa alvo **na segunda** posição.
 List<Override> _activeQueueOverrides() => [
-  audioFaceItemsProvider.overrideWithValue([
+  audioCarouselItemsProvider.overrideWithValue([
     _audioItem(_trackDaLista, 0),
     _audioItem(_trackAlvo, 1),
   ]),

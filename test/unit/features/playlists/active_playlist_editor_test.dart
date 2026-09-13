@@ -13,7 +13,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -325,33 +324,34 @@ void main() {
     expect(replaced, isFalse);
   });
 
-  test(
-    'reorderFace(pdf) reordena a face e mantém os áudios nas posições',
-    () async {
-      await repository.create(
-        nome: 'Ativa',
-        entries: [
-          PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
-          PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
-          PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
-        ],
-        playlistId: 'p1',
-        salva: false,
-      );
-      final c = await boot(activeId: 'p1');
+  test('reorder aplica a permutação completa, áudio incluído', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA],
-      );
-      await Future<void>.delayed(activeReorderPersistDebounce * 3);
-      await _flush();
+    await c.read(activePlaylistEditorProvider.notifier).reorder([
+      _pdfB,
+      _audioA,
+      _pdfA,
+    ]);
+    await _flush();
 
-      expect((await repository.getById('p1'))!.items, [_pdfB, _audioA, _pdfA]);
-    },
-  );
+    expect(c.read(activeEntriesProvider).map((e) => e.id), [
+      _pdfB,
+      _audioA,
+      _pdfA,
+    ]);
+  });
 
-  test('reorderFace aplica override imediato e limpa após persistir', () async {
+  test('reorder aplica override imediato e limpa após persistir', () async {
     await repository.create(
       nome: 'Ativa',
       entries: [
@@ -363,10 +363,7 @@ void main() {
     );
     final c = await boot(activeId: 'p1');
 
-    await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-      PlaylistMediaFace.pdf,
-      [_pdfB, _pdfA],
-    );
+    await c.read(activePlaylistEditorProvider.notifier).reorder([_pdfB, _pdfA]);
 
     // Override otimista: antes do debounce a view já mostra a nova ordem.
     expect(c.read(activePlaylistEditorProvider), isNotNull);
@@ -547,7 +544,7 @@ void main() {
       final c = await bootTres();
       final editor = c.read(activePlaylistEditorProvider.notifier);
 
-      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfB, _pdfA, _pdfC]);
+      await editor.reorder([_pdfB, _pdfA, _pdfC]);
       // Sem esperar o debounce: a remoção chega antes do flush.
       await editor.removeByKey(_pdfC);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
@@ -562,7 +559,7 @@ void main() {
       final editor = c.read(activePlaylistEditorProvider.notifier);
       final novo = encodePdfId('ColAdultos/004.pdf');
 
-      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      await editor.reorder([_pdfC, _pdfB, _pdfA]);
       await editor.addToActive(novo);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
       await _flush();
@@ -579,7 +576,7 @@ void main() {
       final c = await bootTres();
       final editor = c.read(activePlaylistEditorProvider.notifier);
 
-      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      await editor.reorder([_pdfC, _pdfB, _pdfA]);
       await editor.replaceByKey(
         _pdfB,
         PlaylistEntry(
@@ -603,7 +600,7 @@ void main() {
         final c = await bootTres();
         final editor = c.read(activePlaylistEditorProvider.notifier);
 
-        await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+        await editor.reorder([_pdfC, _pdfB, _pdfA]);
         await editor.detachActive();
         await _flush();
 
@@ -613,7 +610,7 @@ void main() {
     );
   });
 
-  group('reorderFace só aceita permutação da face', () {
+  group('reorder só aceita permutação completa', () {
     Future<ProviderContainer> bootDuas() async {
       await repository.create(
         nome: 'Ativa',
@@ -631,10 +628,10 @@ void main() {
     test('lista curta de chaves não apaga nada', () async {
       final c = await bootDuas();
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfA,
+      ]);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
       await _flush();
 
@@ -649,10 +646,11 @@ void main() {
     test('chave desconhecida não apaga nada', () async {
       final c = await bootDuas();
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA, 'nao-existe'],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfA,
+        'nao-existe',
+      ]);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
       await _flush();
 
@@ -662,10 +660,11 @@ void main() {
     test('chave repetida não apaga nada', () async {
       final c = await bootDuas();
 
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfB, _pdfA],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfB,
+        _pdfA,
+      ]);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
       await _flush();
 
@@ -742,26 +741,24 @@ void main() {
     expect(sync.calls, 0);
   });
 
-  test(
-    'adicionar áudio não persiste chave de foco da face de partituras',
-    () async {
-      await repository.create(
-        nome: 'Ativa',
-        entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
-        playlistId: 'p1',
-        salva: false,
-      );
-      final c = await boot(activeId: 'p1');
+  test('adicionar áudio foca a chave do novo chip, como qualquer outro tipo '
+      '(spec 2026-09-12, D1: sem faces)', () async {
+    await repository.create(
+      nome: 'Ativa',
+      entries: [PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf)],
+      playlistId: 'p1',
+      salva: false,
+    );
+    final c = await boot(activeId: 'p1');
 
-      await c
-          .read(activePlaylistEditorProvider.notifier)
-          .addToActive(_audioA, kind: MaterialKind.audio);
-      await _flush();
+    await c
+        .read(activePlaylistEditorProvider.notifier)
+        .addToActive(_audioA, kind: MaterialKind.audio);
+    await _flush();
 
-      expect((await repository.getById('p1'))!.audioIds, [_audioA]);
-      expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), isNull);
-    },
-  );
+    expect((await repository.getById('p1'))!.audioIds, [_audioA]);
+    expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), _audioA);
+  });
 
   test('addToActive com allowDuplicate foca a ocorrência nova', () async {
     await repository.create(
@@ -836,10 +833,10 @@ void main() {
 
       // O flush roda num Timer: um erro que escapasse daqui seria assíncrono
       // sem dono — e o teste falharia por ele.
-      await c.read(activePlaylistEditorProvider.notifier).reorderFace(
-        PlaylistMediaFace.pdf,
-        [_pdfB, _pdfA],
-      );
+      await c.read(activePlaylistEditorProvider.notifier).reorder([
+        _pdfB,
+        _pdfA,
+      ]);
       await Future<void>.delayed(activeReorderPersistDebounce * 3);
       await _flush();
 
@@ -872,12 +869,12 @@ void main() {
       // Primeira ordem: o debounce vence e o flush trava na escrita (gate).
       final gate = Completer<void>();
       repository.gate = gate;
-      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfB, _pdfA, _pdfC]);
+      await editor.reorder([_pdfB, _pdfA, _pdfC]);
       await Future<void>.delayed(activeReorderPersistDebounce * 2);
       expect(repository.updateCalls, 1, reason: 'o primeiro flush está em voo');
 
       // Segunda ordem chega enquanto a primeira ainda escreve.
-      await editor.reorderFace(PlaylistMediaFace.pdf, [_pdfC, _pdfB, _pdfA]);
+      await editor.reorder([_pdfC, _pdfB, _pdfA]);
       expect(c.read(activeEntriesProvider).map((e) => e.id), [
         _pdfC,
         _pdfB,

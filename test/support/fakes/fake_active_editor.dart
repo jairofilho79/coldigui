@@ -3,10 +3,9 @@
 // Fake compartilhada de [ActivePlaylistEditor] (E10) — reúne os
 // comportamentos que 8 arquivos de teste reimplementavam: `build()` com
 // estado inicial (nulo por padrão, como a implementação real), rastreio de
-// `removeByKey`/`reorderFace`/`deleteActiveDraft`/`replaceByKey` e resultado
+// `removeByKey`/`reorder`/`deleteActiveDraft`/`replaceByKey` e resultado
 // configurável de `addToActive`.
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 
 class FakeActiveEditor extends ActivePlaylistEditor {
@@ -30,7 +29,6 @@ class FakeActiveEditor extends ActivePlaylistEditor {
   final added = <({String id, MaterialKind? kind})>[];
   final replaced = <({String key, PlaylistEntry replacement})>[];
   List<String>? lastReorder;
-  PlaylistMediaFace? lastReorderFace;
   var cleared = false;
 
   @override
@@ -70,11 +68,7 @@ class FakeActiveEditor extends ActivePlaylistEditor {
   }
 
   @override
-  Future<void> reorderFace(
-    PlaylistMediaFace face,
-    List<String> orderedKeys,
-  ) async {
-    lastReorderFace = face;
+  Future<void> reorder(List<String> orderedKeys) async {
     lastReorder = orderedKeys;
     final byKey = {for (final active in _entries) active.key: active.entry};
     state = [for (final key in orderedKeys) ?byKey[key]];

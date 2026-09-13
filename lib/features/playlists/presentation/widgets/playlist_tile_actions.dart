@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
@@ -20,7 +21,6 @@ import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../catalog/domain/usecases/resolve_catalog_material.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../catalog/presentation/providers/open_material_provider.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/entities/saved_playlist.dart';
 import '../providers/active_playlist_editor.dart';
@@ -67,19 +67,19 @@ class PlaylistTileActions {
   /// Espelha `setState(() => _expanded = value)` no `State` do tile.
   final ValueChanged<bool> onExpandedChanged;
 
-  List<PopupMenuEntry<String>> menuItems(PlaylistMediaFace face) {
+  List<PopupMenuEntry<String>> menuItems() {
     final hasUsername =
         ref.watch(authStateProvider).asData?.value?.hasUsername ?? false;
 
     return [
       PopupMenuItem(value: 'activate', child: Text(l10n.playlistActivate)),
       PopupMenuItem(
-        value: face == PlaylistMediaFace.audio ? 'openAudio' : 'openReader',
-        child: Text(
-          face == PlaylistMediaFace.audio
-              ? l10n.playlistOpenInAudioPlayer
-              : l10n.playlistOpenInReader,
-        ),
+        value: 'openReader',
+        child: Text(l10n.playlistOpenInReader),
+      ),
+      PopupMenuItem(
+        value: 'openAudio',
+        child: Text(l10n.playlistOpenInAudioPlayer),
       ),
       PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
       if (playlist.salva && !playlist.isPublished)
@@ -286,6 +286,30 @@ class PlaylistTileActions {
     }
   }
 
+  /// Ativa a lista e toca [track] com a fila híbrida (D4): se a faixa já
+  /// está na lista ativa, a fila é a lista; senão, o grupo.
+  Future<void> openAudioTrack(AudioTrack track) async {
+    if (loading) return;
+    onExpandedChanged(true);
+    await ref
+        .read(activePlaylistEditorProvider.notifier)
+        .activate(playlist.playlistId);
+    if (!context.mounted) return;
+    final tracks = ref
+        .read(catalogMaterialLookupProvider)
+        .tracksFor(playlist.audioIds);
+    await openAudioInPlayer(
+      ref: ref,
+      context: context,
+      track: track,
+      queue: queueForTrack(
+        track: track,
+        groupTracks: tracks,
+        activeQueue: activeListAudioQueue(ref),
+      ),
+    );
+  }
+
   /// Torna a lista ativa antes de abrir uma entrada dela no leitor (D6).
   ///
   /// Sem confirmação: a lista anterior continua salva. `false` só quando a
@@ -402,7 +426,6 @@ class PlaylistTileActions {
           _showError(l10n.playlistAudioEmpty);
           return;
         }
-        onExpandedChanged(true);
         final tracks = ref
             .read(catalogMaterialLookupProvider)
             .tracksFor(playlist.audioIds);
@@ -410,17 +433,7 @@ class PlaylistTileActions {
           _showError(l10n.playlistAudioEmpty);
           return;
         }
-        // D4: se a faixa já está na lista ativa, a fila é a lista ativa.
-        await openAudioInPlayer(
-          ref: ref,
-          context: context,
-          track: tracks.first,
-          queue: queueForTrack(
-            track: tracks.first,
-            groupTracks: tracks,
-            activeQueue: activeListAudioQueue(ref),
-          ),
-        );
+        await openAudioTrack(tracks.first);
       case 'share':
         if (playlist.pdfIds.isEmpty && playlist.audioIds.isEmpty) {
           _showError(l10n.playlistEmptyPdfList);

@@ -9,9 +9,7 @@ import '../../../catalog/presentation/providers/catalog_material_lookup_provider
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../../data/providers/playlist_providers.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import 'active_playlist_provider.dart';
-import 'playlist_media_face_provider.dart';
 import 'playlist_session_prefs.dart';
 import 'playlists_provider.dart';
 
@@ -47,8 +45,8 @@ int restoreQueueStartIndex(List<AudioTrack> tracks, String? focusedAudioId) {
 /// app monta durante a abertura (A8), esta função roda no boot frio com o
 /// datasource degradado, que responde `null` para qualquer id: tratar isso
 /// como "a playlist não existe mais" apagaria de vez o id ativo das
-/// SharedPreferences e derrubaria a face para pdf. Quem chama usa o retorno
-/// para saber se pode considerar a sessão hidratada.
+/// SharedPreferences e derrubaria a lista ativa para vazia. Quem chama usa o
+/// retorno para saber se pode considerar a sessão hidratada.
 ///
 /// Com storage, começa pela migração única do carousel Isar (D3): a coleção
 /// antiga vira a lista ativa quando não havia nenhuma, e é esvaziada em seguida.
@@ -89,14 +87,7 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
   );
 
   final tracks = ref.read(catalogMaterialLookupProvider).tracksFor(audioIds);
-  if (tracks.isEmpty) {
-    if (ref.read(playlistMediaFaceProvider) == PlaylistMediaFace.audio) {
-      await ref
-          .read(playlistMediaFaceProvider.notifier)
-          .setFace(PlaylistMediaFace.pdf);
-    }
-    return true;
-  }
+  if (tracks.isEmpty) return true;
 
   final focusedAudioId = ref
       .read(sharedPreferencesProvider)

@@ -315,19 +315,14 @@
     "description": "Tooltip do botão compartilhar na barra do carousel (UC-07/UC-08)."
   },
   "carouselGenerateLeaflet": "Gerar folheto",
-  "carouselOpenList": "Ver seleção",
+  "carouselOpen": "Abrir",
+  "carouselMaterial": "Material",
+  "carouselList": "Lista",
+  "carouselClearShort": "Limpar",
   "carouselListTitle": "Seleção temporária",
   "carouselListClose": "Fechar",
   "readerCarouselPrevious": "Louvor anterior",
   "readerCarouselNext": "Próximo louvor",
-  "audioFacePreviousLouvor": "Louvor anterior",
-  "@audioFacePreviousLouvor": {
-    "description": "Tooltip da seta que move o foco para o louvor anterior na face de áudio da barra (D5)"
-  },
-  "audioFaceNextLouvor": "Próximo louvor",
-  "@audioFaceNextLouvor": {
-    "description": "Tooltip da seta que move o foco para o próximo louvor na face de áudio da barra (D5)"
-  },
   "readerSwitchMaterial": "Trocar material",
   "@readerSwitchMaterial": {
     "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
@@ -403,20 +398,16 @@
       "count": { "type": "int" }
     }
   },
+  "playlistSheetCount": "{count, plural, =1{1 partitura} other{{count} partituras}}",
+  "@playlistSheetCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistAudioOnlyCount": "{count, plural, =1{1 áudio} other{{count} áudios}}",
+  "@playlistAudioOnlyCount": { "placeholders": { "count": { "type": "int" } } },
+  "playlistEmptyCount": "Vazia",
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
   "playlistActivate": "Tornar lista ativa",
   "playlistOpenInReader": "Abrir no leitor",
   "playlistOpenInAudioPlayer": "Abrir no reprodutor",
-  "playlistFacePdf": "PDFs",
-  "playlistFaceAudio": "Áudios",
-  "playlistFaceToggleSemantics": "Alternar face da playlist entre PDFs e áudios",
-  "playlistAudioCount": "{count, plural, =0{Nenhum áudio} =1{1 áudio} other{{count} áudios}}",
-  "@playlistAudioCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "playlistAudioEmpty": "Esta lista não tem áudios.",
   "audioPlayerTitle": "Áudio",
   "pdfMaterialSection": "Partituras",
@@ -505,7 +496,6 @@
   "@miniPlayerNext": {
     "description": "Tooltip do botão de próxima faixa no mini-player persistente (D5)"
   },
-  "audioOpenPlayer": "Abrir player",
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
   "@audioOpenSheetMusic": {

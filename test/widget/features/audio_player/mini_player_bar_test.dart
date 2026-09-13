@@ -1,12 +1,19 @@
+import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
+import 'package:coldigui/features/audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_position_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Sessão de mentira: registra chamadas de transporte em vez de tocar nada.
+/// Sessão de mentira: registra chamadas de transporte/seek em vez de tocar
+/// nada (mesmo padrão do `_FakeAudioSession` de `shell_scaffold_test.dart`).
 class _RecordingAudioSession extends AudioPlayerSessionNotifier {
   _RecordingAudioSession(this._state);
 
@@ -14,6 +21,7 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
   var playPauseCalls = 0;
   var skipToPreviousCalls = 0;
   var skipToNextCalls = 0;
+  Duration? seeked;
 
   @override
   AudioPlayerSessionState build() => _state;
@@ -26,6 +34,27 @@ class _RecordingAudioSession extends AudioPlayerSessionNotifier {
 
   @override
   Future<void> skipToNext() async => skipToNextCalls++;
+
+  @override
+  Future<void> seek(Duration position) async => seeked = position;
+}
+
+/// Posição/duração fixas — sem o `positionStream` de verdade do player.
+class _FixedPosition extends AudioPlayerPositionNotifier {
+  _FixedPosition(this._state);
+
+  final AudioPlayerPosition _state;
+
+  @override
+  AudioPlayerPosition build() => _state;
+}
+
+/// Estado de sync fixo, sem `ref.listen` de auth nem rede — a `MiniPlayerBar`
+/// só observa para reagir a sync, e o widget test não tem conta/conectividade
+/// de verdade (mesmo padrão de `audio_flag_sync_error_row_test.dart`).
+class _FixedSyncNotifier extends AudioFlagSyncNotifier {
+  @override
+  AudioFlagSyncState build() => const AudioFlagSyncState();
 }
 
 void main() {
@@ -39,9 +68,24 @@ void main() {
     classificacao: 'Coro',
   );
 
-  Widget buildSubject(_RecordingAudioSession session, {bool overlay = false}) {
+  /// Sem marcador nenhum por padrão — quem quiser marcadores passa [flags].
+  List<Override> flagOverrides({List<SavedAudioFlag> flags = const []}) => [
+    audioFlagSyncProvider.overrideWith(_FixedSyncNotifier.new),
+    audioFlagsForTrackProvider.overrideWith((ref, audioId) async => flags),
+  ];
+
+  Widget buildSubject(
+    _RecordingAudioSession session, {
+    bool overlay = false,
+    List<SavedAudioFlag> flags = const [],
+    List<Override> extraOverrides = const [],
+  }) {
     return ProviderScope(
-      overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      overrides: [
+        audioPlayerSessionProvider.overrideWith(() => session),
+        ...flagOverrides(flags: flags),
+        ...extraOverrides,
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -140,7 +184,10 @@ void main() {
     required VoidCallback onBehindTap,
   }) {
     return ProviderScope(
-      overrides: [audioPlayerSessionProvider.overrideWith(() => session)],
+      overrides: [
+        audioPlayerSessionProvider.overrideWith(() => session),
+        ...flagOverrides(),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -207,4 +254,78 @@ void main() {
       expect(behindTaps, 0);
     },
   );
+
+  // Task 8: a `LinearProgressIndicator` de 2 px deu lugar ao `AudioSeekBar`
+  // compacto (arrastável, com marcadores) entre o título e o transporte.
+  testWidgets('mini-player tem seek arrastável e chama seek', (tester) async {
+    final session = _RecordingAudioSession(
+      const AudioPlayerSessionState(queue: [track]),
+    );
+    final flag = SavedAudioFlag(
+      flagId: 'f1',
+      audioId: track.audioId,
+      positionMs: const Duration(seconds: 60).inMilliseconds,
+      createdAt: DateTime(2026),
+    );
+    await tester.pumpWidget(
+      buildSubject(
+        session,
+        flags: [flag],
+        extraOverrides: [
+          audioPlayerPositionProvider.overrideWith(
+            () => _FixedPosition(
+              const AudioPlayerPosition(
+                position: Duration(seconds: 30),
+                duration: Duration(minutes: 4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AudioSeekBar), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.text('0:30'), findsOneWidget);
+    // Marcador salvo em 1:00 desenhado pelo `AudioSeekBar` (flags do track).
+    expect(find.byIcon(Icons.flag), findsOneWidget);
+
+    await tester.tap(find.byType(Slider));
+    await tester.pump();
+    expect(session.seeked, isNotNull);
+  });
+
+  // Overlay usa `onLightBackground: false` (dourado sobre fundo escuro) mas
+  // continua desenhando o mesmo seek bar arrastável e o transporte.
+  testWidgets('overlay=true também tem seek arrastável e transporte', (
+    tester,
+  ) async {
+    final session = _RecordingAudioSession(
+      const AudioPlayerSessionState(queue: [track]),
+    );
+    await tester.pumpWidget(
+      buildSubject(
+        session,
+        overlay: true,
+        extraOverrides: [
+          audioPlayerPositionProvider.overrideWith(
+            () => _FixedPosition(
+              const AudioPlayerPosition(
+                position: Duration(seconds: 30),
+                duration: Duration(minutes: 4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final seekBar = tester.widget<AudioSeekBar>(find.byType(AudioSeekBar));
+    expect(seekBar.onLightBackground, isFalse);
+    expect(find.byIcon(Icons.skip_previous), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+    expect(find.byIcon(Icons.skip_next), findsOneWidget);
+  });
 }

@@ -9,11 +9,9 @@ import 'package:coldigui/features/carousel/data/datasources/carousel_local_datas
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_media_face.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
-import 'package:coldigui/features/playlists/presentation/providers/playlist_media_face_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_hydrate.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -87,7 +85,6 @@ void main() {
     SharedPreferences.setMockInitialValues({
       kActivePlaylistIdPrefsKey: 'pl-1',
       kPlaylistFocusedAudioIdPrefsKey: _audioIdB,
-      'playlist_media_face': PlaylistMediaFace.audio.name,
     });
     final prefs = await SharedPreferences.getInstance();
     final playlist = SavedPlaylist.fromLegacyLists(
@@ -130,7 +127,6 @@ void main() {
     Future<SharedPreferences> bootPrefs() async {
       SharedPreferences.setMockInitialValues({
         kActivePlaylistIdPrefsKey: 'pl-1',
-        'playlist_media_face': PlaylistMediaFace.audio.name,
       });
       return SharedPreferences.getInstance();
     }
@@ -162,11 +158,6 @@ void main() {
         reason: 'o id da playlist ativa é permanente — apagar é irreversível',
       );
       expect(container.read(activePlaylistIdProvider), 'pl-1');
-      expect(
-        container.read(playlistMediaFaceProvider),
-        PlaylistMediaFace.audio,
-        reason: 'a face não pode cair para pdf só porque o Isar não abriu',
-      );
     }
 
     test('Isar indisponível', () async {

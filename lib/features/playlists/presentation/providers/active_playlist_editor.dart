@@ -9,7 +9,6 @@ import '../../../../core/utils/material_id_kind.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/active_entry.dart';
-import '../../domain/entities/playlist_media_face.dart';
 import '../../domain/entities/saved_playlist.dart';
 import '../../domain/usecases/update_playlist.dart';
 import 'active_playlist_provider.dart';
@@ -42,7 +41,7 @@ enum AddToActiveOutcome {
 /// [playlistsProvider] e, se a lista for salva, dispara o sync na nuvem.
 ///
 /// O `state` é o **override otimista** da reordenação em voo (`null` quando
-/// não há nenhuma): [reorderFace] aplica a nova ordem na hora, agenda a
+/// não há nenhuma): [reorder] aplica a nova ordem na hora, agenda a
 /// persistência em [activeReorderPersistDebounce] (a última ordem vence) e só
 /// limpa o override depois do `reload` que segue a escrita.
 class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
@@ -250,53 +249,43 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     return true;
   }
 
-  /// Reordena **só** [face], preservando as posições da outra.
+  /// Reordena a lista ativa inteira.
   ///
   /// [orderedKeys] são as chaves de [ActiveEntry] na ordem desejada. Aplica o
   /// override otimista na hora e persiste depois de
   /// [activeReorderPersistDebounce] (a última ordem vence).
   ///
-  /// [orderedKeys] tem que ser uma **permutação** das chaves da face: reordenar
-  /// é permutar, não editar. Uma lista curta ou com chave desconhecida não
-  /// apaga entrada nenhuma — a reordenação é ignorada e registrada.
-  Future<void> reorderFace(
-    PlaylistMediaFace face,
-    List<String> orderedKeys,
-  ) async {
+  /// [orderedKeys] tem que ser uma **permutação** das chaves da lista:
+  /// reordenar é permutar, não editar. Uma lista curta, com chave desconhecida
+  /// ou repetida não apaga entrada nenhuma — a reordenação é ignorada e
+  /// registrada.
+  Future<void> reorder(List<String> orderedKeys) async {
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
     final entries = _entries;
-    final wantsAudio = face == PlaylistMediaFace.audio;
 
-    final byKey = <String, PlaylistEntry>{};
-    var faceLength = 0;
-    for (final active in activeEntriesOf(entries)) {
-      byKey[active.key] = active.entry;
-      if (active.isAudio == wantsAudio) faceLength++;
-    }
+    final byKey = <String, PlaylistEntry>{
+      for (final active in activeEntriesOf(entries)) active.key: active.entry,
+    };
 
     final seen = <String>{};
     final reordered = <PlaylistEntry>[];
     for (final key in orderedKeys) {
       final entry = byKey[key];
-      if (entry == null || entry.isAudio != wantsAudio) continue;
+      if (entry == null) continue;
       if (!seen.add(key)) continue;
       reordered.add(entry);
     }
 
-    if (reordered.length != faceLength) {
+    if (reordered.length != byKey.length) {
       _log.warn(
-        'reorderFace(${face.name}) ignorado: ${orderedKeys.length} chaves '
-        'resolveram ${reordered.length} de $faceLength entradas da face',
+        'reorder ignorado: ${orderedKeys.length} chaves resolveram '
+        '${reordered.length} de ${byKey.length} entradas',
       );
       return;
     }
 
-    state = SavedPlaylist.replaceSubset(
-      entries,
-      reordered,
-      (entry) => entry.isAudio == wantsAudio,
-    );
+    state = reordered;
 
     _pendingReorder = state;
     _pendingPlaylistId = activeId;
@@ -437,11 +426,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// Foca a ocorrência [occurrence] (0-based) do material recém-adicionado —
   /// com `allowDuplicate`, a **nova**, não a primeira.
   ///
-  /// Áudio não: a chave focada é a da face de partituras, e um `audioId` nunca
-  /// resolve lá — persisti-la deixaria a pref com um valor morto, e o índice
-  /// cairia no fallback de clamp em vez de ficar onde estava.
+  /// Sem faces (spec 2026-09-12, D1): a lista ativa é uma só, com PDF, cifra,
+  /// gesto e áudio juntos — um áudio recém-adicionado foca o próprio chip
+  /// como qualquer outro tipo.
   void _focusAfterAdd(PlaylistEntry entry, {int occurrence = 0}) {
-    if (entry.isAudio) return;
     ref
         .read(carouselFocusedKeyProvider.notifier)
         .focus(entryKeyFor(entry.id, occurrence));
