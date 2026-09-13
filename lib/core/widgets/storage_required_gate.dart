@@ -1,5 +1,8 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../database/isar_provider.dart';
@@ -32,8 +35,8 @@ class StorageRequiredGate extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(color: AppColors.gold),
-                  const SizedBox(height: 16),
+                  const _PulsingLogo(),
+                  const SizedBox(height: 20),
                   Text(
                     l10n.storagePreparing,
                     textAlign: TextAlign.center,
@@ -87,5 +90,86 @@ class StorageRequiredGate extends ConsumerWidget {
           ),
         );
     }
+  }
+}
+
+/// Logo PLPCG usada como indicador de carregamento: opacidade e o halo
+/// dourado atrás dela "respiram" em loop enquanto o Isar abre — substitui o
+/// spinner genérico, na mesma linguagem visual da splash web (`web/index.html`).
+class _PulsingLogo extends StatefulWidget {
+  const _PulsingLogo();
+
+  static const _logoAsset = 'assets/branding/logo_colorido_no_bg_logo_only.svg';
+  static const _size = 140.0;
+
+  @override
+  State<_PulsingLogo> createState() => _PulsingLogoState();
+}
+
+class _PulsingLogoState extends State<_PulsingLogo>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..repeat(reverse: true);
+
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOut,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _t,
+      builder: (context, child) {
+        final glowOpacity = lerpDouble(0.3, 0.6, _t.value)!;
+        final glowScale = lerpDouble(0.6, 0.85, _t.value)!;
+        final logoOpacity = lerpDouble(0.35, 0.7, _t.value)!;
+        return SizedBox(
+          width: _PulsingLogo._size,
+          height: _PulsingLogo._size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: glowOpacity,
+                child: Transform.scale(
+                  scale: glowScale,
+                  child: Container(
+                    width: _PulsingLogo._size,
+                    height: _PulsingLogo._size,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Color(0xE6FFFBEA),
+                          Color(0x8CFFD96B),
+                          Color(0x00D4AF37),
+                        ],
+                        stops: [0.0, 0.45, 0.72],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Opacity(opacity: logoOpacity, child: child),
+            ],
+          ),
+        );
+      },
+      child: SvgPicture.asset(
+        _PulsingLogo._logoAsset,
+        width: _PulsingLogo._size,
+        height: _PulsingLogo._size,
+        fit: BoxFit.contain,
+      ),
+    );
   }
 }

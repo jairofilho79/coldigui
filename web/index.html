@@ -102,14 +102,60 @@
       pointer-events: none;
     }
 
+    #loading .logo-wrap {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Halo dourado atrás da logo — mesma linguagem visual do LightBeam usado
+       no app (núcleo quente → dourado → transparente), em CSS puro. */
+    #loading .logo-glow {
+      position: absolute;
+      inset: -22%;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 251, 234, 0.9),
+        rgba(255, 217, 107, 0.55) 45%,
+        rgba(212, 175, 55, 0) 72%
+      );
+      filter: blur(18px);
+      opacity: 0.3;
+      transform: scale(0.6);
+      animation: plpcg-breathe-glow 2.4s ease-in-out infinite;
+    }
+
     #loading img {
-      width: 96px;
-      height: 96px;
-      margin-bottom: 24px;
+      position: relative;
+      width: 168px;
+      height: 168px;
+      opacity: 0.35;
+      animation: plpcg-breathe-logo 2.4s ease-in-out infinite;
+    }
+
+    /* Estado "resolvido": logo assumida como o próprio indicador de progresso
+       (sem anel de spinner separado) chega a opacidade/brilho plenos antes do
+       overlay inteiro sumir via #loading.hidden. */
+    #loading.resolved .logo-glow {
+      animation: none;
+      opacity: 0.85;
+      transform: scale(1);
+      transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+    }
+
+    #loading.resolved img {
+      animation: none;
+      opacity: 1;
+      transition: opacity 0.45s ease-out;
     }
 
     #loading .title {
-      margin: 0 0 32px;
+      margin: 0;
       color: #D4AF37;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 1.75rem;
@@ -117,27 +163,39 @@
       letter-spacing: 0.08em;
     }
 
-    #loading .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(212, 175, 55, 0.25);
-      border-top-color: #D4AF37;
-      border-radius: 50%;
-      animation: plpcg-spin 0.8s linear infinite;
+    @keyframes plpcg-breathe-glow {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.6);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(0.85);
+      }
     }
 
-    @keyframes plpcg-spin {
-      to {
-        transform: rotate(360deg);
+    @keyframes plpcg-breathe-logo {
+      0%, 100% {
+        opacity: 0.35;
+      }
+      50% {
+        opacity: 0.7;
       }
     }
   </style>
 </head>
 <body>
   <div id="loading" aria-live="polite" aria-busy="true">
-    <img src="icons/Icon-192.png" alt="" width="96" height="96">
+    <div class="logo-wrap">
+      <div class="logo-glow"></div>
+      <img
+        src="assets/assets/branding/logo_colorido_no_bg_logo_only.svg"
+        alt=""
+        width="168"
+        height="168"
+      >
+    </div>
     <p class="title">PLPCG</p>
-    <div class="spinner" role="progressbar" aria-label="Carregando"></div>
   </div>
 
   <script>
@@ -201,10 +259,16 @@
         if (removed) return;
         removed = true;
         capturePerf();
-        loader.classList.add('hidden');
         loader.setAttribute('aria-busy', 'false');
+        // Resolve: logo + brilho chegam ao estado pleno (opacidade 100%,
+        // glow no tamanho normal) antes do overlay sumir — dá continuidade
+        // visual em vez de um corte abrupto.
+        loader.classList.add('resolved');
         window.setTimeout(function () {
-          loader.remove();
+          loader.classList.add('hidden');
+          window.setTimeout(function () {
+            loader.remove();
+          }, 450);
         }, 450);
       }
 

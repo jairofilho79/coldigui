@@ -3,6 +3,7 @@ import 'package:coldigui/core/widgets/storage_required_gate.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -27,12 +28,13 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('opening mostra spinner de preparação, não o erro', (
+  testWidgets('opening mostra a logo pulsante de preparação, não o erro', (
     tester,
   ) async {
     await pumpGate(tester, IsarStatus.opening);
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(SvgPicture), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text(l10n.storagePreparing), findsOneWidget);
     expect(find.text(l10n.storageUnavailableTitle), findsNothing);
     expect(find.text('conteúdo'), findsNothing);
