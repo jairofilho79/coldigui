@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- O sw.js aquece o que a página carregou (performance resource timing);
+       o buffer default (250) enche durante o boot e perderia o engine. Tem
+       de vir antes de qualquer outro pedido. -->
+  <script>performance.setResourceTimingBufferSize(600);</script>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
@@ -273,6 +277,43 @@
       }
 
       window.addEventListener('flutter-first-frame', hideLoader, { once: true });
+    })();
+  </script>
+
+  <script>
+    // Service worker do shell (web/sw.js — spec 2026-09-14-pwa-shell-offline).
+    // Registado só depois do primeiro frame: o boot é o caminho crítico e o
+    // SW não ajuda na primeira visita. A tag vem do cache_bust_web_entrypoints.sh
+    // (12 hex); em `flutter run` fica o placeholder e não registamos nada —
+    // o template tem SyntaxError em runtime.
+    (function () {
+      var swTag = '__PLPCG_TAG__';
+      if (!('serviceWorker' in navigator)) return;
+      if (!/^[0-9a-f]{12}$/.test(swTag)) return;
+      window.addEventListener('flutter-first-frame', function () {
+        navigator.serviceWorker.register('sw.js?v=' + swTag).then(function (reg) {
+          // `used`: tudo o que esta página carregou da nossa origem — inclui
+          // main.dart.* e a variante do engine que o flutter_bootstrap
+          // escolheu para este browser. O SW copia-a do cache HTTP (~0 rede),
+          // por isso vai SEMPRE, mesmo com Save-Data. `full` liga a lista
+          // WARM (resto do shell), que custa rede: só sem Save-Data / 2g.
+          var c = navigator.connection || {};
+          var full = !(c.saveData || /(^|-)2g$/.test(c.effectiveType || ''));
+          var used = performance.getEntriesByType('resource')
+            .map(function (e) { return e.name; })
+            .filter(function (n) { return n.indexOf(location.origin + '/') === 0; });
+          var post = function (sw) {
+            if (sw) sw.postMessage({ type: 'warm', used: used, full: full });
+          };
+          // Primeiro registo: o worker ainda está em install e a mensagem
+          // corre em paralelo. Deploy novo: o controller troca depois do
+          // activate e voltamos a mandar a mesma lista ao SW novo.
+          post(reg.active || reg.waiting || reg.installing);
+          navigator.serviceWorker.addEventListener('controllerchange', function () {
+            post(navigator.serviceWorker.controller);
+          });
+        }).catch(function () {});
+      }, { once: true });
     })();
   </script>
 

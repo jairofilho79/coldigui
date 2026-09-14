@@ -150,6 +150,36 @@ void main() {
     },
   );
 
+  test('index.html fica com a tag do registo e sem placeholder', () async {
+    final result = await runScript();
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+    final tag = readVersion()['web_cache_tag'] as String;
+    final indexOut = File('${webDir.path}/index.html').readAsStringSync();
+    expect(indexOut, contains("var swTag = '$tag';"));
+    expect(indexOut, isNot(contains('__PLPCG_')));
+  });
+
+  test(
+    'verify_web_headers_artifact.sh rejeita placeholders e aceita o gerado',
+    () async {
+      Future<ProcessResult> verify() => Process.run('bash', [
+        'scripts/verify_web_headers_artifact.sh',
+        '${webDir.path}/_headers',
+      ]);
+      final before = await verify();
+      expect(before.exitCode, isNot(0), reason: 'sw.js ainda com __PLPCG_');
+
+      final generated = await runScript();
+      expect(
+        generated.exitCode,
+        0,
+        reason: '${generated.stdout}\n${generated.stderr}',
+      );
+      final after = await verify();
+      expect(after.exitCode, 0, reason: '${after.stdout}\n${after.stderr}');
+    },
+  );
+
   test('ficheiro crítico ausente faz o pós-build falhar', () async {
     // isar_plus.wasm continua em CRITICAL e o cache-bust não o exige (só o
     // gerador): a falha vem mesmo da verificação das listas.

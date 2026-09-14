@@ -76,6 +76,14 @@ preload_old = "'canvaskit/skwasm.wasm'"
 if preload_old not in content:
     raise SystemExit(f"index.html sem preload {preload_old}")
 content = content.replace(preload_old, f"'{canvaskit_base}/skwasm.wasm'")
+
+# Registo do service worker: a tag no ?v= é o que faz o browser detetar um
+# sw.js novo a cada deploy. Sem o marcador o index.html não é o do repo.
+sw_tag_old = "var swTag = '__PLPCG_TAG__';"
+if sw_tag_old not in content:
+    raise SystemExit(f"index.html sem {sw_tag_old}")
+content = content.replace(sw_tag_old, f"var swTag = '{tag}';")
+
 index.write_text(content)
 
 bootstrap = Path(bootstrap_path)
