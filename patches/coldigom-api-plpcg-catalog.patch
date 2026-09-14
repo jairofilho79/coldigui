@@ -1,7 +1,7 @@
 diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 --- a/api/src/__tests__/index.test.ts
 +++ b/api/src/__tests__/index.test.ts
-@@ -686,6 +686,157 @@ describe('API Routes', () => {
+@@ -686,6 +686,176 @@ describe('API Routes', () => {
      });
    });
  
@@ -118,6 +118,25 @@ diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 +      );
 +    });
 +
++    it('emits r2 for a material type outside the known R2 extension map', async () => {
++      const praiseId = mockPraises[0].id;
++      const weird = {
++        id: 'm-weird',
++        praise_id: praiseId,
++        type: 'weird',
++        material_kind: 'k4',
++        url: null,
++        r2_key: `assets/praises/${praiseId}/m-weird.bin`,
++      };
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: catalogMockDB({ materials: [weird] }),
++        ASSETS: createMockR2(),
++      });
++
++      const json = await res.json();
++      expect(json.praises[0].materials[0].r2).toBe(`assets/praises/${praiseId}/m-weird.bin`);
++    });
++
 +    it('answers 304 without body when If-None-Match matches', async () => {
 +      const env = { DB: catalogMockDB(), ASSETS: createMockR2() };
 +      const first = await app.request('/api/plpcg/catalog', {}, env);
@@ -162,7 +181,7 @@ diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 diff --git a/api/src/index.ts b/api/src/index.ts
 --- a/api/src/index.ts
 +++ b/api/src/index.ts
-@@ -795,6 +795,161 @@ app.get('/api/plpcg/praises', async (c) => {
+@@ -795,6 +795,167 @@ app.get('/api/plpcg/praises', async (c) => {
    return c.json({ error: 'Failed to fetch praises' }, 500);
  });
  
@@ -239,10 +258,11 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +    ).all();
 +    const materialsResult = await c.env.DB.prepare(
 +      `SELECT pm.id, pm.praise_id, pm.type, pm.material_kind, pm.url, pm.r2_key
-+       FROM praise_materials pm`,
++       FROM praise_materials pm
++       ORDER BY pm.praise_id, pm.id`,
 +    ).all();
 +    const tagsResult = await c.env.DB.prepare(
-+      `SELECT pt.praise_id, t.name
++      `SELECT DISTINCT pt.praise_id, t.name
 +       FROM praise_tags pt
 +       JOIN tags t ON t.id = pt.tag_id
 +       ORDER BY t.name`,
@@ -260,7 +280,12 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +      if (row.material_kind) kindIds.add(row.material_kind);
 +      if (row.url) material.url = row.url;
 +      const derived = derivedCatalogR2Key(row.praise_id, row.id, row.type);
-+      if (row.r2_key && derived !== null && row.r2_key !== derived) {
++      // youtube nunca tem objeto no R2 (derived === null é esperado ali). Para
++      // qualquer outro `type` — inclusive um valor fora de CATALOG_EXT_BY_TYPE
++      // que o schema venha a ganhar no futuro — um r2_key sem padrão derivado
++      // (derived === null) ou divergente do padrão vai explícito em `r2`, para
++      // o app nunca montar um caminho inventado.
++      if (row.r2_key && ((derived === null && row.type !== 'youtube') || row.r2_key !== derived)) {
 +        material.r2 = row.r2_key;
 +      }
 +      const list = materialsByPraise.get(row.praise_id) ?? [];
