@@ -30,8 +30,13 @@ class FakeLiveConnection implements LiveConnection {
   @override
   Future<LiveDisconnect> get done => _done.future;
 
-  /// O servidor falou.
-  void emit(String text) => _controller.add(text);
+  /// O servidor falou. Sem efeito depois de fechada — como um socket real,
+  /// que não entrega mais nada ao stream local uma vez fechado; é o cliente
+  /// (via geração) que decide, não este `emit`, quando um frame é "tardio".
+  void emit(String text) {
+    if (_controller.isClosed) return;
+    _controller.add(text);
+  }
 
   /// A rede caiu (ou o servidor fechou com [code]) — sem `close()` do cliente.
   Future<void> drop({int code = 1006}) async {
