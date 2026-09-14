@@ -44,7 +44,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Retorna `false` em falha — o próprio provider mostra o snackbar
   /// (mensagem específica para [EmptyLeafletException], genérica para as
   /// demais exceções) antes de retornar; quem chama **não deve** mostrar
-  /// outro snackbar em cima do retorno `false`.
+  /// outro snackbar em cima do retorno `false`. Também retorna `false`,
+  /// **sem** snackbar, quando o usuário cancela ou dispensa o
+  /// [showColdigomShareDialog] (lista fora do acervo PLPCG).
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,

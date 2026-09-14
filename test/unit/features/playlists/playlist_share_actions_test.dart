@@ -292,6 +292,8 @@ void main() {
                 shortener: shortener,
               ),
             ),
+            // Override mantido de propósito: tripwire de regressão contra
+            // reintroduzir a chamada ao `/l/` protegida por autenticação.
             authStateProvider.overrideWith(_LoggedInAuth.new),
           ],
           child: MaterialApp(
@@ -376,7 +378,6 @@ void main() {
     final result = await _shareLinkWithLeaflet(
       tester,
       shareContext: shareContext,
-      comShortId: true,
     );
     expect(result.capturedUrl, 'https://plpcg.com/?s=0000&n=Ensaio');
     expect(result.text, contains('https://plpcg.com/?s=0000&n=Ensaio'));
@@ -399,6 +400,8 @@ void main() {
         shareXFiles: (files, {subject, text, sharePositionOrigin}) async {
           sharedFiles = files;
         },
+        // Tripwire: se o gate falhar, a captura roda e sharedFiles deixa de
+        // ser null.
         capture: (boundaryKey) async => const [1, 2, 3],
       );
       await tester.pumpAndSettle();
@@ -540,11 +543,11 @@ Future<BuildContext> _pumpOutOfPlpcgScope(WidgetTester tester) async {
 
 /// Roda `share(linkWithLeaflet)` de ponta a ponta e devolve o `shareUrl`
 /// que chegou ao [LeafletDocument] capturado e o texto compartilhado — prova
-/// a regra D10 (QR/link no folheto só com link curto) no fluxo real.
+/// a regra D10 (QR/link no folheto só com link curto) no fluxo real. Sempre
+/// com `shortId: '0000'` (lista dentro do acervo PLPCG).
 Future<({String? capturedUrl, String? text})> _shareLinkWithLeaflet(
   WidgetTester tester, {
   required PlaylistShareContext shareContext,
-  required bool comShortId,
 }) async {
   String? capturedText;
   LeafletDocument? doc;
@@ -570,7 +573,7 @@ Future<({String? capturedUrl, String? text})> _shareLinkWithLeaflet(
               classificacao: 'ColAdultos',
               pdf: 'a.pdf',
               pdfId: 'pdf-a',
-              shortId: comShortId ? '0000' : null,
+              shortId: '0000',
             ),
           ]),
         ),
