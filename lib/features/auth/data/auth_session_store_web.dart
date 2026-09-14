@@ -35,15 +35,4 @@ class AuthSessionStore {
     _cached = null;
     web.window.localStorage.removeItem(key);
   }
-
-  /// Lê **e apaga** a sessão do formato antigo em `sessionStorage` (spec D12).
-  /// Uma vez só: na carga seguinte já não existe.
-  String? takeLegacySessionStorage() {
-    final raw = web.window.sessionStorage.getItem(key);
-    if (raw != null) web.window.sessionStorage.removeItem(key);
-    return raw;
-  }
-
-  static String? legacyIdToken(String? raw) =>
-      stub.AuthSessionStore.legacyIdToken(raw);
 }

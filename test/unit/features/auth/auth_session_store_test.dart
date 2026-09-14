@@ -1,8 +1,7 @@
 // test/unit/features/auth/auth_session_store_test.dart
 //
 // Roda na VM → é a variante stub (nativo). A web só muda o backend
-// (`localStorage`) e o `takeLegacySessionStorage`; a lógica de (de)serialização
-// é a mesma, estática, no stub.
+// (`localStorage`); a lógica de (de)serialização é a mesma, estática, no stub.
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,19 +41,5 @@ void main() {
     final store = AuthSessionStore()..write(user);
     expect(store.read()?.sessionToken, 'sess_a');
     expect(AuthSessionStore().read(), isNull);
-  });
-
-  test('takeLegacySessionStorage no nativo é null', () {
-    expect(AuthSessionStore().takeLegacySessionStorage(), isNull);
-  });
-
-  test('legacyIdToken extrai o id_token do JSON antigo', () {
-    expect(
-      AuthSessionStore.legacyIdToken('{"googleSub":"s","idToken":"eyJ.a.b"}'),
-      'eyJ.a.b',
-    );
-    expect(AuthSessionStore.legacyIdToken('{"googleSub":"s"}'), isNull);
-    expect(AuthSessionStore.legacyIdToken('nao é json'), isNull);
-    expect(AuthSessionStore.legacyIdToken(null), isNull);
   });
 }

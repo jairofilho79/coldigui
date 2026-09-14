@@ -12,23 +12,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Store só-memória que finge ter uma sessão no formato antigo em
-/// `sessionStorage` — o stub nativo devolve sempre `null` ali.
-class _LegacyStore extends AuthSessionStore {
-  _LegacyStore(this._legacyRaw);
-
-  String? _legacyRaw;
-  bool legacyTaken = false;
-
-  @override
-  String? takeLegacySessionStorage() {
-    legacyTaken = true;
-    final raw = _legacyRaw;
-    _legacyRaw = null;
-    return raw;
-  }
-}
-
 void main() {
   const storedUser = AuthUser(
     googleSub: 'sub-1',
@@ -96,48 +79,6 @@ void main() {
       expect(await container.read(authStateProvider.future), isNull);
       expect(calls, 0);
     });
-  });
-
-  group('AuthNotifier.build — migração da sessão antiga (spec D12)', () {
-    test(
-      'sessionStorage antigo com id_token vira sessão nova gravada',
-      () async {
-        final store = _LegacyStore('{"googleSub":"sub-1","idToken":"eyJ.a.b"}');
-        String? received;
-        final container = buildContainer(
-          store: store,
-          behavior: (idToken) async {
-            received = idToken;
-            return storedUser;
-          },
-        );
-        addTearDown(container.dispose);
-
-        expect(
-          await container.read(authStateProvider.future),
-          same(storedUser),
-        );
-        expect(received, 'eyJ.a.b');
-        expect(store.read(), same(storedUser));
-        expect(store.legacyTaken, isTrue);
-      },
-    );
-
-    test(
-      'id_token antigo recusado → null, e o sessionStorage foi consumido',
-      () async {
-        final store = _LegacyStore('{"googleSub":"sub-1","idToken":"eyJ.a.b"}');
-        final container = buildContainer(
-          store: store,
-          behavior: (_) async => throw AuthUnauthorizedException(401),
-        );
-        addTearDown(container.dispose);
-
-        expect(await container.read(authStateProvider.future), isNull);
-        expect(store.read(), isNull);
-        expect(store.legacyTaken, isTrue);
-      },
-    );
   });
 
   group('AuthNotifier.onUnauthorized / signOut (spec D8)', () {

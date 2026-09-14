@@ -124,27 +124,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
     // Sessão do Worker guardada: vale até o Worker dizer o contrário (401 →
     // onUnauthorized). Nada de rede no boot (spec D7) — offline continua logado.
-    final stored = store.read();
-    if (stored != null) return stored;
-
-    return _migrateLegacyWebSession(store);
-  }
-
-  /// Sessão do formato anterior (id_token do Google em `sessionStorage`) —
-  /// troca uma vez por sessão do Worker; qualquer falha vira deslogado
-  /// (spec D12). O `sessionStorage` é consumido nos dois casos.
-  Future<AuthUser?> _migrateLegacyWebSession(AuthSessionStore store) async {
-    final legacyIdToken = AuthSessionStore.legacyIdToken(
-      store.takeLegacySessionStorage(),
-    );
-    if (legacyIdToken == null) return null;
-    try {
-      return await _establishAndStore(legacyIdToken);
-    } on Object catch (error) {
-      debugPrint('[auth] migração da sessão antiga falhou: $error');
-      store.clear();
-      return null;
-    }
+    return store.read();
   }
 
   /// Único ponto que chama [GoogleSignIn.initialize] (idempotente no processo).
