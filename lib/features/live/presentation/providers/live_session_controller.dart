@@ -8,11 +8,13 @@ import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
+import '../../../playlists/presentation/providers/active_playlist_provider.dart';
 import '../../data/providers/live_providers.dart';
 import '../../domain/entities/live_snapshot.dart';
 import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
 import '../../domain/protocol/live_frames.dart';
+import 'live_leader_session_prefs.dart';
 import 'live_projection_provider.dart';
 import 'live_session_state.dart';
 
@@ -31,6 +33,21 @@ const int kLiveCloseEnded = 4001;
 const int kLiveCloseReplaced = 4002;
 const int kLiveCloseRetired = 4003;
 const int kLiveCloseNotFound = 4004;
+
+/// A lista ativa (com override otimista) + foco, no formato do DO.
+LiveSnapshot liveSnapshotOfActiveList(Ref ref) {
+  final playlist = ref.read(activePlaylistProvider);
+  final entries = ref.read(activeEntriesProvider);
+  final focus = ref.read(carouselFocusedKeyProvider);
+  return LiveSnapshot(
+    playlistId: playlist?.playlistId ?? '',
+    name: playlist?.nome ?? '',
+    entries: [for (final e in entries) e.entry],
+    focusKey: focus != null && entries.any((e) => e.key == focus)
+        ? focus
+        : null,
+  );
+}
 
 /// A sessão ao vivo do app inteiro (spec 2026-09-12-lista-ao-vivo, §6.1).
 ///
@@ -79,6 +96,16 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   Future<void> join(String code) async {
     if (state.code == code &&
         (state.phase == LivePhase.joining || state.isConnectedOrRetrying)) {
+      if (state.phase == LivePhase.joining &&
+          _connecting == null &&
+          _conn == null) {
+        // Handshake falhou enquanto pausado (§_shouldReconnectNow): nenhum
+        // socket aberto, nada em voo, e `_scheduleReconnect` não armou timer
+        // nenhum — repetir o `join` do mesmo código é quem religa. (Um
+        // handshake que teve sucesso e só espera o `room` do servidor tem
+        // `_conn` != null e continua single-flight.)
+        return _connect();
+      }
       return _connecting ?? Future.value();
     }
     if (state.code != null && state.code != code) await leave();
@@ -123,6 +150,57 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   /// Evento de conectividade: online + `reconnecting`/`joining` parado → religa já.
   void onConnectivity(bool online) {
     if (online && !_paused && _shouldReconnectNow()) _reconnectNow();
+  }
+
+  /// Gestor: entra na própria sala e começa a transmitir a lista ativa.
+  /// [code] é a sala do usuário (Task 14) e [playlistId] tem de ser a lista
+  /// ativa (a UI chama `activate` antes).
+  Future<void> startLive({
+    required String code,
+    required String playlistId,
+  }) async {
+    ref.read(liveMyRoomCodeProvider.notifier).set(code);
+    await ref
+        .read(liveLeaderSessionPrefsProvider)
+        .write(
+          LiveLeaderSession(
+            code: code,
+            playlistId: playlistId,
+            playlistName: ref.read(activePlaylistProvider)?.nome ?? '',
+          ),
+        );
+    ref.invalidate(pendingLeaderSessionProvider);
+    _pendingStart = true;
+    if (state.code != code || !state.isConnectedOrRetrying) {
+      await join(code);
+    }
+    _conn?.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
+    state = state.copyWith(
+      role: LiveRole.leader,
+      roomStatus: LiveRoomStatus.live,
+    );
+  }
+
+  /// Gestor: encerra a sessão para todos.
+  Future<void> endLive() async {
+    _setDebounce?.cancel();
+    _pendingStart = false;
+    _conn?.send(encodeLiveEnd());
+    await ref.read(liveLeaderSessionPrefsProvider).clear();
+    ref.invalidate(pendingLeaderSessionProvider);
+    _finish(LivePhase.ended, reason: LiveEndReason.leader);
+  }
+
+  /// Boot: retoma a sessão gravada. Se o DO já encerrou por inatividade, o
+  /// `room{ended}` que volta limpa a pref (`_onRoomAsLeader`).
+  Future<void> resumeLeader(LiveLeaderSession session) async {
+    ref.read(liveMyRoomCodeProvider.notifier).set(session.code);
+    await join(session.code);
+  }
+
+  Future<void> discardLeaderSession() async {
+    await ref.read(liveLeaderSessionPrefsProvider).clear();
+    ref.invalidate(pendingLeaderSessionProvider);
   }
 
   /// `reconnecting` sempre religa; `joining` sem `_doConnect` em voo é um
@@ -298,6 +376,15 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     _setDebounce?.cancel();
     _teardownConnection(closeCode: 1000);
     _clearProjection();
+    if (state.role == LiveRole.leader &&
+        (reason == LiveEndReason.replaced ||
+            reason == LiveEndReason.inactivity ||
+            reason == LiveEndReason.retired)) {
+      // Outro aparelho assumiu a sala, ou o DO encerrou por inatividade/
+      // regeneração de link: a sessão gravada já não vale.
+      unawaited(ref.read(liveLeaderSessionPrefsProvider).clear());
+      ref.invalidate(pendingLeaderSessionProvider);
+    }
     state = state.copyWith(
       phase: phase,
       endReason: reason,
@@ -429,10 +516,39 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     }
   }
 
-  // Preenchidos na Task 12 (gestor) e na Task 13 (D3).
-  void _onLocalFocusChanged(String? key) {}
-  void _onLocalListChanged() {}
-  void _onRoomAsLeader(LiveRoomFrame frame) {}
+  // Ramo do gestor preenchido na Task 12; o ramo do consumidor
+  // (`_onLocalFocusChanged`) fica para a Task 13 (D3).
+  void _onLocalFocusChanged(String? key) => _scheduleLeaderSet();
+
+  void _onLocalListChanged() => _scheduleLeaderSet();
+
+  void _scheduleLeaderSet() {
+    if (!state.isLeading || _conn == null) return;
+    _setDebounce?.cancel();
+    _setDebounce = Timer(kLiveLeaderSetDebounce, () {
+      if (!ref.mounted || !state.isLeading) return;
+      _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
+    });
+  }
+
+  void _onRoomAsLeader(LiveRoomFrame frame) {
+    if (frame.role != LiveRole.leader) return;
+    if (frame.status == LiveRoomStatus.live) {
+      _pendingStart = false;
+      // Religou (ou retomou): o que está no aparelho vence o que o DO tem.
+      _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
+      return;
+    }
+    if (_pendingStart) {
+      // O `start` de `startLive` não chegou (handshake falhou antes): manda agora.
+      _conn?.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
+      state = state.copyWith(roomStatus: LiveRoomStatus.live);
+      return;
+    }
+    // Sala idle/ended: a sessão gravada já não vale.
+    unawaited(ref.read(liveLeaderSessionPrefsProvider).clear());
+    ref.invalidate(pendingLeaderSessionProvider);
+  }
 }
 
 final liveSessionProvider =
