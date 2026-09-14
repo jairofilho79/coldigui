@@ -220,6 +220,10 @@ void main() {
   test(
     'leave fecha com 1000, limpa a projeção e ignora frames tardios',
     () async {
+      // Sem `lingerOnClose`, `emit` depois do `close()` já é um no-op do
+      // próprio fake (stream fechado) — o teste não provaria que é o
+      // controller quem ignora o frame tardio, e não o fake.
+      transport.lingerOnClose = true;
       await joinAndReceiveRoom();
       final conn = transport.last;
       await controller().leave();

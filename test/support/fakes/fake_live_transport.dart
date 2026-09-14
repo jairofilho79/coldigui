@@ -5,13 +5,19 @@ import 'package:coldigui/features/live/domain/ports/live_transport.dart';
 /// Conexão de mentira: o teste **emite** frames do "servidor" e lê o que o
 /// controller mandou.
 class FakeLiveConnection implements LiveConnection {
-  FakeLiveConnection(this.uri);
+  FakeLiveConnection(this.uri, {this.lingerOnClose = false});
 
   final Uri uri;
   final _controller = StreamController<String>.broadcast();
   final _done = Completer<LiveDisconnect>();
   final List<String> sent = [];
   int? closedWith;
+
+  /// Quando `true`, `close()` (o cliente pediu para sair) não fecha o stream
+  /// de mensagens — modela um socket real que ainda entrega frames que já
+  /// estavam em trânsito depois do close do cliente; `drop()` (queda de
+  /// rede) sempre fecha, com ou sem isto.
+  final bool lingerOnClose;
 
   @override
   Stream<String> get messages => _controller.stream;
@@ -23,16 +29,18 @@ class FakeLiveConnection implements LiveConnection {
   Future<void> close({int code = 1000, String? reason}) async {
     if (closedWith != null) return;
     closedWith = code;
-    await _controller.close();
+    if (!lingerOnClose) await _controller.close();
     if (!_done.isCompleted) _done.complete(LiveDisconnect(code: code));
   }
 
   @override
   Future<LiveDisconnect> get done => _done.future;
 
-  /// O servidor falou. Sem efeito depois de fechada — como um socket real,
-  /// que não entrega mais nada ao stream local uma vez fechado; é o cliente
-  /// (via geração) que decide, não este `emit`, quando um frame é "tardio".
+  /// O servidor falou. Sem efeito se o stream já fechou — o que acontece em
+  /// `drop()` sempre, e em `close()` só quando [lingerOnClose] é `false`; com
+  /// [lingerOnClose], `emit` ainda entrega depois do `close()` do cliente, e
+  /// é o controller (via geração/`ref.mounted`) quem decide se o frame é
+  /// "tardio", não este `emit`.
   void emit(String text) {
     if (_controller.isClosed) return;
     _controller.add(text);
@@ -54,6 +62,9 @@ class FakeLiveTransport implements LiveTransport {
   int _failNext = 0;
   int attempts = 0;
   Completer<void>? _gate;
+
+  /// Copiado para cada [FakeLiveConnection] nova — ver [FakeLiveConnection.lingerOnClose].
+  bool lingerOnClose = false;
 
   /// As próximas [n] tentativas de `connect` lançam (handshake recusado).
   void failNext(int n) => _failNext = n;
@@ -81,7 +92,7 @@ class FakeLiveTransport implements LiveTransport {
       _failNext--;
       throw StateError('handshake recusado');
     }
-    final connection = FakeLiveConnection(uri);
+    final connection = FakeLiveConnection(uri, lingerOnClose: lingerOnClose);
     connections.add(connection);
     return connection;
   }

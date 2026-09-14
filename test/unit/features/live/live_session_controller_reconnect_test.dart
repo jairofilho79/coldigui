@@ -16,23 +16,24 @@ import '../../../support/fakes/fake_live_transport.dart';
 import '../../../support/test_overrides.dart';
 
 const code = 'k7x2m9q';
-const _snap = {
-  'playlistId': 'p1',
-  'name': 'Culto',
-  'entries': [
-    {'id': 'a', 'kind': 'pdf'},
-  ],
-  'focusKey': null,
-};
+const _entries = [
+  {'id': 'a', 'kind': 'pdf'},
+  {'id': 'b', 'kind': 'pdf'},
+];
 
-String roomFrame({int version = 1}) => jsonEncode({
+String roomFrame({int version = 1, String? focusKey}) => jsonEncode({
   't': 'room',
   'room': code,
   'status': 'live',
   'ownerName': 'F',
   'role': 'consumer',
   'version': version,
-  'snapshot': _snap,
+  'snapshot': {
+    'playlistId': 'p1',
+    'name': 'Culto',
+    'entries': _entries,
+    'focusKey': focusKey,
+  },
   'leaderPresent': true,
   'viewers': 1,
 });
@@ -248,13 +249,22 @@ void main() {
       async.flushMicrotasks();
 
       transport.failNext(3);
-      async.elapse(const Duration(seconds: 1));
+      async.elapse(const Duration(milliseconds: 999));
+      async.flushMicrotasks();
+      expect(transport.attempts, 1);
+      async.elapse(const Duration(milliseconds: 1));
       async.flushMicrotasks();
       expect(transport.attempts, 2);
-      async.elapse(const Duration(seconds: 2));
+      async.elapse(const Duration(milliseconds: 1999));
+      async.flushMicrotasks();
+      expect(transport.attempts, 2);
+      async.elapse(const Duration(milliseconds: 1));
       async.flushMicrotasks();
       expect(transport.attempts, 3);
-      async.elapse(const Duration(seconds: 4));
+      async.elapse(const Duration(milliseconds: 3999));
+      async.flushMicrotasks();
+      expect(transport.attempts, 3);
+      async.elapse(const Duration(milliseconds: 1));
       async.flushMicrotasks();
       expect(transport.attempts, 4);
       // Nunca vira unavailable depois de já ter estado conectado.
@@ -365,22 +375,50 @@ void main() {
   test(
     'dispose do container fecha o socket e nenhum frame tardio é processado',
     () async {
-      final transport = FakeLiveTransport();
-      final container = makeContainer(transport);
+      // `lingerOnClose`: o fake não fecha o stream quando o cliente chama
+      // `close()` — sem isto, `emit` depois do `close()` já seria um no-op
+      // do próprio fake (ver `FakeLiveConnection.emit`), e o teste provaria
+      // nada sobre o controller. Com o stream aberto, é `_sub?.cancel()` +
+      // a checagem de geração/`ref.mounted` do controller quem tem de
+      // ignorar o frame tardio — a navegação é a prova disso.
+      final transport = FakeLiveTransport()..lingerOnClose = true;
+      final navigated = <String>[];
+      final container = ProviderContainer(
+        overrides: [
+          ...standardTestOverrides(prefs: prefs),
+          liveTransportProvider.overrideWithValue(transport),
+          liveWsUriProvider.overrideWithValue(
+            (c) => Uri.parse('wss://test/$c'),
+          ),
+          liveReconnectPolicyProvider.overrideWithValue(
+            LiveReconnectPolicy(random: _ZeroRandom()),
+          ),
+          liveFocusResolverProvider.overrideWithValue(
+            (key) async => '/leitor?key=$key',
+          ),
+          liveNavigatorProvider.overrideWithValue(navigated.add),
+        ],
+      );
       final controller = container.read(liveSessionProvider.notifier);
       await controller.join(code);
-      transport.last.emit(roomFrame());
+      transport.last.emit(roomFrame(focusKey: 'a'));
       await Future<void>.delayed(Duration.zero);
+      expect(navigated, ['/leitor?key=a']);
+
       final conn = transport.last;
-      var projectionAfterDispose = false;
       container.dispose();
       expect(conn.closedWith, 1000);
+
       // Um container novo (hot restart) começa do zero e não vê o socket velho.
       final fresh = makeContainer(transport);
-      conn.emit(roomFrame(version: 9));
+
+      // Frame tardio: versão maior e foco diferente — se o controller velho
+      // o processasse, navegaria para 'b'.
+      conn.emit(roomFrame(version: 9, focusKey: 'b'));
       await Future<void>.delayed(Duration.zero);
-      projectionAfterDispose = fresh.read(liveProjectionProvider) != null;
-      expect(projectionAfterDispose, isFalse);
+
+      expect(navigated, ['/leitor?key=a']); // nenhuma navegação nova
+      expect(fresh.read(liveProjectionProvider), isNull);
       expect(fresh.read(liveSessionProvider).phase, LivePhase.idle);
       fresh.dispose();
     },
