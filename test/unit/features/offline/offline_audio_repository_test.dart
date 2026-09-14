@@ -13,6 +13,7 @@ void main() {
   late Isar isar;
   late OfflineAudioRepositoryImpl repository;
   late AudioStorageNative store;
+  late int indexChangedCount;
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('audio_repo_');
@@ -25,9 +26,13 @@ void main() {
       getApplicationDocumentsDirectory: () async =>
           Directory('${tempDir.path}/docs'),
     );
+    indexChangedCount = 0;
     repository = OfflineAudioRepositoryImpl(
       store: store,
-      local: OfflineAudioLocalDatasource(isar),
+      local: OfflineAudioLocalDatasource(
+        isar,
+        onIndexChanged: () => indexChangedCount++,
+      ),
     );
   });
 
@@ -70,6 +75,44 @@ void main() {
       expect(await repository.lookupBatch({'a1', 'a2', 'zz'}), {'a1'});
     },
   );
+
+  test(
+    'lookup purga a entrada órfã (bytes evictados) do índice e bumpa a revisão',
+    () async {
+      final entry = await repository.upsert(
+        audioId: 'a1',
+        r2Key: 'p1/m1.mp3',
+        bytes: bytes,
+      );
+      await store.delete(entry.storageKey);
+      final countBeforeLookup = indexChangedCount;
+
+      expect(await repository.lookup('a1'), isNull);
+
+      expect(indexChangedCount, greaterThan(countBeforeLookup));
+      expect((await repository.listAll()), isEmpty);
+      // Idempotente: sem índice, não há mais nada para purgar/bumpar.
+      final countAfterFirstPurge = indexChangedCount;
+      expect(await repository.lookup('a1'), isNull);
+      expect(indexChangedCount, countAfterFirstPurge);
+    },
+  );
+
+  test('lookupBatch purga apenas as entradas com ficheiro ausente', () async {
+    await repository.upsert(audioId: 'a1', r2Key: 'p1/m1.mp3', bytes: bytes);
+    final a2 = await repository.upsert(
+      audioId: 'a2',
+      r2Key: 'p1/m2.mp3',
+      bytes: bytes,
+    );
+    await store.delete(a2.storageKey);
+    final countBeforeBatch = indexChangedCount;
+
+    expect(await repository.lookupBatch({'a1', 'a2'}), {'a1'});
+
+    expect(indexChangedCount, greaterThan(countBeforeBatch));
+    expect((await repository.listAll()).map((e) => e.audioId), ['a1']);
+  });
 
   test('remove apaga ficheiro e índice; removeAll limpa tudo', () async {
     await repository.upsert(audioId: 'a1', r2Key: 'p1/m1.mp3', bytes: bytes);

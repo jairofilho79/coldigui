@@ -9,9 +9,16 @@ import '../entities/offline_audio_entry.dart';
 /// (`lookup`), pelo download (`lookupBatch`/`upsert`) e pela remoção.
 abstract class OfflineAudioRepository {
   /// Índice + ficheiro válidos; `null` caso contrário.
+  ///
+  /// Índice órfão (ficheiro ausente) é purgado aqui mesmo — não há reconcile
+  /// periódico de áudio, então esta é a única oportunidade de detectar e
+  /// remover a entrada antes que ela infle `totalBytes`/o mapa de
+  /// disponibilidade com bytes que já não existem.
   Future<LocalAudioSource?> lookup(String audioId);
 
   /// Subconjunto de [audioIds] com índice e ficheiro.
+  ///
+  /// Entradas com índice mas sem ficheiro são purgadas, como em [lookup].
   Future<Set<String>> lookupBatch(Set<String> audioIds);
 
   Future<OfflineAudioEntry> upsert({

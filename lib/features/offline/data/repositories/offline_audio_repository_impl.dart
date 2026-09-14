@@ -18,17 +18,33 @@ class OfflineAudioRepositoryImpl implements OfflineAudioRepository {
   Future<LocalAudioSource?> lookup(String audioId) async {
     final index = _local.findByAudioIdSync(audioId);
     if (index == null) return null;
-    // Índice órfão (ficheiro apagado pelo SO) fica até «Remover»: não há
-    // reconcile de áudio — o player cai na rede como se não estivesse.
-    if (!await _store.exists(index.storageKey)) return null;
+    // Índice órfão é purgado no próprio lookup (ficheiro evictado pelo SO ou
+    // — na web — pelo navegador sob pressão de quota, Safari em especial);
+    // não há reconcile periódico de áudio, então é aqui ou nunca: sem a
+    // purga, o mapa de disponibilidade (Task 8) e `totalBytes` continuariam
+    // a contar um áudio que já não existe.
+    if (!await _store.exists(index.storageKey)) {
+      await _local.deleteByAudioId(audioId);
+      return null;
+    }
     return LocalAudioSource(audioId: audioId, storageKey: index.storageKey);
   }
 
   @override
   Future<Set<String>> lookupBatch(Set<String> audioIds) async {
     final valid = <String>{};
+    final missing = <String>[];
     for (final index in _local.findByAudioIds(audioIds)) {
-      if (await _store.exists(index.storageKey)) valid.add(index.audioId);
+      if (await _store.exists(index.storageKey)) {
+        valid.add(index.audioId);
+      } else {
+        missing.add(index.audioId);
+      }
+    }
+    // Purga depois de terminar a iteração — nunca mutar o índice enquanto
+    // `findByAudioIds` ainda pode ser consultado por ela.
+    for (final audioId in missing) {
+      await _local.deleteByAudioId(audioId);
     }
     return valid;
   }
