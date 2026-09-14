@@ -36,7 +36,18 @@ final class HomeSearchState {
   List<LouvorGroup> get remoteGroups => remote.value?.groups ?? const [];
 
   /// Lista exibida: PLPCG primeiro, Coldigom depois.
-  List<LouvorGroup> get groups => [...localGroups, ...remoteGroups];
+  ///
+  /// Dedup provisório até a validação remota do plano 3: o índice local
+  /// Coldigom (task 9/10 do plano 1) já pode conter o mesmo `groupId` que a
+  /// página remota devolve, então um grupo remoto cujo id já apareceu na
+  /// lista local é descartado aqui para não duplicar o card na Home.
+  List<LouvorGroup> get groups {
+    final localIds = {for (final g in localGroups) g.groupId};
+    return [
+      ...localGroups,
+      ...remoteGroups.where((g) => !localIds.contains(g.groupId)),
+    ];
+  }
 
   /// `true` enquanto a página remota está em voo.
   bool get remoteLoading => remote.isLoading;

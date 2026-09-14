@@ -182,6 +182,36 @@ void main() {
     },
   );
 
+  test('grupo remoto com o mesmo groupId de um local não duplica (provisório até o plano 3)', () async {
+    // Louvor local 'Aleluia' (numero '001') gera groupId '001:aleluia'
+    // (LouvorGroupId.compute); um grupo remoto com o mesmo id simula o
+    // Coldigom ainda devolvendo algo que o índice local já cobre.
+    final duplicateOfLocal = LouvorGroup(
+      groupId: '001:aleluia',
+      numero: '001',
+      nome: 'Aleluia (remoto)',
+      sections: const [],
+    );
+    final source = _RecordingCatalogSource(
+      (query) async =>
+          CatalogSearchPage(groups: [duplicateOfLocal], page: query.page),
+    );
+    final container = createContainer(source);
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    final state = container.read(homeSearchStateProvider);
+    expect(state.localGroups, isNotEmpty);
+    expect(state.remoteGroups, isNotEmpty);
+    expect(state.groups.length, state.localGroups.length);
+    expect(state.groups.where((g) => g.groupId == '001:aleluia').length, 1);
+  });
+
   test('página 2 usa outra chave; voltar à 1 reusa o memo', () async {
     final source = _RecordingCatalogSource.ok();
     final container = createContainer(source);
