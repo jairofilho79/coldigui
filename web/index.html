@@ -4,7 +4,7 @@
   <!-- O sw.js aquece o que a página carregou (performance resource timing);
        o buffer default (250) enche durante o boot e perderia o engine. Tem
        de vir antes de qualquer outro pedido. -->
-  <script>performance.setResourceTimingBufferSize(600);</script>
+  <script>try { performance.setResourceTimingBufferSize(600); } catch (e) {}</script>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.

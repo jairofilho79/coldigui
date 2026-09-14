@@ -54,7 +54,12 @@ jobs:
             --wasm \
             --dart-define-from-file=dart_defines/plpcjf.json
 
-      - name: Verify COOP/COEP headers artifact
+      # Mesmo pós-build do deploy (scripts/web_build.sh): ?v=<tag>, canvaskit/<hash>/
+      # e as listas CRITICAL/WARM do sw.js. O verify a seguir exige-o.
+      - name: Cache-bust entrypoints + service worker manifest
+        run: ./scripts/cache_bust_web_entrypoints.sh
+
+      - name: Verify headers artifact and service worker
         run: ./scripts/verify_web_headers_artifact.sh
 
       - name: Web boot performance gate
