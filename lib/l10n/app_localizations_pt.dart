@@ -1483,4 +1483,99 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get liveResume => 'Retomar';
+
+  @override
+  String get liveJoining => 'Entrando…';
+
+  @override
+  String get liveUnavailableTitle => 'Não foi possível conectar à sessão';
+
+  @override
+  String get liveUnavailableBody =>
+      'Esta rede pode bloquear conexões ao vivo. Tente outra rede ou peça o link da lista pública.';
+
+  @override
+  String get liveRetry => 'Tentar de novo';
+
+  @override
+  String get liveNotFound =>
+      'Este link não existe ou foi substituído por um novo.';
+
+  @override
+  String liveIdleTitle(String owner) {
+    return '$owner não está ao vivo agora';
+  }
+
+  @override
+  String get liveIdleBody =>
+      'Fique por aqui — quando começar, você entra sozinho.';
+
+  @override
+  String liveFollowingTitle(String owner) {
+    return 'Você está seguindo $owner';
+  }
+
+  @override
+  String get liveGoToList => 'Ir para a lista';
+
+  @override
+  String get liveEndedTitle => 'Sessão encerrada';
+
+  @override
+  String get liveSaveCopy => 'Guardar cópia';
+
+  @override
+  String liveCopyName(String list, String owner) {
+    return '$list (ao vivo com $owner)';
+  }
+
+  @override
+  String get liveCopySaved => 'Cópia guardada em Listas';
+
+  @override
+  String get liveLeftTitle => 'Você saiu da sessão';
+
+  @override
+  String get liveJoinAgain => 'Entrar de novo';
+
+  @override
+  String get liveYourRoom => 'Sua sala ao vivo';
+
+  @override
+  String get liveShareHint =>
+      'Quem abrir este link vê a sua lista em tempo real.';
+
+  @override
+  String get liveCopyLink => 'Copiar link';
+
+  @override
+  String get liveLinkCopied => 'Link copiado';
+
+  @override
+  String get liveShareLink => 'Compartilhar';
+
+  @override
+  String get liveRegenerateLink => 'Gerar novo link';
+
+  @override
+  String get liveRegenerateConfirmTitle => 'Gerar um novo link?';
+
+  @override
+  String get liveRegenerateConfirmBody =>
+      'O link atual deixa de funcionar para todos.';
+
+  @override
+  String liveViewers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pessoas conectadas',
+      one: '1 pessoa conectada',
+      zero: 'Ninguém conectado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get liveRoomError => 'Não foi possível carregar a sua sala';
 }

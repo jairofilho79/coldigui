@@ -45,4 +45,11 @@ abstract final class RoutePaths {
 
   /// Material kinds favoritos ([FavoriteMaterialKindsScreen]) — branch Perfil.
   static const String favoriteMaterialKinds = '/materiais-favoritos';
+
+  /// Sala ao vivo ([LiveRoomScreen]) — filha da branch Home; o Worker manda
+  /// `plpcg.com/ao-vivo/<code>` para `/?live=<code>` e o [DeepLinkListener]
+  /// abre esta rota.
+  static const String liveRoom = '/ao-vivo/:code';
+
+  static String liveRoomFor(String code) => '/ao-vivo/$code';
 }

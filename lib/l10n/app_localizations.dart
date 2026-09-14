@@ -2518,6 +2518,156 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Retomar'**
   String get liveResume;
+
+  /// Tela da sala ao vivo: estado enquanto conecta
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrando…'**
+  String get liveJoining;
+
+  /// Tela da sala ao vivo: título quando a conexão falha de vez
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível conectar à sessão'**
+  String get liveUnavailableTitle;
+
+  /// Tela da sala ao vivo: corpo quando a conexão falha de vez
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta rede pode bloquear conexões ao vivo. Tente outra rede ou peça o link da lista pública.'**
+  String get liveUnavailableBody;
+
+  /// Tela da sala ao vivo: ação para tentar conectar de novo
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get liveRetry;
+
+  /// Tela da sala ao vivo: sala inexistente ou substituída
+  ///
+  /// In pt, this message translates to:
+  /// **'Este link não existe ou foi substituído por um novo.'**
+  String get liveNotFound;
+
+  /// Tela da sala ao vivo: consumidor numa sala ainda sem transmissão
+  ///
+  /// In pt, this message translates to:
+  /// **'{owner} não está ao vivo agora'**
+  String liveIdleTitle(String owner);
+
+  /// Tela da sala ao vivo: corpo do estado idle do consumidor
+  ///
+  /// In pt, this message translates to:
+  /// **'Fique por aqui — quando começar, você entra sozinho.'**
+  String get liveIdleBody;
+
+  /// Tela da sala ao vivo: consumidor seguindo a transmissão
+  ///
+  /// In pt, this message translates to:
+  /// **'Você está seguindo {owner}'**
+  String liveFollowingTitle(String owner);
+
+  /// Tela da sala ao vivo: ação do consumidor para ir para a lista ativa
+  ///
+  /// In pt, this message translates to:
+  /// **'Ir para a lista'**
+  String get liveGoToList;
+
+  /// Tela da sala ao vivo: título quando a sessão terminou
+  ///
+  /// In pt, this message translates to:
+  /// **'Sessão encerrada'**
+  String get liveEndedTitle;
+
+  /// Tela da sala ao vivo: ação para guardar uma cópia da lista do gestor (D4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardar cópia'**
+  String get liveSaveCopy;
+
+  /// Nome dado à cópia salva de uma lista ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'{list} (ao vivo com {owner})'**
+  String liveCopyName(String list, String owner);
+
+  /// Confirmação depois de guardar a cópia da lista ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Cópia guardada em Listas'**
+  String get liveCopySaved;
+
+  /// Tela da sala ao vivo: título depois de sair da sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Você saiu da sessão'**
+  String get liveLeftTitle;
+
+  /// Tela da sala ao vivo: ação para voltar a entrar depois de sair
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar de novo'**
+  String get liveJoinAgain;
+
+  /// Tela da sala ao vivo: título para o gestor
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sala ao vivo'**
+  String get liveYourRoom;
+
+  /// Tela da sala ao vivo: explicação do link para o gestor
+  ///
+  /// In pt, this message translates to:
+  /// **'Quem abrir este link vê a sua lista em tempo real.'**
+  String get liveShareHint;
+
+  /// Tela da sala ao vivo: ação para copiar o link da sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar link'**
+  String get liveCopyLink;
+
+  /// Confirmação depois de copiar o link da sala ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Link copiado'**
+  String get liveLinkCopied;
+
+  /// Tela da sala ao vivo: ação para compartilhar o link da sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar'**
+  String get liveShareLink;
+
+  /// Tela da sala ao vivo: ação para gerar um novo link de sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar novo link'**
+  String get liveRegenerateLink;
+
+  /// Título da confirmação para gerar um novo link de sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar um novo link?'**
+  String get liveRegenerateConfirmTitle;
+
+  /// Corpo da confirmação para gerar um novo link de sala
+  ///
+  /// In pt, this message translates to:
+  /// **'O link atual deixa de funcionar para todos.'**
+  String get liveRegenerateConfirmBody;
+
+  /// Tela da sala ao vivo: contagem de pessoas conectadas
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Ninguém conectado} =1{1 pessoa conectada} other{{count} pessoas conectadas}}'**
+  String liveViewers(int count);
+
+  /// Erro genérico ao carregar/regenerar a sala ao vivo do gestor
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar a sua sala'**
+  String get liveRoomError;
 }
 
 class _AppLocalizationsDelegate

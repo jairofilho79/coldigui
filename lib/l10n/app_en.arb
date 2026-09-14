@@ -777,5 +777,105 @@
   "liveResume": "Resume",
   "@liveResume": {
     "description": "Pending host session banner action to resume the broadcast"
+  },
+  "liveJoining": "Joining…",
+  "@liveJoining": {
+    "description": "Live room screen: state while connecting"
+  },
+  "liveUnavailableTitle": "Couldn't connect to the session",
+  "@liveUnavailableTitle": {
+    "description": "Live room screen: title when the connection fails for good"
+  },
+  "liveUnavailableBody": "This network may block live connections. Try another network or ask for the public list link.",
+  "@liveUnavailableBody": {
+    "description": "Live room screen: body when the connection fails for good"
+  },
+  "liveRetry": "Try again",
+  "@liveRetry": {
+    "description": "Live room screen: action to try connecting again"
+  },
+  "liveNotFound": "This link doesn't exist or was replaced by a new one.",
+  "@liveNotFound": {
+    "description": "Live room screen: room missing or replaced"
+  },
+  "liveIdleTitle": "{owner} isn't live right now",
+  "@liveIdleTitle": {
+    "description": "Live room screen: consumer in a room not broadcasting yet"
+  },
+  "liveIdleBody": "Stay here — when it starts, you'll join automatically.",
+  "@liveIdleBody": {
+    "description": "Live room screen: body of the consumer's idle state"
+  },
+  "liveFollowingTitle": "You're following {owner}",
+  "@liveFollowingTitle": {
+    "description": "Live room screen: consumer following the broadcast"
+  },
+  "liveGoToList": "Go to the list",
+  "@liveGoToList": {
+    "description": "Live room screen: consumer action to go to the active list"
+  },
+  "liveEndedTitle": "Session ended",
+  "@liveEndedTitle": {
+    "description": "Live room screen: title when the session has ended"
+  },
+  "liveSaveCopy": "Save a copy",
+  "@liveSaveCopy": {
+    "description": "Live room screen: action to save a copy of the host's list (D4)"
+  },
+  "liveCopyName": "{list} (live with {owner})",
+  "@liveCopyName": {
+    "description": "Name given to a saved copy of a live list"
+  },
+  "liveCopySaved": "Copy saved to Lists",
+  "@liveCopySaved": {
+    "description": "Confirmation after saving the live list copy"
+  },
+  "liveLeftTitle": "You left the session",
+  "@liveLeftTitle": {
+    "description": "Live room screen: title after leaving the room"
+  },
+  "liveJoinAgain": "Join again",
+  "@liveJoinAgain": {
+    "description": "Live room screen: action to join again after leaving"
+  },
+  "liveYourRoom": "Your live room",
+  "@liveYourRoom": {
+    "description": "Live room screen: title for the host"
+  },
+  "liveShareHint": "Anyone who opens this link sees your list in real time.",
+  "@liveShareHint": {
+    "description": "Live room screen: explanation of the link for the host"
+  },
+  "liveCopyLink": "Copy link",
+  "@liveCopyLink": {
+    "description": "Live room screen: action to copy the room link"
+  },
+  "liveLinkCopied": "Link copied",
+  "@liveLinkCopied": {
+    "description": "Confirmation after copying the live room link"
+  },
+  "liveShareLink": "Share",
+  "@liveShareLink": {
+    "description": "Live room screen: action to share the room link"
+  },
+  "liveRegenerateLink": "Generate new link",
+  "@liveRegenerateLink": {
+    "description": "Live room screen: action to generate a new room link"
+  },
+  "liveRegenerateConfirmTitle": "Generate a new link?",
+  "@liveRegenerateConfirmTitle": {
+    "description": "Title of the confirmation to generate a new room link"
+  },
+  "liveRegenerateConfirmBody": "The current link stops working for everyone.",
+  "@liveRegenerateConfirmBody": {
+    "description": "Body of the confirmation to generate a new room link"
+  },
+  "liveViewers": "{count, plural, =0{Nobody connected} =1{1 person connected} other{{count} people connected}}",
+  "@liveViewers": {
+    "description": "Live room screen: count of connected people"
+  },
+  "liveRoomError": "Couldn't load your room",
+  "@liveRoomError": {
+    "description": "Generic error loading/regenerating the host's live room"
   }
 }

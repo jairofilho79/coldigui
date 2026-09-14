@@ -1,4 +1,5 @@
 import '../../../core/constants/app_config.dart';
+import '../../../core/routing/route_paths.dart';
 import '../../../core/utils/safe_query_parameters.dart';
 
 final _codePattern = RegExp(r'^[a-z0-9]{7}$');
@@ -16,7 +17,7 @@ String? parseLiveRoomCode(Uri uri) {
 }
 
 /// Rota interna do GoRouter.
-String liveRoomRouteFor(String code) => '/ao-vivo/$code';
+String liveRoomRouteFor(String code) => RoutePaths.liveRoomFor(code);
 
 /// O link que o gestor partilha (o Worker responde 302 para a app).
 String liveRoomShareUrl(String code) {

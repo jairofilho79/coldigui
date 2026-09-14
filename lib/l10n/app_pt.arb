@@ -880,5 +880,118 @@
   "liveResume": "Retomar",
   "@liveResume": {
     "description": "Ação do banner de sessão de gestor pendente para retomar a transmissão"
+  },
+  "liveJoining": "Entrando…",
+  "@liveJoining": {
+    "description": "Tela da sala ao vivo: estado enquanto conecta"
+  },
+  "liveUnavailableTitle": "Não foi possível conectar à sessão",
+  "@liveUnavailableTitle": {
+    "description": "Tela da sala ao vivo: título quando a conexão falha de vez"
+  },
+  "liveUnavailableBody": "Esta rede pode bloquear conexões ao vivo. Tente outra rede ou peça o link da lista pública.",
+  "@liveUnavailableBody": {
+    "description": "Tela da sala ao vivo: corpo quando a conexão falha de vez"
+  },
+  "liveRetry": "Tentar de novo",
+  "@liveRetry": {
+    "description": "Tela da sala ao vivo: ação para tentar conectar de novo"
+  },
+  "liveNotFound": "Este link não existe ou foi substituído por um novo.",
+  "@liveNotFound": {
+    "description": "Tela da sala ao vivo: sala inexistente ou substituída"
+  },
+  "liveIdleTitle": "{owner} não está ao vivo agora",
+  "@liveIdleTitle": {
+    "description": "Tela da sala ao vivo: consumidor numa sala ainda sem transmissão",
+    "placeholders": {
+      "owner": { "type": "String" }
+    }
+  },
+  "liveIdleBody": "Fique por aqui — quando começar, você entra sozinho.",
+  "@liveIdleBody": {
+    "description": "Tela da sala ao vivo: corpo do estado idle do consumidor"
+  },
+  "liveFollowingTitle": "Você está seguindo {owner}",
+  "@liveFollowingTitle": {
+    "description": "Tela da sala ao vivo: consumidor seguindo a transmissão",
+    "placeholders": {
+      "owner": { "type": "String" }
+    }
+  },
+  "liveGoToList": "Ir para a lista",
+  "@liveGoToList": {
+    "description": "Tela da sala ao vivo: ação do consumidor para ir para a lista ativa"
+  },
+  "liveEndedTitle": "Sessão encerrada",
+  "@liveEndedTitle": {
+    "description": "Tela da sala ao vivo: título quando a sessão terminou"
+  },
+  "liveSaveCopy": "Guardar cópia",
+  "@liveSaveCopy": {
+    "description": "Tela da sala ao vivo: ação para guardar uma cópia da lista do gestor (D4)"
+  },
+  "liveCopyName": "{list} (ao vivo com {owner})",
+  "@liveCopyName": {
+    "description": "Nome dado à cópia salva de uma lista ao vivo",
+    "placeholders": {
+      "list": { "type": "String" },
+      "owner": { "type": "String" }
+    }
+  },
+  "liveCopySaved": "Cópia guardada em Listas",
+  "@liveCopySaved": {
+    "description": "Confirmação depois de guardar a cópia da lista ao vivo"
+  },
+  "liveLeftTitle": "Você saiu da sessão",
+  "@liveLeftTitle": {
+    "description": "Tela da sala ao vivo: título depois de sair da sala"
+  },
+  "liveJoinAgain": "Entrar de novo",
+  "@liveJoinAgain": {
+    "description": "Tela da sala ao vivo: ação para voltar a entrar depois de sair"
+  },
+  "liveYourRoom": "Sua sala ao vivo",
+  "@liveYourRoom": {
+    "description": "Tela da sala ao vivo: título para o gestor"
+  },
+  "liveShareHint": "Quem abrir este link vê a sua lista em tempo real.",
+  "@liveShareHint": {
+    "description": "Tela da sala ao vivo: explicação do link para o gestor"
+  },
+  "liveCopyLink": "Copiar link",
+  "@liveCopyLink": {
+    "description": "Tela da sala ao vivo: ação para copiar o link da sala"
+  },
+  "liveLinkCopied": "Link copiado",
+  "@liveLinkCopied": {
+    "description": "Confirmação depois de copiar o link da sala ao vivo"
+  },
+  "liveShareLink": "Compartilhar",
+  "@liveShareLink": {
+    "description": "Tela da sala ao vivo: ação para compartilhar o link da sala"
+  },
+  "liveRegenerateLink": "Gerar novo link",
+  "@liveRegenerateLink": {
+    "description": "Tela da sala ao vivo: ação para gerar um novo link de sala"
+  },
+  "liveRegenerateConfirmTitle": "Gerar um novo link?",
+  "@liveRegenerateConfirmTitle": {
+    "description": "Título da confirmação para gerar um novo link de sala"
+  },
+  "liveRegenerateConfirmBody": "O link atual deixa de funcionar para todos.",
+  "@liveRegenerateConfirmBody": {
+    "description": "Corpo da confirmação para gerar um novo link de sala"
+  },
+  "liveViewers": "{count, plural, =0{Ninguém conectado} =1{1 pessoa conectada} other{{count} pessoas conectadas}}",
+  "@liveViewers": {
+    "description": "Tela da sala ao vivo: contagem de pessoas conectadas",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "liveRoomError": "Não foi possível carregar a sua sala",
+  "@liveRoomError": {
+    "description": "Erro genérico ao carregar/regenerar a sala ao vivo do gestor"
   }
 }
