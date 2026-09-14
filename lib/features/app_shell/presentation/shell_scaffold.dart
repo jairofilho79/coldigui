@@ -65,7 +65,8 @@ class ShellScaffold extends ConsumerWidget {
     return path == RoutePaths.reader ||
         path == RoutePaths.audio ||
         path == RoutePaths.chords ||
-        path == RoutePaths.gestos;
+        path == RoutePaths.gestos ||
+        path == RoutePaths.lyrics;
   }
 
   /// Destinos na mesma ordem/índices de [tabs] (por sua vez, [appTabsFor]) —

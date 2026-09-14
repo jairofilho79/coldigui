@@ -30,9 +30,9 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
 /// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
-/// tipo presente (PDF, cifras, gestos, áudio, YouTube) quando há mais de um, senão a
-/// lista direta — e o cabeçalho de metadados aparece quando o grupo tem
-/// [LouvorGroup.coldigomMeta].
+/// tipo presente (PDF, cifras, gestos, áudio, YouTube, letra) quando há mais de
+/// um, senão a lista direta — e o cabeçalho de metadados aparece quando o
+/// grupo tem [LouvorGroup.coldigomMeta].
 ///
 /// [canAddToPlaylist] `false` esconde os `+` — é o caso da troca de material no
 /// leitor, onde o louvor já está na lista.
@@ -242,7 +242,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final audioTracks = group.audioTracks;
     final youtubeMaterials = group.youtubeMaterials;
 
-    // Abas por tipo (PDF / Cifras / Gestos / Áudio / YouTube) só quando há mais de um
+    // Abas por tipo (PDF / Cifras / Gestos / Áudio / YouTube / Letra) só quando há mais de um
     // tipo — com 17 PDFs e 14 áudios a lista corrida escondia o áudio no fim
     // (onda 4.3). Dentro da aba de PDF as seções por classificação continuam
     // separadas por rótulo quando há mais de uma.
@@ -253,6 +253,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
       if (audioTracks.isNotEmpty) MaterialKind.audio,
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
+      if (group.lyrics != null) MaterialKind.lyrics,
     ];
     final showSegments = kinds.length > 1;
     // Aba escolhida que sumiu (cifras que deixaram de carregar) cai na
@@ -357,11 +358,19 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                         l10n: l10n,
                       ),
                   ],
-                  // `kinds` só emite os cinco acima; se um dia emitir outro,
-                  // que falhe alto em vez de mostrar uma aba vazia. Letra
-                  // ainda não tem aba própria — chega na Task 11.
-                  MaterialKind.lyrics || MaterialKind.unknown =>
-                    throw StateError('kind sem aba: $selectedKind'),
+                  MaterialKind.lyrics => [
+                    _materialTile(
+                      material: group.lyrics!,
+                      iconColor: AppColors.title,
+                      activeMaterialIds: activeMaterialIds,
+                      l10n: l10n,
+                    ),
+                  ],
+                  // `kinds` só emite os seis acima; se um dia emitir outro,
+                  // que falhe alto em vez de mostrar uma aba vazia.
+                  MaterialKind.unknown => throw StateError(
+                    'kind sem aba: $selectedKind',
+                  ),
                 },
               ),
             ),
@@ -451,7 +460,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       MaterialKind.gesture => l10n.gesturesMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
-      MaterialKind.lyrics ||
+      MaterialKind.lyrics => l10n.lyricsTab,
       MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
     };
   }

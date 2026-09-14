@@ -1425,4 +1425,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get favoriteMaterialKindsTypePreferenceHelp =>
       'Arraste para ordenar — o primeiro da lista é o formato preferido.';
+
+  @override
+  String get lyricsTitle => 'Letra';
+
+  @override
+  String get lyricsTab => 'Letra';
+
+  @override
+  String get lyricsReaderEmpty => 'Este louvor não tem letra guardada';
+
+  @override
+  String get lyricsReaderIncreaseFont => 'Aumentar letra';
+
+  @override
+  String get lyricsReaderDecreaseFont => 'Diminuir letra';
 }

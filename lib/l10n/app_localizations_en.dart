@@ -1410,4 +1410,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get favoriteMaterialKindsTypePreferenceHelp =>
       'Drag to reorder — the top of the list is the preferred format.';
+
+  @override
+  String get lyricsTitle => 'Lyrics';
+
+  @override
+  String get lyricsTab => 'Lyrics';
+
+  @override
+  String get lyricsReaderEmpty => 'No lyrics stored for this hymn';
+
+  @override
+  String get lyricsReaderIncreaseFont => 'Increase text size';
+
+  @override
+  String get lyricsReaderDecreaseFont => 'Decrease text size';
 }

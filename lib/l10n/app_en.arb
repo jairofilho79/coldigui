@@ -713,5 +713,10 @@
       "kind": { "type": "String" }
     }
   },
-  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format."
+  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format.",
+  "lyricsTitle": "Lyrics",
+  "lyricsTab": "Lyrics",
+  "lyricsReaderEmpty": "No lyrics stored for this hymn",
+  "lyricsReaderIncreaseFont": "Increase text size",
+  "lyricsReaderDecreaseFont": "Decrease text size"
 }

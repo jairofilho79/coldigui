@@ -803,5 +803,10 @@
       "kind": { "type": "String" }
     }
   },
-  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido."
+  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido.",
+  "lyricsTitle": "Letra",
+  "lyricsTab": "Letra",
+  "lyricsReaderEmpty": "Este louvor não tem letra guardada",
+  "lyricsReaderIncreaseFont": "Aumentar letra",
+  "lyricsReaderDecreaseFont": "Diminuir letra"
 }

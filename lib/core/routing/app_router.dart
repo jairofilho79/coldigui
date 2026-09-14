@@ -17,6 +17,7 @@ import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
 import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
+import '../../features/lyrics/presentation/pages/lyrics_reader_screen.dart';
 import '../../features/material_kind_prefs/presentation/pages/favorite_material_kinds_screen.dart';
 import '../../features/offline/presentation/pages/offline_settings_screen.dart';
 import '../../features/audio_player/presentation/pages/audio_player_screen.dart';
@@ -34,7 +35,8 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 ///
 /// Rotas em [RoutePaths]. `/leitor` é sub-rota da branch Home para reutilizar o
 /// mesmo header ([PlpcgPrimaryAppBar] + [CarouselChips]) e estado do carousel.
-/// `/audio` e `/cifra` são irmãs de `/leitor` na mesma branch.
+/// `/audio`, `/cifra`, `/gestos` e `/letra` são irmãs de `/leitor` na mesma
+/// branch.
 ///
 /// Branch Listas: `/listas` + sub-rota `/listas/publicas` (só com
 /// `FF_SOCIAL`). Branch Perfil: `/perfil`, `/biblioteca`, `/offline`, `/sobre`.
@@ -146,6 +148,12 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
             GoRoute(
               path: 'gestos',
               builder: (context, state) => GestureReaderScreen(
+                queryParams: safeQueryParameters(state.uri),
+              ),
+            ),
+            GoRoute(
+              path: 'letra',
+              builder: (context, state) => LyricsReaderScreen(
                 queryParams: safeQueryParameters(state.uri),
               ),
             ),

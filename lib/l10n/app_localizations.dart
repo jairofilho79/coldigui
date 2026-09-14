@@ -2422,6 +2422,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Arraste para ordenar — o primeiro da lista é o formato preferido.'**
   String get favoriteMaterialKindsTypePreferenceHelp;
+
+  /// No description provided for @lyricsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra'**
+  String get lyricsTitle;
+
+  /// No description provided for @lyricsTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra'**
+  String get lyricsTab;
+
+  /// No description provided for @lyricsReaderEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este louvor não tem letra guardada'**
+  String get lyricsReaderEmpty;
+
+  /// No description provided for @lyricsReaderIncreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar letra'**
+  String get lyricsReaderIncreaseFont;
+
+  /// No description provided for @lyricsReaderDecreaseFont.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir letra'**
+  String get lyricsReaderDecreaseFont;
 }
 
 class _AppLocalizationsDelegate
