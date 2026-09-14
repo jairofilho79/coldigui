@@ -22,6 +22,12 @@ void main() {
     webDir.path,
   ]);
 
+  // Chama o gerador diretamente (sem passar pelo cache-bust): usado só nos
+  // testes de version.json em falta, porque o wrapper grava sempre as três
+  // tags antes de invocar o gerador — por ele, esse ramo nunca é alcançável.
+  Future<ProcessResult> runGenerator() =>
+      Process.run('python3', ['scripts/generate_sw_manifest.py', webDir.path]);
+
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('sw_manifest_test');
     webDir = Directory('${tmp.path}/web')..createSync();
@@ -163,4 +169,34 @@ void main() {
       expect('${result.stdout}${result.stderr}', contains('sem placeholder'));
     },
   );
+
+  test('sw.js ausente faz o pós-build falhar', () async {
+    // O cache-bust em si nunca lê sw.js (só o gerador, no fim): a falha só
+    // aparece quando o pipeline chega ao generate_sw_manifest.py.
+    File('${webDir.path}/sw.js').deleteSync();
+    final result = await runScript();
+    expect(result.exitCode, isNot(0));
+    expect('${result.stdout}${result.stderr}', contains('sw.js'));
+  });
+
+  test('version.json sem web_cache_tag faz o gerador falhar', () async {
+    // Fixture crua (sem passar pelo cache-bust): version.json só tem
+    // "version", nenhuma das três tags que o gerador exige.
+    final result = await runGenerator();
+    expect(result.exitCode, isNot(0));
+    expect('${result.stdout}${result.stderr}', contains('web_cache_tag'));
+  });
+
+  test('canvaskit/<hash>/ ausente faz o gerador falhar', () async {
+    // Tags de entrypoint/ícones presentes, mas sem canvaskit_tag nem a
+    // pasta correspondente: o gerador teria ?v= certo e engine errado.
+    writeWebFile(
+      webDir,
+      'version.json',
+      '{"web_cache_tag":"abc123456789","material_icons_tag":"def123456789"}',
+    );
+    final result = await runGenerator();
+    expect(result.exitCode, isNot(0));
+    expect('${result.stdout}${result.stderr}', contains('canvaskit'));
+  });
 }
