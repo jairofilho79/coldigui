@@ -1,4 +1,5 @@
 import { upsertUser } from './auth/session';
+import { handleDeleteSession, sessionResponse } from './auth/session_handlers';
 import { setUsername } from './auth/username';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
 import { withAuth } from './auth/with_auth';
@@ -101,7 +102,7 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
         'Authorization, Content-Type',
       );
     } else if (mode === 'auth') {
-      headers.set('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS');
+      headers.set('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS');
       headers.set(
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type',
@@ -248,6 +249,9 @@ async function handleAuthSession(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  if (request.method === 'DELETE') {
+    return handleDeleteSession(env.DB, request);
+  }
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'method not allowed' }, { status: 405 });
   }
@@ -265,10 +269,8 @@ async function handleAuthSession(
   try {
     const claims = await verifyGoogleIdToken(token, clientId);
     const user = await upsertUser(env.DB, claims);
-    return jsonResponse(user, {
-      status: 200,
-      headers: { 'Cache-Control': 'no-store' },
-    });
+    // Troca o id_token (1 h) por uma sessão do Worker (spec D1).
+    return await sessionResponse(env.DB, user);
   } catch {
     return jsonResponse({ error: 'unauthorized' }, { status: 401 });
   }

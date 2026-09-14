@@ -8,7 +8,8 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 |--------|------|------|-----------|
 | `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` e `shortId` incluídos) |
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
-| `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, devolve perfil |
+| `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, cria linha em `user_sessions` e devolve perfil + `sessionToken` (60 d deslizantes) |
+| `DELETE` | `/api/auth/session` | Bearer `sess_…` | Revoga a sessão (204, idempotente) |
 | `PUT` | `/api/auth/username` | Bearer | Define username único (uma vez) |
 | `GET` | `/api/social/users?q=` | Bearer | Busca usernames (conta listas públicas; `@` opcional) |
 | `GET` | `/api/social/users/:username/playlists` | Bearer | Listas públicas do perfil |
@@ -21,6 +22,8 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 | `DELETE` | `/api/audio-flags/:id` | Bearer | Soft delete |
 | `GET` | `/api/material-kind-prefs` | Bearer | Material kinds favoritos do usuário (`204` se nunca salvou) |
 | `PUT` | `/api/material-kind-prefs` | Bearer | Upsert do documento (`{ kindIds ≤ 5, updatedAt }`; `409` devolve o remoto mais novo) |
+
+Todas as rotas com Bearer aceitam `sess_…` (sessão do Worker, `user_sessions`) ou o `id_token` do Google. Spec: `docs/superpowers/specs/2026-09-13-worker-session-persistence-design.md`.
 
 Setup OAuth: [docs/GOOGLE_OAUTH_SETUP.md](../../docs/GOOGLE_OAUTH_SETUP.md).
 Spec sync: [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](../../docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md).
