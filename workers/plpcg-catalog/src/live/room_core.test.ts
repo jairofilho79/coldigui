@@ -220,6 +220,31 @@ test('leader fecha sem end: presence leaderPresent=false; alarm encerra por inat
   assert.equal(c.closed?.code, CLOSE_ENDED);
 });
 
+test('onClose com o socket a fechar ainda em sockets(): presence exclui-o (leader e consumer)', async () => {
+  const h = harness({ subs: { sess_owner: 'owner' } });
+  await h.core.init({ code: CODE, ownerSub: 'owner', ownerName: 'Fulano' });
+  const c1 = await h.open();
+  await h.say(c1, { t: 'hello', room: CODE, since: 0, clientId: 'c1' });
+  const c2 = await h.open();
+  await h.say(c2, { t: 'hello', room: CODE, since: 0, clientId: 'c2' });
+  const l = await h.open();
+  await h.say(l, { t: 'hello', room: CODE, since: 0, clientId: 'L', sessionToken: 'sess_owner' });
+  await h.say(l, { t: 'start', snapshot: snap() });
+
+  // O runtime só tira o socket de `getWebSockets()` depois do handler:
+  // `onClose` primeiro, `closed` só depois.
+  await h.core.onClose(l);
+  assert.deepEqual(c1.last(), { t: 'presence', room: CODE, leaderPresent: false, viewers: 2 });
+  assert.deepEqual(c2.last(), { t: 'presence', room: CODE, leaderPresent: false, viewers: 2 });
+  assert.equal(l.ofType('presence').length, 0);
+  l.closed = { code: 1006, reason: '' };
+
+  await h.core.onClose(c2);
+  assert.deepEqual(c1.last(), { t: 'presence', room: CODE, leaderPresent: false, viewers: 1 });
+  assert.equal(c2.ofType('presence').filter((f) => f.viewers === 1).length, 0);
+  c2.closed = { code: 1000, reason: '' };
+});
+
 test('leader que volta antes do TTL mantém a sala live e recebe o snapshot corrente', async () => {
   const h = harness({ subs: { sess_owner: 'owner' } });
   await h.core.init({ code: CODE, ownerSub: 'owner', ownerName: 'Fulano' });

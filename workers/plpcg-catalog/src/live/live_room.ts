@@ -91,7 +91,11 @@ export class LiveRoom extends DurableObject<Env> {
     await this.core.onMessage(port(ws), message);
   }
 
-  async webSocketClose(ws: WebSocket): Promise<void> {
+  async webSocketClose(ws: WebSocket, code: number, reason: string, _wasClean: boolean): Promise<void> {
+    // Exemplo oficial da Hibernation API: ecoar o close para o outro lado.
+    // Com `web_socket_auto_reply_to_close` (compat 2026-06-01) o runtime já
+    // faz isso sozinho — aqui é inofensivo (o `ws` pode já estar fechado).
+    try { ws.close(code, reason); } catch { /* já fechado */ }
     await this.core.onClose(port(ws));
   }
 

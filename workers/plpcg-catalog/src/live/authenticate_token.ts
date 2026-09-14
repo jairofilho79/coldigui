@@ -13,7 +13,14 @@ export async function authenticateToken(
   token: string,
 ): Promise<string | null> {
   if (isSessionToken(token)) {
-    return (await findSession(env.DB, token))?.sub ?? null;
+    // D1 indisponível não pode rebentar o `hello` (o gestor ficaria preso
+    // sem `room` nenhum): trata como token inválido — o cliente recebe
+    // `unauthorized` e pode religar.
+    try {
+      return (await findSession(env.DB, token))?.sub ?? null;
+    } catch {
+      return null;
+    }
   }
   if (!env.GOOGLE_CLIENT_ID_WEB) return null;
   try {

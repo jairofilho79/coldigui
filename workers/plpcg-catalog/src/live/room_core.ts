@@ -144,6 +144,11 @@ export class RoomCore {
     await this.onLeaderFrame(socket, room, frame);
   }
 
+  /**
+   * O socket que fecha pode **ainda** constar em `sockets()` (o runtime só o
+   * tira de `getWebSockets()` depois do handler `webSocketClose`) — por isso
+   * a presença é calculada excluindo-o explicitamente.
+   */
   async onClose(socket: SocketPort): Promise<void> {
     const room = await this.room();
     if (!room) return;
@@ -152,10 +157,10 @@ export class RoomCore {
       const updated = { ...room, leaderSeenAt: this.deps.now() };
       await this.save(updated);
       if (updated.status === 'live') await this.armAlarm(ALARM_INTERVAL_MS);
-      this.broadcastPresence(updated);
+      this.broadcastPresence(updated, socket, { exclude: socket });
       return;
     }
-    if (att?.role === 'consumer') this.broadcastPresence(room);
+    if (att?.role === 'consumer') this.broadcastPresence(room, socket, { exclude: socket });
   }
 
   async onAlarm(): Promise<void> {
@@ -289,9 +294,17 @@ export class RoomCore {
     await this.armAlarm(ENDED_TTL_MS);
   }
 
-  private broadcastPresence(room: RoomRecord, except?: SocketPort): void {
+  /**
+   * `presence` a todos menos [except] (quem acabou de agir já recebeu o seu
+   * `room`). `exclude` é o socket que **não conta** para `leaderPresent`/
+   * `viewers` — o que está a fechar em `onClose`.
+   */
+  private broadcastPresence(room: RoomRecord, except?: SocketPort, opts: { exclude?: SocketPort } = {}): void {
     const frame: ServerFrame = {
-      t: 'presence', room: room.code, leaderPresent: this.leaders().length > 0, viewers: this.consumers().length,
+      t: 'presence',
+      room: room.code,
+      leaderPresent: this.leaders(opts.exclude).length > 0,
+      viewers: this.consumers(opts.exclude).length,
     };
     for (const s of this.deps.sockets()) {
       if (s === except) continue;
@@ -309,12 +322,12 @@ export class RoomCore {
     }
   }
 
-  private leaders(): SocketPort[] {
-    return this.deps.sockets().filter((s) => s.attachment()?.role === 'leader');
+  private leaders(except?: SocketPort): SocketPort[] {
+    return this.deps.sockets().filter((s) => s !== except && s.attachment()?.role === 'leader');
   }
 
-  private consumers(): SocketPort[] {
-    return this.deps.sockets().filter((s) => s.attachment()?.role === 'consumer');
+  private consumers(except?: SocketPort): SocketPort[] {
+    return this.deps.sockets().filter((s) => s !== except && s.attachment()?.role === 'consumer');
   }
 
   private send(socket: SocketPort, frame: ServerFrame): void {
