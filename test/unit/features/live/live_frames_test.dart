@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:coldigui/features/live/domain/entities/live_snapshot.dart';
 import 'package:coldigui/features/live/domain/protocol/live_frames.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
