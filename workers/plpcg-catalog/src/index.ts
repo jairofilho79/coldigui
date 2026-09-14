@@ -31,6 +31,8 @@ import {
   resolveShortLink,
   shortLinkCodeFromPath,
 } from './links/handlers';
+import { isShortCode } from './short_code.ts';
+export { LiveRoom } from './live/live_room.ts';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
 import { LOUVOR_SELECT_COLUMNS, mapRow, type LouvorRow } from './catalog/louvor_row';
@@ -39,9 +41,10 @@ export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID_WEB: string;
   COLDIGOM_API_BASE_URL?: string;
+  LIVE: DurableObjectNamespace;
 }
 
-type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social' | 'links';
+type CorsMode = 'catalog' | 'auth' | 'playlists' | 'social' | 'links' | 'live';
 
 const CACHE_CONTROL = 'public, max-age=300';
 const ALLOWED_ORIGINS = new Set([
@@ -102,6 +105,9 @@ function corsHeaders(origin: string | null, mode: CorsMode): Headers {
         'Access-Control-Allow-Headers',
         'Authorization, Content-Type',
       );
+    } else if (mode === 'live') {
+      headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     } else if (mode === 'auth') {
       headers.set('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS');
       headers.set(
@@ -286,6 +292,8 @@ function corsModeForPath(pathname: string): CorsMode {
   if (pathname.startsWith('/api/social')) return 'social';
   if (pathname.startsWith('/api/links')) return 'links';
   if (pathname.startsWith('/l/')) return 'links';
+  if (pathname.startsWith('/api/live')) return 'live';
+  if (pathname.startsWith('/ao-vivo/')) return 'live';
   if (pathname.startsWith('/api/auth/')) return 'auth';
   if (pathname.startsWith('/api/coldigom/')) return 'catalog';
   return 'catalog';
@@ -446,6 +454,26 @@ async function handleShortLinkRedirect(
   return resolveShortLink(env.DB, code);
 }
 
+/** `/api/live/:code/ws` → código, ou `null`. */
+function liveWsCodeFromPath(pathname: string): string | null {
+  const match = /^\/api\/live\/([a-z0-9]{7})\/ws$/.exec(pathname);
+  return match ? match[1] : null;
+}
+
+async function handleLive(request: Request, env: Env, pathname: string): Promise<Response> {
+  const wsCode = liveWsCodeFromPath(pathname);
+  if (wsCode !== null) {
+    if (request.method !== 'GET') {
+      return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+    }
+    // Roteador magro: o upgrade vai inteiro para o DO da sala. A resposta 101
+    // volta **sem** `withCors` — reconstruí-la mataria o `webSocket`.
+    const stub = env.LIVE.get(env.LIVE.idFromName(wsCode));
+    return stub.fetch(request);
+  }
+  return jsonResponse({ error: 'not found' }, { status: 404 });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -511,6 +539,11 @@ export default {
         request,
         'playlists',
       );
+    }
+
+    if (url.pathname.startsWith('/api/live')) {
+      const response = await handleLive(request, env, url.pathname);
+      return response.status === 101 ? response : withCors(response, request, 'live');
     }
 
     if (url.pathname.startsWith('/api/coldigom/')) {
