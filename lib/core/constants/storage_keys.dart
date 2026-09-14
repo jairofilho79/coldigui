@@ -73,4 +73,7 @@ abstract final class StorageKeys {
 
   /// Corpo da letra no leitor de letras `/letra` (`double`).
   static const String lyricsReaderFontSize = 'lyricsReaderFontSize';
+
+  /// Kinds Coldigom marcados para download no /offline (O11) — JSON array.
+  static const String offlineColdigomKindIds = 'offlineColdigomKindIds';
 }
