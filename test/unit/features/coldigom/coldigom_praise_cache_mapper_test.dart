@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 import 'package:coldigui/features/coldigom/data/models/coldigom_catalog_dto.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
@@ -113,6 +114,42 @@ void main() {
     final detail = ColdigomPraiseCacheMapper.toPraiseDetail(row);
 
     expect(detail.materials.map((m) => m.id), isNot(contains('m-unknown')));
+  });
+
+  test('decodeMaterials com texto ilegível devolve lista vazia sem lançar', () {
+    final row = ColdigomPraiseCache()..materialsJson = 'not json';
+
+    expect(ColdigomPraiseCacheMapper.decodeMaterials(row), isEmpty);
+  });
+
+  test(
+    'decodeMaterials com raiz que não é lista devolve lista vazia sem lançar',
+    () {
+      final row = ColdigomPraiseCache()..materialsJson = '{"a":1}';
+
+      expect(ColdigomPraiseCacheMapper.decodeMaterials(row), isEmpty);
+    },
+  );
+
+  test('decodeMaterials descarta item malformado sem derrubar os demais', () {
+    final row = ColdigomPraiseCache()
+      ..materialsJson = jsonEncode([
+        {
+          'id': 'm-ok',
+          'kind': 'k-grade',
+          'kindName': 'Grade',
+          'type': 'pdf',
+          'r2': 'assets/praises/p-001/m-ok.pdf',
+        },
+        // id de tipo errado (não string) — sem id não há como endereçar o
+        // material; size de tipo errado sozinho não derrubaria o item.
+        {'id': 123, 'kind': 'k-grade', 'type': 'pdf', 'size': 'abc'},
+      ]);
+
+    final materials = ColdigomPraiseCacheMapper.decodeMaterials(row);
+
+    expect(materials, hasLength(1));
+    expect(materials.single.id, 'm-ok');
   });
 
   test('fromPraiseDetail (página de busca) gera a mesma linha que o dump', () {

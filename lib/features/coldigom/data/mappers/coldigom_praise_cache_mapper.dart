@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/database/collections/coldigom_praise_cache.dart';
 import '../../../../core/utils/louvor_search_tokens.dart';
 import '../../../catalog/domain/utils/louvor_numero_normalizer.dart';
@@ -33,23 +35,28 @@ class ColdigomCatalogMaterialEntry {
 
   Map<String, Object?> toJson() => {
     'id': id,
-    'kind': kindId,
+    if (kindId != null) 'kind': kindId,
     'kindName': kindName,
     'type': type,
-    'r2': r2Key,
+    if (r2Key != null) 'r2': r2Key,
     if (size != null) 'size': size,
     if (url != null) 'url': url,
   };
 
+  /// Só `id` pode derrubar o item (propaga o `TypeError` para o catch por
+  /// item de [ColdigomPraiseCacheMapper.decodeMaterials]) — sem id não há
+  /// como endereçar o material. Os demais campos seguem a tolerância C.8
+  /// dos DTOs irmãos (`ColdigomCatalogMaterialDto`, `MaterialDto`): tipo
+  /// errado vira o fallback, nunca lança.
   static ColdigomCatalogMaterialEntry fromJson(Map<String, dynamic> json) {
     return ColdigomCatalogMaterialEntry(
       id: json['id'] as String? ?? '',
-      kindId: json['kind'] as String?,
-      kindName: json['kindName'] as String? ?? '',
-      type: json['type'] as String? ?? 'unknown',
-      r2Key: json['r2'] as String?,
-      size: (json['size'] as num?)?.toInt(),
-      url: json['url'] as String?,
+      kindId: json['kind'] is String ? json['kind'] as String : null,
+      kindName: json['kindName'] is String ? json['kindName'] as String : '',
+      type: json['type'] is String ? json['type'] as String : 'unknown',
+      r2Key: json['r2'] is String ? json['r2'] as String : null,
+      size: json['size'] is num ? (json['size'] as num).toInt() : null,
+      url: json['url'] is String ? json['url'] as String : null,
     );
   }
 }
@@ -179,22 +186,33 @@ abstract final class ColdigomPraiseCacheMapper {
     return tokens.where((t) => t.isNotEmpty).join(' ');
   }
 
-  /// Materiais da linha, decodificados. JSON corrompido → lista vazia (a
-  /// linha é regravada no próximo sync).
+  /// Materiais da linha, decodificados. Texto ilegível ou raiz que não é
+  /// lista → lista vazia (a linha é regravada no próximo sync). Um item
+  /// estruturalmente inválido (id de tipo errado, item que não é objeto)
+  /// não derruba os demais — mesma tolerância C.8 de
+  /// `PraiseDetailDto._parseMaterials`/`ColdigomCatalogPraiseDto._parseMaterials`.
   static List<ColdigomCatalogMaterialEntry> decodeMaterials(
     ColdigomPraiseCache row,
   ) {
+    final Object? decoded;
     try {
-      final raw = jsonDecode(row.materialsJson);
-      if (raw is! List) return const [];
-      return [
-        for (final item in raw)
-          if (item is Map<String, dynamic>)
-            ColdigomCatalogMaterialEntry.fromJson(item),
-      ];
+      decoded = jsonDecode(row.materialsJson);
     } on FormatException {
       return const [];
     }
+    if (decoded is! List) return const [];
+
+    final materials = <ColdigomCatalogMaterialEntry>[];
+    for (final item in decoded) {
+      try {
+        materials.add(
+          ColdigomCatalogMaterialEntry.fromJson(item as Map<String, dynamic>),
+        );
+      } on Object catch (error) {
+        debugPrint('[coldigom] material da linha descartado: $error');
+      }
+    }
+    return materials;
   }
 
   /// [PraiseDetailDto] equivalente à linha — o formato que
