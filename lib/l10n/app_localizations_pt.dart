@@ -1040,6 +1040,26 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get playlistShareColdigomTitle => 'Lista com materiais do Coldigom';
+
+  @override
+  String get playlistShareColdigomBodyLeaflet =>
+      'O link e o QR code só funcionam com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar com link, ou envie só o folheto.';
+
+  @override
+  String get playlistShareColdigomBodyLink =>
+      'O link só funciona com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar o link.';
+
+  @override
+  String get playlistShareColdigomCancel => 'Cancelar';
+
+  @override
+  String get playlistShareColdigomLeafletOnly => 'Só o folheto';
+
+  @override
+  String get playlistShareColdigomDismiss => 'Entendi';
+
+  @override
   String get playlistTabUnsaved => 'Não Salvas';
 
   @override

@@ -594,6 +594,12 @@
       "url": { "type": "String" }
     }
   },
+  "playlistShareColdigomTitle": "Lista com materiais do Coldigom",
+  "playlistShareColdigomBodyLeaflet": "O link e o QR code só funcionam com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar com link, ou envie só o folheto.",
+  "playlistShareColdigomBodyLink": "O link só funciona com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar o link.",
+  "playlistShareColdigomCancel": "Cancelar",
+  "playlistShareColdigomLeafletOnly": "Só o folheto",
+  "playlistShareColdigomDismiss": "Entendi",
   "playlistTabUnsaved": "Não Salvas",
   "playlistTabSaved": "Salvas",
   "playlistTabFavorites": "Favoritas",

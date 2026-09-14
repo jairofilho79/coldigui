@@ -20,6 +20,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 
 class _LoggedInAuth extends AuthNotifier {
   @override
@@ -27,8 +28,10 @@ class _LoggedInAuth extends AuthNotifier {
       const AuthUser(googleSub: 'sub-1', sessionToken: 'token');
 }
 
-/// Encurtador que só conta chamadas — usado para provar que "Gerar folheto"
-/// (#2 da revisão final) nunca bate no `/l/`, mesmo autenticado.
+/// Encurtador que só conta chamadas — usado para provar que o share
+/// (qualquer opção, gate Coldigom incluso) nunca bate no `/l/`, mesmo
+/// autenticado: `_generateUrl` sempre pede `short: false` (débito: remover
+/// o port junto com o gate Coldigom).
 class _CountingShortener implements ShareLinkShortener {
   var callCount = 0;
 
@@ -168,12 +171,14 @@ void main() {
       ProviderScope(
         overrides: [
           playlistRepositoryProvider.overrideWithValue(
-            _FakePlaylistRepository(),
+            _PdfKindPlaylistRepository(),
           ),
-          generatePlaylistShareUrlProvider.overrideWithValue(
-            GeneratePlaylistShareUrl(
-              _FakePlaylistRepository(),
+          generatePlaylistShareUrlProvider.overrideWith(
+            (ref) => GeneratePlaylistShareUrl(
+              _PdfKindPlaylistRepository(),
               shareOrigin: 'https://plpcg.com',
+              shortIdOf: (id) =>
+                  ref.read(louvoresByPdfIdProvider)[id]?.shortId,
             ),
           ),
           louvoresManifestOverride(
@@ -185,6 +190,7 @@ void main() {
                 classificacao: 'ColAdultos',
                 pdf: 'a.pdf',
                 pdfId: 'pdf-a',
+                shortId: '0000',
               ),
             ]),
           ),
@@ -200,6 +206,7 @@ void main() {
 
     final context = tester.element(find.byType(Scaffold));
     final container = ProviderScope.containerOf(context);
+    await container.read(louvoresManifestProvider.future);
     final notifier = container.read(playlistShareActionsProvider.notifier);
 
     final ok = await notifier.share(
@@ -213,11 +220,7 @@ void main() {
     );
 
     expect(ok, isTrue);
-    expect(
-      sharedText,
-      'https://plpcg.com/?shareitems=u%3Apdf-a&sharename=Ensaio'
-      '&sharepdfs=pdf-a',
-    );
+    expect(sharedText, 'https://plpcg.com/?s=0000&n=Ensaio');
   });
 
   testWidgets(
@@ -271,7 +274,8 @@ void main() {
   );
 
   testWidgets(
-    'leaflet-only autenticado não chama o encurtador (#2: /l/ é só p/ link)',
+    'leaflet-only não chama o encurtador, autenticado ou não '
+    '(/l/ não tem mais chamador no share)',
     (tester) async {
       final shortener = _CountingShortener();
 
@@ -378,17 +382,160 @@ void main() {
     expect(result.text, contains('https://plpcg.com/?s=0000&n=Ensaio'));
   });
 
-  testWidgets('linkWithLeaflet com link longo não passa shareUrl ao folheto', (
-    tester,
-  ) async {
-    final result = await _shareLinkWithLeaflet(
-      tester,
-      shareContext: shareContext,
-      comShortId: false,
-    );
-    expect(result.capturedUrl, isNull);
-    expect(result.text, contains('shareitems='));
-  });
+  testWidgets(
+    'linkWithLeaflet com lista fora do PLPCG abre dialog e, em Cancelar, '
+    'não compartilha',
+    (tester) async {
+      final context = await _pumpOutOfPlpcgScope(tester);
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+      List<XFile>? sharedFiles;
+
+      final future = notifier.share(
+        context,
+        shareContext,
+        PlaylistShareOption.linkWithLeaflet,
+        sharePositionOrigin: null,
+        shareXFiles: (files, {subject, text, sharePositionOrigin}) async {
+          sharedFiles = files;
+        },
+        capture: (boundaryKey) async => const [1, 2, 3],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lista com materiais do Coldigom'), findsOneWidget);
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(await future, isFalse);
+      expect(sharedFiles, isNull);
+    },
+  );
+
+  testWidgets(
+    'linkWithLeaflet com lista fora do PLPCG e «Só o folheto» compartilha '
+    'imagem sem texto e sem QR',
+    (tester) async {
+      final context = await _pumpOutOfPlpcgScope(tester);
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+      String? sharedText;
+      String? sharedSubject;
+      LeafletDocument? capturedDoc;
+
+      final future = notifier.share(
+        context,
+        shareContext,
+        PlaylistShareOption.linkWithLeaflet,
+        sharePositionOrigin: null,
+        shareXFiles: (files, {subject, text, sharePositionOrigin}) async {
+          sharedText = text;
+          sharedSubject = subject;
+        },
+        capture: (boundaryKey) async {
+          // O overlay foi inserido, mas só constrói no próximo frame.
+          await tester.pump();
+          final content = tester.widget<LeafletContent>(
+            find.byType(LeafletContent),
+          );
+          capturedDoc = content.document;
+          return const [1, 2, 3];
+        },
+      );
+      await tester.pumpAndSettle();
+
+      // `tester.tap`/`pumpAndSettle` conflitaria com o `tester.pump()` que
+      // `capture` chama dentro da própria continuação do toque
+      // (TestAsyncUtils guarda os dois como não aninhados): aciona
+      // `onPressed` direto e deixa `future` (que resolve via os `pump`s de
+      // `capture`) dirigir o resto.
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Só o folheto'),
+      );
+      button.onPressed!();
+
+      expect(await future, isTrue);
+      expect(sharedText, isNull);
+      expect(sharedSubject, 'Folheto PLPCG');
+      expect(capturedDoc?.shareUrl, isNull);
+    },
+  );
+
+  testWidgets(
+    'link com lista fora do PLPCG abre dialog só com «Entendi» e não '
+    'compartilha',
+    (tester) async {
+      final context = await _pumpOutOfPlpcgScope(tester);
+      final container = ProviderScope.containerOf(context);
+      final notifier = container.read(playlistShareActionsProvider.notifier);
+      String? sharedText;
+
+      final future = notifier.share(
+        context,
+        shareContext,
+        PlaylistShareOption.link,
+        sharePositionOrigin: null,
+        share: (text, {subject, sharePositionOrigin}) async {
+          sharedText = text;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Entendi'), findsOneWidget);
+      expect(find.text('Só o folheto'), findsNothing);
+
+      await tester.tap(find.text('Entendi'));
+      await tester.pumpAndSettle();
+
+      expect(await future, isFalse);
+      expect(sharedText, isNull);
+    },
+  );
+}
+
+/// Monta o `ProviderScope` com uma lista fora do acervo PLPCG (PDF sem
+/// `shortId` — gate Coldigom) e devolve o [BuildContext] já pronto, com o
+/// manifest carregado.
+Future<BuildContext> _pumpOutOfPlpcgScope(WidgetTester tester) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        playlistRepositoryProvider.overrideWithValue(
+          _PdfKindPlaylistRepository(),
+        ),
+        generatePlaylistShareUrlProvider.overrideWith(
+          (ref) => GeneratePlaylistShareUrl(
+            _PdfKindPlaylistRepository(),
+            shareOrigin: 'https://plpcg.com',
+            shortIdOf: (id) => ref.read(louvoresByPdfIdProvider)[id]?.shortId,
+          ),
+        ),
+        louvoresManifestOverride(
+          LouvoresManifest.fromLouvores([
+            Louvor.fromManifest(
+              nome: 'Louvor A',
+              numero: '001',
+              categoria: 'Partitura',
+              classificacao: 'ColAdultos',
+              pdf: 'a.pdf',
+              pdfId: 'pdf-a',
+            ),
+          ]),
+        ),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: const Scaffold(body: SizedBox()),
+      ),
+    ),
+  );
+  final context = tester.element(find.byType(Scaffold));
+  final container = ProviderScope.containerOf(context);
+  await container.read(louvoresManifestProvider.future);
+  return context;
 }
 
 /// Roda `share(linkWithLeaflet)` de ponta a ponta e devolve o `shareUrl`
