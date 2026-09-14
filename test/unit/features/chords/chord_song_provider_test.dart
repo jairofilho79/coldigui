@@ -55,6 +55,12 @@ class _FakeLocal implements ChordContentLocalDatasource {
     writes++;
     rows[r2Key] = ChordCacheEntry(content: content, fetchedAt: DateTime.now());
   }
+
+  @override
+  List<String> allKeysWithContent() => [
+    for (final entry in rows.entries)
+      if (entry.value.content.isNotEmpty) entry.key,
+  ];
 }
 
 class _FakeConnectivity implements DeviceConnectivity {

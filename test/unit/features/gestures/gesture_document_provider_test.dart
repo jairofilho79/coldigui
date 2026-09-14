@@ -42,6 +42,12 @@ class _FakeLocal implements GestureContentLocalDatasource {
     writes++;
     rows[r2Key] = GestureCacheEntry(content: content, fetchedAt: DateTime.now());
   }
+
+  @override
+  List<String> allKeysWithContent() => [
+    for (final entry in rows.entries)
+      if (entry.value.content.isNotEmpty) entry.key,
+  ];
 }
 
 class _FakeConnectivity implements DeviceConnectivity {
