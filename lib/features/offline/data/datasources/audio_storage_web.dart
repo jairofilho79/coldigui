@@ -7,15 +7,14 @@ import '../../../../core/constants/offline_config.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../domain/exceptions/quota_exceeded_classifier.dart';
 import '../../domain/ports/audio_storage_port.dart';
+import 'audio_cache_web_keys.dart';
 
 AudioStoragePort createAudioStoragePortImpl() => AudioStorageWeb();
 
 /// Áudios Coldigom na Cache API (web) — bucket próprio
 /// [OfflineConfig.audioCacheStoreName], chaves `plpcg_audio/<relPath>` na
-/// origem lógica `https://plpcg-offline.local`, como [PdfStorageWeb].
+/// origem lógica [audioCacheOfflineOrigin], como [PdfStorageWeb].
 class AudioStorageWeb implements AudioStoragePort {
-  static const _offlineOrigin = 'https://plpcg-offline.local';
-
   Cache? _cache;
 
   @override
@@ -114,13 +113,8 @@ class AudioStorageWeb implements AudioStoragePort {
     return _cache!;
   }
 
-  Request _requestForKey(String storageKey) => Request(
-    Uri(
-      scheme: 'https',
-      host: Uri.parse(_offlineOrigin).host,
-      pathSegments: storageKey.split('/'),
-    ).toString().toJS,
-  );
+  Request _requestForKey(String storageKey) =>
+      audioCacheRequestForKey(storageKey);
 
   static String _mimeForKey(String key) {
     final lower = key.toLowerCase();

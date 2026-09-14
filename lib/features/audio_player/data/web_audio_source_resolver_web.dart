@@ -4,10 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:web/web.dart';
 
-typedef FetchAudioBytesFn = Future<List<int>> Function(
-  String url, {
-  String? fallbackUrl,
-});
+import '../../../core/constants/offline_config.dart';
+import '../../offline/data/datasources/audio_cache_web_keys.dart';
 
 /// Cache blob URLs em duas fases (O7 fix round 2): [_pending] é a fila que
 /// uma `_applyQueue` está resolvendo — pode nunca chegar a tocar, se outra
@@ -17,59 +15,60 @@ typedef FetchAudioBytesFn = Future<List<int>> Function(
 /// corrida (`gen != _generation` em `_applyQueue`) nunca revoga o blob que
 /// está tocando — ela só limpa o que ela própria vinha montando.
 class WebAudioSourceResolver {
-  WebAudioSourceResolver({required this.fetchBytes});
-
-  final FetchAudioBytesFn fetchBytes;
+  WebAudioSourceResolver();
 
   /// Blobs da fila que o player tem carregada — só [commitQueue] escreve
-  /// aqui; usado também por [resolveForPlayback] (cache de streaming, sem
-  /// fase pendente — resolve e já vale na hora).
+  /// aqui.
   final _current = <String, String>{};
 
   /// Blobs da fila sendo montada agora — [beginQueue] limpa,
-  /// [resolveFromBytes] escreve, [commitQueue] promove pra [_current].
+  /// [resolveFromBytes]/[resolveFromCache] escrevem, [commitQueue] promove
+  /// pra [_current].
   final _pending = <String, String>{};
 
   static const int maxBlobBytes = 20 * 1024 * 1024;
-  static const int _maxCacheEntries = 2;
 
   /// Teto de blobs simultâneos por fila offline (O7 fix round 1) — o
   /// navegador não libera `blob:` sozinho, então sem teto uma fila longa
-  /// vazaria memória. Acima dele, [resolveFromBytes] devolve `null` e a
-  /// faixa cai para a URL de rede (streaming direto, sem blob). O teto vale
-  /// sobre [_pending] — é aí que a fila em montagem se acumula.
+  /// vazaria memória. Acima dele, [resolveFromBytes]/[resolveFromCache]
+  /// devolvem `null` e a faixa cai para a URL de rede (streaming direto,
+  /// sem blob). O teto vale sobre [_pending] — é aí que a fila em montagem
+  /// se acumula.
   static const int maxQueueBlobs = 30;
 
-  Future<Uri> resolveForPlayback(
-    String fetchUrl, {
-    String? cacheKey,
-    String? streamFallbackUrl,
-  }) async {
-    final key = cacheKey ?? fetchUrl;
-    final cached = _current[key];
-    if (cached != null) {
-      return Uri.parse(cached);
-    }
-
-    final streamUrl = streamFallbackUrl ?? fetchUrl;
-
+  /// Blob URL direto da Cache API do aparelho — sem passar por
+  /// `AudioStoragePort.readBytes` (achado do review final: `readBytes` +
+  /// [resolveFromBytes] materializava os bytes em Dart e ainda fazia uma
+  /// 3ª cópia na Blob; `cache.match` → `response.blob()` vai direto do
+  /// cache do navegador pro blob, sem essa cópia intermediária). Mesma
+  /// semântica de [resolveFromBytes]: escreve em [_pending], respeita
+  /// [maxBlobBytes]/[maxQueueBlobs], devolve `null` em qualquer miss (cache
+  /// vazio, blob grande demais, fila cheia) — quem chama cai pra rede.
+  Future<Uri?> resolveFromCache(String storageKey) async {
+    final cached = _pending[storageKey];
+    if (cached != null) return Uri.parse(cached);
     try {
-      final raw = await fetchBytes(fetchUrl, fallbackUrl: streamFallbackUrl);
-      if (raw.length > maxBlobBytes) {
-        return Uri.parse(streamUrl);
+      final cache = await window.caches
+          .open(OfflineConfig.audioCacheStoreName)
+          .toDart;
+      final response = await cache
+          .match(audioCacheRequestForKey(storageKey))
+          .toDart;
+      if (response == null) return null;
+      final blob = await response.blob().toDart;
+      if (blob.size > maxBlobBytes) return null;
+      if (_pending.length >= maxQueueBlobs) {
+        debugPrint(
+          '[audio] fila local passou de $maxQueueBlobs blobs — '
+          '$storageKey cai para a URL de rede',
+        );
+        return null;
       }
-      final bytes = raw is Uint8List ? raw : Uint8List.fromList(raw);
-      final blobParts = [bytes.toJS].toJS;
-      final blob = Blob(
-        blobParts,
-        BlobPropertyBag(type: _mimeFromUrl(fetchUrl)),
-      );
       final blobUrl = URL.createObjectURL(blob);
-      _current[key] = blobUrl;
-      _trimCache(key);
+      _pending[storageKey] = blobUrl;
       return Uri.parse(blobUrl);
     } on Object {
-      return Uri.parse(streamUrl);
+      return null;
     }
   }
 
@@ -138,14 +137,6 @@ class WebAudioSourceResolver {
     _pending.clear();
   }
 
-  void _trimCache(String keepKey) {
-    while (_current.length > _maxCacheEntries) {
-      final removeKey = _current.keys.firstWhere((k) => k != keepKey);
-      final url = _current.remove(removeKey);
-      if (url != null) URL.revokeObjectURL(url);
-    }
-  }
-
   static String _mimeFromUrl(String url) {
     final lower = url.toLowerCase();
     if (lower.contains('.m4a')) return 'audio/mp4';
@@ -154,8 +145,6 @@ class WebAudioSourceResolver {
   }
 }
 
-WebAudioSourceResolver createWebAudioSourceResolver({
-  required FetchAudioBytesFn fetchBytes,
-}) {
-  return WebAudioSourceResolver(fetchBytes: fetchBytes);
+WebAudioSourceResolver createWebAudioSourceResolver() {
+  return WebAudioSourceResolver();
 }

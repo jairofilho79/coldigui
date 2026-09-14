@@ -468,9 +468,11 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _mediaSessionAttached = true;
   }
 
-  /// Aparelho primeiro (O7): índice de áudio → `Uri.file` no nativo, bytes da
-  /// Cache API → blob URL na web. Miss (índice ou storage) → URL de rede
-  /// (HTTP + CORP; o `crossOrigin` do `<audio>` é condicional — ver
+  /// Aparelho primeiro (O7): índice de áudio → `Uri.file` no nativo, blob URL
+  /// direto da Cache API na web (`resolveFromCache` — achado do review
+  /// final: sem materializar os bytes em Dart no meio do caminho, como
+  /// `readBytes` + `resolveFromBytes` faziam). Miss (índice ou cache) → URL
+  /// de rede (HTTP + CORP; o `crossOrigin` do `<audio>` é condicional — ver
   /// `unlockWebAudioIfNeeded`). Só a faixa que vai tocar já
   /// (`isStartTrack`) lança [AudioNotDownloadedException] quando offline —
   /// as demais faixas da fila recebem a URL de rede mesmo sem conexão e só
@@ -489,12 +491,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       if (!ref.read(platformCapabilitiesProvider).isWeb) {
         return Uri.file(local.storageKey);
       }
-      final bytes = await ref
-          .read(audioStoragePortProvider)
-          .readBytes(local.storageKey);
-      final blob = bytes == null
-          ? null
-          : _sourceResolver?.resolveFromBytes(local.storageKey, bytes);
+      final blob = await _sourceResolver?.resolveFromCache(local.storageKey);
       if (blob != null) return blob;
     }
     if (isStartTrack && !await hasConnection()) {
@@ -589,8 +586,8 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       // mexe só em pending; é `commitQueue`, lá embaixo, depois do último
       // `gen != _generation`, quem promove e só aí revoga o que tocava).
       // Seguro chamar aqui, antes mesmo de saber se esta geração vai
-      // vencer a corrida — sem isto, `resolveFromBytes` acumularia
-      // blob: de tentativas descartadas pra sempre.
+      // vencer a corrida — sem isto, `resolveFromCache`/`resolveFromBytes`
+      // acumulariam blob: de tentativas descartadas pra sempre.
       if (isWeb) {
         _sourceResolver?.beginQueue();
       }
@@ -604,24 +601,35 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
             .hasConnection();
       }
 
-      // A faixa inicial é resolvida antes das demais só quando o
-      // desbloqueio de gesto (iOS Safari) precisa da URL efetiva — o
-      // resultado é reaproveitado no laço abaixo, sem resolver 2×.
-      Uri? startUri;
-      if (ref.read(platformCapabilitiesProvider).needsUserGestureForAudio &&
-          autoplay) {
-        startUri = await _playbackUriForTrack(
-          tracks[safeIndex],
-          isStartTrack: true,
+      // Todas as URIs são resolvidas primeiro (nem `_playbackUriForTrack`
+      // nem `resolveFromCache` fazem I/O de rede — no máximo um `cache.match`
+      // local — então isto é barato mesmo pra filas longas). É a fila
+      // inteira, não só a faixa inicial, que decide o `crossOrigin` do
+      // desbloqueio de gesto logo abaixo (achado do review final: uma fila
+      // mista blob+rede com `anonymous` ligado quebrava a faixa `blob:`).
+      final uris = <Uri>[];
+      for (var i = 0; i < tracks.length; i++) {
+        final uri = await _playbackUriForTrack(
+          tracks[i],
+          isStartTrack: i == safeIndex,
           hasConnection: hasConnection,
         );
         if (gen != _generation) return;
+        uris.add(uri);
+      }
+
+      if (ref.read(platformCapabilitiesProvider).needsUserGestureForAudio &&
+          autoplay) {
         await unlockWebAudioIfNeeded(
           player,
-          immediateUrl: startUri.toString(),
+          immediateUrl: uris[safeIndex].toString(),
           // blob: não é cross-origin nenhum — `anonymous` quebra a
           // reprodução em Chrome/Safari (fix round 1, ver doc do helper).
-          crossOrigin: startUri.scheme == 'blob'
+          // Um único `<audio>` serve a sessão toda, então QUALQUER blob: na
+          // fila (não só a faixa inicial) desliga `anonymous` — uma fila
+          // mista rede→blob ou blob→rede não pode achar que só a primeira
+          // faixa importa.
+          crossOrigin: uris.any((u) => u.scheme == 'blob')
               ? null
               : WebCrossOrigin.anonymous,
         );
@@ -630,39 +638,32 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
       _ensureMediaSessionAttached();
 
-      final sources = <AudioSource>[];
-      for (var i = 0; i < tracks.length; i++) {
-        final track = tracks[i];
-        final isStartTrack = i == safeIndex;
-        final uri = isStartTrack && startUri != null
-            ? startUri
-            : await _playbackUriForTrack(
-                track,
-                isStartTrack: isStartTrack,
-                hasConnection: hasConnection,
-              );
-        if (gen != _generation) return;
-        sources.add(
+      final sources = <AudioSource>[
+        for (var i = 0; i < tracks.length; i++)
           AudioSource.uri(
-            uri,
+            uris[i],
             tag: MediaItem(
-              id: track.audioId,
-              title: track.categoria.isNotEmpty ? track.categoria : track.nome,
-              album: track.nome,
-              artist: track.author.isNotEmpty
-                  ? track.author
-                  : (track.numero.isNotEmpty ? track.numero : 'Coldigom'),
-              extras: {'groupId': track.groupId, 'r2Key': track.r2Key},
+              id: tracks[i].audioId,
+              title: tracks[i].categoria.isNotEmpty
+                  ? tracks[i].categoria
+                  : tracks[i].nome,
+              album: tracks[i].nome,
+              artist: tracks[i].author.isNotEmpty
+                  ? tracks[i].author
+                  : (tracks[i].numero.isNotEmpty
+                        ? tracks[i].numero
+                        : 'Coldigom'),
+              extras: {'groupId': tracks[i].groupId, 'r2Key': tracks[i].r2Key},
             ),
           ),
-        );
-      }
+      ];
 
       // Fix round 2: só a geração vencedora chega aqui — o laço acima já
       // teria devolvido cedo em qualquer `gen != _generation`. É só agora,
       // imediatamente antes de o player assumir as fontes novas, que os
       // blobs da fila em reprodução são revogados (`commitQueue` promove o
-      // que `beginQueue`/`resolveFromBytes` vinham só montando em pending).
+      // que `beginQueue`/`resolveFromCache`/`resolveFromBytes` vinham só
+      // montando em pending).
       if (isWeb) {
         _sourceResolver?.commitQueue();
       }

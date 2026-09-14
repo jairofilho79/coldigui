@@ -178,9 +178,6 @@ class _FakeWebResolver implements WebAudioSourceResolver {
   final commitPromotes = <List<String>>[];
 
   @override
-  FetchAudioBytesFn? get fetchBytes => null;
-
-  @override
   void beginQueue() {
     events.add('beginQueue');
     beginRevokes.add(List.of(pending.values));
@@ -197,6 +194,14 @@ class _FakeWebResolver implements WebAudioSourceResolver {
     return Uri.parse(url);
   }
 
+  /// Mesma semântica de [resolveFromBytes] — a sessão real usa
+  /// `resolveFromCache` no lugar de `readBytes` + `resolveFromBytes`
+  /// (achado do review final), mas os testes deste arquivo não modelam
+  /// miss de cache: reaproveita a mesma escrita em [pending].
+  @override
+  Future<Uri?> resolveFromCache(String storageKey) async =>
+      resolveFromBytes(storageKey, Uint8List(0));
+
   @override
   void commitQueue() {
     events.add('commitQueue');
@@ -206,15 +211,6 @@ class _FakeWebResolver implements WebAudioSourceResolver {
       ..clear()
       ..addAll(pending);
     pending.clear();
-  }
-
-  @override
-  Future<Uri> resolveForPlayback(
-    String fetchUrl, {
-    String? cacheKey,
-    String? streamFallbackUrl,
-  }) {
-    throw UnimplementedError('não usado no fluxo local-first (O7)');
   }
 
   @override

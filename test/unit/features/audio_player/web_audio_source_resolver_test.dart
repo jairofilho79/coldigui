@@ -1,22 +1,23 @@
+import 'dart:typed_data';
+
 import 'package:coldigui/features/audio_player/data/web_audio_source_resolver_stub.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('stub devolve streamFallbackUrl quando informado', () async {
-    final resolver = WebAudioSourceResolver();
-    final uri = await resolver.resolveForPlayback(
-      'https://plpcg.com/api/coldigom/assets/a.mp3',
-      streamFallbackUrl: 'https://coldigom.example/assets/a.mp3',
-    );
-    expect(uri.toString(), 'https://coldigom.example/assets/a.mp3');
-  });
+  test(
+    'stub resolveFromCache devolve null — blob URL é coisa da web',
+    () async {
+      final resolver = WebAudioSourceResolver();
+      expect(await resolver.resolveFromCache('plpcg_audio/x.mp3'), isNull);
+    },
+  );
 
-  test('stub devolve fetchUrl sem fallback', () async {
+  test('stub resolveFromBytes devolve null — blob URL é coisa da web', () {
     final resolver = WebAudioSourceResolver();
-    final uri = await resolver.resolveForPlayback(
-      'https://plpcg.com/api/coldigom/assets/a.mp3',
+    expect(
+      resolver.resolveFromBytes('plpcg_audio/x.mp3', Uint8List(0)),
+      isNull,
     );
-    expect(uri.toString(), 'https://plpcg.com/api/coldigom/assets/a.mp3');
   });
 
   test('stub revokeAll não lança', () {
