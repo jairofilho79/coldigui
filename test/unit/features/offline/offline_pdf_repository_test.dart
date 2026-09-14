@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 
 import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
@@ -76,6 +77,7 @@ void main() {
   late Isar isar;
   late PdfLocalStore store;
   late OfflinePdfRepositoryImpl repository;
+  late OfflinePdfLocalDatasource local;
 
   const category = 'ColAdultos';
   const relPath = 'ColAdultos/001.pdf';
@@ -98,9 +100,10 @@ void main() {
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,
     );
+    local = OfflinePdfLocalDatasource(isar);
     repository = OfflinePdfRepositoryImpl(
       store: pdfStoragePortFor(store),
-      local: OfflinePdfLocalDatasource(isar),
+      local: local,
     );
   });
 
@@ -640,4 +643,32 @@ void main() {
       );
     });
   });
+
+  test(
+    'markPersistent promove só os presentes e devolve quantos mudaram',
+    () async {
+      // 'lru-1'/'lru-2' literais não decodificam como pdfId (o repositório
+      // exige Base64 URL-safe de um path, via PdfPathNormalizer) — usa-se
+      // encodePdfId como o resto do arquivo (ex.: teste de eviction acima).
+      final lru1 = _encodePdfId('ColAdultos/lru-1.pdf');
+      final lru2 = _encodePdfId('ColAdultos/lru-2.pdf');
+      await repository.upsert(
+        pdfId: lru1,
+        bytes: _validPdfBytes(),
+        category: 'x',
+      );
+      await repository.upsert(
+        pdfId: lru2,
+        bytes: _validPdfBytes(),
+        category: 'x',
+        isPersistent: true,
+      );
+
+      final changed = await local.markPersistent({lru1, lru2, 'ausente'});
+
+      expect(changed, 1);
+      expect((await repository.findIndexEntry(lru1))!.isPersistent, isTrue);
+      expect(await local.markPersistent({lru1}), 0);
+    },
+  );
 }

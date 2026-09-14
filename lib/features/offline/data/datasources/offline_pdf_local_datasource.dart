@@ -174,6 +174,30 @@ class OfflinePdfLocalDatasource {
     onIndexChanged?.call();
   }
 
+  /// Promove [pdfIds] presentes a persistentes (download Coldigom por kind,
+  /// spec §5.2): um PDF que já está no cache LRU não é baixado de novo, só
+  /// deixa de ser candidato à eviction. Devolve quantos mudaram.
+  Future<int> markPersistent(Set<String> pdfIds) async {
+    if (pdfIds.isEmpty) return 0;
+    final isar = _requireIsar('markPersistent');
+    var changed = 0;
+    await isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      final rows = coll
+          .where()
+          .anyOf(pdfIds, (q, pdfId) => q.pdfIdEqualTo(pdfId))
+          .findAll();
+      for (final row in rows) {
+        if (row.isPersistent) continue;
+        row.isPersistent = true;
+        coll.put(row);
+        changed++;
+      }
+    });
+    if (changed > 0) onIndexChanged?.call();
+    return changed;
+  }
+
   /// Remove todas as entradas do índice offline (UC-10 clear cache).
   Future<void> clearAll() async {
     final isar = _requireIsar('clearAll');
