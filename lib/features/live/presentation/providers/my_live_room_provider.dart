@@ -16,14 +16,23 @@ final liveRoomRemoteDatasourceProvider = Provider<LiveRoomRemoteDatasource>((
 
 /// A sala do usuário logado. `null` deslogado; carregada sob demanda
 /// ([ensure]) — o boot não bate no Worker por isto.
+///
+/// `build()` não faz `ref.watch(authStateProvider)` nem grava em outro
+/// provider durante a própria inicialização — o Riverpod 3.3 proíbe isso
+/// (`_debugAssertNotificationAllowed`, "Providers are not allowed to modify
+/// other providers during their initialization"). Em vez disso, escuta o
+/// logout via [Ref.listen] e só aí zera o estado e [liveMyRoomCodeProvider];
+/// uma reemissão de `authStateProvider` com o mesmo usuário (ex.: refresh de
+/// perfil) não derruba uma sala já carregada por [ensure].
 class MyLiveRoomNotifier extends AsyncNotifier<LiveRoomInfo?> {
   @override
   Future<LiveRoomInfo?> build() async {
-    final user = ref.watch(authStateProvider).asData?.value;
-    if (user == null) {
-      ref.read(liveMyRoomCodeProvider.notifier).set(null);
-      return null;
-    }
+    ref.listen(authStateProvider, (previous, next) {
+      if (next.asData?.value == null) {
+        state = const AsyncData(null);
+        ref.read(liveMyRoomCodeProvider.notifier).set(null);
+      }
+    });
     return null;
   }
 
