@@ -563,9 +563,24 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     }
   }
 
-  // Ramo do gestor preenchido na Task 12; o ramo do consumidor
-  // (`_onLocalFocusChanged`) fica para a Task 13 (D3).
-  void _onLocalFocusChanged(String? key) => _scheduleLeaderSet();
+  /// D3: o consumidor desviou e quer voltar para onde o gestor está.
+  void returnToLeader() {
+    if (!state.isFollowing) return;
+    state = state.copyWith(followingFocus: true);
+    final focus = _leaderFocusKey;
+    if (focus != null) unawaited(_applyLeaderFocus(focus));
+  }
+
+  void _onLocalFocusChanged(String? key) {
+    if (state.isFollowing) {
+      if (_applyingFocus) return;
+      if (key != null && key != _leaderFocusKey && state.followingFocus) {
+        state = state.copyWith(followingFocus: false);
+      }
+      return;
+    }
+    _scheduleLeaderSet();
+  }
 
   void _onLocalListChanged() => _scheduleLeaderSet();
 
