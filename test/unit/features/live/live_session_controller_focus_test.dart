@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/live/data/providers/live_providers.dart';
+import 'package:coldigui/features/live/presentation/providers/live_navigation_providers.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

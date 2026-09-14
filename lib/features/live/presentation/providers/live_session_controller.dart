@@ -15,6 +15,7 @@ import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
 import '../../domain/protocol/live_frames.dart';
 import 'live_leader_session_prefs.dart';
+import 'live_navigation_providers.dart';
 import 'live_projection_provider.dart';
 import 'live_session_state.dart';
 

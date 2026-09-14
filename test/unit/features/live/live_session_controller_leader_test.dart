@@ -8,6 +8,7 @@ import 'package:coldigui/features/live/data/providers/live_providers.dart';
 import 'package:coldigui/features/live/domain/entities/live_snapshot.dart';
 import 'package:coldigui/features/live/domain/live_reconnect_policy.dart';
 import 'package:coldigui/features/live/presentation/providers/live_leader_session_prefs.dart';
+import 'package:coldigui/features/live/presentation/providers/live_navigation_providers.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';

@@ -4,6 +4,7 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/live/data/providers/live_providers.dart';
 import 'package:coldigui/features/live/domain/entities/live_snapshot.dart';
 import 'package:coldigui/features/live/presentation/providers/live_projection_provider.dart';
+import 'package:coldigui/features/live/presentation/providers/live_navigation_providers.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

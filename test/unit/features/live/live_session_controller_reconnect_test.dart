@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:coldigui/features/live/data/providers/live_providers.dart';
 import 'package:coldigui/features/live/domain/live_reconnect_policy.dart';
 import 'package:coldigui/features/live/presentation/providers/live_projection_provider.dart';
+import 'package:coldigui/features/live/presentation/providers/live_navigation_providers.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
