@@ -204,9 +204,9 @@ Cada fase = PR pequeno e escopado. Seguir regra anti-overengineering: alterar s�
 
 **Estado atual:**
 
-- `web/_headers` define COOP/COEP global e `Cache-Control: no-cache` só para `flutter_service_worker.js`.
-- Assets versionados (`.wasm`, `.js` com hash) recebem `Cache-Control: public, max-age=31536000, immutable` (implementado jul/2026).
-- `scripts/web_local_dev.py` espelha as mesmas regras de cache para validação local.
+- `web/_headers` define COOP/COEP global; entrypoints (`index.html`, `main.dart.*`, `flutter_bootstrap.js`, `version.json`, `manifest.json`, `sw.js`, `flutter_service_worker.js`) são `no-cache` e levam `?v=<web_cache_tag>`; `/canvaskit/<hash>/*` e `/assets/*` são `immutable`.
+- **Service worker próprio (`web/sw.js`, set/2026 — A9):** precache do shell (`CRITICAL`, ≈ 3 MB) no `install`; o engine realmente carregado (`main.dart.*` + variante de `canvaskit/<hash>/`) entra pela lista `used` que o `index.html` envia após o primeiro frame (resource timing, vem do cache HTTP); `WARM` em background; navegação network-first com fallback ao `index.html` em cache; um cache `plpcg-shell-<tag>` por deploy. O PWA instalado abre sem rede. Listas geradas por `scripts/generate_sw_manifest.py`; prova em CI por `scripts/verify_web_sw.py`.
+- `scripts/web_local_dev.py` / `web_frontend_server.py` espelham as mesmas regras de cache para validação local.
 
 **Implementação sugerida:**
 
@@ -500,3 +500,4 @@ Regras:
 | jul/2026 | **Fase F (pós-split):** `main.dart.wasm` 3,6 MB; `main.dart.js` 3,7 MB (−~10%); 5 chunks `.part.js` (~338 KB total: pdf_reader, offline_bulk, leaflet); pdfrx/archive/leaflet adiados até navegação/ação |
 | set/2026 | **canvaskit com hash no caminho:** `scripts/cache_bust_web_entrypoints.sh` move `canvaskit/` → `canvaskit/<hash>/` e reaponta `canvasKitBaseUrl` e o preload de `skwasm.wasm`. Causa: `/canvaskit/*` é `immutable` por 1 ano com nomes fixos — no upgrade Flutter 3.44 → 3.47 o navegador ficou com `skwasm.js` velho e `main.dart.wasm` novo (`LinkError: Import "skwasm" "emscripten_builtin_free"`, app presa no loader). Teste: `test/web/cache_bust_web_entrypoints_test.dart` |
 | set/2026 | **Tarefa 5 (Top 12 web, A2):** subset de fontes (`scripts/subset_fonts.sh`) — EBGaramond+OpenSans de ~1,35 MB → ~284 KB; `--no-tree-shake-icons` removido de `scripts/web_build.sh` (coberto pelo hash de `MaterialIcons-Regular.otf` em `cache_bust_web_entrypoints.sh`); preload das duas fontes em `web/index.html` |
+| set/2026 | **Shell offline (A9):** `web/sw.js` próprio + `scripts/generate_sw_manifest.py` (`CRITICAL` ≈ 3 MB: bootstrap + isar + manifests + fontes + ícones; ENGINE `main.dart.*`/`canvaskit/<hash>/**` fora das listas, aquecido pela lista `used` da página; `WARM` = resto); registo após `flutter-first-frame`; `flutter_bootstrap.js` sem `serviceWorkerSettings`; `navigator.storage.persist()` no boot; `manifest.json` `id`/`scope`; CI corre o cache-bust, `verify_web_headers_artifact.sh` exige `sw.js` sem placeholders e `verify_web_sw.py` prova engine aquecido + boot com o servidor em baixo. Spec `2026-09-14-pwa-shell-offline-design.md` |
