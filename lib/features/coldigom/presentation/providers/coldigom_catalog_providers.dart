@@ -261,7 +261,15 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     // catálogo bom já em disco, só ainda não aberto. Espera o Isar assentar
     // primeiro; sem ele, nem vale a pena bater na rede.
     if (await awaitIsarSettled(ref) != IsarStatus.available) {
-      return const ColdigomCatalogSyncFailed('Isar indisponível');
+      const result = ColdigomCatalogSyncFailed('Isar indisponível');
+      // Sem isto o `/offline` nunca saberia que este sync falhou:
+      // `lastResult` ficava com o valor da tentativa anterior (ou `null`)
+      // e, se um pedido concorrente tivesse deixado `isSyncing: true`,
+      // ficaria preso nesse estado.
+      if (ref.mounted) {
+        state = state.copyWith(lastResult: result, isSyncing: false);
+      }
+      return result;
     }
     if (!ref.mounted) return const ColdigomCatalogSyncFailed('descartado');
     state = state.copyWith(isSyncing: true);

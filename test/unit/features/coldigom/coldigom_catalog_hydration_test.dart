@@ -145,6 +145,15 @@ void main() {
 
     expect(index.isEmpty, isTrue);
     expect(result, isA<ColdigomCatalogSyncFailed>());
+    // O early return por Isar indisponível também precisa refletir no
+    // estado do provider — não só no retorno de `sync()` — senão o
+    // `/offline` nunca saberia que o sync falhou.
+    expect(
+      c.read(coldigomCatalogSyncProvider).lastResult,
+      isA<ColdigomCatalogSyncFailed>(),
+    );
+    expect(c.read(coldigomCatalogSyncProvider).isSyncing, isFalse);
+    expect(remote.calls, 0);
   });
 
   test('sync com dump novo re-hidrata; in-flight é deduplicado', () async {
