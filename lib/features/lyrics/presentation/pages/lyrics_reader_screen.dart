@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/url_sync_params.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../coldigom/data/providers/coldigom_catalog_data_providers.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
@@ -15,21 +16,34 @@ import '../providers/lyrics_reader_font_size_provider.dart';
 /// rede: a letra vem inteira no dump do catálogo e está sempre offline.
 /// Filho da branch Home como `/cifra`: o shell dá o cabeçalho e a barra do
 /// carousel; aqui só há a barra de A−/A+ e o texto selecionável.
-class LyricsReaderScreen extends ConsumerWidget {
+class LyricsReaderScreen extends ConsumerStatefulWidget {
   const LyricsReaderScreen({required this.queryParams, super.key});
 
   final Map<String, String> queryParams;
 
-  String get _praiseId => queryParams[UrlSyncParams.praiseId] ?? '';
+  @override
+  ConsumerState<LyricsReaderScreen> createState() => _LyricsReaderScreenState();
+}
+
+class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen> {
+  String get _praiseId => widget.queryParams[UrlSyncParams.praiseId] ?? '';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    // Mesmo tratamento de `/cifra` e `/gestos`: um snackbar de erro do
+    // material anterior não deve sobreviver à troca para a letra.
+    clearSnackbarsOnEnter(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final fontSize = ref.watch(lyricsReaderFontSizeProvider);
     final row = ref
         .watch(coldigomCatalogLocalDatasourceProvider)
         .findByPraiseIdSync(_praiseId);
-    final title = queryParams[UrlSyncParams.titulo] ?? row?.name ?? '';
+    final title = widget.queryParams[UrlSyncParams.titulo] ?? row?.name ?? '';
     final text = row?.lyrics.trim() ?? '';
 
     return ColoredBox(

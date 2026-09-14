@@ -151,8 +151,11 @@ class ShellScaffold extends ConsumerWidget {
     ref.watch(materialKindPrefsSyncProvider);
     // Catálogo Coldigom local (O4/O5): hidrata do Isar e sincroniza no boot
     // sem bloquear o shell — a Home mostra o PLPCG primeiro, como hoje.
-    ref.watch(coldigomCatalogHydrationProvider);
-    ref.watch(coldigomCatalogSyncProvider);
+    // `listen` (não `watch`): mantém os providers vivos sem re-renderizar o
+    // shell inteiro a cada hidratação/sync (a Home lê o resultado por conta
+    // própria via `coldigomSearchIndexProvider`/`coldigomCatalogSyncProvider`).
+    ref.listen(coldigomCatalogHydrationProvider, (_, _) {});
+    ref.listen(coldigomCatalogSyncProvider, (_, _) {});
     final path = GoRouterState.of(context).uri.path;
     final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);
