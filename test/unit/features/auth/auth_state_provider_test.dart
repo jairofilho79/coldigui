@@ -150,9 +150,54 @@ void main() {
       addTearDown(container.dispose);
       await container.read(authStateProvider.future);
 
-      container.read(authStateProvider.notifier).onUnauthorized();
+      container.read(authStateProvider.notifier).onUnauthorized('token-1');
 
-      expect(container.read(authStateProvider).asData?.value, isNull);
+      expect(
+        container.read(authStateProvider),
+        const AsyncData<AuthUser?>(null),
+      );
+      expect(store.read(), isNull);
+    });
+
+    test(
+      '401 de um token que já não é o corrente não apaga a sessão nova',
+      () async {
+        final store = seededStore(); // storedUser.sessionToken == 'token-1'
+        final container = buildContainer(
+          store: store,
+          behavior: (_) async => storedUser,
+        );
+        addTearDown(container.dispose);
+        await container.read(authStateProvider.future);
+
+        container
+            .read(authStateProvider.notifier)
+            .onUnauthorized('token-velho');
+
+        expect(
+          container.read(authStateProvider).asData?.value,
+          same(storedUser),
+        );
+        expect(store.read(), same(storedUser));
+      },
+    );
+
+    test('onUnauthorized é idempotente', () async {
+      final store = seededStore();
+      final container = buildContainer(
+        store: store,
+        behavior: (_) async => storedUser,
+      );
+      addTearDown(container.dispose);
+      await container.read(authStateProvider.future);
+
+      container.read(authStateProvider.notifier).onUnauthorized('token-1');
+      container.read(authStateProvider.notifier).onUnauthorized('token-1');
+
+      expect(
+        container.read(authStateProvider),
+        const AsyncData<AuthUser?>(null),
+      );
       expect(store.read(), isNull);
     });
 
@@ -181,7 +226,10 @@ void main() {
         await container.read(authStateProvider.notifier).signOut();
 
         expect(remote.revoked, ['token-1']);
-        expect(container.read(authStateProvider).asData?.value, isNull);
+        expect(
+          container.read(authStateProvider),
+          const AsyncData<AuthUser?>(null),
+        );
         expect(store.read(), isNull);
       },
     );

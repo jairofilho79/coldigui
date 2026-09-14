@@ -92,7 +92,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Jairo'), findsWidgets);
 
-    container.read(authStateProvider.notifier).onUnauthorized();
+    container
+        .read(authStateProvider.notifier)
+        .onUnauthorized(user.sessionToken);
     await tester.pumpAndSettle();
 
     expect(find.text(pt.authSignInWithGoogle), findsOneWidget);

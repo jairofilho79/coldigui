@@ -27,14 +27,21 @@ class _StatusAdapter implements HttpClientAdapter {
 
 void main() {
   late int calls;
+  late List<String> rejectedTokens;
   late Dio dio;
 
   Dio build(int status) {
     calls = 0;
+    rejectedTokens = [];
     return Dio(BaseOptions(baseUrl: 'https://example.test'))
       ..httpClientAdapter = _StatusAdapter(status)
       ..interceptors.add(
-        AuthUnauthorizedInterceptor(onUnauthorized: () => calls++),
+        AuthUnauthorizedInterceptor(
+          onUnauthorized: (token) {
+            calls++;
+            rejectedTokens.add(token);
+          },
+        ),
       );
   }
 
@@ -52,19 +59,18 @@ void main() {
     }
   }
 
-  test(
-    '401 com Bearer sess_ dispara onUnauthorized (caminho onError)',
-    () async {
-      dio = build(401);
-      await get('sess_abc');
-      expect(calls, 1);
-    },
-  );
+  test('401 com Bearer sess_ dispara onUnauthorized com o token cru (caminho onError)', () async {
+    dio = build(401);
+    await get('sess_abc');
+    expect(calls, 1);
+    expect(rejectedTokens, ['sess_abc']);
+  });
 
   test('401 com Bearer sess_ dispara também quando validateStatus tolera 401 (onResponse)', () async {
     dio = build(401);
     await get('sess_abc', tolerate401: true);
     expect(calls, 1);
+    expect(rejectedTokens, ['sess_abc']);
   });
 
   test('401 sem Authorization (rota pública) não dispara', () async {

@@ -28,8 +28,8 @@ final dioProvider = Provider<Dio>((ref) {
     AuthUnauthorizedInterceptor(
       // `read` (e não `watch`) de propósito: o Dio não deve ser recriado a cada
       // mudança de sessão, e a chamada só acontece dentro de um 401.
-      onUnauthorized: () =>
-          ref.read(authStateProvider.notifier).onUnauthorized(),
+      onUnauthorized: (token) =>
+          ref.read(authStateProvider.notifier).onUnauthorized(token),
     ),
     RetryInterceptor(dio: dio),
   ]);

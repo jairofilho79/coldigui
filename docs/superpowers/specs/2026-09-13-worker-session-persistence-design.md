@@ -124,8 +124,8 @@ if (isSessionToken(token)) {
 3. Sem sessão guardada e `takeLegacySessionStorage()` devolve JSON antigo com `idToken` → `establishSession(idToken)`; sucesso grava e devolve; qualquer falha → `null` (D12).
 4. Senão → `null`.
 
-- `onUnauthorized()`: limpa a store e `state = AsyncData(null)` (D8). Idempotente.
-- `signOut()`: `revokeSession` (erro vira `debugPrint`), limpa store, `state = null`, `GoogleSignIn.signOut()` em try/catch como hoje.
+- `onUnauthorized(rejectedToken)`: limpa a store e `state = AsyncData(null)` (D8), mas só se `rejectedToken` ainda for a sessão corrente (`state`/store) — um 401 atrasado de um token já trocado ou já deslogado é ignorado, para não derrubar uma sessão nova nem uma `AsyncLoading` de um login em curso. Idempotente.
+- `signOut()`: limpa store e `state = null` **antes** de `revokeSession` — a UI reage na hora, e uma revogação pendurada não segura a sessão local —, depois `revokeSession` (erro vira `debugPrint`) e `GoogleSignIn.signOut()` em try/catch.
 - `signInWithGoogle()` (nativo): chama `ensureGoogleInitialized()` ela mesma (D11); `_completeSignIn` → `_establishAndStore` inalterados.
 - Removidos: `refreshIdToken`, `_refreshInFlight`, `googleSilentIdTokenRefresherProvider`, `sessionExpiredProvider`/`SessionExpiredNotifier`, `googleSignInUnavailableProvider` (D9/D11).
 
@@ -212,6 +212,7 @@ Logout        DELETE /api/auth/session (Bearer sess_) → 204 → store limpa �
 4. Apagar a linha no D1 com o app aberto → próxima ação autenticada desloga sem erro na tela.
 5. App antigo (cache) durante o rollout: continua funcionando contra o Worker novo.
 6. Sessão antiga em `sessionStorage` na primeira carga do app novo: migra sem pedir login (se o `id_token` ainda vale).
+7. Durante o rollout, cada boot do app antigo cria uma linha em `user_sessions` (ele chama `POST /session` a cada carga) que nunca é revogada; some com a purga de 60 d — esperado, não é bug.
 
 ## 9. Documentação
 

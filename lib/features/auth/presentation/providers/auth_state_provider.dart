@@ -209,9 +209,20 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
   /// O Worker recusou o `sessionToken` (401 numa request `Bearer sess_…`):
   /// sessão revogada ou vencida (spec D8). Sem renovação — quem entra de
-  /// novo é o usuário. Idempotente: chamadas repetidas (várias requests em
+  /// novo é o usuário.
+  ///
+  /// Escopado ao token recusado: um 401 atrasado (ex.: sync em voo com um
+  /// token antigo) não pode derrubar uma sessão nova. Se a sessão corrente
+  /// (do `state` ou, na ausência dele, da store) já não é [rejectedToken] —
+  /// foi trocada por um login novo, ou já não há sessão —, o 401 é ignorado.
+  /// Idempotente: chamadas repetidas com o token corrente (várias requests em
   /// voo) não reemitem estado.
-  void onUnauthorized() {
+  void onUnauthorized(String rejectedToken) {
+    final current =
+        state.asData?.value?.sessionToken ??
+        ref.read(authSessionStoreProvider).read()?.sessionToken;
+    if (current == null || current != rejectedToken) return;
+
     ref.read(authSessionStoreProvider).clear();
     if (state.asData?.value != null || state is! AsyncData) {
       state = const AsyncData(null);

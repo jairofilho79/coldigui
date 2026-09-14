@@ -13,7 +13,9 @@ class UsernameException implements Exception {
   String toString() => 'UsernameException($code)';
 }
 
-/// Worker recusou o `idToken` (401/403) — sessão inválida, deve deslogar.
+/// Worker recusou o Bearer (401/403): o `id_token` na `POST /session`, ou o
+/// `sessionToken` numa rota autenticada — este último é tratado pelo
+/// `AuthUnauthorizedInterceptor`.
 ///
 /// Distinto de falha de rede/timeout ou 5xx, que preservam a sessão local
 /// (ver [AuthNotifier.build]).
