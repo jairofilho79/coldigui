@@ -33,4 +33,33 @@ void main() {
     expect(py, contains('"Cross-Origin-Opener-Policy", "same-origin"'));
     expect(py, isNot(contains('allow-popups')));
   });
+
+  test('sw.js é no-cache no _headers (registo por ?v=<tag>)', () {
+    // A tag na query só deteta SW novo se o próprio sw.js não ficar preso
+    // na CDN: o SW velho continuaria a servir o shell velho.
+    final at = lines.indexOf('/sw.js');
+    expect(at, greaterThan(0), reason: 'falta a regra /sw.js');
+    expect(lines[at + 1], 'Cache-Control: no-cache');
+  });
+
+  test('servidor local espelha o no-cache do sw.js', () {
+    final py = File('scripts/web_frontend_server.py').readAsStringSync();
+    expect(py, contains('"sw.js",'));
+  });
+
+  test('verify_web_headers_artifact.sh rejeita _headers sem /sw.js', () async {
+    final tmp = Directory.systemTemp.createTempSync('headers_test');
+    addTearDown(() => tmp.deleteSync(recursive: true));
+    final headers = File('${tmp.path}/_headers')
+      ..writeAsStringSync(
+        File('web/_headers')
+            .readAsStringSync()
+            .replaceFirst('/sw.js\n  Cache-Control: no-cache\n', ''),
+      );
+    final result = await Process.run('bash', [
+      'scripts/verify_web_headers_artifact.sh',
+      headers.path,
+    ]);
+    expect(result.exitCode, isNot(0));
+  });
 }
