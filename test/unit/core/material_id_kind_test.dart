@@ -118,13 +118,14 @@ void main() {
   });
 
   group('materialKindOfRawType', () {
-    test('reconhece pdf, chord, gestures, youtube e mp3/audio', () {
+    test('reconhece pdf, chord, gestures, youtube, mp3/audio e lyrics', () {
       expect(materialKindOfRawType('pdf'), MaterialKind.pdf);
       expect(materialKindOfRawType('chord'), MaterialKind.chord);
       expect(materialKindOfRawType('gestures'), MaterialKind.gesture);
       expect(materialKindOfRawType('youtube'), MaterialKind.youtube);
       expect(materialKindOfRawType('mp3'), MaterialKind.audio);
       expect(materialKindOfRawType('audio'), MaterialKind.audio);
+      expect(materialKindOfRawType('lyrics'), MaterialKind.lyrics);
     });
 
     test('ignora caixa', () {
@@ -132,7 +133,7 @@ void main() {
     });
 
     test('tipo desconhecido cai em unknown', () {
-      expect(materialKindOfRawType('lyrics'), MaterialKind.unknown);
+      expect(materialKindOfRawType('video'), MaterialKind.unknown);
     });
   });
 }
