@@ -1429,4 +1429,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsReaderDecreaseFont => 'Decrease text size';
+
+  @override
+  String get offlineColdigomPlpcgSection => 'PLPCG collection (PDFs)';
+
+  @override
+  String get offlineColdigomSection => 'Coldigom by material type';
+
+  @override
+  String offlineColdigomCatalogStatus(int count, String ago) {
+    return 'Catalog: $count hymns · updated $ago';
+  }
+
+  @override
+  String get offlineColdigomCatalogMissing =>
+      'Connect to the internet to download the catalog';
+
+  @override
+  String get offlineColdigomAgoJustNow => 'just now';
+
+  @override
+  String offlineColdigomAgoMinutes(int n) {
+    return '$n min ago';
+  }
+
+  @override
+  String offlineColdigomAgoHours(int n) {
+    return '$n h ago';
+  }
+
+  @override
+  String offlineColdigomAgoDays(int n) {
+    return '$n d ago';
+  }
+
+  @override
+  String get offlineColdigomSignInPrompt =>
+      'Sign in with Google to download your favorite types';
+
+  @override
+  String get offlineColdigomFavoriteKinds => 'Your favorite types';
+
+  @override
+  String get offlineColdigomNoFavorites =>
+      'No favorites — pick some in Favorite materials or open “Other types”';
+
+  @override
+  String get offlineColdigomOtherKinds => 'Other types';
+
+  @override
+  String offlineColdigomKindSummary(int count, String size) {
+    return '$count materials · $size';
+  }
+
+  @override
+  String offlineColdigomDownloadSelected(String size) {
+    return 'Download selected ($size)';
+  }
+
+  @override
+  String get offlineColdigomStop => 'Stop';
+
+  @override
+  String offlineColdigomProgress(String kind, int done, int total) {
+    return '$kind · $done/$total';
+  }
+
+  @override
+  String offlineColdigomDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count materials downloaded',
+      one: '1 material downloaded',
+      zero: 'Nothing new to download',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String offlineColdigomFailures(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count not downloaded',
+      one: '1 not downloaded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get offlineColdigomRetry => 'Try again';
+
+  @override
+  String get offlineColdigomRemove =>
+      'Remove downloaded Coldigom audio and PDFs';
+
+  @override
+  String get offlineColdigomRemoveNote =>
+      'Chords, gestures and lyrics stay on the device.';
+
+  @override
+  String get offlineColdigomRemoveConfirmTitle => 'Remove Coldigom downloads?';
+
+  @override
+  String offlineColdigomRemoved(int pdfs, int audios) {
+    return '$pdfs PDFs and $audios audios removed';
+  }
+
+  @override
+  String offlineColdigomSpaceWarning(String size, String free) {
+    return 'Estimated $size exceeds free space ($free) — the download may stop midway.';
+  }
 }

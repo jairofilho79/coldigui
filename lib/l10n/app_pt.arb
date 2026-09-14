@@ -809,5 +809,66 @@
   "lyricsTab": "Letra",
   "lyricsReaderEmpty": "Este louvor não tem letra guardada",
   "lyricsReaderIncreaseFont": "Aumentar letra",
-  "lyricsReaderDecreaseFont": "Diminuir letra"
+  "lyricsReaderDecreaseFont": "Diminuir letra",
+  "offlineColdigomPlpcgSection": "Acervo PLPCG (PDFs)",
+  "offlineColdigomSection": "Coldigom por tipo de material",
+  "offlineColdigomCatalogStatus": "Catálogo: {count} louvores · atualizado {ago}",
+  "@offlineColdigomCatalogStatus": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "ago": { "type": "String" }
+    }
+  },
+  "offlineColdigomCatalogMissing": "Ligue-se à internet para baixar o catálogo",
+  "offlineColdigomAgoJustNow": "agora mesmo",
+  "offlineColdigomAgoMinutes": "há {n} min",
+  "@offlineColdigomAgoMinutes": { "placeholders": { "n": { "type": "int" } } },
+  "offlineColdigomAgoHours": "há {n} h",
+  "@offlineColdigomAgoHours": { "placeholders": { "n": { "type": "int" } } },
+  "offlineColdigomAgoDays": "há {n} d",
+  "@offlineColdigomAgoDays": { "placeholders": { "n": { "type": "int" } } },
+  "offlineColdigomSignInPrompt": "Entre com Google para baixar os seus tipos favoritos",
+  "offlineColdigomFavoriteKinds": "Seus tipos favoritos",
+  "offlineColdigomNoFavorites": "Sem favoritos — escolha em Materiais favoritos ou abra «Outros tipos»",
+  "offlineColdigomOtherKinds": "Outros tipos",
+  "offlineColdigomKindSummary": "{count} materiais · {size}",
+  "@offlineColdigomKindSummary": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "size": { "type": "String" }
+    }
+  },
+  "offlineColdigomDownloadSelected": "Baixar selecionados ({size})",
+  "@offlineColdigomDownloadSelected": { "placeholders": { "size": { "type": "String" } } },
+  "offlineColdigomStop": "Parar",
+  "offlineColdigomProgress": "{kind} · {done}/{total}",
+  "@offlineColdigomProgress": {
+    "placeholders": {
+      "kind": { "type": "String" },
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "offlineColdigomDone": "{count, plural, =0{Nada novo para baixar} one{1 material baixado} other{{count} materiais baixados}}",
+  "@offlineColdigomDone": { "placeholders": { "count": { "type": "int" } } },
+  "offlineColdigomFailures": "{count, plural, one{1 não baixado} other{{count} não baixados}}",
+  "@offlineColdigomFailures": { "placeholders": { "count": { "type": "int" } } },
+  "offlineColdigomRetry": "Tentar de novo",
+  "offlineColdigomRemove": "Remover áudios e PDFs baixados do Coldigom",
+  "offlineColdigomRemoveNote": "Cifras, gestos e letras ficam no aparelho.",
+  "offlineColdigomRemoveConfirmTitle": "Remover baixados do Coldigom?",
+  "offlineColdigomRemoved": "{pdfs} PDFs e {audios} áudios removidos",
+  "@offlineColdigomRemoved": {
+    "placeholders": {
+      "pdfs": { "type": "int" },
+      "audios": { "type": "int" }
+    }
+  },
+  "offlineColdigomSpaceWarning": "Estimativa de {size} acima do espaço livre ({free}) — o download pode parar a meio.",
+  "@offlineColdigomSpaceWarning": {
+    "placeholders": {
+      "size": { "type": "String" },
+      "free": { "type": "String" }
+    }
+  }
 }

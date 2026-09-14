@@ -2458,6 +2458,150 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Diminuir letra'**
   String get lyricsReaderDecreaseFont;
+
+  /// No description provided for @offlineColdigomPlpcgSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acervo PLPCG (PDFs)'**
+  String get offlineColdigomPlpcgSection;
+
+  /// No description provided for @offlineColdigomSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coldigom por tipo de material'**
+  String get offlineColdigomSection;
+
+  /// No description provided for @offlineColdigomCatalogStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Catálogo: {count} louvores · atualizado {ago}'**
+  String offlineColdigomCatalogStatus(int count, String ago);
+
+  /// No description provided for @offlineColdigomCatalogMissing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ligue-se à internet para baixar o catálogo'**
+  String get offlineColdigomCatalogMissing;
+
+  /// No description provided for @offlineColdigomAgoJustNow.
+  ///
+  /// In pt, this message translates to:
+  /// **'agora mesmo'**
+  String get offlineColdigomAgoJustNow;
+
+  /// No description provided for @offlineColdigomAgoMinutes.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {n} min'**
+  String offlineColdigomAgoMinutes(int n);
+
+  /// No description provided for @offlineColdigomAgoHours.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {n} h'**
+  String offlineColdigomAgoHours(int n);
+
+  /// No description provided for @offlineColdigomAgoDays.
+  ///
+  /// In pt, this message translates to:
+  /// **'há {n} d'**
+  String offlineColdigomAgoDays(int n);
+
+  /// No description provided for @offlineColdigomSignInPrompt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com Google para baixar os seus tipos favoritos'**
+  String get offlineColdigomSignInPrompt;
+
+  /// No description provided for @offlineColdigomFavoriteKinds.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seus tipos favoritos'**
+  String get offlineColdigomFavoriteKinds;
+
+  /// No description provided for @offlineColdigomNoFavorites.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem favoritos — escolha em Materiais favoritos ou abra «Outros tipos»'**
+  String get offlineColdigomNoFavorites;
+
+  /// No description provided for @offlineColdigomOtherKinds.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros tipos'**
+  String get offlineColdigomOtherKinds;
+
+  /// No description provided for @offlineColdigomKindSummary.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} materiais · {size}'**
+  String offlineColdigomKindSummary(int count, String size);
+
+  /// No description provided for @offlineColdigomDownloadSelected.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar selecionados ({size})'**
+  String offlineColdigomDownloadSelected(String size);
+
+  /// No description provided for @offlineColdigomStop.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parar'**
+  String get offlineColdigomStop;
+
+  /// No description provided for @offlineColdigomProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'{kind} · {done}/{total}'**
+  String offlineColdigomProgress(String kind, int done, int total);
+
+  /// No description provided for @offlineColdigomDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Nada novo para baixar} one{1 material baixado} other{{count} materiais baixados}}'**
+  String offlineColdigomDone(int count);
+
+  /// No description provided for @offlineColdigomFailures.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 não baixado} other{{count} não baixados}}'**
+  String offlineColdigomFailures(int count);
+
+  /// No description provided for @offlineColdigomRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get offlineColdigomRetry;
+
+  /// No description provided for @offlineColdigomRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover áudios e PDFs baixados do Coldigom'**
+  String get offlineColdigomRemove;
+
+  /// No description provided for @offlineColdigomRemoveNote.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifras, gestos e letras ficam no aparelho.'**
+  String get offlineColdigomRemoveNote;
+
+  /// No description provided for @offlineColdigomRemoveConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover baixados do Coldigom?'**
+  String get offlineColdigomRemoveConfirmTitle;
+
+  /// No description provided for @offlineColdigomRemoved.
+  ///
+  /// In pt, this message translates to:
+  /// **'{pdfs} PDFs e {audios} áudios removidos'**
+  String offlineColdigomRemoved(int pdfs, int audios);
+
+  /// No description provided for @offlineColdigomSpaceWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estimativa de {size} acima do espaço livre ({free}) — o download pode parar a meio.'**
+  String offlineColdigomSpaceWarning(String size, String free);
 }
 
 class _AppLocalizationsDelegate

@@ -14,6 +14,9 @@ import 'offline_bulk_download_provider.dart' show bulkDownloadWakelockProvider;
 import 'offline_coldigom_stats_provider.dart';
 import 'offline_maintenance_lock_provider.dart';
 
+export '../../domain/usecases/remove_coldigom_downloads.dart'
+    show RemoveColdigomDownloadsResult;
+
 enum OfflineColdigomDownloadStatus { idle, running, cancelling, done, failed }
 
 /// Estado do download Coldigom por kind na tela `/offline` (§5.4).
