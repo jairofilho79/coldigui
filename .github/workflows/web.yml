@@ -67,6 +67,14 @@ jobs:
           CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: ./scripts/measure_web_boot.sh --check
 
+      # Boot online → sw.js ativo com plpcg-shell-<tag> → engine aquecido pela
+      # lista `used` → servidor em baixo → boot outra vez só do cache
+      # (spec 2026-09-14-pwa-shell-offline, §5).
+      - name: Service worker offline boot
+        env:
+          CHROME_EXECUTABLE: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: python3 scripts/verify_web_sw.py
+
   # Testes do Worker `plpcg-catalog` (`node:test` sobre os módulos puros e os
   # handlers de playlist com um D1 falso). Independente do job `web`: não
   # compila Flutter e não aplica migração remota — deploy é do dono.

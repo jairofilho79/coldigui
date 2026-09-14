@@ -39,11 +39,13 @@ check_url() {
   local base="${1%/}"
   echo "==> Validando $base"
 
-  local coop coep sw_cache wasm_status
+  local coop coep sw_cache wasm_status own_sw_cache own_sw_type
   coop="$(header_value "$base/" "cross-origin-opener-policy")"
   coep="$(header_value "$base/" "cross-origin-embedder-policy")"
   sw_cache="$(header_value "$base/flutter_service_worker.js" "cache-control")"
   wasm_status="$(http_status "$base/isar_plus.wasm")"
+  own_sw_cache="$(header_value "$base/sw.js" "cache-control")"
+  own_sw_type="$(header_value "$base/sw.js" "content-type")"
 
   if [[ "$coop" == "same-origin" ]]; then
     echo "  OK  COOP: $coop"
@@ -70,6 +72,15 @@ check_url() {
     echo "  OK  isar_plus.wasm HTTP $wasm_status"
   else
     echo "  FAIL isar_plus.wasm HTTP $wasm_status (esperado 200)" >&2
+    failures=$((failures + 1))
+  fi
+
+  # sw.js próprio: tem de ser JS (não o index.html do fallback SPA) e no-cache;
+  # o ?v=<tag> protege o registo, mas um objeto preso na zone atrasaria o WARM.
+  if [[ "$own_sw_type" == *"javascript"* && "$own_sw_cache" == *"no-cache"* ]]; then
+    echo "  OK  sw.js: $own_sw_type; Cache-Control: $own_sw_cache"
+  else
+    echo "  FAIL sw.js: esperado javascript + no-cache, obtido '${own_sw_type:-<ausente>}' / '${own_sw_cache:-<ausente>}'" >&2
     failures=$((failures + 1))
   fi
 
