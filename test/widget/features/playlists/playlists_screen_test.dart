@@ -4,7 +4,6 @@ import 'package:coldigui/core/constants/feature_flags.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/feature_flags_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -188,12 +187,7 @@ void main() {
     expect(notifier.lastImport?.shareAudios, 'aud-1');
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(
-      PlaylistShareParams(
-        sharePdfs: notifier.lastImport!.sharePdfs,
-        shareAudios: notifier.lastImport!.shareAudios,
-        shareItems: notifier.lastImport!.shareItems,
-        shareName: notifier.lastImport!.shareName,
-      ).entries,
+      notifier.lastImport!.entries,
       const [
         PlaylistEntry(id: 'x', kind: MaterialKind.pdf),
         PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
@@ -271,7 +265,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(notifier.lastImport?.sharePdfs, 'x');
-    expect(notifier.lastImport?.shareItems, '');
+    expect(notifier.lastImport?.shareItems, isNull);
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
   });

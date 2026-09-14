@@ -32,7 +32,7 @@ https://plpcg.com/?s=1a2f-0c3d-ffe1&n=Culto%20de%20domingo
 
 | Item | Regra |
 |---|---|
-| `s` | `shortId`s em hex minúsculo separados por `-` (não sofre URL-encode, nunca ocorre em hex). Ordem = ordem da lista. Repetidos permitidos (v2 repete louvor; o plpcjf deduplica como já faz com `sharepdfs`). |
+| `s` | `shortId`s em hex minúsculo separados por `-` (não sofre URL-encode, nunca ocorre em hex). Ordem = ordem da lista. Repetidos permitidos na leitura (o v2 repete louvor; o plpcjf deduplica no caminho curto porque a UI dele nunca repete louvor — `addToCarousel` recusa duplicata). |
 | token | `[0-9a-f]{4,8}`. Maiúsculas são normalizadas para minúsculas na leitura; token fora do padrão é ignorado como desconhecido (D8). |
 | `n` | nome da lista, `encodeURIComponent`. **Obrigatório** — é o que marca a URL como share, no lugar de `sharename`. |
 | Prioridade na leitura | `s` presente (com `n`) → usa `s` e **ignora** `shareitems`/`sharepdfs`/`shareaudios`/`sharename` se vierem juntos. Sem `s` → comportamento atual. |
@@ -54,6 +54,7 @@ https://plpcg.com/?s=1a2f-0c3d-ffe1&n=Culto%20de%20domingo
 
 ### 2.2 Manifest
 - `toManifestEntry` inclui `shortId` quando presente (omite se `null`, para não publicar `"shortId": null`). Checksum muda por consequência — é o esperado; clientes rebaixam para o manifest novo.
+- **Checksum do D1 (`catalog_meta.checksum`, ETag do Worker do v2):** `shortId` entra em `CANONICAL_FIELDS`/`canonicalEntry` (`domain/checksum.ts`), senão o backfill não muda o checksum e o v2 nunca baixa o catálogo com `shortId`. `POST /api/admin/manifest/publish` passa a chamar `updateCatalogMeta` **antes** de publicar — «publicar» atualiza as duas projeções (D1 meta + R2 manifest). O `scripts/seed_d1_louvores.py` do coldigui espelha o campo na sua lista canônica.
 
 ### 2.3 UI
 - Lista e formulário de edição mostram `shortId` **somente leitura** (`ui/src/app.ts`). Não há campo editável.

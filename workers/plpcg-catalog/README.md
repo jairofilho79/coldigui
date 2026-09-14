@@ -6,7 +6,7 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` incluído) |
+| `GET` | `/api/catalog/louvores` | Não | Array JSON de louvores (`groupId` e `shortId` incluídos) |
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
 | `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, devolve perfil |
 | `PUT` | `/api/auth/username` | Bearer | Define username único (uma vez) |
@@ -49,12 +49,22 @@ Flutter local: `dart_defines/plpcg.dev.json` com `PLPCG_API_BASE_URL=http://127.
 1. `wrangler login`
 2. `npx wrangler secret put GOOGLE_CLIENT_ID_WEB`
 3. `npm run db:migrate:remote`
-4. Seed do catálogo (se necessário) — ver passos anteriores
+4. Seed do catálogo: **só D1 local** — no remoto o catálogo vive no admin;
+   nunca rodar `scripts/seed_d1_louvores.py` (nem `wrangler d1 execute --remote`
+   com o SQL gerado por ele) contra o remoto depois da 0011.
 5. `npm run deploy`
+
+Faça o deploy **só depois** de `npm run db:migrate:remote` confirmar a
+`0011_add_louvores_short_id.sql` aplicada — o SELECT projeta `short_id` e
+falha sem a coluna.
 
 Após deploy, validar:
 
 ```bash
 curl -s https://plpcg.com/api/catalog/checksum
-curl -s https://plpcg.com/api/catalog/louvores | jq 'length'  # 4627
+curl -s https://plpcg.com/api/catalog/louvores | jq 'length'  # 4633 (set/2026)
 ```
+
+## Migrations e o D1 compartilhado
+
+O D1 `plpcg-catalog` também é usado pelo `plpcg-admin` (mesmo `database_id`). **Este Worker é o dono das migrations remotas** (`npm run db:migrate:remote`). O admin mantém em `worker/migrations/` só o que precisa para o D1 local dele; a `0011_add_louvores_short_id.sql` daqui tem um espelho lá (`0003_add_short_id.sql`) que **não** deve ser aplicado no remoto.

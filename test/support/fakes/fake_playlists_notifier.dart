@@ -5,9 +5,9 @@
 // lista inicial fixa, contadores/flags de chamada e resultados configuráveis
 // para os métodos que a presentation aciona a partir de futuros não
 // aguardados (`addLouvorToActivePlaylist`/`addAudioToActivePlaylist`).
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
-import 'package:coldigui/features/playlists/presentation/widgets/import_playlist_dialog.dart';
 
 class FakePlaylistsNotifier extends PlaylistsNotifier {
   FakePlaylistsNotifier([
@@ -39,7 +39,7 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   /// Nomes passados a [saveActivePlaylist]; devolve [saveActiveResult].
   final savedActiveNames = <String>[];
   var saveActiveResult = true;
-  ImportPlaylistDialogResult? lastImport;
+  PlaylistShareParams? lastImport;
 
   var refreshCalled = false;
   var reloadCalls = 0;
@@ -108,17 +108,9 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
 
   @override
   Future<String?> importSharedFromUrl({
-    required String shareName,
-    String sharePdfs = '',
-    String shareAudios = '',
-    String shareItems = '',
+    required PlaylistShareParams params,
   }) async {
-    lastImport = ImportPlaylistDialogResult(
-      sharePdfs: sharePdfs,
-      shareAudios: shareAudios,
-      shareItems: shareItems,
-      shareName: shareName,
-    );
+    lastImport = params;
     return importedPlaylistId;
   }
 }

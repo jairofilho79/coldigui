@@ -14,6 +14,7 @@ class LouvorDto {
     required this.pdf,
     required this.pdfId,
     this.groupId = '',
+    this.shortId,
   });
 
   final String nome;
@@ -26,6 +27,10 @@ class LouvorDto {
   /// Agrupamento lógico do louvor; vem do D1 ou do manifest agrupado.
   final String groupId;
 
+  /// Id curto de share (hex minúsculo, **string** — `"0000"` é válido).
+  /// `null` no catálogo antigo ou no material ainda não atribuído.
+  final String? shortId;
+
   /// Parse do JSON do catálogo (`/api/catalog/louvores` ou manifest legado).
   factory LouvorDto.fromJson(Map<String, dynamic> json) => LouvorDto(
         nome: json['nome'] as String,
@@ -35,6 +40,7 @@ class LouvorDto {
         pdf: json['pdf'] as String,
         pdfId: json['pdfId'] as String,
         groupId: json['groupId'] as String? ?? '',
+        shortId: json['shortId'] is String ? json['shortId'] as String : null,
       );
 
   /// Converte para entidade de domínio com tokens de busca pré-computados.
@@ -46,5 +52,6 @@ class LouvorDto {
         pdf: pdf,
         pdfId: pdfId,
         groupId: groupId,
+        shortId: shortId,
       );
 }

@@ -12,13 +12,21 @@ typedef LeafletLabelOf = LeafletLabel? Function(String materialId);
 
 /// Documento de folheto pronto para renderização (UC-08).
 class LeafletDocument {
-  const LeafletDocument({required this.entries, required this.generatedAt});
+  const LeafletDocument({
+    required this.entries,
+    required this.generatedAt,
+    this.shareUrl,
+  });
 
   /// Linhas na ordem da seleção.
   final List<LeafletEntry> entries;
 
   /// Data/hora de geração — exibida no cabeçalho do folheto.
   final DateTime generatedAt;
+
+  /// Link curto da lista para o QR do rodapé (spec short-id-share D10).
+  /// `null` = sem QR (link longo, ou folheto sem lista salva).
+  final String? shareUrl;
 
   /// Monta folheto a partir dos itens do carousel, preservando
   /// [CarouselItem.index] (a posição dentro da face).
@@ -27,12 +35,14 @@ class LeafletDocument {
   factory LeafletDocument.fromCarouselItems(
     List<CarouselItem> items, {
     DateTime? generatedAt,
+    String? shareUrl,
   }) {
     final sorted = List<CarouselItem>.from(items)
       ..sort((a, b) => a.index.compareTo(b.index));
 
     return LeafletDocument(
       generatedAt: generatedAt ?? DateTime.now(),
+      shareUrl: shareUrl,
       entries: [
         for (var i = 0; i < sorted.length; i++)
           LeafletEntry(
@@ -51,9 +61,11 @@ class LeafletDocument {
     List<String> pdfIds, {
     required LeafletLabelOf labelOf,
     DateTime? generatedAt,
+    String? shareUrl,
   }) {
     return LeafletDocument(
       generatedAt: generatedAt ?? DateTime.now(),
+      shareUrl: shareUrl,
       entries: [
         for (final (i, id) in pdfIds.indexed)
           switch (labelOf(id)) {

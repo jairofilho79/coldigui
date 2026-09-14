@@ -4,7 +4,11 @@ import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
+import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
+import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../catalog/presentation/providers/pdf_ids_by_short_id_provider.dart';
 import '../../domain/ports/share_link_shortener.dart';
+import '../../domain/ports/short_id_resolver.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/usecases/delete_all_unsaved_playlists.dart';
 import '../../domain/usecases/delete_playlist.dart';
@@ -116,11 +120,23 @@ final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
   return GeneratePlaylistShareUrl(
     ref.watch(playlistRepositoryProvider),
     shortener: ref.watch(shareLinkShortenerProvider),
+    shortIdOf: (pdfId) => ref.read(louvoresByPdfIdProvider)[pdfId]?.shortId,
   );
+});
+
+/// `shortId → pdfId` esperando o manifest (spec short-id-share D8).
+final shortIdResolverProvider = Provider<ShortIdResolver>((ref) {
+  return () async {
+    await ref.read(louvoresManifestProvider.future);
+    return ref.read(pdfIdsByShortIdProvider);
+  };
 });
 
 /// UC-07 — importar playlist compartilhada (Fase 4.4).
 final importSharedPlaylistFromUrlProvider =
     Provider<ImportSharedPlaylistFromUrl>((ref) {
-      return ImportSharedPlaylistFromUrl(ref.watch(playlistRepositoryProvider));
+      return ImportSharedPlaylistFromUrl(
+        ref.watch(playlistRepositoryProvider),
+        resolveShortIds: ref.watch(shortIdResolverProvider),
+      );
     });

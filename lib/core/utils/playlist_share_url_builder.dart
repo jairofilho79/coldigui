@@ -62,17 +62,69 @@ List<PlaylistEntry>? decodeShareItems(String raw) {
   return entries.isEmpty ? null : entries;
 }
 
+final RegExp _shortIdPattern = RegExp(r'^[0-9a-f]{4,8}$');
+
+/// `shortId` válido (spec short-id-share D1/D5): **string** hex minúscula de
+/// 4 a 8 caracteres. Nunca é número — `"0000"` é um id.
+bool isShortId(Object? value) =>
+    value is String && _shortIdPattern.hasMatch(value);
+
+/// Serializa `shortId`s para o param `s` — minúsculo, separados por `-`
+/// (não sofre URL-encode e nunca ocorre em hex). Ignora o que não é shortId.
+String encodeShortShareIds(List<String> shortIds) => [
+      for (final id in shortIds)
+        if (isShortId(id.toLowerCase())) id.toLowerCase(),
+    ].join('-');
+
+/// Lê o param `s`: normaliza maiúsculas, ignora token fora do padrão,
+/// preserva ordem e repetições (a lista pode repetir um louvor).
+List<String> decodeShortShareIds(String raw) => [
+      for (final part in raw.split('-'))
+        if (isShortId(part.trim().toLowerCase())) part.trim().toLowerCase(),
+    ];
+
+/// Monta `/?s=…&n=…` (spec §1). Lança [ArgumentError] se [shortIds] vazio
+/// ou [shareName] em branco.
+String buildShortPlaylistShareLocation({
+  required List<String> shortIds,
+  required String shareName,
+}) {
+  if (shortIds.isEmpty) {
+    throw ArgumentError.value(shortIds, 'shortIds', 'must not be empty');
+  }
+  if (shareName.trim().isEmpty) {
+    throw ArgumentError.value(shareName, 'shareName', 'must not be empty');
+  }
+  return '${RoutePaths.home}'
+      '?${UrlSyncParams.shortItems}=${encodeShortShareIds(shortIds)}'
+      '&${UrlSyncParams.shortName}=${Uri.encodeComponent(shareName)}';
+}
+
+/// URL absoluta do link curto ([origin] + [buildShortPlaylistShareLocation]).
+String buildShortPlaylistShareUrl({
+  required String origin,
+  required List<String> shortIds,
+  required String shareName,
+}) {
+  final normalizedOrigin =
+      origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
+  return '$normalizedOrigin'
+      '${buildShortPlaylistShareLocation(shortIds: shortIds, shareName: shareName)}';
+}
+
 /// Params extraídos de URL de compartilhamento de playlist (UC-07, Fase 4.4).
 ///
 /// Valores brutos dos query params [UrlSyncParams.shareItems],
-/// [UrlSyncParams.sharePdfs], [UrlSyncParams.shareAudios] e
-/// [UrlSyncParams.shareName].
+/// [UrlSyncParams.sharePdfs], [UrlSyncParams.shareAudios],
+/// [UrlSyncParams.shareName] — ou, no formato curto (spec short-id-share
+/// §1), [UrlSyncParams.shortItems]/[UrlSyncParams.shortName] via [shortIds].
 class PlaylistShareParams {
   const PlaylistShareParams({
     required this.shareName,
     this.sharePdfs = '',
     this.shareAudios = '',
     this.shareItems,
+    this.shortIds,
   });
 
   /// CSV de [pdfId] conforme query `sharepdfs`.
@@ -81,18 +133,35 @@ class PlaylistShareParams {
   /// CSV de audioIds conforme query `shareaudios` (opcional).
   final String shareAudios;
 
-  /// Nome exibido da playlist conforme query `sharename`.
+  /// Nome exibido da playlist conforme query `sharename` (ou `n`, no formato
+  /// curto).
   final String shareName;
 
   /// CSV `prefixo:id` conforme query `shareitems` (v2, ausente em apps antigos).
   final String? shareItems;
 
+  /// `shortId`s do link curto (`s`), já validados e minúsculos. **Não nulo**
+  /// significa «este share está no formato curto»: [entries] fica vazio e a
+  /// resolução `shortId → pdfId` exige o catálogo (`ShortIdResolver`).
+  final List<String>? shortIds;
+
+  /// `true` quando o link veio como `?s=…&n=…`.
+  bool get isShortFormat => shortIds != null;
+
+  /// Há material para importar — tokens curtos ou entradas longas. É o que
+  /// distingue «share inválido» de «share por resolver».
+  bool get hasMaterial =>
+      isShortFormat ? shortIds!.isNotEmpty : entries.isNotEmpty;
+
   /// Ordem única tipada da playlist compartilhada.
+  ///
+  /// No formato curto devolve `[]` — ver [shortIds].
   ///
   /// [shareItems] válido vence — é o único que preserva a ordem intercalada e
   /// o tipo. Sem ele (ou com ele inválido) cai nos legados: `sharepdfs`
   /// classificado pela extensão, depois `shareaudios` declarado como áudio.
   List<PlaylistEntry> get entries {
+    if (isShortFormat) return const [];
     final raw = shareItems;
     if (raw != null) {
       final decoded = decodeShareItems(raw);
@@ -194,7 +263,9 @@ Uri stripPlaylistShareParams(Uri uri) {
     ..remove(UrlSyncParams.shareItems)
     ..remove(UrlSyncParams.sharePdfs)
     ..remove(UrlSyncParams.shareAudios)
-    ..remove(UrlSyncParams.shareName);
+    ..remove(UrlSyncParams.shareName)
+    ..remove(UrlSyncParams.shortItems)
+    ..remove(UrlSyncParams.shortName);
   if (query.isEmpty) {
     return uri.replace(queryParameters: const {});
   }
@@ -211,6 +282,17 @@ Uri stripPlaylistShareParams(Uri uri) {
 /// Devolver `null` aqui fazia o link sumir sem nenhuma mensagem (spec D.6).
 PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
   final query = safeQueryParameters(uri);
+
+  // Formato curto (spec §1): `s` + `n` vencem os params legados.
+  final shortRaw = query[UrlSyncParams.shortItems];
+  final shortName = query[UrlSyncParams.shortName];
+  if (shortRaw != null && shortName != null && shortName.isNotEmpty) {
+    return PlaylistShareParams(
+      shareName: shortName,
+      shortIds: decodeShortShareIds(shortRaw),
+    );
+  }
+
   final shareName = query[UrlSyncParams.shareName];
   if (shareName == null || shareName.isEmpty) return null;
 
@@ -260,7 +342,7 @@ PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
   PlaylistShareParams? named;
   PlaylistShareParams? withEntries(PlaylistShareParams? params) {
     if (params == null) return null;
-    if (params.entries.isNotEmpty) return params;
+    if (params.hasMaterial) return params;
     named ??= params;
     return null;
   }
@@ -282,7 +364,10 @@ PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
       trimmed.contains('${UrlSyncParams.shareItems}=') ||
       trimmed.contains('${UrlSyncParams.sharePdfs}=') ||
       trimmed.contains('${UrlSyncParams.shareAudios}=');
-  if (hasShareName && hasList) {
+  final hasShort =
+      trimmed.contains('${UrlSyncParams.shortItems}=') &&
+      trimmed.contains('${UrlSyncParams.shortName}=');
+  if ((hasShareName && hasList) || hasShort) {
     final questionIndex = trimmed.indexOf('?');
     final queryPart = questionIndex >= 0
         ? trimmed.substring(questionIndex + 1)

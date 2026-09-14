@@ -1,18 +1,16 @@
 import 'playlist_entry.dart';
 
-/// Modo de compartilhamento escolhido no bottom sheet (UC-07/UC-08).
+/// Modo de compartilhamento (UC-07/UC-08, spec short-id-share D9).
 enum PlaylistShareOption {
-  /// Só URL da playlist.
+  /// Só a URL da lista.
   link,
 
-  /// Só imagem PNG do folheto.
+  /// Só a imagem PNG do folheto — usado pelo «Gerar folheto» do menu do tile
+  /// (não aparece no sheet).
   leaflet,
 
-  /// Imagem + link no mesmo share sheet.
+  /// Folheto + link na mesma mensagem (imagem com legenda). Padrão do sheet.
   linkWithLeaflet,
-
-  /// Folheto e link em dois shares guiados (WhatsApp).
-  linkAndLeafletWhatsApp,
 }
 
 /// Dados mínimos para compartilhar playlist — carousel ou tile salvo.

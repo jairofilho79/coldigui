@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -15,12 +17,17 @@ void main() {
   late Isar isar;
   late PlaylistRepositoryImpl playlistRepository;
   late ImportSharedPlaylistFromUrl useCase;
+  var resolverMap = <String, String>{};
 
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('import_playlist_');
     isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
     playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
-    useCase = ImportSharedPlaylistFromUrl(playlistRepository);
+    resolverMap = <String, String>{};
+    useCase = ImportSharedPlaylistFromUrl(
+      playlistRepository,
+      resolveShortIds: () async => resolverMap,
+    );
   });
 
   tearDown(() async {
@@ -32,8 +39,10 @@ void main() {
 
   test('cria playlist salva a partir do share', () async {
     final result = await useCase(
-      sharePdfs: 'pdf-a, pdf-b',
-      shareName: 'Lista importada',
+      params: const PlaylistShareParams(
+        sharePdfs: 'pdf-a, pdf-b',
+        shareName: 'Lista importada',
+      ),
     );
 
     expect(result.alreadyExisted, isFalse);
@@ -43,7 +52,9 @@ void main() {
   });
 
   test('preserva ordem dos pdfIds', () async {
-    await useCase(sharePdfs: 'z,y,x', shareName: 'Ordem');
+    await useCase(
+      params: const PlaylistShareParams(sharePdfs: 'z,y,x', shareName: 'Ordem'),
+    );
 
     final all = await playlistRepository.getAll();
     expect(all.single.pdfIds, ['z', 'y', 'x']);
@@ -51,7 +62,9 @@ void main() {
 
   test('lança InvalidSharePlaylistException se sharePdfs vazio', () async {
     expect(
-      () => useCase(sharePdfs: ' , ', shareName: 'Nome'),
+      () => useCase(
+        params: const PlaylistShareParams(sharePdfs: ' , ', shareName: 'Nome'),
+      ),
       throwsA(isA<InvalidSharePlaylistException>()),
     );
   });
@@ -67,12 +80,7 @@ void main() {
       expect(params, isNotNull);
 
       expect(
-        () => useCase(
-          sharePdfs: params!.sharePdfs,
-          shareAudios: params.shareAudios,
-          shareItems: params.shareItems ?? '',
-          shareName: params.shareName,
-        ),
+        () => useCase(params: params!),
         throwsA(isA<InvalidSharePlaylistException>()),
       );
     },
@@ -80,7 +88,9 @@ void main() {
 
   test('lança InvalidSharePlaylistException se shareName vazio', () async {
     expect(
-      () => useCase(sharePdfs: 'a,b', shareName: '  '),
+      () => useCase(
+        params: const PlaylistShareParams(sharePdfs: 'a,b', shareName: '  '),
+      ),
       throwsA(isA<InvalidSharePlaylistException>()),
     );
   });
@@ -89,10 +99,20 @@ void main() {
     test(
       'lista salva já existente com o mesmo conteúdo — alreadyExisted true, nenhuma create',
       () async {
-        final first = await useCase(sharePdfs: 'a,b', shareName: 'Original');
+        final first = await useCase(
+          params: const PlaylistShareParams(
+            sharePdfs: 'a,b',
+            shareName: 'Original',
+          ),
+        );
         expect(first.alreadyExisted, isFalse);
 
-        final second = await useCase(sharePdfs: 'a,b', shareName: 'Outro nome');
+        final second = await useCase(
+          params: const PlaylistShareParams(
+            sharePdfs: 'a,b',
+            shareName: 'Outro nome',
+          ),
+        );
 
         expect(second.alreadyExisted, isTrue);
         expect(second.playlist.playlistId, first.playlist.playlistId);
@@ -105,9 +125,19 @@ void main() {
     );
 
     test('a ordem das entradas importa — não deduplica', () async {
-      await useCase(shareItems: 'p:a,a:b', shareName: 'Ordem 1');
+      await useCase(
+        params: const PlaylistShareParams(
+          shareItems: 'p:a,a:b',
+          shareName: 'Ordem 1',
+        ),
+      );
 
-      final result = await useCase(shareItems: 'a:b,p:a', shareName: 'Ordem 2');
+      final result = await useCase(
+        params: const PlaylistShareParams(
+          shareItems: 'a:b,p:a',
+          shareName: 'Ordem 2',
+        ),
+      );
 
       expect(result.alreadyExisted, isFalse);
       final all = await playlistRepository.getAll();
@@ -121,7 +151,12 @@ void main() {
         salva: false,
       );
 
-      final result = await useCase(sharePdfs: 'a,b', shareName: 'Importada');
+      final result = await useCase(
+        params: const PlaylistShareParams(
+          sharePdfs: 'a,b',
+          shareName: 'Importada',
+        ),
+      );
 
       expect(result.alreadyExisted, isFalse);
       final all = await playlistRepository.getAll();
@@ -138,7 +173,12 @@ void main() {
         );
         await playlistRepository.update(id, deletedAt: DateTime.now());
 
-        final result = await useCase(sharePdfs: 'a,b', shareName: 'Importada');
+        final result = await useCase(
+          params: const PlaylistShareParams(
+            sharePdfs: 'a,b',
+            shareName: 'Importada',
+          ),
+        );
 
         expect(result.alreadyExisted, isFalse);
       },
@@ -157,8 +197,10 @@ void main() {
       );
 
       final result = await useCase(
-        sharePdfs: 'a,b',
-        shareName: 'Importada',
+        params: const PlaylistShareParams(
+          sharePdfs: 'a,b',
+          shareName: 'Importada',
+        ),
         excludePlaylistId: id,
       );
 
@@ -170,10 +212,12 @@ void main() {
   group('shareitems (v2)', () {
     test('cria a playlist com entries na ordem intercalada', () async {
       final result = await useCase(
-        shareItems: 'p:pdf-a,a:aud-1,c:cif-1',
-        sharePdfs: 'pdf-a,cif-1',
-        shareAudios: 'aud-1',
-        shareName: 'Lista v2',
+        params: const PlaylistShareParams(
+          shareItems: 'p:pdf-a,a:aud-1,c:cif-1',
+          sharePdfs: 'pdf-a,cif-1',
+          shareAudios: 'aud-1',
+          shareName: 'Lista v2',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -191,10 +235,12 @@ void main() {
 
     test('shareitems vence os legados quando divergem', () async {
       final result = await useCase(
-        shareItems: 'a:aud-1,p:pdf-a',
-        sharePdfs: 'pdf-a',
-        shareAudios: 'aud-1',
-        shareName: 'Ordem v2',
+        params: const PlaylistShareParams(
+          shareItems: 'a:aud-1,p:pdf-a',
+          sharePdfs: 'pdf-a',
+          shareAudios: 'aud-1',
+          shareName: 'Ordem v2',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -205,9 +251,11 @@ void main() {
 
     test('shareitems inválido cai nos legados', () async {
       final result = await useCase(
-        shareItems: 'lixo-sem-prefixo',
-        sharePdfs: 'pdf-a',
-        shareName: 'Fallback',
+        params: const PlaylistShareParams(
+          shareItems: 'lixo-sem-prefixo',
+          sharePdfs: 'pdf-a',
+          shareName: 'Fallback',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -218,8 +266,10 @@ void main() {
 
     test('só áudio grava a lista inteira na face de áudio', () async {
       final result = await useCase(
-        shareItems: 'a:aud-1,a:aud-2',
-        shareName: 'Só áudio',
+        params: const PlaylistShareParams(
+          shareItems: 'a:aud-1,a:aud-2',
+          shareName: 'Só áudio',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -231,8 +281,10 @@ void main() {
 
     test('só cifra grava a lista na face de partituras', () async {
       final result = await useCase(
-        shareItems: 'c:cif-1',
-        shareName: 'Só cifra',
+        params: const PlaylistShareParams(
+          shareItems: 'c:cif-1',
+          shareName: 'Só cifra',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -243,7 +295,13 @@ void main() {
 
     test('lança InvalidSharePlaylistException se tudo vazio', () async {
       expect(
-        () => useCase(shareItems: '', sharePdfs: '', shareName: 'Nome'),
+        () => useCase(
+          params: const PlaylistShareParams(
+            shareItems: '',
+            sharePdfs: '',
+            shareName: 'Nome',
+          ),
+        ),
         throwsA(isA<InvalidSharePlaylistException>()),
       );
     });
@@ -252,10 +310,12 @@ void main() {
     // importada tem que repetir também — o link é a lista, não um conjunto.
     test('id repetido cria duas entradas', () async {
       final result = await useCase(
-        shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
-        sharePdfs: 'pdf-a,pdf-a',
-        shareAudios: 'aud-1',
-        shareName: 'Com repetição',
+        params: const PlaylistShareParams(
+          shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
+          sharePdfs: 'pdf-a,pdf-a',
+          shareAudios: 'aud-1',
+          shareName: 'Com repetição',
+        ),
       );
 
       final saved = await playlistRepository.getById(
@@ -267,6 +327,99 @@ void main() {
         PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
       ]);
       expect(saved.pdfIds, ['pdf-a', 'pdf-a']);
+    });
+  });
+
+  group('formato curto (shortIds)', () {
+    test('resolve shortId → pdfId na ordem, preservando repetição', () async {
+      resolverMap = {'0000': 'pdf-a', '1a2f': 'pdf-b'};
+      final result = await useCase(
+        params: const PlaylistShareParams(
+          shareName: 'Curta',
+          shortIds: ['1a2f', '0000', '1a2f'],
+        ),
+      );
+      final saved = await playlistRepository.getById(result.playlist.playlistId);
+      expect(saved?.pdfIds, ['pdf-b', 'pdf-a', 'pdf-b']);
+      expect(
+        saved?.entries.every((e) => e.kind == MaterialKind.pdf),
+        isTrue,
+        reason: 'o resolver só devolve PDFs PLPCG (D8)',
+      );
+    });
+
+    test('ignora shortId desconhecido e importa o resto', () async {
+      resolverMap = {'0000': 'pdf-a'};
+      final result = await useCase(
+        params: const PlaylistShareParams(shareName: 'X', shortIds: ['ffff', '0000']),
+      );
+      final saved = await playlistRepository.getById(result.playlist.playlistId);
+      expect(saved?.pdfIds, ['pdf-a']);
+    });
+
+    test('nenhum shortId conhecido → InvalidSharePlaylistException', () async {
+      resolverMap = {};
+      expect(
+        () => useCase(params: const PlaylistShareParams(shareName: 'X', shortIds: ['0000'])),
+        throwsA(isA<InvalidSharePlaylistException>()),
+      );
+    });
+
+    test('dedupe por conteúdo entre link curto e link longo da mesma lista', () async {
+      // Ids reais (Base64 do path, terminando em `.pdf`) — com um id fake
+      // como `'pdf-a'` o lado longo classificaria `unknown` (extensão não
+      // decodifica) enquanto o resolver do formato curto sempre devolve
+      // `MaterialKind.pdf` (#6), quebrando a dedupe por um artefato do fixture.
+      final pdfA = encodePdfId('ColAdultos/a.pdf');
+      final pdfB = encodePdfId('ColAdultos/b.pdf');
+      resolverMap = {'0000': pdfA, '1a2f': pdfB};
+      final longo = await useCase(
+        params: PlaylistShareParams(shareName: 'A', sharePdfs: '$pdfA,$pdfB'),
+      );
+      final curto = await useCase(
+        params: const PlaylistShareParams(shareName: 'B', shortIds: ['0000', '1a2f']),
+      );
+      expect(curto.alreadyExisted, isTrue);
+      expect(curto.playlist.playlistId, longo.playlist.playlistId);
+    });
+
+    test(
+      'shortIds vazio lança sem chamar o resolver (#4: hasMaterial cedo)',
+      () async {
+        var resolverCalled = false;
+        final useCaseSemMaterial = ImportSharedPlaylistFromUrl(
+          playlistRepository,
+          resolveShortIds: () async {
+            resolverCalled = true;
+            throw StateError('não deveria ser chamado');
+          },
+        );
+
+        await expectLater(
+          useCaseSemMaterial(
+            params: const PlaylistShareParams(
+              shareName: 'X',
+              shortIds: [],
+            ),
+          ),
+          throwsA(isA<InvalidSharePlaylistException>()),
+        );
+        expect(resolverCalled, isFalse);
+      },
+    );
+
+    test('resolver é aguardado (deep link antes do catálogo)', () async {
+      final completer = Completer<Map<String, String>>();
+      final lateUseCase = ImportSharedPlaylistFromUrl(
+        playlistRepository,
+        resolveShortIds: () => completer.future,
+      );
+      final future = lateUseCase(
+        params: const PlaylistShareParams(shareName: 'X', shortIds: ['0000']),
+      );
+      completer.complete({'0000': 'pdf-a'});
+      final result = await future;
+      expect(result.playlist.pdfIds, ['pdf-a']);
     });
   });
 }

@@ -30,6 +30,7 @@ class GenerateLeafletFromEntries {
   LeafletDocument call({
     required List<PlaylistEntry> entries,
     required DateTime now,
+    String? shareUrl,
   }) {
     if (entries.isEmpty) {
       throw const EmptyLeafletException();
@@ -53,7 +54,11 @@ class GenerateLeafletFromEntries {
       );
     }
 
-    return LeafletDocument(generatedAt: now, entries: leafletEntries);
+    return LeafletDocument(
+      generatedAt: now,
+      entries: leafletEntries,
+      shareUrl: shareUrl,
+    );
   }
 
   /// Cifra antes de louvor (mais específica — dividem o espaço de ids),

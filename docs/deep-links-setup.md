@@ -1,6 +1,6 @@
 # Deep Links — PLPCG Flutter
 
-Configuração de Universal Links (iOS) e App Links (Android) para import automático de playlists ao abrir URLs `https://plpcg.com/?sharepdfs=...&sharename=...`.
+Configuração de Universal Links (iOS) e App Links (Android) para import automático de playlists ao abrir URLs `https://plpcg.com/?sharepdfs=...&sharename=...` (formato legado) ou `https://plpcg.com/?s=...&n=...` (formato curto por `shortId`, spec short-id-share).
 
 **App (Fase 4.5):** `SyncDeepLinkState` + `DeepLinkListener` + `app_links`  
 **Servidor:** arquivos abaixo devem ser publicados no domínio `plpcg.com`.
@@ -49,8 +49,11 @@ Exemplo (substituir `TEAM_ID` pelo Apple Team ID e confirmar bundle ID):
 ### 3. Validação iOS
 
 ```bash
-# Simulador com app instalado
+# Simulador com app instalado (formato legado)
 xcrun simctl openurl booted "https://plpcg.com/?sharepdfs=TEST&sharename=Demo"
+
+# Formato curto (?s=...&n=...)
+xcrun simctl openurl booted "https://plpcg.com/?s=0000&n=Demo"
 
 # Scheme customizado (sem AASA)
 xcrun simctl openurl booted "plpcg:///?sharepdfs=TEST&sharename=Demo"
@@ -96,8 +99,10 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 ## Comportamento esperado no app
 
 1. OS entrega URI ao `app_links`
-2. `DeepLinkListener` detecta `sharepdfs` + `sharename`
-3. `SyncDeepLinkState` → `ImportSharedPlaylistFromUrl` (sem diálogo)
+2. `DeepLinkListener` detecta `sharepdfs` + `sharename` (legado) ou `s` + `n`
+   (formato curto por `shortId`)
+3. `SyncDeepLinkState` → `ImportSharedPlaylistFromUrl` (sem diálogo) — no
+   formato curto, aguarda o catálogo para resolver `shortId → pdfId`
 4. Carousel carregado + playlist persistida no Isar
 5. Navegação para `/` sem params de share + snackbar `playlistImported`
 

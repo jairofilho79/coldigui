@@ -404,4 +404,100 @@ void main() {
       expect(parseAudioIdsFromShareAudios(params.shareAudios), ['aud-1']);
     });
   });
+
+  group('formato curto (contrato ?s=&n=, espelhado no plpcjf)', () {
+    test('isShortId aceita 4–8 hex minúsculos e recusa o resto', () {
+      expect(isShortId('0000'), isTrue);
+      expect(isShortId('1a2f'), isTrue);
+      expect(isShortId('10000'), isTrue);
+      expect(isShortId('1A2F'), isFalse);
+      expect(isShortId('abc'), isFalse);
+      expect(isShortId('123456789'), isFalse);
+      expect(isShortId(0), isFalse);
+      expect(isShortId(null), isFalse);
+    });
+
+    test('encode emite minúsculo com "-", preserva ordem e repetição', () {
+      expect(encodeShortShareIds(['1a2f', '0000', '1a2f']), '1a2f-0000-1a2f');
+      expect(encodeShortShareIds(['00AB', 'zz', '']), '00ab');
+    });
+
+    test('decode normaliza maiúsculas e ignora tokens inválidos', () {
+      expect(decodeShortShareIds('00AB-zz--1a2f-123456789'), ['00ab', '1a2f']);
+      expect(decodeShortShareIds(''), isEmpty);
+    });
+
+    test('buildShortPlaylistShareLocation — vetor do contrato', () {
+      expect(
+        buildShortPlaylistShareLocation(
+          shortIds: const ['1a2f', '0000'],
+          shareName: 'Culto de domingo',
+        ),
+        '/?s=1a2f-0000&n=Culto%20de%20domingo',
+      );
+      expect(
+        buildShortPlaylistShareUrl(
+          origin: 'https://plpcg.com/',
+          shortIds: const ['0000'],
+          shareName: 'x',
+        ),
+        'https://plpcg.com/?s=0000&n=x',
+      );
+    });
+
+    test('build lança com lista vazia ou nome em branco', () {
+      expect(
+        () => buildShortPlaylistShareLocation(shortIds: const [], shareName: 'x'),
+        throwsArgumentError,
+      );
+      expect(
+        () => buildShortPlaylistShareLocation(shortIds: const ['0000'], shareName: ' '),
+        throwsArgumentError,
+      );
+    });
+
+    test('parse: s+n vence os params legados na mesma URL', () {
+      final params = parsePlaylistShareParams(
+        Uri.parse(
+          'https://plpcg.com/?s=0000-1A2F-zzzz&n=Culto&sharepdfs=lixo&sharename=outro',
+        ),
+      );
+      expect(params, isNotNull);
+      expect(params!.isShortFormat, isTrue);
+      expect(params.shortIds, ['0000', '1a2f']);
+      expect(params.shareName, 'Culto');
+      expect(params.hasMaterial, isTrue);
+      expect(params.entries, isEmpty, reason: 'curto exige o catálogo para resolver');
+    });
+
+    test('parse: s sem n não é share curto (cai no fluxo por sharename)', () {
+      expect(parsePlaylistShareParams(Uri.parse('/?s=0000')), isNull);
+      final legado = parsePlaylistShareParams(
+        Uri.parse('/?s=0000&sharename=X&sharepdfs=a'),
+      );
+      expect(legado!.isShortFormat, isFalse);
+      expect(legado.entries.map((e) => e.id), ['a']);
+    });
+
+    test('parse: s só com tokens inválidos → share curto sem material', () {
+      final params = parsePlaylistShareParams(Uri.parse('/?s=zz-&n=X'));
+      expect(params!.isShortFormat, isTrue);
+      expect(params.hasMaterial, isFalse);
+    });
+
+    test('strip remove s e n e preserva o resto', () {
+      final stripped = stripPlaylistShareParams(
+        Uri.parse('/?s=0000&n=Culto&utm_source=wa'),
+      );
+      expect(stripped.queryParameters, {'utm_source': 'wa'});
+    });
+
+    test('extractShareParamsFromUserInput aceita link curto colado', () {
+      final params = extractShareParamsFromUserInput(
+        'abre isto: https://plpcg.com/?s=1a2f-0000&n=Culto',
+      );
+      expect(params!.shortIds, ['1a2f', '0000']);
+      expect(params.shareName, 'Culto');
+    });
+  });
 }

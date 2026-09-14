@@ -23,6 +23,7 @@ class Louvor {
     required this.searchCompactContent,
     this.source = LouvorDataSource.plpcg,
     this.materialKindId,
+    this.shortId,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -61,6 +62,11 @@ class Louvor {
   /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
   final String? materialKindId;
 
+  /// Id curto de share (spec short-id-share D1): hex minúsculo como string,
+  /// atribuído pelo admin, imutável. `null` para Coldigom e para material
+  /// ainda sem atribuição — aí o link de share cai no formato longo.
+  final String? shortId;
+
   /// `groupId` efetivo (manifest ou calculado).
   String get effectiveGroupId =>
       LouvorGroupId.effective(groupId: groupId, numero: numero, nome: nome);
@@ -78,6 +84,7 @@ class Louvor {
     String groupId = '',
     LouvorDataSource source = LouvorDataSource.plpcg,
     String? materialKindId,
+    String? shortId,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -102,6 +109,7 @@ class Louvor {
       searchCompactContent: searchCompactContent,
       source: source,
       materialKindId: materialKindId,
+      shortId: shortId,
     );
   }
 }

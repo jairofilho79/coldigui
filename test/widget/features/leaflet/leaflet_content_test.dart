@@ -4,6 +4,7 @@ import 'package:coldigui/features/leaflet/presentation/widgets/leaflet_content.d
 import 'package:coldigui/features/leaflet/presentation/widgets/leaflet_content_labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 void main() {
   final generatedAt = DateTime(2026, 6, 11);
@@ -20,6 +21,7 @@ void main() {
     columnName: 'NOME DO HINO',
     footerPeace: 'A PAZ DO SENHOR JESUS CRISTO',
     footerGreeting: 'Bom culto!',
+    shareQrCaption: 'Abrir lista no PLPCG',
   );
 
   testWidgets('renderiza cabeçalho, colunas, linhas e rodapé PLPCG',
@@ -47,5 +49,33 @@ void main() {
     expect(find.text('OLHAI PARA O ALTO'), findsOneWidget);
     expect(find.text('A PAZ DO SENHOR JESUS CRISTO'), findsOneWidget);
     expect(find.text('Bom culto!'), findsOneWidget);
+  });
+
+  testWidgets('sem shareUrl não desenha QR', (tester) async {
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: LeafletContent(document: document, labels: labels),
+    ))));
+    expect(find.byType(QrImageView), findsNothing);
+    expect(find.text('Abrir lista no PLPCG'), findsNothing);
+  });
+
+  testWidgets('com shareUrl desenha QR, legenda e o link', (tester) async {
+    final comQr = LeafletDocument(
+      generatedAt: generatedAt,
+      entries: document.entries,
+      shareUrl: 'https://plpcg.com/?s=1a2f-0000&n=Culto',
+    );
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
+      child: LeafletContent(document: comQr, labels: labels),
+    ))));
+    final qr = tester.widget<QrImageView>(find.byType(QrImageView));
+    // `QrImageView.data` não tem getter público (qr_flutter 4.1.0);
+    // `semanticsLabel` carrega o mesmo link (ver `_ShareQrBand`).
+    expect(qr.semanticsLabel, 'https://plpcg.com/?s=1a2f-0000&n=Culto');
+    expect(find.text('Abrir lista no PLPCG'), findsOneWidget);
+    // O nome já aparece impresso no folheto — o link sob o QR mostra só
+    // origem + `s`, sem `&n=…` (#7).
+    expect(find.text('plpcg.com/?s=1a2f-0000'), findsOneWidget);
+    expect(find.text('plpcg.com/?s=1a2f-0000&n=Culto'), findsNothing);
   });
 }

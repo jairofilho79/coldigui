@@ -8,15 +8,20 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Louvor _louvor(String pdfId, {String nome = 'Louvor', String numero = '001'}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: '001.pdf',
-      pdfId: pdfId,
-    );
+Louvor _louvor(
+  String pdfId, {
+  String nome = 'Louvor',
+  String numero = '001',
+  String? shortId,
+}) => Louvor.fromManifest(
+  nome: nome,
+  numero: numero,
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  pdf: '001.pdf',
+  pdfId: pdfId,
+  shortId: shortId,
+);
 
 class _TestRemote extends CatalogRemoteDatasource {
   _TestRemote({
@@ -336,6 +341,37 @@ void main() {
       expect(outcome.checksum, 'novo');
       expect(await repo.isCatalogStale(), isFalse);
     });
+
+    test(
+      'manifest com shortId novo (cache sem shortId) substitui o cache',
+      () async {
+        final remote = _TestRemote(
+          louvores: [_louvor('same-1', shortId: '0000')],
+          checksumResult: const ManifestChecksumResult(
+            ManifestChecksumStatus.changed,
+            checksum: 'novo',
+          ),
+        );
+        final local = _TestLocal()..store.add(_louvor('same-1'));
+        final prefs = await SharedPreferences.getInstance();
+
+        final repo = _repo(remote: remote, local: local, prefs: prefs);
+        final cached = await repo.loadCachedLouvores();
+
+        final outcome = await repo.syncManifest(
+          cached: cached,
+          knownChecksum: 'antigo',
+        );
+
+        expect(
+          outcome.cacheReplaced,
+          isTrue,
+          reason: 'shortId mudou de null para "0000" — não é o mesmo manifest',
+        );
+        expect(local.saveCalls, 1);
+        expect(local.store.single.shortId, '0000');
+      },
+    );
 
     test('(d) 304 no manifest não grava nada', () async {
       final remote = _TestRemote(

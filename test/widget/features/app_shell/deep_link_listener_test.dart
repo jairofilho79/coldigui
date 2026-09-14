@@ -87,7 +87,10 @@ void main() {
     final playlistRepository = PlaylistRepositoryImpl(
       PlaylistLocalDatasource(isar),
     );
-    importUseCase = ImportSharedPlaylistFromUrl(playlistRepository);
+    importUseCase = ImportSharedPlaylistFromUrl(
+      playlistRepository,
+      resolveShortIds: () async => const {},
+    );
   });
 
   testWidgets('deep link success navega para home e exibe snackbar', (

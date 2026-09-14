@@ -214,4 +214,62 @@ void main() {
     expect(store.purgeLegacyCalls, 1);
     isar.close(deleteFromDisk: true);
   });
+
+  test(
+    'v4 remove o checksum salvo ao migrar de v3 (força re-download do corpo)',
+    () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(StorageKeys.offlineStorageVersion, 3);
+      await prefs.setString(StorageKeys.manifestChecksum, 'checksum-antigo');
+
+      final store = _TrackingPdfStoragePort();
+      final isar = openOfflineTestIsar(
+        await Directory.systemTemp.createTemp('migrate_v4_'),
+      );
+      final useCase = MigrateOfflineStorage(
+        prefs,
+        OfflinePdfLocalDatasource(isar),
+        OfflineAvailableStore(prefs),
+        store,
+      );
+
+      await useCase();
+
+      expect(
+        prefs.getInt(StorageKeys.offlineStorageVersion),
+        OfflineConfig.offlineStorageVersion,
+      );
+      expect(prefs.getString(StorageKeys.manifestChecksum), isNull);
+      isar.close(deleteFromDisk: true);
+    },
+  );
+
+  test('v4 já migrado mantém o checksum intacto (no-op)', () async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      StorageKeys.offlineStorageVersion,
+      OfflineConfig.offlineStorageVersion,
+    );
+    await prefs.setString(StorageKeys.manifestChecksum, 'checksum-atual');
+
+    final store = _TrackingPdfStoragePort();
+    final isar = openOfflineTestIsar(
+      await Directory.systemTemp.createTemp('migrate_v4_noop_'),
+    );
+    final useCase = MigrateOfflineStorage(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      OfflineAvailableStore(prefs),
+      store,
+    );
+
+    await useCase();
+
+    expect(
+      prefs.getInt(StorageKeys.offlineStorageVersion),
+      OfflineConfig.offlineStorageVersion,
+    );
+    expect(prefs.getString(StorageKeys.manifestChecksum), 'checksum-atual');
+    isar.close(deleteFromDisk: true);
+  });
 }

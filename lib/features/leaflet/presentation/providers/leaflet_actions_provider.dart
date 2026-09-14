@@ -138,10 +138,12 @@ Future<LeafletDocument> resolveLeafletDocument(
   Ref ref, {
   required List<PlaylistEntry> entries,
   required bool fromCarousel,
+  String? shareUrl,
 }) async {
   return ref.read(generateLeafletFromEntriesProvider)(
     entries: entries,
     now: DateTime.now(),
+    shareUrl: shareUrl,
   );
 }
 

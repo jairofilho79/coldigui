@@ -10,12 +10,12 @@ import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
+import '../../domain/entities/playlist_share_link.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
-import '../widgets/playlist_share_whatsapp_step_dialog.dart';
 
 /// Callback injetável para testes — espelha [captureLeafletPngBytes].
 typedef CaptureWidgetToPngFn = Future<List<int>> Function(
@@ -30,7 +30,7 @@ typedef ShareXFilesFn = Future<void> Function(
   Rect? sharePositionOrigin,
 });
 
-/// Orquestra os 4 modos de compartilhamento (UC-07/UC-08).
+/// Orquestra os 3 modos: link, folheto, folheto+link.
 class PlaylistShareActionsNotifier extends Notifier<void> {
   @override
   void build() {}
@@ -38,15 +38,10 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Executa [option] para [shareContext].
   ///
   /// [sharePositionOrigin] deve ser capturado antes de qualquer `await`.
-  /// Retorna `false` em falha ou cancelamento antes do segundo passo WhatsApp.
-  ///
-  /// O próprio provider mostra o snackbar de falha (mensagem específica para
-  /// [EmptyLeafletException], genérica para as demais exceções) antes de
-  /// retornar `false` — quem chama **não deve** mostrar outro snackbar em
-  /// cima do retorno `false`, porque esse retorno também cobre o
-  /// cancelamento do diálogo de confirmação do WhatsApp (usuário desistiu,
-  /// não é erro) e um segundo snackbar duplicaria o feedback dos casos de
-  /// falha real.
+  /// Retorna `false` em falha — o próprio provider mostra o snackbar
+  /// (mensagem específica para [EmptyLeafletException], genérica para as
+  /// demais exceções) antes de retornar; quem chama **não deve** mostrar
+  /// outro snackbar em cima do retorno `false`.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -55,14 +50,11 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn? share,
     ShareXFilesFn? shareXFiles,
     CaptureWidgetToPngFn? capture,
-    Future<bool> Function(BuildContext context)? showWhatsAppStepDialog,
   }) async {
     playlistShareDebugClearLastFailure();
     final l10n = AppLocalizations.of(context)!;
     final shareTextFn = share ?? _defaultShare;
     final shareFilesFn = shareXFiles ?? _defaultShareXFiles;
-    final whatsAppDialogFn =
-        showWhatsAppStepDialog ?? showPlaylistShareWhatsAppStepDialog;
 
     try {
       switch (option) {
@@ -88,17 +80,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
             l10n,
             shareFilesFn,
             sharePositionOrigin,
-            capture: capture,
-          );
-        case PlaylistShareOption.linkAndLeafletWhatsApp:
-          return await _shareWhatsAppTwoStep(
-            context,
-            shareContext,
-            l10n,
-            shareTextFn,
-            shareFilesFn,
-            sharePositionOrigin,
-            whatsAppDialogFn,
             capture: capture,
           );
       }
@@ -135,9 +116,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
   ) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final link = await _generateUrl(shareContext.playlistId);
     await shareTextFn(
-      url,
+      link.url,
       subject: shareContext.nome,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -152,6 +133,22 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
+    // QR só com link curto (D10). Lista sem registro/sem material no
+    // repositório não impede o folheto: fica sem QR.
+    String? qrUrl;
+    try {
+      // Folheto puro não precisa do encurtador: o formato do QR (curto/longo)
+      // já está decidido localmente por `PlaylistShareLink.isShort`, então a
+      // chamada de rede ao `/l/` seria desperdiçada aqui.
+      final link = await _generateUrl(
+        shareContext.playlistId,
+        allowShortener: false,
+      );
+      if (link.isShort) qrUrl = link.url;
+    } on Object catch (error, stackTrace) {
+      playlistShareDebugLogError('link para QR', error, stackTrace);
+      qrUrl = null;
+    }
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
     final xFile = await _captureLeafletXFile(
@@ -159,6 +156,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
+      shareUrl: qrUrl,
     );
     if (!context.mounted) return false;
 
@@ -178,7 +176,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final link = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
 
@@ -187,12 +185,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
+      shareUrl: link.isShort ? link.url : null,
     );
     if (!context.mounted) return false;
 
     final message = l10n.playlistShareLinkWithLeafletMessage(
       shareContext.nome,
-      url,
+      link.url,
     );
     await shareFilesFn(
       [xFile],
@@ -203,54 +202,19 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return true;
   }
 
-  Future<bool> _shareWhatsAppTwoStep(
-    BuildContext context,
-    PlaylistShareContext shareContext,
-    AppLocalizations l10n,
-    ShareFn shareTextFn,
-    ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin,
-    Future<bool> Function(BuildContext context) whatsAppDialogFn, {
-    CaptureWidgetToPngFn? capture,
-  }) async {
-    if (!context.mounted) return false;
-    final overlay = Overlay.of(context);
-    final xFile = await _captureLeafletXFile(
-      overlay,
-      shareContext,
-      l10n,
-      capture: capture,
-    );
-    if (!context.mounted) return false;
-
-    await shareFilesFn(
-      [xFile],
-      subject: l10n.leafletShareSubject,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    if (!context.mounted) return false;
-
-    final continueShare = await whatsAppDialogFn(context);
-    if (!continueShare || !context.mounted) return false;
-
-    final url = await _generateUrl(shareContext.playlistId);
-    if (!context.mounted) return false;
-
-    await shareTextFn(
-      url,
-      subject: shareContext.nome,
-      sharePositionOrigin: sharePositionOrigin,
-    );
-    return true;
-  }
-
-  Future<String> _generateUrl(String playlistId) {
+  Future<PlaylistShareLink> _generateUrl(
+    String playlistId, {
+    bool allowShortener = true,
+  }) {
     // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
     // longa, que não precisa de conta para ser resolvida no futuro.
+    // [allowShortener] deixa o chamador recusar o `/l/` mesmo autenticado —
+    // o formato curto (`?s=…`) é decidido localmente por `PlaylistShareLink
+    // .isShort`, então o folheto puro não precisa da chamada de rede.
     final authed = ref.read(authStateProvider).asData?.value != null;
     return ref.read(generatePlaylistShareUrlProvider)(
       playlistId: playlistId,
-      short: authed,
+      short: authed && allowShortener,
     );
   }
 
@@ -259,11 +223,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n, {
     CaptureWidgetToPngFn? capture,
+    String? shareUrl,
   }) async {
     final document = await resolveLeafletDocument(
       ref,
       entries: shareContext.entries,
       fromCarousel: shareContext.fromCarousel,
+      shareUrl: shareUrl,
     );
     final labels = LeafletContentLabels.fromL10n(l10n, document.generatedAt);
     leafletDebugLog(

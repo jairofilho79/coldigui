@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -93,6 +94,8 @@ class LeafletContent extends StatelessWidget {
                     entry: document.entries[i],
                     shaded: i.isEven,
                   ),
+                if (document.shareUrl case final shareUrl?)
+                  _ShareQrBand(shareUrl: shareUrl, labels: labels),
                 _FooterBand(labels: labels),
               ],
             ),
@@ -246,6 +249,86 @@ class _EntryRow extends StatelessWidget {
           color: AppColors.textDark,
           decoration: TextDecoration.none,
         ),
+      ),
+    );
+  }
+}
+
+/// Rodapé com QR do link curto (spec short-id-share D10). Só existe quando
+/// [LeafletDocument.shareUrl] veio preenchido — link longo não vira QR.
+class _ShareQrBand extends StatelessWidget {
+  const _ShareQrBand({required this.shareUrl, required this.labels});
+
+  final String shareUrl;
+  final LeafletContentLabels labels;
+
+  static const _qrSize = 132.0;
+
+  /// Link sem esquema e sem o `&n=…` (nome já impresso no folheto) — só
+  /// origem + `s`, para caber numa linha legível sob o QR
+  /// (ex.: `plpcg.com/?s=1a2f-0000`).
+  String get _displayUrl {
+    final withoutScheme = shareUrl.replaceFirst(RegExp(r'^https?://'), '');
+    final nameParamIndex = withoutScheme.indexOf('&n=');
+    return nameParamIndex == -1
+        ? withoutScheme
+        : withoutScheme.substring(0, nameParamIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: LeafletContent._insetH,
+        vertical: LeafletContent._footerInsetV,
+      ),
+      decoration: LeafletContent._sectionDivider.copyWith(
+        color: AppColors.background,
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(LeafletContent._borderRadius),
+              border: Border.all(color: AppColors.gold, width: 1),
+            ),
+            child: QrImageView(
+              data: shareUrl,
+              version: QrVersions.auto,
+              errorCorrectionLevel: QrErrorCorrectLevel.M,
+              size: _qrSize,
+              gapless: true,
+              backgroundColor: Colors.white,
+              // `QrImageView.data` não tem getter público (qr_flutter
+              // 4.1.0) — o rótulo semântico dobra como leitor de tela e
+              // como ponto de asserção em teste.
+              semanticsLabel: shareUrl,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            labels.shareQrCaption,
+            textAlign: TextAlign.center,
+            style: _leafletGoldStyle(
+              fontSize: LeafletContent._fontColumnLabel,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _displayUrl,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: LeafletContent._garamond,
+              fontSize: LeafletContent._fontDate,
+              color: AppColors.placeholder.withValues(alpha: 0.95),
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ],
       ),
     );
   }

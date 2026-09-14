@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -73,8 +74,10 @@ void main() {
     final imported = await c
         .read(playlistsProvider.notifier)
         .importSharedFromUrl(
-          shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
-          shareName: 'Importada',
+          params: const PlaylistShareParams(
+            shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
+            shareName: 'Importada',
+          ),
         );
     await _flushAsync();
 
@@ -107,11 +110,49 @@ void main() {
 
     final imported = await c
         .read(playlistsProvider.notifier)
-        .importSharedFromUrl(sharePdfs: 'pdf-a', shareName: 'Reimportada');
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            sharePdfs: 'pdf-a',
+            shareName: 'Reimportada',
+          ),
+        );
 
     expect(imported, isNotNull);
     expect(imported, isNot('p1'));
     final importedPlaylist = await repository.getById(imported!);
     expect(importedPlaylist?.nome, 'Reimportada');
   });
+
+  // Fix round final (#3, Important): o resolver de shortId espera o catálogo
+  // — se ele falhar (manifest indisponível), o import não pode derrubar quem
+  // chamou. A tela é quem trata o retorno `null`.
+  test(
+    'catálogo indisponível ao resolver shortId retorna null sem lançar',
+    () async {
+      final c = ProviderContainer(
+        overrides: [
+          ...standardTestOverrides(prefs: prefs),
+          playlistRepositoryProvider.overrideWithValue(repository),
+          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+          shortIdResolverProvider.overrideWithValue(
+            () async => throw StateError('catálogo indisponível'),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(playlistsProvider);
+      await _flushAsync();
+
+      final imported = await c
+          .read(playlistsProvider.notifier)
+          .importSharedFromUrl(
+            params: const PlaylistShareParams(
+              shareName: 'X',
+              shortIds: ['0000'],
+            ),
+          );
+
+      expect(imported, isNull);
+    },
+  );
 }
