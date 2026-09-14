@@ -8,6 +8,9 @@ final class LiveDisconnect {
 /// Uma conexão aberta com a sala.
 abstract class LiveConnection {
   /// Mensagens de texto do servidor (JSON dos frames, ou `pong`).
+  ///
+  /// Stream de assinatura única: aceita **um só** `listen`; frames chegados
+  /// antes desse primeiro listener ficam em buffer até ele assinar.
   Stream<String> get messages;
 
   void send(String text);

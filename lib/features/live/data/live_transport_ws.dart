@@ -25,11 +25,11 @@ class WebSocketLiveTransport implements LiveTransport {
 
 class _WsConnection implements LiveConnection {
   _WsConnection(this._channel) {
-    _messages = _channel.stream
-        .map((data) => data.toString())
-        .asBroadcastStream();
-    _messages.listen(
-      null,
+    // Assinatura única, com buffer: o `_channel.stream` só é ouvido aqui,
+    // uma vez; qualquer frame que chegue antes de alguém assinar `messages`
+    // fica retido no `StreamController` até o primeiro (e único) `listen`.
+    _sub = _channel.stream.listen(
+      (data) => _out.add(data.toString()),
       onError: (_) => _finish(),
       onDone: _finish,
       cancelOnError: false,
@@ -37,24 +37,31 @@ class _WsConnection implements LiveConnection {
   }
 
   final WebSocketChannel _channel;
-  late final Stream<String> _messages;
+  final _out = StreamController<String>();
+  late final StreamSubscription<void> _sub;
   final _done = Completer<LiveDisconnect>();
+  bool _closed = false;
 
   void _finish() {
-    if (_done.isCompleted) return;
-    _done.complete(
-      LiveDisconnect(code: _channel.closeCode, reason: _channel.closeReason),
-    );
+    if (!_done.isCompleted) {
+      _done.complete(
+        LiveDisconnect(code: _channel.closeCode, reason: _channel.closeReason),
+      );
+    }
+    if (!_out.isClosed) _out.close();
+    unawaited(_sub.cancel());
   }
 
   @override
-  Stream<String> get messages => _messages;
+  Stream<String> get messages => _out.stream;
 
   @override
   void send(String text) => _channel.sink.add(text);
 
   @override
   Future<void> close({int code = 1000, String? reason}) async {
+    if (_closed || _done.isCompleted) return;
+    _closed = true;
     await _channel.sink.close(code, reason);
     _finish();
   }
