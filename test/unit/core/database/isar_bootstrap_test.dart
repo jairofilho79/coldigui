@@ -7,6 +7,7 @@ import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/core/database/collections/gesture_dictionary_cache.dart';
 import 'package:coldigui/core/database/collections/gesture_document_cache.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
+import 'package:coldigui/core/database/collections/offline_audio_index.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_app_schemas.dart';
@@ -36,13 +37,14 @@ void main() {
     isar = await openAppIsar(name: instanceName, directory: tempDir!.path);
 
     expect(isar!.isOpen, isTrue);
-    expect(kAppIsarSchemas.length, 9);
+    expect(kAppIsarSchemas.length, 10);
 
     isar!.write((isar) {
       expect(isar.louvorCaches, isNotNull);
       expect(isar.carouselEntrys, isNotNull);
       expect(isar.playlists, isNotNull);
       expect(isar.offlinePdfIndexs, isNotNull);
+      expect(isar.offlineAudioIndexs, isNotNull);
       expect(isar.audioFlags, isNotNull);
       expect(isar.chordContentCaches, isNotNull);
       expect(isar.gestureDocumentCaches, isNotNull);
