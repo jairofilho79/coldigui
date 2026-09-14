@@ -1,7 +1,8 @@
-import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
@@ -12,6 +13,7 @@ import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.da
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
 import 'package:coldigui/features/offline/presentation/providers/material_availability_map_provider.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +64,25 @@ const _lyrics = LyricsMaterial(
   numero: '692',
 );
 
+/// Registra cada `addToActive` do sheet — o `+` continua a chamar o editor
+/// mesmo com a linha desabilitada (O14: só o `onTap` do corpo é bloqueado).
+class _RecordingActiveEditor extends ActivePlaylistEditor {
+  final added = <({String id, MaterialKind? kind, bool allowDuplicate})>[];
+
+  @override
+  List<PlaylistEntry>? build() => null;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    added.add((id: materialId, kind: kind, allowDuplicate: allowDuplicate));
+    return AddToActiveOutcome.added;
+  }
+}
+
 class _OpenSpy extends OpenMaterial {
   final opened = <CatalogMaterial>[];
   @override
@@ -82,8 +103,13 @@ LouvorGroup _group() => LouvorGroup.fromLouvores(
   lyricsByGroupId: const {'p1': _lyrics},
 ).single;
 
-Future<_OpenSpy> _pumpSheet(WidgetTester tester, {required bool online}) async {
-  tester.view.physicalSize = const Size(800, 1600);
+Future<_OpenSpy> _pumpSheet(
+  WidgetTester tester, {
+  required bool online,
+  ActivePlaylistEditor Function()? editor,
+  Size viewSize = const Size(800, 1600),
+}) async {
+  tester.view.physicalSize = viewSize;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   final spy = _OpenSpy();
@@ -97,6 +123,7 @@ Future<_OpenSpy> _pumpSheet(WidgetTester tester, {required bool online}) async {
         materialAvailabilityMapProvider.overrideWithValue({
           _pdfDownloaded: PdfOfflineAvailability.persistentOffline,
         }),
+        if (editor != null) activePlaylistEditorProvider.overrideWith(editor),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -130,7 +157,8 @@ void main() {
   testWidgets(
     'offline: baixado ativo, não baixado desabilitado com subtítulo, + continua ativo',
     (tester) async {
-      final spy = await _pumpSheet(tester, online: false);
+      final editor = _RecordingActiveEditor();
+      final spy = await _pumpSheet(tester, online: false, editor: () => editor);
 
       expect(
         find.text('Sem ligação · só o que está no aparelho abre'),
@@ -146,6 +174,19 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // O14: o `+` continua a funcionar num tile desabilitado — só o toque
+      // no corpo da linha (abrir o material) é bloqueado.
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'Partitura'),
+          matching: find.byType(CarouselLouvorAddButton),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(editor.added, [
+        (id: _pdfMissing, kind: MaterialKind.pdf, allowDuplicate: false),
+      ]);
 
       await tester.tap(find.widgetWithText(ListTile, 'Partitura'));
       await tester.pumpAndSettle();
@@ -179,5 +220,19 @@ void main() {
     );
     expect(_tile(tester, 'Partitura').enabled, isTrue);
     expect(find.text('Não baixado · sem ligação'), findsNothing);
+  });
+
+  testWidgets('offline a 400 px: banner + tile desabilitado sem overflow', (
+    tester,
+  ) async {
+    await _pumpSheet(tester, online: false, viewSize: const Size(400, 1600));
+
+    expect(
+      find.text('Sem ligação · só o que está no aparelho abre'),
+      findsOneWidget,
+    );
+    expect(_tile(tester, 'Partitura').enabled, isFalse);
+    expect(find.text('Não baixado · sem ligação'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
