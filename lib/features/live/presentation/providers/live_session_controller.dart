@@ -109,7 +109,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
         _reconnectTimer?.cancel();
       case AppLifecycleState.resumed:
         _paused = false;
-        if (state.phase == LivePhase.reconnecting) {
+        if (_shouldReconnectNow()) {
           _reconnectNow();
         } else if (state.phase == LivePhase.connected) {
           _probe();
@@ -120,12 +120,18 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     }
   }
 
-  /// Evento de conectividade: online + `reconnecting` → religa já.
+  /// Evento de conectividade: online + `reconnecting`/`joining` parado → religa já.
   void onConnectivity(bool online) {
-    if (online && !_paused && state.phase == LivePhase.reconnecting) {
-      _reconnectNow();
-    }
+    if (online && !_paused && _shouldReconnectNow()) _reconnectNow();
   }
+
+  /// `reconnecting` sempre religa; `joining` sem `_doConnect` em voo é um
+  /// handshake que falhou enquanto pausado — `_scheduleReconnect` não armou
+  /// timer nenhum (§ paused), então é `resumed`/conectividade quem tenta de
+  /// novo.
+  bool _shouldReconnectNow() =>
+      state.phase == LivePhase.reconnecting ||
+      (state.phase == LivePhase.joining && _connecting == null);
 
   // ---- conexão -----------------------------------------------------------
 
@@ -255,18 +261,31 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   void _probe() {
     final conn = _conn;
     if (conn == null) return;
+    // Presa à conexão que recebeu o `ping`: uma geração nova (reconexão
+    // no meio da espera) invalida esta prova — não pode derrubar a conexão
+    // saudável que já a substituiu.
+    final gen = _gen;
     conn.send('ping');
     _probeTimer?.cancel();
     _probeTimer = Timer(kLivePingProbeTimeout, () {
-      if (!ref.mounted || state.phase != LivePhase.connected) return;
+      if (gen != _gen || !ref.mounted || state.phase != LivePhase.connected) {
+        return;
+      }
       _teardownConnection(closeCode: 1001);
       state = state.copyWith(phase: LivePhase.reconnecting);
-      _reconnectNow();
+      // Em segundo plano `_reconnectNow` fica para o próximo `resumed`
+      // (spec: nunca religar em `paused`/`detached`).
+      if (!_paused) _reconnectNow();
     });
   }
 
   void _teardownConnection({required int closeCode}) {
     _gen++;
+    // Uma geração nova invalida qualquer `_doConnect` em voo: sem isto, o
+    // `join` seguinte a um `leave()` no meio do handshake devolvia o
+    // `Future` velho (via `_connect`) e nada religava quando ele terminasse
+    // (fechando a própria conexão pela checagem de geração, sem reconectar).
+    _connecting = null;
     unawaited(_sub?.cancel());
     _sub = null;
     final conn = _conn;
@@ -394,7 +413,14 @@ class LiveSessionController extends Notifier<LiveSessionState> {
         return;
       }
       final location = await ref.read(liveFocusResolverProvider)(key);
-      if (location == null || !ref.mounted || !state.isFollowing) return;
+      // Depois do `await` o gestor pode já ter focado outra coisa — quem
+      // resolveu por último é quem navega.
+      if (location == null ||
+          !ref.mounted ||
+          !state.isFollowing ||
+          _leaderFocusKey != key) {
+        return;
+      }
       ref.read(liveNavigatorProvider)(location);
     } on Object catch (e, stack) {
       _log.error('não foi possível seguir o foco $key', e, stack);

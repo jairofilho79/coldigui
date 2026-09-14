@@ -18,13 +18,18 @@ final liveTransportProvider = Provider<LiveTransport>(
 );
 
 /// `wss://<host de PLPCG_API_BASE_URL>/api/live/<code>/ws`.
+///
+/// Monta o `Uri` do zero — `Uri.replace(query: null)` **preserva** a query
+/// original (`null` significa "sem mudança", não "remover"), e
+/// `PLPCG_API_BASE_URL` não devia ter query nenhuma na sala ao vivo.
 final liveWsUriProvider = Provider<Uri Function(String code)>((ref) {
   return (code) {
     final base = Uri.parse(AppConfig.apiBaseUrl);
-    return base.replace(
+    return Uri(
       scheme: base.scheme == 'http' ? 'ws' : 'wss',
+      host: base.host,
+      port: base.hasPort ? base.port : null,
       path: '/api/live/$code/ws',
-      query: null,
     );
   };
 });

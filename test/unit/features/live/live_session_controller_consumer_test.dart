@@ -246,6 +246,41 @@ void main() {
     expect(state().phase, LivePhase.joining);
   });
 
+  test(
+    'join de outra sala durante um handshake em voo não fica preso em joining',
+    () async {
+      final gate = transport.holdNext();
+      final firstJoin = controller().join(code);
+      // `connect()` da primeira sala está pendurado no gate — o handshake
+      // nunca resolve sozinho.
+      await Future<void>.delayed(Duration.zero);
+      expect(state().phase, LivePhase.joining);
+      expect(state().code, code);
+      expect(transport.attempts, 1);
+      expect(transport.connections, isEmpty);
+
+      await controller().join('abcdefg');
+      expect(transport.attempts, 2);
+      expect(state().code, 'abcdefg');
+      expect(state().phase, LivePhase.joining);
+      expect(transport.connections.length, 1); // só a de 'abcdefg' resolveu
+
+      // Libera o handshake velho: o `_doConnect` original acorda, vê que a
+      // geração mudou e fecha a conexão que acabou de abrir, sem religar —
+      // sem o fix, `_connecting` continuaria apontando para esse `Future`
+      // velho e o `join` de cima teria voltado sem religar nada.
+      gate.complete();
+      await firstJoin;
+
+      expect(transport.connections.length, 2);
+      final stale = transport.connections.last;
+      expect(stale.uri.toString(), 'wss://test/api/live/$code/ws');
+      expect(stale.closedWith, 1000);
+      expect(state().code, 'abcdefg');
+      expect(state().phase, LivePhase.joining);
+    },
+  );
+
   test('foco: chave do gestor que não existe na lista não navega', () async {
     await controller().join(code);
     transport.last.emit(roomFrame(snapshot: {..._snap, 'focusKey': 'nope'}));

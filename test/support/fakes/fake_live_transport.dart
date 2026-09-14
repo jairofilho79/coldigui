@@ -53,15 +53,30 @@ class FakeLiveTransport implements LiveTransport {
   final List<FakeLiveConnection> connections = [];
   int _failNext = 0;
   int attempts = 0;
+  Completer<void>? _gate;
 
   /// As próximas [n] tentativas de `connect` lançam (handshake recusado).
   void failNext(int n) => _failNext = n;
+
+  /// A **próxima** chamada a `connect` fica pendurada até o teste completar
+  /// o `Completer` devolvido — simula um handshake em voo (ex.: `leave()`
+  /// chamado no meio de um `join`).
+  Completer<void> holdNext() {
+    final gate = Completer<void>();
+    _gate = gate;
+    return gate;
+  }
 
   FakeLiveConnection get last => connections.last;
 
   @override
   Future<LiveConnection> connect(Uri uri) async {
     attempts++;
+    final gate = _gate;
+    if (gate != null) {
+      _gate = null;
+      await gate.future;
+    }
     if (_failNext > 0) {
       _failNext--;
       throw StateError('handshake recusado');
