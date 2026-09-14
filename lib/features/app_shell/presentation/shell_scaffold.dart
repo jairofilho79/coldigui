@@ -15,6 +15,8 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../live/presentation/widgets/live_lifecycle_listener.dart';
+import '../../live/presentation/widgets/live_session_banner.dart';
 import '../../material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
 import '../../playlists/presentation/providers/playlist_sync_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
@@ -32,6 +34,7 @@ import 'widgets/stage_wakelock.dart';
 ///
 /// Header compartilhado: [PlpcgPrimaryAppBar] + [CarouselChips] em todas as
 /// rotas do shell, inclusive `/leitor` (barra 3 do PDF fica no [PdfReaderScreen]).
+/// Banner da sessão ao vivo ([LiveSessionBanner]) entre o banner de storage e as chips.
 /// Em fullscreen ([readerFullscreenProvider]), oculta barras 1–2 mantendo
 /// `Expanded(child)` para o PDF não perder constraints.
 ///
@@ -187,61 +190,64 @@ class ShellScaffold extends ConsumerWidget {
     final bodyColumn = Column(
       children: [
         const DegradedStorageBanner(),
+        const LiveSessionBanner(),
         const CarouselChips(),
         if (showMiniPlayer) const MiniPlayerBar(),
         Expanded(child: navigationShell),
       ],
     );
 
-    return OfflineLifecycleListener(
-      child: StageWakelockListener(
-        path: path,
-        child: AppShortcuts(
+    return LiveLifecycleListener(
+      child: OfflineLifecycleListener(
+        child: StageWakelockListener(
           path: path,
-          child: Title(
-            color: Theme.of(context).colorScheme.primary,
-            title: title,
-            child: Scaffold(
-              appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
-              body: hideChrome
-                  ? Stack(
-                      children: [
-                        navigationShell,
-                        if (currentTrack != null)
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            height: kMiniPlayerBarHeight,
-                            child: MiniPlayerBar(overlay: true),
-                          ),
-                      ],
-                    )
-                  : SafeArea(
-                      top: false,
-                      bottom: false,
-                      child: showRail
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                PlpcgNavigationRail(
-                                  selectedIndex: navigationShell.currentIndex,
-                                  onDestinationSelected:
-                                      navigationShell.goBranch,
-                                  destinations: destinations,
-                                ),
-                                Expanded(child: bodyColumn),
-                              ],
-                            )
-                          : bodyColumn,
-                    ),
-              bottomNavigationBar: (isImmersive || showRail)
-                  ? null
-                  : PlpcgBottomNavBar(
-                      selectedIndex: navigationShell.currentIndex,
-                      onDestinationSelected: navigationShell.goBranch,
-                      destinations: destinations,
-                    ),
+          child: AppShortcuts(
+            path: path,
+            child: Title(
+              color: Theme.of(context).colorScheme.primary,
+              title: title,
+              child: Scaffold(
+                appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
+                body: hideChrome
+                    ? Stack(
+                        children: [
+                          navigationShell,
+                          if (currentTrack != null)
+                            const Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              height: kMiniPlayerBarHeight,
+                              child: MiniPlayerBar(overlay: true),
+                            ),
+                        ],
+                      )
+                    : SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: showRail
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  PlpcgNavigationRail(
+                                    selectedIndex: navigationShell.currentIndex,
+                                    onDestinationSelected:
+                                        navigationShell.goBranch,
+                                    destinations: destinations,
+                                  ),
+                                  Expanded(child: bodyColumn),
+                                ],
+                              )
+                            : bodyColumn,
+                      ),
+                bottomNavigationBar: (isImmersive || showRail)
+                    ? null
+                    : PlpcgBottomNavBar(
+                        selectedIndex: navigationShell.currentIndex,
+                        onDestinationSelected: navigationShell.goBranch,
+                        destinations: destinations,
+                      ),
+              ),
             ),
           ),
         ),

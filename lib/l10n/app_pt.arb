@@ -807,5 +807,78 @@
       "kind": { "type": "String" }
     }
   },
-  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido."
+  "favoriteMaterialKindsTypePreferenceHelp": "Arraste para ordenar — o primeiro da lista é o formato preferido.",
+  "liveFollowing": "Seguindo {owner} · {list}",
+  "@liveFollowing": {
+    "description": "Banner do consumidor numa sessão ao vivo",
+    "placeholders": {
+      "owner": { "type": "String" },
+      "list": { "type": "String" }
+    }
+  },
+  "liveLeaderAway": "gestor ausente",
+  "@liveLeaderAway": {
+    "description": "Sufixo do banner do consumidor quando o gestor está ausente"
+  },
+  "liveWaitingFor": "Aguardando {owner}",
+  "@liveWaitingFor": {
+    "description": "Banner do consumidor numa sala ainda sem transmissão",
+    "placeholders": {
+      "owner": { "type": "String" }
+    }
+  },
+  "liveReconnecting": "Reconectando…",
+  "@liveReconnecting": {
+    "description": "Banner de sessão ao vivo tentando reconectar"
+  },
+  "liveReturnToLeader": "Voltar ao gestor",
+  "@liveReturnToLeader": {
+    "description": "Ação do banner do consumidor para voltar a seguir o foco do gestor (D3)"
+  },
+  "liveLeave": "Sair",
+  "@liveLeave": {
+    "description": "Ação do banner de sessão ao vivo para sair da sala"
+  },
+  "liveOnAir": "AO VIVO · {viewers}",
+  "@liveOnAir": {
+    "description": "Banner do gestor; viewers = pessoas conectadas",
+    "placeholders": {
+      "viewers": { "type": "int" }
+    }
+  },
+  "liveRoom": "Sala",
+  "@liveRoom": {
+    "description": "Ação do banner do gestor para abrir a tela da sala ao vivo"
+  },
+  "liveEnd": "Encerrar",
+  "@liveEnd": {
+    "description": "Ação do banner de sessão ao vivo para encerrar a transmissão"
+  },
+  "liveEndConfirmTitle": "Encerrar a sessão ao vivo?",
+  "@liveEndConfirmTitle": {
+    "description": "Título da confirmação de encerramento da sessão ao vivo"
+  },
+  "liveEndConfirmBody": "Todos os que estão seguindo vão parar de receber a lista.",
+  "@liveEndConfirmBody": {
+    "description": "Corpo da confirmação de encerramento da sessão ao vivo"
+  },
+  "liveReplacedElsewhere": "Sessão assumida em outro dispositivo",
+  "@liveReplacedElsewhere": {
+    "description": "Banner do gestor quando outro dispositivo assumiu a sessão ao vivo"
+  },
+  "liveOk": "OK",
+  "@liveOk": {
+    "description": "Ação genérica de confirmação do banner de sessão ao vivo"
+  },
+  "liveWasLive": "Você estava ao vivo com «{list}»",
+  "@liveWasLive": {
+    "description": "Banner de sessão de gestor pendente encontrada no boot (§7)",
+    "placeholders": {
+      "list": { "type": "String" }
+    }
+  },
+  "liveResume": "Retomar",
+  "@liveResume": {
+    "description": "Ação do banner de sessão de gestor pendente para retomar a transmissão"
+  }
 }

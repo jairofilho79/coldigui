@@ -717,5 +717,65 @@
       "kind": { "type": "String" }
     }
   },
-  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format."
+  "favoriteMaterialKindsTypePreferenceHelp": "Drag to reorder — the top of the list is the preferred format.",
+  "liveFollowing": "Following {owner} · {list}",
+  "@liveFollowing": {
+    "description": "Consumer's banner during a live session"
+  },
+  "liveLeaderAway": "host away",
+  "@liveLeaderAway": {
+    "description": "Suffix on the consumer's banner when the host is away"
+  },
+  "liveWaitingFor": "Waiting for {owner}",
+  "@liveWaitingFor": {
+    "description": "Consumer's banner in a room that isn't broadcasting yet"
+  },
+  "liveReconnecting": "Reconnecting…",
+  "@liveReconnecting": {
+    "description": "Live session banner while trying to reconnect"
+  },
+  "liveReturnToLeader": "Back to host",
+  "@liveReturnToLeader": {
+    "description": "Consumer's banner action to follow the host's focus again (D3)"
+  },
+  "liveLeave": "Leave",
+  "@liveLeave": {
+    "description": "Live session banner action to leave the room"
+  },
+  "liveOnAir": "LIVE · {viewers}",
+  "@liveOnAir": {
+    "description": "Host's banner; viewers = connected people"
+  },
+  "liveRoom": "Room",
+  "@liveRoom": {
+    "description": "Host's banner action to open the live room screen"
+  },
+  "liveEnd": "End",
+  "@liveEnd": {
+    "description": "Live session banner action to end the broadcast"
+  },
+  "liveEndConfirmTitle": "End the live session?",
+  "@liveEndConfirmTitle": {
+    "description": "Title of the confirmation to end the live session"
+  },
+  "liveEndConfirmBody": "Everyone following will stop receiving the list.",
+  "@liveEndConfirmBody": {
+    "description": "Body of the confirmation to end the live session"
+  },
+  "liveReplacedElsewhere": "Session taken over on another device",
+  "@liveReplacedElsewhere": {
+    "description": "Host's banner when another device took over the live session"
+  },
+  "liveOk": "OK",
+  "@liveOk": {
+    "description": "Generic confirm action on the live session banner"
+  },
+  "liveWasLive": "You were live with “{list}”",
+  "@liveWasLive": {
+    "description": "Banner for a pending host session found on boot (§7)"
+  },
+  "liveResume": "Resume",
+  "@liveResume": {
+    "description": "Pending host session banner action to resume the broadcast"
+  }
 }

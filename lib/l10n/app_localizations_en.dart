@@ -1414,4 +1414,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get favoriteMaterialKindsTypePreferenceHelp =>
       'Drag to reorder — the top of the list is the preferred format.';
+
+  @override
+  String liveFollowing(String owner, String list) {
+    return 'Following $owner · $list';
+  }
+
+  @override
+  String get liveLeaderAway => 'host away';
+
+  @override
+  String liveWaitingFor(String owner) {
+    return 'Waiting for $owner';
+  }
+
+  @override
+  String get liveReconnecting => 'Reconnecting…';
+
+  @override
+  String get liveReturnToLeader => 'Back to host';
+
+  @override
+  String get liveLeave => 'Leave';
+
+  @override
+  String liveOnAir(int viewers) {
+    return 'LIVE · $viewers';
+  }
+
+  @override
+  String get liveRoom => 'Room';
+
+  @override
+  String get liveEnd => 'End';
+
+  @override
+  String get liveEndConfirmTitle => 'End the live session?';
+
+  @override
+  String get liveEndConfirmBody =>
+      'Everyone following will stop receiving the list.';
+
+  @override
+  String get liveReplacedElsewhere => 'Session taken over on another device';
+
+  @override
+  String get liveOk => 'OK';
+
+  @override
+  String liveWasLive(String list) {
+    return 'You were live with “$list”';
+  }
+
+  @override
+  String get liveResume => 'Resume';
 }

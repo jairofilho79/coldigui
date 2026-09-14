@@ -1429,4 +1429,58 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get favoriteMaterialKindsTypePreferenceHelp =>
       'Arraste para ordenar — o primeiro da lista é o formato preferido.';
+
+  @override
+  String liveFollowing(String owner, String list) {
+    return 'Seguindo $owner · $list';
+  }
+
+  @override
+  String get liveLeaderAway => 'gestor ausente';
+
+  @override
+  String liveWaitingFor(String owner) {
+    return 'Aguardando $owner';
+  }
+
+  @override
+  String get liveReconnecting => 'Reconectando…';
+
+  @override
+  String get liveReturnToLeader => 'Voltar ao gestor';
+
+  @override
+  String get liveLeave => 'Sair';
+
+  @override
+  String liveOnAir(int viewers) {
+    return 'AO VIVO · $viewers';
+  }
+
+  @override
+  String get liveRoom => 'Sala';
+
+  @override
+  String get liveEnd => 'Encerrar';
+
+  @override
+  String get liveEndConfirmTitle => 'Encerrar a sessão ao vivo?';
+
+  @override
+  String get liveEndConfirmBody =>
+      'Todos os que estão seguindo vão parar de receber a lista.';
+
+  @override
+  String get liveReplacedElsewhere => 'Sessão assumida em outro dispositivo';
+
+  @override
+  String get liveOk => 'OK';
+
+  @override
+  String liveWasLive(String list) {
+    return 'Você estava ao vivo com «$list»';
+  }
+
+  @override
+  String get liveResume => 'Retomar';
 }

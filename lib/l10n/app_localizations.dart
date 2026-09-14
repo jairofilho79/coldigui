@@ -2428,6 +2428,96 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Arraste para ordenar — o primeiro da lista é o formato preferido.'**
   String get favoriteMaterialKindsTypePreferenceHelp;
+
+  /// Banner do consumidor numa sessão ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Seguindo {owner} · {list}'**
+  String liveFollowing(String owner, String list);
+
+  /// Sufixo do banner do consumidor quando o gestor está ausente
+  ///
+  /// In pt, this message translates to:
+  /// **'gestor ausente'**
+  String get liveLeaderAway;
+
+  /// Banner do consumidor numa sala ainda sem transmissão
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando {owner}'**
+  String liveWaitingFor(String owner);
+
+  /// Banner de sessão ao vivo tentando reconectar
+  ///
+  /// In pt, this message translates to:
+  /// **'Reconectando…'**
+  String get liveReconnecting;
+
+  /// Ação do banner do consumidor para voltar a seguir o foco do gestor (D3)
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar ao gestor'**
+  String get liveReturnToLeader;
+
+  /// Ação do banner de sessão ao vivo para sair da sala
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair'**
+  String get liveLeave;
+
+  /// Banner do gestor; viewers = pessoas conectadas
+  ///
+  /// In pt, this message translates to:
+  /// **'AO VIVO · {viewers}'**
+  String liveOnAir(int viewers);
+
+  /// Ação do banner do gestor para abrir a tela da sala ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Sala'**
+  String get liveRoom;
+
+  /// Ação do banner de sessão ao vivo para encerrar a transmissão
+  ///
+  /// In pt, this message translates to:
+  /// **'Encerrar'**
+  String get liveEnd;
+
+  /// Título da confirmação de encerramento da sessão ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Encerrar a sessão ao vivo?'**
+  String get liveEndConfirmTitle;
+
+  /// Corpo da confirmação de encerramento da sessão ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos os que estão seguindo vão parar de receber a lista.'**
+  String get liveEndConfirmBody;
+
+  /// Banner do gestor quando outro dispositivo assumiu a sessão ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Sessão assumida em outro dispositivo'**
+  String get liveReplacedElsewhere;
+
+  /// Ação genérica de confirmação do banner de sessão ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'OK'**
+  String get liveOk;
+
+  /// Banner de sessão de gestor pendente encontrada no boot (§7)
+  ///
+  /// In pt, this message translates to:
+  /// **'Você estava ao vivo com «{list}»'**
+  String liveWasLive(String list);
+
+  /// Ação do banner de sessão de gestor pendente para retomar a transmissão
+  ///
+  /// In pt, this message translates to:
+  /// **'Retomar'**
+  String get liveResume;
 }
 
 class _AppLocalizationsDelegate
