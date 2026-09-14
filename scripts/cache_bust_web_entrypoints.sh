@@ -11,6 +11,7 @@
 # skwasm.js velho e o main.dart.wasm novo — LinkError "skwasm"
 # "emscripten_builtin_free" no boot (3.44 → 3.47, set/2026).
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WEB_DIR="${1:-build/web}"
 INDEX="$WEB_DIR/index.html"
@@ -114,5 +115,9 @@ version.write_text(json.dumps(data, separators=(",", ":")) + "\n")
 
 print(f"OK: tag={tag} icons={icons_hashed} canvaskit={canvaskit_base}")
 PY
+
+# Listas CRITICAL/WARM do sw.js: precisa das três tags já gravadas em
+# version.json pelo bloco acima. Falha se um ficheiro crítico não existir.
+python3 "$SCRIPT_DIR/generate_sw_manifest.py" "$WEB_DIR"
 
 echo "OK: cache-bust aplicado em ${INDEX}, ${BOOTSTRAP}, ${ICONS_HASHED} e ${CANVASKIT_DIR}/${CANVASKIT_HASH}/"
