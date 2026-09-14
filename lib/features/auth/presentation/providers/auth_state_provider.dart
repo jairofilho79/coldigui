@@ -190,7 +190,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
 
     try {
       final remote = ref.read(authRemoteDatasourceProvider);
-      final user = await remote.establishSession(stored.idToken);
+      final user = await remote.establishSession(stored.sessionToken);
       ref.read(authSessionStoreProvider).write(user);
       return user;
     } on AuthUnauthorizedException {
@@ -311,12 +311,12 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     // reconstruiria quem observa [authStateProvider] (AuthUser não tem `==`),
     // gerando request nova → 401 → refresh → laço sem fim enquanto o Worker
     // recusar esse token.
-    if (idToken == null || idToken.isEmpty || idToken == current.idToken) {
+    if (idToken == null || idToken.isEmpty || idToken == current.sessionToken) {
       ref.read(sessionExpiredProvider.notifier).markExpired();
       return null;
     }
 
-    final updated = current.copyWith(idToken: idToken);
+    final updated = current.copyWith(sessionToken: idToken);
     ref.read(authSessionStoreProvider).write(updated);
     ref.read(sessionExpiredProvider.notifier).clear();
     state = AsyncData(updated);
@@ -368,7 +368,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     }
     final value = await ref
         .read(authRemoteDatasourceProvider)
-        .setUsername(idToken: current.idToken, username: username);
+        .setUsername(sessionToken: current.sessionToken, username: username);
     final updated = current.copyWith(username: value);
     ref.read(authSessionStoreProvider).write(updated);
     state = AsyncData(updated);

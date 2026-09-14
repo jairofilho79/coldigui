@@ -81,6 +81,6 @@ void main() {
     final user = await datasource.establishSession('token-1');
 
     expect(user.googleSub, 'sub-1');
-    expect(user.idToken, 'token-1');
+    expect(user.sessionToken, 'token-1');
   });
 }

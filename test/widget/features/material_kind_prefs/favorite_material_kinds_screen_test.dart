@@ -21,7 +21,7 @@ import '../../../support/pump_app.dart';
 class _LoggedIn extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'tok');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok');
 }
 
 class _LoggedOut extends AuthNotifier {
@@ -45,10 +45,12 @@ class _NoopSync extends MaterialKindPrefsSyncNotifier {
 class _RefreshingAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'tok');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok');
 
   void refreshToken() {
-    state = const AsyncData(AuthUser(googleSub: 'sub-1', idToken: 'tok-2'));
+    state = const AsyncData(
+      AuthUser(googleSub: 'sub-1', sessionToken: 'tok-2'),
+    );
   }
 }
 

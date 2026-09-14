@@ -72,7 +72,7 @@ void main() {
     });
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok-123',
+      sessionToken: () => 'tok-123',
     );
 
     final url = await shortener.shorten('shareitems=p%3Aa&sharename=Ensaio');
@@ -93,7 +93,7 @@ void main() {
     });
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok-123',
+      sessionToken: () => 'tok-123',
     );
 
     final url = await shortener.shorten('shareitems=p%3Aa');
@@ -101,14 +101,14 @@ void main() {
     expect(url, 'https://plpcg.com/l/abc1234');
   });
 
-  test('sem idToken (anônimo) não manda header Authorization', () async {
+  test('sem sessionToken (anônimo) não manda header Authorization', () async {
     final adapter = _FixedAdapter(201, {
       'code': 'abc1234',
       'url': 'https://plpcg.com/l/abc1234',
     });
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => null,
+      sessionToken: () => null,
     );
 
     await shortener.shorten('shareitems=p%3Aa');
@@ -123,7 +123,7 @@ void main() {
     });
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok',
+      sessionToken: () => 'tok',
     );
 
     await shortener.shorten('shareitems=p%3Aa');
@@ -136,7 +136,7 @@ void main() {
     final adapter = _FixedAdapter(201, {'code': 'abc1234'});
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok',
+      sessionToken: () => 'tok',
     );
 
     expect(
@@ -149,7 +149,7 @@ void main() {
     final adapter = _ThrowingAdapter(DioExceptionType.receiveTimeout);
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok',
+      sessionToken: () => 'tok',
     );
 
     expect(
@@ -162,7 +162,7 @@ void main() {
     final adapter = _FixedAdapter(429, {'error': 'muitos links'});
     final shortener = ShareLinkShortenerRemote(
       _dioWith(adapter),
-      idToken: () => 'tok',
+      sessionToken: () => 'tok',
     );
 
     expect(

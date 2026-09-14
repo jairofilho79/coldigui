@@ -44,7 +44,7 @@ class AudioFlagSyncResult {
 
 /// Sync offline-first de marcadores: pull → push → tombstones.
 ///
-/// Pré-condição: [idToken] não-nulo. Sem token, retorna
+/// Pré-condição: [sessionToken] não-nulo. Sem token, retorna
 /// [AudioFlagSyncResult.skippedAuth] sem tocar a rede.
 ///
 /// Espelha `SyncPlaylists` campo a campo (spec A.4): as três fases são
@@ -67,22 +67,25 @@ class SyncAudioFlags {
   final Map<String, int> _tombstoneFailures = <String, int>{};
 
   final AudioFlagRepository _repository;
-  final Future<List<RemoteAudioFlag>> Function(String idToken) _fetch;
+  final Future<List<RemoteAudioFlag>> Function(String sessionToken) _fetch;
   final Future<RemoteAudioFlag> Function({
-    required String idToken,
+    required String sessionToken,
     required RemoteAudioFlag flag,
   })
   _upsert;
-  final Future<void> Function({required String idToken, required String flagId})
+  final Future<void> Function({
+    required String sessionToken,
+    required String flagId,
+  })
   _delete;
 
   /// [sub] é o dono corrente: toda linha escrita aqui fica com ele, e o push só
   /// leva as pendências dele (ou as ainda sem dono) — spec A.5.
   Future<AudioFlagSyncResult> call({
-    required String? idToken,
+    required String? sessionToken,
     required String? sub,
   }) async {
-    if (idToken == null || idToken.isEmpty) {
+    if (sessionToken == null || sessionToken.isEmpty) {
       return AudioFlagSyncResult.skippedAuth;
     }
 
@@ -96,7 +99,7 @@ class SyncAudioFlags {
 
     // Fase A — Pull. Isolada: se cair, push e tombstones ainda rodam.
     try {
-      final outcome = await _pull(idToken, sub);
+      final outcome = await _pull(sessionToken, sub);
       pulled = outcome.pulled;
       deletedRemotely = outcome.deletedRemotely;
     } on Object catch (e) {
@@ -108,10 +111,14 @@ class SyncAudioFlags {
     final pending = await _repository.getPendingPush(sub: sub);
     for (final local in pending) {
       try {
-        pushed += await _push(idToken: idToken, local: local, sub: sub);
+        pushed += await _push(
+          sessionToken: sessionToken,
+          local: local,
+          sub: sub,
+        );
       } on AudioFlagConflictException catch (e) {
         final outcome = await _resolveConflict(
-          idToken: idToken,
+          sessionToken: sessionToken,
           local: local,
           remote: e.remote,
           sub: sub,
@@ -133,7 +140,7 @@ class SyncAudioFlags {
       final failures = _tombstoneFailures[tomb.flagId] ?? 0;
       if (failures >= maxTombstoneAttemptsPerBoot) continue;
       try {
-        await _delete(idToken: idToken, flagId: tomb.flagId);
+        await _delete(sessionToken: sessionToken, flagId: tomb.flagId);
         await _repository.hardDelete(tomb.flagId);
         _tombstoneFailures.remove(tomb.flagId);
         deleted++;
@@ -160,10 +167,10 @@ class SyncAudioFlags {
   }
 
   /// Fase A isolada — o que veio do servidor e o que ele mandou apagar.
-  Future<_PullOutcome> _pull(String idToken, String? sub) async {
+  Future<_PullOutcome> _pull(String sessionToken, String? sub) async {
     var pulled = 0;
     var deletedRemotely = 0;
-    final remote = await _fetch(idToken);
+    final remote = await _fetch(sessionToken);
 
     for (final r in remote) {
       final local = await _repository.getById(r.id);
@@ -220,13 +227,13 @@ class SyncAudioFlags {
 
   /// `PUT` de um marcador e gravação do que o servidor devolveu. Devolve `1`.
   Future<int> _push({
-    required String idToken,
+    required String sessionToken,
     required SavedAudioFlag local,
     required String? sub,
     int? version,
   }) async {
     final saved = await _upsert(
-      idToken: idToken,
+      sessionToken: sessionToken,
       flag: _toRemote(local, version: version),
     );
     await _repository.upsert(
@@ -248,7 +255,7 @@ class SyncAudioFlags {
   /// também falhar, o marcador fica em [PlaylistSyncStatus.conflict] (a linha
   /// de erro do player conta) e a sync segue para os outros.
   Future<_ConflictOutcome> _resolveConflict({
-    required String idToken,
+    required String sessionToken,
     required SavedAudioFlag local,
     required RemoteAudioFlag remote,
     required String? sub,
@@ -265,7 +272,7 @@ class SyncAudioFlags {
     // protege de um servidor que passe a recusar por versão.
     try {
       final pushed = await _push(
-        idToken: idToken,
+        sessionToken: sessionToken,
         local: local,
         sub: sub,
         version: remote.version,

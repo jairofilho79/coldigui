@@ -1,4 +1,5 @@
 import '../../../support/fakes/fake_auth_remote_datasource.dart';
+
 import 'package:coldigui/features/app_shell/presentation/pages/profile_screen.dart';
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -13,7 +14,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 void main() {
   const user = AuthUser(
     googleSub: 'sub-1',
-    idToken: 'token-1',
+    sessionToken: 'token-1',
     name: 'Jairo',
     email: 'a@b.com',
   );

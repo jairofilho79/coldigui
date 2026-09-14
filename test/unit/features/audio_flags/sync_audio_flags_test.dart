@@ -158,7 +158,7 @@ SavedAudioFlag _local({
 
 /// Eco do `upsert`: devolve o que foi enviado com a versão incrementada.
 Future<RemoteAudioFlag> _echo({
-  required String idToken,
+  required String sessionToken,
   required RemoteAudioFlag flag,
 }) async => RemoteAudioFlag(
   id: flag.id,
@@ -171,7 +171,7 @@ Future<RemoteAudioFlag> _echo({
 );
 
 void main() {
-  test('sem idToken não chama rede', () async {
+  test('sem sessionToken não chama rede', () async {
     var fetchCalled = false;
     final sync = SyncAudioFlags(
       _MemoryAudioFlagRepository(),
@@ -179,11 +179,11 @@ void main() {
         fetchCalled = true;
         return <RemoteAudioFlag>[];
       },
-      ({required idToken, required flag}) async => flag,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flag}) async => flag,
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: null, sub: 'sub-1');
+    final result = await sync(sessionToken: null, sub: 'sub-1');
     expect(result.skipped, isTrue);
     expect(fetchCalled, isFalse);
   });
@@ -193,11 +193,11 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => [_remote(label: 'Intro', positionMs: 12000, version: 2)],
-      ({required idToken, required flag}) async => flag,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flag}) async => flag,
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pulled, 1);
     expect(repo.map['f1']?.label, 'Intro');
     expect(repo.map['f1']?.syncStatus, PlaylistSyncStatus.synced);
@@ -216,10 +216,10 @@ void main() {
       repo,
       (_) async => [_remote(positionMs: 9000, version: 5)],
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pulled, 0);
     expect(result.pushed, 1);
     expect(repo.map['f1']?.label, 'Local');
@@ -240,13 +240,13 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async => flag,
-      ({required idToken, required flagId}) async {
+      ({required sessionToken, required flag}) async => flag,
+      ({required sessionToken, required flagId}) async {
         deletedId = flagId;
       },
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(deletedId, 'gone');
     expect(result.deleted, 1);
     expect(repo.map.containsKey('gone'), isFalse);
@@ -270,10 +270,10 @@ void main() {
       repo,
       (_) async => throw boom,
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pullError, same(boom));
     expect(result.error, same(boom));
     expect(result.pushed, 1);
@@ -288,11 +288,11 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async => throw boom,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flag}) async => throw boom,
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pushError, same(boom));
     expect(result.pushed, 0);
     expect(repo.map['f1']?.syncStatus, PlaylistSyncStatus.pendingPush);
@@ -311,10 +311,10 @@ void main() {
         ),
       ],
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.deletedRemotely, 1);
     expect(repo.map.containsKey('f1'), isFalse);
   });
@@ -326,10 +326,10 @@ void main() {
       repo,
       (_) async => [_remote(deletedAt: DateTime.utc(2026, 5, 1))],
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.deletedRemotely, 0);
     expect(result.pulled, 0);
     expect(repo.map, isEmpty);
@@ -348,10 +348,10 @@ void main() {
       repo,
       (_) async => [_remote(deletedAt: DateTime.utc(2026, 5, 1))],
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.deletedRemotely, 0);
     expect(result.pushed, 1, reason: 'o push ressuscita a linha');
     expect(repo.map.containsKey('f1'), isTrue);
@@ -369,7 +369,7 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async =>
+      ({required sessionToken, required flag}) async =>
           throw AudioFlagConflictException(
             _remote(
               label: 'Servidor',
@@ -378,10 +378,10 @@ void main() {
               version: 9,
             ),
           ),
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pulled, 1);
     expect(result.conflicts, 0);
     expect(repo.map['f1']?.label, 'Servidor');
@@ -401,23 +401,21 @@ void main() {
 
     var calls = 0;
     final sentVersions = <int>[];
-    final sync = SyncAudioFlags(
-      repo,
-      (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async {
-        calls++;
-        sentVersions.add(flag.version);
-        if (calls == 1) {
-          throw AudioFlagConflictException(
-            _remote(updatedAt: DateTime.utc(2026, 4, 1), version: 42),
-          );
-        }
-        return _echo(idToken: idToken, flag: flag);
-      },
-      ({required idToken, required flagId}) async {},
-    );
+    final sync = SyncAudioFlags(repo, (_) async => <RemoteAudioFlag>[], ({
+      required sessionToken,
+      required flag,
+    }) async {
+      calls++;
+      sentVersions.add(flag.version);
+      if (calls == 1) {
+        throw AudioFlagConflictException(
+          _remote(updatedAt: DateTime.utc(2026, 4, 1), version: 42),
+        );
+      }
+      return _echo(sessionToken: sessionToken, flag: flag);
+    }, ({required sessionToken, required flagId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pushed, 1);
     expect(result.conflicts, 0);
     expect(sentVersions, [1, 42]);
@@ -434,21 +432,19 @@ void main() {
       ),
     );
 
-    final sync = SyncAudioFlags(
-      repo,
-      (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async {
-        if (flag.version == 1) {
-          throw AudioFlagConflictException(
-            _remote(updatedAt: DateTime.utc(2026, 4, 1), version: 42),
-          );
-        }
-        throw StateError('recusado de novo');
-      },
-      ({required idToken, required flagId}) async {},
-    );
+    final sync = SyncAudioFlags(repo, (_) async => <RemoteAudioFlag>[], ({
+      required sessionToken,
+      required flag,
+    }) async {
+      if (flag.version == 1) {
+        throw AudioFlagConflictException(
+          _remote(updatedAt: DateTime.utc(2026, 4, 1), version: 42),
+        );
+      }
+      throw StateError('recusado de novo');
+    }, ({required sessionToken, required flagId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.conflicts, 1);
     expect(result.pushed, 0);
     expect(repo.map['f1']?.syncStatus, PlaylistSyncStatus.conflict);
@@ -469,15 +465,15 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async => flag,
-      ({required idToken, required flagId}) async {
+      ({required sessionToken, required flag}) async => flag,
+      ({required sessionToken, required flagId}) async {
         attempts++;
         throw StateError('DELETE recusado');
       },
     );
 
     for (var i = 0; i < 6; i++) {
-      await sync(idToken: 'token', sub: 'sub-1');
+      await sync(sessionToken: 'token', sub: 'sub-1');
     }
 
     expect(attempts, SyncAudioFlags.maxTombstoneAttemptsPerBoot);
@@ -490,10 +486,10 @@ void main() {
       repo,
       (_) async => [_remote()],
       _echo,
-      ({required idToken, required flagId}) async {},
+      ({required sessionToken, required flagId}) async {},
     );
 
-    await sync(idToken: 'token', sub: 'sub-9');
+    await sync(sessionToken: 'token', sub: 'sub-9');
     expect(repo.map['f1']?.ownerSub, 'sub-9');
   });
 
@@ -518,17 +514,15 @@ void main() {
     );
 
     final sent = <String>[];
-    final sync = SyncAudioFlags(
-      repo,
-      (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async {
-        sent.add(flag.id);
-        return _echo(idToken: idToken, flag: flag);
-      },
-      ({required idToken, required flagId}) async {},
-    );
+    final sync = SyncAudioFlags(repo, (_) async => <RemoteAudioFlag>[], ({
+      required sessionToken,
+      required flag,
+    }) async {
+      sent.add(flag.id);
+      return _echo(sessionToken: sessionToken, flag: flag);
+    }, ({required sessionToken, required flagId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(sent..sort(), ['minha', 'orfa']);
     expect(result.pushed, 2);
     expect(repo.map['orfa']?.ownerSub, 'sub-1', reason: 'o push adota a órfã');
@@ -557,13 +551,13 @@ void main() {
     final sync = SyncAudioFlags(
       repo,
       (_) async => <RemoteAudioFlag>[],
-      ({required idToken, required flag}) async => flag,
-      ({required idToken, required flagId}) async {
+      ({required sessionToken, required flag}) async => flag,
+      ({required sessionToken, required flagId}) async {
         deleted.add(flagId);
       },
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
 
     // Depois da troca A→B, o DELETE do tombstone de A com o token de B daria
     // 404 → `pushError` → linha de erro no player a cada boot.

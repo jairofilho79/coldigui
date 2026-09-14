@@ -31,9 +31,9 @@ final syncAudioFlagsProvider = Provider<SyncAudioFlags>((ref) {
   return SyncAudioFlags(
     ref.watch(audioFlagRepositoryProvider),
     remote.fetchAll,
-    ({required idToken, required flag}) =>
-        remote.upsert(idToken: idToken, flag: flag),
-    ({required idToken, required flagId}) =>
-        remote.softDelete(idToken: idToken, flagId: flagId),
+    ({required sessionToken, required flag}) =>
+        remote.upsert(sessionToken: sessionToken, flag: flag),
+    ({required sessionToken, required flagId}) =>
+        remote.softDelete(sessionToken: sessionToken, flagId: flagId),
   );
 });

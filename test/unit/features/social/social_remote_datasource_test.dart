@@ -49,7 +49,7 @@ void main() {
       ]);
 
       final result = await datasource.fetchUserPlaylists(
-        idToken: 'token',
+        sessionToken: 'token',
         username: 'maria',
       );
 
@@ -63,7 +63,7 @@ void main() {
     ]);
 
     final result = await datasource.fetchUserPlaylists(
-      idToken: 'token',
+      sessionToken: 'token',
       username: 'maria',
     );
 

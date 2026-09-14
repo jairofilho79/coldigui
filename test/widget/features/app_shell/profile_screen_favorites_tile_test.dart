@@ -10,7 +10,7 @@ import '../../../support/pump_app.dart';
 class _LoggedIn extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'tok', name: 'Jairo');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok', name: 'Jairo');
 }
 
 class _LoggedOut extends AuthNotifier {

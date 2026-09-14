@@ -75,7 +75,7 @@ void main() {
   test('put envia kindIds + preferredTypes + updatedAt e devolve o documento gravado', () async {
     final (remote, adapter) = _make(200, doc);
     final result = await remote.put(
-      idToken: 'tok',
+      sessionToken: 'tok',
       prefs: MaterialKindPrefs.validated(
         kindIds: const ['a', 'b'],
         preferredTypeByKind: const {'a': 'chord'},
@@ -96,7 +96,7 @@ void main() {
   test('put 409 vira MaterialKindPrefsConflict com o remoto', () async {
     final (remote, _) = _make(409, doc);
     await expectLater(
-      remote.put(idToken: 'tok', prefs: MaterialKindPrefs.empty),
+      remote.put(sessionToken: 'tok', prefs: MaterialKindPrefs.empty),
       throwsA(
         isA<MaterialKindPrefsConflict>().having(
           (c) => c.remote.kindIds,

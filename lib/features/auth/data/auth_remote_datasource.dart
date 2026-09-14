@@ -62,20 +62,20 @@ class AuthRemoteDatasource {
       name: data['name'] as String?,
       pictureUrl: data['pictureUrl'] as String?,
       username: data['username'] as String?,
-      idToken: idToken,
+      sessionToken: idToken,
     );
   }
 
   /// `PUT /api/auth/username` — define handle único (uma vez).
   Future<String> setUsername({
-    required String idToken,
+    required String sessionToken,
     required String username,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
       ApiEndpoints.authUsername,
       data: {'username': username},
       options: Options(
-        headers: {'Authorization': 'Bearer $idToken'},
+        headers: {'Authorization': 'Bearer $sessionToken'},
         validateStatus: (status) => status != null && status < 500,
       ),
     );

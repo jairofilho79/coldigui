@@ -44,13 +44,13 @@ class MaterialKindPrefsSyncResult {
   );
 }
 
-typedef FetchMaterialKindPrefs =
-    Future<MaterialKindPrefs?> Function(String idToken);
-typedef PutMaterialKindPrefs =
-    Future<MaterialKindPrefs> Function({
-      required String idToken,
-      required MaterialKindPrefs prefs,
-    });
+typedef FetchMaterialKindPrefs = Future<MaterialKindPrefs?> Function(
+  String sessionToken,
+);
+typedef PutMaterialKindPrefs = Future<MaterialKindPrefs> Function({
+  required String sessionToken,
+  required MaterialKindPrefs prefs,
+});
 
 /// Sync de um documento só: pull → push, last-write-wins por `updatedAt`.
 ///
@@ -70,17 +70,17 @@ class SyncMaterialKindPrefs {
   final PutMaterialKindPrefs _put;
 
   Future<MaterialKindPrefsSyncResult> call({
-    required String? idToken,
+    required String? sessionToken,
     required String sub,
   }) async {
-    if (idToken == null) return MaterialKindPrefsSyncResult.skippedAuth;
+    if (sessionToken == null) return MaterialKindPrefsSyncResult.skippedAuth;
 
     final local = await _repository.read(sub);
 
     Object? pullError;
     MaterialKindPrefs? remote;
     try {
-      remote = await _fetch(idToken);
+      remote = await _fetch(sessionToken);
     } on Object catch (e) {
       debugPrint('[material-kind-prefs] pull falhou: $e');
       pullError = e;
@@ -109,7 +109,7 @@ class SyncMaterialKindPrefs {
     }
 
     try {
-      final saved = await _put(idToken: idToken, prefs: local);
+      final saved = await _put(sessionToken: sessionToken, prefs: local);
       final written = await _writeUnlessSuperseded(
         sub,
         snapshot: local,

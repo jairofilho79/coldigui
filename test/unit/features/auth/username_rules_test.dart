@@ -16,7 +16,7 @@ void main() {
     test('serializa e desserializa username', () {
       const user = AuthUser(
         googleSub: 'sub',
-        idToken: 'token',
+        sessionToken: 'token',
         username: 'joao',
       );
       final restored = AuthUser.fromJson(user.toJson());
@@ -25,7 +25,7 @@ void main() {
     });
 
     test('hasUsername false sem handle', () {
-      const user = AuthUser(googleSub: 'sub', idToken: 'token');
+      const user = AuthUser(googleSub: 'sub', sessionToken: 'token');
       expect(user.hasUsername, isFalse);
     });
   });

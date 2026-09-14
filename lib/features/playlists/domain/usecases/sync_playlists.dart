@@ -64,7 +64,7 @@ class PlaylistSyncResult {
 
 /// Sync offline-first: pull → push → tombstones (UC-15).
 ///
-/// Pré-condição: [idToken] não-nulo. Sem token, retorna [PlaylistSyncResult.skippedAuth]
+/// Pré-condição: [sessionToken] não-nulo. Sem token, retorna [PlaylistSyncResult.skippedAuth]
 /// sem tocar a rede.
 ///
 /// **Tolerância (spec A.7):** as três fases são independentes — um pull que
@@ -85,14 +85,14 @@ class SyncPlaylists {
   final Map<String, int> _tombstoneFailures = <String, int>{};
 
   final PlaylistRepository _repository;
-  final Future<List<RemotePlaylist>> Function(String idToken) _fetch;
+  final Future<List<RemotePlaylist>> Function(String sessionToken) _fetch;
   final Future<RemotePlaylist> Function({
-    required String idToken,
+    required String sessionToken,
     required RemotePlaylist playlist,
   })
   _upsert;
   final Future<void> Function({
-    required String idToken,
+    required String sessionToken,
     required String playlistId,
   })
   _delete;
@@ -100,10 +100,10 @@ class SyncPlaylists {
   /// [sub] é o dono corrente: toda linha escrita aqui fica com ele, e o push
   /// só envia o que é dele ou ainda não tem dono (spec A.5).
   Future<PlaylistSyncResult> call({
-    required String? idToken,
+    required String? sessionToken,
     required String? sub,
   }) async {
-    if (idToken == null || idToken.isEmpty) {
+    if (sessionToken == null || sessionToken.isEmpty) {
       return PlaylistSyncResult.skippedAuth;
     }
 
@@ -118,7 +118,7 @@ class SyncPlaylists {
 
     // Fase A — Pull. Isolada: se cair, push e tombstones ainda rodam.
     try {
-      final outcome = await _pull(idToken, sub);
+      final outcome = await _pull(sessionToken, sub);
       pulled = outcome.pulled;
       deletedRemotely = outcome.deletedRemotely;
     } on Object catch (e) {
@@ -131,10 +131,14 @@ class SyncPlaylists {
     for (final local in pending) {
       if (!local.salva) continue;
       try {
-        pushed += await _push(idToken: idToken, local: local, sub: sub);
+        pushed += await _push(
+          sessionToken: sessionToken,
+          local: local,
+          sub: sub,
+        );
       } on PlaylistConflictException catch (e) {
         final outcome = await _resolveConflict(
-          idToken: idToken,
+          sessionToken: sessionToken,
           local: local,
           remote: e.remote,
           sub: sub,
@@ -157,7 +161,7 @@ class SyncPlaylists {
       final failures = _tombstoneFailures[tomb.playlistId] ?? 0;
       if (failures >= maxTombstoneAttemptsPerBoot) continue;
       try {
-        await _delete(idToken: idToken, playlistId: tomb.playlistId);
+        await _delete(sessionToken: sessionToken, playlistId: tomb.playlistId);
         await _repository.hardDelete(tomb.playlistId);
         _tombstoneFailures.remove(tomb.playlistId);
         deleted++;
@@ -185,10 +189,10 @@ class SyncPlaylists {
   }
 
   /// Fase A isolada — o que o servidor trouxe e o que ele mandou apagar.
-  Future<_PullOutcome> _pull(String idToken, String? sub) async {
+  Future<_PullOutcome> _pull(String sessionToken, String? sub) async {
     var pulled = 0;
     var deletedRemotely = 0;
-    final remote = await _fetch(idToken);
+    final remote = await _fetch(sessionToken);
 
     for (final r in remote) {
       final remoteDeletedAt = r.deletedAt;
@@ -242,13 +246,13 @@ class SyncPlaylists {
 
   /// `PUT` de uma lista e gravação do que o servidor devolveu. Devolve `1`.
   Future<int> _push({
-    required String idToken,
+    required String sessionToken,
     required SavedPlaylist local,
     required String? sub,
     int? version,
   }) async {
     final saved = await _upsert(
-      idToken: idToken,
+      sessionToken: sessionToken,
       playlist: _toRemote(local, version: version),
     );
     await _repository.upsert(
@@ -272,7 +276,7 @@ class SyncPlaylists {
   /// também falhar, a lista fica em [PlaylistSyncStatus.conflict] (o banner
   /// conta) e a sync segue para as outras.
   Future<_ConflictOutcome> _resolveConflict({
-    required String idToken,
+    required String sessionToken,
     required SavedPlaylist local,
     required RemotePlaylist remote,
     required String? sub,
@@ -306,7 +310,7 @@ class SyncPlaylists {
     // protege de um servidor que passe a recusar por versão.
     try {
       final pushed = await _push(
-        idToken: idToken,
+        sessionToken: sessionToken,
         local: local,
         sub: sub,
         version: remote.version,

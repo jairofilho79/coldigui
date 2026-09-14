@@ -42,7 +42,7 @@ void main() {
         if (fetchError != null) throw fetchError;
         return remote;
       },
-      ({required idToken, required prefs}) async {
+      ({required sessionToken, required prefs}) async {
         putCalls.add(prefs);
         if (putError != null) throw putError;
         return prefs.copyWith(pendingPush: false);
@@ -51,7 +51,7 @@ void main() {
   }
 
   test('sem token: skipped, sem tocar nada', () async {
-    final result = await make()(idToken: null, sub: 's');
+    final result = await make()(sessionToken: null, sub: 's');
     expect(result.outcome, MaterialKindPrefsSyncOutcome.skipped);
     expect(putCalls, isEmpty);
   });
@@ -59,7 +59,7 @@ void main() {
   test('remoto mais novo é adotado (pulled)', () async {
     repo.map['s'] = _doc(['local'], 1, pending: true);
     final result = await make(remote: _doc(['remoto'], 5))(
-      idToken: 't',
+      sessionToken: 't',
       sub: 's',
     );
     expect(result.outcome, MaterialKindPrefsSyncOutcome.pulled);
@@ -70,7 +70,7 @@ void main() {
 
   test('sem local e com remoto: adota (pulled)', () async {
     final result = await make(remote: _doc(['remoto'], 5))(
-      idToken: 't',
+      sessionToken: 't',
       sub: 's',
     );
     expect(result.outcome, MaterialKindPrefsSyncOutcome.pulled);
@@ -82,7 +82,7 @@ void main() {
     () async {
       repo.map['s'] = _doc(['local'], 9, pending: true);
       final result = await make(remote: _doc(['remoto'], 5))(
-        idToken: 't',
+        sessionToken: 't',
         sub: 's',
       );
       expect(result.outcome, MaterialKindPrefsSyncOutcome.pushed);
@@ -96,7 +96,7 @@ void main() {
     final result = await make(
       remote: null,
       putError: MaterialKindPrefsConflict(_doc(['ganhou'], 10)),
-    )(idToken: 't', sub: 's');
+    )(sessionToken: 't', sub: 's');
     expect(result.outcome, MaterialKindPrefsSyncOutcome.conflictAdopted);
     expect(repo.map['s']!.kindIds, ['ganhou']);
     expect(repo.map['s']!.pendingPush, isFalse);
@@ -107,7 +107,7 @@ void main() {
     () async {
       repo.map['s'] = _doc(['local'], 9, pending: true);
       final result = await make(fetchError: StateError('rede'))(
-        idToken: 't',
+        sessionToken: 't',
         sub: 's',
       );
       expect(result.outcome, MaterialKindPrefsSyncOutcome.pushed);
@@ -121,7 +121,7 @@ void main() {
     () async {
       repo.map['s'] = _doc(['local'], 9, pending: true);
       final result = await make(putError: StateError('rede'))(
-        idToken: 't',
+        sessionToken: 't',
         sub: 's',
       );
       expect(result.outcome, MaterialKindPrefsSyncOutcome.noop);
@@ -133,7 +133,7 @@ void main() {
   test('nada pendente e remoto igual ou mais velho: noop', () async {
     repo.map['s'] = _doc(['local'], 9);
     final result = await make(remote: _doc(['local'], 9))(
-      idToken: 't',
+      sessionToken: 't',
       sub: 's',
     );
     expect(result.outcome, MaterialKindPrefsSyncOutcome.noop);
@@ -142,7 +142,7 @@ void main() {
   });
 
   test('sem local nem remoto: noop', () async {
-    final result = await make(remote: null)(idToken: 't', sub: 's');
+    final result = await make(remote: null)(sessionToken: 't', sub: 's');
     expect(result.outcome, MaterialKindPrefsSyncOutcome.noop);
     expect(repo.map, isEmpty);
   });
@@ -161,13 +161,13 @@ void main() {
             repo.map['s'] = _doc(['a', 'b'], 6, pending: true);
             return null;
           },
-          ({required idToken, required prefs}) async {
+          ({required sessionToken, required prefs}) async {
             putCalls.add(prefs);
             return prefs.copyWith(pendingPush: false);
           },
         );
 
-        final result = await sync(idToken: 't', sub: 's');
+        final result = await sync(sessionToken: 't', sub: 's');
 
         expect(putCalls.single.kindIds, ['a']);
         expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
@@ -185,13 +185,13 @@ void main() {
           repo.map['s'] = _doc(['b'], 9, pending: true);
           return _doc(['remoto'], 5);
         },
-        ({required idToken, required prefs}) async {
+        ({required sessionToken, required prefs}) async {
           putCalls.add(prefs);
           return prefs.copyWith(pendingPush: false);
         },
       );
 
-      final result = await sync(idToken: 't', sub: 's');
+      final result = await sync(sessionToken: 't', sub: 's');
 
       expect(putCalls, isEmpty);
       expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
@@ -207,13 +207,13 @@ void main() {
           repo.map['s'] = _doc(['b'], 9, pending: true);
           return _doc(['remoto'], 5);
         },
-        ({required idToken, required prefs}) async {
+        ({required sessionToken, required prefs}) async {
           putCalls.add(prefs);
           return prefs.copyWith(pendingPush: false);
         },
       );
 
-      final result = await sync(idToken: 't', sub: 's');
+      final result = await sync(sessionToken: 't', sub: 's');
 
       expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
       expect(repo.map['s']!.kindIds, ['b']);
@@ -223,14 +223,14 @@ void main() {
     test('durante o PUT que dá 409: não adota o remoto do conflito', () async {
       repo.map['s'] = _doc(['a'], 5, pending: true);
       final sync = SyncMaterialKindPrefs(repo, (_) async => null, ({
-        required idToken,
+        required sessionToken,
         required prefs,
       }) async {
         repo.map['s'] = _doc(['a', 'b'], 12, pending: true);
         throw MaterialKindPrefsConflict(_doc(['ganhou'], 10));
       });
 
-      final result = await sync(idToken: 't', sub: 's');
+      final result = await sync(sessionToken: 't', sub: 's');
 
       expect(result.outcome, MaterialKindPrefsSyncOutcome.superseded);
       expect(result.changedLocal, isFalse);
@@ -246,11 +246,11 @@ void main() {
           repo.map['s'] = _doc(['a'], 5, pending: true);
           return null;
         },
-        ({required idToken, required prefs}) async =>
+        ({required sessionToken, required prefs}) async =>
             prefs.copyWith(pendingPush: false),
       );
 
-      final result = await sync(idToken: 't', sub: 's');
+      final result = await sync(sessionToken: 't', sub: 's');
 
       expect(result.outcome, MaterialKindPrefsSyncOutcome.pushed);
       expect(repo.map['s']!.pendingPush, isFalse);

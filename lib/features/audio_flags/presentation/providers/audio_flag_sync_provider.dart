@@ -159,7 +159,7 @@ class AudioFlagSyncNotifier extends Notifier<AudioFlagSyncState> {
       return state.lastResult ?? AudioFlagSyncResult.skippedAuth;
     }
 
-    final future = _run(user.idToken, user.googleSub);
+    final future = _run(user.sessionToken, user.googleSub);
     _inFlight = future;
     try {
       await future;
@@ -189,11 +189,11 @@ class AudioFlagSyncNotifier extends Notifier<AudioFlagSyncState> {
     await sync();
   }
 
-  Future<void> _run(String idToken, String sub) async {
+  Future<void> _run(String sessionToken, String sub) async {
     state = state.copyWith(isSyncing: true);
     try {
       final result = await ref.read(syncAudioFlagsProvider)(
-        idToken: idToken,
+        sessionToken: sessionToken,
         sub: sub,
       );
       if (!ref.mounted) return;

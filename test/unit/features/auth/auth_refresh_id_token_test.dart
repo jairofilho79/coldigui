@@ -1,4 +1,5 @@
 import '../../../support/fakes/fake_auth_remote_datasource.dart';
+
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
@@ -9,7 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 void main() {
   const storedUser = AuthUser(
     googleSub: 'sub-1',
-    idToken: 'token-antigo',
+    sessionToken: 'token-antigo',
     email: 'a@b.com',
     username: 'jairo',
   );
@@ -64,10 +65,13 @@ void main() {
           .refreshIdToken();
 
       expect(token, 'token-novo');
-      expect(container.read(authStateProvider).value?.idToken, 'token-novo');
+      expect(
+        container.read(authStateProvider).value?.sessionToken,
+        'token-novo',
+      );
       // Campos da sessão anterior sobrevivem ao refresh.
       expect(container.read(authStateProvider).value?.username, 'jairo');
-      expect(store.read()?.idToken, 'token-novo');
+      expect(store.read()?.sessionToken, 'token-novo');
       expect(container.read(sessionExpiredProvider), isFalse);
     });
 
@@ -121,9 +125,9 @@ void main() {
         // Exceção é falha transitória: o token corrente segue em uso e o
         // próximo request tenta de novo, em vez de exigir login manual.
         expect(container.read(sessionExpiredProvider), isFalse);
-        expect(store.read()?.idToken, 'token-antigo');
+        expect(store.read()?.sessionToken, 'token-antigo');
         expect(
-          container.read(authStateProvider).value?.idToken,
+          container.read(authStateProvider).value?.sessionToken,
           'token-antigo',
         );
       },
@@ -140,7 +144,7 @@ void main() {
 
       await container.read(authStateProvider.notifier).refreshIdToken();
 
-      expect(store.read()?.idToken, 'token-antigo');
+      expect(store.read()?.sessionToken, 'token-antigo');
     });
 
     test('sem usuário logado devolve null sem marcar sessionExpired', () async {
@@ -218,7 +222,7 @@ void main() {
 
       expect(token, isNull);
       expect(container.read(sessionExpiredProvider), isTrue);
-      expect(store.read()?.idToken, 'token-antigo');
+      expect(store.read()?.sessionToken, 'token-antigo');
     });
 
     test(

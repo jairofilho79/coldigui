@@ -16,7 +16,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 void main() {
   const storedUser = AuthUser(
     googleSub: 'sub-1',
-    idToken: 'token-1',
+    sessionToken: 'token-1',
     email: 'a@b.com',
   );
 
@@ -149,7 +149,7 @@ void main() {
         final store = seededStore();
         const refreshed = AuthUser(
           googleSub: 'sub-1',
-          idToken: 'token-1',
+          sessionToken: 'token-1',
           email: 'a@b.com',
           username: 'joao',
         );
@@ -249,8 +249,8 @@ void main() {
           reason: 'falha transitória não pode exigir login manual',
         );
         expect(
-          container.read(authStateProvider).value?.idToken,
-          storedUser.idToken,
+          container.read(authStateProvider).value?.sessionToken,
+          storedUser.sessionToken,
           reason: 'o token corrente segue em uso até um 401 conclusivo',
         );
       },
@@ -258,7 +258,7 @@ void main() {
 
     test('refresher que devolve o mesmo token marca expirada', () async {
       final container = await containerWithSession(
-        refresher: () async => storedUser.idToken,
+        refresher: () async => storedUser.sessionToken,
       );
 
       final token = await container
@@ -273,7 +273,7 @@ void main() {
   group('AuthNotifier.build — callback OIDC pendente (spec D9/D15)', () {
     const oidcUser = AuthUser(
       googleSub: 'sub-oidc',
-      idToken: 'tok-oidc',
+      sessionToken: 'tok-oidc',
       email: 'o@b.com',
     );
 
@@ -296,7 +296,7 @@ void main() {
 
       expect(received, ['tok-oidc']);
       expect(result?.googleSub, 'sub-oidc');
-      expect(store.read()?.idToken, 'tok-oidc');
+      expect(store.read()?.sessionToken, 'tok-oidc');
     });
 
     test(

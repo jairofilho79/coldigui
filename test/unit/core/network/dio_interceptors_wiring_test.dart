@@ -1,6 +1,7 @@
 import '../../../support/fakes/fake_auth_remote_datasource.dart';
-import 'dart:convert';
+
 import 'dart:typed_data';
+
 import 'package:coldigui/core/network/auth_refresh_interceptor.dart';
 import 'package:coldigui/core/network/retry_interceptor.dart';
 import 'package:coldigui/core/providers/dio_provider.dart';
@@ -42,16 +43,8 @@ class _ScriptedAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-String _b64(Map<String, Object?> json) =>
-    base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
-
-/// JWT de mentira — só o payload é lido (a assinatura nunca é validada).
-String _jwtExpiringIn(Duration delta) =>
-    '${_b64({'alg': 'RS256'})}.'
-    '${_b64({'exp': DateTime.now().toUtc().add(delta).millisecondsSinceEpoch ~/ 1000})}.assinatura-falsa';
-
 void main() {
-  const storedUser = AuthUser(googleSub: 'sub-1', idToken: 'token-velho');
+  const storedUser = AuthUser(googleSub: 'sub-1', sessionToken: 'token-velho');
 
   Future<Stream<GoogleSignInAuthenticationEvent>> noopInitializer() async =>
       const Stream<GoogleSignInAuthenticationEvent>.empty();
@@ -121,7 +114,10 @@ void main() {
       expect(response.statusCode, 200);
       expect(adapter.authHeaders, ['Bearer token-velho', 'Bearer token-novo']);
       expect(container.read(sessionExpiredProvider), isFalse);
-      expect(container.read(authStateProvider).value?.idToken, 'token-novo');
+      expect(
+        container.read(authStateProvider).value?.sessionToken,
+        'token-novo',
+      );
     },
   );
 
@@ -158,59 +154,6 @@ void main() {
       expect(adapter.calls, 3, reason: 'uma ida por chamada, sem repetição');
     },
   );
-
-  // A5: `AuthUserExpiry.expiresSoon` deixou de ser código morto — o
-  // `dioProvider` liga o `exp` do id_token guardado ao refresh preventivo.
-  test('token expirando é renovado antes da request (sem 401)', () async {
-    final container = buildContainer(
-      user: AuthUser(
-        googleSub: 'sub-1',
-        idToken: _jwtExpiringIn(const Duration(seconds: 30)),
-      ),
-      refresher: () async => 'token-novo',
-    );
-    addTearDown(container.dispose);
-    await container.read(authStateProvider.future);
-
-    final adapter = _ScriptedAdapter([200]);
-    final dio = container.read(dioProvider)..httpClientAdapter = adapter;
-
-    final response = await dio.get<Object?>(
-      '/api/playlists',
-      options: Options(headers: {'Authorization': 'Bearer token-velho'}),
-    );
-
-    expect(response.statusCode, 200);
-    expect(adapter.authHeaders, ['Bearer token-novo']);
-    expect(container.read(authStateProvider).value?.idToken, 'token-novo');
-  });
-
-  test('token ainda longe do vencimento não é renovado', () async {
-    var refreshes = 0;
-    final container = buildContainer(
-      user: AuthUser(
-        googleSub: 'sub-1',
-        idToken: _jwtExpiringIn(const Duration(hours: 1)),
-      ),
-      refresher: () async {
-        refreshes++;
-        return 'token-novo';
-      },
-    );
-    addTearDown(container.dispose);
-    await container.read(authStateProvider.future);
-
-    final adapter = _ScriptedAdapter([200]);
-    final dio = container.read(dioProvider)..httpClientAdapter = adapter;
-
-    await dio.get<Object?>(
-      '/api/playlists',
-      options: Options(headers: {'Authorization': 'Bearer token-velho'}),
-    );
-
-    expect(refreshes, 0);
-    expect(adapter.authHeaders, ['Bearer token-velho']);
-  });
 
   test('401 com refresh impossível marca sessão expirada', () async {
     final container = buildContainer(refresher: () async => null);

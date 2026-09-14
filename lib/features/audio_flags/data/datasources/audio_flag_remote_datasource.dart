@@ -10,8 +10,8 @@ class AudioFlagRemoteDatasource {
 
   final Dio _dio;
 
-  Options _auth(String idToken) =>
-      Options(headers: {'Authorization': 'Bearer $idToken'});
+  Options _auth(String sessionToken) =>
+      Options(headers: {'Authorization': 'Bearer $sessionToken'});
 
   /// Lista os marcadores do usuário, **por item**.
   ///
@@ -25,11 +25,11 @@ class AudioFlagRemoteDatasource {
   /// cliente teria de deduzir exclusão por ausência, e um pull parcial apagaria
   /// marcador vivo (spec A.2). Um Worker que ignore o parâmetro devolve só as
   /// linhas vivas — que é o comportamento de antes.
-  Future<List<RemoteAudioFlag>> fetchAll(String idToken) async {
+  Future<List<RemoteAudioFlag>> fetchAll(String sessionToken) async {
     final response = await _dio.get<List<dynamic>>(
       ApiEndpoints.audioFlags,
       queryParameters: {'includeDeleted': '1'},
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     final data = response.data ?? const [];
     final flags = <RemoteAudioFlag>[];
@@ -50,7 +50,7 @@ class AudioFlagRemoteDatasource {
   /// resolve por last-write-wins. Um 409 sem corpo legível continua sendo a
   /// [DioException] original.
   Future<RemoteAudioFlag> upsert({
-    required String idToken,
+    required String sessionToken,
     required RemoteAudioFlag flag,
   }) async {
     final Response<Map<String, dynamic>> response;
@@ -58,7 +58,7 @@ class AudioFlagRemoteDatasource {
       response = await _dio.put<Map<String, dynamic>>(
         ApiEndpoints.audioFlag(flag.id),
         data: flag.toJson(),
-        options: _auth(idToken),
+        options: _auth(sessionToken),
       );
     } on DioException catch (e) {
       final conflict = _conflictFrom(e);
@@ -89,12 +89,12 @@ class AudioFlagRemoteDatasource {
   }
 
   Future<void> softDelete({
-    required String idToken,
+    required String sessionToken,
     required String flagId,
   }) async {
     await _dio.delete<void>(
       ApiEndpoints.audioFlag(flagId),
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
   }
 }

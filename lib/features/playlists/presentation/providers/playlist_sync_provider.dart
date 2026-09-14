@@ -30,10 +30,10 @@ final syncPlaylistsProvider = Provider<SyncPlaylists>((ref) {
   return SyncPlaylists(
     ref.watch(playlistRepositoryProvider),
     remote.fetchAll,
-    ({required idToken, required playlist}) =>
-        remote.upsert(idToken: idToken, playlist: playlist),
-    ({required idToken, required playlistId}) =>
-        remote.softDelete(idToken: idToken, playlistId: playlistId),
+    ({required sessionToken, required playlist}) =>
+        remote.upsert(sessionToken: sessionToken, playlist: playlist),
+    ({required sessionToken, required playlistId}) =>
+        remote.softDelete(sessionToken: sessionToken, playlistId: playlistId),
   );
 });
 
@@ -197,7 +197,7 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       return state.lastResult ?? PlaylistSyncResult.skippedAuth;
     }
 
-    final future = _run(user.idToken, user.googleSub);
+    final future = _run(user.sessionToken, user.googleSub);
     _inFlight = future;
     try {
       await future;
@@ -228,11 +228,11 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
     await sync();
   }
 
-  Future<void> _run(String idToken, String? sub) async {
+  Future<void> _run(String sessionToken, String? sub) async {
     state = state.copyWith(isSyncing: true);
     try {
       final result = await ref.read(syncPlaylistsProvider)(
-        idToken: idToken,
+        sessionToken: sessionToken,
         sub: sub,
       );
       if (!ref.mounted) return;
