@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/carousel/presentation/utils/save_active_playlist_from_bar.dart';
+import 'package:coldigui/features/live/presentation/providers/live_projection_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -27,6 +28,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// (`_CarouselChipsBar`) decide a largura mínima (480 px) abaixo da qual ela
 /// some, dando prioridade à chip do louvor, e passa em [maxWidth] a fatia da
 /// barra que o nome pode ocupar (o texto além disso vira reticências).
+///
+/// Seguindo um gestor ao vivo ([liveProjectionProvider] não nulo, spec
+/// §6.2): mostra [_LiveNameChip] com o nome da lista **dele** em vez da lista
+/// ativa local — sem edição, sem lixeira (Task 19).
 class ActivePlaylistNameChip extends ConsumerWidget {
   const ActivePlaylistNameChip({super.key, this.maxWidth = defaultMaxWidth});
 
@@ -46,6 +51,9 @@ class ActivePlaylistNameChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final live = ref.watch(liveProjectionProvider);
+    if (live != null) return _LiveNameChip(name: live.name, maxWidth: maxWidth);
+
     final playlist = ref.watch(activePlaylistProvider);
     if (playlist == null) return const SizedBox.shrink();
 
@@ -122,5 +130,57 @@ class ActivePlaylistNameChip extends ConsumerWidget {
     await ref
         .read(playlistsProvider.notifier)
         .rename(playlistId: playlist.playlistId, nome: nome);
+  }
+}
+
+/// Chip do nome enquanto o consumidor segue um gestor ao vivo: mesma
+/// aparência de [ActivePlaylistNameChip] (`Material`/cores/forma/padding),
+/// mas com [Icons.sensors] no lugar do lápis e sem `onTap` — nada aqui é
+/// editável (spec §6.2, Task 19).
+class _LiveNameChip extends StatelessWidget {
+  const _LiveNameChip({required this.name, required this.maxWidth});
+
+  final String name;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Material(
+        color: AppColors.title,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: AppColors.gold, width: 2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    name,
+                    style: AppTypography.headline.copyWith(
+                      fontSize: 13,
+                      height: 1.1,
+                      color: AppColors.textLight,
+                      shadows: const [],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Sensores, não lápis: seguindo ao vivo, nada aqui edita.
+                const Icon(Icons.sensors, size: 14, color: AppColors.textLight),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

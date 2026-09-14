@@ -5,6 +5,7 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/active_playlist_name_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_clear_choice_dialog.dart';
+import 'package:coldigui/features/live/presentation/providers/live_projection_provider.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_share_option.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -52,6 +53,7 @@ class _CarouselBarTrailingActionsState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final following = ref.watch(liveProjectionProvider) != null;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -74,13 +76,17 @@ class _CarouselBarTrailingActionsState
               ? null
               : () => unawaited(_openShareSheet(context, ref, l10n)),
         ),
-        CarouselBarActionButton(
-          icon: Icons.delete_outline,
-          label: l10n.carouselClearShort,
-          tooltip: l10n.carouselClear,
-          showLabel: widget.showLabels,
-          onPressed: () => _confirmClear(context, ref),
-        ),
+        // Seguindo um gestor ao vivo: a lixeira não entra — a camada de
+        // dados já ignora mutações (Task 9), então oferecer o botão só
+        // confundiria (spec §6.2).
+        if (!following)
+          CarouselBarActionButton(
+            icon: Icons.delete_outline,
+            label: l10n.carouselClearShort,
+            tooltip: l10n.carouselClear,
+            showLabel: widget.showLabels,
+            onPressed: () => _confirmClear(context, ref),
+          ),
       ],
     );
   }
@@ -92,20 +98,33 @@ class _CarouselBarTrailingActionsState
   ) async {
     playlistShareDebugLog('CarouselBarTrailingActions._openShareSheet: início');
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
-    // A lista ativa **é** a seleção (D3): nada a reconciliar com o carousel.
-    final active = ref.read(activePlaylistProvider);
-    if (active == null || active.entries.isEmpty) {
-      playlistShareDebugLog('_openShareSheet: sem lista ativa ou vazia');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
-      return;
-    }
-
+    // Seguindo um gestor ao vivo: partilhar a lista dele é útil e
+    // inofensivo — usa a projeção ([LiveProjection]) em vez da lista ativa
+    // local (que aqui é a do consumidor, ou nem existe).
+    final live = ref.read(liveProjectionProvider);
     final entries = ref
         .read(activeEntriesProvider)
         .map((activeEntry) => activeEntry.entry)
         .toList(growable: false);
+
+    final String playlistId;
+    final String nome;
+    if (live != null) {
+      playlistId = live.playlistId;
+      nome = live.name;
+    } else {
+      // A lista ativa **é** a seleção (D3): nada a reconciliar com o carousel.
+      final active = ref.read(activePlaylistProvider);
+      if (active == null || active.entries.isEmpty) {
+        playlistShareDebugLog('_openShareSheet: sem lista ativa ou vazia');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
+        return;
+      }
+      playlistId = active.playlistId;
+      nome = active.nome;
+    }
+
     final option = await showPlaylistShareSheet(context);
     if (option == null || !context.mounted) return;
 
@@ -119,8 +138,8 @@ class _CarouselBarTrailingActionsState
           .share(
             context,
             PlaylistShareContext(
-              playlistId: active.playlistId,
-              nome: active.nome,
+              playlistId: playlistId,
+              nome: nome,
               entries: entries,
               fromCarousel: true,
             ),
