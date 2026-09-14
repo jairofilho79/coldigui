@@ -8,12 +8,11 @@
  */
 import type { GoogleClaims } from '../auth/verify_google_token';
 import { json } from '../playlists/wire.ts';
+import { randomShortCode } from '../short_code.ts';
 
 /** Origem para onde `GET /l/:code` redireciona (spec C.2). */
 export const ORIGIN = 'https://plpcg.com';
 
-const CODE_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
-const CODE_LENGTH = 7;
 const MAX_CODE_ATTEMPTS = 5;
 
 const MAX_QUERY_BYTES = 4096;
@@ -41,20 +40,6 @@ function linkUrl(code: string): string {
   return `${ORIGIN}/l/${code}`;
 }
 
-/**
- * 7 caracteres `[a-z0-9]` via `crypto.getRandomValues` (spec C.2). O
- * enviesamento de `256 % 36` é aceitável aqui — não é segredo criptográfico,
- * só um identificador curto e não-adivinhável o bastante.
- */
-function randomCode(): string {
-  const bytes = new Uint8Array(CODE_LENGTH);
-  crypto.getRandomValues(bytes);
-  let code = '';
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    code += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
-  }
-  return code;
-}
 
 /**
  * Alfabeto de uma query string já url-encoded: `[A-Za-z0-9]`, os caracteres
@@ -124,7 +109,7 @@ export async function createShortLink(
   }
 
   for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
-    const code = randomCode();
+    const code = randomShortCode();
     // `ON CONFLICT DO NOTHING RETURNING code` sem alvo: cobre tanto a
     // colisão de `code` (a astronômica coincidência de duas gerações
     // batendo) quanto o índice único `(created_by, query)` — uma criação

@@ -11,6 +11,10 @@
       "migrations_dir": "migrations"
     }
   ],
+  "durable_objects": {
+    "bindings": [{ "name": "LIVE", "class_name": "LiveRoom" }]
+  },
+  "migrations": [{ "tag": "live-v1", "new_sqlite_classes": ["LiveRoom"] }],
   "routes": [
     {
       "pattern": "plpcg.com/api/catalog/*",
@@ -46,6 +50,14 @@
     },
     {
       "pattern": "plpcg.com/api/links*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/api/live/*",
+      "zone_name": "plpcg.com"
+    },
+    {
+      "pattern": "plpcg.com/ao-vivo/*",
       "zone_name": "plpcg.com"
     }
   ]
