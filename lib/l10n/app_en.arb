@@ -532,6 +532,10 @@
     "description": "Undo action in snackbars"
   },
   "playlistEmptyPdfList": "This playlist has no songs.",
+  "playlistGoLive": "Go live",
+  "@playlistGoLive": {
+    "description": "Saved playlist menu item: start broadcasting the list live (lista-ao-vivo spec)"
+  },
   "playlistShare": "Share",
   "playlistImport": "Import playlist",
   "playlistImportTitle": "Import shared playlist",
@@ -877,5 +881,13 @@
   "liveRoomError": "Couldn't load your room",
   "@liveRoomError": {
     "description": "Generic error loading/regenerating the host's live room"
+  },
+  "liveLoginRequired": "Sign in with Google to go live",
+  "@liveLoginRequired": {
+    "description": "Snackbar when trying to \"Go live\" while signed out"
+  },
+  "profileLiveRoom": "My live room",
+  "@profileLiveRoom": {
+    "description": "Profile tile that opens the signed-in user's live room"
   }
 }

@@ -955,6 +955,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistEmptyPdfList => 'Esta lista não tem louvores.';
 
   @override
+  String get playlistGoLive => 'Iniciar ao vivo';
+
+  @override
   String get playlistShare => 'Compartilhar';
 
   @override
@@ -1578,4 +1581,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get liveRoomError => 'Não foi possível carregar a sua sala';
+
+  @override
+  String get liveLoginRequired => 'Entre com o Google para transmitir ao vivo';
+
+  @override
+  String get profileLiveRoom => 'Minha sala ao vivo';
 }

@@ -1673,6 +1673,12 @@ abstract class AppLocalizations {
   /// **'Esta lista não tem louvores.'**
   String get playlistEmptyPdfList;
 
+  /// Item do menu da lista salva: começa a transmitir a lista ao vivo (spec lista-ao-vivo)
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciar ao vivo'**
+  String get playlistGoLive;
+
   /// No description provided for @playlistShare.
   ///
   /// In pt, this message translates to:
@@ -2668,6 +2674,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível carregar a sua sala'**
   String get liveRoomError;
+
+  /// Snackbar ao tentar «Iniciar ao vivo» sem estar logado
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com o Google para transmitir ao vivo'**
+  String get liveLoginRequired;
+
+  /// Tile do Perfil que abre a sala ao vivo do usuário logado
+  ///
+  /// In pt, this message translates to:
+  /// **'Minha sala ao vivo'**
+  String get profileLiveRoom;
 }
 
 class _AppLocalizationsDelegate

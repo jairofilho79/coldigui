@@ -7,11 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/home_url_builder.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../../../../core/utils/safe_query_parameters.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../live/domain/live_room_link.dart';
 import '../../../playlists/presentation/providers/playlists_provider.dart';
 import '../../data/providers/app_shell_providers.dart';
 import '../../domain/usecases/sync_deep_link_state.dart';
@@ -81,6 +83,16 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
 
   Future<void> _handleUri(Uri uri) async {
     if (_handling || !ref.read(deepLinkHandlingEnabledProvider)) return;
+
+    // Sala ao vivo: sem import, só navegar (spec lista-ao-vivo D6).
+    final liveCode = parseLiveRoomCode(uri);
+    if (liveCode != null) {
+      final fingerprint = 'live:$liveCode';
+      if (_isRecentlyProcessed(fingerprint)) return;
+      _markProcessed(fingerprint);
+      ref.read(appRouterProvider).go(RoutePaths.liveRoomFor(liveCode));
+      return;
+    }
 
     final sanitizedUri = _sanitizeUri(uri);
     final params = parsePlaylistShareParams(sanitizedUri);

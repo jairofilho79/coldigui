@@ -10,9 +10,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../live/presentation/providers/live_session_controller.dart';
+import '../../../live/presentation/providers/my_live_room_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -81,6 +84,8 @@ class PlaylistTileActions {
         value: 'openAudio',
         child: Text(l10n.playlistOpenInAudioPlayer),
       ),
+      if (playlist.salva)
+        PopupMenuItem(value: 'goLive', child: Text(l10n.playlistGoLive)),
       PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
       if (playlist.salva && !playlist.isPublished)
         PopupMenuItem(
@@ -409,6 +414,33 @@ class PlaylistTileActions {
     }
   }
 
+  /// «Iniciar ao vivo» (só lista salva, spec lista-ao-vivo): exige login;
+  /// garante a sala no Worker, torna a lista ativa, começa a transmitir e
+  /// abre a sala (link + QR).
+  Future<void> _goLive() async {
+    if (loading) return;
+    final user = ref.read(authStateProvider).asData?.value;
+    if (user == null) {
+      _showError(l10n.liveLoginRequired);
+      return;
+    }
+    onLoadingChanged(true);
+    try {
+      final room = await ref.read(myLiveRoomProvider.notifier).ensure();
+      await ref
+          .read(activePlaylistEditorProvider.notifier)
+          .activate(playlist.playlistId);
+      await ref
+          .read(liveSessionProvider.notifier)
+          .startLive(code: room.code, playlistId: playlist.playlistId);
+      if (context.mounted) context.go(RoutePaths.liveRoomFor(room.code));
+    } on Object catch (e) {
+      _showError(userMessageFor(l10n, e));
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
   Future<void> run(String action) async {
     switch (action) {
       case 'activate':
@@ -434,6 +466,8 @@ class PlaylistTileActions {
           return;
         }
         await openAudioTrack(tracks.first);
+      case 'goLive':
+        await _goLive();
       case 'share':
         if (playlist.pdfIds.isEmpty && playlist.audioIds.isEmpty) {
           _showError(l10n.playlistEmptyPdfList);

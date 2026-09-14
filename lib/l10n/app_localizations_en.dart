@@ -948,6 +948,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistEmptyPdfList => 'This playlist has no songs.';
 
   @override
+  String get playlistGoLive => 'Go live';
+
+  @override
   String get playlistShare => 'Share';
 
   @override
@@ -1563,4 +1566,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get liveRoomError => 'Couldn\'t load your room';
+
+  @override
+  String get liveLoginRequired => 'Sign in with Google to go live';
+
+  @override
+  String get profileLiveRoom => 'My live room';
 }

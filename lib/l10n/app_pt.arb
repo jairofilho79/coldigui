@@ -547,6 +547,10 @@
     "description": "Ação de desfazer em snackbars"
   },
   "playlistEmptyPdfList": "Esta lista não tem louvores.",
+  "playlistGoLive": "Iniciar ao vivo",
+  "@playlistGoLive": {
+    "description": "Item do menu da lista salva: começa a transmitir a lista ao vivo (spec lista-ao-vivo)"
+  },
   "playlistShare": "Compartilhar",
   "playlistImport": "Importar lista",
   "playlistImportTitle": "Importar lista compartilhada",
@@ -993,5 +997,13 @@
   "liveRoomError": "Não foi possível carregar a sua sala",
   "@liveRoomError": {
     "description": "Erro genérico ao carregar/regenerar a sala ao vivo do gestor"
+  },
+  "liveLoginRequired": "Entre com o Google para transmitir ao vivo",
+  "@liveLoginRequired": {
+    "description": "Snackbar ao tentar «Iniciar ao vivo» sem estar logado"
+  },
+  "profileLiveRoom": "Minha sala ao vivo",
+  "@profileLiveRoom": {
+    "description": "Tile do Perfil que abre a sala ao vivo do usuário logado"
   }
 }
