@@ -323,7 +323,7 @@ void main() {
       expect(const PlpcgCatalogSource().searchLocal(_query('x')), isEmpty);
     });
 
-    test('ColdigomCatalogSource.searchLocal é sempre vazio', () {
+    test('ColdigomCatalogSource.searchLocal é vazio sem índice', () {
       expect(_coldigomSource().searchLocal(_query('Comigo')), isEmpty);
     });
 

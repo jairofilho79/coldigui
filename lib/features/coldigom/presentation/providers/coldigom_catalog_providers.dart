@@ -39,6 +39,12 @@ export '../../domain/usecases/sync_coldigom_catalog.dart'
 ///
 /// Sem Isar (modo degradado) devolve [ColdigomSearchIndex.empty]. Um sync
 /// que substituiu o catálogo invalida este provider ([ColdigomCatalogSyncNotifier]).
+///
+/// Os caches por tipo (`coldigomLouvoresCacheProvider` e irmãos) só
+/// **fundem**: um praise removido no servidor some do Isar e do índice novo
+/// na próxima hidratação, mas a entrada antiga desses caches em memória
+/// sobrevive até o app reiniciar — a Home nunca lê os caches direto, só o
+/// índice (autoritativo), então isso não afeta a busca.
 final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
   ref,
 ) async {
@@ -80,34 +86,48 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
     if (praiseLyrics != null) lyrics.add(praiseLyrics);
     meta[row.praiseId] = praiseMeta;
 
-    final groups = LouvorGroup.fromLouvores(
-      praiseLouvores,
-      audioTracks: praiseTracks,
-      chordMaterials: praiseChords,
-      gestureMaterials: praiseGestures,
-      youtubeMaterials: praiseYoutube,
-      lyricsByGroupId: praiseLyrics == null
-          ? null
-          : {row.praiseId: praiseLyrics},
-      coldigomMetaByGroupId: {row.praiseId: praiseMeta},
-    );
-    // Um praise sem material endereçável (só YouTube, ou nada) não sustenta
-    // um grupo — mesma regra de `ColdigomCatalogSource.findGroupById`.
-    final group = groups.where((g) => g.groupId == row.praiseId).firstOrNull;
-    if (group != null) {
-      entries.add(
-        ColdigomIndexedPraise.build(
-          praiseId: row.praiseId,
-          numero: row.number,
-          nome: row.name,
-          searchTokens: row.searchTokens,
-          group: group,
-        ),
+    // Um praise sem material endereçável (nem PDF, nem áudio, nem cifra, nem
+    // gesto, nem letra) não sustenta um grupo — mesma checagem de
+    // `ColdigomCatalogSource.findGroupById`. YouTube sozinho não conta:
+    // `LouvorGroup.fromLouvores` monta grupo a partir de `youtubeByGroup`
+    // também, então sem este `if` explícito um praise só-YouTube entraria no
+    // índice (card sem PDF/áudio/cifra/gesto/letra para abrir) mesmo
+    // `findGroupById` devolvendo `null` para o mesmo id.
+    final hasAddressableMaterial =
+        praiseLouvores.isNotEmpty ||
+        praiseTracks.isNotEmpty ||
+        praiseChords.isNotEmpty ||
+        praiseGestures.isNotEmpty ||
+        praiseLyrics != null;
+    if (hasAddressableMaterial) {
+      final groups = LouvorGroup.fromLouvores(
+        praiseLouvores,
+        audioTracks: praiseTracks,
+        chordMaterials: praiseChords,
+        gestureMaterials: praiseGestures,
+        youtubeMaterials: praiseYoutube,
+        lyricsByGroupId: praiseLyrics == null
+            ? null
+            : {row.praiseId: praiseLyrics},
+        coldigomMetaByGroupId: {row.praiseId: praiseMeta},
       );
+      final group = groups.where((g) => g.groupId == row.praiseId).firstOrNull;
+      if (group != null) {
+        entries.add(
+          ColdigomIndexedPraise.build(
+            praiseId: row.praiseId,
+            numero: row.number,
+            nome: row.name,
+            searchTokens: row.searchTokens,
+            group: group,
+          ),
+        );
+      }
     }
 
     if ((i + 1) % OfflineConfig.coldigomHydrationChunkSize == 0) {
       await Future<void>.delayed(Duration.zero);
+      if (!ref.mounted) return ColdigomSearchIndex.empty;
     }
   }
 
@@ -202,10 +222,17 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
   Future<void> requestSyncIfStale() async {
     final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
     final syncedAt = metadata.readSyncedAt();
-    // `metadata.readCount()` (SharedPreferences) em vez de consultar o Isar:
-    // fica disponível de imediato, mesmo com o Isar ainda `opening` no boot
-    // (a leitura síncrona de `count()` degradaria para 0 nesse instante e
-    // pediria sync à toa a cada abertura do app).
+    // `metadata.readCount()` (SharedPreferences) em vez de
+    // `coldigomCatalogLocalDatasourceProvider.count()` (Isar): fica
+    // disponível de imediato, mesmo com o Isar ainda `opening` no boot — ler
+    // o Isar aqui synchronously degradaria para `0` nesse instante e faria
+    // este *gate* de "já sincronizei há pouco" pedir sync à toa a cada
+    // abertura do app. `_run()` (chamado por [sync] logo abaixo) já espera o
+    // Isar assentar antes de tocar rede/storage, então esse `hasCatalog`
+    // só decide *se vale a pena tentar*, não é usado para montar o pedido —
+    // a janela cega de um Isar zerado por fora (sem passar por
+    // `markReplaced`) só atrasaria um sync que aconteceria de qualquer jeito
+    // no próximo boot/foreground.
     final hasCatalog = metadata.readCount() > 0;
     if (hasCatalog &&
         syncedAt != null &&
@@ -225,6 +252,18 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
   }
 
   Future<ColdigomCatalogSyncResult> _run() async {
+    // O shell monta (e o boot agenda `requestSyncIfStale`) enquanto o Isar
+    // ainda pode estar abrindo — mesmo cenário D.2 do sync de playlists.
+    // Sincronizar antes disso faria `SyncColdigomCatalog.run()` ler
+    // `coldigomCatalogLocalDatasourceProvider` como `.unavailable()`: o
+    // `count()==0` derruba o ETag guardado (pede o dump inteiro à toa) e o
+    // `replaceAll` final lança `StorageUnavailableException` — mesmo com um
+    // catálogo bom já em disco, só ainda não aberto. Espera o Isar assentar
+    // primeiro; sem ele, nem vale a pena bater na rede.
+    if (await awaitIsarSettled(ref) != IsarStatus.available) {
+      return const ColdigomCatalogSyncFailed('Isar indisponível');
+    }
+    if (!ref.mounted) return const ColdigomCatalogSyncFailed('descartado');
     state = state.copyWith(isSyncing: true);
     final result = await ref.read(syncColdigomCatalogProvider).run();
     if (!ref.mounted) return result;

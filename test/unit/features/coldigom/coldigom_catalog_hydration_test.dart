@@ -33,9 +33,11 @@ class _ScriptedRemote extends ColdigomRemoteDatasource {
   _ScriptedRemote(this._respond) : super(Dio());
   final Future<ColdigomCatalogFetchResult> Function() _respond;
   int calls = 0;
+  String? lastIfNoneMatch;
   @override
   Future<ColdigomCatalogFetchResult> fetchCatalog({String? ifNoneMatch}) {
     calls++;
+    lastIfNoneMatch = ifNoneMatch;
     return _respond();
   }
 }
@@ -71,13 +73,18 @@ void main() {
     required _ScriptedRemote remote,
     bool online = true,
     bool isarAvailable = true,
+    Duration isarOpenDelay = Duration.zero,
   }) {
     final c = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        isarInitializerProvider.overrideWith(
-          (ref) async => isarAvailable ? isar : throw StateError('sem isar'),
-        ),
+        isarInitializerProvider.overrideWith((ref) async {
+          if (isarOpenDelay > Duration.zero) {
+            await Future<void>.delayed(isarOpenDelay);
+          }
+          if (!isarAvailable) throw StateError('sem isar');
+          return isar;
+        }),
         coldigomRemoteDatasourceProvider.overrideWithValue(remote),
         deviceConnectivityProvider.overrideWithValue(_Online(online)),
       ],
@@ -189,4 +196,88 @@ void main() {
     await stale.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
     expect(remote.calls, 1);
   });
+
+  test(
+    'sync espera o Isar abrir antes de tocar na rede/local (sem perder o ETag)',
+    () async {
+      await seed();
+      await ColdigomCatalogSyncMetadataStore(prefs)
+          .markReplaced(etag: '"v1"', count: 3, at: DateTime.now().toUtc());
+      final remote = _ScriptedRemote(
+        () async => const ColdigomCatalogNotModified(),
+      );
+      // Isar só assenta 50ms depois de aberto: se `sync()` ler
+      // `coldigomCatalogLocalDatasourceProvider` antes disso, ele vê
+      // `.unavailable()` (count 0), derruba o ETag guardado e pede o dump
+      // inteiro — o que este teste prova que não acontece mais.
+      final c = container(
+        remote: remote,
+        online: true,
+        isarOpenDelay: const Duration(milliseconds: 50),
+      );
+
+      final result = await c.read(coldigomCatalogSyncProvider.notifier).sync();
+
+      expect(result, isA<ColdigomCatalogSyncNoop>());
+      expect(remote.calls, 1);
+      expect(remote.lastIfNoneMatch, '"v1"');
+      // 304: nem toca no Isar — o catálogo semeado continua intacto.
+      expect(ColdigomCatalogLocalDatasource(isar).count(), 3);
+    },
+  );
+
+  test(
+    'praise só com YouTube fica fora do índice mas o link chega ao cache',
+    () async {
+      final onlyYoutube = ColdigomCatalogDto.fromJson(
+        jsonDecode('''
+        {
+          "generatedAt": "2026-09-14T12:00:00.000Z",
+          "kinds": [],
+          "praises": [
+            {
+              "id": "p-yt",
+              "number": "099",
+              "name": "Só vídeo",
+              "author": "",
+              "rhythm": "",
+              "tonality": "",
+              "category": "",
+              "tags": [],
+              "materials": [
+                {
+                  "id": "yt-only",
+                  "kind": null,
+                  "type": "youtube",
+                  "url": "https://www.youtube.com/watch?v=1Pks43ceAac"
+                }
+              ]
+            }
+          ]
+        }
+        ''') as Map<String, dynamic>,
+      );
+      await ColdigomCatalogLocalDatasource(isar).replaceAll([
+        for (final p in onlyYoutube.praises)
+          ColdigomPraiseCacheMapper.fromCatalogPraise(
+            p,
+            kindNames: onlyYoutube.kindNames,
+          ),
+      ]);
+      final remote = _ScriptedRemote(
+        () async => const ColdigomCatalogNotModified(),
+      );
+      final c = container(remote: remote, online: false);
+
+      final index = await c.read(coldigomCatalogHydrationProvider.future);
+
+      // Sem PDF/áudio/cifra/gesto/letra, o YouTube sozinho não sustenta um
+      // grupo (mesma regra de `ColdigomCatalogSource.findGroupById`) — fica
+      // fora do índice, mas o link ainda é útil no sheet de quem já abriu o
+      // praise por outro caminho.
+      expect(index.praiseIds, isNot(contains('p-yt')));
+      expect(index.isEmpty, isTrue);
+      expect(c.read(coldigomYoutubeCacheProvider)['p-yt'], hasLength(1));
+    },
+  );
 }
