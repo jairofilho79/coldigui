@@ -61,4 +61,16 @@ abstract final class StorageKeys {
   /// Última posição do player de áudio, JSON `{"trackId":..,"positionMs":..}`
   /// (spec B.4 C12, retomar posição no boot).
   static const String audioLastPosition = 'audioLastPosition';
+
+  /// ETag do último dump `GET /api/plpcg/catalog` gravado no Isar.
+  static const String coldigomCatalogEtag = 'coldigomCatalogEtag';
+
+  /// Timestamp ISO-8601 do último sync do catálogo Coldigom (200 ou 304).
+  static const String coldigomCatalogSyncedAt = 'coldigomCatalogSyncedAt';
+
+  /// Quantos praises o último sync gravou — linha de estado do `/offline`.
+  static const String coldigomCatalogCount = 'coldigomCatalogCount';
+
+  /// Corpo da letra no leitor de letras `/letra` (`double`).
+  static const String lyricsReaderFontSize = 'lyricsReaderFontSize';
 }

@@ -10,11 +10,6 @@ Future<Isar> openAppIsar({
   String name = kAppIsarName,
   String? directory,
 }) async {
-  final dirPath =
-      directory ?? (await getApplicationDocumentsDirectory()).path;
-  return Isar.open(
-    schemas: kAppIsarSchemas,
-    directory: dirPath,
-    name: name,
-  );
+  final dirPath = directory ?? (await getApplicationDocumentsDirectory()).path;
+  return Isar.open(schemas: kAppIsarSchemas, directory: dirPath, name: name);
 }
