@@ -288,6 +288,55 @@ void main() {
     expect(isar.offlinePdfIndexs.where().pdfIdEqualTo(pdfId).count(), 0);
   });
 
+  test('removeMany apaga N PDFs (disco + índice) com uma única notificação de '
+      'mudança — não N como remove() em laço faria', () async {
+    var indexChanges = 0;
+    final trackedLocal = OfflinePdfLocalDatasource(
+      isar,
+      onIndexChanged: () => indexChanges++,
+    );
+    final trackedRepo = OfflinePdfRepositoryImpl(
+      store: pdfStoragePortFor(store),
+      local: trackedLocal,
+    );
+
+    final id1 = _encodePdfId('ColAdultos/many-a.pdf');
+    final id2 = _encodePdfId('ColAdultos/many-b.pdf');
+    final id3 = _encodePdfId('ColAdultos/many-c.pdf');
+    final entries = [
+      await trackedRepo.upsert(
+        pdfId: id1,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+      await trackedRepo.upsert(
+        pdfId: id2,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+      await trackedRepo.upsert(
+        pdfId: id3,
+        bytes: _validPdfBytes(),
+        category: 'ColAdultos',
+      ),
+    ];
+    indexChanges = 0; // só a remoção importa daqui pra frente.
+
+    await trackedRepo.removeMany({id1, id2, id3});
+
+    expect(indexChanges, 1);
+    expect(isar.offlinePdfIndexs.where().count(), 0);
+    for (final entry in entries) {
+      expect(await File(entry.absolutePath).exists(), isFalse);
+    }
+  });
+
+  test('removeMany é idempotente (conjunto vazio ou pdfId ausente)', () async {
+    await repository.removeMany({});
+    await repository.removeMany({'inexistente'});
+    // Não lança — só o comportamento importa aqui.
+  });
+
   test('lookupBatch retorna pdfIds com índice e arquivo válido', () async {
     final id1 = _encodePdfId('ColAdultos/a.pdf');
     final id2 = _encodePdfId('ColAdultos/b.pdf');

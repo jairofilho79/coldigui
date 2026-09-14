@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 
 import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
@@ -55,6 +56,7 @@ class _FakeFetchAndStorePdf extends FetchAndStorePdf {
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) {
     lastPersistentDownload = persistentDownload;
     return _onCall(
@@ -104,6 +106,9 @@ class _UnusedRepository implements OfflinePdfRepository {
 
   @override
   Future<void> remove(String pdfId) => throw UnimplementedError();
+
+  @override
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
 
   @override
   Future<void> remapPdfId({
@@ -497,36 +502,33 @@ void main() {
     },
   );
 
-  test(
-    'fullOfflineMode com índice órfão e offline lança PdfExternallyDeletedException',
-    () async {
-      final bytes = Uint8List.fromList([1]);
-      final entry = await repository.upsert(
-        pdfId: pdfId,
-        bytes: bytes,
-        category: category,
-      );
-      await File(entry.absolutePath).delete();
+  test('fullOfflineMode com índice órfão e offline lança PdfExternallyDeletedException', () async {
+    final bytes = Uint8List.fromList([1]);
+    final entry = await repository.upsert(
+      pdfId: pdfId,
+      bytes: bytes,
+      category: category,
+    );
+    await File(entry.absolutePath).delete();
 
-      final fake = _FakeFetchAndStorePdf(({
-        required String pdfId,
-        required String remotePath,
-        String? category,
-        ProgressCallback? onProgress,
-      }) async {
-        throw StateError('fetch não deveria ser chamado');
-      });
-      final resolver = ResolvePdfForReader(
-        repository,
-        fake,
-        isFullOfflineMode: () => true,
-        hasNetworkConnection: () async => false,
-      );
+    final fake = _FakeFetchAndStorePdf(({
+      required String pdfId,
+      required String remotePath,
+      String? category,
+      ProgressCallback? onProgress,
+    }) async {
+      throw StateError('fetch não deveria ser chamado');
+    });
+    final resolver = ResolvePdfForReader(
+      repository,
+      fake,
+      isFullOfflineMode: () => true,
+      hasNetworkConnection: () async => false,
+    );
 
-      expect(
-        () => resolver(pdfId: pdfId, remotePath: remotePath),
-        throwsA(isA<PdfExternallyDeletedException>()),
-      );
-    },
-  );
+    expect(
+      () => resolver(pdfId: pdfId, remotePath: remotePath),
+      throwsA(isA<PdfExternallyDeletedException>()),
+    );
+  });
 }

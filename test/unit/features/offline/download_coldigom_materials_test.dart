@@ -222,7 +222,12 @@ void main() {
     required List<ColdigomPraiseCache> rows,
     _PdfRepo? pdfRepo,
     Set<String>? pdfFetched,
-    Future<void> Function(String pdfId, String r2Key)? fetchPdf,
+    Future<void> Function(
+      String pdfId,
+      String r2Key, {
+      CancelToken? cancelToken,
+    })?
+    fetchPdf,
     _AudioBytes? audioBytes,
     _AudioRepo? audioRepo,
     Future<String?> Function(String)? chord,
@@ -240,7 +245,7 @@ void main() {
       pdfLocal: _PdfLocal(marked),
       fetchPdf:
           fetchPdf ??
-          (id, _) async {
+          (id, _, {cancelToken}) async {
             fetched.add(id);
           },
       audioBytes: audioBytes ?? _AudioBytes((_) async => Uint8List(3)),
@@ -367,7 +372,7 @@ void main() {
         rows: [
           _row('p1', '001', [_m('a', 'k', 'pdf')]),
         ],
-        fetchPdf: (id, r2Key) async {
+        fetchPdf: (id, r2Key, {cancelToken}) async {
           pdfAttempts++;
           throw _retryable();
         },
@@ -380,6 +385,56 @@ void main() {
       expect(result.failed.single.materialId, 'a');
       expect(result.failed.single.cause, isA<DioException>());
       expect(result.cancelled, isFalse);
+    },
+  );
+
+  test('cancelToken chega ao fetchPdf da fila de PDFs', () async {
+    final token = CancelToken();
+    CancelToken? received;
+    final usecase = build(
+      rows: [
+        _row('p1', '001', [_m('a', 'k', 'pdf')]),
+      ],
+      fetchPdf: (id, r2Key, {cancelToken}) async {
+        received = cancelToken;
+      },
+    );
+
+    await usecase(kindIds: {'k'}, cancelToken: token);
+
+    expect(received, same(token));
+  });
+
+  test(
+    'cancelamento durante fetch de PDF em voo não vira falha (só stopped)',
+    () async {
+      final gate = Completer<void>();
+      final token = CancelToken();
+      final usecase = build(
+        rows: [
+          _row('p1', '001', [_m('a', 'k', 'pdf')]),
+        ],
+        fetchPdf: (id, r2Key, {cancelToken}) async {
+          await gate.future;
+          if (cancelToken?.isCancelled ?? false) {
+            throw DioException(
+              requestOptions: RequestOptions(path: '/x'),
+              type: DioExceptionType.cancel,
+            );
+          }
+        },
+        concurrency: 1,
+      );
+
+      final future = usecase(kindIds: {'k'}, cancelToken: token);
+      await Future<void>.delayed(Duration.zero);
+      token.cancel();
+      gate.complete();
+      final result = await future;
+
+      expect(result.cancelled, isTrue);
+      expect(result.failed, isEmpty);
+      expect(result.done, 0);
     },
   );
 

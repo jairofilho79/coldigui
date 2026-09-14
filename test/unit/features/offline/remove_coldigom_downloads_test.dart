@@ -9,13 +9,13 @@ import 'package:flutter_test/flutter_test.dart';
 class _PdfRepo implements OfflinePdfRepository {
   _PdfRepo(this.entries);
   final List<OfflinePdfEntry> entries;
-  final removed = <String>[];
+  Set<String>? removedMany;
 
   @override
   Future<List<OfflinePdfEntry>> listAll() async => entries;
 
   @override
-  Future<void> remove(String pdfId) async => removed.add(pdfId);
+  Future<void> removeMany(Set<String> pdfIds) async => removedMany = pdfIds;
 
   @override
   dynamic noSuchMethod(Invocation i) =>
@@ -59,7 +59,7 @@ void main() {
         audioRepository: audioRepo,
       ).call();
 
-      expect(pdfRepo.removed, [encodePdfId('assets/praises/p1/a.pdf')]);
+      expect(pdfRepo.removedMany, {encodePdfId('assets/praises/p1/a.pdf')});
       expect(audioRepo.removeAllCalls, 1);
       expect(result.removedPdfs, 1);
     },

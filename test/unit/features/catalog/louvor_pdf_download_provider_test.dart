@@ -98,6 +98,9 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> remove(String pdfId) => throw UnimplementedError();
 
   @override
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
+
+  @override
   Future<void> remapPdfId({
     required String fromPdfId,
     required String toPdfId,

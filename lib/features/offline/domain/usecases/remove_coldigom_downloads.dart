@@ -35,14 +35,17 @@ class RemoveColdigomDownloads {
     final audios = (await _audioRepository.listAll()).length;
     await _audioRepository.removeAll();
 
-    var removedPdfs = 0;
-    for (final entry in await _pdfRepository.listAll()) {
-      if (!entry.isPersistent || !isColdigomPdfId(entry.pdfId)) continue;
-      await _pdfRepository.remove(entry.pdfId);
-      removedPdfs++;
-    }
+    final pdfIds = {
+      for (final entry in await _pdfRepository.listAll())
+        if (entry.isPersistent && isColdigomPdfId(entry.pdfId)) entry.pdfId,
+    };
+    // `removeMany` (uma baixa no índice) — não `remove` em laço, que bumpa
+    // `offlineIndexRevisionProvider` uma vez por PDF (até ~1700× num
+    // catálogo grande). `pdfIds.length` já é a contagem do que se apaga —
+    // sem novo `listAll()` só pra contar.
+    await _pdfRepository.removeMany(pdfIds);
     return RemoveColdigomDownloadsResult(
-      removedPdfs: removedPdfs,
+      removedPdfs: pdfIds.length,
       removedAudios: audios,
     );
   }

@@ -21,7 +21,13 @@ import '../repositories/offline_pdf_repository.dart';
 import '../utils/download_retry.dart';
 
 /// Baixa e persiste um PDF como persistente (`FetchAndStorePdf` em produção).
-typedef FetchColdigomPdf = Future<void> Function(String pdfId, String r2Key);
+/// [cancelToken] é o mesmo token de [DownloadColdigomMaterials.call] — «Parar»
+/// interrompe um PDF em voo, não só os alvos ainda não iniciados.
+typedef FetchColdigomPdf = Future<void> Function(
+  String pdfId,
+  String r2Key, {
+  CancelToken? cancelToken,
+});
 
 /// `r2Key`s das figuras de um documento `.gestures` (parse + dicionário).
 typedef GestureFigureKeysResolver = Future<Set<String>> Function(
@@ -258,7 +264,7 @@ class DownloadColdigomMaterials {
         // `_withRetry` aqui multiplicaria as tentativas (até 9× de 120s por
         // PDF morto, como o comentário de `RetryInterceptor.disableKey`
         // adverte). Uma falha aqui já veio depois do retry interno dele.
-        await _fetchPdf(target.localId, target.r2Key);
+        await _fetchPdf(target.localId, target.r2Key, cancelToken: cancelToken);
         // `FetchColdigomPdf` (void) não devolve o tamanho real — o PDF já
         // fica contabilizado no próprio `OfflinePdfRepository`/índice; o
         // `bytes` deste resultado só soma o que só esta chamada sabe medir

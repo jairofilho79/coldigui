@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
+
 import 'dart:io';
 
 import 'offline_test_helpers.dart';
@@ -59,6 +60,9 @@ class _StatsRepo implements OfflinePdfRepository {
 
   @override
   Future<void> remove(String pdfId) async {}
+
+  @override
+  Future<void> removeMany(Set<String> pdfIds) async {}
 
   @override
   Future<void> remapPdfId({

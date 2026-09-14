@@ -47,10 +47,11 @@ final downloadColdigomMaterialsProvider = Provider<DownloadColdigomMaterials>((
     catalog: ref.watch(coldigomCatalogLocalDatasourceProvider),
     pdfRepository: ref.watch(offlinePdfRepositoryProvider),
     pdfLocal: ref.watch(offlinePdfLocalDatasourceProvider),
-    fetchPdf: (pdfId, r2Key) => fetchAndStorePdf(
+    fetchPdf: (pdfId, r2Key, {cancelToken}) => fetchAndStorePdf(
       pdfId: pdfId,
       remotePath: '/$r2Key',
       persistentDownload: true,
+      cancelToken: cancelToken,
     ),
     audioBytes: ref.watch(audioBytesDatasourceProvider),
     audioRepository: ref.watch(offlineAudioRepositoryProvider),

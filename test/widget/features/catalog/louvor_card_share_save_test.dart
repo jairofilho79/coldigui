@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -144,6 +146,9 @@ class _UnusedRepository implements OfflinePdfRepository {
 
   @override
   Future<void> remove(String pdfId) => throw UnimplementedError();
+
+  @override
+  Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
 
   @override
   Future<void> remapPdfId({
