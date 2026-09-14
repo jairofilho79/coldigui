@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -11,6 +12,8 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
+import '../../../offline/presentation/providers/material_availability_map_provider.dart';
+import '../../../pdf_opening/domain/entities/pdf_offline_availability.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
@@ -179,11 +182,13 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     required AppLocalizations l10n,
     IconData? icon,
     String? subtitle,
+    bool enabled = true,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
     final isAdded = activeMaterialIds.contains(material.id);
     return ListTile(
+      enabled: enabled,
       leading: Icon(
         icon ?? LouvorMaterialIcons.forMaterial(material),
         color: iconColor,
@@ -215,6 +220,33 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     );
   }
 
+  /// O14: sem rede, só o que está no aparelho abre. Letra nunca desabilita
+  /// (vive no Isar); YouTube precisa de rede sempre; o resto consulta o mapa
+  /// de disponibilidade. Online nada muda — e se a deteção de rede errar,
+  /// o tile fica ativo e o erro de abertura já existente aparece.
+  ({bool enabled, String? subtitle}) _availabilityFor(
+    CatalogMaterial material, {
+    required bool online,
+    required Map<String, PdfOfflineAvailability> availability,
+    required AppLocalizations l10n,
+  }) {
+    if (online) return (enabled: true, subtitle: null);
+    return switch (material) {
+      LyricsMaterial() => (enabled: true, subtitle: null),
+      YoutubeMaterialRef() => (
+        enabled: false,
+        subtitle: l10n.materialNeedsConnection,
+      ),
+      PdfMaterial() ||
+      ChordMaterialRef() ||
+      GestureMaterialRef() ||
+      AudioMaterial() =>
+        availability.containsKey(material.id)
+            ? (enabled: true, subtitle: null)
+            : (enabled: false, subtitle: l10n.materialNotDownloadedOffline),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -226,6 +258,37 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     // Favoritos da conta (spec D9): sobem dentro de cada aba, o resto mantém
     // a ordem do servidor. Vazio para deslogado e para o acervo PLPCG.
     final rank = ref.watch(favoriteMaterialKindRankProvider);
+
+    // O14: `.value ?? true` cobre o `AsyncLoading` inicial do stream — sem
+    // sinal ainda, o sheet trata como online (nada desabilita à toa).
+    final online = ref.watch(connectivityStreamProvider).value ?? true;
+    final availability = ref.watch(materialAvailabilityMapProvider);
+
+    // Helper local para não repetir `_availabilityFor` nos seis pontos que
+    // montam um tile — o subtítulo de indisponibilidade ganha do autor do
+    // áudio: é a informação acionável offline.
+    Widget tileFor(
+      CatalogMaterial material, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    }) {
+      final state = _availabilityFor(
+        material,
+        online: online,
+        availability: availability,
+        l10n: l10n,
+      );
+      return _materialTile(
+        material: material,
+        icon: icon,
+        iconColor: iconColor,
+        activeMaterialIds: activeMaterialIds,
+        l10n: l10n,
+        enabled: state.enabled,
+        subtitle: state.subtitle ?? subtitle,
+      );
+    }
 
     // As cifras do grupo já estão no cache Coldigom: quem monta o grupo
     // (busca/browse, detalhe do praise, catálogo em memória) as funde no data
@@ -289,6 +352,27 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ],
             const SizedBox(height: 12),
             const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
+            if (!online) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.cloud_off,
+                    size: 16,
+                    color: AppColors.title.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      l10n.materialSheetOfflineBanner,
+                      style: AppTypography.label.copyWith(
+                        color: AppColors.title.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (showSegments) ...[
               const SizedBox(height: 12),
               _KindSegmentBar(
@@ -304,19 +388,14 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
               child: ListView(
                 children: switch (selectedKind) {
                   null => const [],
-                  MaterialKind.pdf => _pdfTiles(
-                    group,
-                    activeMaterialIds,
-                    l10n,
-                    rank,
-                  ),
+                  MaterialKind.pdf => _pdfTiles(group, l10n, rank, tileFor),
                   MaterialKind.chord => _chordTiles(
                     group,
                     availableChords,
                     chordsAsync.hasError,
-                    activeMaterialIds,
                     l10n,
                     rank,
+                    tileFor,
                   ),
                   MaterialKind.gesture => [
                     for (final gesture in orderByFavoriteKinds(
@@ -324,11 +403,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       rank,
                       kindIdOf: (g) => g.materialKindId,
                     ))
-                      _materialTile(
-                        material: GestureMaterialRef(gesture),
+                      tileFor(
+                        GestureMaterialRef(gesture),
                         iconColor: AppColors.title,
-                        activeMaterialIds: activeMaterialIds,
-                        l10n: l10n,
                       ),
                   ],
                   MaterialKind.audio => [
@@ -337,11 +414,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       rank,
                       kindIdOf: (t) => t.materialKindId,
                     ))
-                      _materialTile(
-                        material: AudioMaterial(track),
+                      tileFor(
+                        AudioMaterial(track),
                         iconColor: AppColors.title,
-                        activeMaterialIds: activeMaterialIds,
-                        l10n: l10n,
                         subtitle: track.author,
                       ),
                   ],
@@ -351,20 +426,13 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       rank,
                       kindIdOf: (y) => y.materialKindId,
                     ))
-                      _materialTile(
-                        material: YoutubeMaterialRef(item),
+                      tileFor(
+                        YoutubeMaterialRef(item),
                         iconColor: AppColors.youtube,
-                        activeMaterialIds: activeMaterialIds,
-                        l10n: l10n,
                       ),
                   ],
                   MaterialKind.lyrics => [
-                    _materialTile(
-                      material: group.lyrics!,
-                      iconColor: AppColors.title,
-                      activeMaterialIds: activeMaterialIds,
-                      l10n: l10n,
-                    ),
+                    tileFor(group.lyrics!, iconColor: AppColors.title),
                   ],
                   // `kinds` só emite os seis acima; se um dia emitir outro,
                   // que falhe alto em vez de mostrar uma aba vazia.
@@ -385,9 +453,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
   /// em branco.
   List<Widget> _pdfTiles(
     LouvorGroup group,
-    Set<String> activeMaterialIds,
     AppLocalizations l10n,
     Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
   ) {
     final showSectionLabels = group.sections.length > 1;
     return [
@@ -405,12 +479,10 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
           rank,
           kindIdOf: (e) => e.louvor.materialKindId,
         ))
-          _materialTile(
-            material: PdfMaterial(entry.louvor),
+          tileFor(
+            PdfMaterial(entry.louvor),
             icon: LouvorMaterialIcons.forEntry(entry),
             iconColor: AppColors.title,
-            activeMaterialIds: activeMaterialIds,
-            l10n: l10n,
           ),
       ],
     ];
@@ -420,9 +492,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     LouvorGroup group,
     List<ChordMaterial> availableChords,
     bool hasError,
-    Set<String> activeMaterialIds,
     AppLocalizations l10n,
     Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
   ) {
     return [
       for (final chord in orderByFavoriteKinds(
@@ -430,12 +508,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         rank,
         kindIdOf: (c) => c.materialKindId,
       ))
-        _materialTile(
-          material: ChordMaterialRef(chord),
-          iconColor: AppColors.title,
-          activeMaterialIds: activeMaterialIds,
-          l10n: l10n,
-        ),
+        tileFor(ChordMaterialRef(chord), iconColor: AppColors.title),
       // Defensivo: `availableChordsProvider` engole falha de rede por cifra
       // (a cifra fica listada), então este ramo só é alcançado por erro
       // inesperado. Fica porque o custo é uma linha e a alternativa — aba

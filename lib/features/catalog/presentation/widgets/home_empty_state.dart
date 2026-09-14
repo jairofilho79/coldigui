@@ -7,6 +7,7 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_data_source.dart';
 import '../providers/catalog_filters_provider.dart';
@@ -206,7 +207,14 @@ class _NoResultsContent extends ConsumerWidget {
         filters.materiaisUrlValue != null || filters.arranjoUrlValue != null;
     final connectivity = ref.watch(connectivityStreamProvider);
     final isOffline = connectivity.value == false;
-    final showColdigomOffline = state.remoteFailed && isOffline;
+    // §5.5: com catálogo Coldigom local a busca já respondeu do índice — o
+    // aviso só faz sentido quando não há catálogo nenhum no aparelho. O
+    // índice fica por último no `&&` de propósito: o curto-circuito evita
+    // hidratar/ler Isar quando o aviso já não apareceria por outro motivo.
+    final showColdigomOffline =
+        state.remoteFailed &&
+        isOffline &&
+        ref.watch(coldigomSearchIndexProvider).isEmpty;
 
     // Fundo vinho do `Scaffold` da Home (product owner, onda 4.1):
     // `AppTypography.body`/`hint()` e o `foregroundColor` default de

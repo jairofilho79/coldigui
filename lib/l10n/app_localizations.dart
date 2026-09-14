@@ -1259,6 +1259,24 @@ abstract class AppLocalizations {
   /// **'Cifra indisponível · tentar de novo'**
   String get chordUnavailableRetry;
 
+  /// No description provided for @materialNotDownloadedOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não baixado · sem ligação'**
+  String get materialNotDownloadedOffline;
+
+  /// No description provided for @materialNeedsConnection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Precisa de ligação'**
+  String get materialNeedsConnection;
+
+  /// No description provided for @materialSheetOfflineBanner.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem ligação · só o que está no aparelho abre'**
+  String get materialSheetOfflineBanner;
+
   /// No description provided for @playlistStorageUnavailable.
   ///
   /// In pt, this message translates to:

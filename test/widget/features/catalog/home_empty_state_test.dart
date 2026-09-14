@@ -6,6 +6,7 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -14,6 +15,8 @@ import 'package:coldigui/features/catalog/presentation/providers/open_material_p
 import 'package:coldigui/features/catalog/presentation/providers/recently_opened_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_empty_state.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -353,6 +356,9 @@ void main() {
         overrides: [
           catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
           connectivityStreamProvider.overrideWith((ref) => Stream.value(false)),
+          coldigomSearchIndexProvider.overrideWithValue(
+            ColdigomSearchIndex.empty,
+          ),
         ],
       );
 
@@ -363,6 +369,50 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'remoto falho, offline mas com catálogo Coldigom local não mostra o aviso',
+      (tester) async {
+        final prefs = await SharedPreferences.getInstance();
+        await _pump(
+          tester,
+          state: _state(
+            query: 'zzz',
+            remote: AsyncError(Exception('boom'), StackTrace.empty),
+          ),
+          prefs: prefs,
+          overrides: [
+            catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
+            connectivityStreamProvider.overrideWith(
+              (ref) => Stream.value(false),
+            ),
+            coldigomSearchIndexProvider.overrideWithValue(
+              ColdigomSearchIndex.build([
+                ColdigomIndexedPraise.build(
+                  praiseId: 'p',
+                  numero: '',
+                  nome: 'x',
+                  searchTokens: 'x',
+                  group: LouvorGroup(
+                    groupId: 'p',
+                    numero: '',
+                    nome: 'x',
+                    sections: const [],
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        );
+
+        expect(
+          find.text(
+            'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
+          ),
+          findsNothing,
+        );
+      },
+    );
 
     testWidgets('remoto falho mas online não mostra o aviso Coldigom', (
       tester,
@@ -391,47 +441,46 @@ void main() {
   });
 
   group('contraste sobre o fundo vinho (onda 4.1, feedback do product owner)', () {
-    testWidgets(
-      'sem consulta: rótulo de recentes e hint em branco',
-      (tester) async {
-        final prefs = await SharedPreferences.getInstance();
-        final playlist = SavedPlaylist(
-          playlistId: 'p1',
-          nome: 'Culto de domingo',
-          entries: [PlaylistEntry.classified('pdf-1')],
-          createdAt: DateTime.utc(2026, 9, 1),
-        );
+    testWidgets('sem consulta: rótulo de recentes e hint em branco', (
+      tester,
+    ) async {
+      final prefs = await SharedPreferences.getInstance();
+      final playlist = SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Culto de domingo',
+        entries: [PlaylistEntry.classified('pdf-1')],
+        createdAt: DateTime.utc(2026, 9, 1),
+      );
 
-        await _pumpOnWine(
-          tester,
-          state: _state(),
-          prefs: prefs,
-          overrides: [
-            activePlaylistProvider.overrideWithValue(playlist),
-            recentlyOpenedProvider.overrideWith(
-              () => _FixedRecentlyOpened(const ['pdf-1']),
+      await _pumpOnWine(
+        tester,
+        state: _state(),
+        prefs: prefs,
+        overrides: [
+          activePlaylistProvider.overrideWithValue(playlist),
+          recentlyOpenedProvider.overrideWith(
+            () => _FixedRecentlyOpened(const ['pdf-1']),
+          ),
+          catalogMaterialLookupProvider.overrideWithValue(
+            CatalogMaterialLookup(
+              plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
             ),
-            catalogMaterialLookupProvider.overrideWithValue(
-              CatalogMaterialLookup(
-                plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
-              ),
-            ),
-          ],
-        );
+          ),
+        ],
+      );
 
-        // O rótulo vive dentro do card creme próprio da seção (C6) — vinho,
-        // como qualquer texto sobre `AppColors.card`, independente do fundo
-        // do `Scaffold` por trás.
-        expect(_textColor(tester, 'Abertos recentemente'), AppColors.title);
-        expect(
-          _textColor(tester, 'Busque por título ou número'),
-          AppColors.textLight.withValues(alpha: 0.7),
-        );
-        // O card do material usa `CarouselLouvorChip` — título em branco
-        // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
-        expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
-      },
-    );
+      // O rótulo vive dentro do card creme próprio da seção (C6) — vinho,
+      // como qualquer texto sobre `AppColors.card`, independente do fundo
+      // do `Scaffold` por trás.
+      expect(_textColor(tester, 'Abertos recentemente'), AppColors.title);
+      expect(
+        _textColor(tester, 'Busque por título ou número'),
+        AppColors.textLight.withValues(alpha: 0.7),
+      );
+      // O card do material usa `CarouselLouvorChip` — título em branco
+      // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
+      expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
+    });
 
     testWidgets(
       'consulta sem resultado: título, dicas, botão e aviso Coldigom em branco',
@@ -443,6 +492,12 @@ void main() {
             louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
             connectivityStreamProvider.overrideWith(
               (ref) => Stream.value(false),
+            ),
+            // Sem isto, `_NoResultsContent` tentaria hidratar o índice
+            // Coldigom via Isar de verdade (não há aqui) e o teste travaria
+            // num timer pendente — mesmo cuidado do caso "mostra o aviso".
+            coldigomSearchIndexProvider.overrideWithValue(
+              ColdigomSearchIndex.empty,
             ),
           ],
         );

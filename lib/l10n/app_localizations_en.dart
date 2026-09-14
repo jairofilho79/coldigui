@@ -726,6 +726,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chordUnavailableRetry => 'Chord sheet unavailable · try again';
 
   @override
+  String get materialNotDownloadedOffline => 'Not downloaded · offline';
+
+  @override
+  String get materialNeedsConnection => 'Needs a connection';
+
+  @override
+  String get materialSheetOfflineBanner =>
+      'Offline · only what is on the device opens';
+
+  @override
   String get playlistStorageUnavailable =>
       'Local storage is unavailable. Playlists can\'t be saved.';
 

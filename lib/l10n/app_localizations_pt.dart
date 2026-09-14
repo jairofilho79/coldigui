@@ -732,6 +732,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chordUnavailableRetry => 'Cifra indisponível · tentar de novo';
 
   @override
+  String get materialNotDownloadedOffline => 'Não baixado · sem ligação';
+
+  @override
+  String get materialNeedsConnection => 'Precisa de ligação';
+
+  @override
+  String get materialSheetOfflineBanner =>
+      'Sem ligação · só o que está no aparelho abre';
+
+  @override
   String get playlistStorageUnavailable =>
       'Armazenamento local indisponível. Listas não podem ser salvas.';
 
