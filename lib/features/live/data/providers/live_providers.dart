@@ -6,8 +6,10 @@ import '../../../../core/constants/app_config.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../../core/routing/app_router.dart';
 import '../../../pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
+import '../../../playlists/data/providers/playlist_providers.dart';
 import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
+import '../../domain/usecases/save_live_copy.dart';
 import '../live_transport_ws.dart';
 
 const kLiveClientIdPrefsKey = 'live_client_id';
@@ -88,3 +90,7 @@ final liveFocusResolverProvider =
 final liveNavigatorProvider = Provider<void Function(String location)>((ref) {
   return (location) => ref.read(appRouterProvider).go(location);
 });
+
+final saveLiveCopyProvider = Provider<SaveLiveCopy>(
+  (ref) => SaveLiveCopy(ref.watch(playlistRepositoryProvider)),
+);
