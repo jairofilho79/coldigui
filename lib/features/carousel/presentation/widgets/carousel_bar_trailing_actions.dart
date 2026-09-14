@@ -55,30 +55,33 @@ class _CarouselBarTrailingActionsState
     final l10n = AppLocalizations.of(context)!;
     final following = ref.watch(liveProjectionProvider) != null;
 
+    // Seguindo um gestor ao vivo: nem compartilhar nem limpar. A lista
+    // projetada é a do gestor — não existe no repositório local, então os
+    // links de partilha não resolvem (`GeneratePlaylistShareUrl` procura o
+    // `playlistId` localmente); e a camada de dados já ignora mutações
+    // (Task 9), então a lixeira só confundiria (spec §6.2).
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CarouselBarActionButton(
-          icon: Icons.adaptive.share,
-          label: l10n.carouselSharePlaylist,
-          showLabel: widget.showLabels,
-          iconOverride: _sharing
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.title,
-                  ),
-                )
-              : null,
-          onPressed: _sharing
-              ? null
-              : () => unawaited(_openShareSheet(context, ref, l10n)),
-        ),
-        // Seguindo um gestor ao vivo: a lixeira não entra — a camada de
-        // dados já ignora mutações (Task 9), então oferecer o botão só
-        // confundiria (spec §6.2).
+        if (!following)
+          CarouselBarActionButton(
+            icon: Icons.adaptive.share,
+            label: l10n.carouselSharePlaylist,
+            showLabel: widget.showLabels,
+            iconOverride: _sharing
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.title,
+                    ),
+                  )
+                : null,
+            onPressed: _sharing
+                ? null
+                : () => unawaited(_openShareSheet(context, ref, l10n)),
+          ),
         if (!following)
           CarouselBarActionButton(
             icon: Icons.delete_outline,
@@ -98,33 +101,19 @@ class _CarouselBarTrailingActionsState
   ) async {
     playlistShareDebugLog('CarouselBarTrailingActions._openShareSheet: início');
     final shareOrigin = sharePositionOriginFromContextOrFallback(context);
-    // Seguindo um gestor ao vivo: partilhar a lista dele é útil e
-    // inofensivo — usa a projeção ([LiveProjection]) em vez da lista ativa
-    // local (que aqui é a do consumidor, ou nem existe).
-    final live = ref.read(liveProjectionProvider);
+    // A lista ativa **é** a seleção (D3): nada a reconciliar com o carousel.
+    final active = ref.read(activePlaylistProvider);
+    if (active == null || active.entries.isEmpty) {
+      playlistShareDebugLog('_openShareSheet: sem lista ativa ou vazia');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
+      return;
+    }
+
     final entries = ref
         .read(activeEntriesProvider)
         .map((activeEntry) => activeEntry.entry)
         .toList(growable: false);
-
-    final String playlistId;
-    final String nome;
-    if (live != null) {
-      playlistId = live.playlistId;
-      nome = live.name;
-    } else {
-      // A lista ativa **é** a seleção (D3): nada a reconciliar com o carousel.
-      final active = ref.read(activePlaylistProvider);
-      if (active == null || active.entries.isEmpty) {
-        playlistShareDebugLog('_openShareSheet: sem lista ativa ou vazia');
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.playlistEmptyPdfList)));
-        return;
-      }
-      playlistId = active.playlistId;
-      nome = active.nome;
-    }
-
     final option = await showPlaylistShareSheet(context);
     if (option == null || !context.mounted) return;
 
@@ -138,8 +127,8 @@ class _CarouselBarTrailingActionsState
           .share(
             context,
             PlaylistShareContext(
-              playlistId: playlistId,
-              nome: nome,
+              playlistId: active.playlistId,
+              nome: active.nome,
               entries: entries,
               fromCarousel: true,
             ),

@@ -19,7 +19,7 @@ class _Projecting extends LiveProjectionNotifier {
 }
 
 void main() {
-  testWidgets('seguindo: sem lixeira, o share continua', (tester) async {
+  testWidgets('seguindo: sem lixeira nem compartilhar', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     await pumpApp(
@@ -31,6 +31,6 @@ void main() {
       ],
     );
     expect(find.byIcon(Icons.delete_outline), findsNothing);
-    expect(find.byIcon(Icons.adaptive.share), findsOneWidget);
+    expect(find.byIcon(Icons.adaptive.share), findsNothing);
   });
 }
