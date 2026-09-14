@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/constants/app_config.dart';
 import '../../../../core/providers/dio_provider.dart';
+import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../../core/utils/retryable_init.dart';
 import '../../data/auth_remote_datasource.dart';
 import '../../data/auth_session_store.dart';
@@ -17,8 +18,11 @@ import '../../data/oidc/oidc_callback_inbox.dart';
 import '../../data/oidc/oidc_redirect_request.dart';
 import '../../domain/entities/auth_user.dart';
 
+/// Persistência da sessão: `localStorage` na web, `SharedPreferences` no
+/// nativo. Testes que exercitam o `AuthNotifier` real sobrescrevem este
+/// provider com `AuthSessionStore()` (só memória).
 final authSessionStoreProvider = Provider<AuthSessionStore>((ref) {
-  return AuthSessionStore();
+  return AuthSessionStore(prefs: ref.read(sharedPreferencesProvider));
 });
 
 final authRemoteDatasourceProvider = Provider<AuthRemoteDatasource>((ref) {
