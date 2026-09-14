@@ -679,8 +679,6 @@
   "failureAuth": "Your session has expired. Sign in again to continue.",
   "failureConflict": "Sync conflict. Please try again.",
   "failureUnknown": "Could not complete the action. Try again.",
-  "sessionExpiredBanner": "Session expired",
-  "sessionExpiredSignInAgain": "Sign in again",
   "homeEmptyHint": "Search by title or number",
   "homeEmptyRecent": "Recently opened",
   "homeNoResults": "No songs found for “{query}”",

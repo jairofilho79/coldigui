@@ -68,6 +68,36 @@ void main() {
     expect(find.text(pt.errorGeneric), findsOneWidget);
     expect(find.textContaining('detalhe_interno_feio'), findsNothing);
   });
+
+  testWidgets('sessão revogada (onUnauthorized) volta ao botão de entrar', (
+    tester,
+  ) async {
+    final store = AuthSessionStore()..write(user);
+    final container = ProviderContainer(
+      overrides: baseOverrides(behavior: (_) async => user, store: store),
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          home: const Scaffold(body: ProfileScreen()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Jairo'), findsWidgets);
+
+    container.read(authStateProvider.notifier).onUnauthorized();
+    await tester.pumpAndSettle();
+
+    expect(find.text(pt.authSignInWithGoogle), findsOneWidget);
+    expect(find.text('Jairo'), findsNothing);
+  });
 }
 
 /// Notifier que sempre falha, para exercitar o ramo `error` da tela.

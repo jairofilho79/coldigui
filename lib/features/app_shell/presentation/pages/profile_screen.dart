@@ -22,7 +22,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     final l10n = AppLocalizations.of(context)!;
-    const sessionExpired = false;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -31,11 +30,6 @@ class ProfileScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            // ignore: dead_code
-            if (sessionExpired) ...[
-              const _SessionExpiredBanner(),
-              const SizedBox(height: 12),
-            ],
             auth.when(
               data: (user) => _AccountPanel(
                 child: user == null
@@ -101,60 +95,6 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Aviso de que o refresh silencioso do `id_token` não deu certo (C.5).
-///
-/// A sessão local continua ali (dados offline seguem visíveis); o que parou é
-/// a sincronização com o Worker, e só um login novo destrava.
-class _SessionExpiredBanner extends ConsumerWidget {
-  const _SessionExpiredBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: AppColors.btnBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gold, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_clock, color: AppColors.gold, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.sessionExpiredBanner,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.errorSessionExpired,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => ref.read(authStateProvider.notifier).signOut(),
-            style: TextButton.styleFrom(foregroundColor: AppColors.gold),
-            child: Text(l10n.sessionExpiredSignInAgain),
-          ),
-        ],
       ),
     );
   }
