@@ -73,14 +73,43 @@ void main() {
     );
   });
 
-  test('200 com googleSub devolve o usuário com o idToken enviado', () async {
+  test('200 devolve AuthUser com o sessionToken do Worker', () async {
     final datasource = AuthRemoteDatasource(
-      _dioWith(200, {'googleSub': 'sub-1', 'email': 'a@b.com'}),
+      _dioWith(200, {
+        'googleSub': 'sub-1',
+        'email': 'a@b.com',
+        'username': 'ana',
+        'sessionToken': 'sess_abc',
+      }),
     );
-
-    final user = await datasource.establishSession('token-1');
-
+    final user = await datasource.establishSession('id-token-google');
     expect(user.googleSub, 'sub-1');
-    expect(user.sessionToken, 'token-1');
+    expect(user.sessionToken, 'sess_abc');
+    expect(user.username, 'ana');
+  });
+
+  test('200 sem sessionToken é erro (Worker antigo)', () async {
+    final datasource = AuthRemoteDatasource(
+      _dioWith(200, {'googleSub': 'sub-1'}),
+    );
+    await expectLater(
+      datasource.establishSession('id-token-google'),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          'auth_session_missing_token',
+        ),
+      ),
+    );
+  });
+
+  test('revokeSession: 204 e 401 são sucesso; 5xx lança', () async {
+    await AuthRemoteDatasource(_dioWith(204)).revokeSession('sess_a');
+    await AuthRemoteDatasource(_dioWith(401)).revokeSession('sess_a');
+    await expectLater(
+      AuthRemoteDatasource(_dioWith(503)).revokeSession('sess_a'),
+      throwsA(isA<DioException>()),
+    );
   });
 }
