@@ -25,7 +25,7 @@ const _subKey = 'playlist_sync.last_synced_sub';
 class _LoggedInAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'token');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'token');
 }
 
 /// Repositório mínimo: conta `adoptForSub`/`purgeSyncedOwnedBy` (e pode falhar
@@ -156,8 +156,8 @@ class _ScriptedSync extends SyncPlaylists {
     : super(
         _CountingRepository(),
         (_) async => const <RemotePlaylist>[],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {},
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {},
       );
 
   final PlaylistSyncResult? result;
@@ -176,7 +176,7 @@ class _ScriptedSync extends SyncPlaylists {
 
   @override
   Future<PlaylistSyncResult> call({
-    required String? idToken,
+    required String? sessionToken,
     required String? sub,
   }) async {
     calls++;
@@ -247,11 +247,9 @@ void main() {
     container.read(playlistSyncProvider);
     await settle();
 
-    expect(
-      repo.calls,
-      ['adopt:sub-1'],
-      reason: 'primeiro login adota, sem purgar — não havia conta anterior',
-    );
+    expect(repo.calls, [
+      'adopt:sub-1',
+    ], reason: 'primeiro login adota, sem purgar — não havia conta anterior');
     expect(prefs.getString(_subKey), 'sub-1');
     expect(sync.subs, ['sub-1'], reason: 'o use case recebe o dono corrente');
   });
@@ -629,27 +627,24 @@ void main() {
       expect(screen.reloadCalls, 0);
     });
 
-    test(
-      'troca de sub recarrega depois da purga mesmo sem a sync mover',
-      () async {
-        // `_CountingRepository.purgeSyncedOwnedBy` devolve 1: as listas da conta
-        // anterior sumiram do banco e a tela não pode continuar mostrando-as.
-        await prefs.setString(_subKey, 'outro-sub');
-        final screen = _CountingPlaylists();
-        final container = buildContainer(
-          repository: _CountingRepository(),
-          sync: _ScriptedSync(),
-          playlists: () => screen,
-        );
-        addTearDown(container.dispose);
+    test('troca de sub recarrega depois da purga mesmo sem a sync mover', () async {
+      // `_CountingRepository.purgeSyncedOwnedBy` devolve 1: as listas da conta
+      // anterior sumiram do banco e a tela não pode continuar mostrando-as.
+      await prefs.setString(_subKey, 'outro-sub');
+      final screen = _CountingPlaylists();
+      final container = buildContainer(
+        repository: _CountingRepository(),
+        sync: _ScriptedSync(),
+        playlists: () => screen,
+      );
+      addTearDown(container.dispose);
 
-        await container.read(authStateProvider.future);
-        container.read(playlistSyncProvider);
-        await settle();
+      await container.read(authStateProvider.future);
+      container.read(playlistSyncProvider);
+      await settle();
 
-        expect(screen.reloadCalls, 1);
-      },
-    );
+      expect(screen.reloadCalls, 1);
+    });
 
     test(
       'volta da conectividade recarrega quando a sync trouxe linhas',

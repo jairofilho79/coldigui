@@ -2243,18 +2243,6 @@ abstract class AppLocalizations {
   /// **'Não foi possível concluir a ação. Tente de novo.'**
   String get failureUnknown;
 
-  /// Título do banner de sessão expirada no perfil e nas listas
-  ///
-  /// In pt, this message translates to:
-  /// **'Sessão expirada'**
-  String get sessionExpiredBanner;
-
-  /// Ação do banner de sessão expirada
-  ///
-  /// In pt, this message translates to:
-  /// **'Entrar de novo'**
-  String get sessionExpiredSignInAgain;
-
   /// Hint da Home sem consulta nem lista ativa/recentes (C4)
   ///
   /// In pt, this message translates to:

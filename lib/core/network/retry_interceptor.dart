@@ -7,7 +7,7 @@ import 'download_retry.dart';
 ///
 /// Só `GET`: repetir um `POST`/`PUT`/`DELETE` que já chegou ao servidor
 /// duplicaria efeito. Só erro de conexão, timeout ou 5xx — 4xx é resposta
-/// definitiva (401 é caso do `AuthRefreshInterceptor`).
+/// definitiva (401 é caso do `AuthUnauthorizedInterceptor`).
 class RetryInterceptor extends Interceptor {
   RetryInterceptor({
     required this.dio,

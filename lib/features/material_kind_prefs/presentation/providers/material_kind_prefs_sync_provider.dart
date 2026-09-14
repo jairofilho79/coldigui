@@ -108,7 +108,7 @@ class MaterialKindPrefsSyncNotifier
       return existing;
     }
 
-    final future = _run(user.idToken, user.googleSub);
+    final future = _run(user.sessionToken, user.googleSub);
     _inFlight = future;
     try {
       return await future;
@@ -123,11 +123,14 @@ class MaterialKindPrefsSyncNotifier
     }
   }
 
-  Future<MaterialKindPrefsSyncResult> _run(String idToken, String sub) async {
+  Future<MaterialKindPrefsSyncResult> _run(
+    String sessionToken,
+    String sub,
+  ) async {
     state = state.copyWith(isSyncing: true);
     try {
       final result = await ref.read(syncMaterialKindPrefsProvider)(
-        idToken: idToken,
+        sessionToken: sessionToken,
         sub: sub,
       );
       if (!ref.mounted) return result;

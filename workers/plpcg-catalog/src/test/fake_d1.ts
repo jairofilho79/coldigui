@@ -30,6 +30,11 @@
  * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
  * | `INSERT INTO short_links (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `INSERT INTO short_links` |
  * | `UPDATE short_links SET hits = hits + 1 WHERE code = ?` | `UPDATE short_links` |
+ * | `DELETE FROM user_sessions WHERE expires_at < ?` (purga, `auth/user_sessions.ts`) | `user_sessions` + `expires_at < ?` |
+ * | `INSERT INTO user_sessions (…) VALUES (…)` | `user_sessions` |
+ * | `SELECT google_sub, last_seen_at FROM user_sessions WHERE token_hash = ? AND expires_at > ?` | `user_sessions` + `SELECT` |
+ * | `UPDATE user_sessions SET last_seen_at = ?, expires_at = ? WHERE token_hash = ?` | `user_sessions` + `UPDATE` |
+ * | `DELETE FROM user_sessions WHERE token_hash = ?` (revogação) | `user_sessions` + `token_hash = ?` |
  *
  * O soft delete de `softDeletePlaylist`/`softDeleteAudioFlag` é um `UPDATE` e
  * cai no mesmo caminho. `short_links` não segue o modelo `user_id`+`id`
@@ -99,6 +104,15 @@ export interface MaterialKindPrefsRow {
   version: number;
 }
 
+/** Linha de `user_sessions` (chave `token_hash`). */
+export interface SessionRow {
+  token_hash: string;
+  google_sub: string;
+  created_at: string;
+  last_seen_at: string;
+  expires_at: string;
+}
+
 /** O que as duas tabelas têm em comum para o fake: chave e LWW. */
 interface StoredRow {
   id: string;
@@ -117,6 +131,8 @@ export interface FakeD1Options {
   shortLinks?: ShortLinkRow[];
   /** Linhas de `user_material_kind_prefs`. */
   materialKindPrefs?: MaterialKindPrefsRow[];
+  /** Linhas de `user_sessions`. */
+  sessions?: SessionRow[];
 }
 
 function key(userId: string, id: string): string {
@@ -265,6 +281,8 @@ export class FakeD1Database {
   readonly shortLinks = new Map<string, ShortLinkRow>();
   /** Linhas de `user_material_kind_prefs`, por `user_id`. */
   readonly materialKindPrefs = new Map<string, MaterialKindPrefsRow>();
+  /** Linhas de `user_sessions`, por `token_hash`. */
+  readonly sessions = new Map<string, SessionRow>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
   readonly executed: string[] = [];
 
@@ -275,6 +293,7 @@ export class FakeD1Database {
     for (const row of options.materialKindPrefs ?? []) {
       this.materialKindPrefs.set(row.user_id, row);
     }
+    for (const row of options.sessions ?? []) this.sessions.set(row.token_hash, row);
     for (const user of options.users ?? []) {
       this.usernames.set(user.google_sub, user.username);
       this.usersByUsername.set(user.username, user.google_sub);
@@ -322,6 +341,11 @@ export class FakeD1Database {
     // despacho próprio, antes das três formas comuns abaixo.
     if (/user_material_kind_prefs/i.test(normalized)) {
       return this.runMaterialKindPrefs(normalized, bindings);
+    }
+
+    // `user_sessions` tem chave `token_hash` e é a única tabela com DELETE.
+    if (/user_sessions/i.test(normalized)) {
+      return this.runUserSessions(normalized, bindings);
     }
 
     if (/^SELECT/i.test(normalized)) {
@@ -437,6 +461,55 @@ export class FakeD1Database {
       return [];
     }
     throw new Error(`fake D1: prefs não suportado: ${normalized}`);
+  }
+
+  /**
+   * `user_sessions`: SELECT por `token_hash` com `expires_at > ?`, INSERT,
+   * UPDATE de renovação (WHERE consome o último binding) e os dois DELETEs
+   * (revogação por hash e purga por `expires_at < ?`).
+   */
+  private runUserSessions(normalized: string, bindings: unknown[]): unknown[] {
+    if (/^SELECT/i.test(normalized)) {
+      const row = this.sessions.get(bindings[0] as string);
+      if (!row) return [];
+      return row.expires_at > (bindings[1] as string) ? [row] : [];
+    }
+    if (/^INSERT INTO/i.test(normalized)) {
+      const { columns, values } = insertPlan(normalized);
+      const cursor = { next: 0 };
+      const row = {} as Record<string, unknown>;
+      columns.forEach((column, i) => {
+        row[column] = resolveToken(values[i], bindings, cursor, undefined);
+      });
+      const built = row as unknown as SessionRow;
+      this.sessions.set(built.token_hash, built);
+      return [];
+    }
+    if (/^UPDATE/i.test(normalized)) {
+      const assignments = updatePlan(normalized);
+      const cursor = { next: 0 };
+      const hash = bindings[bindings.length - 1] as string;
+      const current = this.sessions.get(hash);
+      if (!current) throw new Error(`fake D1: UPDATE em sessão ausente: ${hash}`);
+      const next = { ...current } as Record<string, unknown>;
+      for (const { column, value } of assignments) {
+        next[column] = resolveToken(value, bindings, cursor, undefined);
+      }
+      this.sessions.set(hash, next as unknown as SessionRow);
+      return [];
+    }
+    if (/^DELETE/i.test(normalized)) {
+      if (/expires_at < \?/i.test(normalized)) {
+        const cutoff = bindings[0] as string;
+        for (const [hash, row] of this.sessions) {
+          if (row.expires_at < cutoff) this.sessions.delete(hash);
+        }
+        return [];
+      }
+      this.sessions.delete(bindings[0] as string);
+      return [];
+    }
+    throw new Error(`fake D1: user_sessions não suportado: ${normalized}`);
   }
 
   /** As duas leituras de `users`: por `google_sub` e por `username`. */

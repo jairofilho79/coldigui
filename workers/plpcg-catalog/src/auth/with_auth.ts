@@ -1,5 +1,7 @@
 import type { GoogleClaims } from './verify_google_token';
-import { verifyGoogleIdToken } from './verify_google_token';
+import { verifyGoogleIdToken } from './verify_google_token.ts';
+import { isSessionToken } from './session_token.ts';
+import { findSession } from './user_sessions.ts';
 
 export type AuthedHandler = (
   request: Request,
@@ -29,14 +31,23 @@ export async function withAuth(
   env: { DB: D1Database; GOOGLE_CLIENT_ID_WEB: string },
   handler: AuthedHandler,
 ): Promise<Response> {
-  const clientId = env.GOOGLE_CLIENT_ID_WEB;
-  if (!clientId) {
-    return json({ error: 'auth not configured' }, 503);
-  }
-
   const token = bearerToken(request);
   if (!token) {
     return json({ error: 'unauthorized' }, 401);
+  }
+
+  // Sessão emitida pelo Worker (spec D5): lookup em D1, sem JWT.
+  if (isSessionToken(token)) {
+    const session = await findSession(env.DB, token);
+    if (!session) {
+      return json({ error: 'unauthorized' }, 401);
+    }
+    return handler(request, env, { sub: session.sub });
+  }
+
+  const clientId = env.GOOGLE_CLIENT_ID_WEB;
+  if (!clientId) {
+    return json({ error: 'auth not configured' }, 503);
   }
 
   try {

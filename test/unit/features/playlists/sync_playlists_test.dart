@@ -221,15 +221,14 @@ void main() {
       expect(const PlaylistSyncResult(deleted: 1).movedRows, isTrue);
       expect(const PlaylistSyncResult(deletedRemotely: 1).movedRows, isTrue);
       expect(
-        const PlaylistSyncResult(
-          conflictCopies: ['Culto (cópia local)'],
-        ).movedRows,
+        const PlaylistSyncResult(conflictCopies: ['Culto (cópia local)'])
+            .movedRows,
         isTrue,
       );
     });
   });
 
-  test('sem idToken não chama rede', () async {
+  test('sem sessionToken não chama rede', () async {
     var fetchCalled = false;
     final sync = SyncPlaylists(
       _MemoryPlaylistRepository(),
@@ -237,11 +236,11 @@ void main() {
         fetchCalled = true;
         return <RemotePlaylist>[];
       },
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {},
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: null, sub: 'sub-1');
+    final result = await sync(sessionToken: null, sub: 'sub-1');
     expect(result.skipped, isTrue);
     expect(fetchCalled, isFalse);
   });
@@ -263,11 +262,11 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => [remote],
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {},
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pulled, 1);
     expect(repo.map['r1']?.nome, 'Culto');
     expect(repo.map['r1']?.syncStatus, PlaylistSyncStatus.synced);
@@ -301,7 +300,7 @@ void main() {
           version: 5,
         ),
       ],
-      ({required idToken, required playlist}) async =>
+      ({required sessionToken, required playlist}) async =>
           RemotePlaylist.fromLegacyLists(
             id: playlist.id,
             nome: playlist.nome,
@@ -314,10 +313,10 @@ void main() {
             savedAt: playlist.savedAt,
             favoritedAt: playlist.favoritedAt,
           ),
-      ({required idToken, required playlistId}) async {},
+      ({required sessionToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pulled, 0);
     expect(result.pushed, 1);
     expect(repo.map['p1']?.nome, 'Local');
@@ -334,17 +333,15 @@ void main() {
     );
 
     var putCount = 0;
-    final sync = SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        putCount++;
-        return playlist;
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+    final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      putCount++;
+      return playlist;
+    }, ({required sessionToken, required playlistId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(putCount, 0);
     expect(result.pushed, 0);
   });
@@ -367,13 +364,13 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {
         deletedId = playlistId;
       },
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(deletedId, 'gone');
     expect(result.deleted, 1);
     expect(repo.map.containsKey('gone'), isFalse);
@@ -400,11 +397,11 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => [remote],
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {},
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {},
     );
 
-    await sync(idToken: 'token', sub: 'sub-1');
+    await sync(sessionToken: 'token', sub: 'sub-1');
     final local = repo.map['pub1']!;
     expect(local.isPublished, isTrue);
     expect(local.publicationReach, PlaylistReach.pontual);
@@ -440,11 +437,11 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => throw failure,
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {},
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {},
     );
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(result.pullError, same(failure));
     expect(result.pushed, 1);
     expect(result.deleted, 1);
@@ -467,28 +464,26 @@ void main() {
     );
 
     var attempts = 0;
-    final sync = SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        attempts++;
-        throw PlaylistConflictException(
-          RemotePlaylist.fromLegacyLists(
-            id: 'p1',
-            nome: 'Remoto',
-            pdfIds: const ['y'],
-            salva: true,
-            favorita: false,
-            createdAt: DateTime.utc(2026, 1, 1),
-            updatedAt: DateTime.utc(2026, 4, 1),
-            version: 7,
-          ),
-        );
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+    final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      attempts++;
+      throw PlaylistConflictException(
+        RemotePlaylist.fromLegacyLists(
+          id: 'p1',
+          nome: 'Remoto',
+          pdfIds: const ['y'],
+          salva: true,
+          favorita: false,
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+          version: 7,
+        ),
+      );
+    }, ({required sessionToken, required playlistId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(attempts, 1, reason: 'remoto mais novo não é re-enviado');
     expect(result.conflicts, 0);
     expect(repo.map['p1']?.nome, 'Remoto');
@@ -512,40 +507,38 @@ void main() {
     );
 
     final sentVersions = <int>[];
-    final sync = SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        sentVersions.add(playlist.version);
-        if (sentVersions.length == 1) {
-          throw PlaylistConflictException(
-            RemotePlaylist.fromLegacyLists(
-              id: 'p1',
-              nome: 'Remoto',
-              pdfIds: const ['y'],
-              salva: true,
-              favorita: false,
-              createdAt: DateTime.utc(2026, 1, 1),
-              updatedAt: DateTime.utc(2026, 4, 1),
-              version: 7,
-            ),
-          );
-        }
-        return RemotePlaylist.fromLegacyLists(
-          id: playlist.id,
-          nome: playlist.nome,
-          pdfIds: playlist.pdfIds,
-          salva: true,
-          favorita: playlist.favorita,
-          createdAt: playlist.createdAt,
-          updatedAt: playlist.updatedAt,
-          version: playlist.version + 1,
+    final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      sentVersions.add(playlist.version);
+      if (sentVersions.length == 1) {
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto',
+            pdfIds: const ['y'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
         );
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+      }
+      return RemotePlaylist.fromLegacyLists(
+        id: playlist.id,
+        nome: playlist.nome,
+        pdfIds: playlist.pdfIds,
+        salva: true,
+        favorita: playlist.favorita,
+        createdAt: playlist.createdAt,
+        updatedAt: playlist.updatedAt,
+        version: playlist.version + 1,
+      );
+    }, ({required sessionToken, required playlistId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(sentVersions, [2, 7]);
     expect(result.pushed, 1);
     expect(result.conflicts, 0);
@@ -570,28 +563,26 @@ void main() {
     );
 
     var attempts = 0;
-    final sync = SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        attempts++;
-        throw PlaylistConflictException(
-          RemotePlaylist.fromLegacyLists(
-            id: 'p1',
-            nome: 'Remoto',
-            pdfIds: const ['y'],
-            salva: true,
-            favorita: false,
-            createdAt: DateTime.utc(2026, 1, 1),
-            updatedAt: DateTime.utc(2026, 4, 1),
-            version: 7,
-          ),
-        );
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+    final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      attempts++;
+      throw PlaylistConflictException(
+        RemotePlaylist.fromLegacyLists(
+          id: 'p1',
+          nome: 'Remoto',
+          pdfIds: const ['y'],
+          salva: true,
+          favorita: false,
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+          version: 7,
+        ),
+      );
+    }, ({required sessionToken, required playlistId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(attempts, 2, reason: 're-envio acontece uma única vez');
     expect(result.conflicts, 1);
     expect(result.pushed, 0);
@@ -614,42 +605,40 @@ void main() {
     );
 
     final sentVersions = <int>[];
-    final sync = SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        sentVersions.add(playlist.version);
-        if (sentVersions.length == 1) {
-          throw PlaylistConflictException(
-            RemotePlaylist.fromLegacyLists(
-              id: 'p1',
-              nome: 'Remoto descartado',
-              pdfIds: const ['y'],
-              // O pull ignora remoto com `salva: false`; o 409 tem que seguir a
-              // mesma regra, senão o conflito ressuscita um rascunho remoto.
-              salva: false,
-              favorita: false,
-              createdAt: DateTime.utc(2026, 1, 1),
-              updatedAt: DateTime.utc(2026, 4, 1),
-              version: 7,
-            ),
-          );
-        }
-        return RemotePlaylist.fromLegacyLists(
-          id: playlist.id,
-          nome: playlist.nome,
-          pdfIds: playlist.pdfIds,
-          salva: true,
-          favorita: playlist.favorita,
-          createdAt: playlist.createdAt,
-          updatedAt: playlist.updatedAt,
-          version: playlist.version + 1,
+    final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      sentVersions.add(playlist.version);
+      if (sentVersions.length == 1) {
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto descartado',
+            pdfIds: const ['y'],
+            // O pull ignora remoto com `salva: false`; o 409 tem que seguir a
+            // mesma regra, senão o conflito ressuscita um rascunho remoto.
+            salva: false,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
         );
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+      }
+      return RemotePlaylist.fromLegacyLists(
+        id: playlist.id,
+        nome: playlist.nome,
+        pdfIds: playlist.pdfIds,
+        salva: true,
+        favorita: playlist.favorita,
+        createdAt: playlist.createdAt,
+        updatedAt: playlist.updatedAt,
+        version: playlist.version + 1,
+      );
+    }, ({required sessionToken, required playlistId}) async {});
 
-    final result = await sync(idToken: 'token', sub: 'sub-1');
+    final result = await sync(sessionToken: 'token', sub: 'sub-1');
     expect(sentVersions, [2, 7], reason: 're-envia em vez de puxar');
     expect(result.pushed, 1);
     expect(repo.map['p1']?.nome, 'Local');
@@ -673,15 +662,15 @@ void main() {
     final sync = SyncPlaylists(
       repo,
       (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async => playlist,
-      ({required idToken, required playlistId}) async {
+      ({required sessionToken, required playlist}) async => playlist,
+      ({required sessionToken, required playlistId}) async {
         deleteCalls++;
         throw StateError('delete caiu');
       },
     );
 
     for (var i = 0; i < 5; i++) {
-      await sync(idToken: 'token', sub: 'sub-1');
+      await sync(sessionToken: 'token', sub: 'sub-1');
     }
 
     expect(deleteCalls, SyncPlaylists.maxTombstoneAttemptsPerBoot);
@@ -727,11 +716,11 @@ void main() {
       final sync = SyncPlaylists(
         repo,
         (_) async => [tombstone()],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {},
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 1);
       expect(result.pulled, 0);
       expect(repo.map.containsKey('p1'), isFalse);
@@ -753,17 +742,15 @@ void main() {
       );
 
       final pushed = <String>[];
-      final sync = SyncPlaylists(
-        repo,
-        (_) async => [tombstone()],
-        ({required idToken, required playlist}) async {
-          pushed.add(playlist.id);
-          return playlist;
-        },
-        ({required idToken, required playlistId}) async {},
-      );
+      final sync = SyncPlaylists(repo, (_) async => [tombstone()], ({
+        required sessionToken,
+        required playlist,
+      }) async {
+        pushed.add(playlist.id);
+        return playlist;
+      }, ({required sessionToken, required playlistId}) async {});
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 0);
       expect(pushed, ['p1']);
       expect(repo.map['p1']?.nome, 'Local');
@@ -775,11 +762,11 @@ void main() {
       final sync = SyncPlaylists(
         repo,
         (_) async => [tombstone(id: 'sumiu')],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {},
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
       expect(result.deletedRemotely, 0);
       expect(result.pulled, 0);
       expect(repo.map, isEmpty);
@@ -805,32 +792,30 @@ void main() {
       _MemoryPlaylistRepository repo, {
       required List<String> remotePdfIds,
       String remoteNome = 'Remoto',
-    }) => SyncPlaylists(
-      repo,
-      (_) async => <RemotePlaylist>[],
-      ({required idToken, required playlist}) async {
-        throw PlaylistConflictException(
-          RemotePlaylist.fromLegacyLists(
-            id: 'p1',
-            nome: remoteNome,
-            pdfIds: remotePdfIds,
-            salva: true,
-            favorita: false,
-            createdAt: DateTime.utc(2026, 1, 1),
-            updatedAt: DateTime.utc(2026, 4, 1),
-            version: 7,
-          ),
-        );
-      },
-      ({required idToken, required playlistId}) async {},
-    );
+    }) => SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+      required sessionToken,
+      required playlist,
+    }) async {
+      throw PlaylistConflictException(
+        RemotePlaylist.fromLegacyLists(
+          id: 'p1',
+          nome: remoteNome,
+          pdfIds: remotePdfIds,
+          salva: true,
+          favorita: false,
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+          version: 7,
+        ),
+      );
+    }, ({required sessionToken, required playlistId}) async {});
 
     test('remoto mais novo guarda a edição local numa cópia', () async {
       final repo = _MemoryPlaylistRepository();
       await repo.upsert(localPending(pdfIds: const ['x']));
 
       final result = await syncConflicting(repo, remotePdfIds: const ['y'])(
-        idToken: 'token',
+        sessionToken: 'token',
         sub: 'sub-1',
       );
 
@@ -857,7 +842,7 @@ void main() {
         repo,
         remotePdfIds: const ['x'],
         remoteNome: 'Mesmo',
-      )(idToken: 'token', sub: 'sub-1');
+      )(sessionToken: 'token', sub: 'sub-1');
 
       expect(result.conflictCopies, isEmpty);
       expect(repo.map.keys, ['p1']);
@@ -872,7 +857,7 @@ void main() {
         repo,
         remotePdfIds: const ['x'],
         remoteNome: 'Renomeada no outro aparelho',
-      )(idToken: 'token', sub: 'sub-1');
+      )(sessionToken: 'token', sub: 'sub-1');
 
       expect(result.conflictCopies, [conflictCopyName('Local')]);
     });
@@ -881,28 +866,26 @@ void main() {
       final repo = _MemoryPlaylistRepository();
       await repo.upsert(localPending(pdfIds: const ['x']));
 
-      final sync = SyncPlaylists(
-        repo,
-        (_) async => <RemotePlaylist>[],
-        ({required idToken, required playlist}) async {
-          throw PlaylistConflictException(
-            RemotePlaylist.fromLegacyLists(
-              id: 'p1',
-              nome: 'Remoto apagado',
-              pdfIds: const ['y'],
-              salva: true,
-              favorita: false,
-              createdAt: DateTime.utc(2026, 1, 1),
-              updatedAt: DateTime.utc(2026, 4, 1),
-              version: 7,
-              deletedAt: DateTime.utc(2026, 4, 1),
-            ),
-          );
-        },
-        ({required idToken, required playlistId}) async {},
-      );
+      final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+        required sessionToken,
+        required playlist,
+      }) async {
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto apagado',
+            pdfIds: const ['y'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+            deletedAt: DateTime.utc(2026, 4, 1),
+          ),
+        );
+      }, ({required sessionToken, required playlistId}) async {});
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
 
       expect(result.pulled, 0);
       expect(result.pushed, 0);
@@ -936,11 +919,11 @@ void main() {
             savedAt: DateTime.utc(2026, 1, 1),
           ),
         ],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {},
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {},
       );
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
 
       expect(result.pulled, 1);
       expect(repo.map['r1']?.ownerSub, 'sub-1');
@@ -963,11 +946,11 @@ void main() {
       final sync = SyncPlaylists(
         repo,
         (_) async => <RemotePlaylist>[],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {},
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {},
       );
 
-      await sync(idToken: 'token', sub: 'sub-1');
+      await sync(sessionToken: 'token', sub: 'sub-1');
 
       expect(repo.map['p1']?.ownerSub, 'sub-1');
       expect(repo.map['p1']?.syncStatus, PlaylistSyncStatus.synced);
@@ -1001,17 +984,15 @@ void main() {
       );
 
       final pushed = <String>[];
-      final sync = SyncPlaylists(
-        repo,
-        (_) async => <RemotePlaylist>[],
-        ({required idToken, required playlist}) async {
-          pushed.add(playlist.id);
-          return playlist;
-        },
-        ({required idToken, required playlistId}) async {},
-      );
+      final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+        required sessionToken,
+        required playlist,
+      }) async {
+        pushed.add(playlist.id);
+        return playlist;
+      }, ({required sessionToken, required playlistId}) async {});
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
 
       expect(pushed, ['minha']);
       expect(result.pushed, 1);
@@ -1048,13 +1029,13 @@ void main() {
       final sync = SyncPlaylists(
         repo,
         (_) async => <RemotePlaylist>[],
-        ({required idToken, required playlist}) async => playlist,
-        ({required idToken, required playlistId}) async {
+        ({required sessionToken, required playlist}) async => playlist,
+        ({required sessionToken, required playlistId}) async {
           deleted.add(playlistId);
         },
       );
 
-      final result = await sync(idToken: 'token', sub: 'sub-1');
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
 
       expect(deleted.toSet(), {'sem-dono', 'minha'});
       expect(result.deleted, 2);
@@ -1080,27 +1061,25 @@ void main() {
         ),
       );
 
-      final sync = SyncPlaylists(
-        repo,
-        (_) async => <RemotePlaylist>[],
-        ({required idToken, required playlist}) async {
-          throw PlaylistConflictException(
-            RemotePlaylist.fromLegacyLists(
-              id: 'p1',
-              nome: 'Remoto',
-              pdfIds: const ['y'],
-              salva: true,
-              favorita: false,
-              createdAt: DateTime.utc(2026, 1, 1),
-              updatedAt: DateTime.utc(2026, 4, 1),
-              version: 7,
-            ),
-          );
-        },
-        ({required idToken, required playlistId}) async {},
-      );
+      final sync = SyncPlaylists(repo, (_) async => <RemotePlaylist>[], ({
+        required sessionToken,
+        required playlist,
+      }) async {
+        throw PlaylistConflictException(
+          RemotePlaylist.fromLegacyLists(
+            id: 'p1',
+            nome: 'Remoto',
+            pdfIds: const ['y'],
+            salva: true,
+            favorita: false,
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+            version: 7,
+          ),
+        );
+      }, ({required sessionToken, required playlistId}) async {});
 
-      await sync(idToken: 'token', sub: 'sub-1');
+      await sync(sessionToken: 'token', sub: 'sub-1');
 
       final copy = repo.map.values.firstWhere((p) => p.playlistId != 'p1');
       expect(copy.ownerSub, 'sub-1');

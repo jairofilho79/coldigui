@@ -22,7 +22,7 @@ const _subKey = 'audio_flag_sync.last_synced_sub';
 class _LoggedInAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'token');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'token');
 }
 
 /// Repositório mínimo: registra `adoptForSub`/`purgeSyncedOwnedBy` **na ordem**
@@ -96,8 +96,8 @@ class _ScriptedSync extends SyncAudioFlags {
     : super(
         _CountingRepository(),
         (_) async => const <RemoteAudioFlag>[],
-        ({required idToken, required flag}) async => flag,
-        ({required idToken, required flagId}) async {},
+        ({required sessionToken, required flag}) async => flag,
+        ({required sessionToken, required flagId}) async {},
       );
 
   final AudioFlagSyncResult? result;
@@ -114,7 +114,7 @@ class _ScriptedSync extends SyncAudioFlags {
 
   @override
   Future<AudioFlagSyncResult> call({
-    required String? idToken,
+    required String? sessionToken,
     required String? sub,
   }) async {
     calls++;
@@ -328,22 +328,25 @@ void main() {
     expect(sync.subs, isNotEmpty);
   });
 
-  test('retryAndReload refaz a adoção quando o sub não foi persistido', () async {
-    final repo = _CountingRepository(adoptThrows: StateError('storage fora'));
-    final container = buildContainer(repository: repo, sync: _ScriptedSync());
-    addTearDown(container.dispose);
+  test(
+    'retryAndReload refaz a adoção quando o sub não foi persistido',
+    () async {
+      final repo = _CountingRepository(adoptThrows: StateError('storage fora'));
+      final container = buildContainer(repository: repo, sync: _ScriptedSync());
+      addTearDown(container.dispose);
 
-    await container.read(authStateProvider.future);
-    container.read(audioFlagSyncProvider);
-    await settle();
-    expect(repo.adoptCalls, 1);
-    expect(prefs.getString(_subKey), isNull);
+      await container.read(authStateProvider.future);
+      container.read(audioFlagSyncProvider);
+      await settle();
+      expect(repo.adoptCalls, 1);
+      expect(prefs.getString(_subKey), isNull);
 
-    // Segunda tentativa: a adoção volta a ser chamada (sub ainda não persistido).
-    await container.read(audioFlagSyncProvider.notifier).retryAndReload();
+      // Segunda tentativa: a adoção volta a ser chamada (sub ainda não persistido).
+      await container.read(audioFlagSyncProvider.notifier).retryAndReload();
 
-    expect(repo.adoptCalls, 2);
-  });
+      expect(repo.adoptCalls, 2);
+    },
+  );
 
   test(
     'retryAndReload só sincroniza quando o sub já está persistido',

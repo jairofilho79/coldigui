@@ -52,7 +52,7 @@ final socialSearchResultsProvider =
 
       return ref
           .read(socialRemoteDatasourceProvider)
-          .searchUsers(idToken: user.idToken, query: query);
+          .searchUsers(sessionToken: user.sessionToken, query: query);
     });
 
 /// Listas públicas de um username (lazy ao expandir).
@@ -64,5 +64,8 @@ final socialUserPlaylistsProvider = FutureProvider.autoDispose
       }
       return ref
           .read(socialRemoteDatasourceProvider)
-          .fetchUserPlaylists(idToken: user.idToken, username: username);
+          .fetchUserPlaylists(
+            sessionToken: user.sessionToken,
+            username: username,
+          );
     });

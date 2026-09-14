@@ -9,14 +9,24 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:dio/dio.dart';
 
 class FakeAuthRemoteDatasource extends AuthRemoteDatasource {
-  FakeAuthRemoteDatasource(this._behavior) : super(Dio());
+  FakeAuthRemoteDatasource(this._behavior, {this._onRevoke}) : super(Dio());
 
   /// Sempre devolve [user] — atalho para quando não interessa simular erro.
   factory FakeAuthRemoteDatasource.returning(AuthUser user) =>
       FakeAuthRemoteDatasource((_) async => user);
 
   final Future<AuthUser> Function(String idToken) _behavior;
+  final Future<void> Function(String sessionToken)? _onRevoke;
+
+  /// Tokens passados a [revokeSession], na ordem.
+  final List<String> revoked = [];
 
   @override
   Future<AuthUser> establishSession(String idToken) => _behavior(idToken);
+
+  @override
+  Future<void> revokeSession(String sessionToken) async {
+    revoked.add(sessionToken);
+    await _onRevoke?.call(sessionToken);
+  }
 }

@@ -2,7 +2,9 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
+
 import '../../../helpers/louvores_manifest_test_helpers.dart';
+
 import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/leaflet/domain/entities/leaflet_document.dart';
@@ -22,7 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 class _LoggedInAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'token');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'token');
 }
 
 /// Encurtador que só conta chamadas — usado para provar que "Gerar folheto"
@@ -364,31 +366,29 @@ void main() {
   // atualiza o `State` do `ProviderScope` em vez de recriá-lo), então o
   // segundo `run` viu de fato o manifest do primeiro. Cada `testWidgets`
   // aqui recebe seu próprio binding, garantindo isolamento real.
-  testWidgets(
-    'linkWithLeaflet com link curto passa shareUrl ao folheto',
-    (tester) async {
-      final result = await _shareLinkWithLeaflet(
-        tester,
-        shareContext: shareContext,
-        comShortId: true,
-      );
-      expect(result.capturedUrl, 'https://plpcg.com/?s=0000&n=Ensaio');
-      expect(result.text, contains('https://plpcg.com/?s=0000&n=Ensaio'));
-    },
-  );
+  testWidgets('linkWithLeaflet com link curto passa shareUrl ao folheto', (
+    tester,
+  ) async {
+    final result = await _shareLinkWithLeaflet(
+      tester,
+      shareContext: shareContext,
+      comShortId: true,
+    );
+    expect(result.capturedUrl, 'https://plpcg.com/?s=0000&n=Ensaio');
+    expect(result.text, contains('https://plpcg.com/?s=0000&n=Ensaio'));
+  });
 
-  testWidgets(
-    'linkWithLeaflet com link longo não passa shareUrl ao folheto',
-    (tester) async {
-      final result = await _shareLinkWithLeaflet(
-        tester,
-        shareContext: shareContext,
-        comShortId: false,
-      );
-      expect(result.capturedUrl, isNull);
-      expect(result.text, contains('shareitems='));
-    },
-  );
+  testWidgets('linkWithLeaflet com link longo não passa shareUrl ao folheto', (
+    tester,
+  ) async {
+    final result = await _shareLinkWithLeaflet(
+      tester,
+      shareContext: shareContext,
+      comShortId: false,
+    );
+    expect(result.capturedUrl, isNull);
+    expect(result.text, contains('shareitems='));
+  });
 }
 
 /// Roda `share(linkWithLeaflet)` de ponta a ponta e devolve o `shareUrl`
@@ -401,37 +401,41 @@ Future<({String? capturedUrl, String? text})> _shareLinkWithLeaflet(
 }) async {
   String? capturedText;
   LeafletDocument? doc;
-  await tester.pumpWidget(ProviderScope(
-    overrides: [
-      playlistRepositoryProvider.overrideWithValue(
-        _PdfKindPlaylistRepository(),
-      ),
-      generatePlaylistShareUrlProvider.overrideWith(
-        (ref) => GeneratePlaylistShareUrl(
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        playlistRepositoryProvider.overrideWithValue(
           _PdfKindPlaylistRepository(),
-          shareOrigin: 'https://plpcg.com',
-          shortIdOf: (id) => ref.read(louvoresByPdfIdProvider)[id]?.shortId,
         ),
+        generatePlaylistShareUrlProvider.overrideWith(
+          (ref) => GeneratePlaylistShareUrl(
+            _PdfKindPlaylistRepository(),
+            shareOrigin: 'https://plpcg.com',
+            shortIdOf: (id) => ref.read(louvoresByPdfIdProvider)[id]?.shortId,
+          ),
+        ),
+        louvoresManifestOverride(
+          LouvoresManifest.fromLouvores([
+            Louvor.fromManifest(
+              nome: 'Louvor A',
+              numero: '001',
+              categoria: 'Partitura',
+              classificacao: 'ColAdultos',
+              pdf: 'a.pdf',
+              pdfId: 'pdf-a',
+              shortId: comShortId ? '0000' : null,
+            ),
+          ]),
+        ),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: const Scaffold(body: SizedBox()),
       ),
-      louvoresManifestOverride(LouvoresManifest.fromLouvores([
-        Louvor.fromManifest(
-          nome: 'Louvor A',
-          numero: '001',
-          categoria: 'Partitura',
-          classificacao: 'ColAdultos',
-          pdf: 'a.pdf',
-          pdfId: 'pdf-a',
-          shortId: comShortId ? '0000' : null,
-        ),
-      ])),
-    ],
-    child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('pt'),
-      home: const Scaffold(body: SizedBox()),
     ),
-  ));
+  );
   final context = tester.element(find.byType(Scaffold));
   final container = ProviderScope.containerOf(context);
   await container.read(louvoresManifestProvider.future);

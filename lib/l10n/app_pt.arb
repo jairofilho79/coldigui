@@ -730,14 +730,6 @@
   "@failureUnknown": {
     "description": "failureMessage (E8): UnknownFailure — fallback para erro não classificado"
   },
-  "sessionExpiredBanner": "Sessão expirada",
-  "@sessionExpiredBanner": {
-    "description": "Título do banner de sessão expirada no perfil e nas listas"
-  },
-  "sessionExpiredSignInAgain": "Entrar de novo",
-  "@sessionExpiredSignInAgain": {
-    "description": "Ação do banner de sessão expirada"
-  },
   "homeEmptyHint": "Busque por título ou número",
   "@homeEmptyHint": {
     "description": "Hint da Home sem consulta nem lista ativa/recentes (C4)"

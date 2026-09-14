@@ -13,17 +13,17 @@ class SocialRemoteDatasource {
 
   static final _log = AppLogger.of('social');
 
-  Options _auth(String idToken) =>
-      Options(headers: {'Authorization': 'Bearer $idToken'});
+  Options _auth(String sessionToken) =>
+      Options(headers: {'Authorization': 'Bearer $sessionToken'});
 
   Future<List<SocialUser>> searchUsers({
-    required String idToken,
+    required String sessionToken,
     required String query,
   }) async {
     final response = await _dio.get<List<dynamic>>(
       ApiEndpoints.socialUsers,
       queryParameters: {'q': query},
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     final data = response.data ?? const [];
     return data
@@ -39,12 +39,12 @@ class SocialRemoteDatasource {
   /// inesperada) é descartado com log em vez de derrubar a página inteira —
   /// mesma tolerância do pull autenticado (spec A.7).
   Future<List<PublicPlaylist>> fetchUserPlaylists({
-    required String idToken,
+    required String sessionToken,
     required String username,
   }) async {
     final response = await _dio.get<List<dynamic>>(
       ApiEndpoints.socialUserPlaylists(username),
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     final data = response.data ?? const [];
     final playlists = <PublicPlaylist>[];

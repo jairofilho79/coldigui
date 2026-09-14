@@ -108,7 +108,7 @@ void main() {
     );
 
     expect(
-      () => datasource.upsert(idToken: 'token', playlist: local),
+      () => datasource.upsert(sessionToken: 'token', playlist: local),
       throwsA(
         isA<PlaylistConflictException>()
             .having((e) => e.remote.id, 'remote.id', 'p1')
@@ -132,7 +132,7 @@ void main() {
     );
 
     expect(
-      () => datasource.upsert(idToken: 'token', playlist: local),
+      () => datasource.upsert(sessionToken: 'token', playlist: local),
       throwsA(isA<DioException>()),
     );
   });
@@ -151,7 +151,7 @@ void main() {
     );
 
     expect(
-      () => datasource.upsert(idToken: 'token', playlist: local),
+      () => datasource.upsert(sessionToken: 'token', playlist: local),
       throwsA(isA<DioException>()),
     );
   });

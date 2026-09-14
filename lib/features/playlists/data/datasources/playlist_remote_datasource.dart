@@ -10,8 +10,8 @@ class PlaylistRemoteDatasource {
 
   final Dio _dio;
 
-  Options _auth(String idToken) =>
-      Options(headers: {'Authorization': 'Bearer $idToken'});
+  Options _auth(String sessionToken) =>
+      Options(headers: {'Authorization': 'Bearer $sessionToken'});
 
   /// Lista as playlists do usuário, **por item**.
   ///
@@ -22,11 +22,11 @@ class PlaylistRemoteDatasource {
   /// `includeDeleted=1` traz também os tombstones (`deletedAt` não-nulo), para
   /// o sync apagar aqui o que sumiu em outro aparelho (spec A.2). Um Worker que
   /// ainda não conhece o parâmetro simplesmente o ignora e devolve só as vivas.
-  Future<List<RemotePlaylist>> fetchAll(String idToken) async {
+  Future<List<RemotePlaylist>> fetchAll(String sessionToken) async {
     final response = await _dio.get<List<dynamic>>(
       ApiEndpoints.playlists,
       queryParameters: {'includeDeleted': '1'},
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     final data = response.data ?? const [];
     final playlists = <RemotePlaylist>[];
@@ -47,7 +47,7 @@ class PlaylistRemoteDatasource {
   /// resolve por last-write-wins. Um 409 sem corpo legível continua sendo a
   /// [DioException] original.
   Future<RemotePlaylist> upsert({
-    required String idToken,
+    required String sessionToken,
     required RemotePlaylist playlist,
   }) async {
     final Response<Map<String, dynamic>> response;
@@ -55,7 +55,7 @@ class PlaylistRemoteDatasource {
       response = await _dio.put<Map<String, dynamic>>(
         ApiEndpoints.playlist(playlist.id),
         data: playlist.toJson(),
-        options: _auth(idToken),
+        options: _auth(sessionToken),
       );
     } on DioException catch (e) {
       final conflict = _conflictFrom(e);
@@ -86,12 +86,12 @@ class PlaylistRemoteDatasource {
   }
 
   Future<void> softDelete({
-    required String idToken,
+    required String sessionToken,
     required String playlistId,
   }) async {
     await _dio.delete<void>(
       ApiEndpoints.playlist(playlistId),
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
   }
 }

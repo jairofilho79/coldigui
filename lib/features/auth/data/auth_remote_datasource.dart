@@ -13,7 +13,9 @@ class UsernameException implements Exception {
   String toString() => 'UsernameException($code)';
 }
 
-/// Worker recusou o `idToken` (401/403) — sessão inválida, deve deslogar.
+/// Worker recusou o Bearer (401/403): o `id_token` na `POST /session`, ou o
+/// `sessionToken` numa rota autenticada — este último é tratado pelo
+/// `AuthUnauthorizedInterceptor`.
 ///
 /// Distinto de falha de rede/timeout ou 5xx, que preservam a sessão local
 /// (ver [AuthNotifier.build]).
@@ -26,7 +28,8 @@ class AuthUnauthorizedException implements Exception {
   String toString() => 'AuthUnauthorizedException($statusCode)';
 }
 
-/// `POST /api/auth/session` — valida id_token e UPSERT em D1.
+/// `POST /api/auth/session` — troca o `id_token` do Google por uma sessão do Worker;
+/// `DELETE` a revoga.
 class AuthRemoteDatasource {
   AuthRemoteDatasource(this._dio);
 
@@ -55,6 +58,12 @@ class AuthRemoteDatasource {
     if (sub is! String || sub.isEmpty) {
       throw StateError('auth_session_missing_sub');
     }
+    // Sessão do Worker (spec D1): o id_token do Google foi consumido aqui e
+    // não é guardado em lugar nenhum.
+    final sessionToken = data['sessionToken'];
+    if (sessionToken is! String || sessionToken.isEmpty) {
+      throw StateError('auth_session_missing_token');
+    }
 
     return AuthUser(
       googleSub: sub,
@@ -62,20 +71,34 @@ class AuthRemoteDatasource {
       name: data['name'] as String?,
       pictureUrl: data['pictureUrl'] as String?,
       username: data['username'] as String?,
-      idToken: idToken,
+      sessionToken: sessionToken,
+    );
+  }
+
+  /// `DELETE /api/auth/session` — revoga a sessão no Worker.
+  ///
+  /// `204` e `401` (sessão já não existia) são sucesso: a sessão local vai
+  /// ser apagada de qualquer jeito. 5xx/rede propagam para o chamador logar.
+  Future<void> revokeSession(String sessionToken) async {
+    await _dio.delete<void>(
+      ApiEndpoints.authSession,
+      options: Options(
+        headers: {'Authorization': 'Bearer $sessionToken'},
+        validateStatus: (status) => status != null && status < 500,
+      ),
     );
   }
 
   /// `PUT /api/auth/username` — define handle único (uma vez).
   Future<String> setUsername({
-    required String idToken,
+    required String sessionToken,
     required String username,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
       ApiEndpoints.authUsername,
       data: {'username': username},
       options: Options(
-        headers: {'Authorization': 'Bearer $idToken'},
+        headers: {'Authorization': 'Bearer $sessionToken'},
         validateStatus: (status) => status != null && status < 500,
       ),
     );

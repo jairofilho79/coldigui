@@ -42,7 +42,7 @@ class _RecordingSyncNotifier extends PlaylistSyncNotifier {
 class _LoggedInAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'token');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'token');
 }
 
 Future<void> _flush() async {

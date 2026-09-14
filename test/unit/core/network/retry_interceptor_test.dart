@@ -135,15 +135,18 @@ void main() {
     expect(adapter.calls, 1);
   });
 
-  test('GET: 401 não é retentado (é caso do AuthRefreshInterceptor)', () async {
-    final adapter = _ScriptedAdapter([401]);
+  test(
+    'GET: 401 não é retentado (é caso do AuthUnauthorizedInterceptor)',
+    () async {
+      final adapter = _ScriptedAdapter([401]);
 
-    await expectLater(
-      dioWith(adapter).get<Object?>('/playlists'),
-      throwsA(isA<DioException>()),
-    );
-    expect(adapter.calls, 1);
-  });
+      await expectLater(
+        dioWith(adapter).get<Object?>('/playlists'),
+        throwsA(isA<DioException>()),
+      );
+      expect(adapter.calls, 1);
+    },
+  );
 
   test('POST não é retentado', () async {
     final adapter = _ScriptedAdapter([DioExceptionType.connectionError]);

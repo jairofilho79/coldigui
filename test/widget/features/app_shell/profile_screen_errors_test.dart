@@ -1,4 +1,5 @@
 import '../../../support/fakes/fake_auth_remote_datasource.dart';
+
 import 'package:coldigui/features/app_shell/presentation/pages/profile_screen.dart';
 import 'package:coldigui/features/auth/data/auth_session_store.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
@@ -8,18 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 void main() {
   const user = AuthUser(
     googleSub: 'sub-1',
-    idToken: 'token-1',
+    sessionToken: 'token-1',
     name: 'Jairo',
     email: 'a@b.com',
   );
-
-  Future<Stream<GoogleSignInAuthenticationEvent>> noopInitializer() async =>
-      const Stream<GoogleSignInAuthenticationEvent>.empty();
 
   late AppLocalizations pt;
 
@@ -55,7 +52,6 @@ void main() {
     authRemoteDatasourceProvider.overrideWithValue(
       FakeAuthRemoteDatasource(behavior),
     ),
-    googleSignInInitializerProvider.overrideWithValue(noopInitializer),
   ];
 
   testWidgets('estado de erro do authStateProvider usa userMessageFor', (
@@ -73,15 +69,14 @@ void main() {
     expect(find.textContaining('detalhe_interno_feio'), findsNothing);
   });
 
-  testWidgets('sessão expirada mostra banner com ação de entrar de novo', (
+  testWidgets('sessão revogada (onUnauthorized) volta ao botão de entrar', (
     tester,
   ) async {
+    final store = AuthSessionStore()..write(user);
     final container = ProviderContainer(
-      overrides: baseOverrides(behavior: (_) async => user),
+      overrides: baseOverrides(behavior: (_) async => user, store: store),
     );
     addTearDown(container.dispose);
-    await container.read(authStateProvider.future);
-    container.read(sessionExpiredProvider.notifier).markExpired();
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -95,19 +90,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Jairo'), findsWidgets);
 
-    expect(find.text(pt.sessionExpiredBanner), findsOneWidget);
-    expect(find.text(pt.errorSessionExpired), findsOneWidget);
-    expect(find.text(pt.sessionExpiredSignInAgain), findsOneWidget);
-  });
+    container
+        .read(authStateProvider.notifier)
+        .onUnauthorized(user.sessionToken);
+    await tester.pumpAndSettle();
 
-  testWidgets('sem sessão expirada não mostra banner', (tester) async {
-    await pumpProfile(
-      tester,
-      overrides: baseOverrides(behavior: (_) async => user),
-    );
-
-    expect(find.text(pt.sessionExpiredBanner), findsNothing);
+    expect(find.text(pt.authSignInWithGoogle), findsOneWidget);
+    expect(find.text('Jairo'), findsNothing);
   });
 }
 

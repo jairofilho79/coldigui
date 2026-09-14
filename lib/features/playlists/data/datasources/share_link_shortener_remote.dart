@@ -12,14 +12,14 @@ const shareLinkShortenerTimeout = Duration(seconds: 3);
 /// Impl Dio de [ShareLinkShortener] — `POST /api/links` no Worker
 /// `plpcg-catalog` (D7, spec C.2).
 class ShareLinkShortenerRemote implements ShareLinkShortener {
-  ShareLinkShortenerRemote(this._dio, {required this.idToken});
+  ShareLinkShortenerRemote(this._dio, {required this.sessionToken});
 
   final Dio _dio;
 
   /// Token Google do usuário atual, resolvido a cada chamada (a rota exige
   /// `Authorization`). `null`/vazio manda a request sem o header — o Worker
   /// recusa com 401, que [shorten] deixa propagar como qualquer outro erro.
-  final String? Function() idToken;
+  final String? Function() sessionToken;
 
   /// `POST /api/links` com `{query}`; devolve `url` da resposta.
   ///
@@ -31,7 +31,7 @@ class ShareLinkShortenerRemote implements ShareLinkShortener {
   /// Lança em qualquer falha — rede, timeout, `4xx`/`5xx`, corpo sem `url`.
   @override
   Future<String> shorten(String query) async {
-    final token = idToken();
+    final token = sessionToken();
     final cancelToken = CancelToken();
     final guard = Timer(
       shareLinkShortenerTimeout,

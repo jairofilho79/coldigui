@@ -1319,12 +1319,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível concluir a ação. Tente de novo.';
 
   @override
-  String get sessionExpiredBanner => 'Sessão expirada';
-
-  @override
-  String get sessionExpiredSignInAgain => 'Entrar de novo';
-
-  @override
   String get homeEmptyHint => 'Busque por título ou número';
 
   @override

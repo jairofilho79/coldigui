@@ -1305,12 +1305,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failureUnknown => 'Could not complete the action. Try again.';
 
   @override
-  String get sessionExpiredBanner => 'Session expired';
-
-  @override
-  String get sessionExpiredSignInAgain => 'Sign in again';
-
-  @override
   String get homeEmptyHint => 'Search by title or number';
 
   @override

@@ -103,13 +103,13 @@ final migrateCarouselStoreProvider = Provider<MigrateCarouselStore>((ref) {
 
 /// D7 — encurtador de link de compartilhamento (`POST /api/links`).
 ///
-/// `idToken` é resolvido a cada chamada de [ShareLinkShortener.shorten] (não
+/// `sessionToken` é resolvido a cada chamada de [ShareLinkShortener.shorten] (não
 /// na hora de montar o provider): a rota exige autenticação, e a instância
 /// sobrevive a logins/logouts sem precisar ser recriada.
 final shareLinkShortenerProvider = Provider<ShareLinkShortener>((ref) {
   return ShareLinkShortenerRemote(
     ref.watch(dioProvider),
-    idToken: () => ref.read(authStateProvider).value?.idToken,
+    sessionToken: () => ref.read(authStateProvider).value?.sessionToken,
   );
 });
 

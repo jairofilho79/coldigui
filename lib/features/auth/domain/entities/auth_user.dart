@@ -1,12 +1,13 @@
-import 'dart:convert';
+/// Prefixo do token de sessão emitido pelo Worker (`user_sessions`). É o que
+/// o `AuthUnauthorizedInterceptor` usa para saber que um 401 é «sessão
+/// revogada/vencida» e não uma rota pública.
+const String kSessionTokenPrefix = 'sess_';
 
-import 'package:flutter/foundation.dart';
-
-/// Usuário autenticado via Google (sessão local + registro D1).
+/// Usuário autenticado (sessão local + registro D1).
 class AuthUser {
   const AuthUser({
     required this.googleSub,
-    required this.idToken,
+    required this.sessionToken,
     this.email,
     this.name,
     this.pictureUrl,
@@ -23,8 +24,9 @@ class AuthUser {
   /// Handle público único (`users.username`). Null até o usuário cadastrar.
   final String? username;
 
-  /// Google ID token (Bearer nas rotas `/api/auth/*`).
-  final String idToken;
+  /// Token de sessão do Worker (`sess_…`), Bearer de toda rota autenticada.
+  /// Opaco: não tem `exp` legível — quem decide se ainda vale é o Worker.
+  final String sessionToken;
 
   bool get hasUsername => username != null && username!.isNotEmpty;
 
@@ -41,7 +43,7 @@ class AuthUser {
     String? name,
     String? pictureUrl,
     String? username,
-    String? idToken,
+    String? sessionToken,
   }) {
     return AuthUser(
       googleSub: googleSub ?? this.googleSub,
@@ -49,7 +51,7 @@ class AuthUser {
       name: name ?? this.name,
       pictureUrl: pictureUrl ?? this.pictureUrl,
       username: username ?? this.username,
-      idToken: idToken ?? this.idToken,
+      sessionToken: sessionToken ?? this.sessionToken,
     );
   }
 
@@ -59,13 +61,15 @@ class AuthUser {
     'name': name,
     'pictureUrl': pictureUrl,
     'username': username,
-    'idToken': idToken,
+    'sessionToken': sessionToken,
   };
 
+  /// `null` para JSON sem `googleSub`/`sessionToken` — inclusive o formato
+  /// antigo com `idToken`, que a migração (spec D12) trata por fora.
   static AuthUser? fromJson(Map<String, Object?>? json) {
     if (json == null) return null;
     final sub = json['googleSub'];
-    final token = json['idToken'];
+    final token = json['sessionToken'];
     if (sub is! String || sub.isEmpty || token is! String || token.isEmpty) {
       return null;
     }
@@ -75,55 +79,7 @@ class AuthUser {
       name: json['name'] as String?,
       pictureUrl: json['pictureUrl'] as String?,
       username: json['username'] as String?,
-      idToken: token,
+      sessionToken: token,
     );
-  }
-}
-
-/// Expiração do `id_token` lida do claim `exp`.
-///
-/// O payload do JWT é decodificado (base64url) **sem validar a assinatura**:
-/// quem valida é o Worker. Aqui só interessa saber quando pedir token novo.
-extension AuthUserExpiry on AuthUser {
-  /// Margem para considerar o token "expirando" e renovar preventivamente.
-  static const Duration renewalWindow = Duration(minutes: 2);
-
-  /// Instante (UTC) do claim `exp`, ou `null` se o token não for legível.
-  DateTime? get expiresAt => _idTokenExpiry(idToken);
-
-  /// `true` só quando há `exp` legível e ele já passou.
-  bool get isExpired {
-    final exp = expiresAt;
-    return exp != null && !exp.isAfter(DateTime.now().toUtc());
-  }
-
-  /// `true` quando o token já expirou ou expira dentro de [renewalWindow].
-  bool get expiresSoon {
-    final exp = expiresAt;
-    if (exp == null) return false;
-    return exp.isBefore(DateTime.now().toUtc().add(renewalWindow));
-  }
-}
-
-/// Token ilegível (formato inesperado, `exp` ausente) devolve `null` — sem
-/// `exp` a sessão não pode ser tratada como expirada só por não dar para ler.
-DateTime? _idTokenExpiry(String idToken) {
-  final parts = idToken.split('.');
-  if (parts.length != 3) return null;
-  try {
-    final payload = utf8.decode(
-      base64Url.decode(base64Url.normalize(parts[1])),
-    );
-    final decoded = jsonDecode(payload);
-    if (decoded is! Map<String, Object?>) return null;
-    final exp = decoded['exp'];
-    if (exp is! num) return null;
-    return DateTime.fromMillisecondsSinceEpoch(
-      (exp * 1000).round(),
-      isUtc: true,
-    );
-  } on Object catch (error) {
-    debugPrint('[auth] exp inválido no id_token: $error');
-    return null;
   }
 }

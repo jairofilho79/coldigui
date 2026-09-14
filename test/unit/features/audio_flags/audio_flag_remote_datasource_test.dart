@@ -153,7 +153,7 @@ void main() {
     });
 
     await expectLater(
-      datasource.upsert(idToken: 'token', flag: _flag()),
+      datasource.upsert(sessionToken: 'token', flag: _flag()),
       throwsA(
         isA<AudioFlagConflictException>().having(
           (e) => e.remote.version,
@@ -168,7 +168,7 @@ void main() {
     final (datasource, _) = _withAdapter(409, {'id': 42});
 
     await expectLater(
-      datasource.upsert(idToken: 'token', flag: _flag()),
+      datasource.upsert(sessionToken: 'token', flag: _flag()),
       throwsA(isA<DioException>()),
     );
   });

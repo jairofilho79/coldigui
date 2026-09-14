@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _LoggedIn extends AuthNotifier {
   @override
   Future<AuthUser?> build() async =>
-      const AuthUser(googleSub: 'sub-1', idToken: 'tok');
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok');
 }
 
 class _LoggedOut extends AuthNotifier {

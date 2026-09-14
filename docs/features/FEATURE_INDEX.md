@@ -22,6 +22,7 @@
 | `leaflet` | UC-08 | Média | **Concluído** (Fase 4.6 + redesign PWA jun/2026 + fix render jun/2026) | [LeafletContent] PLPCG (`Material` off-screen); `LeafletEntry` `{numero,nome}`; [LeafletContentLabels]; captura PNG + share |
 | `app_shell` | UC-14 | Transversal | **Concluído** (Fase 4.7 + UI polish + header compartilhado + bottom bar jun/2026 + fullscreen 2.4 + header sem badge jun/2026 + **Sobre jun/2026**) | [ShellScaffold] + [PlpcgPrimaryAppBar] + [CarouselChips] + [PlpcgBottomNavBar] + [AboutScreen]; header sem [OfflineIndicator] (removido); oculta barras 1–2 em fullscreen via [readerFullscreenProvider]; **4.5 ✅** deep links; Sobre via [AboutInfoCard] |
 | `l10n` | transversal | Alta | **Em progresso** | `AppLocalizations` wired; UC-04, UC-03, UC-12, UC-09/10 offline, **UC-05 (4.1 + overflow barra)**, **UC-06/07 (4.2–4.8 abas listas + [carouselSharePlaylist])**, **UC-08 (4.6)**, **UC-11 carousel leitor (4.7)**, **design system Home + Biblioteca** |
+| `auth` | transversal | Alta | **Concluído (2026-09-13)** | Sessão persistente via Worker; `POST /api/auth/session` → `sessionToken` (`sess_…`, 60 d deslizantes); `AuthSessionStore` em `localStorage`/`SharedPreferences`; boot sem rede; `AuthUnauthorizedInterceptor` desloga no 401; `DELETE /api/auth/session` no logout |
 | `admin` | UC-13 | Fora do MVP | Stub desabilitado | `UploadLouvorAdmin` (`FeatureFlags.enableAdminUpload=false`) |
 
 ### Legenda de status

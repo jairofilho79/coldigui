@@ -15,23 +15,23 @@ class MaterialKindPrefsConflict implements Exception {
   String toString() => 'MaterialKindPrefsConflict(${remote.updatedAt})';
 }
 
-/// `GET`/`PUT /api/material-kind-prefs` com Bearer do `id_token`.
+/// `GET`/`PUT /api/material-kind-prefs` com Bearer do `sessionToken`.
 class MaterialKindPrefsRemoteDatasource {
   MaterialKindPrefsRemoteDatasource(this._dio);
 
   final Dio _dio;
 
-  Options _auth(String idToken) => Options(
-    headers: {'Authorization': 'Bearer $idToken'},
+  Options _auth(String sessionToken) => Options(
+    headers: {'Authorization': 'Bearer $sessionToken'},
     // 401/403/409 são respostas do contrato, não falhas de transporte.
     validateStatus: (status) => status != null && status < 500,
   );
 
   /// `null` quando a conta nunca salvou (`204`).
-  Future<MaterialKindPrefs?> fetch(String idToken) async {
+  Future<MaterialKindPrefs?> fetch(String sessionToken) async {
     final response = await _dio.get<Map<String, dynamic>>(
       ApiEndpoints.materialKindPrefs,
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     _throwIfUnauthorized(response.statusCode);
     if (response.statusCode == 204 || response.data == null) return null;
@@ -42,7 +42,7 @@ class MaterialKindPrefsRemoteDatasource {
   }
 
   Future<MaterialKindPrefs> put({
-    required String idToken,
+    required String sessionToken,
     required MaterialKindPrefs prefs,
   }) async {
     final response = await _dio.put<Map<String, dynamic>>(
@@ -52,7 +52,7 @@ class MaterialKindPrefsRemoteDatasource {
         'preferredTypes': prefs.preferredTypeByKind,
         'updatedAt': prefs.updatedAt.toUtc().toIso8601String(),
       },
-      options: _auth(idToken),
+      options: _auth(sessionToken),
     );
     _throwIfUnauthorized(response.statusCode);
     final data = response.data;
