@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
 import time
 from typing import Any
@@ -46,6 +47,24 @@ from web_frontend_server import DEFAULT_WEB_DIR, serve_frontend
 # do servidor local; o runner do CI é lento e --disable-cache obriga tudo a
 # vir pela rede (sem cache HTTP, o `used` também custa rede aqui).
 SW_TIMEOUT_S = 120
+
+
+class VerifyError(Exception):
+    """Falha do verify que não veio do CDP em si (ex.: version.json inválido)."""
+
+
+def read_web_cache_tag(web_dir: Path) -> str:
+    """Lê `web_cache_tag` de version.json — nunca deixa a exceção crua escapar."""
+    version = web_dir / "version.json"
+    try:
+        tag = json.loads(version.read_text())["web_cache_tag"]
+    except (OSError, ValueError, KeyError) as err:
+        raise VerifyError(
+            f"version.json ausente/ilegível ou sem web_cache_tag em {version}: {err}"
+        ) from err
+    if not isinstance(tag, str) or not tag:
+        raise VerifyError(f"version.json sem web_cache_tag válido em {version}")
+    return tag
 
 
 def evaluate(ws: SimpleWebSocket, expression: str, timeout: float = 10) -> Any:
@@ -164,7 +183,7 @@ def verify(web_dir: Path, chrome: str) -> None:
     sw = web_dir / "sw.js"
     if not sw.is_file() or "__PLPCG_" in sw.read_text():
         raise CdpError(f"{sw} ausente ou com placeholders — corra scripts/cache_bust_web_entrypoints.sh")
-    tag = json.loads((web_dir / "version.json").read_text())["web_cache_tag"]
+    tag = read_web_cache_tag(web_dir)
     cache_name = f"plpcg-shell-{tag}"
 
     cdp_port = 9800 + (os.getpid() % 500)
@@ -231,8 +250,14 @@ def main() -> int:
         return 1
     try:
         verify(web_dir, find_chrome())
-    except CdpError as err:
+    except (CdpError, VerifyError) as err:
         print(f"Erro: {err}", file=sys.stderr)
+        return 1
+    except (OSError, socket.timeout, TimeoutError) as err:
+        # SimpleWebSocket.recv_json não envolve os erros de socket em CdpError
+        # (measure_web_boot.py não é tocado aqui): um Chrome que trava ou uma
+        # navegação que derruba a conexão a meio chegam como OSError cru.
+        print(f"Erro: falha de comunicação com o Chrome (CDP): {err}", file=sys.stderr)
         return 1
     return 0
 
