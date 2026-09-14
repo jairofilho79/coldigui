@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -169,7 +170,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
       unawaited(ref.read(playlistSyncProvider.notifier).sync());
       if (mounted) showAppSnackbar(context, l10n.liveCopySaved);
     } on Object catch (e) {
-      if (mounted) showAppSnackbar(context, e.toString());
+      if (mounted) showAppSnackbar(context, userMessageFor(l10n, e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

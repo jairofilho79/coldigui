@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/dio_provider.dart';
+import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/live_room_remote_datasource.dart';
 import '../../data/providers/live_providers.dart';
@@ -28,7 +29,9 @@ class MyLiveRoomNotifier extends AsyncNotifier<LiveRoomInfo?> {
   @override
   Future<LiveRoomInfo?> build() async {
     ref.listen(authStateProvider, (previous, next) {
-      if (next.asData?.value == null) {
+      // Só `AsyncData(null)` é logout — `AsyncLoading` (refresh do perfil,
+      // boot) também tem `asData == null` e não pode derrubar a sala.
+      if (next is AsyncData<AuthUser?> && next.value == null) {
         state = const AsyncData(null);
         ref.read(liveMyRoomCodeProvider.notifier).set(null);
       }

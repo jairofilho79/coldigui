@@ -17,8 +17,15 @@ class WebSocketLiveTransport implements LiveTransport {
   Future<LiveConnection> connect(Uri uri) async {
     final channel = WebSocketChannel.connect(uri);
     // `ready` rejeita no handshake recusado; o timeout cobre a rede que engole
-    // o upgrade sem responder (proxy que bloqueia WS).
-    await channel.ready.timeout(handshakeTimeout);
+    // o upgrade sem responder (proxy que bloqueia WS). Em qualquer falha o
+    // canal é fechado — sem isto um upgrade que acabasse por completar depois
+    // do timeout ficava aberto sem dono.
+    try {
+      await channel.ready.timeout(handshakeTimeout);
+    } on Object {
+      unawaited(channel.sink.close());
+      rethrow;
+    }
     return _WsConnection(channel);
   }
 }

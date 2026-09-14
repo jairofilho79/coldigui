@@ -194,6 +194,18 @@ class LiveSessionController extends Notifier<LiveSessionState> {
         );
     if (!ref.mounted) return;
     ref.invalidate(pendingLeaderSessionProvider);
+    if (state.code == code &&
+        state.isConnectedOrRetrying &&
+        state.role != LiveRole.leader) {
+      // Já ligado à própria sala, mas como consumidor (ou sem `room` ainda):
+      // o `hello` dessa conexão saiu sem `sessionToken` (o código da sala
+      // não era conhecido, ou o login veio depois) — mandar `start` nela só
+      // renderia `error{not_leader}`, e o estado `role: leader` abaixo
+      // seria um «AO VIVO» falso. Religa para um `hello` novo com token.
+      // (`leave()` zera `_pendingStart`, por isso ele é armado só depois.)
+      await leave();
+      if (!ref.mounted) return;
+    }
     _pendingStart = true;
     if (state.code != code || !state.isConnectedOrRetrying) {
       await join(code);
@@ -285,6 +297,10 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       return;
     }
     _conn = conn;
+    // Um `error{…}` pertence à conexão em que chegou: o `room` que o segue
+    // na **mesma** conexão (ex.: `not_leader` + `room{consumer}`) não o
+    // apaga — só uma conexão nova limpa a lousa.
+    if (state.lastError != null) state = state.copyWith(clearLastError: true);
     _sub = conn.messages.listen((text) => _onMessage(gen, text));
     unawaited(conn.done.then((d) => _onDisconnect(gen, d)));
     conn.send(
@@ -497,7 +513,6 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       leaderPresent: frame.leaderPresent,
       viewers: frame.viewers,
       handshakeFailures: 0,
-      clearLastError: true,
     );
     _syncProjection();
     _onRoomAsLeader(frame);
@@ -590,8 +605,18 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     _setDebounce?.cancel();
     _setDebounce = Timer(kLiveLeaderSetDebounce, () {
       if (!ref.mounted || !state.isLeading) return;
-      _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
+      _sendLeaderSet();
     });
+  }
+
+  /// `set` com a lista ativa — a não ser que não haja lista ativa nenhuma
+  /// (`liveSnapshotOfActiveList` daria `playlistId: ''` → `bad_frame`).
+  void _sendLeaderSet() {
+    if (ref.read(activePlaylistProvider) == null) {
+      _log.warn('sala ${state.code}: sem lista ativa, set não enviado');
+      return;
+    }
+    _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
   }
 
   void _onRoomAsLeader(LiveRoomFrame frame) {
@@ -607,7 +632,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       if (isEchoOfOwnStart) return;
       // Religou (ou retomou) numa conexão nova: o que está no aparelho
       // vence o que o DO tem.
-      _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
+      _sendLeaderSet();
       return;
     }
     if (_pendingStart && _startSentGen != _gen) {

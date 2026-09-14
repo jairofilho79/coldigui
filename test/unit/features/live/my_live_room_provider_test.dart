@@ -140,4 +140,32 @@ void main() {
     expect(container.read(myLiveRoomProvider).asData?.value, isNull);
     expect(container.read(liveMyRoomCodeProvider), isNull);
   });
+
+  test(
+    'AsyncLoading do auth (refresh) não é logout: sala e código ficam',
+    () async {
+      final fakeDatasource = _FakeLiveRoomRemoteDatasource(roomInfo);
+      final authNotifier = FakeAuthNotifier(user);
+      final container = ProviderContainer(
+        overrides: [
+          ...standardTestOverrides(prefs: prefs),
+          authStateProvider.overrideWith(() => authNotifier),
+          liveRoomRemoteDatasourceProvider.overrideWithValue(fakeDatasource),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(myLiveRoomProvider.notifier);
+      await notifier.ensure();
+
+      authNotifier.setLoading();
+      await pumpEventQueue();
+
+      expect(
+        container.read(myLiveRoomProvider).asData?.value?.code,
+        roomInfo.code,
+      );
+      expect(container.read(liveMyRoomCodeProvider), roomInfo.code);
+    },
+  );
 }

@@ -289,6 +289,35 @@ void main() {
     transport.last.emit(roomFrame(role: 'consumer'));
     await Future<void>.delayed(Duration.zero);
     expect(container.read(liveSessionProvider).role, LiveRole.consumer);
+    // O `room` da mesma conexão não apaga o erro — só uma conexão nova.
+    expect(container.read(liveSessionProvider).lastError, 'not_leader');
+  });
+
+  test('startLive por cima de uma conexão de consumidor à própria sala religa '
+      'com token (hello novo + start), sem «AO VIVO» falso', () async {
+    // Entrou na sala antes de saber que era a sua: `hello` sem token.
+    container.read(liveMyRoomCodeProvider.notifier).set(null);
+    await controller().join(code);
+    transport.last.emit(roomFrame(role: 'consumer', status: 'idle'));
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(liveSessionProvider).role, LiveRole.consumer);
+    expect(
+      (jsonDecode(transport.last.sent.first) as Map)['sessionToken'],
+      isNull,
+    );
+
+    container.read(liveMyRoomCodeProvider.notifier).set(code);
+    await controller().startLive(code: code, playlistId: 'p1');
+
+    expect(transport.attempts, 2);
+    expect(transport.connections.first.isOpen, isFalse);
+    final sent = transport.last.sent
+        .map((s) => jsonDecode(s) as Map<String, Object?>)
+        .toList();
+    expect(sent[0]['t'], 'hello');
+    expect(sent[0]['sessionToken'], 'sess_owner');
+    expect(sent[1]['t'], 'start');
+    expect(container.read(liveSessionProvider).role, LiveRole.leader);
   });
 
   test('handshake falha enquanto pausado: join(code) de novo religa (attempts == 2)', () {

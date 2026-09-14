@@ -77,6 +77,25 @@ class LiveSessionBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    // Sessão encerrada (pelo gestor, inatividade, link regenerado…): o
+    // consumidor precisa de um caminho de volta à sala para «Guardar cópia»
+    // — `_finish` mantém `code` e `snapshot` de propósito.
+    final code = state.code;
+    final ended =
+        state.phase == LivePhase.ended ||
+        (state.phase == LivePhase.connected &&
+            state.roomStatus == LiveRoomStatus.ended);
+    if (ended && code != null) {
+      return _Bar(
+        icon: Icons.sensors_off,
+        text: l10n.liveEndedTitle,
+        actions: [
+          _Action(l10n.liveRoom, () => context.go(liveRoomRouteFor(code))),
+          _Action(l10n.liveLeave, () => unawaited(controller.leave())),
+        ],
+      );
+    }
+
     if (state.phase != LivePhase.connected) return const SizedBox.shrink();
 
     if (state.isFollowing) {

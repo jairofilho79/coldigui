@@ -116,6 +116,48 @@ void main() {
     },
   );
 
+  testWidgets(
+    'consumidor com sessão encerrada: «Sessão encerrada», Sala e Sair (leave)',
+    (tester) async {
+      final stub = await pump(
+        tester,
+        LiveSessionState(
+          phase: LivePhase.ended,
+          code: 'c',
+          role: LiveRole.consumer,
+          roomStatus: LiveRoomStatus.ended,
+          ownerName: 'Fulano',
+          snapshot: snapshot,
+          endReason: LiveEndReason.leader,
+        ),
+      );
+      expect(find.text('Sessão encerrada'), findsOneWidget);
+      expect(find.text('Sala'), findsOneWidget);
+      await tester.tap(find.text('Sair'));
+      expect(stub.calls, ['leave']);
+    },
+  );
+
+  testWidgets(
+    'consumidor conectado a uma sala já encerrada (room{ended}) vê o mesmo aviso',
+    (tester) async {
+      await pump(
+        tester,
+        LiveSessionState(
+          phase: LivePhase.connected,
+          code: 'c',
+          role: LiveRole.consumer,
+          roomStatus: LiveRoomStatus.ended,
+          ownerName: 'Fulano',
+          snapshot: snapshot,
+        ),
+      );
+      expect(find.text('Sessão encerrada'), findsOneWidget);
+      expect(find.text('Sala'), findsOneWidget);
+      expect(find.text('Sair'), findsOneWidget);
+    },
+  );
+
   testWidgets('reconectando mostra o estado e Sair chama leave', (
     tester,
   ) async {

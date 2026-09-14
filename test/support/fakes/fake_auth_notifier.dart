@@ -18,4 +18,9 @@ class FakeAuthNotifier extends AuthNotifier {
   void setUser(AuthUser? user) {
     state = AsyncData(user);
   }
+
+  /// Simula um refresh em curso (`AsyncLoading`) — não é logout.
+  void setLoading() {
+    state = const AsyncLoading<AuthUser?>();
+  }
 }
