@@ -1,14 +1,15 @@
 import 'dart:js_interop';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:web/web.dart';
 
-typedef FetchAudioBytesFn = Future<List<int>> Function(
-  String url, {
-  String? fallbackUrl,
-});
+typedef FetchAudioBytesFn =
+    Future<List<int>> Function(String url, {String? fallbackUrl});
 
-/// Cache blob URLs — faixa atual + próxima; revoga ao trocar/fechar.
+/// Cache blob URLs — faixa atual + próxima ([resolveForPlayback], legado de
+/// streaming) ou a fila offline inteira ([resolveFromBytes], O7). Revoga ao
+/// trocar/fechar.
 class WebAudioSourceResolver {
   WebAudioSourceResolver({required this.fetchBytes});
 
@@ -16,6 +17,12 @@ class WebAudioSourceResolver {
   final _blobUrls = <String, String>{};
   static const int maxBlobBytes = 20 * 1024 * 1024;
   static const int _maxCacheEntries = 2;
+
+  /// Teto de blobs simultâneos por fila offline (O7 fix round 1) — o
+  /// navegador não libera `blob:` sozinho, então sem teto uma fila longa
+  /// vazaria memória. Acima dele, [resolveFromBytes] devolve `null` e a
+  /// faixa cai para a URL de rede (streaming direto, sem blob).
+  static const int maxQueueBlobs = 30;
 
   Future<Uri> resolveForPlayback(
     String fetchUrl, {
@@ -52,22 +59,37 @@ class WebAudioSourceResolver {
 
   /// Blob URL para bytes já no aparelho (Cache API) — o caminho offline.
   ///
-  /// Mesmo cache de 2 entradas e o mesmo teto [maxBlobBytes]: acima dele
-  /// devolve `null` e quem chama cai na URL de rede (um áudio desse tamanho
-  /// não é tocado por blob nem online).
+  /// Mesmo teto [maxBlobBytes]: acima dele devolve `null` e quem chama cai
+  /// na URL de rede (um áudio desse tamanho não é tocado por blob nem
+  /// online). Ao contrário de [resolveForPlayback], **não** trima pra 2
+  /// entradas — os blobs vivem pela fila inteira (fix round 1: a fila
+  /// resolve todas as faixas antes de `setAudioSources`; trimar aqui
+  /// revogava o blob da própria faixa que ia tocar). O teto é
+  /// [maxQueueBlobs]; [beginQueue] é quem libera os blobs da fila anterior.
   Uri? resolveFromBytes(String cacheKey, Uint8List bytes) {
     final cached = _blobUrls[cacheKey];
     if (cached != null) return Uri.parse(cached);
     if (bytes.length > maxBlobBytes) return null;
+    if (_blobUrls.length >= maxQueueBlobs) {
+      debugPrint(
+        '[audio] fila local passou de $maxQueueBlobs blobs — '
+        '$cacheKey cai para a URL de rede',
+      );
+      return null;
+    }
     final blob = Blob(
       [bytes.toJS].toJS,
       BlobPropertyBag(type: _mimeFromUrl(cacheKey)),
     );
     final blobUrl = URL.createObjectURL(blob);
     _blobUrls[cacheKey] = blobUrl;
-    _trimCache(cacheKey);
     return Uri.parse(blobUrl);
   }
+
+  /// Início de uma fila nova (O7 fix round 1): revoga os blobs da fila
+  /// anterior — `_applyQueue` resolve tudo de novo, então nada mais
+  /// referencia os antigos, e sem isto eles se acumulariam pra sempre.
+  void beginQueue() => revokeAll();
 
   void revokeAll() {
     for (final url in _blobUrls.values) {

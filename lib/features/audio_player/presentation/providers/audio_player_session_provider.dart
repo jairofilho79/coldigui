@@ -469,11 +469,19 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
   }
 
   /// Aparelho primeiro (O7): índice de áudio → `Uri.file` no nativo, bytes da
-  /// Cache API → blob URL na web. Miss com rede → URL de rede (HTTP + CORP +
-  /// crossOrigin; blob: com anonymous falha no Chrome/Safari). Miss sem rede
-  /// → [AudioNotDownloadedException], para a tela dizer «baixe primeiro» em
-  /// vez do erro genérico do player.
-  Future<Uri> _playbackUriForTrack(AudioTrack track) async {
+  /// Cache API → blob URL na web. Miss (índice ou storage) → URL de rede
+  /// (HTTP + CORP; o `crossOrigin` do `<audio>` é condicional — ver
+  /// `unlockWebAudioIfNeeded`). Só a faixa que vai tocar já
+  /// (`isStartTrack`) lança [AudioNotDownloadedException] quando offline —
+  /// as demais faixas da fila recebem a URL de rede mesmo sem conexão e só
+  /// falham (erro genérico) se e quando o player de fato tentar tocá-las
+  /// (fix round 1: uma faixa qualquer da fila ausente não podia derrubar a
+  /// fila inteira).
+  Future<Uri> _playbackUriForTrack(
+    AudioTrack track, {
+    required bool isStartTrack,
+    required Future<bool> Function() hasConnection,
+  }) async {
     final local = await ref
         .read(offlineAudioRepositoryProvider)
         .lookup(track.audioId);
@@ -486,10 +494,10 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           .readBytes(local.storageKey);
       final blob = bytes == null
           ? null
-          : _sourceResolver?.resolveFromBytes(track.audioId, bytes);
+          : _sourceResolver?.resolveFromBytes(local.storageKey, bytes);
       if (blob != null) return blob;
     }
-    if (!await ref.read(deviceConnectivityProvider).hasConnection()) {
+    if (isStartTrack && !await hasConnection()) {
       throw AudioNotDownloadedException(track.audioId);
     }
     return Uri.parse(AudioTrackUrl.fetchUrlForTrack(track));
@@ -575,11 +583,44 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
     try {
       final player = _ensurePlayer;
+      final isWeb = ref.read(platformCapabilitiesProvider).isWeb;
+      // Fila nova: os blobs da fila anterior não são mais referenciados por
+      // ninguém — libera antes de resolver os de agora (fix round 1). Sem
+      // isto, `resolveFromBytes` acumularia blob: pra sempre (não há trim
+      // por faixa — ver doc do método).
+      if (isWeb) {
+        _sourceResolver?.beginQueue();
+      }
+      // Rede consultada no máximo 1× por fila, só se e quando a faixa
+      // inicial não estiver no aparelho (fix round 1) — cache local, não
+      // dispara plugin nenhum se todas as faixas locais resolverem antes.
+      bool? connectivityCache;
+      Future<bool> hasConnection() async {
+        return connectivityCache ??= await ref
+            .read(deviceConnectivityProvider)
+            .hasConnection();
+      }
+
+      // A faixa inicial é resolvida antes das demais só quando o
+      // desbloqueio de gesto (iOS Safari) precisa da URL efetiva — o
+      // resultado é reaproveitado no laço abaixo, sem resolver 2×.
+      Uri? startUri;
       if (ref.read(platformCapabilitiesProvider).needsUserGestureForAudio &&
           autoplay) {
+        startUri = await _playbackUriForTrack(
+          tracks[safeIndex],
+          isStartTrack: true,
+          hasConnection: hasConnection,
+        );
+        if (gen != _generation) return;
         await unlockWebAudioIfNeeded(
           player,
-          immediateUrl: AudioTrackUrl.fetchUrlForTrack(tracks[safeIndex]),
+          immediateUrl: startUri.toString(),
+          // blob: não é cross-origin nenhum — `anonymous` quebra a
+          // reprodução em Chrome/Safari (fix round 1, ver doc do helper).
+          crossOrigin: startUri.scheme == 'blob'
+              ? null
+              : WebCrossOrigin.anonymous,
         );
         if (gen != _generation) return;
       }
@@ -587,8 +628,16 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       _ensureMediaSessionAttached();
 
       final sources = <AudioSource>[];
-      for (final track in tracks) {
-        final uri = await _playbackUriForTrack(track);
+      for (var i = 0; i < tracks.length; i++) {
+        final track = tracks[i];
+        final isStartTrack = i == safeIndex;
+        final uri = isStartTrack && startUri != null
+            ? startUri
+            : await _playbackUriForTrack(
+                track,
+                isStartTrack: isStartTrack,
+                hasConnection: hasConnection,
+              );
         if (gen != _generation) return;
         sources.add(
           AudioSource.uri(
@@ -614,7 +663,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           sources,
           initialIndex: safeIndex,
           initialPosition: initialPosition,
-          preload: autoplay && !ref.read(platformCapabilitiesProvider).isWeb,
+          preload: autoplay && !isWeb,
         );
       } finally {
         _sourcesInFlight--;

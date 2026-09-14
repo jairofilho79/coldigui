@@ -4881,6 +4881,7 @@ Claude-Session: https://claude.ai/code/session_01GfpG6w2yp8DjxrmfC6XtiP"
 - [ ] «Parar» a meio → «N não baixados · Tentar de novo» → tentar de novo salta o que já está (Network mostra só os que faltavam).
 - [ ] Marcar um kind de áudio com quota baixa (DevTools → Application → Storage → simular quota) → SnackBar de aviso de espaço antes de iniciar; se o navegador negar, o download para com o parcial guardado.
 - [ ] Network → Offline: abrir um louvor baixado → sheet com banner «Sem ligação · só o que está no aparelho abre»; tiles baixados ativos, os outros «Não baixado · sem ligação», YouTube «Precisa de ligação», Letra ativa; `+` continua a adicionar à lista. Abrir PDF/cifra/gestos/áudio baixados: tudo abre; áudio não baixado → «Este áudio não foi baixado».
+- [ ] **v2.plpcg.com** (produção, não `flutter build web` local): fila com ≥3 faixas Coldigom baixadas → todas tocam por `blob:` (DevTools → Network sem request pro áudio de cada uma); pular entre as 3 faixas repetidamente não corta o áudio nem lança erro (fix round 1 — blob da faixa inicial não pode ser revogado pelo trim de outra faixa da mesma fila).
 - [ ] Card do louvor com áudio baixado (sem PDF): badge de nuvem visível.
 - [ ] «Remover áudios e PDFs baixados do Coldigom» → confirmação com nota «Cifras, gestos e letras ficam» → snackbar «N PDFs e M áudios removidos»; cifras/gestos continuam a abrir offline.
 - [ ] Bulk PLPCG em curso → botões da secção Coldigom desabilitados (lock); e vice-versa.

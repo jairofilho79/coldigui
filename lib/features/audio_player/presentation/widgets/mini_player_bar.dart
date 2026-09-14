@@ -66,6 +66,9 @@ class MiniPlayerBar extends ConsumerWidget {
     final errorMessage = ref.watch(
       audioPlayerSessionProvider.select((s) => s.errorMessage),
     );
+    final notDownloaded = ref.watch(
+      audioPlayerSessionProvider.select((s) => s.notDownloaded),
+    );
     ref.watch(audioFlagSyncProvider);
     final positionState = ref.watch(audioPlayerPositionProvider);
     final flags =
@@ -127,7 +130,9 @@ class MiniPlayerBar extends ConsumerWidget {
               ),
               if (errorMessage != null)
                 Tooltip(
-                  message: l10n.audioPlaybackError,
+                  message: notDownloaded
+                      ? l10n.audioNotDownloaded
+                      : l10n.audioPlaybackError,
                   child: Icon(Icons.error_outline, color: fg, size: 18),
                 ),
               IconButton(

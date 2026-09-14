@@ -4,4 +4,5 @@ import 'package:just_audio/just_audio.dart';
 Future<void> unlockWebAudioIfNeeded(
   AudioPlayer player, {
   String? immediateUrl,
+  WebCrossOrigin? crossOrigin,
 }) async {}

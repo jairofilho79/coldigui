@@ -19,13 +19,14 @@ class WebAudioSourceResolver {
   /// No nativo o áudio local toca por `Uri.file`; blob URL é coisa da web.
   Uri? resolveFromBytes(String cacheKey, Uint8List bytes) => null;
 
+  /// No-op no nativo — não há blob pra revogar entre filas.
+  void beginQueue() {}
+
   void revokeAll() {}
 }
 
-typedef FetchAudioBytesFn = Future<List<int>> Function(
-  String url, {
-  String? fallbackUrl,
-});
+typedef FetchAudioBytesFn =
+    Future<List<int>> Function(String url, {String? fallbackUrl});
 
 WebAudioSourceResolver createWebAudioSourceResolver({
   required FetchAudioBytesFn fetchBytes,
