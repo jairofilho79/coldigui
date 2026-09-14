@@ -67,8 +67,10 @@ class ColdigomCatalogMaterialDto {
       id: id,
       kindId: json['kind'] is String ? json['kind'] as String : null,
       type: type,
-      size: (json['size'] as num?)?.toInt(),
-      url: json['url'] as String?,
+      // `size` de tipo errado não derruba o material — só vira null (mesma
+      // tolerância de kindId/type acima).
+      size: json['size'] is num ? (json['size'] as num).toInt() : null,
+      url: json['url'] is String ? json['url'] as String : null,
       r2Key: r2Key,
     );
   }
@@ -163,14 +165,18 @@ class ColdigomCatalogDto {
 
   factory ColdigomCatalogDto.fromJson(Map<String, dynamic> json) {
     final kinds = <String, String>{};
-    for (final item in json['kinds'] as List<dynamic>? ?? const []) {
+    // `kinds`/`praises` de tipo errado (não-lista) não derruba o catálogo —
+    // mesma tolerância C.8 já aplicada item a item abaixo.
+    final rawKinds = json['kinds'];
+    for (final item in rawKinds is List<dynamic> ? rawKinds : const []) {
       if (item is! Map<String, dynamic>) continue;
       final id = item['id'];
       final name = item['name'];
       if (id is String && name is String) kinds[id] = name;
     }
     final praises = <ColdigomCatalogPraiseDto>[];
-    for (final item in json['praises'] as List<dynamic>? ?? const []) {
+    final rawPraises = json['praises'];
+    for (final item in rawPraises is List<dynamic> ? rawPraises : const []) {
       try {
         praises.add(
           ColdigomCatalogPraiseDto.fromJson(item as Map<String, dynamic>),

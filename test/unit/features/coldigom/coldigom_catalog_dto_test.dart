@@ -131,4 +131,39 @@ void main() {
     expect(coldigomCatalogExtensionForType('youtube'), isNull);
     expect(coldigomCatalogExtensionForType('lyrics'), isNull);
   });
+
+  test('praises com tipo errado (string) vira lista vazia sem lançar', () {
+    final json = _fixture();
+    json['praises'] = 'não é uma lista';
+
+    final dto = ColdigomCatalogDto.fromJson(json);
+
+    expect(dto.praises, isEmpty);
+  });
+
+  test('kinds com tipo errado (map) vira mapa vazio sem lançar', () {
+    final json = _fixture();
+    json['kinds'] = {'não': 'é uma lista'};
+
+    final dto = ColdigomCatalogDto.fromJson(json);
+
+    expect(dto.kindNames, isEmpty);
+  });
+
+  test('material com size de tipo errado é mantido com size nulo', () {
+    final json = _fixture();
+    final praise = (json['praises'] as List).first as Map<String, dynamic>;
+    (praise['materials'] as List).add({
+      'id': 'm-size-errado',
+      'kind': 'k-grade',
+      'type': 'pdf',
+      'size': 'big',
+    });
+
+    final materials = ColdigomCatalogDto.fromJson(json).praises.first.materials;
+    final material = materials.firstWhere((m) => m.id == 'm-size-errado');
+
+    expect(material.size, isNull);
+    expect(material.r2Key, 'assets/praises/p-001/m-size-errado.pdf');
+  });
 }
