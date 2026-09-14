@@ -6,6 +6,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/web_build_fixture.dart';
+
 /// `web/_headers` é o que o Cloudflare Pages serve. Com o login por redirect
 /// (spec D12) o COOP tem de ser `same-origin` exato: `same-origin-allow-popups`
 /// desliga `crossOriginIsolated` e volta o skwasm para single-thread (P1).
@@ -48,18 +50,51 @@ void main() {
   });
 
   test('verify_web_headers_artifact.sh rejeita _headers sem /sw.js', () async {
+    // build/web precisa de sw.js e index.html sem placeholders (o verify já
+    // os exige): sem passar pelo cache-bust, a falha seria por eles faltarem
+    // e não pela regra /sw.js em si — deixava de discriminar o caso do teste.
     final tmp = Directory.systemTemp.createTempSync('headers_test');
     addTearDown(() => tmp.deleteSync(recursive: true));
-    final headers = File('${tmp.path}/_headers')
-      ..writeAsStringSync(
-        File('web/_headers')
-            .readAsStringSync()
-            .replaceFirst('/sw.js\n  Cache-Control: no-cache\n', ''),
-      );
+    final webDir = Directory('${tmp.path}/web')..createSync();
+    writeFixtureWebBuild(webDir);
+    final busted = await Process.run('bash', [
+      'scripts/cache_bust_web_entrypoints.sh',
+      webDir.path,
+    ]);
+    expect(busted.exitCode, 0, reason: '${busted.stdout}\n${busted.stderr}');
+
+    final headersFile = File('${webDir.path}/_headers');
+    headersFile.writeAsStringSync(
+      headersFile.readAsStringSync().replaceFirst(
+        '/sw.js\n  Cache-Control: no-cache\n',
+        '',
+      ),
+    );
     final result = await Process.run('bash', [
       'scripts/verify_web_headers_artifact.sh',
-      headers.path,
+      headersFile.path,
     ]);
     expect(result.exitCode, isNot(0));
   });
+
+  test(
+    'verify_web_headers_artifact.sh aceita _headers com /sw.js e build pronto',
+    () async {
+      final tmp = Directory.systemTemp.createTempSync('headers_test_ok');
+      addTearDown(() => tmp.deleteSync(recursive: true));
+      final webDir = Directory('${tmp.path}/web')..createSync();
+      writeFixtureWebBuild(webDir);
+      final busted = await Process.run('bash', [
+        'scripts/cache_bust_web_entrypoints.sh',
+        webDir.path,
+      ]);
+      expect(busted.exitCode, 0, reason: '${busted.stdout}\n${busted.stderr}');
+
+      final result = await Process.run('bash', [
+        'scripts/verify_web_headers_artifact.sh',
+        '${webDir.path}/_headers',
+      ]);
+      expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+    },
+  );
 }

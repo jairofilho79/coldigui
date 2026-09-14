@@ -128,7 +128,6 @@ void main() {
         warm,
         containsAll([
           'assets/assets/branding/logo.svg',
-          'assets/NOTICES',
           'assets/packages/pdfrx/assets/pdfium.wasm',
           'main_deferred.part.js',
         ]),
@@ -149,6 +148,27 @@ void main() {
       expect(critical.toSet().intersection(warm.toSet()), isEmpty);
     },
   );
+
+  test('exclui fixtures/** e assets/NOTICES do WARM (ninguém os carrega em runtime)', () async {
+    final result = await runScript();
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+
+    final sw = readSw();
+    final all = [...listFromSw(sw, 'CRITICAL'), ...listFromSw(sw, 'WARM')];
+    expect(all.where((u) => u.contains('fixtures/')), isEmpty);
+    expect(all.where((u) => u.endsWith('assets/NOTICES')), isEmpty);
+  });
+
+  test('promove a logo do loader a CRITICAL quando existe', () async {
+    final result = await runScript();
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+
+    final critical = listFromSw(readSw(), 'CRITICAL');
+    expect(
+      critical,
+      contains('assets/assets/branding/logo_colorido_no_bg_logo_only.svg'),
+    );
+  });
 
   test('index.html fica com a tag do registo e sem placeholder', () async {
     final result = await runScript();

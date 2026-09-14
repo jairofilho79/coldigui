@@ -36,6 +36,14 @@ FONT_SUFFIXES = (".otf", ".ttf", ".woff", ".woff2")
 ENGINE_NAMES = frozenset({"main.dart.wasm", "main.dart.mjs", "main.dart.js"})
 ENGINE_PREFIX = "canvaskit/"
 PLACEHOLDERS = ("__PLPCG_TAG__", "__PLPCG_CRITICAL__", "__PLPCG_WARM__")
+# Ninguém carrega isto em runtime (fixtures de teste embutidas no asset bundle
+# e o texto de licenças): entram no pubspec porque servem outro propósito,
+# mas não vale a pena aquecê-los em WARM. O pubspec.yaml fica como está.
+EXCLUDED_WARM_PREFIXES = ("assets/assets/fixtures/",)
+EXCLUDED_WARM_PATHS = frozenset({"assets/NOTICES"})
+# A <img> do próprio loader (index.html): sem ela offline sem CRITICAL o
+# overlay mostra o alt vazio em vez da logo.
+LOADER_LOGO = "assets/assets/branding/logo_colorido_no_bg_logo_only.svg"
 
 
 def is_engine(posix: str) -> bool:
@@ -78,6 +86,8 @@ def classify(web_dir: Path, tag: str, icons_tag: str) -> tuple[list[str], list[s
     for manifest in ("assets/AssetManifest.bin.json", "assets/AssetManifest.bin", "assets/AssetManifest.json"):
         if (web_dir / manifest).is_file():
             critical.append(manifest)
+    if (web_dir / LOADER_LOGO).is_file():
+        critical.append(LOADER_LOGO)
     listed = {disk_path(u) for u in critical}
 
     fonts: list[str] = []
@@ -89,6 +99,8 @@ def classify(web_dir: Path, tag: str, icons_tag: str) -> tuple[list[str], list[s
         if posix in listed or rel.name in EXCLUDED_NAMES or rel.name.endswith(EXCLUDED_SUFFIXES):
             continue
         if is_engine(posix):
+            continue
+        if posix.startswith(EXCLUDED_WARM_PREFIXES) or posix in EXCLUDED_WARM_PATHS:
             continue
         url = url_for(rel)
         if posix.startswith("assets/") and rel.suffix in FONT_SUFFIXES:

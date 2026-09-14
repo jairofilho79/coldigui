@@ -83,7 +83,13 @@ void writeFixtureWebBuild(Directory webDir) {
   // Nome literal com %5B: é assim que o Flutter grava a fonte variável.
   writeWebFile(webDir, 'assets/assets/fonts/EBGaramond%5Bwght%5D.ttf', 'ttf');
   writeWebFile(webDir, 'assets/assets/branding/logo.svg', '<svg/>');
+  writeWebFile(
+    webDir,
+    'assets/assets/branding/logo_colorido_no_bg_logo_only.svg',
+    '<svg/>',
+  );
   writeWebFile(webDir, 'assets/NOTICES', 'notices');
+  writeWebFile(webDir, 'assets/assets/fixtures/sample.json', '{}');
   writeWebFile(webDir, 'assets/packages/pdfrx/assets/pdfium.wasm', 'pdfium');
   writeWebFile(webDir, 'main_deferred.part.js', 'chunk');
   writeFixtureCanvaskit(webDir);
