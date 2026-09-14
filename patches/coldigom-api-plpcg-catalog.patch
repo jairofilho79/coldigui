@@ -1,7 +1,7 @@
 diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 --- a/api/src/__tests__/index.test.ts
 +++ b/api/src/__tests__/index.test.ts
-@@ -686,6 +686,176 @@ describe('API Routes', () => {
+@@ -686,6 +686,178 @@ describe('API Routes', () => {
      });
    });
  
@@ -41,6 +41,8 @@ diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 +      expect(res.status).toBe(200);
 +      expect(res.headers.get('ETag')).toMatch(/^"[0-9a-f]{32}"$/);
 +      expect(res.headers.get('Cache-Control')).toBe('public, max-age=300');
++      // ETag não é CORS-safelisted: sem Access-Control-Expose-Headers o client web lê `null` e baixa tudo de novo a cada sync.
++      expect(res.headers.get('Access-Control-Expose-Headers')).toBe('ETag');
 +      const json = await res.json();
 +      expect(typeof json.generatedAt).toBe('string');
 +      expect(json.kinds).toEqual(
@@ -181,7 +183,7 @@ diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
 diff --git a/api/src/index.ts b/api/src/index.ts
 --- a/api/src/index.ts
 +++ b/api/src/index.ts
-@@ -795,6 +795,167 @@ app.get('/api/plpcg/praises', async (c) => {
+@@ -795,6 +795,175 @@ app.get('/api/plpcg/praises', async (c) => {
    return c.json({ error: 'Failed to fetch praises' }, 500);
  });
  
@@ -226,8 +228,13 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +
 +/** r2_key que o app vai reconstruir para este material; `null` quando o tipo não vive no R2 (youtube). */
 +export function derivedCatalogR2Key(praiseId: string, materialId: string, type: string): string | null {
-+  const ext = CATALOG_EXT_BY_TYPE[type.toLowerCase()];
++  const ext = CATALOG_EXT_BY_TYPE[(type ?? '').toLowerCase()];
 +  return ext ? `assets/praises/${praiseId}/${materialId}.${ext}` : null;
++}
++
++/** Remove o prefixo `W/` de um ETag fraco — compressão de borda pode enfraquecer o ETag no caminho. */
++function stripWeakEtag(value: string): string {
++  return value.startsWith('W/') ? value.slice(2) : value;
 +}
 +
 +async function sha256Hex32(text: string): Promise<string> {
@@ -254,7 +261,7 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +    const praisesResult = await c.env.DB.prepare(
 +      `SELECT p.id, p.name, p.number, p.author, p.rhythm, p.tonality, p.category, p.lyrics
 +       FROM praises p
-+       ORDER BY p.number, p.name`,
++       ORDER BY p.number, p.name, p.id`,
 +    ).all();
 +    const materialsResult = await c.env.DB.prepare(
 +      `SELECT pm.id, pm.praise_id, pm.type, pm.material_kind, pm.url, pm.r2_key
@@ -301,7 +308,7 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +    }
 +
 +    const kinds = [...kindIds]
-+      .map((id) => ({ id, name: labelFor(kindLabels, id) }))
++      .map((id) => ({ id, name: labelFor(kindLabels, id) ?? '' }))
 +      .sort((a, b) => a.name.localeCompare(b.name));
 +
 +    const praises = ((praisesResult.results ?? []) as CatalogPraiseRow[]).map((row) => {
@@ -326,8 +333,11 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 +    const headers = {
 +      ETag: etag,
 +      'Cache-Control': 'public, max-age=300',
++      // ETag não é um header CORS-safelisted; sem isto o client web sempre lê `null` e refaz o dump inteiro a cada sync.
++      'Access-Control-Expose-Headers': 'ETag',
 +    };
-+    if (c.req.header('If-None-Match') === etag) {
++    const requestedEtag = c.req.header('If-None-Match');
++    if (requestedEtag && stripWeakEtag(requestedEtag) === stripWeakEtag(etag)) {
 +      return new Response(null, { status: 304, headers });
 +    }
 +

@@ -445,6 +445,7 @@ Passo do dono (fora deste repo), a fazer **antes** de publicar a web com a Parte
 4. `npm run deploy`.
 5. Validar em produção: `curl -sI https://coldigom-api.jairofilho79.workers.dev/api/plpcg/catalog | grep -i etag`, depois `curl -s -o /dev/null -w '%{http_code}' -H 'If-None-Match: <etag>' …/api/plpcg/catalog` → `304`.
 6. Confirmar o conjunto real de valores de `praise_materials.type` no D1; qualquer valor fora de `{pdf, mp3, audio, chord, gestures, youtube}` chega ao app com `r2` explícito (fix round 1 — a rota não confia mais silenciosamente no padrão derivado para tipos desconhecidos).
+7. Confirmar que o `cors()` global do coldigom-api aceita `If-None-Match` em `allowHeaders` (preflight) — verificar no DevTools em produção com `GET /api/gestures/dictionary`.
 
 - [ ] **Step 4: Commit**
 
