@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Limites e retry do store offline nativo (Fase 3).
 ///
 /// [pdfStorageSubdir] — subpasta em ApplicationDocumentsDirectory (perene).
@@ -87,4 +89,25 @@ abstract final class OfflineConfig {
   /// Praises convertidos por fatia na hidratação do catálogo Coldigom; entre
   /// fatias o event loop é cedido para não travar o primeiro frame na web.
   static const int coldigomHydrationChunkSize = 300;
+
+  /// Subdiretório de áudios Coldigom baixados em documents (nativo).
+  static const String audioStorageSubdir = 'plpcg_audio';
+
+  /// Bucket Cache API dos áudios Coldigom na web — irmão de
+  /// [pdfCacheStoreName]; buckets separados para «Remover áudios» não
+  /// tocar nos PDFs.
+  static const String audioCacheStoreName = 'plpcg-audio-store-v1';
+
+  /// Downloads Coldigom simultâneos (spec offline Coldigom §5.2): 3 no
+  /// nativo (como o on-demand de PDF), 6 na web (o bulk web usa 8).
+  static int get coldigomDownloadConcurrency => kIsWeb ? 6 : 3;
+
+  /// Estimativa de bytes por `type` quando o dump não traz `size` (O13).
+  static const Map<String, int> coldigomEstimatedBytesByType = {
+    'pdf': 350 * 1024,
+    'mp3': 4 * 1024 * 1024,
+    'audio': 4 * 1024 * 1024,
+    'chord': 1024,
+    'gestures': 60 * 1024,
+  };
 }

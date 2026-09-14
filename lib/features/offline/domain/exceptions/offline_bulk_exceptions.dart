@@ -84,3 +84,13 @@ class PdfStorageWriteException implements Exception {
   @override
   String toString() => 'PdfStorageWriteException($message)';
 }
+
+/// Falha ao gravar áudio no storage (web — Cache API) não relacionada a quota.
+class AudioStorageWriteException implements Exception {
+  const AudioStorageWriteException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'AudioStorageWriteException($message)';
+}
