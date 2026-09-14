@@ -26,6 +26,25 @@ test('sessão válida chama o handler com { sub }', async () => {
   assert.deepEqual(seen, { sub: 'u1' });
 });
 
+test('sessão válida é aceita mesmo sem GOOGLE_CLIENT_ID_WEB', async () => {
+  // Fixa a ordem de que a spec depende: o ramo de sessão (D5) roda antes da
+  // checagem do client id, então uma sessão do Worker continua valendo
+  // mesmo se a env perder a config do login (que só o JWT do Google usa).
+  const db = new FakeD1Database();
+  const token = await createSession(fakeDb(db), 'u1');
+  let seen: unknown;
+  const response = await withAuth(
+    request(token),
+    { DB: fakeDb(db), GOOGLE_CLIENT_ID_WEB: '' },
+    async (_r, _e, claims) => {
+      seen = claims;
+      return new Response('ok');
+    },
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(seen, { sub: 'u1' });
+});
+
 test('sessão revogada/desconhecida → 401 sem chamar o handler', async () => {
   const db = new FakeD1Database();
   const token = await createSession(fakeDb(db), 'u1');
