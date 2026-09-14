@@ -1,7 +1,7 @@
 # Lista ao Vivo — desenho da arquitetura
 
 **Data:** 2026-09-12
-**Estado:** desenho aprovado; **plano de implementação ainda não escrito** (ver §12 antes de planejar)
+**Estado:** desenho aprovado; plano de implementação da Fase 1 escrito em 2026-09-14 (`docs/superpowers/plans/2026-09-14-lista-ao-vivo-fase1.md`) e implementado na branch `feat/lista-ao-vivo` (deploy e homologação em campo pendentes — ver §13)
 **Mockups e comparação das 5 opções:** `https://claude.ai/code/artifact/dd1a7ed0-46b1-4f3e-bd5e-30a73b376549` (v2)
 **Escopo:** sincronização em tempo real da lista ativa entre um gestor e N consumidores; sugestões com votação; sala permanente com agendamento; pré-download; folheto ao encerrar.
 
@@ -213,3 +213,30 @@ Outras sessões estão a alterar o código em paralelo (barra da lista ativa sem
 - `lib/features/playlists/domain/usecases/duplicate_playlist.dart` (guardar cópia), `playlist_session_hydrate` (ordem no boot), UC-10 `DownloadMissingPdfs`, UC-08 `LeafletContent`.
 - Se o projeto entretanto migrou de Isar/Riverpod ou mudou o modelo de `PlaylistEntry`, o protocolo do §5 (`entries[{id, kind}]`) tem de acompanhar.
 - Confirmar os rótulos das setas de voto (§2.1) e o nome exibido do gestor (username vs. nome Google).
+
+## 13. Divergências da Fase 1 (2026-09-14)
+
+Tabela «Divergências da spec» copiada de `docs/superpowers/plans/2026-09-14-lista-ao-vivo-fase1.md` (decididas na releitura de 2026-09-14, antes de escrever o plano):
+
+| Spec | Plano | Porquê |
+|---|---|---|
+| `hello{idToken}` | `hello{sessionToken}` (`sess_…` ou JWT) | O app já não guarda `id_token`; `withAuth` aceita os dois. |
+| Papel por **tag** de socket | Papel no **attachment** (`serializeAttachment`); tag única `'ws'` | Tags são imutáveis no `acceptWebSocket`, e o papel só se decide no `hello`. `getWebSockets()` filtrado por attachment custa nada com ≤ 200 sockets. |
+| Storage SQLite (`ctx.storage.sql`) | KV do DO (`ctx.storage.get/put`) numa classe **SQLite-backed** | Um snapshot ≤ 32 KB cabe numa chave; o fake de teste é um `Map`. Continua `new_sqlite_classes` (Free plan). |
+| Indicador «AO VIVO» **na barra** do gestor | **Banner** acima da barra, para gestor e consumidor (`LiveSessionBanner`) | A barra já está no limite de largura no telemóvel (spec barra-lista-ativa §3); um banner serve os dois papéis com um widget. |
+| Pergunta «Como quer aparecer?» ao entrar | **Não há apelido na Fase 1** (`nick` fica opcional no protocolo) | Nenhuma tela da Fase 1/2 mostra apelido (D7: sugestões sem apelido). YAGNI. |
+| Rota web `/ao-vivo/:code` servida pela app | Worker responde `GET /ao-vivo/:code` com **302 → `https://plpcg.com/?live=<code>`**; a app abre a rota interna `/ao-vivo/:code` | O Worker intercepta `plpcg.com/ao-vivo/*` antes do Pages (mesmo padrão de `/l/:code`); a web usa hash-strategy, então deep links vivem na query da raiz. |
+| Frame `presence` não existia | `presence{leaderPresent, viewers}` a todos em cada entrada/saída | «gestor ausente» (§7) e a contagem do gestor precisam disso; saída é grátis. |
+| `set{version}` | `set` sem `version` | Só faz sentido com co-gestores (Fase 3). |
+| `snapshot` sem nome da lista | `snapshot`/`room` levam `playlistId` **e** `name` | O banner do consumidor mostra o nome da lista do gestor. |
+
+Notas adicionais descobertas durante a execução (Tasks 1–19), que não constavam do plano:
+
+1. `hello` com `sessionToken` (`sess_…`) — spec §5 `idToken` está superado.
+2. Frame `presence{leaderPresent, viewers}`.
+3. O DO responde ao `hello` com `room{idle}` **antes** de processar o `start` enfileirado — o cliente usa `_startSentGen` para não duplicar o `start`.
+4. `_pendingStart`/retomada via pref `live_leader_session`.
+5. `LiveConnection.messages` é single-subscription com buffer.
+6. `unavailable` só no join inicial — depois de já ter estado ligado, reconexão indefinida com teto 30 s.
+7. A Fase 1 não tem apelido.
+8. O link para a lista pública no estado `unavailable` (D5) fica para a Fase 3 (perfil público).

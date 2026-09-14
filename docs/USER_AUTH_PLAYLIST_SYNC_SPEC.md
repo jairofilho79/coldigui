@@ -560,6 +560,8 @@ lib/features/playlists/
 | `flutter_secure_storage` | Tokens nativos | Fase 2 iOS/Android |
 
 > **Superado em 2026-09-13** por `docs/superpowers/specs/2026-09-13-worker-session-persistence-design.md`: o app guarda um **token de sessão opaco do Worker** (`sess_…`, 60 d deslizantes, só o hash em D1) em `localStorage` (web) / `SharedPreferences` (nativo). O `id_token` do Google é consumido uma vez no `POST /api/auth/session` e não é guardado. A tabela abaixo descreve o MVP anterior.
+>
+> **Reuso na Lista ao Vivo (2026-09-14):** o mesmo token `sess_…` (ou o JWT do Google, como fallback) também autentica o frame `hello` do WebSocket `/api/live/:code/ws`, via `authenticateToken` (`workers/plpcg-catalog/src/live/authenticate_token.ts`) — o mesmo critério do `withAuth`, sem `Request`/`Response`. Só o `sub` que é dono da sala (`owner_sub` em `live_rooms`) vira `leader`; qualquer outro `sub` (ou nenhum) entra como `consumer` anónimo. Ver `docs/superpowers/specs/2026-09-12-lista-ao-vivo-design.md`.
 
 ### Armazenamento de token por plataforma
 
