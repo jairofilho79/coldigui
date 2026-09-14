@@ -145,7 +145,7 @@ Provider `offlineColdigomDownloadProvider` (Notifier com `start(kindIds)`, `stop
 
 ### 5.3 Estatísticas e disponibilidade
 
-- `offlineColdigomStatsProvider` — por kind: `{total, downloaded, bytesKnown, bytesEstimated}` calculado a partir do catálogo + índices (sync, com `offlineIndexRevisionProvider` + revisão nova do índice de áudio + revisões dos caches de cifra/gestos). Computação em `compute` no nativo; na web em chunks com `await Future.delayed(Duration.zero)` a cada 300 praises (evitar jank — o mesmo padrão do `library_group_worker`).
+- `offlineColdigomStatsProvider` — por kind: `{total, downloaded, bytesKnown, bytesEstimated}` calculado a partir do catálogo + índices (sync, com `offlineIndexRevisionProvider` + revisão nova do índice de áudio + revisões dos caches de cifra/gestos). Computação em chunks com `await Future.delayed(Duration.zero)` a cada 300 praises em todas as plataformas, nativo incluído (evitar jank — o mesmo padrão do `library_group_worker`; sem `compute` porque linhas Isar não atravessam isolates sem re-marshalling).
 - `materialAvailabilityMapProvider` — `Map<String materialId, PdfOfflineAvailability>` unindo: `offlineAvailabilityMapProvider` (PDF), índice de áudio (`persistentOffline`), chaves de cifra/gestos com conteúdo não vazio (`persistentOffline`). Letra e YouTube não entram (regras fixas no sheet, O14).
 
 ### 5.4 Ecrã `/offline`
