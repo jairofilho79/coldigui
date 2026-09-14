@@ -49,6 +49,14 @@ abstract final class ApiEndpoints {
   /// reuso). Ver [ShareLinkShortenerRemote.shorten].
   static const String links = '/api/links';
 
+  /// Sala «ao vivo» do usuário — Worker + D1 `live_rooms` + DO `LiveRoom`.
+  ///
+  /// `POST` + Bearer → `{ code, url, ownerName }` (cria ou devolve).
+  static const String liveRoom = '/api/live/room';
+
+  /// `POST` + Bearer → novo código; o link antigo morre.
+  static const String liveRoomRegenerate = '/api/live/room/regenerate';
+
   static const String offlineManifest = '/offline-manifest.json';
   static const String uploadLouvor = '/api/upload-louvor';
   static const String assetsPdf = '/assets';
