@@ -7,6 +7,7 @@ import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
+import '../../../live/presentation/providers/live_projection_provider.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/active_entry.dart';
 import '../../domain/entities/saved_playlist.dart';
@@ -32,6 +33,10 @@ enum AddToActiveOutcome {
 
   /// Isar indisponível (modo degradado): nada foi gravado.
   storageUnavailable,
+
+  /// A lista ativa é a projeção de uma sessão ao vivo: o consumidor não
+  /// edita (spec lista-ao-vivo D4). Nada foi gravado.
+  following,
 }
 
 /// Todas as mutações da seleção (D3).
@@ -70,6 +75,10 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   List<PlaylistEntry> get _entries =>
       state ?? ref.read(activePlaylistProvider)?.entries ?? const [];
 
+  /// `true` enquanto a lista ativa é a projeção de um gestor ao vivo — toda
+  /// mutação daqui é ignorada (a UI também as desativa).
+  bool get isFollowingLive => ref.read(liveProjectionProvider) != null;
+
   /// Adiciona [materialId] à lista ativa, criando um rascunho se não houver.
   ///
   /// Sem storage devolve [AddToActiveOutcome.storageUnavailable] em vez de
@@ -80,6 +89,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     MaterialKind? kind,
     bool allowDuplicate = false,
   }) async {
+    if (isFollowingLive) return AddToActiveOutcome.following;
     // O app monta durante a abertura do Isar (A8): um toque nos primeiros
     // segundos do boot frio espera o banco decidir em vez de responder
     // «armazenamento indisponível» para um banco que só está abrindo.
@@ -142,6 +152,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// É o caminho do import de share/social: a origem pode repetir um louvor, e
   /// a reunião importada tem que repetir também. Devolve quantas entraram.
   Future<int> addEntriesToActive(List<PlaylistEntry> entries) async {
+    if (isFollowingLive) return 0;
     if (entries.isEmpty) return 0;
     await awaitIsarSettled(ref);
     if (!ref.mounted) return 0;
@@ -181,6 +192,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
 
   /// Remove a ocorrência de chave [key] — as outras do mesmo id ficam.
   Future<void> removeByKey(String key) async {
+    if (isFollowingLive) return;
     await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
@@ -208,6 +220,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// — inclusive quando o material foi repetido. Lança
   /// [StorageUnavailableException] como [removeByKey].
   Future<void> removeById(String materialId) async {
+    if (isFollowingLive) return;
     await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
@@ -231,6 +244,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   ///
   /// Devolve `false` se a chave não existe na lista ativa.
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
+    if (isFollowingLive) return false;
     await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return false;
@@ -260,6 +274,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// ou repetida não apaga entrada nenhuma — a reordenação é ignorada e
   /// registrada.
   Future<void> reorder(List<String> orderedKeys) async {
+    if (isFollowingLive) return;
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return;
     final entries = _entries;
@@ -450,7 +465,13 @@ final activePlaylistEditorProvider =
     );
 
 /// Entradas da lista ativa com posição e chave, já com o override otimista.
+///
+/// Enquanto o app segue um gestor ao vivo ([liveProjectionProvider] não
+/// nulo), a lista ativa **é** o snapshot dele — barra, leitor e player não
+/// sabem a diferença; a lista local fica intocada e volta ao sair.
 final activeEntriesProvider = Provider<List<ActiveEntry>>((ref) {
+  final live = ref.watch(liveProjectionProvider);
+  if (live != null) return activeEntriesOf(live.entries);
   final override = ref.watch(activePlaylistEditorProvider);
   final entries =
       override ?? ref.watch(activePlaylistProvider)?.entries ?? const [];

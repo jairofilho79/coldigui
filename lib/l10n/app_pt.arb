@@ -417,6 +417,10 @@
   "chordMaterialSection": "Cifras",
   "chordUnavailableRetry": "Cifra indisponível · tentar de novo",
   "playlistStorageUnavailable": "Armazenamento local indisponível. Listas não podem ser salvas.",
+  "liveFollowingCannotEdit": "Você está seguindo a lista de outra pessoa — saia da sessão para editar a sua",
+  "@liveFollowingCannotEdit": {
+    "description": "Snackbar ao tentar editar a lista ativa enquanto ela é a projeção de um gestor ao vivo (spec lista-ao-vivo D4)"
+  },
   "chordReaderUnavailable": "Cifra ainda não disponível",
   "chordReaderToggleTheme": "Alternar tema do leitor",
   "chordReaderIncreaseFont": "Aumentar letra",

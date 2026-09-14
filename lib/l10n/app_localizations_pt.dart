@@ -736,6 +736,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Armazenamento local indisponível. Listas não podem ser salvas.';
 
   @override
+  String get liveFollowingCannotEdit =>
+      'Você está seguindo a lista de outra pessoa — saia da sessão para editar a sua';
+
+  @override
   String get chordReaderUnavailable => 'Cifra ainda não disponível';
 
   @override

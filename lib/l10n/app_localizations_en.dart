@@ -730,6 +730,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Local storage is unavailable. Playlists can\'t be saved.';
 
   @override
+  String get liveFollowingCannotEdit =>
+      'You\'re following someone else\'s list — leave the session to edit yours';
+
+  @override
   String get chordReaderUnavailable => 'Chord chart not available yet';
 
   @override

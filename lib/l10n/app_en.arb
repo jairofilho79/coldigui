@@ -408,6 +408,10 @@
   "chordMaterialSection": "Chords",
   "chordUnavailableRetry": "Chord sheet unavailable · try again",
   "playlistStorageUnavailable": "Local storage is unavailable. Playlists can't be saved.",
+  "liveFollowingCannotEdit": "You're following someone else's list — leave the session to edit yours",
+  "@liveFollowingCannotEdit": {
+    "description": "Snackbar when trying to edit the active list while it's the projection of a live host (lista-ao-vivo spec D4)"
+  },
   "chordReaderUnavailable": "Chord chart not available yet",
   "chordReaderToggleTheme": "Toggle reader theme",
   "chordReaderIncreaseFont": "Increase text size",

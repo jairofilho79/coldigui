@@ -186,6 +186,10 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       showAppSnackbar(context, l10n.playlistStorageUnavailable);
       return;
     }
+    if (outcome == AddToActiveOutcome.following) {
+      showAppSnackbar(context, l10n.liveFollowingCannotEdit);
+      return;
+    }
 
     // `addToActive` devolve só o desfecho (added/alreadyPresent), não a
     // chave da entrada — a última ocorrência do id na lista ativa é a que

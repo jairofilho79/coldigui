@@ -1265,6 +1265,12 @@ abstract class AppLocalizations {
   /// **'Armazenamento local indisponível. Listas não podem ser salvas.'**
   String get playlistStorageUnavailable;
 
+  /// Snackbar ao tentar editar a lista ativa enquanto ela é a projeção de um gestor ao vivo (spec lista-ao-vivo D4)
+  ///
+  /// In pt, this message translates to:
+  /// **'Você está seguindo a lista de outra pessoa — saia da sessão para editar a sua'**
+  String get liveFollowingCannotEdit;
+
   /// No description provided for @chordReaderUnavailable.
   ///
   /// In pt, this message translates to:
