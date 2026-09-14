@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/collections/coldigom_praise_cache.dart';
 import '../../../../core/utils/louvor_search_tokens.dart';
+import '../../../../core/utils/pdf_path_normalizer.dart';
+import '../../../catalog/domain/entities/catalog_material.dart';
+import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/utils/louvor_numero_normalizer.dart';
 import '../models/coldigom_catalog_dto.dart';
 import '../models/praise_dto.dart';
@@ -131,6 +134,80 @@ abstract final class ColdigomPraiseCacheMapper {
             ),
       ],
     );
+  }
+
+  /// Linha Isar a partir de um grupo da página remota (`/api/plpcg/praises`)
+  /// — os «novos» da pesquisa (§6.2). O `r2Key` está codificado no id de
+  /// cada material; o `type` sai do `kind`; a letra não vem na página
+  /// (fica `''` até o sync do dump).
+  static ColdigomPraiseCache fromLouvorGroup(LouvorGroup group) {
+    final meta = group.coldigomMeta;
+    final materials = <ColdigomCatalogMaterialEntry>[];
+    for (final material in group.materials) {
+      final entry = switch (material) {
+        PdfMaterial() => _entryFromId(material, 'pdf'),
+        ChordMaterialRef() => _entryFromId(material, 'chord'),
+        GestureMaterialRef() => _entryFromId(material, 'gestures'),
+        AudioMaterial(:final track) => ColdigomCatalogMaterialEntry(
+          id: _basenameWithoutExt(track.r2Key),
+          kindId: material.materialKindId,
+          kindName: material.categoria,
+          type: 'mp3',
+          r2Key: track.r2Key,
+        ),
+        YoutubeMaterialRef(material: final youtube) =>
+          ColdigomCatalogMaterialEntry(
+            id: youtube.id,
+            kindId: material.materialKindId,
+            kindName: material.categoria,
+            type: 'youtube',
+            r2Key: null,
+            url: youtube.url,
+          ),
+        LyricsMaterial() => null,
+      };
+      if (entry != null) materials.add(entry);
+    }
+    return _row(
+      praiseId: group.groupId,
+      number: group.numero,
+      name: group.nome,
+      author: meta?.author ?? '',
+      rhythm: meta?.rhythm ?? '',
+      tonality: meta?.tonality ?? '',
+      category: meta?.category ?? '',
+      tags: meta?.tagNames ?? const [],
+      lyrics: '',
+      materials: materials,
+    );
+  }
+
+  /// Materiais cujo id é `encodePdfId(r2Key)`: o `materialId` do Worker é o
+  /// nome do ficheiro sem extensão (`assets/praises/<praise>/<material>.<ext>`).
+  static ColdigomCatalogMaterialEntry? _entryFromId(
+    CatalogMaterial material,
+    String type,
+  ) {
+    final String r2Key;
+    try {
+      r2Key = PdfPathNormalizer.getPdfRelPath(material.id);
+    } on Object {
+      return null;
+    }
+    return ColdigomCatalogMaterialEntry(
+      id: _basenameWithoutExt(r2Key),
+      kindId: material.materialKindId,
+      kindName: material.categoria,
+      type: type,
+      r2Key: r2Key,
+    );
+  }
+
+  static String _basenameWithoutExt(String path) {
+    final slash = path.lastIndexOf('/');
+    final base = slash == -1 ? path : path.substring(slash + 1);
+    final dot = base.lastIndexOf('.');
+    return dot <= 0 ? base : base.substring(0, dot);
   }
 
   static ColdigomPraiseCache _row({

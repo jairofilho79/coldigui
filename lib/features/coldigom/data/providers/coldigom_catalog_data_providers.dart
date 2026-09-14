@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../domain/usecases/adopt_coldigom_search_novelties.dart';
 import '../../domain/usecases/sync_coldigom_catalog.dart';
 import '../datasources/coldigom_catalog_local_datasource.dart';
 import '../datasources/coldigom_catalog_sync_metadata_store.dart';
@@ -33,3 +34,11 @@ final syncColdigomCatalogProvider = Provider<SyncColdigomCatalog>((ref) {
     metadata: ref.watch(coldigomCatalogSyncMetadataStoreProvider),
   );
 });
+
+/// DI — [AdoptColdigomSearchNovelties].
+final adoptColdigomSearchNoveltiesProvider =
+    Provider<AdoptColdigomSearchNovelties>((ref) {
+      return AdoptColdigomSearchNovelties(
+        ref.watch(coldigomCatalogLocalDatasourceProvider),
+      );
+    });
