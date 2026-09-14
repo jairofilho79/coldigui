@@ -559,6 +559,8 @@ lib/features/playlists/
 | `google_sign_in` | OAuth Google (suporta web) | MVP Web |
 | `flutter_secure_storage` | Tokens nativos | Fase 2 iOS/Android |
 
+> **Superado em 2026-09-13** por `docs/superpowers/specs/2026-09-13-worker-session-persistence-design.md`: o app guarda um **token de sessão opaco do Worker** (`sess_…`, 60 d deslizantes, só o hash em D1) em `localStorage` (web) / `SharedPreferences` (nativo). O `id_token` do Google é consumido uma vez no `POST /api/auth/session` e não é guardado. A tabela abaixo descreve o MVP anterior.
+
 ### Armazenamento de token por plataforma
 
 | Plataforma | Estratégia MVP | Racional |
