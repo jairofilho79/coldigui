@@ -123,6 +123,21 @@ class DownloadColdigomMaterials {
     var nextIndex = 0;
     final failed = <ColdigomDownloadFailure>[];
 
+    // Como em `DownloadMissingPdfs`: uma emissão antes dos workers, com os
+    // totais já conhecidos (`skipped`/`targets.length`) — sem isso uma
+    // chamada onde tudo já está presente (`pending` vazio) nunca reporta
+    // nada, e a UI fica sem saber que terminou.
+    onProgress?.call(
+      ColdigomDownloadProgress(
+        kindId: '',
+        doneInKind: 0,
+        totalInKind: 0,
+        doneTotal: doneTotal,
+        total: targets.length,
+        currentTitle: '',
+      ),
+    );
+
     Future<void> worker() async {
       while (!stopped) {
         if (cancelToken?.isCancelled ?? false) {
@@ -238,13 +253,22 @@ class DownloadColdigomMaterials {
   ) async {
     switch (target.kind) {
       case MaterialKind.pdf:
-        await _withRetry(() => _fetchPdf(target.localId, target.r2Key));
+        // `FetchColdigomPdf` (produção: `FetchAndStorePdf`) já tenta até
+        // `OfflineConfig.maxRetryAttempts` por conta própria — embrulhar em
+        // `_withRetry` aqui multiplicaria as tentativas (até 9× de 120s por
+        // PDF morto, como o comentário de `RetryInterceptor.disableKey`
+        // adverte). Uma falha aqui já veio depois do retry interno dele.
+        await _fetchPdf(target.localId, target.r2Key);
         // `FetchColdigomPdf` (void) não devolve o tamanho real — o PDF já
         // fica contabilizado no próprio `OfflinePdfRepository`/índice; o
         // `bytes` deste resultado só soma o que só esta chamada sabe medir
-        // (áudio/cifra/gestos), não a estimativa de O13.
+        // (áudio/cifra/gestos), não a estimativa de O13. Ver doc de
+        // [ColdigomDownloadResult.bytes].
         return 0;
       case MaterialKind.audio:
+        // `AudioBytesDatasource` desliga o `RetryInterceptor` de propósito
+        // (ver seu doc) para retentar aqui, com o mesmo backoff do PDF —
+        // é o único tipo sem retry em outra camada.
         final bytes = await _withRetry(
           () => _audioBytes.fetch(target.r2Key, cancelToken: cancelToken),
         );
@@ -255,19 +279,25 @@ class DownloadColdigomMaterials {
         );
         return bytes.length;
       case MaterialKind.chord:
-        final content = await _withRetry(
-          () => _chordRemote.fetchContent(target.r2Key),
-        );
+        // `ChordContentDatasource` usa `coldigomDioProvider`, que já tem
+        // `RetryInterceptor` — uma retentativa aqui seria inerte (o erro que
+        // chega é `ChordFetchFailedException`, não `DioException`) e a
+        // camada certa já cobre rede transitória/5xx.
+        final content = await _chordRemote.fetchContent(target.r2Key);
         _chordLocal.write(target.r2Key, content ?? '');
         return content?.length ?? 0;
       case MaterialKind.gesture:
-        final content = await _withRetry(
-          () => _gestureRemote.fetchContent(target.r2Key),
-        );
-        _gestureLocal.write(target.r2Key, content ?? '');
+        // Mesmo raciocínio do cifra: `RetryInterceptor` de `coldigomDioProvider`
+        // já cobre a rede transitória.
+        final content = await _gestureRemote.fetchContent(target.r2Key);
+        // Figuras antes do documento: se a fila parar (quota/cancelamento)
+        // no meio do prefetch, o documento não fica marcado "presente" e a
+        // próxima chamada refaz fetch + prefetch — sem isso um documento já
+        // gravado seria pulado com figuras nunca baixadas (O12).
         if (content != null) {
           await _figures.prefetch(await _figureKeysFor(content));
         }
+        _gestureLocal.write(target.r2Key, content ?? '');
         return content?.length ?? 0;
       case MaterialKind.youtube:
       case MaterialKind.lyrics:
@@ -278,7 +308,9 @@ class DownloadColdigomMaterials {
   }
 
   /// Mesmo backoff de `FetchAndStorePdf._fetchBytesWithRetry`; só
-  /// `DioException` retryável (rede/5xx) é repetida.
+  /// `DioException` retryável (rede/5xx) é repetida. Só o caso `audio` usa
+  /// isto — PDF já retenta em `FetchAndStorePdf`, cifra/gestos no
+  /// `RetryInterceptor` de `coldigomDioProvider` (ver [_download]).
   Future<T> _withRetry<T>(Future<T> Function() attempt) async {
     for (var n = 1; ; n++) {
       try {

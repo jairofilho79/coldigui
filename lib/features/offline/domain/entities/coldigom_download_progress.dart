@@ -9,13 +9,16 @@ class ColdigomDownloadProgress {
     required this.currentTitle,
   });
 
+  /// `''` na emissão inicial (antes de qualquer alvo ser processado) — só
+  /// `doneTotal`/`total` são significativos nela.
   final String kindId;
   final int doneInKind;
   final int totalInKind;
   final int doneTotal;
   final int total;
 
-  /// «001 · Nome» do alvo que acabou de ser processado.
+  /// «001 · Nome» do alvo que acabou de ser processado, ou `''` na emissão
+  /// inicial (ver [kindId]).
   final String currentTitle;
 }
 
@@ -47,7 +50,13 @@ class ColdigomDownloadResult {
   final int skipped;
   final List<ColdigomDownloadFailure> failed;
 
-  /// Bytes gravados nesta execução.
+  /// Bytes gravados nesta execução — áudio, cifra e gestos.
+  ///
+  /// **PDF não soma aqui**: `FetchColdigomPdf` é `void` e não devolve o
+  /// tamanho baixado; o PDF já fica contabilizado no `fileSize` do próprio
+  /// `OfflinePdfRepository`/índice. Uma execução só de PDFs termina com
+  /// `bytes == 0` mesmo tendo baixado — a UI não deve ler isso como "nada
+  /// foi baixado".
   final int bytes;
 
   /// Parado por cancelamento ou falta de espaço.

@@ -63,10 +63,6 @@ class _Catalog extends ColdigomCatalogLocalDatasource {
 // ------------------------------------------------------------------ PDF
 
 class _PdfRepo implements OfflinePdfRepository {
-  // `persistent` não é passado por nenhum teste desta suíte (todos exercitam
-  // o caminho "LRU presente, ainda não persistente"); fica pronto para um
-  // teste futuro que cubra "já persistente" sem precisar mudar o fake.
-  // ignore: unused_element_parameter
   _PdfRepo({this.present = const {}, this.persistent = const {}});
   final Set<String> present;
   final Set<String> persistent;
@@ -295,14 +291,20 @@ void main() {
     expect(chordStore[_r2('c', 'chord')], '{t: x}');
     expect(gestureStore[_r2('d', 'gestures')], '{"cards":[]}');
     expect(figures.prefetched.single, {'fig/a.png', 'fig/b.png'});
+    // Emissão inicial (antes dos workers), com os totais já conhecidos.
+    expect(progress.first.doneTotal, 0);
+    expect(progress.first.total, 4);
     expect(progress.last.doneTotal, 4);
     expect(progress.last.total, 4);
-    expect(progress.map((p) => p.currentTitle).toSet(), {'001 · Louvor 001'});
+    expect(progress.skip(1).map((p) => p.currentTitle).toSet(), {
+      '001 · Louvor 001',
+    });
   });
 
   test('presentes são saltados; PDF LRU é promovido sem download; cifra 404 conta como feito', () async {
     final pdfFetched = <String>{};
     final pdfA = encodePdfId(_r2('a', 'pdf'));
+    final pdfF = encodePdfId(_r2('f', 'pdf'));
     final audioB = encodePdfId(_r2('b', 'mp3'));
     final chordStore = <String, String>{_r2('c', 'chord'): 'já tenho'};
     final usecase = build(
@@ -312,9 +314,12 @@ void main() {
           _m('b', 'k', 'mp3'),
           _m('c', 'k', 'chord'),
           _m('c2', 'k', 'chord'),
+          _m('f', 'k', 'pdf'),
         ]),
       ],
-      pdfRepo: _PdfRepo(present: {pdfA}),
+      // pdfA: presente, ainda em LRU (deve ser promovido).
+      // pdfF: presente e já persistente (não deve ser re-marcado).
+      pdfRepo: _PdfRepo(present: {pdfA, pdfF}, persistent: {pdfF}),
       pdfFetched: pdfFetched,
       audioRepo: _AudioRepo(present: {audioB}),
       chord: (_) async => null,
@@ -323,7 +328,7 @@ void main() {
 
     final result = await usecase(kindIds: {'k'});
 
-    expect(result.skipped, 3);
+    expect(result.skipped, 4);
     expect(result.done, 1);
     expect(pdfFetched, isEmpty);
     expect(marked, {pdfA});
@@ -354,6 +359,71 @@ void main() {
     expect(result.cancelled, isFalse);
   }, timeout: const Timeout(Duration(seconds: 30)));
 
+  test(
+    'PDF não é retentado aqui — FetchAndStorePdf já tenta internamente',
+    () async {
+      var pdfAttempts = 0;
+      final usecase = build(
+        rows: [
+          _row('p1', '001', [_m('a', 'k', 'pdf')]),
+        ],
+        fetchPdf: (id, r2Key) async {
+          pdfAttempts++;
+          throw _retryable();
+        },
+      );
+
+      final result = await usecase(kindIds: {'k'});
+
+      expect(pdfAttempts, 1);
+      expect(result.done, 0);
+      expect(result.failed.single.materialId, 'a');
+      expect(result.failed.single.cause, isA<DioException>());
+      expect(result.cancelled, isFalse);
+    },
+  );
+
+  test(
+    'gestos 404 grava marcador negativo e não faz prefetch de figuras',
+    () async {
+      final gestureStore = <String, String>{};
+      final usecase = build(
+        rows: [
+          _row('p1', '001', [_m('a', 'k', 'gestures')]),
+        ],
+        gesture: (_) async => null,
+        gestureStore: gestureStore,
+      );
+
+      final result = await usecase(kindIds: {'k'});
+
+      expect(result.done, 1);
+      expect(gestureStore[_r2('a', 'gestures')], '');
+      expect(figures.prefetched, isEmpty);
+    },
+  );
+
+  test('progresso reporta doneInKind/totalInKind por kind, além da emissão inicial', () async {
+    final progress = <ColdigomDownloadProgress>[];
+    final usecase = build(
+      rows: [
+        for (var i = 0; i < 3; i++)
+          _row('p$i', '00$i', [_m('m$i', 'k', 'mp3')]),
+      ],
+    );
+
+    final result = await usecase(kindIds: {'k'}, onProgress: progress.add);
+
+    expect(result.done, 3);
+    expect(progress.first.doneTotal, 0);
+    expect(progress.first.total, 3);
+    expect(progress.first.kindId, '');
+    final perItem = progress.skip(1).toList();
+    expect(perItem, hasLength(3));
+    expect(perItem.map((p) => p.totalInKind).toSet(), {3});
+    expect(perItem.map((p) => p.doneInKind).toList(), [1, 2, 3]);
+  });
+
   test('falta de espaço para tudo e devolve o parcial', () async {
     final usecase = build(
       rows: [
@@ -375,6 +445,38 @@ void main() {
     expect(result.cancelled, isTrue);
     expect(result.done, 0);
     expect(result.failed.single.cause, isA<InsufficientDiskSpaceException>());
+  });
+
+  test('falta de espaço com concorrência 2: só os alvos em voo falham, nenhum outro é iniciado', () async {
+    final audio = _AudioBytes((_) async => Uint8List(1));
+    final usecase = build(
+      rows: [
+        for (var i = 0; i < 5; i++)
+          _row('p$i', '00$i', [_m('m$i', 'k', 'mp3')]),
+      ],
+      audioBytes: audio,
+      audioRepo: _AudioRepo(
+        upsertThrows: const InsufficientDiskSpaceException(
+          requiredBytes: 1,
+          availableBytes: 0,
+        ),
+      ),
+      concurrency: 2,
+    );
+
+    final result = await usecase(kindIds: {'k'});
+
+    expect(result.cancelled, isTrue);
+    expect(result.done, 0);
+    // No máximo os 2 alvos que os 2 workers já tinham em voo quando a
+    // primeira quota estourou — nenhum dos outros 3 chega a ser tentado.
+    expect(audio.calls.length, lessThanOrEqualTo(2));
+    expect(result.failed, isNotEmpty);
+    expect(result.failed.length, lessThanOrEqualTo(2));
+    expect(
+      result.failed.every((f) => f.cause is InsufficientDiskSpaceException),
+      isTrue,
+    );
   });
 
   test('cancelamento devolve o parcial e não inicia mais alvos', () async {
