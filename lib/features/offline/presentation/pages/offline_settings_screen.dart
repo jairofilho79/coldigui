@@ -97,14 +97,12 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     try {
       await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
     }
   }
 
@@ -151,9 +149,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
 
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);
     if (!lock.tryAcquire(OfflineMaintenanceOwner.clear)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineMaintenanceBusy)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineMaintenanceBusy)));
       return;
     }
 
@@ -228,9 +225,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
           l10n,
           next.failedCount,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(completionMessage)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(completionMessage)));
       }
     });
 
@@ -531,9 +527,7 @@ class _OfflineContent extends StatelessWidget {
           alignment: Alignment.center,
           child: TextButton(
             onPressed: maintenanceBusy || !canClearCache ? null : onClearCache,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.title,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.title),
             child: Text(l10n.offlineClearCache),
           ),
         ),

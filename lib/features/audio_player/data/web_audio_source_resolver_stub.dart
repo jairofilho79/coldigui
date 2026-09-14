@@ -28,8 +28,10 @@ class WebAudioSourceResolver {
   void revokeAll() {}
 }
 
-typedef FetchAudioBytesFn =
-    Future<List<int>> Function(String url, {String? fallbackUrl});
+typedef FetchAudioBytesFn = Future<List<int>> Function(
+  String url, {
+  String? fallbackUrl,
+});
 
 WebAudioSourceResolver createWebAudioSourceResolver({
   required FetchAudioBytesFn fetchBytes,

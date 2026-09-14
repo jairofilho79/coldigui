@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:web/web.dart';
 
-typedef FetchAudioBytesFn =
-    Future<List<int>> Function(String url, {String? fallbackUrl});
+typedef FetchAudioBytesFn = Future<List<int>> Function(
+  String url, {
+  String? fallbackUrl,
+});
 
 /// Cache blob URLs em duas fases (O7 fix round 2): [_pending] é a fila que
 /// uma `_applyQueue` está resolvendo — pode nunca chegar a tocar, se outra
