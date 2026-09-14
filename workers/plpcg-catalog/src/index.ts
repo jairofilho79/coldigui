@@ -1,6 +1,7 @@
 import { upsertUser } from './auth/session';
 import { handleDeleteSession, sessionResponse } from './auth/session_handlers';
 import { setUsername } from './auth/username';
+import type { GoogleClaims } from './auth/verify_google_token';
 import { verifyGoogleIdToken } from './auth/verify_google_token';
 import { withAuth } from './auth/with_auth';
 import {
@@ -266,14 +267,16 @@ async function handleAuthSession(
     return jsonResponse({ error: 'unauthorized' }, { status: 401 });
   }
 
+  let claims: GoogleClaims;
   try {
-    const claims = await verifyGoogleIdToken(token, clientId);
-    const user = await upsertUser(env.DB, claims);
-    // Troca o id_token (1 h) por uma sessão do Worker (spec D1).
-    return await sessionResponse(env.DB, user);
+    claims = await verifyGoogleIdToken(token, clientId);
   } catch {
     return jsonResponse({ error: 'unauthorized' }, { status: 401 });
   }
+  const user = await upsertUser(env.DB, claims);
+  // Troca o id_token (1 h) por uma sessão do Worker (spec D1). Falha de D1
+  // aqui propaga (5xx): o token era válido, o problema não é do cliente.
+  return sessionResponse(env.DB, user);
 }
 
 function corsModeForPath(pathname: string): CorsMode {
