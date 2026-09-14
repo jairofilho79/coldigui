@@ -441,9 +441,10 @@ diff --git a/api/src/index.ts b/api/src/index.ts
 Passo do dono (fora deste repo), a fazer **antes** de publicar a web com a Parte 1:
 1. No repo do coldigom: `git apply --3way patches/coldigom-api-plpcg-catalog.patch` (ou `patch -p1 --fuzz=3 < …`).
 2. Confirmar os nomes das tabelas de tags: `grep -n "tag_names" api/src/index.ts` mostra o JOIN que `GET /api/praises` usa para montar `tag_names`; se as tabelas não se chamarem `praise_tags`/`tags` ou as colunas `tag_id`/`name`, ajustar a query de `tagsResult` no handler novo para o mesmo JOIN.
-3. `cd api && npm test` (vitest) — os seis testes novos verdes.
+3. `cd api && npm test` (vitest) — os sete testes novos verdes.
 4. `npm run deploy`.
 5. Validar em produção: `curl -sI https://coldigom-api.jairofilho79.workers.dev/api/plpcg/catalog | grep -i etag`, depois `curl -s -o /dev/null -w '%{http_code}' -H 'If-None-Match: <etag>' …/api/plpcg/catalog` → `304`.
+6. Confirmar o conjunto real de valores de `praise_materials.type` no D1; qualquer valor fora de `{pdf, mp3, audio, chord, gestures, youtube}` chega ao app com `r2` explícito (fix round 1 — a rota não confia mais silenciosamente no padrão derivado para tipos desconhecidos).
 
 - [ ] **Step 4: Commit**
 
