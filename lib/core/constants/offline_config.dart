@@ -79,4 +79,12 @@ abstract final class OfflineConfig {
 
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
   static const int offlineStorageVersion = 4;
+
+  /// Intervalo mínimo entre syncs do catálogo Coldigom ao voltar ao
+  /// foreground (O5) — o mesmo dos 30 min do checksum PLPCG.
+  static const Duration coldigomCatalogSyncMinInterval = Duration(minutes: 30);
+
+  /// Praises convertidos por fatia na hidratação do catálogo Coldigom; entre
+  /// fatias o event loop é cedido para não travar o primeiro frame na web.
+  static const int coldigomHydrationChunkSize = 300;
 }

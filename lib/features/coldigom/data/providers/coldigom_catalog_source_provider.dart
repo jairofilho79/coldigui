@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../presentation/providers/coldigom_catalog_providers.dart';
 import '../sources/coldigom_catalog_source.dart';
 import 'coldigom_providers.dart';
 
@@ -18,5 +19,6 @@ final coldigomCatalogSourceProvider = Provider<ColdigomCatalogSource>((ref) {
     youtube: ref.watch(coldigomYoutubeCacheProvider),
     lyrics: ref.watch(coldigomLyricsCacheProvider),
     searchRepository: ref.watch(coldigomSearchRepositoryProvider),
+    index: ref.watch(coldigomSearchIndexProvider),
   );
 });

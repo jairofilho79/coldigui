@@ -23,6 +23,7 @@ import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -332,9 +333,8 @@ void main() {
       );
       final cancellation = SearchCancellation();
 
-      final page = await _coldigomSource(
-        searchRepository: repo,
-      ).search(_query('Comigo', page: 2), cancellation: cancellation);
+      final page = await _coldigomSource(searchRepository: repo)
+          .search(_query('Comigo', page: 2), cancellation: cancellation);
 
       expect(repo.lastQuery, 'Comigo');
       expect(repo.lastPage, 2);
@@ -349,9 +349,8 @@ void main() {
       () async {
         final repo = _RecordingSearchRepository(_searchResult());
 
-        final page = await _coldigomSource(
-          searchRepository: repo,
-        ).search(_query('   '));
+        final page = await _coldigomSource(searchRepository: repo)
+            .search(_query('   '));
 
         expect(repo.calls, 0);
         expect(page.groups, isEmpty);
@@ -374,6 +373,42 @@ void main() {
         final page = await source.search(_query('Comigo'));
         expect(repo.calls, 1);
         expect(page.groups.single.groupId, 'p1');
+      },
+    );
+
+    test(
+      'CompositeCatalogSource.searchLocal concatena PLPCG e Coldigom (O16)',
+      () {
+        final plpcg = PlpcgCatalogSource(
+          catalog: [_plpcgPartitura],
+          index: PlpcgSearchIndex.build([_plpcgPartitura]),
+        );
+        final coldigomGroup = LouvorGroup(
+          groupId: 'p1',
+          numero: '001',
+          nome: 'Grande Deus',
+          sections: const [],
+          chordMaterials: [_coldigomChord],
+        );
+        final coldigom = ColdigomCatalogSource(
+          index: ColdigomSearchIndex.build([
+            ColdigomIndexedPraise.build(
+              praiseId: 'p1',
+              numero: '001',
+              nome: 'Grande Deus',
+              searchTokens: 'grande deus 001',
+              group: coldigomGroup,
+            ),
+          ]),
+        );
+        final composite = CompositeCatalogSource(
+          plpcg: plpcg,
+          coldigom: coldigom,
+        );
+
+        final hits = composite.searchLocal(const CatalogQuery(text: 'grande'));
+
+        expect(hits.map((g) => g.groupId), [_plpcgGroupId, 'p1']);
       },
     );
   });

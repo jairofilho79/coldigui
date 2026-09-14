@@ -47,9 +47,12 @@ class CompositeCatalogSource implements CatalogSource {
     return await plpcg.groupById(groupId) ?? await coldigom.groupById(groupId);
   }
 
-  /// Só o PLPCG tem índice local; o Coldigom devolveria `[]` de qualquer jeito.
+  /// PLPCG primeiro, Coldigom depois (O16) — cada fonte com o seu ranking.
   @override
-  List<LouvorGroup> searchLocal(CatalogQuery query) => plpcg.searchLocal(query);
+  List<LouvorGroup> searchLocal(CatalogQuery query) => [
+    ...plpcg.searchLocal(query),
+    ...coldigom.searchLocal(query),
+  ];
 
   /// Só o Coldigom tem página remota; o PLPCG devolveria `empty`.
   @override

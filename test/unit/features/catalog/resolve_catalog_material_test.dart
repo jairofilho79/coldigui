@@ -14,6 +14,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../support/test_overrides.dart';
+
 final _plpcgPdfId = encodePdfId('ColAdultos/001.pdf');
 final _gestureId = encodePdfId('ColAdultos/001.gestures');
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
@@ -94,6 +96,7 @@ class _FakeAudioCache extends ColdigomAudioTracksCacheNotifier {
 Future<ProviderContainer> _container() async {
   final container = ProviderContainer(
     overrides: [
+      ...standardTestOverrides(),
       louvoresManifestProvider.overrideWith(_FakeManifestNotifier.new),
       coldigomLouvoresCacheProvider.overrideWith(_FakeLouvoresCache.new),
       coldigomChordMaterialsCacheProvider.overrideWith(_FakeChordCache.new),

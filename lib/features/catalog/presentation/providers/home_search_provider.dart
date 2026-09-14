@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../data/providers/plpcg_catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -36,16 +37,24 @@ final homeSearchPageProvider = NotifierProvider<HomeSearchPage, int>(
   HomeSearchPage.new,
 );
 
-/// Resultados PLPCG da query + filtros correntes — **síncronos**.
+/// Resultados locais da query + filtros correntes — **síncronos**, PLPCG
+/// primeiro e Coldigom depois (O16).
 ///
-/// Observa manifest (via [plpcgCatalogSourceProvider]), query e filtros: um
-/// refresh de manifest em segundo plano ou um chip de material re-derivam só
-/// esta lista, sem tocar a rede.
+/// Observa manifest (via [plpcgCatalogSourceProvider]), o índice Coldigom
+/// hidratado (via [coldigomCatalogSourceProvider]), query e filtros: um
+/// refresh de manifest, um sync do catálogo Coldigom ou um chip de material
+/// re-derivam só esta lista, sem tocar a rede. Os filtros UC-02 valem só
+/// para o PLPCG.
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
-  final source = ref.watch(plpcgCatalogSourceProvider);
-  return source.searchLocal(CatalogQuery(text: query, filters: filters));
+  final plpcg = ref.watch(plpcgCatalogSourceProvider);
+  final coldigom = ref.watch(coldigomCatalogSourceProvider);
+  final catalogQuery = CatalogQuery(text: query, filters: filters);
+  return [
+    ...plpcg.searchLocal(catalogQuery),
+    ...coldigom.searchLocal(catalogQuery),
+  ];
 });
 
 /// Estado único da busca da Home — o que os widgets observam.

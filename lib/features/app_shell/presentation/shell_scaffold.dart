@@ -15,6 +15,7 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
 import '../../playlists/presentation/providers/playlist_sync_provider.dart';
 import '../../carousel/presentation/widgets/carousel_chips.dart';
@@ -147,6 +148,10 @@ class ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(playlistSyncProvider);
     ref.watch(materialKindPrefsSyncProvider);
+    // Catálogo Coldigom local (O4/O5): hidrata do Isar e sincroniza no boot
+    // sem bloquear o shell — a Home mostra o PLPCG primeiro, como hoje.
+    ref.watch(coldigomCatalogHydrationProvider);
+    ref.watch(coldigomCatalogSyncProvider);
     final path = GoRouterState.of(context).uri.path;
     final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);

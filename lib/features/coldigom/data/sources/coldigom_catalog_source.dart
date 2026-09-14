@@ -11,6 +11,7 @@ import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
+import '../../domain/search/coldigom_search_index.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
 
 /// [CatalogSource] do acervo Coldigom sobre os caches em memória por tipo.
@@ -19,8 +20,8 @@ import '../../domain/utils/coldigom_praise_id.dart';
 /// praise (`assets/praises/{praiseId}/…`) — é por ele que [groupForMaterial]
 /// acha o grupo sem consultar a rede.
 ///
-/// É a fonte **remota**: [searchLocal] é sempre vazio (não há índice do acervo
-/// Coldigom no cliente) e [search] vai ao [searchRepository].
+/// [searchLocal] consulta [index], hidratado do Isar no boot (O4); [search]
+/// vai ao [searchRepository] (busca remota dos «novos», §6).
 class ColdigomCatalogSource implements CatalogSource {
   const ColdigomCatalogSource({
     this.louvores = const {},
@@ -31,6 +32,7 @@ class ColdigomCatalogSource implements CatalogSource {
     this.youtube = const {},
     this.lyrics = const {},
     this.searchRepository,
+    this.index = ColdigomSearchIndex.empty,
   });
 
   /// PDFs Coldigom em cache, por `pdfId`.
@@ -56,6 +58,9 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Porta de busca remota; `null` desliga [search] (fontes de teste).
   final ColdigomSearchRepository? searchRepository;
+
+  /// Índice de busca local, hidratado do Isar — vazio antes da hidratação.
+  final ColdigomSearchIndex index;
 
   /// PDFs Coldigom em cache pertencentes a [groupId].
   List<Louvor> louvoresOfGroup(String groupId) {
@@ -157,9 +162,10 @@ class ColdigomCatalogSource implements CatalogSource {
   Future<LouvorGroup?> groupForMaterial(String materialId) async =>
       findGroupForMaterial(materialId);
 
-  /// Não há índice local do acervo Coldigom — a busca é sempre remota.
+  /// Resultados locais do índice hidratado — vazio antes da hidratação.
+  /// Os filtros UC-02 não se aplicam ao Coldigom (O16).
   @override
-  List<LouvorGroup> searchLocal(CatalogQuery query) => const [];
+  List<LouvorGroup> searchLocal(CatalogQuery query) => index.search(query.text);
 
   /// Uma página de `/api/plpcg/praises`, com cancelamento.
   ///
