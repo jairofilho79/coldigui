@@ -22,6 +22,9 @@ class WebAudioSourceResolver {
   /// No-op no nativo — não há blob pra revogar entre filas.
   void beginQueue() {}
 
+  /// No-op no nativo — não há pending/current pra promover (fix round 2).
+  void commitQueue() {}
+
   void revokeAll() {}
 }
 

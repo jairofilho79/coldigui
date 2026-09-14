@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/platform/platform_capabilities.dart';
@@ -96,6 +97,49 @@ class _LookupRepo implements OfflineAudioRepository {
       throw UnimplementedError('${invocation.memberName}');
 }
 
+/// Web sem exigência de gesto (fix round 2) — o teste de A→B→C não é sobre
+/// o desbloqueio de iOS Safari (já coberto no fix round 1); usar
+/// [PlatformCapabilities.web] de verdade dispararia
+/// `unlockWebAudioIfNeeded` e resolveria a faixa inicial num caminho à
+/// parte, complicando a orquestração do lookup controlável sem acrescentar
+/// cobertura nova.
+const _testWebCapabilities = PlatformCapabilities(
+  isWeb: true,
+  supportsBackgroundAudio: true,
+  needsUserGestureForAudio: false,
+  supportsFileSave: false,
+  supportsFullscreenApi: true,
+);
+
+/// Lookup híbrido (fix round 2): [immediate] resolve na hora (como
+/// [_LookupRepo]); os `audioId` em [controlled] ficam presos num
+/// `Completer` até o teste completar manualmente — é assim que se segura
+/// uma `_applyQueue` no meio da fila, pra outra geração pré-emptá-la.
+class _HybridLookupRepo implements OfflineAudioRepository {
+  _HybridLookupRepo({required this.immediate, required this.controlled});
+
+  final Map<String, String> immediate;
+  final Set<String> controlled;
+  final pendingLookups = <String, Completer<LocalAudioSource?>>{};
+
+  @override
+  Future<LocalAudioSource?> lookup(String audioId) {
+    if (controlled.contains(audioId)) {
+      final completer = Completer<LocalAudioSource?>();
+      pendingLookups[audioId] = completer;
+      return completer.future;
+    }
+    final key = immediate[audioId];
+    return Future.value(
+      key == null ? null : LocalAudioSource(audioId: audioId, storageKey: key),
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
+}
+
 /// Bytes fixos por chave de storage — dispensa Cache API de verdade.
 class _FakeAudioStoragePort implements AudioStoragePort {
   _FakeAudioStoragePort(this.bytesByKey);
@@ -110,14 +154,28 @@ class _FakeAudioStoragePort implements AudioStoragePort {
       throw UnimplementedError('${invocation.memberName}');
 }
 
-/// Fake de [WebAudioSourceResolver] (fix round 1) — sem `dart:js_interop`
-/// disponível em `flutter test` puro (VM), a classe real não compila fora
-/// do alvo web, então este fake implementa a mesma forma pública e regista
-/// a ordem das chamadas: é isso que prova o contrato do fix (um `beginQueue`
-/// só, antes de qualquer `resolveFromBytes`, sem revogar nada no meio da
-/// fila) sem depender da Blob API do navegador.
+/// Fake de [WebAudioSourceResolver] (fix rounds 1 e 2) — sem
+/// `dart:js_interop` disponível em `flutter test` puro (VM), a classe real
+/// não compila fora do alvo web, então este fake implementa a mesma forma
+/// pública e reproduz o contrato de duas fases: [resolveFromBytes] escreve
+/// em [pending] (nunca em [current] direto); [beginQueue] limpa só
+/// [pending]; [commitQueue] promove [pending] → [current], revogando o que
+/// estava lá. [events]/[beginRevokes]/[commitRevokes]/[commitPromotes]
+/// registram cada chamada — é isso que prova o contrato sem depender da
+/// Blob API do navegador.
 class _FakeWebResolver implements WebAudioSourceResolver {
   final events = <String>[];
+  final pending = <String, String>{};
+  final current = <String, String>{};
+
+  /// URIs que estavam em [pending] no momento de cada `beginQueue`.
+  final beginRevokes = <List<String>>[];
+
+  /// URIs que estavam em [current] no momento de cada `commitQueue`.
+  final commitRevokes = <List<String>>[];
+
+  /// URIs promovidas ([pending] no momento) por cada `commitQueue`.
+  final commitPromotes = <List<String>>[];
 
   @override
   FetchAudioBytesFn? get fetchBytes => null;
@@ -125,12 +183,29 @@ class _FakeWebResolver implements WebAudioSourceResolver {
   @override
   void beginQueue() {
     events.add('beginQueue');
+    beginRevokes.add(List.of(pending.values));
+    pending.clear();
   }
 
   @override
   Uri? resolveFromBytes(String cacheKey, Uint8List bytes) {
     events.add('resolve:$cacheKey');
-    return Uri.parse('blob:fake-store/$cacheKey');
+    final cached = pending[cacheKey];
+    if (cached != null) return Uri.parse(cached);
+    final url = 'blob:fake-store/$cacheKey';
+    pending[cacheKey] = url;
+    return Uri.parse(url);
+  }
+
+  @override
+  void commitQueue() {
+    events.add('commitQueue');
+    commitRevokes.add(List.of(current.values));
+    commitPromotes.add(List.of(pending.values));
+    current
+      ..clear()
+      ..addAll(pending);
+    pending.clear();
   }
 
   @override
@@ -145,6 +220,8 @@ class _FakeWebResolver implements WebAudioSourceResolver {
   @override
   void revokeAll() {
     events.add('revokeAll');
+    current.clear();
+    pending.clear();
   }
 }
 
@@ -229,5 +306,78 @@ void main() {
       'blob:fake-store/assets/praises/p1/a2.mp3',
       'blob:fake-store/assets/praises/p1/a3.mp3',
     ]);
+  });
+
+  test('A tocando → B pré-emptida por C: blobs de A só revogam no commit de C; '
+      'pending de B nunca vira current', () async {
+    final repo = _HybridLookupRepo(
+      immediate: {'a1': 'a1.mp3', 'b1': 'b1.mp3', 'c1': 'c1.mp3'},
+      controlled: {'b2'},
+    );
+    final storage = _FakeAudioStoragePort({
+      for (final key in ['a1.mp3', 'b1.mp3', 'b2.mp3', 'c1.mp3'])
+        key: Uint8List.fromList([1, 2, 3]),
+    });
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(
+          await SharedPreferences.getInstance(),
+        ),
+        audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+        platformCapabilitiesProvider.overrideWithValue(_testWebCapabilities),
+        webAudioSourceResolverProvider.overrideWithValue(resolver),
+        offlineAudioRepositoryProvider.overrideWithValue(repo),
+        audioStoragePortProvider.overrideWithValue(storage),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(audioPlayerSessionProvider.notifier);
+
+    Future<void> pumpUntil(bool Function() condition) async {
+      for (var i = 0; i < 20 && !condition(); i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    // A: 1 faixa local, resolve e comita de vez — é o que está "tocando".
+    await notifier.playQueue([_track('a1')]);
+    final aUri = uriOf(player.setSourcesCalls.single.single).toString();
+    expect(resolver.current.values, [aUri]);
+    expect(resolver.pending, isEmpty);
+
+    // B: 2 faixas — b1 resolve na hora (escreve em pending); b2 fica presa
+    // no lookup controlado. B nunca chega perto do commit.
+    final bFuture = notifier.playQueue([_track('b1'), _track('b2')]);
+    await pumpUntil(() => repo.pendingLookups.containsKey('b2'));
+    expect(
+      repo.pendingLookups.containsKey('b2'),
+      isTrue,
+      reason: 'b2 deveria estar suspensa no lookup controlado',
+    );
+    expect(resolver.pending.keys, ['b1.mp3']);
+    final bPendingUri = resolver.pending['b1.mp3'];
+
+    // C: 1 faixa local, resolve e comita sem nunca esperar por B — supera
+    // a geração de B antes que ela chegue perto de aplicar qualquer coisa.
+    await notifier.playQueue([_track('c1')]);
+    final cUri = uriOf(player.setSourcesCalls.last.single).toString();
+
+    // O blob de A só é revogado agora — no commit de C, não antes (não no
+    // beginQueue de B, nem no beginQueue de C).
+    expect(resolver.commitRevokes.last, [aUri]);
+    // O pending de b1 foi varrido pelo beginQueue de C — nunca promovido.
+    expect(resolver.beginRevokes.last, [bPendingUri]);
+    expect(resolver.commitPromotes.last, [cUri]);
+    expect(resolver.current.values, [cUri]);
+    expect(resolver.current.values, isNot(contains(bPendingUri)));
+    expect(resolver.pending, isEmpty);
+
+    // Libera o lookup de b2 (higiene do teste) — a geração de B já não é
+    // mais a vigente, então o próximo `gen != _generation` descarta antes
+    // de tocar em qualquer coisa (sem `setAudioSources` novo, sem commit).
+    repo.pendingLookups['b2']!.complete(null);
+    await bFuture;
+    expect(player.setSourcesCalls.length, 2, reason: 'só A e C aplicaram');
+    expect(resolver.current.values, [cUri]);
   });
 }

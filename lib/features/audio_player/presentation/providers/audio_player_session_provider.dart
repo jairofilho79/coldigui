@@ -584,10 +584,13 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     try {
       final player = _ensurePlayer;
       final isWeb = ref.read(platformCapabilitiesProvider).isWeb;
-      // Fila nova: os blobs da fila anterior não são mais referenciados por
-      // ninguém — libera antes de resolver os de agora (fix round 1). Sem
-      // isto, `resolveFromBytes` acumularia blob: pra sempre (não há trim
-      // por faixa — ver doc do método).
+      // Fila nova: limpa só o *pending* de uma tentativa anterior
+      // abandonada — nunca o que está tocando (fix round 2: `beginQueue`
+      // mexe só em pending; é `commitQueue`, lá embaixo, depois do último
+      // `gen != _generation`, quem promove e só aí revoga o que tocava).
+      // Seguro chamar aqui, antes mesmo de saber se esta geração vai
+      // vencer a corrida — sem isto, `resolveFromBytes` acumularia
+      // blob: de tentativas descartadas pra sempre.
       if (isWeb) {
         _sourceResolver?.beginQueue();
       }
@@ -653,6 +656,15 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
             ),
           ),
         );
+      }
+
+      // Fix round 2: só a geração vencedora chega aqui — o laço acima já
+      // teria devolvido cedo em qualquer `gen != _generation`. É só agora,
+      // imediatamente antes de o player assumir as fontes novas, que os
+      // blobs da fila em reprodução são revogados (`commitQueue` promove o
+      // que `beginQueue`/`resolveFromBytes` vinham só montando em pending).
+      if (isWeb) {
+        _sourceResolver?.commitQueue();
       }
 
       // O contador abraça só a mexida no player: entra antes e sai depois,
