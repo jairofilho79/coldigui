@@ -50,6 +50,22 @@ void main() {
     expect(sw, contains("cache: 'force-cache'"));
   });
 
+  test('mensagem warm de tag antiga descarta used mas mantém WARM', () {
+    // Deploy a meio de sessão: a página antiga ainda manda a tag dela — o
+    // `used` seria de outra cache e tem de ser descartado (Minor a).
+    expect(sw, contains('event.data.tag && event.data.tag !== TAG'));
+  });
+
+  test('cache-first restrito ao shell; resto same-origin sem respondWith', () {
+    // Important 1: cacheFirst deixou de ser catch-all para qualquer GET
+    // same-origin — só assets/, canvaskit/, icons/ e ficheiros na raiz do
+    // scope com ?v= ou listados em CRITICAL/WARM.
+    expect(sw, contains("SCOPE_PATH + 'assets/'"));
+    expect(sw, contains("SCOPE_PATH + 'canvaskit/'"));
+    expect(sw, contains("SCOPE_PATH + 'icons/'"));
+    expect(sw, contains('sem respondWith'));
+  });
+
   test('nunca apaga o cache dos PDFs offline do Dart', () {
     expect(sw, isNot(contains('plpcg-pdfs-store')));
     expect(sw, contains("startsWith('plpcg-shell-')"));

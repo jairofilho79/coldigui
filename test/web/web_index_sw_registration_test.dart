@@ -41,7 +41,10 @@ void main() {
     expect(html, contains(r'/(^|-)2g$/'));
     expect(html, contains("performance.getEntriesByType('resource')"));
     expect(html, contains("n.indexOf(location.origin + '/') === 0"));
-    expect(html, contains("{ type: 'warm', used: used, full: full }"));
+    expect(
+      html,
+      contains("{ type: 'warm', used: used, full: full, tag: swTag }"),
+    );
     expect(html, contains("'controllerchange'"));
   });
 

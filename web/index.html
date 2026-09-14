@@ -277,6 +277,21 @@
       }
 
       window.addEventListener('flutter-first-frame', hideLoader, { once: true });
+
+      // Sem engine em cache e sem rede o flutter-first-frame nunca chega e o
+      // loader fica preso para sempre — avisa em vez de girar ad aeternum.
+      try {
+        window.setTimeout(function () {
+          try {
+            if (removed || navigator.onLine !== false) return;
+            var title = loader.querySelector('.title');
+            if (title) {
+              title.textContent =
+                'Sem ligação — abra o app online uma vez para poder usá-lo offline.';
+            }
+          } catch (e) {}
+        }, 15000);
+      } catch (e) {}
     })();
   </script>
 
@@ -303,7 +318,9 @@
             .map(function (e) { return e.name; })
             .filter(function (n) { return n.indexOf(location.origin + '/') === 0; });
           var post = function (sw) {
-            if (sw) sw.postMessage({ type: 'warm', used: used, full: full });
+            // tag: o sw.js descarta `used` se não bater com a tag ativa dele
+            // (deploy a meio de sessão — esta página ainda tem a tag velha).
+            if (sw) sw.postMessage({ type: 'warm', used: used, full: full, tag: swTag });
           };
           // Primeiro registo: o worker ainda está em install e a mensagem
           // corre em paralelo. Deploy novo: o controller troca depois do

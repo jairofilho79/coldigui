@@ -64,7 +64,12 @@ self.addEventListener('activate', (event) => {
 // com o SW ainda em install: corre em paralelo.
 self.addEventListener('message', (event) => {
   if (!event.data || event.data.type !== 'warm') return;
-  const used = Array.isArray(event.data.used) ? event.data.used : [];
+  // Página com tag antiga (deploy a meio de sessão): a lista `used` refere-se
+  // aos ficheiros da tag dela, não aos desta cache — descarta-a para não
+  // meter ficheiros da tag A na cache B. O WARM continua válido: é sempre
+  // desta própria tag, nunca vem da mensagem.
+  const staleTag = event.data.tag && event.data.tag !== TAG;
+  const used = !staleTag && Array.isArray(event.data.used) ? event.data.used : [];
   const full = event.data.full === true;
   event.waitUntil(warm(used, full));
 });
@@ -118,6 +123,29 @@ async function warmUsed(cache, used) {
   await Promise.all(Array.from({ length: USED_PARALLEL }, worker));
 }
 
+// Cache-first só para o shell: assets/, canvaskit/<hash>/, icons/, e
+// ficheiros na raiz do scope que ou levam ?v= (entrypoints com cache-bust:
+// main.dart.*, flutter_bootstrap.js, MaterialIcons-Regular.<hash>.otf) ou
+// estão listados em CRITICAL/WARM (flutter.js, isar_plus.*, favicon.png…).
+// Sem isto o `cacheFirst` era catch-all para qualquer GET same-origin —
+// incluiria um futuro /api/* que nada tem a ver com o shell.
+const SHELL_FILES = new Set(
+  [...CRITICAL, ...WARM].map((u) => new URL(u, self.registration.scope).pathname),
+);
+
+function isRootLevel(pathname) {
+  const rest = pathname.slice(SCOPE_PATH.length);
+  return rest !== '' && !rest.includes('/');
+}
+
+function isShellRequest(url) {
+  const pathname = url.pathname;
+  if (pathname.startsWith(SCOPE_PATH + 'assets/')) return true;
+  if (pathname.startsWith(SCOPE_PATH + 'canvaskit/')) return true;
+  if (pathname.startsWith(SCOPE_PATH + 'icons/')) return true;
+  return isRootLevel(pathname) && (url.searchParams.has('v') || SHELL_FILES.has(pathname));
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   // Range (áudio/PDF por partes) tem de ir à rede: uma resposta 200 inteira
@@ -130,9 +158,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request, './'));
   } else if (NETWORK_FIRST.has(url.pathname)) {
     event.respondWith(networkFirst(request, request));
-  } else {
+  } else if (isShellRequest(url)) {
     event.respondWith(cacheFirst(request));
   }
+  // Resto same-origin (ex.: futuro /api/*): sem respondWith — vai à rede
+  // normal, nunca pelo cache do shell.
 });
 
 // Rede primeiro sem atualizar o cache: o index.html em cache é sempre o da
