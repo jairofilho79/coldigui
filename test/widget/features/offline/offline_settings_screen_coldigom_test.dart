@@ -5,6 +5,7 @@ import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_butto
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_widgets/coldigom_section.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
@@ -217,6 +218,62 @@ void main() {
   });
 
   testWidgets(
+    'emissão inicial (kindId vazio) mostra só a barra, sem " · 0/0"',
+    (tester) async {
+      await _pump(
+        tester,
+        downloadState: const OfflineColdigomDownloadState(
+          status: OfflineColdigomDownloadStatus.running,
+          progress: ColdigomDownloadProgress(
+            kindId: '',
+            doneInKind: 0,
+            totalInKind: 0,
+            doneTotal: 0,
+            total: 1690,
+            currentTitle: '',
+          ),
+        ),
+      );
+
+      expect(find.textContaining('· 0/0'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsWidgets);
+    },
+  );
+
+  testWidgets('removendo desabilita Baixar, Tentar de novo e Remover', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      downloadState: OfflineColdigomDownloadState(
+        removing: true,
+        result: ColdigomDownloadResult(
+          done: 0,
+          skipped: 0,
+          bytes: 0,
+          failed: [
+            ColdigomDownloadFailure(materialId: 'x', cause: StateError('x')),
+          ],
+        ),
+      ),
+    );
+
+    final download = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(download.onPressed, isNull);
+    final retry = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Tentar de novo'),
+    );
+    expect(retry.onPressed, isNull);
+    final remove = tester.widget<TextButton>(
+      find.widgetWithText(
+        TextButton,
+        'Remover áudios e PDFs baixados do Coldigom',
+      ),
+    );
+    expect(remove.onPressed, isNull);
+  });
+
+  testWidgets(
     'em execução mostra progresso e Parar; concluído com falhas mostra Tentar de novo',
     (tester) async {
       final running = await _pump(
@@ -265,6 +322,78 @@ void main() {
       await tester.tap(find.text('Tentar de novo'));
       await tester.pumpAndSettle();
       expect(done.download.started, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'parado (cancelamento) mostra "Parado — N restantes" e Tentar de novo; '
+    'nunca "Nada novo para baixar" (achado do review final)',
+    (tester) async {
+      await _pump(
+        tester,
+        downloadState: OfflineColdigomDownloadState(
+          status: OfflineColdigomDownloadStatus.done,
+          progress: const ColdigomDownloadProgress(
+            kindId: 'k-grade',
+            doneInKind: 3,
+            totalInKind: 10,
+            doneTotal: 120,
+            total: 1690,
+            currentTitle: '001 · x',
+          ),
+          result: const ColdigomDownloadResult(
+            done: 3,
+            skipped: 2,
+            bytes: 1,
+            failed: [],
+            cancelled: true,
+          ),
+        ),
+      );
+
+      expect(find.text('Parado — 1570 restantes'), findsOneWidget);
+      expect(find.text('Tentar de novo'), findsOneWidget);
+      expect(find.textContaining('Nada novo para baixar'), findsNothing);
+      expect(find.textContaining('não baixado'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'falta de espaço mostra "Sem espaço no aparelho", não "N não baixado"',
+    (tester) async {
+      await _pump(
+        tester,
+        downloadState: OfflineColdigomDownloadState(
+          status: OfflineColdigomDownloadStatus.done,
+          progress: const ColdigomDownloadProgress(
+            kindId: 'k-grade',
+            doneInKind: 3,
+            totalInKind: 10,
+            doneTotal: 120,
+            total: 1690,
+            currentTitle: '001 · x',
+          ),
+          result: const ColdigomDownloadResult(
+            done: 0,
+            skipped: 0,
+            bytes: 0,
+            failed: [
+              ColdigomDownloadFailure(
+                materialId: 'x',
+                cause: InsufficientDiskSpaceException(
+                  requiredBytes: 1,
+                  availableBytes: 0,
+                ),
+              ),
+            ],
+            cancelled: true,
+          ),
+        ),
+      );
+
+      expect(find.text('Sem espaço no aparelho'), findsOneWidget);
+      expect(find.textContaining('não baixado'), findsNothing);
+      expect(find.textContaining('restantes'), findsNothing);
     },
   );
 

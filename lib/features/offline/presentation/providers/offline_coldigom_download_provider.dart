@@ -26,6 +26,7 @@ class OfflineColdigomDownloadState {
     this.progress,
     this.result,
     this.failure,
+    this.removing = false,
   });
 
   final OfflineColdigomDownloadStatus status;
@@ -34,6 +35,12 @@ class OfflineColdigomDownloadState {
   /// Resultado da última execução (inclui o parcial de um cancelamento).
   final ColdigomDownloadResult? result;
   final AppFailure? failure;
+
+  /// `true` durante `removeDownloads()` — o lock de manutenção próprio não
+  /// desabilita os botões desta secção (só o «Parar» do download usa isso),
+  /// então é esta flag que desabilita «Baixar»/«Remover»/«Tentar de novo»
+  /// enquanto a remoção está em curso (achado do review final).
+  final bool removing;
 
   bool get isRunning => status == OfflineColdigomDownloadStatus.running;
   bool get isActive =>
@@ -45,12 +52,14 @@ class OfflineColdigomDownloadState {
     ColdigomDownloadResult? result,
     AppFailure? failure,
     bool clearProgress = false,
+    bool? removing,
   }) {
     return OfflineColdigomDownloadState(
       status: status ?? this.status,
       progress: clearProgress ? null : (progress ?? this.progress),
       result: result ?? this.result,
       failure: failure ?? this.failure,
+      removing: removing ?? this.removing,
     );
   }
 }
@@ -110,8 +119,13 @@ class OfflineColdigomDownloadNotifier
               state = state.copyWith(progress: progress);
             },
           );
+      // Preserva o último `progress` (não um `OfflineColdigomDownloadState`
+      // novo do zero): é dele que a UI tira "quantos restam" quando
+      // `result.cancelled` — sem isto, um cancelamento com `done == 0`
+      // aparecia como "nada novo para baixar" (achado do review final).
       state = OfflineColdigomDownloadState(
         status: OfflineColdigomDownloadStatus.done,
+        progress: state.progress,
         result: result,
       );
     } on Object catch (error) {
@@ -146,9 +160,11 @@ class OfflineColdigomDownloadNotifier
     if (state.isActive || !ref.read(isarAvailableProvider)) return null;
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);
     if (!lock.tryAcquire(OfflineMaintenanceOwner.coldigom)) return null;
+    state = state.copyWith(removing: true);
     try {
       return await ref.read(removeColdigomDownloadsProvider).call();
     } finally {
+      state = state.copyWith(removing: false);
       lock.release(OfflineMaintenanceOwner.coldigom);
     }
   }

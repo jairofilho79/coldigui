@@ -1544,6 +1544,20 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String offlineColdigomStopped(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: 'Parado — $n restantes',
+      one: 'Parado — 1 restante',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get offlineColdigomOutOfSpace => 'Sem espaço no aparelho';
+
+  @override
   String get offlineColdigomRetry => 'Tentar de novo';
 
   @override

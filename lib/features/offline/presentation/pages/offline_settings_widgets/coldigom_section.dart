@@ -14,10 +14,41 @@ import '../../../../auth/presentation/widgets/google_sign_in_button.dart';
 import '../../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../../data/utils/storage_quota_estimator.dart';
+import '../../../domain/entities/coldigom_download_progress.dart';
+import '../../../domain/exceptions/offline_bulk_exceptions.dart';
 import '../../providers/offline_coldigom_download_provider.dart';
 import '../../providers/offline_coldigom_kind_selection_provider.dart';
 import '../../providers/offline_coldigom_stats_provider.dart';
 import '../../providers/offline_maintenance_lock_provider.dart';
+
+/// Quantos alvos ainda faltam no último `progress` conhecido — usado tanto
+/// no snackbar de conclusão quanto na linha persistente sob os botões
+/// quando `result.cancelled` (achado do review final: um cancelamento com
+/// `done == 0` não pode ler como "nada novo para baixar").
+int _remainingCount(OfflineColdigomDownloadState state) {
+  final progress = state.progress;
+  if (progress == null) return 0;
+  final remaining = progress.total - progress.doneTotal;
+  return remaining < 0 ? 0 : remaining;
+}
+
+bool _hasInsufficientSpace(ColdigomDownloadResult result) =>
+    result.failed.any((f) => f.cause is InsufficientDiskSpaceException);
+
+/// Texto da linha persistente/snackbar quando a execução parou sem
+/// terminar tudo — falta de espaço tem prioridade (mensagem específica),
+/// depois cancelamento («Parado — N restantes»), depois falhas comuns.
+String _resultStatusText(
+  AppLocalizations l10n,
+  OfflineColdigomDownloadState state,
+) {
+  final result = state.result!;
+  if (_hasInsufficientSpace(result)) return l10n.offlineColdigomOutOfSpace;
+  if (result.cancelled) {
+    return l10n.offlineColdigomStopped(_remainingCount(state));
+  }
+  return l10n.offlineColdigomFailures(result.failed.length);
+}
 
 /// `~1,2 MB` quando há estimativa (O13), `1,2 MB` quando tudo é conhecido.
 String coldigomSizeLabel(int bytes, {required bool estimated}) =>
@@ -51,9 +82,15 @@ class ColdigomOfflineSection extends ConsumerWidget {
       if (next.status == OfflineColdigomDownloadStatus.done &&
           previous?.status != next.status &&
           next.result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.offlineColdigomDone(next.result!.done))),
-        );
+        final result = next.result!;
+        // Cancelado ou com falhas: mensagem específica (achado do review
+        // final) — nunca "nada novo para baixar" quando na verdade parou
+        // no meio. Sem cancelamento/falhas, a contagem normal de baixados.
+        final message = result.cancelled || result.hasFailures
+            ? _resultStatusText(l10n, next)
+            : l10n.offlineColdigomDone(result.done);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     });
 
@@ -279,16 +316,21 @@ class _KindsBody extends ConsumerWidget {
           ),
         const SizedBox(height: 12),
         if (download.isActive && download.progress != null) ...[
-          Text(
-            l10n.offlineColdigomProgress(
-              stats.byKind[download.progress!.kindId]?.kindName ?? '',
-              download.progress!.doneInKind,
-              download.progress!.totalInKind,
+          // Emissão inicial tem `kindId: ''` (nenhum alvo processado ainda,
+          // ver doc de [ColdigomDownloadProgress]) — só a barra faz sentido
+          // aí; "· 0/0" não diz nada ao usuário.
+          if (download.progress!.kindId.isNotEmpty) ...[
+            Text(
+              l10n.offlineColdigomProgress(
+                stats.byKind[download.progress!.kindId]?.kindName ?? '',
+                download.progress!.doneInKind,
+                download.progress!.totalInKind,
+              ),
+              style: AppTypography.body.copyWith(color: AppColors.title),
             ),
-            style: AppTypography.body.copyWith(color: AppColors.title),
-          ),
-          Text(download.progress!.currentTitle, style: AppTypography.hint()),
-          const SizedBox(height: 6),
+            Text(download.progress!.currentTitle, style: AppTypography.hint()),
+            const SizedBox(height: 6),
+          ],
           LinearProgressIndicator(
             value: download.progress!.total == 0
                 ? null
@@ -300,7 +342,11 @@ class _KindsBody extends ConsumerWidget {
           children: [
             Expanded(
               child: FilledButton(
-                onPressed: busy || download.isActive || selection.isEmpty
+                onPressed:
+                    busy ||
+                        download.isActive ||
+                        download.removing ||
+                        selection.isEmpty
                     ? null
                     : () => unawaited(
                         _start(
@@ -333,7 +379,9 @@ class _KindsBody extends ConsumerWidget {
             ],
           ],
         ),
-        if (!download.isActive && result != null && result.hasFailures) ...[
+        if (!download.isActive &&
+            result != null &&
+            (result.cancelled || result.hasFailures)) ...[
           const SizedBox(height: 6),
           // `Wrap` (não `Row`): "N não baixados" + «Tentar de novo» não cabem
           // lado a lado a 400px — aqui a segunda linha é preferível a overflow.
@@ -342,11 +390,11 @@ class _KindsBody extends ConsumerWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                l10n.offlineColdigomFailures(result.failed.length),
+                _resultStatusText(l10n, download),
                 style: AppTypography.hint(),
               ),
               TextButton(
-                onPressed: busy || selection.isEmpty
+                onPressed: busy || selection.isEmpty || download.removing
                     ? null
                     : () => unawaited(
                         _start(
@@ -365,7 +413,7 @@ class _KindsBody extends ConsumerWidget {
         Align(
           alignment: Alignment.center,
           child: TextButton(
-            onPressed: busy || download.isActive
+            onPressed: busy || download.isActive || download.removing
                 ? null
                 : () => unawaited(_remove(context, ref)),
             style: TextButton.styleFrom(foregroundColor: AppColors.title),

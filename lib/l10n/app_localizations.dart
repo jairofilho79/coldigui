@@ -2585,6 +2585,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 não baixado} other{{count} não baixados}}'**
   String offlineColdigomFailures(int count);
 
+  /// No description provided for @offlineColdigomStopped.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n, plural, one{Parado — 1 restante} other{Parado — {n} restantes}}'**
+  String offlineColdigomStopped(int n);
+
+  /// No description provided for @offlineColdigomOutOfSpace.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem espaço no aparelho'**
+  String get offlineColdigomOutOfSpace;
+
   /// No description provided for @offlineColdigomRetry.
   ///
   /// In pt, this message translates to:
