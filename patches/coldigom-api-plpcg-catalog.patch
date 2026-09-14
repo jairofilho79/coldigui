@@ -1,0 +1,326 @@
+diff --git a/api/src/__tests__/index.test.ts b/api/src/__tests__/index.test.ts
+--- a/api/src/__tests__/index.test.ts
++++ b/api/src/__tests__/index.test.ts
+@@ -686,6 +686,157 @@ describe('API Routes', () => {
+     });
+   });
+ 
++  describe('GET /api/plpcg/catalog', () => {
++    /** D1 falso: despacha pelo texto da query, sem `bind` (o dump não tem parâmetros). */
++    function catalogMockDB(options: {
++      praises?: unknown[];
++      materials?: unknown[];
++      tags?: unknown[];
++    } = {}) {
++      const results = (query: string) => {
++        if (query.includes('COALESCE(t.label')) return { results: mockMaterialKindLabels };
++        if (query.includes('FROM praise_materials')) return { results: options.materials ?? mockMaterials };
++        if (query.includes('FROM praise_tags')) return { results: options.tags ?? [] };
++        if (query.includes('FROM praises p')) return { results: options.praises ?? mockPraises };
++        return { results: [] };
++      };
++      return {
++        prepare: vi.fn((query: string) => ({
++          all: vi.fn(async () => results(query)),
++          bind: vi.fn((..._args: unknown[]) => ({
++            all: vi.fn(async () => results(query)),
++            first: vi.fn().mockResolvedValue(null),
++          })),
++        })),
++      };
++    }
++
++    it('returns compact praises with derived materials, tags and ETag', async () => {
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: catalogMockDB({
++          tags: [{ praise_id: mockPraises[0].id, name: 'PES' }],
++        }),
++        ASSETS: createMockR2(),
++      });
++
++      expect(res.status).toBe(200);
++      expect(res.headers.get('ETag')).toMatch(/^"[0-9a-f]{32}"$/);
++      expect(res.headers.get('Cache-Control')).toBe('public, max-age=300');
++      const json = await res.json();
++      expect(typeof json.generatedAt).toBe('string');
++      expect(json.kinds).toEqual(
++        expect.arrayContaining([expect.objectContaining({ id: expect.any(String), name: expect.any(String) })]),
++      );
++      const first = json.praises.find((p: { id: string }) => p.id === mockPraises[0].id);
++      expect(first).toBeDefined();
++      expect(first.name).toBe(mockPraises[0].name);
++      expect(first.tags).toEqual(['PES']);
++      expect(first.lyrics).toBe(mockPraises[0].lyrics);
++      // Materiais só com {id, kind, type}: o r2_key é derivado no app (O2).
++      const pdf = first.materials.find((m: { id: string }) => m.id === 'mat1');
++      expect(pdf).toEqual({ id: 'mat1', kind: mockMaterials[0].material_kind, type: 'pdf' });
++      expect(first.materials.every((m: { r2_key?: unknown }) => m.r2_key === undefined)).toBe(true);
++    });
++
++    it('omits lyrics when blank', async () => {
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: catalogMockDB({ praises: [{ ...mockPraises[0], lyrics: '   ' }] }),
++        ASSETS: createMockR2(),
++      });
++
++      const json = await res.json();
++      expect(json.praises[0].lyrics).toBeUndefined();
++    });
++
++    it('emits youtube with url and no r2', async () => {
++      const youtube = {
++        id: 'yt1',
++        praise_id: mockPraises[0].id,
++        type: 'youtube',
++        material_kind: null,
++        url: 'https://www.youtube.com/watch?v=abc',
++        r2_key: null,
++      };
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: catalogMockDB({ materials: [youtube] }),
++        ASSETS: createMockR2(),
++      });
++
++      const json = await res.json();
++      expect(json.praises[0].materials).toEqual([
++        { id: 'yt1', kind: null, type: 'youtube', url: 'https://www.youtube.com/watch?v=abc' },
++      ]);
++    });
++
++    it('emits explicit r2 only when the stored r2_key diverges from the derived pattern', async () => {
++      const praiseId = mockPraises[0].id;
++      const conforming = {
++        id: 'm-ok',
++        praise_id: praiseId,
++        type: 'pdf',
++        material_kind: 'k1',
++        url: null,
++        r2_key: `assets/praises/${praiseId}/m-ok.pdf`,
++      };
++      const divergent = {
++        id: 'm-odd',
++        praise_id: praiseId,
++        type: 'audio',
++        material_kind: 'k2',
++        url: null,
++        r2_key: `assets/praises/${praiseId}/m-odd.m4a`,
++      };
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: catalogMockDB({ materials: [conforming, divergent] }),
++        ASSETS: createMockR2(),
++      });
++
++      const json = await res.json();
++      const materials = json.praises[0].materials;
++      expect(materials.find((m: { id: string }) => m.id === 'm-ok').r2).toBeUndefined();
++      expect(materials.find((m: { id: string }) => m.id === 'm-odd').r2).toBe(
++        `assets/praises/${praiseId}/m-odd.m4a`,
++      );
++    });
++
++    it('answers 304 without body when If-None-Match matches', async () => {
++      const env = { DB: catalogMockDB(), ASSETS: createMockR2() };
++      const first = await app.request('/api/plpcg/catalog', {}, env);
++      const etag = first.headers.get('ETag')!;
++
++      const second = await app.request(
++        '/api/plpcg/catalog',
++        { headers: { 'If-None-Match': etag } },
++        env,
++      );
++
++      expect(second.status).toBe(304);
++      expect(second.headers.get('ETag')).toBe(etag);
++      expect(await second.text()).toBe('');
++    });
++
++    it('returns 500 on database error', async () => {
++      const mockDB = {
++        prepare: vi.fn().mockReturnValue({
++          all: vi.fn().mockRejectedValue(new Error('DB Error')),
++          bind: vi.fn().mockReturnValue({
++            all: vi.fn().mockRejectedValue(new Error('DB Error')),
++            first: vi.fn().mockRejectedValue(new Error('DB Error')),
++          }),
++        }),
++      };
++
++      const res = await app.request('/api/plpcg/catalog', {}, {
++        DB: mockDB,
++        ASSETS: createMockR2(),
++      });
++
++      expect(res.status).toBe(500);
++      const json = await res.json();
++      expect(json.error).toBe('Failed to build catalog');
++    });
++  });
++
+   describe('GET /api/praises/filters', () => {
+     it('should return filter options', async () => {
+       const mockDB = {
+diff --git a/api/src/index.ts b/api/src/index.ts
+--- a/api/src/index.ts
++++ b/api/src/index.ts
+@@ -795,6 +795,161 @@ app.get('/api/plpcg/praises', async (c) => {
+   return c.json({ error: 'Failed to fetch praises' }, 500);
+ });
+ 
++type CatalogPraiseRow = {
++  id: string;
++  name: string;
++  number: string;
++  author: string | null;
++  rhythm: string | null;
++  tonality: string | null;
++  category: string | null;
++  lyrics: string | null;
++};
++
++type CatalogMaterialRow = {
++  id: string;
++  praise_id: string;
++  type: string;
++  material_kind: string | null;
++  url: string | null;
++  r2_key: string | null;
++};
++
++type CatalogTagRow = { praise_id: string; name: string };
++
++type PlpcgCatalogMaterial = {
++  id: string;
++  kind: string | null;
++  type: string;
++  url?: string;
++  r2?: string;
++};
++
++/** Extensão do objeto no R2 por `type` — o mesmo mapa que o app usa para derivar o r2_key (O2). */
++const CATALOG_EXT_BY_TYPE: Record<string, string> = {
++  pdf: 'pdf',
++  mp3: 'mp3',
++  audio: 'mp3',
++  chord: 'chord',
++  gestures: 'gestures',
++};
++
++/** r2_key que o app vai reconstruir para este material; `null` quando o tipo não vive no R2 (youtube). */
++export function derivedCatalogR2Key(praiseId: string, materialId: string, type: string): string | null {
++  const ext = CATALOG_EXT_BY_TYPE[type.toLowerCase()];
++  return ext ? `assets/praises/${praiseId}/${materialId}.${ext}` : null;
++}
++
++async function sha256Hex32(text: string): Promise<string> {
++  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
++  return [...new Uint8Array(digest)]
++    .map((b) => b.toString(16).padStart(2, '0'))
++    .join('')
++    .slice(0, 32);
++}
++
++/**
++ * GET /api/plpcg/catalog — dump compacto do catálogo inteiro para o app PLPCG.
++ *
++ * O app guarda tudo em Isar e revalida por ETag: `If-None-Match` igual → 304
++ * sem corpo. O ETag é o hash de `{kinds, praises}` (sem `generatedAt`, que
++ * mudaria a cada chamada). Materiais vão só como `{id, kind, type}` — o
++ * `r2_key` segue `assets/praises/<praiseId>/<materialId>.<ext>` e o app o
++ * reconstrói; quando o `r2_key` gravado foge do padrão, vai em `r2` explícito
++ * para o app não apontar para um objeto inexistente. Sem `size`: a tabela não
++ * tem o tamanho e um HEAD por objeto no R2 é caro demais para um dump.
++ */
++app.get('/api/plpcg/catalog', async (c) => {
++  try {
++    const praisesResult = await c.env.DB.prepare(
++      `SELECT p.id, p.name, p.number, p.author, p.rhythm, p.tonality, p.category, p.lyrics
++       FROM praises p
++       ORDER BY p.number, p.name`,
++    ).all();
++    const materialsResult = await c.env.DB.prepare(
++      `SELECT pm.id, pm.praise_id, pm.type, pm.material_kind, pm.url, pm.r2_key
++       FROM praise_materials pm`,
++    ).all();
++    const tagsResult = await c.env.DB.prepare(
++      `SELECT pt.praise_id, t.name
++       FROM praise_tags pt
++       JOIN tags t ON t.id = pt.tag_id
++       ORDER BY t.name`,
++    ).all();
++    const kindLabels = await loadMaterialKindLabels(c.env.DB);
++
++    const materialsByPraise = new Map<string, PlpcgCatalogMaterial[]>();
++    const kindIds = new Set<string>();
++    for (const row of (materialsResult.results ?? []) as CatalogMaterialRow[]) {
++      const material: PlpcgCatalogMaterial = {
++        id: row.id,
++        kind: row.material_kind ?? null,
++        type: row.type,
++      };
++      if (row.material_kind) kindIds.add(row.material_kind);
++      if (row.url) material.url = row.url;
++      const derived = derivedCatalogR2Key(row.praise_id, row.id, row.type);
++      if (row.r2_key && derived !== null && row.r2_key !== derived) {
++        material.r2 = row.r2_key;
++      }
++      const list = materialsByPraise.get(row.praise_id) ?? [];
++      list.push(material);
++      materialsByPraise.set(row.praise_id, list);
++    }
++
++    const tagsByPraise = new Map<string, string[]>();
++    for (const row of (tagsResult.results ?? []) as CatalogTagRow[]) {
++      const list = tagsByPraise.get(row.praise_id) ?? [];
++      list.push(row.name);
++      tagsByPraise.set(row.praise_id, list);
++    }
++
++    const kinds = [...kindIds]
++      .map((id) => ({ id, name: labelFor(kindLabels, id) }))
++      .sort((a, b) => a.name.localeCompare(b.name));
++
++    const praises = ((praisesResult.results ?? []) as CatalogPraiseRow[]).map((row) => {
++      const praise: Record<string, unknown> = {
++        id: row.id,
++        number: row.number ?? '',
++        name: row.name,
++        author: row.author ?? '',
++        rhythm: row.rhythm ?? '',
++        tonality: row.tonality ?? '',
++        category: row.category ?? '',
++        tags: tagsByPraise.get(row.id) ?? [],
++      };
++      if (typeof row.lyrics === 'string' && row.lyrics.trim().length > 0) {
++        praise.lyrics = row.lyrics;
++      }
++      praise.materials = materialsByPraise.get(row.id) ?? [];
++      return praise;
++    });
++
++    const etag = `"${await sha256Hex32(JSON.stringify({ kinds, praises }))}"`;
++    const headers = {
++      ETag: etag,
++      'Cache-Control': 'public, max-age=300',
++    };
++    if (c.req.header('If-None-Match') === etag) {
++      return new Response(null, { status: 304, headers });
++    }
++
++    const body = JSON.stringify({
++      generatedAt: new Date().toISOString(),
++      kinds,
++      praises,
++    });
++    return new Response(body, {
++      status: 200,
++      headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' },
++    });
++  } catch (error) {
++    console.error('Error building PLPCG catalog:', error);
++    return c.json({ error: 'Failed to build catalog' }, 500);
++  }
++});
++
+ // GET /api/praises/filters - Get filter options
+ app.get('/api/praises/filters', async (c) => {
+   try {
