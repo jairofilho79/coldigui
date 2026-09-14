@@ -23,8 +23,12 @@
  * | `SELECT … FROM user_material_kind_prefs WHERE user_id = ?` | `user_material_kind_prefs` (chave só de `user_id`, não passa por `tableFor`) |
  * | `INSERT INTO user_material_kind_prefs (…) VALUES (…)` | idem |
  * | `UPDATE user_material_kind_prefs SET … WHERE user_id = ?` | idem |
- * | `SELECT username FROM users WHERE google_sub = ?` (via `getUsername`) | `FROM users` + `google_sub = ?` |
+ * | `SELECT username, name FROM users WHERE google_sub = ?` (via `getUsername`/`live/handlers.ts`) | `FROM users` + `google_sub = ?` |
  * | `SELECT google_sub FROM users WHERE username = ?` (rota social) | `FROM users` + `username = ?` |
+ * | `SELECT code FROM live_rooms WHERE owner_sub = ?` (`live/handlers.ts`) | `live_rooms` + `owner_sub = ?` |
+ * | `SELECT code FROM live_rooms WHERE code = ?` | `live_rooms`, sem `owner_sub = ?` |
+ * | `INSERT INTO live_rooms (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `live_rooms` + `INSERT` |
+ * | `UPDATE live_rooms SET code = ? WHERE owner_sub = ? RETURNING code` (regenerar) | `live_rooms` + `UPDATE` |
  * | `SELECT COUNT(*) … FROM short_links WHERE created_by = ? AND created_at >= ?` (teto de abuso, `links/handlers.ts`) | `SELECT COUNT` + `short_links` |
  * | `SELECT code FROM short_links WHERE created_by = ? AND query = ?` (reuso) | `short_links` + `created_by = ?` + `query = ?` |
  * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
@@ -113,6 +117,13 @@ export interface SessionRow {
   expires_at: string;
 }
 
+/** Linha de `live_rooms` (chave `code`; `owner_sub` único). */
+export interface LiveRoomRow {
+  code: string;
+  owner_sub: string;
+  created_at: string;
+}
+
 /** O que as duas tabelas têm em comum para o fake: chave e LWW. */
 interface StoredRow {
   id: string;
@@ -124,7 +135,7 @@ interface StoredRow {
 
 export interface FakeD1Options {
   /** Linhas de `users` (a rota social resolve `username` → `google_sub`). */
-  users?: Array<{ google_sub: string; username: string }>;
+  users?: Array<{ google_sub: string; username: string; name?: string }>;
   /** Linhas de `user_audio_flags`. */
   audioFlags?: AudioFlagRow[];
   /** Linhas de `short_links`. */
@@ -133,6 +144,8 @@ export interface FakeD1Options {
   materialKindPrefs?: MaterialKindPrefsRow[];
   /** Linhas de `user_sessions`. */
   sessions?: SessionRow[];
+  /** Linhas de `live_rooms`. */
+  liveRooms?: LiveRoomRow[];
 }
 
 function key(userId: string, id: string): string {
@@ -283,6 +296,10 @@ export class FakeD1Database {
   readonly materialKindPrefs = new Map<string, MaterialKindPrefsRow>();
   /** Linhas de `user_sessions`, por `token_hash`. */
   readonly sessions = new Map<string, SessionRow>();
+  /** `user_id` → `name`, para o `ownerNameOf` da Lista ao Vivo. */
+  readonly userNames = new Map<string, string>();
+  /** Linhas de `live_rooms`, por `code`. */
+  readonly liveRooms = new Map<string, LiveRoomRow>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
   readonly executed: string[] = [];
 
@@ -294,9 +311,11 @@ export class FakeD1Database {
       this.materialKindPrefs.set(row.user_id, row);
     }
     for (const row of options.sessions ?? []) this.sessions.set(row.token_hash, row);
+    for (const row of options.liveRooms ?? []) this.liveRooms.set(row.code, row);
     for (const user of options.users ?? []) {
       this.usernames.set(user.google_sub, user.username);
       this.usersByUsername.set(user.username, user.google_sub);
+      if (user.name) this.userNames.set(user.google_sub, user.name);
     }
   }
 
@@ -346,6 +365,11 @@ export class FakeD1Database {
     // `user_sessions` tem chave `token_hash` e é a única tabela com DELETE.
     if (/user_sessions/i.test(normalized)) {
       return this.runUserSessions(normalized, bindings);
+    }
+
+    // `live_rooms` tem chave `code` e índice único `owner_sub`.
+    if (/live_rooms/i.test(normalized)) {
+      return this.runLiveRooms(normalized, bindings);
     }
 
     if (/^SELECT/i.test(normalized)) {
@@ -518,8 +542,55 @@ export class FakeD1Database {
       const googleSub = this.usersByUsername.get(bindings[0] as string);
       return googleSub === undefined ? [] : [{ google_sub: googleSub }];
     }
-    const username = this.usernames.get(bindings[0] as string);
-    return username === undefined ? [] : [{ username }];
+    const sub = bindings[0] as string;
+    const username = this.usernames.get(sub);
+    if (username === undefined) return [];
+    return [{ username, name: this.userNames.get(sub) ?? null }];
+  }
+
+  /**
+   * `live_rooms` (`live/handlers.ts`): SELECT por `owner_sub` ou por `code`,
+   * INSERT com `ON CONFLICT DO NOTHING RETURNING code` (colisão de código ou
+   * dono que já tem sala) e UPDATE do `code` por `owner_sub` (regenerar).
+   */
+  private runLiveRooms(normalized: string, bindings: unknown[]): unknown[] {
+    if (/^SELECT/i.test(normalized)) {
+      if (/owner_sub = \?/i.test(normalized)) {
+        for (const row of this.liveRooms.values()) {
+          if (row.owner_sub === bindings[0]) return [row];
+        }
+        return [];
+      }
+      const row = this.liveRooms.get(bindings[0] as string);
+      return row ? [row] : [];
+    }
+    if (/^INSERT INTO/i.test(normalized)) {
+      const { columns, values } = insertPlan(normalized);
+      const cursor = { next: 0 };
+      const row = {} as Record<string, unknown>;
+      columns.forEach((column, i) => {
+        row[column] = resolveToken(values[i], bindings, cursor, undefined);
+      });
+      const built = row as unknown as LiveRoomRow;
+      if (this.liveRooms.has(built.code)) return [];
+      for (const existing of this.liveRooms.values()) {
+        if (existing.owner_sub === built.owner_sub) return [];
+      }
+      this.liveRooms.set(built.code, built);
+      return [{ code: built.code }];
+    }
+    if (/^UPDATE/i.test(normalized)) {
+      const ownerSub = bindings[bindings.length - 1] as string;
+      const newCode = bindings[0] as string;
+      for (const [code, row] of this.liveRooms) {
+        if (row.owner_sub !== ownerSub) continue;
+        this.liveRooms.delete(code);
+        this.liveRooms.set(newCode, { ...row, code: newCode });
+        return [{ code: newCode }];
+      }
+      return [];
+    }
+    throw new Error(`fake D1: live_rooms não suportado: ${normalized}`);
   }
 
   /**

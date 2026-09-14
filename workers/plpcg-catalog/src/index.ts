@@ -32,6 +32,7 @@ import {
   shortLinkCodeFromPath,
 } from './links/handlers';
 import { isShortCode } from './short_code.ts';
+import { ensureLiveRoom, liveRoomRedirect, regenerateLiveRoom } from './live/handlers.ts';
 export { LiveRoom } from './live/live_room.ts';
 import { proxyColdigomAsset } from './coldigom_assets_proxy';
 import { matchesEtag } from './etag';
@@ -471,6 +472,13 @@ async function handleLive(request: Request, env: Env, pathname: string): Promise
     const stub = env.LIVE.get(env.LIVE.idFromName(wsCode));
     return stub.fetch(request);
   }
+  if (pathname === '/api/live/room' || pathname === '/api/live/room/regenerate') {
+    if (request.method !== 'POST') {
+      return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+    }
+    const handler = pathname.endsWith('/regenerate') ? regenerateLiveRoom : ensureLiveRoom;
+    return withAuth(request, env, (_req, e, claims) => handler(e.DB, (e as Env).LIVE, claims));
+  }
   return jsonResponse({ error: 'not found' }, { status: 404 });
 }
 
@@ -568,6 +576,13 @@ export default {
         request,
         'links',
       );
+    }
+
+    if (url.pathname.startsWith('/ao-vivo/')) {
+      if (request.method !== 'GET') {
+        return withCors(jsonResponse({ error: 'method not allowed' }, { status: 405 }), request, 'live');
+      }
+      return withCors(liveRoomRedirect(url.pathname), request, 'live');
     }
 
     if (request.method !== 'GET') {
