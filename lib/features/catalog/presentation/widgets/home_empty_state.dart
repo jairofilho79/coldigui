@@ -95,6 +95,12 @@ CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
       youtube.classificacao,
       youtube.source,
     ),
+    LyricsMaterial(:final numero, :final nome) => (
+      numero,
+      nome,
+      '',
+      LouvorDataSource.coldigom,
+    ),
   };
   return CarouselItem(
     materialId: material.id,
@@ -138,9 +144,7 @@ class _NoQueryContent extends ConsumerWidget {
                 children: [
                   Text(
                     l10n.homeEmptyRecent,
-                    style: AppTypography.label.copyWith(
-                      color: AppColors.title,
-                    ),
+                    style: AppTypography.label.copyWith(color: AppColors.title),
                   ),
                   const SizedBox(height: 8),
                   // «Janela deslizante» (C6): rolagem horizontal em vez de

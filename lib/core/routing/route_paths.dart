@@ -45,4 +45,7 @@ abstract final class RoutePaths {
 
   /// Material kinds favoritos ([FavoriteMaterialKindsScreen]) — branch Perfil.
   static const String favoriteMaterialKinds = '/materiais-favoritos';
+
+  /// Leitor de letra Coldigom ([LyricsReaderScreen]) — irmã de [chords], branch Home.
+  static const String lyrics = '/letra';
 }

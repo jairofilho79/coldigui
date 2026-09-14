@@ -11,6 +11,7 @@ import '../entities/louvor_group.dart';
 /// - [MaterialKind.gesture] → [Icons.pan_tool_outlined]
 /// - [MaterialKind.audio] → [audio]
 /// - [MaterialKind.youtube] → [youtube]
+/// - [MaterialKind.lyrics] → [Icons.subject]
 /// - demais → [Icons.piano] (Partitura e fallback)
 ///
 /// O manifest só traz a `categoria` como texto livre, então [kindForCategory]
@@ -25,6 +26,7 @@ abstract final class LouvorMaterialIcons {
       MaterialKind.gesture => Icons.pan_tool_outlined,
       MaterialKind.audio => audio,
       MaterialKind.youtube => youtube,
+      MaterialKind.lyrics => Icons.subject,
       MaterialKind.pdf || MaterialKind.unknown => Icons.piano,
     };
   }
@@ -64,7 +66,8 @@ abstract final class LouvorMaterialIcons {
       ChordMaterialRef() ||
       GestureMaterialRef() ||
       AudioMaterial() ||
-      YoutubeMaterialRef() => forKind(material.kind),
+      YoutubeMaterialRef() ||
+      LyricsMaterial() => forKind(material.kind),
     };
   }
 

@@ -1,6 +1,7 @@
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
@@ -163,6 +164,23 @@ abstract final class ColdigomLouvorAdapter {
       );
     }
     return items;
+  }
+
+  /// Letra do praise como material sintético — `null` quando não há texto.
+  ///
+  /// O texto não está no [PraiseDetailDto] (a página de busca nunca o
+  /// traz); quem tem a linha do Isar passa-o aqui.
+  static LyricsMaterial? toLyricsMaterial(
+    PraiseDetailDto praise,
+    String lyrics,
+  ) {
+    if (lyrics.trim().isEmpty) return null;
+    return LyricsMaterial(
+      praiseId: praise.id,
+      nome: praise.name,
+      numero: praise.number,
+      text: lyrics,
+    );
   }
 
   static String _basename(String path) {

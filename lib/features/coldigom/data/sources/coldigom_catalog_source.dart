@@ -118,6 +118,10 @@ class ColdigomCatalogSource implements CatalogSource {
         return gesture == null ? null : GestureMaterialRef(gesture);
       // YouTube não vive no espaço de ids do app (o id vem do Worker).
       case MaterialKind.youtube:
+      // Letra não tem cache neste source (o texto só vive no Isar, O6) —
+      // quem resolve `lyrics:<praiseId>` é a camada offline, não este mapa
+      // em memória.
+      case MaterialKind.lyrics:
       case MaterialKind.unknown:
         return null;
     }

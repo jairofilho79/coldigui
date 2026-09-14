@@ -358,10 +358,10 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                       ),
                   ],
                   // `kinds` só emite os cinco acima; se um dia emitir outro,
-                  // que falhe alto em vez de mostrar uma aba vazia.
-                  MaterialKind.unknown => throw StateError(
-                    'kind sem aba: $selectedKind',
-                  ),
+                  // que falhe alto em vez de mostrar uma aba vazia. Letra
+                  // ainda não tem aba própria — chega na Task 11.
+                  MaterialKind.lyrics || MaterialKind.unknown =>
+                    throw StateError('kind sem aba: $selectedKind'),
                 },
               ),
             ),
@@ -451,6 +451,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       MaterialKind.gesture => l10n.gesturesMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
+      MaterialKind.lyrics ||
       MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
     };
   }

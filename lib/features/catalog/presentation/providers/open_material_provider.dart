@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/platform/platform_capabilities.dart';
@@ -13,6 +14,7 @@ import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/utils/open_chord_in_reader.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../gestures/presentation/utils/open_gesture_in_reader.dart';
+import '../../../lyrics/presentation/utils/lyrics_reader_url_builder.dart';
 import '../../../offline/domain/exceptions/pdf_resolve_exceptions.dart';
 import '../../../offline/presentation/utils/pdf_offline_error_ui.dart';
 import '../../domain/entities/catalog_material.dart';
@@ -28,41 +30,37 @@ import 'material_open_failure.dart';
 export 'material_open_failure.dart';
 
 /// Abre um PDF no leitor interno (`openLouvorInReader` em produção).
-typedef PdfMaterialOpener =
-    Future<void> Function({
-      required WidgetRef ref,
-      required BuildContext context,
-      required Louvor louvor,
-    });
+typedef PdfMaterialOpener = Future<void> Function({
+  required WidgetRef ref,
+  required BuildContext context,
+  required Louvor louvor,
+});
 
 /// Abre uma cifra em `/cifra` (`openChordInReader` em produção).
-typedef ChordMaterialOpener =
-    Future<void> Function({
-      required WidgetRef ref,
-      required BuildContext context,
-      required ChordMaterial chord,
-    });
+typedef ChordMaterialOpener = Future<void> Function({
+  required WidgetRef ref,
+  required BuildContext context,
+  required ChordMaterial chord,
+});
 
 /// Abre um documento de gestos em `/gestos` (`openGestureInReader` em produção).
-typedef GestureMaterialOpener =
-    Future<void> Function({
-      required WidgetRef ref,
-      required BuildContext context,
-      required GestureMaterial gesture,
-    });
+typedef GestureMaterialOpener = Future<void> Function({
+  required WidgetRef ref,
+  required BuildContext context,
+  required GestureMaterial gesture,
+});
 
 /// Toca uma faixa e abre `/audio` (`openAudioInPlayer` em produção).
 ///
 /// [queue] é a fila em que a faixa toca — quem tem o grupo (o sheet de
 /// materiais) passa `group.audioTracks` para o playback não parar no fim do
 /// primeiro arranjo. Sem fila, toca só a faixa.
-typedef AudioMaterialOpener =
-    Future<void> Function({
-      required WidgetRef ref,
-      required BuildContext context,
-      required AudioTrack track,
-      List<AudioTrack>? queue,
-    });
+typedef AudioMaterialOpener = Future<void> Function({
+  required WidgetRef ref,
+  required BuildContext context,
+  required AudioTrack track,
+  List<AudioTrack>? queue,
+});
 
 /// Abre o YouTube externo; `false` quando a URL é inválida ou o launch falha.
 ///
@@ -70,11 +68,31 @@ typedef AudioMaterialOpener =
 /// (ref-bearing) e passada para dentro — o opener de produção
 /// (`openYoutubeMaterial`) não lê o provider nem `currentPlatformCapabilities`
 /// direto (T2, Global Constraint).
-typedef YoutubeMaterialOpener =
-    Future<bool> Function(
-      YoutubeMaterial material, {
-      required PlatformCapabilities capabilities,
-    });
+typedef YoutubeMaterialOpener = Future<bool> Function(
+  YoutubeMaterial material, {
+  required PlatformCapabilities capabilities,
+});
+
+/// Abre a letra em `/letra` (`openLyricsInReader` em produção).
+typedef LyricsMaterialOpener = Future<void> Function({
+  required BuildContext context,
+  required LyricsMaterial lyrics,
+});
+
+/// Abertura padrão da letra: só navegação — o texto já está no Isar e a
+/// letra não entra na lista ativa (O6).
+Future<void> openLyricsInReader({
+  required BuildContext context,
+  required LyricsMaterial lyrics,
+}) async {
+  await context.push(
+    buildLyricsReaderLocation(
+      praiseId: lyrics.praiseId,
+      titulo: lyrics.nome,
+      subtitulo: lyrics.numero,
+    ),
+  );
+}
 
 /// Ponto único de abertura de material do app.
 ///
@@ -91,6 +109,7 @@ class OpenMaterial {
     this.openGesture = openGestureInReader,
     this.openAudio = openAudioInPlayer,
     this.openYoutube = openYoutubeMaterial,
+    this.openLyrics = openLyricsInReader,
   });
 
   final PdfMaterialOpener openPdf;
@@ -98,6 +117,7 @@ class OpenMaterial {
   final GestureMaterialOpener openGesture;
   final AudioMaterialOpener openAudio;
   final YoutubeMaterialOpener openYoutube;
+  final LyricsMaterialOpener openLyrics;
 
   /// Abre [material] pelo caminho do seu [CatalogMaterial.kind].
   ///
@@ -151,6 +171,8 @@ class OpenMaterial {
               l10n?.youtubeOpenError ?? 'Não foi possível abrir o YouTube',
             );
           }
+        case LyricsMaterial():
+          await openLyrics(context: context, lyrics: material);
       }
     } on Object catch (error) {
       if (context.mounted) presentMaterialOpenError(context, l10n, error);
