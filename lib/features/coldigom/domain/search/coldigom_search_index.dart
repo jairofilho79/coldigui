@@ -30,16 +30,20 @@ final class ColdigomIndexedPraise {
         .split(' ')
         .where((t) => t.isNotEmpty)
         .toList(growable: false);
+    final titleCompact = LouvorSearchTokens.compact(nome);
     return ColdigomIndexedPraise._(
       praiseId: praiseId,
       numero: numero.trim(),
       numeroNorm: LouvorNumeroNormalizer.normalize(numero),
       titleNorm: LouvorSearchTokens.normalize(nome),
-      titleCompact: LouvorSearchTokens.compact(nome),
+      titleCompact: titleCompact,
       contentTokens: tokens,
-      // Compacto de tudo o que é pesquisável — é o que permite
-      // `aindaha` → «Ainda há tempo», como no PLPCG.
-      compactContent: tokens.join(),
+      // Compacto só do título — igual a `Louvor.searchCompactContent` no
+      // PLPCG (sempre `compact(nome)`, com stop words mantidas). Não é o
+      // compacto de `tokens` (nome+autor+tags+número): isso criaria pontes
+      // falsas entre campos, ex. praise "São João" de "Autor Dois" casaria
+      // a query compacta "joaoau", que não existe em nenhum campo isolado.
+      compactContent: titleCompact,
       group: group,
     );
   }
@@ -50,6 +54,10 @@ final class ColdigomIndexedPraise {
   final String titleNorm;
   final String titleCompact;
   final List<String> contentTokens;
+
+  /// Igual a [titleCompact] — duplicado só para bater a assinatura genérica
+  /// de [LouvorSearchTokens.matchesText] (que no PLPCG recebe
+  /// `searchCompactContent`, também compacto só do título).
   final String compactContent;
   final LouvorGroup group;
 }
@@ -90,21 +98,32 @@ final class ColdigomSearchIndex {
     if (trimmed.isEmpty || entries.isEmpty) return const [];
 
     final numeroQuery = LouvorNumeroNormalizer.normalize(trimmed);
+    bool matchesNumero(ColdigomIndexedPraise entry) =>
+        entry.numero == trimmed ||
+        (numeroQuery.isNotEmpty && entry.numeroNorm == numeroQuery);
+
+    final queryTokens = LouvorSearchTokens.tokenize(trimmed);
+    // Sem tokens de título (query só com stop words/pontuação) — igual a
+    // `SearchLouvorByNumberOrText._rankByTitle`: só sobra o número exato.
+    if (queryTokens.isEmpty) {
+      return [
+        for (final entry in entries)
+          if (matchesNumero(entry)) entry.group,
+      ];
+    }
+
     final queryNorm = LouvorSearchTokens.normalize(trimmed);
     final queryCompact = LouvorSearchTokens.compact(trimmed);
-    final queryTokens = LouvorSearchTokens.tokenize(trimmed);
 
     final exactNumber = <LouvorGroup>[];
     final exactTitle = <LouvorGroup>[];
     final partial = <LouvorGroup>[];
 
     for (final entry in entries) {
-      if (entry.numero == trimmed ||
-          (numeroQuery.isNotEmpty && entry.numeroNorm == numeroQuery)) {
+      if (matchesNumero(entry)) {
         exactNumber.add(entry.group);
         continue;
       }
-      if (queryTokens.isEmpty) continue;
       if (entry.titleNorm == queryNorm ||
           (queryCompact.length >= 3 && entry.titleCompact == queryCompact)) {
         exactTitle.add(entry.group);

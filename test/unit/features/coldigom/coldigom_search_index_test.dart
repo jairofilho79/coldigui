@@ -78,4 +78,26 @@ void main() {
     final all = ids('a');
     expect(all.toSet().length, all.length);
   });
+
+  // Fix round 1 — `compactContent` é só o compacto do título (como
+  // `Louvor.searchCompactContent` no PLPCG), não o compacto de todos os
+  // tokens pesquisáveis (nome+autor+tags+número).
+  test('compactContent não cria ponte entre nome e autor', () {
+    // p3 é "São João" de "Autor Dois": se compactContent fosse o compacto de
+    // todos os tokens, "saojoao" + "autor" + "dois" + "100" concatenados
+    // conteriam "joaoau" (fim de "joao" + início de "autor") — falso
+    // positivo. Compacto só do título ("saojoao") não contém "joaoau".
+    expect(ids('joaoau'), isEmpty);
+  });
+
+  test('compactContent mantém stop words do título, como o PLPCG', () {
+    // "A Ti, Senhor" → compacto do título é "atisenhor" (a vírgula e os
+    // espaços são separadores removidos por `compact`, mas o "a" inicial —
+    // stop word — fica, porque `compact` normaliza o texto inteiro sem
+    // tokenizar). Igual a `Louvor.searchCompactContent` no PLPCG.
+    final localIndex = ColdigomSearchIndex.build([
+      _entry('b1', '200', 'A Ti, Senhor'),
+    ]);
+    expect(localIndex.search('atisenh').map((g) => g.groupId).toList(), ['b1']);
+  });
 }
