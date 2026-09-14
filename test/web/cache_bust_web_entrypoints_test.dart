@@ -88,6 +88,41 @@ void main() {
     );
   });
 
+  test('tag muda quando um byte qualquer do shell muda (não só os dois entrypoints)', () async {
+    final first = await runScript();
+    expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
+    final tagV1 = readVersion()['web_cache_tag'] as String;
+
+    webDir.deleteSync(recursive: true);
+    webDir.createSync();
+    writeFixtureWebBuild(webDir);
+    // Um ícone, não os entrypoints que o hash antigo olhava: prova que a
+    // tag cobre a árvore inteira (Important 2 da revisão final).
+    writeWebFile(webDir, 'icons/Icon-192.png', 'png v2');
+
+    final second = await runScript();
+    expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
+    final tagV2 = readVersion()['web_cache_tag'] as String;
+
+    expect(tagV2, isNot(tagV1));
+  });
+
+  test('árvore idêntica produz sempre a mesma tag', () async {
+    final first = await runScript();
+    expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
+    final tagV1 = readVersion()['web_cache_tag'] as String;
+
+    webDir.deleteSync(recursive: true);
+    webDir.createSync();
+    writeFixtureWebBuild(webDir);
+
+    final second = await runScript();
+    expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
+    final tagV2 = readVersion()['web_cache_tag'] as String;
+
+    expect(tagV2, tagV1);
+  });
+
   test(
     'mantém o cache-bust já existente dos entrypoints e do MaterialIcons',
     () async {

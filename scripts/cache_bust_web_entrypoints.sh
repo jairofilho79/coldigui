@@ -26,8 +26,19 @@ for f in "$INDEX" "$BOOTSTRAP" "$WEB_DIR/main.dart.js" "$WEB_DIR/main.dart.wasm"
 done
 test -f "$CANVASKIT_DIR/skwasm.js"
 
+# Hash de todo o build/web tal como sai do `flutter build` (antes de qualquer
+# reescrita daqui para baixo), exceto o que o próprio pipeline gera/reescreve
+# depois (sw.js, version.json, _headers/_redirects, .last_build_id,
+# flutter_service_worker.js): qualquer byte do shell que mude num deploy muda
+# a tag, mesmo sem tocar em main.dart.js/flutter_bootstrap.js.
 TAG="$(
-  shasum -a 256 "$WEB_DIR/main.dart.js" "$BOOTSTRAP" \
+  cd "$WEB_DIR" \
+    && find . -type f \
+         ! -name 'sw.js' ! -name 'version.json' \
+         ! -name '_headers' ! -name '_redirects' \
+         ! -name '.last_build_id' ! -name 'flutter_service_worker.js' \
+    | LC_ALL=C sort \
+    | xargs shasum -a 256 \
     | shasum -a 256 \
     | cut -c1-12
 )"
