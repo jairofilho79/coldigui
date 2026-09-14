@@ -28,7 +28,7 @@
  * | `SELECT code FROM live_rooms WHERE owner_sub = ?` (`live/handlers.ts`) | `live_rooms` + `owner_sub = ?` |
  * | `SELECT code FROM live_rooms WHERE code = ?` | `live_rooms`, sem `owner_sub = ?` |
  * | `INSERT INTO live_rooms (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `live_rooms` + `INSERT` |
- * | `UPDATE live_rooms SET code = ? WHERE owner_sub = ? RETURNING code` (regenerar) | `live_rooms` + `UPDATE` |
+ * | `UPDATE live_rooms SET code = ? WHERE owner_sub = ? RETURNING code` (regenerar; lança se o novo `code` já é de outra sala, como o D1 real) | `live_rooms` + `UPDATE` |
  * | `SELECT COUNT(*) … FROM short_links WHERE created_by = ? AND created_at >= ?` (teto de abuso, `links/handlers.ts`) | `SELECT COUNT` + `short_links` |
  * | `SELECT code FROM short_links WHERE created_by = ? AND query = ?` (reuso) | `short_links` + `created_by = ?` + `query = ?` |
  * | `SELECT … FROM short_links WHERE code = ?` (`GET /l/:code`) | `short_links` + `WHERE code = ?` |
@@ -551,7 +551,9 @@ export class FakeD1Database {
   /**
    * `live_rooms` (`live/handlers.ts`): SELECT por `owner_sub` ou por `code`,
    * INSERT com `ON CONFLICT DO NOTHING RETURNING code` (colisão de código ou
-   * dono que já tem sala) e UPDATE do `code` por `owner_sub` (regenerar).
+   * dono que já tem sala) e UPDATE do `code` por `owner_sub` (regenerar; lança
+   * em vez de devolver 0 linhas quando o novo `code` já é de outra sala, como
+   * o D1 real faz na violação de `PRIMARY KEY`).
    */
   private runLiveRooms(normalized: string, bindings: unknown[]): unknown[] {
     if (/^SELECT/i.test(normalized)) {
@@ -584,6 +586,12 @@ export class FakeD1Database {
       const newCode = bindings[0] as string;
       for (const [code, row] of this.liveRooms) {
         if (row.owner_sub !== ownerSub) continue;
+        // `code` é `PRIMARY KEY`: se o novo código já é de outra sala, o D1
+        // real lança em vez de devolver 0 linhas — o fake espelha isso em vez
+        // de silenciosamente sobrescrever a linha da outra sala.
+        if (newCode !== code && this.liveRooms.has(newCode)) {
+          throw new Error('fake D1: UNIQUE constraint failed: live_rooms.code');
+        }
         this.liveRooms.delete(code);
         this.liveRooms.set(newCode, { ...row, code: newCode });
         return [{ code: newCode }];

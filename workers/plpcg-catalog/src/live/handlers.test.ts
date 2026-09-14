@@ -65,6 +65,43 @@ test('regenerateLiveRoom troca o código, aposenta o DO antigo e inicializa o no
   assert.deepEqual(calls.map((c) => [c.name, c.url]), [['aaaaaaa', 'https://live/retire'], [json.code, 'https://live/init']]);
 });
 
+/**
+ * Faz o *primeiro* `UPDATE live_rooms` (o `RETURNING code` da regeneração)
+ * lançar, como o D1 real faz na colisão de `PRIMARY KEY` — os demais SQLs, e
+ * os `UPDATE live_rooms` seguintes, seguem para o `FakeD1Database` normal.
+ * Mesmo padrão do `RacingFakeD1Database` em `links/handlers.test.ts`.
+ */
+class UpdateCollisionOnceFakeD1Database extends FakeD1Database {
+  updateAttempts = 0;
+
+  override runQuery(sql: string, bindings: unknown[]): unknown[] {
+    const normalized = sql.replace(/\s+/g, ' ').trim();
+    if (/^UPDATE live_rooms/i.test(normalized)) {
+      this.updateAttempts++;
+      if (this.updateAttempts === 1) {
+        throw new Error('fake D1: UNIQUE constraint failed: live_rooms.code');
+      }
+    }
+    return super.runQuery(sql, bindings);
+  }
+}
+
+test('regenerateLiveRoom tenta de novo quando o novo código colide (UNIQUE em live_rooms.code)', async () => {
+  const db = new UpdateCollisionOnceFakeD1Database([], {
+    users: [{ google_sub: 'u1', username: 'fulano' }],
+    liveRooms: [{ code: 'aaaaaaa', owner_sub: 'u1', created_at: '2026-09-14T00:00:00.000Z' }],
+  });
+  const { live, calls } = fakeLive();
+  const response = await regenerateLiveRoom(db as never, live, claims);
+  assert.equal(response.status, 200);
+  const json = (await response.json()) as { code: string };
+  assert.notEqual(json.code, 'aaaaaaa');
+  assert.equal(db.updateAttempts, 2);
+  assert.equal(db.liveRooms.size, 1);
+  assert.equal(db.liveRooms.get(json.code)?.owner_sub, 'u1');
+  assert.deepEqual(calls.map((c) => [c.name, c.url]), [['aaaaaaa', 'https://live/retire'], [json.code, 'https://live/init']]);
+});
+
 test('regenerateLiveRoom sem sala existente cria uma (equivale a ensure)', async () => {
   const db = new FakeD1Database([], { users: [{ google_sub: 'u1', username: 'fulano' }] });
   const { live, calls } = fakeLive();

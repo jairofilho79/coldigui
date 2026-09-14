@@ -1,4 +1,3 @@
-// workers/plpcg-catalog/src/live/handlers.ts
 /**
  * Rotas HTTP da Lista ao Vivo (spec 2026-09-12-lista-ao-vivo, §4.1).
  *
