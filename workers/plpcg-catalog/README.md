@@ -28,6 +28,19 @@ Todas as rotas com Bearer aceitam `sess_…` (sessão do Worker, `user_sessions`
 Setup OAuth: [docs/GOOGLE_OAUTH_SETUP.md](../../docs/GOOGLE_OAUTH_SETUP.md).
 Spec sync: [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](../../docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md).
 
+## Lista ao Vivo (Durable Object `LiveRoom`)
+
+| Rota | Auth | O quê |
+|---|---|---|
+| `POST /api/live/room` | Bearer | Cria-ou-devolve a sala permanente do usuário: `{ code, url, ownerName }` |
+| `POST /api/live/room/regenerate` | Bearer | Novo código; quem tinha o antigo recebe `ended{retired}` e `4003` |
+| `GET /api/live/:code/ws` | — (papel no `hello`) | Upgrade WebSocket, encaminhado ao DO `LIVE.idFromName(code)` |
+| `GET /ao-vivo/:code` | — | `302 https://plpcg.com/?live=<code>` |
+
+Protocolo e regras: `docs/superpowers/specs/2026-09-12-lista-ao-vivo-design.md` §5 (Fase 1: `hello`, `start`, `set`, `end` → `room`, `snapshot`, `presence`, `ack`, `ended`, `error`). A lógica está em `src/live/room_core.ts` (testada com fakes); `src/live/live_room.ts` é a casca do DO. As rotas HTTP estão em `src/live/handlers.ts`, e a autenticação do token `hello` (`sess_…` ou Google JWT) é resolvida em `src/live/authenticate_token.ts`.
+
+Deploy: `npm run db:migrate:remote` (migration `0013_create_live_rooms.sql`) **antes** de `npm run deploy` — o primeiro deploy aplica a migration `live-v1` (`new_sqlite_classes`) do wrangler. Verificar binding com `npx wrangler deploy --dry-run` listando `LIVE` → `LiveRoom`. Um deploy fecha todos os WebSockets abertos; os clientes religam sozinhos com jitter.
+
 ## Setup local
 
 ```bash
