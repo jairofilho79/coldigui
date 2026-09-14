@@ -256,13 +256,17 @@ class _EntryRow extends StatelessWidget {
 
 /// Rodapé com QR do link curto (spec short-id-share D10). Só existe quando
 /// [LeafletDocument.shareUrl] veio preenchido — link longo não vira QR.
+///
+/// QR de 96 pt — legível em foto de tela e não domina o folheto.
 class _ShareQrBand extends StatelessWidget {
   const _ShareQrBand({required this.shareUrl, required this.labels});
 
   final String shareUrl;
   final LeafletContentLabels labels;
 
-  static const _qrSize = 132.0;
+  static const _qrSize = 96.0;
+  static const _qrBoxPadding = 6.0;
+  static const _qrBandInsetV = 12.0;
 
   /// Link sem esquema e sem o `&n=…` (nome já impresso no folheto) — só
   /// origem + `s`, para caber numa linha legível sob o QR
@@ -281,7 +285,7 @@ class _ShareQrBand extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: LeafletContent._insetH,
-        vertical: LeafletContent._footerInsetV,
+        vertical: _qrBandInsetV,
       ),
       decoration: LeafletContent._sectionDivider.copyWith(
         color: AppColors.background,
@@ -289,7 +293,7 @@ class _ShareQrBand extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(_qrBoxPadding),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(LeafletContent._borderRadius),
@@ -308,7 +312,7 @@ class _ShareQrBand extends StatelessWidget {
               semanticsLabel: shareUrl,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             labels.shareQrCaption,
             textAlign: TextAlign.center,
