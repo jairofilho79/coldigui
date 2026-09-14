@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/platform/platform_capabilities_provider.dart';
+import '../../../../core/providers/device_connectivity_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../offline/data/providers/offline_audio_providers.dart';
 import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../data/audio_media_session.dart';
 import '../../data/audio_player_web_providers.dart';
@@ -32,6 +34,7 @@ class AudioPlayerSessionState {
     this.errorMessage,
     this.restoredWithoutPlayback = false,
     this.speed = 1.0,
+    this.notDownloaded = false,
   });
 
   final List<AudioTrack> queue;
@@ -39,6 +42,11 @@ class AudioPlayerSessionState {
   final bool playing;
   final bool buffering;
   final String? errorMessage;
+
+  /// `true` quando a última carga falhou porque a faixa não está no
+  /// aparelho e não há rede — a tela troca a mensagem genérica por
+  /// `audioNotDownloaded`.
+  final bool notDownloaded;
 
   /// Velocidade de reprodução (`0.75`, `1.0`, `1.25`, `1.5` na UI) — C12.
   /// Reaplicada em [AudioPlayerSessionNotifier._applyQueue] porque trocar de
@@ -71,6 +79,7 @@ class AudioPlayerSessionState {
     bool clearError = false,
     bool? restoredWithoutPlayback,
     double? speed,
+    bool? notDownloaded,
   }) {
     return AudioPlayerSessionState(
       queue: queue ?? this.queue,
@@ -81,6 +90,7 @@ class AudioPlayerSessionState {
       restoredWithoutPlayback:
           restoredWithoutPlayback ?? this.restoredWithoutPlayback,
       speed: speed ?? this.speed,
+      notDownloaded: clearError ? false : (notDownloaded ?? this.notDownloaded),
     );
   }
 }
@@ -165,6 +175,17 @@ const audioBufferingTimeout = Duration(seconds: 20);
 final audioPlaybackPositionStoreProvider = Provider<AudioPlaybackPositionStore>(
   (ref) => AudioPlaybackPositionStore(ref.watch(sharedPreferencesProvider)),
 );
+
+/// A faixa não está no aparelho e não há rede — não é falha de rede
+/// genérica, é «baixe primeiro» (spec offline Coldigom §5.1).
+class AudioNotDownloadedException implements Exception {
+  const AudioNotDownloadedException(this.audioId);
+
+  final String audioId;
+
+  @override
+  String toString() => 'AudioNotDownloadedException($audioId)';
+}
 
 /// Sessão única de áudio — fonte de verdade para page e playlist face.
 class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
@@ -447,8 +468,30 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _mediaSessionAttached = true;
   }
 
+  /// Aparelho primeiro (O7): índice de áudio → `Uri.file` no nativo, bytes da
+  /// Cache API → blob URL na web. Miss com rede → URL de rede (HTTP + CORP +
+  /// crossOrigin; blob: com anonymous falha no Chrome/Safari). Miss sem rede
+  /// → [AudioNotDownloadedException], para a tela dizer «baixe primeiro» em
+  /// vez do erro genérico do player.
   Future<Uri> _playbackUriForTrack(AudioTrack track) async {
-    // HTTP + CORP + crossOrigin. blob: com anonymous falha no Chrome/Safari.
+    final local = await ref
+        .read(offlineAudioRepositoryProvider)
+        .lookup(track.audioId);
+    if (local != null) {
+      if (!ref.read(platformCapabilitiesProvider).isWeb) {
+        return Uri.file(local.storageKey);
+      }
+      final bytes = await ref
+          .read(audioStoragePortProvider)
+          .readBytes(local.storageKey);
+      final blob = bytes == null
+          ? null
+          : _sourceResolver?.resolveFromBytes(track.audioId, bytes);
+      if (blob != null) return blob;
+    }
+    if (!await ref.read(deviceConnectivityProvider).hasConnection()) {
+      throw AudioNotDownloadedException(track.audioId);
+    }
     return Uri.parse(AudioTrackUrl.fetchUrlForTrack(track));
   }
 
@@ -594,6 +637,14 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       if (autoplay) {
         await player.play();
       }
+    } on AudioNotDownloadedException catch (e) {
+      if (gen != _generation) return;
+      debugPrint('[audio] faixa não baixada e sem rede: ${e.audioId}');
+      state = state.copyWith(
+        errorMessage: e.toString(),
+        notDownloaded: true,
+        playing: false,
+      );
     } on Object catch (e) {
       // Chamada superada: quem venceu já cuidou do estado (e um
       // `PlayerInterruptedException` daqui é justamente o esperado).

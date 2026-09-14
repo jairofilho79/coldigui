@@ -3,8 +3,10 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart';
 
-typedef FetchAudioBytesFn =
-    Future<List<int>> Function(String url, {String? fallbackUrl});
+typedef FetchAudioBytesFn = Future<List<int>> Function(
+  String url, {
+  String? fallbackUrl,
+});
 
 /// Cache blob URLs — faixa atual + próxima; revoga ao trocar/fechar.
 class WebAudioSourceResolver {
@@ -46,6 +48,25 @@ class WebAudioSourceResolver {
     } on Object {
       return Uri.parse(streamUrl);
     }
+  }
+
+  /// Blob URL para bytes já no aparelho (Cache API) — o caminho offline.
+  ///
+  /// Mesmo cache de 2 entradas e o mesmo teto [maxBlobBytes]: acima dele
+  /// devolve `null` e quem chama cai na URL de rede (um áudio desse tamanho
+  /// não é tocado por blob nem online).
+  Uri? resolveFromBytes(String cacheKey, Uint8List bytes) {
+    final cached = _blobUrls[cacheKey];
+    if (cached != null) return Uri.parse(cached);
+    if (bytes.length > maxBlobBytes) return null;
+    final blob = Blob(
+      [bytes.toJS].toJS,
+      BlobPropertyBag(type: _mimeFromUrl(cacheKey)),
+    );
+    final blobUrl = URL.createObjectURL(blob);
+    _blobUrls[cacheKey] = blobUrl;
+    _trimCache(cacheKey);
+    return Uri.parse(blobUrl);
   }
 
   void revokeAll() {

@@ -1631,6 +1631,12 @@ abstract class AppLocalizations {
   /// **'Não foi possível reproduzir este áudio.'**
   String get audioPlaybackError;
 
+  /// No description provided for @audioNotDownloaded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este áudio não foi baixado — sem ligação, só o que está no aparelho toca'**
+  String get audioNotDownloaded;
+
   /// No description provided for @audioWebBackgroundNotice.
   ///
   /// In pt, this message translates to:

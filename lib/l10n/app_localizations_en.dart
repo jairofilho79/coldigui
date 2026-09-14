@@ -922,6 +922,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get audioPlaybackError => 'Could not play this audio.';
 
   @override
+  String get audioNotDownloaded =>
+      'This audio was not downloaded — offline, only what is on the device plays';
+
+  @override
   String get audioWebBackgroundNotice =>
       'On the web, background playback and system controls depend on the browser — this is not an app bug.';
 

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:coldigui/core/network/device_connectivity.dart';
+import 'package:coldigui/core/providers/device_connectivity_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/data/datasources/audio_playback_position_store.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -140,6 +142,15 @@ AudioTrack _unparseableTrack(String id) => AudioTrack(
   classificacao: 'Coro',
 );
 
+/// `connectivity_plus` não tem plugin no ambiente de teste — o real
+/// `deviceConnectivityProvider` estouraria `MissingPluginException` no miss
+/// do repositório offline (índice Isar degradado aqui, sempre `null`).
+/// Estes testes não são sobre offline/O7, então sempre "online".
+class _AlwaysOnlineConnectivity implements DeviceConnectivity {
+  @override
+  Future<bool> hasConnection() async => true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -151,6 +162,9 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         audioSessionPlayerFactoryProvider.overrideWithValue(() => player),
+        deviceConnectivityProvider.overrideWithValue(
+          _AlwaysOnlineConnectivity(),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -736,9 +750,8 @@ void main() {
       () async {
         final container = await makeContainer();
         final prefs = container.read(sharedPreferencesProvider);
-        await AudioPlaybackPositionStore(
-          prefs,
-        ).write('a1', const Duration(seconds: 30));
+        await AudioPlaybackPositionStore(prefs)
+            .write('a1', const Duration(seconds: 30));
 
         final notifier = container.read(audioPlayerSessionProvider.notifier);
         await notifier.restoreQueue([
@@ -754,9 +767,8 @@ void main() {
       () async {
         final container = await makeContainer();
         final prefs = container.read(sharedPreferencesProvider);
-        await AudioPlaybackPositionStore(
-          prefs,
-        ).write('b1', const Duration(seconds: 30));
+        await AudioPlaybackPositionStore(prefs)
+            .write('b1', const Duration(seconds: 30));
 
         final notifier = container.read(audioPlayerSessionProvider.notifier);
         await notifier.restoreQueue([
@@ -770,9 +782,8 @@ void main() {
     test('posição a menos de 5s do fim não é restaurada', () async {
       final container = await makeContainer();
       final prefs = container.read(sharedPreferencesProvider);
-      await AudioPlaybackPositionStore(
-        prefs,
-      ).write('a1', const Duration(minutes: 3) - const Duration(seconds: 3));
+      await AudioPlaybackPositionStore(prefs)
+          .write('a1', const Duration(minutes: 3) - const Duration(seconds: 3));
 
       final notifier = container.read(audioPlayerSessionProvider.notifier);
       await notifier.restoreQueue([
@@ -820,9 +831,8 @@ void main() {
     test('playQueue (tocar da lista/busca) começa sempre do zero', () async {
       final container = await makeContainer();
       final prefs = container.read(sharedPreferencesProvider);
-      await AudioPlaybackPositionStore(
-        prefs,
-      ).write('a1', const Duration(seconds: 30));
+      await AudioPlaybackPositionStore(prefs)
+          .write('a1', const Duration(seconds: 30));
 
       final notifier = container.read(audioPlayerSessionProvider.notifier);
       await notifier.playQueue([
