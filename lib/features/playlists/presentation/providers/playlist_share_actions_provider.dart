@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
@@ -16,6 +15,7 @@ import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
+import '../widgets/coldigom_share_dialog.dart';
 
 /// Callback injetável para testes — espelha [captureLeafletPngBytes].
 typedef CaptureWidgetToPngFn = Future<List<int>> Function(
@@ -31,6 +31,9 @@ typedef ShareXFilesFn = Future<void> Function(
 });
 
 /// Orquestra os 3 modos: link, folheto, folheto+link.
+///
+/// Gate Coldigom: lista que não é PLPCG pura (`!link.isShort`) não gera
+/// link nem QR — só folheto, após confirmação em [showColdigomShareDialog].
 class PlaylistShareActionsNotifier extends Notifier<void> {
   @override
   void build() {}
@@ -41,7 +44,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Retorna `false` em falha — o próprio provider mostra o snackbar
   /// (mensagem específica para [EmptyLeafletException], genérica para as
   /// demais exceções) antes de retornar; quem chama **não deve** mostrar
-  /// outro snackbar em cima do retorno `false`.
+  /// outro snackbar em cima do retorno `false`. Também retorna `false`,
+  /// **sem** snackbar, quando o usuário cancela ou dispensa o
+  /// [showColdigomShareDialog] (lista fora do acervo PLPCG).
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -60,6 +65,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       switch (option) {
         case PlaylistShareOption.link:
           return await _shareLinkOnly(
+            context,
             shareContext,
             shareTextFn,
             sharePositionOrigin,
@@ -112,11 +118,18 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }
 
   Future<bool> _shareLinkOnly(
+    BuildContext context,
     PlaylistShareContext shareContext,
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
   ) async {
     final link = await _generateUrl(shareContext.playlistId);
+    if (!link.isShort) {
+      if (context.mounted) {
+        await showColdigomShareDialog(context, offerLeafletOnly: false);
+      }
+      return false;
+    }
     await shareTextFn(
       link.url,
       subject: shareContext.nome,
@@ -137,13 +150,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     // repositório não impede o folheto: fica sem QR.
     String? qrUrl;
     try {
-      // Folheto puro não precisa do encurtador: o formato do QR (curto/longo)
-      // já está decidido localmente por `PlaylistShareLink.isShort`, então a
-      // chamada de rede ao `/l/` seria desperdiçada aqui.
-      final link = await _generateUrl(
-        shareContext.playlistId,
-        allowShortener: false,
-      );
+      // Formato do QR (curto/longo) decidido localmente — ver comentário de
+      // `_generateUrl` sobre o `/l/` não ter mais chamador aqui.
+      final link = await _generateUrl(shareContext.playlistId);
       if (link.isShort) qrUrl = link.url;
     } on Object catch (error, stackTrace) {
       playlistShareDebugLogError('link para QR', error, stackTrace);
@@ -178,6 +187,21 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }) async {
     final link = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
+    if (!link.isShort) {
+      final leafletOnly = await showColdigomShareDialog(
+        context,
+        offerLeafletOnly: true,
+      );
+      if (!leafletOnly || !context.mounted) return false;
+      return _shareLeafletOnly(
+        context,
+        shareContext,
+        l10n,
+        shareFilesFn,
+        sharePositionOrigin,
+        capture: capture,
+      );
+    }
     final overlay = Overlay.of(context);
 
     final xFile = await _captureLeafletXFile(
@@ -185,7 +209,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
-      shareUrl: link.isShort ? link.url : null,
+      shareUrl: link.url,
     );
     if (!context.mounted) return false;
 
@@ -202,19 +226,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return true;
   }
 
-  Future<PlaylistShareLink> _generateUrl(
-    String playlistId, {
-    bool allowShortener = true,
-  }) {
-    // Encurtador só entra logado (D7, spec C.2) — anônimo continua na URL
-    // longa, que não precisa de conta para ser resolvida no futuro.
-    // [allowShortener] deixa o chamador recusar o `/l/` mesmo autenticado —
-    // o formato curto (`?s=…`) é decidido localmente por `PlaylistShareLink
-    // .isShort`, então o folheto puro não precisa da chamada de rede.
-    final authed = ref.read(authStateProvider).asData?.value != null;
+  Future<PlaylistShareLink> _generateUrl(String playlistId) {
+    // Formato curto é decidido localmente por `PlaylistShareLink.isShort`;
+    // o share não emite mais link longo, então o `/l/` não tem chamador
+    // aqui (débito: remover junto com o gate Coldigom).
     return ref.read(generatePlaylistShareUrlProvider)(
       playlistId: playlistId,
-      short: authed && allowShortener,
+      short: false,
     );
   }
 

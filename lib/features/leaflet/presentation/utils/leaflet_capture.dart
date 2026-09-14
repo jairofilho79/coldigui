@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/theme/color_extensions.dart';
 import '../../domain/entities/leaflet_document.dart';
 import '../widgets/leaflet_content.dart';
 import '../widgets/leaflet_content_labels.dart';
@@ -13,6 +14,12 @@ typedef CaptureWidgetToPngFn =
     Future<List<int>> Function(GlobalKey boundaryKey);
 
 const kLeafletPngFileName = 'folheto-plpcg.png';
+
+/// Margem (pt lógico) em volta do folheto no PNG capturado. O WhatsApp iOS
+/// apara ~3% da borda direita/inferior de imagem enviada junto com legenda —
+/// a margem absorve o aparo e ainda dá fundo opaco aos cantos arredondados
+/// (PNG transparente vira preto ao ser convertido em JPEG).
+const double kLeafletCaptureMargin = 16.0;
 
 /// Captura [document] off-screen e retorna bytes PNG (UC-08).
 ///
@@ -40,7 +47,13 @@ Future<List<int>> captureLeafletPngBytes(
           opacity: 0.01,
           child: RepaintBoundary(
             key: boundaryKey,
-            child: LeafletContent(document: document, labels: labels),
+            child: ColoredBox(
+              color: AppColors.background,
+              child: Padding(
+                padding: const EdgeInsets.all(kLeafletCaptureMargin),
+                child: LeafletContent(document: document, labels: labels),
+              ),
+            ),
           ),
         ),
       ),

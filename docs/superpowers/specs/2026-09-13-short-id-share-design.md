@@ -17,10 +17,10 @@
 | D4 | Backfill na própria migration, determinístico: `ROW_NUMBER() OVER (ORDER BY numero, nome, categoria, pdf_id)` → `printf('%04x', rn - 1)` a partir de `0000`. Contador para os próximos em `catalog_meta('short_id_next')` = `printf('%04x', COUNT(*))`. |
 | D5 | Crescimento: quando o contador passar de `ffff`, `printf('%04x', 65536)` devolve `10000` naturalmente. **Não há truque de padding**: todos os leitores aceitam token `[0-9a-f]{4,8}`. |
 | D6 | Coldigom fica fora: só materiais PLPCG (PDF) têm `shortId`. Login/encurtador `/l/` não entram nesta feature. |
-| D7 | **Contrato do link** (§1) — único formato emitido para listas cujas entradas são **todas** PDFs PLPCG com `shortId`. Qualquer outra lista (material Coldigom, PDF ainda sem `shortId`) usa o formato longo de hoje, inalterado. |
+| D7 | **Contrato do link** (§1) — único formato emitido para listas cujas entradas são **todas** PDFs PLPCG com `shortId`. Qualquer outra lista (material Coldigom, PDF ainda sem `shortId`) usa o formato longo de hoje, inalterado. **Emenda 2026-09-14:** o v2 **não emite mais** o formato longo em nenhuma opção de share; lista fora do PLPCG (Coldigom ou PDF sem `shortId`) vai só como folheto, sem link e sem QR, após aviso (`showColdigomShareDialog`). O parse do formato longo continua. plpcjf inalterado (sempre PLPCG). |
 | D8 | Leitor de link: precisa do catálogo carregado para resolver `shortId → pdfId`. Token desconhecido é **ignorado com aviso de log**, não invalida a lista. Lista sem nenhum token resolvido = share inválido (aviso ao usuário, como hoje). |
 | D9 | Share no v2 fica com **duas opções**: «Folheto» (PNG + `"{nome}\n\n{url}"` na legenda) e «Só o link». O modo WhatsApp em dois passos, seu diálogo e suas strings são removidos. `PlaylistShareOption.leaflet` continua no enum para o «Gerar folheto» do menu do tile. |
-| D10 | Folheto (v2) ganha **QR code** do link **somente quando o link é do formato curto** (D7). Com link longo o folheto sai como hoje, sem QR — um QR de 1 000+ caracteres é ilegível em foto de tela. |
+| D10 | Folheto (v2) ganha **QR code** do link **somente quando o link é do formato curto** (D7). Com link longo o folheto sai como hoje, sem QR — um QR de 1 000+ caracteres é ilegível em foto de tela. **Emenda 2026-09-14:** QR de 96 pt; PNG capturado com margem de 16 pt (`kLeafletCaptureMargin`) porque o WhatsApp iOS apara ~3% da borda de imagem enviada com legenda. plpcjf ganha o mesmo QR e a mesma legenda (`nome\n\nurl`). |
 
 ---
 
@@ -149,7 +149,7 @@ https://plpcg.com/?s=1a2f-0c3d-ffe1&n=Culto%20de%20domingo
 Entre 3 e 4, um link curto emitido pelo plpcjf só chegaria ao v2 por deep link nativo ou colado — janela pequena e aceitável. Links longos antigos continuam válidos para sempre nos dois lados.
 
 ## 6. Fora de escopo
-- Materiais Coldigom (áudio, cifra, gestos): sem `shortId`, formato longo.
+- Materiais Coldigom: sem `shortId` → sem link e sem QR (gate com dialog). **Débito técnico:** remover o gate, o dialog e a emissão de link longo/`/l/` quando o acervo PLPCG sair do coldigui.
 - Encurtador `/l/` e qualquer coisa ligada a login.
 - Migrar listas salvas para guardar `shortId` — elas continuam em `pdfId`; o `shortId` é só de transporte.
 - Alterar o formato do folheto além do rodapé com QR.
