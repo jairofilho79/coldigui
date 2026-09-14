@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-09-14T12:00:00.000Z",
+  "kinds": [
+    { "id": "k-grade", "name": "Grade" },
+    { "id": "k-playback", "name": "Playback" },
+    { "id": "k-cifra", "name": "Cifra" },
+    { "id": "k-gestos", "name": "Gestos" }
+  ],
+  "praises": [
+    {
+      "id": "p-001",
+      "number": "001",
+      "name": "Ainda há tempo",
+      "author": "",
+      "rhythm": "Básico",
+      "tonality": "Dm",
+      "category": "Dm",
+      "tags": ["Avulsos", "PES"],
+      "lyrics": "Ainda há tempo\nde voltar ao Senhor",
+      "materials": [
+        { "id": "m-pdf", "kind": "k-grade", "type": "pdf", "size": 312345 },
+        { "id": "m-mp3", "kind": "k-playback", "type": "mp3" },
+        { "id": "m-chord", "kind": "k-cifra", "type": "chord" },
+        { "id": "m-gest", "kind": "k-gestos", "type": "gestures" },
+        { "id": "yt-1", "kind": null, "type": "youtube", "url": "https://www.youtube.com/watch?v=1Pks43ceAac" }
+      ]
+    },
+    {
+      "id": "p-002",
+      "number": "002",
+      "name": "São João",
+      "author": "Autor Dois",
+      "rhythm": "Fox",
+      "tonality": "G",
+      "category": "G",
+      "tags": [],
+      "materials": [
+        { "id": "m-odd", "kind": "k-playback", "type": "audio", "r2": "assets/praises/p-002/m-odd.m4a" }
+      ]
+    },
+    {
+      "id": "p-003",
+      "number": "",
+      "name": "Sem número",
+      "author": "",
+      "rhythm": "",
+      "tonality": "",
+      "category": "",
+      "tags": ["Coro"],
+      "materials": []
+    }
+  ]
+}
