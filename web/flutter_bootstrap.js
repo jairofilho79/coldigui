@@ -6,8 +6,9 @@ _flutter.loader.load({
     // WebKit (Safari/iPad) usa dart2js por padrão; habilita skwasm quando WasmGC existe.
     wasmAllowList: { webkit: true },
   },
-  // Sem definir o service worker no loader: o flutter_service_worker.js do
-  // Flutter 3.47 é um stub que se desregista e faz client.navigate (reload) —
-  // no mesmo scope que o sw.js próprio (registado em index.html após o
-  // primeiro frame) seria um loop. O shell offline é do web/sw.js.
+  // Sem definir o service worker no loader: o stub flutter_service_worker.js
+  // do Flutter 3.47 desregista-se sempre que corre — se corresse aqui,
+  // apagava o registo do nosso web/sw.js a cada boot (o client.navigate dele
+  // só afeta clients já controlados por ele, não é esse o problema). O shell
+  // offline é só do web/sw.js.
 });
