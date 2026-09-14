@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/live/data/providers/live_providers.dart';
 import 'package:coldigui/features/live/domain/entities/live_snapshot.dart';
+import 'package:coldigui/features/live/domain/live_reconnect_policy.dart';
 import 'package:coldigui/features/live/presentation/providers/live_leader_session_prefs.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -57,6 +59,21 @@ String roomFrame({
 Map<String, Object?> lastSent(FakeLiveTransport t) =>
     jsonDecode(t.last.sent.last) as Map<String, Object?>;
 
+List<Object?> sentTypes(FakeLiveTransport t) => t.last.sent
+    .map((s) => (jsonDecode(s) as Map<String, Object?>)['t'])
+    .toList();
+
+/// Sem jitter — os testes de backoff (3 falhas → `unavailable`) precisam de
+/// atrasos determinísticos para `fakeAsync.elapse` acertar em cheio.
+class _ZeroRandom implements Random {
+  @override
+  bool nextBool() => false;
+  @override
+  double nextDouble() => 0;
+  @override
+  int nextInt(int max) => 0;
+}
+
 void main() {
   late SharedPreferences prefs;
   late FakeLiveTransport transport;
@@ -71,6 +88,9 @@ void main() {
         ...standardTestOverrides(prefs: prefs),
         liveTransportProvider.overrideWithValue(transport),
         liveWsUriProvider.overrideWithValue((c) => Uri.parse('wss://test/$c')),
+        liveReconnectPolicyProvider.overrideWithValue(
+          LiveReconnectPolicy(random: _ZeroRandom()),
+        ),
         liveFocusResolverProvider.overrideWithValue((_) async => null),
         liveNavigatorProvider.overrideWithValue((_) {}),
         authStateProvider.overrideWith(() => FakeAuthNotifier(user)),
@@ -85,11 +105,9 @@ void main() {
     addTearDown(container.dispose);
     container.read(activePlaylistIdProvider.notifier).set('p1');
     container.read(liveMyRoomCodeProvider.notifier).set(code);
-    // No app real, o login já resolveu bem antes de `startLive` (a UI só
-    // aparece depois do boot) — aqui o `AsyncNotifier` fake precisa de um
-    // microtask para sair de `AsyncLoading`; sem isto o primeiro `hello`
-    // corre antes do `FakeAuthNotifier.build()` resolver e sai sem token.
-    await container.read(authStateProvider.future);
+    // `startLive`/`resumeLeader` esperam `authStateProvider.future` por
+    // conta própria agora (fix round 1, Important 3) — não precisa mais
+    // "esquentar" o provider aqui.
   });
 
   LiveSessionController controller() =>
@@ -115,6 +133,54 @@ void main() {
       expect(container.read(liveLeaderSessionPrefsProvider).read()?.code, code);
     },
   );
+
+  test('ordem real dos frames: room{idle} antes de room{live} (eco do hello '
+      'antes do start) não duplica start nem manda set à toa', () async {
+    await controller().startLive(code: code, playlistId: 'p1');
+    // RoomCore responde ao `hello` antes de processar o `start` já
+    // enfileirado atrás dele — o primeiro `room` que volta é `idle`.
+    transport.last.emit(roomFrame(status: 'idle'));
+    await Future<void>.delayed(Duration.zero);
+    // Só depois o DO aplica o `start` e manda o `room{live}` que o confirma.
+    transport.last.emit(roomFrame());
+    await Future<void>.delayed(Duration.zero);
+    final types = sentTypes(transport);
+    expect(types.where((t) => t == 'start').length, 1);
+    expect(types.where((t) => t == 'set').length, 0);
+  });
+
+  test('handshake falha antes do primeiro start: a reconexão reenvia start uma única vez', () async {
+    transport.failNext(1);
+    await controller().startLive(code: code, playlistId: 'p1');
+    // O primeiro handshake falhou: nenhuma conexão chegou a existir, logo
+    // nenhum `start` foi mandado (`_conn` continuou nulo).
+    expect(transport.connections, isEmpty);
+    controller().onConnectivity(true);
+    await Future<void>.delayed(Duration.zero);
+    transport.last.emit(roomFrame(status: 'idle'));
+    await Future<void>.delayed(Duration.zero);
+    expect(sentTypes(transport).where((t) => t == 'start').length, 1);
+  });
+
+  test('3 handshakes falhados → unavailable limpa _pendingStart; join novo não reenvia start sozinho', () {
+    fakeAsync((async) {
+      transport.failNext(3);
+      controller().startLive(code: code, playlistId: 'p1');
+      async.flushMicrotasks();
+      async.elapse(const Duration(seconds: 1));
+      async.flushMicrotasks();
+      async.elapse(const Duration(seconds: 2));
+      async.flushMicrotasks();
+      expect(container.read(liveSessionProvider).phase, LivePhase.unavailable);
+      expect(transport.attempts, 3);
+
+      controller().join(code);
+      async.flushMicrotasks();
+      transport.last.emit(roomFrame(status: 'idle'));
+      async.flushMicrotasks();
+      expect(sentTypes(transport).where((t) => t == 'start').length, 0);
+    });
+  });
 
   test('room live como leader → isLeading; mudança de foco dispara set após o debounce', () {
     fakeAsync((async) {

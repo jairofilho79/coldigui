@@ -73,6 +73,17 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   /// primeiro handshake falhar, o `room{idle}` da reconexão reenvia o `start`.
   bool _pendingStart = false;
 
+  /// `_gen` de quando o `start` mais recente foi de fato mandado (`_conn`
+  /// não nulo) — `null` enquanto nenhum foi mandado nesta conexão.
+  ///
+  /// RoomCore responde ao `hello` (`room{idle}`) **antes** de processar o
+  /// `start` já enfileirado atrás dele (`await authenticate` dentro do
+  /// `hello`); o `room{live}` que confirma o `start` chega **na mesma
+  /// conexão** em que ele foi mandado. Comparar com `_gen` distingue esse eco
+  /// (nada a fazer) de um `room{idle}`/`room{live}` de uma conexão nova
+  /// (reconexão/retomada — reenviar `start` ou `set`, respectivamente).
+  int? _startSentGen;
+
   @override
   LiveSessionState build() {
     ref.onDispose(() {
@@ -159,6 +170,17 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     required String code,
     required String playlistId,
   }) async {
+    // O login já devia estar resolvido a esta altura (a UI só chega aqui
+    // depois do boot) — mas sem esperar, um `hello` correndo antes do
+    // `AsyncNotifier` sair de `AsyncLoading` sai sem `sessionToken` e o
+    // gestor vira consumidor da própria sala em silêncio.
+    try {
+      await ref.read(authStateProvider.future);
+    } on Object {
+      // Login em erro: segue sem token — `_sessionTokenFor` manda `hello`
+      // sem `sessionToken`.
+    }
+    if (!ref.mounted) return;
     ref.read(liveMyRoomCodeProvider.notifier).set(code);
     await ref
         .read(liveLeaderSessionPrefsProvider)
@@ -169,12 +191,18 @@ class LiveSessionController extends Notifier<LiveSessionState> {
             playlistName: ref.read(activePlaylistProvider)?.nome ?? '',
           ),
         );
+    if (!ref.mounted) return;
     ref.invalidate(pendingLeaderSessionProvider);
     _pendingStart = true;
     if (state.code != code || !state.isConnectedOrRetrying) {
       await join(code);
+      if (!ref.mounted) return;
     }
-    _conn?.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
+    final conn = _conn;
+    if (conn != null) {
+      conn.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
+      _startSentGen = _gen;
+    }
     state = state.copyWith(
       role: LiveRole.leader,
       roomStatus: LiveRoomStatus.live,
@@ -185,8 +213,10 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   Future<void> endLive() async {
     _setDebounce?.cancel();
     _pendingStart = false;
+    _startSentGen = null;
     _conn?.send(encodeLiveEnd());
     await ref.read(liveLeaderSessionPrefsProvider).clear();
+    if (!ref.mounted) return;
     ref.invalidate(pendingLeaderSessionProvider);
     _finish(LivePhase.ended, reason: LiveEndReason.leader);
   }
@@ -194,12 +224,21 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   /// Boot: retoma a sessão gravada. Se o DO já encerrou por inatividade, o
   /// `room{ended}` que volta limpa a pref (`_onRoomAsLeader`).
   Future<void> resumeLeader(LiveLeaderSession session) async {
+    try {
+      await ref.read(authStateProvider.future);
+    } on Object {
+      // Idem `startLive`.
+    }
+    if (!ref.mounted) return;
     ref.read(liveMyRoomCodeProvider.notifier).set(session.code);
     await join(session.code);
   }
 
   Future<void> discardLeaderSession() async {
+    _pendingStart = false;
+    _startSentGen = null;
     await ref.read(liveLeaderSessionPrefsProvider).clear();
+    if (!ref.mounted) return;
     ref.invalidate(pendingLeaderSessionProvider);
   }
 
@@ -209,7 +248,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   /// novo.
   bool _shouldReconnectNow() =>
       state.phase == LivePhase.reconnecting ||
-      (state.phase == LivePhase.joining && _connecting == null);
+      (state.phase == LivePhase.joining &&
+          _connecting == null &&
+          _conn == null);
 
   // ---- conexão -----------------------------------------------------------
 
@@ -268,6 +309,10 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     final failures = state.handshakeFailures + 1;
     if (state.phase == LivePhase.joining &&
         failures >= kLiveMaxHandshakeFailures) {
+      // Terminal: sem retry automático — uma `startLive`/`resumeLeader`
+      // futura é que decide se tenta de novo, não uma pendência velha.
+      _pendingStart = false;
+      _startSentGen = null;
       state = state.copyWith(
         phase: LivePhase.unavailable,
         handshakeFailures: failures,
@@ -376,6 +421,8 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     _setDebounce?.cancel();
     _teardownConnection(closeCode: 1000);
     _clearProjection();
+    _pendingStart = false;
+    _startSentGen = null;
     if (state.role == LiveRole.leader &&
         (reason == LiveEndReason.replaced ||
             reason == LiveEndReason.inactivity ||
@@ -535,17 +582,33 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     if (frame.role != LiveRole.leader) return;
     if (frame.status == LiveRoomStatus.live) {
       _pendingStart = false;
-      // Religou (ou retomou): o que está no aparelho vence o que o DO tem.
+      // Eco do nosso próprio `start` nesta mesma conexão (mesmo `_gen`):
+      // RoomCore responde ao `hello` com `room{idle}` antes de processar o
+      // `start` já enfileirado atrás dele — o `room{live}` seguinte não é
+      // uma reconexão, não precisa de `set` nenhum.
+      final isEchoOfOwnStart = _startSentGen == _gen;
+      _startSentGen = null;
+      if (isEchoOfOwnStart) return;
+      // Religou (ou retomou) numa conexão nova: o que está no aparelho
+      // vence o que o DO tem.
       _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
       return;
     }
-    if (_pendingStart) {
-      // O `start` de `startLive` não chegou (handshake falhou antes): manda agora.
+    if (_pendingStart && _startSentGen != _gen) {
+      // O `start` ainda não foi mandado nesta conexão (primeiro handshake
+      // falhou antes de `startLive` conseguir mandar, ou é uma reconexão
+      // nova): manda agora.
       _conn?.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
+      _startSentGen = _gen;
       state = state.copyWith(roomStatus: LiveRoomStatus.live);
       return;
     }
-    // Sala idle/ended: a sessão gravada já não vale.
+    if (_pendingStart) {
+      // `start` já foi mandado nesta conexão — este `room{idle}` é só o eco
+      // do `hello` que chega antes dele; nada a reenviar.
+      return;
+    }
+    // Sala idle/ended sem pendência: a sessão gravada já não vale.
     unawaited(ref.read(liveLeaderSessionPrefsProvider).clear());
     ref.invalidate(pendingLeaderSessionProvider);
   }
