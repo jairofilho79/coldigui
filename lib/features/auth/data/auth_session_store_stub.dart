@@ -10,10 +10,7 @@ import '../domain/entities/auth_user.dart';
 /// Sem [prefs] fica só em memória — costura para testes que não querem
 /// `SharedPreferences`; em produção o provider sempre passa a instância.
 class AuthSessionStore {
-  // Não dá para usar `this._prefs`: o parâmetro nomeado precisa se chamar
-  // `prefs` (mesma assinatura pública da variante web).
-  // ignore: prefer_initializing_formals
-  AuthSessionStore({SharedPreferences? prefs}) : _prefs = prefs;
+  AuthSessionStore({this._prefs});
 
   static const String key = 'plpcg_auth_session';
 
@@ -34,6 +31,7 @@ class AuthSessionStore {
 
   void clear() {
     _cached = null;
+    // Unawaited, como em `write`: o estado em memória já reflete a remoção.
     _prefs?.remove(key);
   }
 
