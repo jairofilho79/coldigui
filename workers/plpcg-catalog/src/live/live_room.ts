@@ -26,13 +26,25 @@ function storageAdapter(storage: DurableObjectStorage): RoomStorage {
   };
 }
 
+// `RoomCore` compara `SocketPort`s por identidade (`===`) para excluir o
+// socket que agiu de um broadcast (presença, snapshot no `set`, etc.). Um
+// `port(ws)` que devolvesse um objeto novo a cada chamada quebraria essa
+// comparação — `ctx.getWebSockets()` e o `ws` recebido nos handlers `webSocket*`
+// são o mesmo `WebSocket` dentro da mesma instância do DO, então basta um
+// `SocketPort` por `WebSocket`, cacheado aqui.
+const ports = new WeakMap<WebSocket, SocketPort>();
+
 function port(ws: WebSocket): SocketPort {
-  return {
+  const cached = ports.get(ws);
+  if (cached) return cached;
+  const created: SocketPort = {
     send: (text) => { try { ws.send(text); } catch { /* socket já fechado */ } },
     close: (code, reason) => { try { ws.close(code, reason); } catch { /* idem */ } },
     attachment: () => (ws.deserializeAttachment() as SocketAttachment | null) ?? null,
     attach: (a) => ws.serializeAttachment(a),
   };
+  ports.set(ws, created);
+  return created;
 }
 
 export class LiveRoom extends DurableObject<Env> {
