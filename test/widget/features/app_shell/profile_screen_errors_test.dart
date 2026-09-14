@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 void main() {
   const user = AuthUser(
@@ -18,9 +17,6 @@ void main() {
     name: 'Jairo',
     email: 'a@b.com',
   );
-
-  Future<Stream<GoogleSignInAuthenticationEvent>> noopInitializer() async =>
-      const Stream<GoogleSignInAuthenticationEvent>.empty();
 
   late AppLocalizations pt;
 
@@ -56,7 +52,6 @@ void main() {
     authRemoteDatasourceProvider.overrideWithValue(
       FakeAuthRemoteDatasource(behavior),
     ),
-    googleSignInInitializerProvider.overrideWithValue(noopInitializer),
   ];
 
   testWidgets('estado de erro do authStateProvider usa userMessageFor', (
@@ -72,43 +67,6 @@ void main() {
 
     expect(find.text(pt.errorGeneric), findsOneWidget);
     expect(find.textContaining('detalhe_interno_feio'), findsNothing);
-  });
-
-  testWidgets('sessão expirada mostra banner com ação de entrar de novo', (
-    tester,
-  ) async {
-    final container = ProviderContainer(
-      overrides: baseOverrides(behavior: (_) async => user),
-    );
-    addTearDown(container.dispose);
-    await container.read(authStateProvider.future);
-    container.read(sessionExpiredProvider.notifier).markExpired();
-
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: ProfileScreen()),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text(pt.sessionExpiredBanner), findsOneWidget);
-    expect(find.text(pt.errorSessionExpired), findsOneWidget);
-    expect(find.text(pt.sessionExpiredSignInAgain), findsOneWidget);
-  });
-
-  testWidgets('sem sessão expirada não mostra banner', (tester) async {
-    await pumpProfile(
-      tester,
-      overrides: baseOverrides(behavior: (_) async => user),
-    );
-
-    expect(find.text(pt.sessionExpiredBanner), findsNothing);
   });
 }
 

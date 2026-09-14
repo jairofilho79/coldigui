@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -79,65 +78,8 @@ final googleSignInInitializerProvider = Provider<GoogleSignInInitializer>((
   };
 });
 
-/// `true` quando o SDK do Google não pôde ser inicializado — bloqueado por
-/// extensão/CORS, offline ou `GOOGLE_CLIENT_ID_WEB` ausente no build.
-///
-/// Desabilita **só o botão de login**: a sessão já armazenada continua valendo
-/// e o sync segue rodando, senão o usuário parece deslogado sem estar (A5).
-final googleSignInUnavailableProvider =
-    NotifierProvider<GoogleSignInUnavailableNotifier, bool>(
-      GoogleSignInUnavailableNotifier.new,
-    );
-
-class GoogleSignInUnavailableNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void report({required bool unavailable}) => state = unavailable;
-}
-
-/// Reautenticação silenciosa: devolve um `id_token` novo sem abrir UI.
-///
-/// `null` = não deu (SDK bloqueado, sessão Google encerrada, sem `id_token`).
-typedef GoogleSilentIdTokenRefresher = Future<String?> Function();
-
-/// Costura de teste sobre `attemptLightweightAuthentication` (nada do plugin
-/// roda na VM).
-final googleSilentIdTokenRefresherProvider =
-    Provider<GoogleSilentIdTokenRefresher>((ref) {
-      return () async {
-        // Na web o plugin devolve `null` (e não um Future) quando o SDK não
-        // está disponível — precisa ser sessão expirada, nunca um crash.
-        final attempt = GoogleSignIn.instance
-            .attemptLightweightAuthentication();
-        if (attempt == null) return null;
-        final account = await attempt;
-        return account?.authentication.idToken;
-      };
-    });
-
-/// `true` quando a renovação silenciosa do `id_token` falhou: a sessão local
-/// segue existindo, mas o backend vai recusá-la até o usuário entrar de novo.
-///
-/// Consumido pelo banner "Sessão expirada" no perfil.
-final sessionExpiredProvider = NotifierProvider<SessionExpiredNotifier, bool>(
-  SessionExpiredNotifier.new,
-);
-
-class SessionExpiredNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void markExpired() => state = true;
-
-  void clear() => state = false;
-}
-
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
-
-  /// Refresh em voo — vários 401 simultâneos compartilham uma só tentativa.
-  Future<String?>? _refreshInFlight;
 
   @override
   Future<AuthUser?> build() async {
@@ -146,26 +88,17 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
       _authSub = null;
     });
 
-    final unavailability = ref.read(googleSignInUnavailableProvider.notifier);
-    try {
-      await ensureGoogleInitialized();
-      unavailability.report(unavailable: false);
-    } on Object catch (error) {
-      // SDK bloqueado/ausente desabilita só o login — a sessão armazenada
-      // continua válida e o sync não pode parar por causa disso (A5).
-      debugPrint('[auth] inicialização do Google Sign-In falhou: $error');
-      unavailability.report(unavailable: true);
-    }
+    final store = ref.read(authSessionStoreProvider);
 
     // Callback do redirect OIDC tem precedência sobre a sessão armazenada
-    // (spec D9): o usuário acabou de escolher uma conta no Google.
+    // (spec D9 do login): o usuário acabou de escolher uma conta no Google.
     final pending = ref.read(oidcCallbackInboxProvider).take();
     switch (pending) {
       case OidcCallbackSuccess(:final idToken):
         try {
           return await _establishAndStore(idToken);
         } on Object {
-          ref.read(authSessionStoreProvider).clear();
+          store.clear();
           rethrow;
         }
       case OidcCallbackInvalid(:final reason, :final isContextMismatch):
@@ -175,7 +108,7 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
           // válida — spec D9/D15. Só é de fato um mismatch de contexto (e
           // vale a pena pedir para entrar de novo) quando não há sessão
           // guardada; havendo uma, ela é o resultado certo.
-          if (ref.read(authSessionStoreProvider).read() == null) {
+          if (store.read() == null) {
             throw OidcContextMismatchException(reason);
           }
           debugPrint(
@@ -189,37 +122,35 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
         break;
     }
 
-    final stored = ref.read(authSessionStoreProvider).read();
-    if (stored == null) return null;
+    // Sessão do Worker guardada: vale até o Worker dizer o contrário (401 →
+    // onUnauthorized). Nada de rede no boot (spec D7) — offline continua logado.
+    final stored = store.read();
+    if (stored != null) return stored;
 
+    return _migrateLegacyWebSession(store);
+  }
+
+  /// Sessão do formato anterior (id_token do Google em `sessionStorage`) —
+  /// troca uma vez por sessão do Worker; qualquer falha vira deslogado
+  /// (spec D12). O `sessionStorage` é consumido nos dois casos.
+  Future<AuthUser?> _migrateLegacyWebSession(AuthSessionStore store) async {
+    final legacyIdToken = AuthSessionStore.legacyIdToken(
+      store.takeLegacySessionStorage(),
+    );
+    if (legacyIdToken == null) return null;
     try {
-      final remote = ref.read(authRemoteDatasourceProvider);
-      final user = await remote.establishSession(stored.sessionToken);
-      ref.read(authSessionStoreProvider).write(user);
-      return user;
-    } on AuthUnauthorizedException {
-      // Worker recusou o idToken — sessão realmente inválida.
-      ref.read(authSessionStoreProvider).clear();
-      return null;
-    } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      if (statusCode == null || statusCode >= 500) {
-        // Rede/timeout ou 5xx: mantém a sessão local como "não verificada"
-        // em vez de deslogar por uma falha transitória do backend.
-        debugPrint('[auth] sessão mantida sem verificação: $e');
-        return stored;
-      }
-      ref.read(authSessionStoreProvider).clear();
-      return null;
-    } on Object {
-      ref.read(authSessionStoreProvider).clear();
+      return await _establishAndStore(legacyIdToken);
+    } on Object catch (error) {
+      debugPrint('[auth] migração da sessão antiga falhou: $error');
+      store.clear();
       return null;
     }
   }
 
   /// Único ponto que chama [GoogleSignIn.initialize] (idempotente no processo).
   ///
-  /// Lança quando o SDK não sobe (inclusive `GOOGLE_CLIENT_ID_WEB` ausente).
+  /// Chamada só pelo login nativo ([signInWithGoogle]); a web entra por
+  /// redirect e não precisa do SDK.
   Future<void> ensureGoogleInitialized() async {
     final events = await ref.read(googleSignInInitializerProvider)();
     _authSub ??= events.listen(
@@ -235,7 +166,6 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
         await _completeSignIn(user);
       case GoogleSignInAuthenticationEventSignOut():
         ref.read(authSessionStoreProvider).clear();
-        ref.read(sessionExpiredProvider.notifier).clear();
         state = const AsyncData(null);
     }
   }
@@ -277,54 +207,15 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     );
   }
 
-  /// Renova o `id_token` sem UI e devolve o token novo, ou `null`.
-  ///
-  /// `null` **conclusivo** (o refresher devolveu nada, vazio ou o mesmo token,
-  /// sem lançar) marca [sessionExpiredProvider] — o usuário precisa entrar de
-  /// novo. `null` por falha **transitória** (o refresher lançou) não marca nada:
-  /// o token corrente segue em uso (spec D.4). Em qualquer caso a sessão local é
-  /// **preservada**: quem decide deslogar é o Worker, via
-  /// [AuthUnauthorizedException]. Nunca propaga exceção — é chamado de dentro de
-  /// um interceptor do Dio.
-  Future<String?> refreshIdToken() {
-    return _refreshInFlight ??= _refreshIdToken().whenComplete(() {
-      _refreshInFlight = null;
-    });
-  }
-
-  Future<String?> _refreshIdToken() async {
-    final current = state.asData?.value;
-    // Sem sessão não há o que renovar — e não é uma sessão "expirada".
-    if (current == null) return null;
-
-    final String? idToken;
-    try {
-      idToken = await ref.read(googleSilentIdTokenRefresherProvider)();
-    } on Object catch (error) {
-      // Exceção é falha **transitória** (offline, timeout, extensão travando o
-      // GIS): o Google não disse que a sessão morreu, só não deu para
-      // perguntar. Marcar expirada aqui prendia o usuário num login manual por
-      // causa de uma piscada de rede (spec D.4). O token corrente segue valendo
-      // e o próximo request tenta de novo — o 401, se vier, é conclusivo.
-      debugPrint('[auth] reautenticação silenciosa falhou: $error');
-      return null;
+  /// O Worker recusou o `sessionToken` (401 numa request `Bearer sess_…`):
+  /// sessão revogada ou vencida (spec D8). Sem renovação — quem entra de
+  /// novo é o usuário. Idempotente: chamadas repetidas (várias requests em
+  /// voo) não reemitem estado.
+  void onUnauthorized() {
+    ref.read(authSessionStoreProvider).clear();
+    if (state.asData?.value != null || state is! AsyncData) {
+      state = const AsyncData(null);
     }
-
-    // Resultado sem exceção é conclusivo. Token idêntico conta como falha: o
-    // Google não tem nada mais fresco para dar, e reemitir `AsyncData` aqui
-    // reconstruiria quem observa [authStateProvider] (AuthUser não tem `==`),
-    // gerando request nova → 401 → refresh → laço sem fim enquanto o Worker
-    // recusar esse token.
-    if (idToken == null || idToken.isEmpty || idToken == current.sessionToken) {
-      ref.read(sessionExpiredProvider.notifier).markExpired();
-      return null;
-    }
-
-    final updated = current.copyWith(sessionToken: idToken);
-    ref.read(authSessionStoreProvider).write(updated);
-    ref.read(sessionExpiredProvider.notifier).clear();
-    state = AsyncData(updated);
-    return idToken;
   }
 
   Future<void> _completeSignIn(GoogleSignInAccount account) async {
@@ -349,14 +240,23 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
         .read(authRemoteDatasourceProvider)
         .establishSession(idToken);
     ref.read(authSessionStoreProvider).write(user);
-    ref.read(sessionExpiredProvider.notifier).clear();
     return user;
   }
 
   Future<void> signOut() async {
+    final current = state.asData?.value;
     ref.read(authSessionStoreProvider).clear();
-    ref.read(sessionExpiredProvider.notifier).clear();
     state = const AsyncData(null);
+    if (current != null) {
+      try {
+        await ref
+            .read(authRemoteDatasourceProvider)
+            .revokeSession(current.sessionToken);
+      } on Object catch (error) {
+        // A sessão local já morreu; a linha no Worker expira em 60 d.
+        debugPrint('[auth] revogação da sessão falhou: $error');
+      }
+    }
     try {
       await GoogleSignIn.instance.signOut();
     } on Object {

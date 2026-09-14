@@ -1,7 +1,5 @@
 import '../../../support/fakes/fake_auth_remote_datasource.dart';
 
-import 'dart:typed_data';
-
 import 'package:coldigui/core/network/auth_refresh_interceptor.dart';
 import 'package:coldigui/core/network/retry_interceptor.dart';
 import 'package:coldigui/core/providers/dio_provider.dart';
@@ -12,47 +10,11 @@ import 'package:coldigui/features/coldigom/data/providers/coldigom_dio_provider.
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-
-class _ScriptedAdapter implements HttpClientAdapter {
-  _ScriptedAdapter(this.statuses);
-
-  final List<int> statuses;
-  final List<String?> authHeaders = [];
-
-  int get calls => authHeaders.length;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    final status = statuses[authHeaders.length.clamp(0, statuses.length - 1)];
-    authHeaders.add(options.headers['Authorization'] as String?);
-    return ResponseBody.fromString(
-      '{}',
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
 
 void main() {
   const storedUser = AuthUser(googleSub: 'sub-1', sessionToken: 'token-velho');
 
-  Future<Stream<GoogleSignInAuthenticationEvent>> noopInitializer() async =>
-      const Stream<GoogleSignInAuthenticationEvent>.empty();
-
-  ProviderContainer buildContainer({
-    GoogleSilentIdTokenRefresher? refresher,
-    AuthUser user = storedUser,
-  }) {
+  ProviderContainer buildContainer({AuthUser user = storedUser}) {
     final store = AuthSessionStore()..write(user);
     return ProviderContainer(
       overrides: [
@@ -60,9 +22,6 @@ void main() {
         authRemoteDatasourceProvider.overrideWithValue(
           FakeAuthRemoteDatasource.returning(user),
         ),
-        googleSignInInitializerProvider.overrideWithValue(noopInitializer),
-        if (refresher != null)
-          googleSilentIdTokenRefresherProvider.overrideWithValue(refresher),
       ],
     );
   }
@@ -94,84 +53,5 @@ void main() {
 
     expect(interceptors.whereType<RetryInterceptor>(), hasLength(1));
     expect(interceptors.whereType<AuthRefreshInterceptor>(), isEmpty);
-  });
-
-  test(
-    '401 no dioProvider renova o token e repete com o Bearer novo',
-    () async {
-      final container = buildContainer(refresher: () async => 'token-novo');
-      addTearDown(container.dispose);
-      await container.read(authStateProvider.future);
-
-      final adapter = _ScriptedAdapter([401, 200]);
-      final dio = container.read(dioProvider)..httpClientAdapter = adapter;
-
-      final response = await dio.get<Object?>(
-        '/api/playlists',
-        options: Options(headers: {'Authorization': 'Bearer token-velho'}),
-      );
-
-      expect(response.statusCode, 200);
-      expect(adapter.authHeaders, ['Bearer token-velho', 'Bearer token-novo']);
-      expect(container.read(sessionExpiredProvider), isFalse);
-      expect(
-        container.read(authStateProvider).value?.sessionToken,
-        'token-novo',
-      );
-    },
-  );
-
-  test(
-    'token idêntico do Google não vira laço de refresh (Critical 1)',
-    () async {
-      var refreshes = 0;
-      final container = buildContainer(
-        refresher: () async {
-          refreshes++;
-          return 'token-velho'; // o Google reemite o mesmo token
-        },
-      );
-      addTearDown(container.dispose);
-      await container.read(authStateProvider.future);
-
-      final adapter = _ScriptedAdapter([401]);
-      final dio = container.read(dioProvider)..httpClientAdapter = adapter;
-
-      Future<void> call() => expectLater(
-        dio.get<Object?>(
-          '/api/playlists',
-          options: Options(headers: {'Authorization': 'Bearer token-velho'}),
-        ),
-        throwsA(isA<DioException>()),
-      );
-
-      await call();
-      await call();
-      await call();
-
-      expect(container.read(sessionExpiredProvider), isTrue);
-      expect(refreshes, 1, reason: 'só a primeira request tenta renovar');
-      expect(adapter.calls, 3, reason: 'uma ida por chamada, sem repetição');
-    },
-  );
-
-  test('401 com refresh impossível marca sessão expirada', () async {
-    final container = buildContainer(refresher: () async => null);
-    addTearDown(container.dispose);
-    await container.read(authStateProvider.future);
-
-    final adapter = _ScriptedAdapter([401]);
-    final dio = container.read(dioProvider)..httpClientAdapter = adapter;
-
-    await expectLater(
-      dio.get<Object?>(
-        '/api/playlists',
-        options: Options(headers: {'Authorization': 'Bearer token-velho'}),
-      ),
-      throwsA(isA<DioException>()),
-    );
-
-    expect(adapter.calls, 1);
-    expect(container.read(sessionExpiredProvider), isTrue);
   });
 }

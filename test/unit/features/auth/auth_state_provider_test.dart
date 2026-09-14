@@ -11,7 +11,23 @@ import 'package:coldigui/features/auth/presentation/providers/auth_state_provide
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+
+/// Store só-memória que finge ter uma sessão no formato antigo em
+/// `sessionStorage` — o stub nativo devolve sempre `null` ali.
+class _LegacyStore extends AuthSessionStore {
+  _LegacyStore(this._legacyRaw);
+
+  String? _legacyRaw;
+  bool legacyTaken = false;
+
+  @override
+  String? takeLegacySessionStorage() {
+    legacyTaken = true;
+    final raw = _legacyRaw;
+    _legacyRaw = null;
+    return raw;
+  }
+}
 
 void main() {
   const storedUser = AuthUser(
@@ -29,8 +45,6 @@ void main() {
   ProviderContainer buildContainer({
     required Future<AuthUser> Function(String) behavior,
     required AuthSessionStore store,
-    GoogleSignInInitializer? initializer,
-    GoogleSilentIdTokenRefresher? refresher,
     OidcCallbackInbox? inbox,
     FakeOidcBrowser? browser,
   }) {
@@ -40,10 +54,6 @@ void main() {
         authRemoteDatasourceProvider.overrideWithValue(
           FakeAuthRemoteDatasource(behavior),
         ),
-        if (initializer != null)
-          googleSignInInitializerProvider.overrideWithValue(initializer),
-        if (refresher != null)
-          googleSilentIdTokenRefresherProvider.overrideWithValue(refresher),
         if (inbox != null) oidcCallbackInboxProvider.overrideWithValue(inbox),
         if (browser != null) oidcBrowserProvider.overrideWithValue(browser),
         googleClientIdProvider.overrideWithValue('cid-test'),
@@ -55,219 +65,126 @@ void main() {
     );
   }
 
-  group('AuthNotifier.build — resiliência de sessão (B1)', () {
-    test('401 do Worker limpa a sessão local e retorna null', () async {
+  group('AuthNotifier.build — boot sem rede (spec D7)', () {
+    test('sessão guardada é devolvida sem chamar o Worker', () async {
       final store = seededStore();
-      final container = buildContainer(
-        store: store,
-        behavior: (_) async => throw AuthUnauthorizedException(401),
-      );
-      addTearDown(container.dispose);
-
-      final result = await container.read(authStateProvider.future);
-
-      expect(result, isNull);
-      expect(store.read(), isNull);
-    });
-
-    test('403 do Worker limpa a sessão local e retorna null', () async {
-      final store = seededStore();
-      final container = buildContainer(
-        store: store,
-        behavior: (_) async => throw AuthUnauthorizedException(403),
-      );
-      addTearDown(container.dispose);
-
-      final result = await container.read(authStateProvider.future);
-
-      expect(result, isNull);
-      expect(store.read(), isNull);
-    });
-
-    test(
-      'timeout de rede mantém a sessão armazenada (não verificada)',
-      () async {
-        final store = seededStore();
-        final container = buildContainer(
-          store: store,
-          behavior: (_) async => throw DioException(
-            requestOptions: RequestOptions(path: '/api/auth/session'),
-            type: DioExceptionType.connectionTimeout,
-          ),
-        );
-        addTearDown(container.dispose);
-
-        final result = await container.read(authStateProvider.future);
-
-        expect(result, same(storedUser));
-        expect(store.read(), same(storedUser));
-      },
-    );
-
-    test('503 do Worker mantém a sessão armazenada (não verificada)', () async {
-      final store = seededStore();
+      var calls = 0;
       final container = buildContainer(
         store: store,
         behavior: (_) async {
-          final requestOptions = RequestOptions(path: '/api/auth/session');
-          throw DioException(
-            requestOptions: requestOptions,
-            type: DioExceptionType.badResponse,
-            response: Response(requestOptions: requestOptions, statusCode: 503),
-          );
-        },
-      );
-      addTearDown(container.dispose);
-
-      final result = await container.read(authStateProvider.future);
-
-      expect(result, same(storedUser));
-      expect(store.read(), same(storedUser));
-    });
-
-    test('sem sessão armazenada retorna null sem chamar a rede', () async {
-      var called = false;
-      final store = AuthSessionStore();
-      final container = buildContainer(
-        store: store,
-        behavior: (_) async {
-          called = true;
+          calls++;
           return storedUser;
         },
       );
       addTearDown(container.dispose);
 
-      final result = await container.read(authStateProvider.future);
-
-      expect(result, isNull);
-      expect(called, isFalse);
+      expect(await container.read(authStateProvider.future), same(storedUser));
+      expect(calls, 0);
     });
 
+    test('sem sessão guardada retorna null sem chamar a rede', () async {
+      var calls = 0;
+      final container = buildContainer(
+        store: AuthSessionStore(),
+        behavior: (_) async {
+          calls++;
+          return storedUser;
+        },
+      );
+      addTearDown(container.dispose);
+
+      expect(await container.read(authStateProvider.future), isNull);
+      expect(calls, 0);
+    });
+  });
+
+  group('AuthNotifier.build — migração da sessão antiga (spec D12)', () {
     test(
-      'sucesso atualiza a sessão armazenada com a resposta do Worker',
+      'sessionStorage antigo com id_token vira sessão nova gravada',
       () async {
-        final store = seededStore();
-        const refreshed = AuthUser(
-          googleSub: 'sub-1',
-          sessionToken: 'token-1',
-          email: 'a@b.com',
-          username: 'joao',
-        );
+        final store = _LegacyStore('{"googleSub":"sub-1","idToken":"eyJ.a.b"}');
+        String? received;
         final container = buildContainer(
           store: store,
-          behavior: (_) async => refreshed,
+          behavior: (idToken) async {
+            received = idToken;
+            return storedUser;
+          },
         );
         addTearDown(container.dispose);
 
-        final result = await container.read(authStateProvider.future);
+        expect(
+          await container.read(authStateProvider.future),
+          same(storedUser),
+        );
+        expect(received, 'eyJ.a.b');
+        expect(store.read(), same(storedUser));
+        expect(store.legacyTaken, isTrue);
+      },
+    );
 
-        expect(result, same(refreshed));
-        expect(store.read(), same(refreshed));
+    test(
+      'id_token antigo recusado → null, e o sessionStorage foi consumido',
+      () async {
+        final store = _LegacyStore('{"googleSub":"sub-1","idToken":"eyJ.a.b"}');
+        final container = buildContainer(
+          store: store,
+          behavior: (_) async => throw AuthUnauthorizedException(401),
+        );
+        addTearDown(container.dispose);
+
+        expect(await container.read(authStateProvider.future), isNull);
+        expect(store.read(), isNull);
+        expect(store.legacyTaken, isTrue);
       },
     );
   });
 
-  group('AuthNotifier.build — SDK do Google indisponível (A5)', () {
-    test('falha de init não apaga a sessão armazenada', () async {
+  group('AuthNotifier.onUnauthorized / signOut (spec D8)', () {
+    test('onUnauthorized limpa a store e o estado vira null', () async {
       final store = seededStore();
       final container = buildContainer(
         store: store,
         behavior: (_) async => storedUser,
-        initializer: () async => throw StateError('gis bloqueado'),
-      );
-      addTearDown(container.dispose);
-
-      final result = await container.read(authStateProvider.future);
-
-      expect(
-        result,
-        same(storedUser),
-        reason: 'SDK bloqueado não pode fazer o usuário parecer deslogado',
-      );
-      expect(store.read(), same(storedUser));
-    });
-
-    test('falha de init marca o login como indisponível', () async {
-      final container = buildContainer(
-        store: seededStore(),
-        behavior: (_) async => storedUser,
-        initializer: () async => throw StateError('gis bloqueado'),
-      );
-      addTearDown(container.dispose);
-
-      expect(container.read(googleSignInUnavailableProvider), isFalse);
-
-      await container.read(authStateProvider.future);
-
-      expect(container.read(googleSignInUnavailableProvider), isTrue);
-    });
-
-    test('init bem-sucedido mantém o login disponível', () async {
-      final container = buildContainer(
-        store: seededStore(),
-        behavior: (_) async => storedUser,
-        initializer: () async =>
-            const Stream<GoogleSignInAuthenticationEvent>.empty(),
-      );
-      addTearDown(container.dispose);
-
-      await container.read(authStateProvider.future);
-
-      expect(container.read(googleSignInUnavailableProvider), isFalse);
-    });
-  });
-
-  group('AuthNotifier.refreshIdToken — transitório vs conclusivo (D.4)', () {
-    Future<ProviderContainer> containerWithSession({
-      required GoogleSilentIdTokenRefresher refresher,
-    }) async {
-      final container = buildContainer(
-        store: seededStore(),
-        behavior: (_) async => storedUser,
-        refresher: refresher,
       );
       addTearDown(container.dispose);
       await container.read(authStateProvider.future);
-      return container;
-    }
+
+      container.read(authStateProvider.notifier).onUnauthorized();
+
+      expect(container.read(authStateProvider).asData?.value, isNull);
+      expect(store.read(), isNull);
+    });
 
     test(
-      'refresher que lança não marca sessão expirada e mantém o token',
+      'signOut revoga a sessão no Worker e limpa mesmo se a revogação falhar',
       () async {
-        final container = await containerWithSession(
-          refresher: () async => throw StateError('gis bloqueado'),
+        final store = seededStore();
+        final remote = FakeAuthRemoteDatasource(
+          (_) async => storedUser,
+          onRevoke: (_) async => throw DioException(
+            requestOptions: RequestOptions(path: '/api/auth/session'),
+            type: DioExceptionType.connectionTimeout,
+          ),
         );
+        final container = ProviderContainer(
+          overrides: [
+            authSessionStoreProvider.overrideWithValue(store),
+            authRemoteDatasourceProvider.overrideWithValue(remote),
+            googleClientIdProvider.overrideWithValue('cid-test'),
+          ],
+          retry: (_, _) => null,
+        );
+        addTearDown(container.dispose);
+        await container.read(authStateProvider.future);
 
-        final token = await container
-            .read(authStateProvider.notifier)
-            .refreshIdToken();
+        await container.read(authStateProvider.notifier).signOut();
 
-        expect(token, isNull, reason: 'não houve token novo para dar');
-        expect(
-          container.read(sessionExpiredProvider),
-          isFalse,
-          reason: 'falha transitória não pode exigir login manual',
-        );
-        expect(
-          container.read(authStateProvider).value?.sessionToken,
-          storedUser.sessionToken,
-          reason: 'o token corrente segue em uso até um 401 conclusivo',
-        );
+        expect(remote.revoked, ['token-1']);
+        expect(container.read(authStateProvider).asData?.value, isNull);
+        expect(store.read(), isNull);
       },
     );
-
-    test('refresher que devolve o mesmo token marca expirada', () async {
-      final container = await containerWithSession(
-        refresher: () async => storedUser.sessionToken,
-      );
-
-      final token = await container
-          .read(authStateProvider.notifier)
-          .refreshIdToken();
-
-      expect(token, isNull);
-      expect(container.read(sessionExpiredProvider), isTrue);
-    });
   });
 
   group('AuthNotifier.build — callback OIDC pendente (spec D9/D15)', () {

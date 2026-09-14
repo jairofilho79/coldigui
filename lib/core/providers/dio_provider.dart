@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/auth/presentation/providers/auth_state_provider.dart';
 import '../constants/app_config.dart';
 import '../network/auth_refresh_interceptor.dart';
 import '../network/retry_interceptor.dart';
@@ -38,13 +37,11 @@ final dioProvider = Provider<Dio>((ref) {
       dio: dio,
       // `read` (e não `watch`) de propósito: o Dio não deve ser recriado a cada
       // mudança de sessão, e a chamada só acontece dentro de um 401.
-      refreshIdToken: () =>
-          ref.read(authStateProvider.notifier).refreshIdToken(),
+      refreshIdToken: () async => null,
       // `sessionToken` é opaco (sem `exp` legível) — só o 401 renova.
       tokenExpiresSoon: () => false,
-      isSessionExpired: () => ref.read(sessionExpiredProvider),
-      markSessionExpired: () =>
-          ref.read(sessionExpiredProvider.notifier).markExpired(),
+      isSessionExpired: () => false,
+      markSessionExpired: () {},
     ),
     RetryInterceptor(dio: dio),
   ]);

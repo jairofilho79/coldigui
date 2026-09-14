@@ -22,7 +22,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     final l10n = AppLocalizations.of(context)!;
-    final sessionExpired = ref.watch(sessionExpiredProvider);
+    const sessionExpired = false;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -31,6 +31,7 @@ class ProfileScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
+            // ignore: dead_code
             if (sessionExpired) ...[
               const _SessionExpiredBanner(),
               const SizedBox(height: 12),
