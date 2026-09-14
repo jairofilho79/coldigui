@@ -157,16 +157,12 @@ final class LyricsMaterial extends CatalogMaterial {
     required this.praiseId,
     required this.nome,
     required this.numero,
-    required this.text,
     this.categoria = 'Letra',
   });
 
   final String praiseId;
   final String nome;
   final String numero;
-
-  /// Letra completa, como veio do Worker (quebras de linha preservadas).
-  final String text;
 
   @override
   final String categoria;

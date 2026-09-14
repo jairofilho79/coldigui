@@ -37,7 +37,6 @@ void main() {
     expect(lyrics.groupId, 'p-001');
     expect(lyrics.categoria, 'Letra');
     expect(lyrics.materialKindId, isNull);
-    expect(lyrics.text, 'Ainda há tempo\nde voltar');
     expect(canAddMaterialToPlaylist(lyrics), isFalse);
     expect(LouvorMaterialIcons.forMaterial(lyrics), Icons.subject);
   });

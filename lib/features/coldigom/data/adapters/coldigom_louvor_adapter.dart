@@ -168,8 +168,8 @@ abstract final class ColdigomLouvorAdapter {
 
   /// Letra do praise como material sintético — `null` quando não há texto.
   ///
-  /// O texto não está no [PraiseDetailDto] (a página de busca nunca o
-  /// traz); quem tem a linha do Isar passa-o aqui.
+  /// `lyrics` só entra como gate de presença: o leitor `/letra` carrega o
+  /// texto do Isar na hora, então [LyricsMaterial] não guarda o texto em si.
   static LyricsMaterial? toLyricsMaterial(
     PraiseDetailDto praise,
     String lyrics,
@@ -179,7 +179,6 @@ abstract final class ColdigomLouvorAdapter {
       praiseId: praise.id,
       nome: praise.name,
       numero: praise.number,
-      text: lyrics,
     );
   }
 

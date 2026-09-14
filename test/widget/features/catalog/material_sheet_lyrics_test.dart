@@ -17,7 +17,6 @@ const _lyrics = LyricsMaterial(
   praiseId: 'p1',
   nome: 'Comigo habita',
   numero: '692',
-  text: 'texto',
 );
 
 final _pdf = Louvor.fromManifest(

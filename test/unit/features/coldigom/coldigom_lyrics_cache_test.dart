@@ -10,11 +10,10 @@ const _lyrics = LyricsMaterial(
   praiseId: 'p1',
   nome: 'Ainda há tempo',
   numero: '001',
-  text: 'texto',
 );
 
 void main() {
-  test('mergeCatalog escreve os seis caches de uma vez', () {
+  test('mergeCatalog escreve os sete caches de uma vez', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
