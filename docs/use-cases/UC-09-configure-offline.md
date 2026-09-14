@@ -21,7 +21,7 @@ Fases: fetching → extracting → storing → syncing
 
 ## Pós-condições
 
-PDFs disponíveis offline
+PDFs disponíveis offline; Catálogo Coldigom local (ColdigomPraiseCache) sincronizado por ETag no boot com rede — metadados, lista de materiais e letra disponíveis offline; materiais binários Coldigom são o plano 2.
 
 ## Regras de negócio
 

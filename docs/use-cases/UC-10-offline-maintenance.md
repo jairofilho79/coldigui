@@ -13,7 +13,7 @@ Modo offline configurado
 
 ## Fluxo principal
 
-Stats por categoria; baixar faltantes; limpar cache; migração.
+Stats por categoria; baixar faltantes; limpar cache; migração. 6. Catálogo Coldigom: sync por ETag ao voltar ao foreground (≥ 30 min, coldigomCatalogSyncProvider.requestSyncIfStale) — 304 não toca no Isar; 200 substitui numa transação e re-hidrata.
 
 ## Fluxos alternativos
 
