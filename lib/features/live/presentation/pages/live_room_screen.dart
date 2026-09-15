@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/theme/app_buttons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/share_position_origin.dart';
@@ -21,6 +22,14 @@ import '../../domain/entities/live_snapshot.dart';
 import '../../domain/live_room_link.dart';
 import '../providers/live_session_controller.dart';
 import '../providers/my_live_room_provider.dart';
+
+/// A sala vive sobre o scaffold escuro: texto claro (ver «Contraste» em
+/// [AppColors]), ícones e bordas em dourado.
+final _titleStyle = AppTypography.headline.copyWith(
+  fontSize: 20,
+  color: AppColors.textLight,
+);
+final _bodyStyle = AppTypography.body.copyWith(color: AppColors.textLight);
 
 /// `/ao-vivo/:code` — onde o link cai (spec §6.3). Para o consumidor é a
 /// página de estado da sala; para o dono, a sala com link, QR e controlos.
@@ -81,7 +90,8 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
           title: l10n.liveUnavailableTitle,
           body: l10n.liveUnavailableBody,
           actions: [
-            FilledButton(
+            OutlinedButton(
+              style: AppButtons.onDarkPrimary,
               onPressed: () => unawaited(controller.join(widget.code)),
               child: Text(l10n.liveRetry),
             ),
@@ -94,7 +104,8 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
           icon: Icons.logout,
           title: l10n.liveLeftTitle,
           actions: [
-            FilledButton(
+            OutlinedButton(
+              style: AppButtons.onDarkPrimary,
               onPressed: () => unawaited(controller.join(widget.code)),
               child: Text(l10n.liveJoinAgain),
             ),
@@ -111,7 +122,8 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
           icon: Icons.sensors,
           title: l10n.liveFollowingTitle(state.ownerName),
           actions: [
-            FilledButton(
+            OutlinedButton(
+              style: AppButtons.onDarkPrimary,
               onPressed: () => context.go(RoutePaths.home),
               child: Text(l10n.liveGoToList),
             ),
@@ -142,11 +154,13 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
       title: l10n.liveEndedTitle,
       actions: [
         if (snapshot != null && snapshot.entries.isNotEmpty)
-          FilledButton(
+          OutlinedButton(
+            style: AppButtons.onDarkPrimary,
             onPressed: _busy ? null : () => unawaited(_saveCopy(state, l10n)),
             child: Text(l10n.liveSaveCopy),
           ),
-        TextButton(
+        OutlinedButton(
+          style: AppButtons.onDarkSecondary,
           onPressed: () {
             unawaited(ref.read(liveSessionProvider.notifier).leave());
             context.go(RoutePaths.home);
@@ -158,7 +172,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
   }
 
   Future<void> _saveCopy(LiveSessionState state, AppLocalizations l10n) async {
-    final snapshot = state.snapshot;
+    final snapshot = ref.read(liveSessionProvider.notifier).snapshotForCopy;
     if (snapshot == null) return;
     setState(() => _busy = true);
     try {
@@ -189,13 +203,13 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
         children: [
           Text(
             l10n.liveYourRoom,
-            style: AppTypography.headline,
+            style: _titleStyle,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             l10n.liveShareHint,
-            style: AppTypography.body,
+            style: _bodyStyle,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -207,11 +221,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          SelectableText(
-            url,
-            textAlign: TextAlign.center,
-            style: AppTypography.body,
-          ),
+          SelectableText(url, textAlign: TextAlign.center, style: _bodyStyle),
           const SizedBox(height: 16),
           Wrap(
             alignment: WrapAlignment.center,
@@ -219,6 +229,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
             runSpacing: 8,
             children: [
               OutlinedButton.icon(
+                style: AppButtons.onDarkSecondary,
                 icon: const Icon(Icons.copy),
                 label: Text(l10n.liveCopyLink),
                 onPressed: () async {
@@ -229,6 +240,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
                 },
               ),
               OutlinedButton.icon(
+                style: AppButtons.onDarkSecondary,
                 icon: Icon(Icons.adaptive.share),
                 label: Text(l10n.liveShareLink),
                 onPressed: () => SharePlus.instance.share(
@@ -239,7 +251,8 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
                   ),
                 ),
               ),
-              TextButton(
+              OutlinedButton(
+                style: AppButtons.onDarkSecondary,
                 onPressed: _busy
                     ? null
                     : () => unawaited(_regenerate(context, l10n)),
@@ -255,7 +268,8 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
           ),
           const SizedBox(height: 16),
           if (state.isLeading)
-            FilledButton.icon(
+            OutlinedButton.icon(
+              style: AppButtons.onDarkPrimary,
               icon: const Icon(Icons.stop),
               label: Text(l10n.liveEnd),
               onPressed: () async {
@@ -328,14 +342,14 @@ class _Message extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (spinner)
-          const CircularProgressIndicator()
+          const CircularProgressIndicator(color: AppColors.gold)
         else if (icon != null)
           Icon(icon, size: 48, color: AppColors.gold),
         const SizedBox(height: 16),
-        Text(title, style: AppTypography.headline, textAlign: TextAlign.center),
+        Text(title, style: _titleStyle, textAlign: TextAlign.center),
         if (body != null) ...[
           const SizedBox(height: 8),
-          Text(body!, style: AppTypography.body, textAlign: TextAlign.center),
+          Text(body!, style: _bodyStyle, textAlign: TextAlign.center),
         ],
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 24),
