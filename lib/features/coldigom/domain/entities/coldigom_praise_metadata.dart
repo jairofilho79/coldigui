@@ -1,4 +1,5 @@
-/// Metadados de um praise Coldigom para o sheet de materiais.
+/// Metadados de um praise Coldigom para o sheet de materiais e para o
+/// trecho da letra no card de resultado de busca (C5.1).
 class ColdigomPraiseMetadata {
   const ColdigomPraiseMetadata({
     required this.name,
@@ -7,6 +8,7 @@ class ColdigomPraiseMetadata {
     this.rhythm = '',
     this.category = '',
     this.tagNames = const [],
+    this.lyricsExcerpt,
   });
 
   final String name;
@@ -15,6 +17,10 @@ class ColdigomPraiseMetadata {
   final String rhythm;
   final String category;
   final List<String> tagNames;
+
+  /// Trecho da letra ao redor do match da busca — `null` fora de uma busca
+  /// que bateu na letra.
+  final String? lyricsExcerpt;
 
   bool get hasAnyField =>
       tonality.trim().isNotEmpty ||
