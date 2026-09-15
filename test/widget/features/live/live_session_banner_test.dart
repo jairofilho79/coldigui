@@ -239,7 +239,7 @@ void main() {
   testWidgets('idle sem nada pendente não renderiza', (tester) async {
     await pump(tester, const LiveSessionState());
     expect(find.byType(LiveSessionBanner), findsOneWidget);
-    expect(find.byType(TextButton), findsNothing);
+    expect(find.byType(OutlinedButton), findsNothing);
     expect(find.byIcon(Icons.sensors), findsNothing);
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_buttons.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -197,11 +198,13 @@ class _Bar extends StatelessWidget {
                 ),
               ],
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 for (final action in actions)
-                  TextButton(
+                  OutlinedButton(
+                    style: AppButtons.onDarkCompact,
                     onPressed: action.onPressed,
                     child: Text(action.label),
                   ),

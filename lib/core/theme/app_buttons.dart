@@ -38,4 +38,16 @@ abstract final class AppButtons {
     padding: _padding,
     textStyle: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
   );
+
+  /// [onDarkSecondary] compacto, para barras/banners (uma linha de altura).
+  static final ButtonStyle onDarkCompact = OutlinedButton.styleFrom(
+    foregroundColor: AppColors.textLight,
+    disabledForegroundColor: AppColors.textLight.withValues(alpha: 0.5),
+    side: const BorderSide(color: AppColors.gold, width: 1.5),
+    shape: _shape,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    minimumSize: const Size(0, 32),
+    visualDensity: VisualDensity.compact,
+    textStyle: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+  );
 }
