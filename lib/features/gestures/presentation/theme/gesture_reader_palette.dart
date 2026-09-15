@@ -73,7 +73,8 @@ class GestureReaderPalette {
 const double kGestureBaseFontSize = 18;
 
 /// Lado da caixa da figura para [fontSize]: `96 × (fonte / 18)`.
-double gestureFigureSide(double fontSize) => 96 * fontSize / kGestureBaseFontSize;
+double gestureFigureSide(double fontSize) =>
+    96 * fontSize / kGestureBaseFontSize;
 
 /// Gap vertical entre cartões e entre blocos. Cartões têm gap pequeno porque a
 /// zebra já os separa.

@@ -77,7 +77,9 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
             key: gestureDocumentPageKey,
             constraints: const BoxConstraints(maxWidth: kGesturePageMaxWidth),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: kGesturePageMargin),
+              padding: const EdgeInsets.symmetric(
+                horizontal: kGesturePageMargin,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -104,7 +106,10 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
 
   /// Filhos de um nível com os gaps entre eles: 4 entre cartões, 16 quando
   /// um dos vizinhos é bloco; dentro de `link`, nenhum.
-  List<Widget> _buildItems(List<GestureItem> items, {required bool gapInsideLink}) {
+  List<Widget> _buildItems(
+    List<GestureItem> items, {
+    required bool gapInsideLink,
+  }) {
     final out = <Widget>[];
     for (var i = 0; i < items.length; i++) {
       if (i > 0 && !gapInsideLink) {
@@ -162,7 +167,11 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
       case InstructionCard(:final kind):
         return InstructionCardView(kind: kind, palette: widget.palette);
       case TextLine(:final text):
-        return TextLineView(text: text, fontSize: widget.fontSize, palette: widget.palette);
+        return TextLineView(
+          text: text,
+          fontSize: widget.fontSize,
+          palette: widget.palette,
+        );
       case SectionLabel():
         return SectionLabelView(
           label: item,

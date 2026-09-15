@@ -23,7 +23,9 @@ class SectionLabelView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final pass = label.pass;
-    final text = pass == null ? l10n.gestureSectionChorus : l10n.gestureSectionPass(pass);
+    final text = pass == null
+        ? l10n.gestureSectionChorus
+        : l10n.gestureSectionPass(pass);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Text(

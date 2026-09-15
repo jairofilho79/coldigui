@@ -38,12 +38,18 @@ class LyricLineText extends StatelessWidget {
           if (trigger.isNotEmpty)
             TextSpan(
               text: nonBreaking(trigger),
-              style: TextStyle(color: palette.trigger, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: palette.trigger,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           if (text.isNotEmpty)
             TextSpan(
               text: trigger.isEmpty ? text : '$glue$text',
-              style: TextStyle(color: palette.lyric, fontWeight: FontWeight.normal),
+              style: TextStyle(
+                color: palette.lyric,
+                fontWeight: FontWeight.normal,
+              ),
             ),
         ],
       ),

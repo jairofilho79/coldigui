@@ -66,7 +66,11 @@ class BracedChildren extends StatelessWidget {
           width: kGestureBraceWidth,
           child: CustomPaint(
             key: gestureBraceKey,
-            painter: BracePainter(dashed: dashed, label: label, palette: palette),
+            painter: BracePainter(
+              dashed: dashed,
+              label: label,
+              palette: palette,
+            ),
           ),
         ),
       ],

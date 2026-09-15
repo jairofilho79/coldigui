@@ -63,7 +63,14 @@ void main() {
 
   testWidgets('com bytes → Image.memory num quadrado de 96', (tester) async {
     final asked = <String>[];
-    await _pump(tester, entry: _entry, figure: (k) async { asked.add(k); return [1]; });
+    await _pump(
+      tester,
+      entry: _entry,
+      figure: (k) async {
+        asked.add(k);
+        return [1];
+      },
+    );
     expect(find.byType(Image), findsOneWidget);
     expect(asked, [_entry.image]);
     final size = tester.getSize(find.byType(GestureFigure));
@@ -76,19 +83,32 @@ void main() {
     expect(find.byKey(gesturePlaceholderKey('c687580e7682')), findsOneWidget);
   });
 
-  testWidgets('download falhou (null) → placeholder fica fora do quadro branco', (tester) async {
-    await _pump(tester, entry: _entry, figure: (_) async => null);
-    expect(find.byKey(gesturePlaceholderKey('c687580e7682')), findsOneWidget);
-    expect(find.byKey(gestureFigureFrameKey), findsNothing);
-  });
+  testWidgets(
+    'download falhou (null) → placeholder fica fora do quadro branco',
+    (tester) async {
+      await _pump(tester, entry: _entry, figure: (_) async => null);
+      expect(find.byKey(gesturePlaceholderKey('c687580e7682')), findsOneWidget);
+      expect(find.byKey(gestureFigureFrameKey), findsNothing);
+    },
+  );
 
   testWidgets('preferGif pede o GIF quando existe', (tester) async {
     final asked = <String>[];
-    await _pump(tester, entry: _entry, figure: (k) async { asked.add(k); return [1]; }, preferGif: true);
+    await _pump(
+      tester,
+      entry: _entry,
+      figure: (k) async {
+        asked.add(k);
+        return [1];
+      },
+      preferGif: true,
+    );
     expect(asked, [_entry.gif]);
   });
 
-  testWidgets('figura fica num quadro branco arredondado com borda da paleta', (tester) async {
+  testWidgets('figura fica num quadro branco arredondado com borda da paleta', (
+    tester,
+  ) async {
     await _pump(tester, entry: _entry, figure: (_) async => [1]);
     final box = tester.widget<Container>(find.byKey(gestureFigureFrameKey));
     final decoration = box.decoration! as BoxDecoration;

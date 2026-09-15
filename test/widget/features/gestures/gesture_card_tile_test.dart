@@ -14,9 +14,15 @@ import '../../../helpers/gesture_test_png.dart';
 final _palette = GestureReaderMode.light.palette;
 
 const _entry = GestureEntry(
-  id: 'c687580e7682', name: 'x', description: '', exampleTriggers: [],
-  image: 'assets/cia/gestures/c687580e7682.png', gif: null,
-  status: GestureStatus.active, replacedBy: null, updatedAt: null,
+  id: 'c687580e7682',
+  name: 'x',
+  description: '',
+  exampleTriggers: [],
+  image: 'assets/cia/gestures/c687580e7682.png',
+  gif: null,
+  status: GestureStatus.active,
+  replacedBy: null,
+  updatedAt: null,
 );
 
 const _card = GestureCard(
@@ -36,7 +42,9 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        gestureFigureProvider.overrideWith((ref, key) async => gestureTestPng()),
+        gestureFigureProvider.overrideWith(
+          (ref, key) async => gestureTestPng(),
+        ),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -59,22 +67,32 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('figura à esquerda, uma LyricLineText por linha, centralizados na vertical', (tester) async {
-    await _pump(tester);
-    expect(find.byType(LyricLineText), findsNWidgets(2));
-    final figure = tester.getRect(find.byType(GestureFigure));
-    final lyric = tester.getRect(find.byType(LyricLineText).first);
-    expect(figure.left, lessThan(lyric.left));
-    // Duas linhas de 18 (≈ 47 dp) são mais baixas que a figura (96): a coluna
-    // de letra tem que ficar no meio da figura, não colada no topo.
-    final column = tester.getRect(
-      find.descendant(of: find.byType(GestureCardTile), matching: find.byType(Column)).first,
-    );
-    expect(column.height, lessThan(figure.height));
-    expect(column.center.dy, closeTo(figure.center.dy, 0.5));
-  });
+  testWidgets(
+    'figura à esquerda, uma LyricLineText por linha, centralizados na vertical',
+    (tester) async {
+      await _pump(tester);
+      expect(find.byType(LyricLineText), findsNWidgets(2));
+      final figure = tester.getRect(find.byType(GestureFigure));
+      final lyric = tester.getRect(find.byType(LyricLineText).first);
+      expect(figure.left, lessThan(lyric.left));
+      // Duas linhas de 18 (≈ 47 dp) são mais baixas que a figura (96): a coluna
+      // de letra tem que ficar no meio da figura, não colada no topo.
+      final column = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(GestureCardTile),
+              matching: find.byType(Column),
+            )
+            .first,
+      );
+      expect(column.height, lessThan(figure.height));
+      expect(column.center.dy, closeTo(figure.center.dy, 0.5));
+    },
+  );
 
-  testWidgets('zebra: índice ímpar pinta a faixa, par fica transparente', (tester) async {
+  testWidgets('zebra: índice ímpar pinta a faixa, par fica transparente', (
+    tester,
+  ) async {
     await _pump(tester); // index 3
     final odd = tester.widget<Material>(find.byKey(gestureCardStripeKey(3)));
     expect(odd.color, _palette.stripe);
@@ -85,11 +103,16 @@ void main() {
     expect(even.color, Colors.transparent);
   });
 
-  testWidgets('lado da figura escala com a fonte: 96 em 18, 149 em 28', (tester) async {
+  testWidgets('lado da figura escala com a fonte: 96 em 18, 149 em 28', (
+    tester,
+  ) async {
     await _pump(tester);
     expect(tester.getSize(find.byType(GestureFigure)).width, 96);
     await _pump(tester, fontSize: 28);
-    expect(tester.getSize(find.byType(GestureFigure)).width, closeTo(149.3, 0.1));
+    expect(
+      tester.getSize(find.byType(GestureFigure)).width,
+      closeTo(149.3, 0.1),
+    );
   });
 
   testWidgets('toque chama onTap com o índice', (tester) async {

@@ -247,7 +247,8 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
     }
     if (_pausedByUser || !_scrollController.hasClients) return;
 
-    final dtSeconds = (elapsed - lastTick).inMicroseconds / Duration.microsecondsPerSecond;
+    final dtSeconds =
+        (elapsed - lastTick).inMicroseconds / Duration.microsecondsPerSecond;
     if (dtSeconds <= 0) return;
 
     final position = _scrollController.position;
@@ -255,7 +256,8 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
       ref.read(gestureAutoscrollProvider.notifier).stop();
       return;
     }
-    final delta = state.speed * GestureAutoscrollSpeed.pxPerSecondPerLevel * dtSeconds;
+    final delta =
+        state.speed * GestureAutoscrollSpeed.pxPerSecondPerLevel * dtSeconds;
     final next = (position.pixels + delta).clamp(0.0, position.maxScrollExtent);
     _scrollController.jumpTo(next);
     if (next >= position.maxScrollExtent) {
@@ -312,7 +314,10 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
         GestureDictionary.empty;
 
     // Liga/desliga o motor junto da intenção — o provider só guarda o estado.
-    ref.listen<GestureAutoscrollState>(gestureAutoscrollProvider, (previous, next) {
+    ref.listen<GestureAutoscrollState>(gestureAutoscrollProvider, (
+      previous,
+      next,
+    ) {
       if (next.running) {
         _ensureAutoscrollTicker();
       } else {
@@ -352,7 +357,9 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                   Expanded(
                     child: docAsync.when(
                       loading: () => Center(
-                        child: CircularProgressIndicator(color: palette.toolbarIcon),
+                        child: CircularProgressIndicator(
+                          color: palette.toolbarIcon,
+                        ),
                       ),
                       error: (_, _) => _Message(
                         message: l10n.gesturesReaderUnavailable,
@@ -377,7 +384,9 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                         }
                         // Leitura linear: expande antes da página, do flatten
                         // e do foco, para os três falarem do mesmo índice.
-                        final shown = linear ? linearizeGestureDocument(document) : document;
+                        final shown = linear
+                            ? linearizeGestureDocument(document)
+                            : document;
                         final flat = flattenGestureCards(shown);
                         return Column(
                           children: [
@@ -493,20 +502,30 @@ class _GestureReaderToolbar extends ConsumerWidget {
             style: style,
             tooltip: l10n.gesturesReaderDecreaseFont,
             icon: const Icon(Icons.text_decrease),
-            onPressed: GestureReaderFontSize.canDecrease(fontSize) ? size.decrease : null,
+            onPressed: GestureReaderFontSize.canDecrease(fontSize)
+                ? size.decrease
+                : null,
           ),
           IconButton(
             style: style,
             tooltip: l10n.gesturesReaderIncreaseFont,
             icon: const Icon(Icons.text_increase),
-            onPressed: GestureReaderFontSize.canIncrease(fontSize) ? size.increase : null,
+            onPressed: GestureReaderFontSize.canIncrease(fontSize)
+                ? size.increase
+                : null,
           ),
           _ToolbarSeparator(color: palette.divider),
           IconButton(
             key: gestureReaderAutoscrollKey,
             style: style,
-            tooltip: autoscroll.running ? l10n.gesturesAutoscrollPause : l10n.gesturesAutoscrollPlay,
-            icon: Icon(autoscroll.running ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            tooltip: autoscroll.running
+                ? l10n.gesturesAutoscrollPause
+                : l10n.gesturesAutoscrollPlay,
+            icon: Icon(
+              autoscroll.running
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
             onPressed: autoscrollNotifier.toggle,
           ),
           SizedBox(
@@ -525,7 +544,9 @@ class _GestureReaderToolbar extends ConsumerWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(_speedLabelWidth, 40),
-                textStyle: AppTypography.label.copyWith(fontWeight: FontWeight.w700),
+                textStyle: AppTypography.label.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               child: Tooltip(
                 message: l10n.gesturesAutoscrollSpeed(autoscroll.speed),
@@ -538,17 +559,27 @@ class _GestureReaderToolbar extends ConsumerWidget {
             key: gestureReaderLinearKey,
             style: style,
             // O ícone mostra o estado atual; o tooltip, a ação.
-            tooltip: linear ? l10n.gesturesReaderStructured : l10n.gesturesReaderLinear,
-            icon: Icon(linear ? Icons.view_agenda_outlined : Icons.account_tree_outlined),
-            onPressed: () => ref.read(gestureReaderLinearProvider.notifier).toggle(),
+            tooltip: linear
+                ? l10n.gesturesReaderStructured
+                : l10n.gesturesReaderLinear,
+            icon: Icon(
+              linear ? Icons.view_agenda_outlined : Icons.account_tree_outlined,
+            ),
+            onPressed: () =>
+                ref.read(gestureReaderLinearProvider.notifier).toggle(),
           ),
           _ToolbarSeparator(color: palette.divider),
           IconButton(
             key: gestureReaderThemeKey,
             style: style,
             tooltip: l10n.gesturesReaderToggleTheme,
-            icon: Icon(mode == GestureReaderMode.light ? Icons.dark_mode : Icons.light_mode),
-            onPressed: () => ref.read(gestureReaderModeProvider.notifier).toggle(),
+            icon: Icon(
+              mode == GestureReaderMode.light
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
+            onPressed: () =>
+                ref.read(gestureReaderModeProvider.notifier).toggle(),
           ),
           IconButton(
             style: style,

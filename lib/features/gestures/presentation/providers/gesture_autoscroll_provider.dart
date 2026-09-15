@@ -65,6 +65,7 @@ class GestureAutoscrollNotifier extends Notifier<GestureAutoscrollState> {
 }
 
 final gestureAutoscrollProvider =
-    NotifierProvider.autoDispose<GestureAutoscrollNotifier, GestureAutoscrollState>(
-      GestureAutoscrollNotifier.new,
-    );
+    NotifierProvider.autoDispose<
+      GestureAutoscrollNotifier,
+      GestureAutoscrollState
+    >(GestureAutoscrollNotifier.new);

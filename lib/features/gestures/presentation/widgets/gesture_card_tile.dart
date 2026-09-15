@@ -69,7 +69,11 @@ class GestureCardTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final line in card.lyrics)
-                      LyricLineText(line: line, fontSize: fontSize, palette: palette),
+                      LyricLineText(
+                        line: line,
+                        fontSize: fontSize,
+                        palette: palette,
+                      ),
                   ],
                 ),
               ),

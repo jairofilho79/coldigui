@@ -18,7 +18,11 @@ final _palette = GestureReaderMode.light.palette;
 Widget _child(String label, double height) =>
     SizedBox(key: ValueKey(label), height: height, child: Text(label));
 
-Future<void> _pump(WidgetTester tester, Widget body, {Locale locale = const Locale('pt')}) async {
+Future<void> _pump(
+  WidgetTester tester,
+  Widget body, {
+  Locale locale = const Locale('pt'),
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -28,7 +32,10 @@ Future<void> _pump(WidgetTester tester, Widget body, {Locale locale = const Loca
       home: Scaffold(
         body: SingleChildScrollView(
           // Align solta a largura: sem ele o scroll view força 800 no SizedBox.
-          child: Align(alignment: Alignment.topLeft, child: SizedBox(width: 360, child: body)),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(width: 360, child: body),
+          ),
         ),
       ),
     ),
@@ -38,7 +45,9 @@ Future<void> _pump(WidgetTester tester, Widget body, {Locale locale = const Loca
 
 void main() {
   group('RepeatBlockView', () {
-    testWidgets('chave cobre exatamente a altura dos filhos e mostra Nx', (tester) async {
+    testWidgets('chave cobre exatamente a altura dos filhos e mostra Nx', (
+      tester,
+    ) async {
       await _pump(
         tester,
         RepeatBlockView(
@@ -55,39 +64,53 @@ void main() {
       expect(brace.bottom, last.bottom);
       expect(brace.width, kGestureBraceWidth);
       expect(brace.right, 360);
-      final painter = tester.widget<CustomPaint>(find.byKey(gestureBraceKey)).painter as BracePainter;
+      final painter =
+          tester.widget<CustomPaint>(find.byKey(gestureBraceKey)).painter
+              as BracePainter;
       expect(painter.label, '2x');
       expect(painter.dashed, isFalse);
     });
 
-    testWidgets('aninhado: a chave externa envolve a interna (recuo por nível)', (tester) async {
-      await _pump(
-        tester,
-        RepeatBlockView(
-          count: 3,
-          palette: _palette,
-          children: [
-            RepeatBlockView(count: 2, palette: _palette, children: [_child('a', 40)]),
-          ],
-        ),
-      );
-      final braces = find.byKey(gestureBraceKey);
-      expect(braces, findsNWidgets(2));
-      // Ordem de árvore: a chave interna (dentro do Padding) vem antes da
-      // externa (Positioned irmão); não dependa dela, ordene pela posição.
-      final a = tester.getRect(braces.first);
-      final b = tester.getRect(braces.last);
-      final inner = a.left < b.left ? a : b;
-      final outer = a.left < b.left ? b : a;
-      expect(inner.right, lessThanOrEqualTo(outer.left));
-    });
+    testWidgets(
+      'aninhado: a chave externa envolve a interna (recuo por nível)',
+      (tester) async {
+        await _pump(
+          tester,
+          RepeatBlockView(
+            count: 3,
+            palette: _palette,
+            children: [
+              RepeatBlockView(
+                count: 2,
+                palette: _palette,
+                children: [_child('a', 40)],
+              ),
+            ],
+          ),
+        );
+        final braces = find.byKey(gestureBraceKey);
+        expect(braces, findsNWidgets(2));
+        // Ordem de árvore: a chave interna (dentro do Padding) vem antes da
+        // externa (Positioned irmão); não dependa dela, ordene pela posição.
+        final a = tester.getRect(braces.first);
+        final b = tester.getRect(braces.last);
+        final inner = a.left < b.left ? a : b;
+        final outer = a.left < b.left ? b : a;
+        expect(inner.right, lessThanOrEqualTo(outer.left));
+      },
+    );
   });
 
   group('ChorusBlockView', () {
-    testWidgets('rótulo CORO azul acima e chave tracejada cobrindo os filhos', (tester) async {
+    testWidgets('rótulo CORO azul acima e chave tracejada cobrindo os filhos', (
+      tester,
+    ) async {
       await _pump(
         tester,
-        ChorusBlockView(palette: _palette, children: [_child('a', 40), _child('b', 40)]),
+        ChorusBlockView(
+          palette: _palette,
+          children: [_child('a', 40), _child('b', 40)],
+        ),
       );
 
       final label = tester.widget<Text>(find.text('CORO'));
@@ -95,9 +118,17 @@ void main() {
       expect(label.style?.fontWeight, FontWeight.bold);
       final brace = tester.getRect(find.byKey(gestureBraceKey));
       expect(brace.top, tester.getRect(find.byKey(const ValueKey('a'))).top);
-      expect(brace.bottom, tester.getRect(find.byKey(const ValueKey('b'))).bottom);
-      expect(tester.getRect(find.text('CORO')).bottom, lessThanOrEqualTo(brace.top));
-      final painter = tester.widget<CustomPaint>(find.byKey(gestureBraceKey)).painter as BracePainter;
+      expect(
+        brace.bottom,
+        tester.getRect(find.byKey(const ValueKey('b'))).bottom,
+      );
+      expect(
+        tester.getRect(find.text('CORO')).bottom,
+        lessThanOrEqualTo(brace.top),
+      );
+      final painter =
+          tester.widget<CustomPaint>(find.byKey(gestureBraceKey)).painter
+              as BracePainter;
       expect(painter.dashed, isTrue);
       expect(painter.label, isNull);
     });
@@ -113,10 +144,15 @@ void main() {
   });
 
   group('LinkBlockView', () {
-    testWidgets('conector laranja à esquerda, filhos sem espaço entre si', (tester) async {
+    testWidgets('conector laranja à esquerda, filhos sem espaço entre si', (
+      tester,
+    ) async {
       await _pump(
         tester,
-        LinkBlockView(palette: _palette, children: [_child('a', 40), _child('b', 40)]),
+        LinkBlockView(
+          palette: _palette,
+          children: [_child('a', 40), _child('b', 40)],
+        ),
       );
       final connector = tester.getRect(find.byKey(gestureLinkConnectorKey));
       expect(connector.left, 0);
@@ -126,17 +162,26 @@ void main() {
       expect(b.top, a.bottom);
       expect(connector.top, a.top);
       expect(connector.bottom, b.bottom);
-      expect(tester.widget<CustomPaint>(find.byKey(gestureLinkConnectorKey)).painter, isA<LinkConnectorPainter>());
+      expect(
+        tester.widget<CustomPaint>(find.byKey(gestureLinkConnectorKey)).painter,
+        isA<LinkConnectorPainter>(),
+      );
     });
   });
 
   group('FinalSectionView', () {
     testWidgets('divisor + rótulo FINAL antes dos filhos', (tester) async {
-      await _pump(tester, FinalSectionView(palette: _palette, children: [_child('a', 40)]));
+      await _pump(
+        tester,
+        FinalSectionView(palette: _palette, children: [_child('a', 40)]),
+      );
       expect(find.byKey(gestureFinalDividerKey), findsOneWidget);
       final label = tester.widget<Text>(find.text('FINAL'));
       expect(label.style?.color, _palette.wine);
-      expect(tester.getRect(find.text('FINAL')).bottom, lessThanOrEqualTo(tester.getRect(find.byKey(const ValueKey('a'))).top));
+      expect(
+        tester.getRect(find.text('FINAL')).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byKey(const ValueKey('a'))).top),
+      );
     });
   });
 
@@ -172,14 +217,20 @@ void main() {
     testWidgets('ocupa a largura toda com fundo cinza', (tester) async {
       await _pump(
         tester,
-        InstructionCardView(kind: InstructionKind.instruments, palette: _palette),
+        InstructionCardView(
+          kind: InstructionKind.instruments,
+          palette: _palette,
+        ),
       );
       expect(tester.getSize(find.byType(InstructionCardView)).width, 360);
     });
   });
 
   testWidgets('TextLineView é cinza e itálico', (tester) async {
-    await _pump(tester, TextLineView(text: 'linha livre', fontSize: 18, palette: _palette));
+    await _pump(
+      tester,
+      TextLineView(text: 'linha livre', fontSize: 18, palette: _palette),
+    );
     final text = tester.widget<Text>(find.text('linha livre'));
     expect(text.style?.color, _palette.sectionLabel);
     expect(text.style?.fontStyle, FontStyle.italic);

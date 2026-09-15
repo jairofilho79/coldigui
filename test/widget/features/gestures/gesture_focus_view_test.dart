@@ -20,15 +20,22 @@ import '../../../helpers/gesture_test_png.dart';
 
 final _palette = GestureReaderMode.light.palette;
 
-String _read(String name) => File('test/fixtures/gestures/$name').readAsStringSync();
+String _read(String name) =>
+    File('test/fixtures/gestures/$name').readAsStringSync();
 
-Future<Future<int?>> _open(WidgetTester tester, String fixture, int initialIndex) async {
+Future<Future<int?>> _open(
+  WidgetTester tester,
+  String fixture,
+  int initialIndex,
+) async {
   final cards = flattenGestureCards(parseGestureDocument(_read(fixture)));
   final dict = parseGestureDictionary(_read('dictionary.json'));
   late Future<int?> result;
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng())],
+      overrides: [
+        gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -61,12 +68,18 @@ Future<Future<int?>> _open(WidgetTester tester, String fixture, int initialIndex
 }
 
 /// Como [_open], mas com uma lista de cartões montada à mão (sem fixture).
-Future<Future<int?>> _openCards(WidgetTester tester, List<FlatGestureCard> cards, int initialIndex) async {
+Future<Future<int?>> _openCards(
+  WidgetTester tester,
+  List<FlatGestureCard> cards,
+  int initialIndex,
+) async {
   final dict = parseGestureDictionary(_read('dictionary.json'));
   late Future<int?> result;
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng())],
+      overrides: [
+        gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -99,20 +112,29 @@ Future<Future<int?>> _openCards(WidgetTester tester, List<FlatGestureCard> cards
 }
 
 void main() {
-  testWidgets('abre no cartão tocado, com figura grande e próximo gatilho no rodapé', (tester) async {
-    await _open(tester, '182_quero_viver.json', 3);
+  testWidgets(
+    'abre no cartão tocado, com figura grande e próximo gatilho no rodapé',
+    (tester) async {
+      await _open(tester, '182_quero_viver.json', 3);
 
-    expect(find.byKey(gestureFocusPageKey(3)), findsOneWidget);
-    expect(find.textContaining('comer da árvore da vida.'), findsOneWidget);
-    // Próximo cartão (índice 4) começa em "Com".
-    expect(find.byKey(gestureFocusNextKey), findsOneWidget);
-    expect(find.descendant(of: find.byKey(gestureFocusNextKey), matching: find.text('Com')), findsOneWidget);
-    final figure = tester.getSize(find.byType(GestureFigure));
-    final screen = tester.getSize(find.byType(GestureFocusView));
-    expect(figure.width, greaterThanOrEqualTo(screen.width * 0.6));
-    // Dentro do coro: chip CORO.
-    expect(find.text('CORO'), findsOneWidget);
-  });
+      expect(find.byKey(gestureFocusPageKey(3)), findsOneWidget);
+      expect(find.textContaining('comer da árvore da vida.'), findsOneWidget);
+      // Próximo cartão (índice 4) começa em "Com".
+      expect(find.byKey(gestureFocusNextKey), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(gestureFocusNextKey),
+          matching: find.text('Com'),
+        ),
+        findsOneWidget,
+      );
+      final figure = tester.getSize(find.byType(GestureFigure));
+      final screen = tester.getSize(find.byType(GestureFocusView));
+      expect(figure.width, greaterThanOrEqualTo(screen.width * 0.6));
+      // Dentro do coro: chip CORO.
+      expect(find.text('CORO'), findsOneWidget);
+    },
+  );
 
   testWidgets('→ avança, ← volta; último mostra "fim"', (tester) async {
     await _open(tester, '182_quero_viver.json', 12);
@@ -145,7 +167,9 @@ void main() {
 
   testWidgets('F alterna a tela cheia', (tester) async {
     await _open(tester, '182_quero_viver.json', 0);
-    final container = ProviderScope.containerOf(tester.element(find.byType(GestureFocusView)));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(GestureFocusView)),
+    );
     expect(container.read(readerFullscreenProvider), isFalse);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
     await tester.pumpAndSettle();
@@ -158,29 +182,53 @@ void main() {
     expect(find.text('ligação'), findsOneWidget);
   });
 
-  testWidgets('cartão com linha de continuação não estraga o rodapé do anterior', (tester) async {
-    // Cartão 4 (índice 4) tem duas linhas de letra; a primeira já tem
-    // trigger ("Vou"), então o rodapé do cartão 3 continua mostrando ela.
-    await _open(tester, '181_jerusalem.json', 3);
-    expect(find.descendant(of: find.byKey(gestureFocusNextKey), matching: find.text('Vou')), findsOneWidget);
-  });
+  testWidgets(
+    'cartão com linha de continuação não estraga o rodapé do anterior',
+    (tester) async {
+      // Cartão 4 (índice 4) tem duas linhas de letra; a primeira já tem
+      // trigger ("Vou"), então o rodapé do cartão 3 continua mostrando ela.
+      await _open(tester, '181_jerusalem.json', 3);
+      expect(
+        find.descendant(
+          of: find.byKey(gestureFocusNextKey),
+          matching: find.text('Vou'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
-  testWidgets('próximo cartão de continuação (trigger vazio) cai pro texto da linha', (tester) async {
-    final cards = [
-      const FlatGestureCard(
-        index: 0,
-        card: GestureCard(gestureId: 'aaaaaaaaaaaa', lyrics: [LyricLine(trigger: 'Louvor', text: 'ao Senhor')]),
-        contexts: [],
-      ),
-      const FlatGestureCard(
-        index: 1,
-        card: GestureCard(gestureId: 'bbbbbbbbbbbb', lyrics: [LyricLine(trigger: '', text: 'só leitura')]),
-        contexts: [],
-      ),
-    ];
+  testWidgets(
+    'próximo cartão de continuação (trigger vazio) cai pro texto da linha',
+    (tester) async {
+      final cards = [
+        const FlatGestureCard(
+          index: 0,
+          card: GestureCard(
+            gestureId: 'aaaaaaaaaaaa',
+            lyrics: [LyricLine(trigger: 'Louvor', text: 'ao Senhor')],
+          ),
+          contexts: [],
+        ),
+        const FlatGestureCard(
+          index: 1,
+          card: GestureCard(
+            gestureId: 'bbbbbbbbbbbb',
+            lyrics: [LyricLine(trigger: '', text: 'só leitura')],
+          ),
+          contexts: [],
+        ),
+      ];
 
-    await _openCards(tester, cards, 0);
+      await _openCards(tester, cards, 0);
 
-    expect(find.descendant(of: find.byKey(gestureFocusNextKey), matching: find.text('só leitura')), findsOneWidget);
-  });
+      expect(
+        find.descendant(
+          of: find.byKey(gestureFocusNextKey),
+          matching: find.text('só leitura'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

@@ -15,12 +15,13 @@ const Key gestureFocusNextKey = ValueKey('gesture-focus-next');
 const Key gestureFocusCloseKey = ValueKey('gesture-focus-close');
 
 /// Rótulo do chip de contexto de um bloco.
-String blockContextLabel(AppLocalizations l10n, BlockContext context) => switch (context) {
-  RepeatContext(:final count) => l10n.gestureContextRepeat(count),
-  ChorusContext() => l10n.gestureContextChorus,
-  FinalContext() => l10n.gestureContextFinal,
-  LinkContext() => l10n.gestureContextLink,
-};
+String blockContextLabel(AppLocalizations l10n, BlockContext context) =>
+    switch (context) {
+      RepeatContext(:final count) => l10n.gestureContextRepeat(count),
+      ChorusContext() => l10n.gestureContextChorus,
+      FinalContext() => l10n.gestureContextFinal,
+      LinkContext() => l10n.gestureContextLink,
+    };
 
 /// Trigger do rodapé "próximo": a primeira linha de letra não vazia do
 /// próximo cartão — uma linha de continuação chega com `trigger` vazio, então
@@ -161,8 +162,11 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
                   builder: (context, constraints) {
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTapUp: (details) =>
-                          _go(details.localPosition.dx > constraints.maxWidth / 2 ? 1 : -1),
+                      onTapUp: (details) => _go(
+                        details.localPosition.dx > constraints.maxWidth / 2
+                            ? 1
+                            : -1,
+                      ),
                       child: PageView.builder(
                         controller: _controller,
                         itemCount: cards.length,
@@ -225,7 +229,10 @@ class _FocusPage extends StatelessWidget {
                 for (final ctx in flat.contexts)
                   Chip(
                     label: Text(blockContextLabel(l10n, ctx)),
-                    labelStyle: TextStyle(color: palette.blue, fontWeight: FontWeight.bold),
+                    labelStyle: TextStyle(
+                      color: palette.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
                     side: BorderSide(color: palette.blue),
                     backgroundColor: palette.paper,
                     visualDensity: VisualDensity.compact,
@@ -244,7 +251,11 @@ class _FocusPage extends StatelessWidget {
           for (final line in flat.card.lyrics)
             Align(
               alignment: Alignment.centerLeft,
-              child: LyricLineText(line: line, fontSize: fontSize, palette: palette),
+              child: LyricLineText(
+                line: line,
+                fontSize: fontSize,
+                palette: palette,
+              ),
             ),
         ],
       ),
@@ -254,7 +265,11 @@ class _FocusPage extends StatelessWidget {
 
 /// Rodapé fixo: `próximo:` + gatilho seguinte em vermelho, ou `fim`.
 class _NextFooter extends StatelessWidget {
-  const _NextFooter({required this.l10n, required this.nextTrigger, required this.palette});
+  const _NextFooter({
+    required this.l10n,
+    required this.nextTrigger,
+    required this.palette,
+  });
 
   final AppLocalizations l10n;
 
@@ -269,7 +284,9 @@ class _NextFooter extends StatelessWidget {
       key: gestureFocusNextKey,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: palette.divider))),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: palette.divider)),
+      ),
       child: trigger == null
           ? Text(
               l10n.gestureFocusEnd,

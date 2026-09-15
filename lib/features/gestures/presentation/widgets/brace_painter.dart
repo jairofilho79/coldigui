@@ -50,7 +50,11 @@ class BracePainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
         text: label,
-        style: TextStyle(color: palette.blue, fontSize: 12, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: palette.blue,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: x - 2);

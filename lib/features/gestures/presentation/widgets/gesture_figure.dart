@@ -7,7 +7,8 @@ import '../../domain/entities/gesture_dictionary.dart';
 import '../theme/gesture_reader_palette.dart';
 
 /// Chave do placeholder de gesto ausente — para testes e para achar na tela.
-Key gesturePlaceholderKey(String gestureId) => ValueKey('gesture-placeholder-$gestureId');
+Key gesturePlaceholderKey(String gestureId) =>
+    ValueKey('gesture-placeholder-$gestureId');
 
 /// Chave do quadro branco que envolve a figura.
 const Key gestureFigureFrameKey = ValueKey('gesture-figure-frame');
@@ -36,7 +37,9 @@ class GestureFigure extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = this.entry;
-    if (entry == null) return _Placeholder(gestureId: gestureId, side: side, palette: palette);
+    if (entry == null) {
+      return _Placeholder(gestureId: gestureId, side: side, palette: palette);
+    }
 
     final key = preferGif ? (entry.gif ?? entry.image) : entry.image;
     final bytes = ref.watch(gestureFigureProvider(key));
@@ -83,7 +86,11 @@ class GestureFigure extends ConsumerWidget {
 }
 
 class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.gestureId, required this.side, required this.palette});
+  const _Placeholder({
+    required this.gestureId,
+    required this.side,
+    required this.palette,
+  });
 
   final String gestureId;
   final double side;
@@ -105,7 +112,11 @@ class _Placeholder extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
+          Icon(
+            Icons.pan_tool_outlined,
+            size: 20,
+            color: palette.placeholderBorder,
+          ),
           const SizedBox(height: 4),
           Text(
             l10n?.gestureNotFound ?? 'gesto não encontrado',

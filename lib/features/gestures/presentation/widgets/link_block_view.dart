@@ -5,7 +5,11 @@ import 'link_connector_painter.dart';
 
 /// Ligação: filhos sem espaço entre si + conector laranja à esquerda.
 class LinkBlockView extends StatelessWidget {
-  const LinkBlockView({required this.palette, required this.children, super.key});
+  const LinkBlockView({
+    required this.palette,
+    required this.children,
+    super.key,
+  });
 
   final GestureReaderPalette palette;
   final List<Widget> children;

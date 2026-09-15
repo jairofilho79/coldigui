@@ -100,7 +100,12 @@ final class FinalBlock extends GestureItem {
 }
 
 /// Instruções de condução — o rótulo é l10n, ver `InstructionCardView`.
-enum InstructionKind { instruments, repeatPraise, backToChorus, backToChorusAndFinish }
+enum InstructionKind {
+  instruments,
+  repeatPraise,
+  backToChorus,
+  backToChorusAndFinish,
+}
 
 /// Cartão de instrução de largura total.
 final class InstructionCard extends GestureItem {

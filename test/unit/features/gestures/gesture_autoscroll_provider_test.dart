@@ -6,10 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<(ProviderContainer, SharedPreferences)> _setup({Map<String, Object> initial = const {}}) async {
+Future<(ProviderContainer, SharedPreferences)> _setup({
+  Map<String, Object> initial = const {},
+}) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
-  final c = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)]);
+  final c = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
   addTearDown(c.dispose);
   return (c, prefs);
 }
@@ -25,7 +29,9 @@ void main() {
   });
 
   test('começa parado na velocidade salva (ou 3)', () async {
-    final (c, _) = await _setup(initial: {StorageKeys.gestureAutoscrollSpeed: 4});
+    final (c, _) = await _setup(
+      initial: {StorageKeys.gestureAutoscrollSpeed: 4},
+    );
     final state = c.read(gestureAutoscrollProvider);
     expect(state.running, isFalse);
     expect(state.speed, 4);
@@ -64,7 +70,9 @@ void main() {
     final sub = c.listen(gestureAutoscrollProvider, (_, _) {});
     c.read(gestureAutoscrollProvider.notifier).toggle();
     sub.close();
-    final c2 = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)]);
+    final c2 = ProviderContainer(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    );
     addTearDown(c2.dispose);
     expect(c2.read(gestureAutoscrollProvider).running, isFalse);
   });

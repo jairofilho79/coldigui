@@ -54,8 +54,9 @@ enum GestureReaderMode {
     ),
   };
 
-  GestureReaderMode toggle() =>
-      this == GestureReaderMode.light ? GestureReaderMode.dark : GestureReaderMode.light;
+  GestureReaderMode toggle() => this == GestureReaderMode.light
+      ? GestureReaderMode.dark
+      : GestureReaderMode.light;
 
   /// Serializa para `StorageKeys.gestureReaderMode`.
   String toStorageString() => name;

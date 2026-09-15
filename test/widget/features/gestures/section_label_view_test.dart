@@ -7,7 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 final _palette = GestureReaderMode.light.palette;
 
-Future<void> _pump(WidgetTester tester, SectionLabel label, {Locale locale = const Locale('pt')}) {
+Future<void> _pump(
+  WidgetTester tester,
+  SectionLabel label, {
+  Locale locale = const Locale('pt'),
+}) {
   return tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -16,7 +20,11 @@ Future<void> _pump(WidgetTester tester, SectionLabel label, {Locale locale = con
       home: Scaffold(
         body: SizedBox(
           width: 360,
-          child: SectionLabelView(label: label, fontSize: 20, palette: _palette),
+          child: SectionLabelView(
+            label: label,
+            fontSize: 20,
+            palette: _palette,
+          ),
         ),
       ),
     ),
@@ -24,7 +32,9 @@ Future<void> _pump(WidgetTester tester, SectionLabel label, {Locale locale = con
 }
 
 void main() {
-  testWidgets('«coro» em caixa alta, pequeno, na cor da paleta', (tester) async {
+  testWidgets('«coro» em caixa alta, pequeno, na cor da paleta', (
+    tester,
+  ) async {
     await _pump(tester, const SectionLabel.chorus());
     final text = tester.widget<Text>(find.text('CORO'));
     expect(text.style?.color, _palette.sectionLabel);

@@ -8,10 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<(ProviderContainer, SharedPreferences)> _setup({Map<String, Object> initial = const {}}) async {
+Future<(ProviderContainer, SharedPreferences)> _setup({
+  Map<String, Object> initial = const {},
+}) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
-  final c = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)]);
+  final c = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
   addTearDown(c.dispose);
   return (c, prefs);
 }
@@ -27,10 +31,12 @@ void main() {
     });
 
     test('valores inválidos caem no default ou são grampeados', () async {
-      final (_, prefs) = await _setup(initial: {
-        StorageKeys.gestureReaderMode: 'sepia',
-        StorageKeys.gestureAutoscrollSpeed: 42,
-      });
+      final (_, prefs) = await _setup(
+        initial: {
+          StorageKeys.gestureReaderMode: 'sepia',
+          StorageKeys.gestureAutoscrollSpeed: 42,
+        },
+      );
       final ds = GestureReaderPreferencesDatasource(prefs);
       expect(ds.getMode(), GestureReaderMode.light);
       expect(ds.getAutoscrollSpeed(), 5);
@@ -61,7 +67,9 @@ void main() {
     });
 
     test('lê o salvo', () async {
-      final (c, _) = await _setup(initial: {StorageKeys.gestureReaderMode: 'dark'});
+      final (c, _) = await _setup(
+        initial: {StorageKeys.gestureReaderMode: 'dark'},
+      );
       expect(c.read(gestureReaderModeProvider), GestureReaderMode.dark);
     });
   });
@@ -76,7 +84,9 @@ void main() {
     });
 
     test('lê o salvo', () async {
-      final (c, _) = await _setup(initial: {StorageKeys.gestureReaderLinear: false});
+      final (c, _) = await _setup(
+        initial: {StorageKeys.gestureReaderLinear: false},
+      );
       expect(c.read(gestureReaderLinearProvider), isFalse);
     });
   });

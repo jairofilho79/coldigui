@@ -9,7 +9,11 @@ const Key gestureFinalDividerKey = ValueKey('gesture-final-divider');
 
 /// `FINAL`: divisor traço-ponto + rótulo à esquerda, depois os filhos.
 class FinalSectionView extends StatelessWidget {
-  const FinalSectionView({required this.palette, required this.children, super.key});
+  const FinalSectionView({
+    required this.palette,
+    required this.children,
+    super.key,
+  });
 
   final GestureReaderPalette palette;
   final List<Widget> children;
@@ -66,9 +70,15 @@ class _DashDotPainter extends CustomPainter {
     final y = size.height / 2;
     var x = 0.0;
     while (x < size.width) {
-      canvas.drawLine(Offset(x, y), Offset((x + 8).clamp(0, size.width), y), paint);
+      canvas.drawLine(
+        Offset(x, y),
+        Offset((x + 8).clamp(0, size.width), y),
+        paint,
+      );
       x += 12;
-      if (x < size.width) canvas.drawPoints(PointMode.points, [Offset(x, y)], paint);
+      if (x < size.width) {
+        canvas.drawPoints(PointMode.points, [Offset(x, y)], paint);
+      }
       x += 5;
     }
   }
