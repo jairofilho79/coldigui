@@ -213,6 +213,12 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
     double fontSize,
     GestureReaderPalette palette,
   ) async {
+    // O foco é paginado — não há o que rolar automaticamente. Sem isto o
+    // motor continuaria rolando a página escondida atrás do overlay, e o
+    // próximo tick daria um `jumpTo` bem na hora do `scrollToCard` abaixo,
+    // cortando os 250 ms de animação antes de chegar no cartão. O botão
+    // voltar a ▶ é o estado honesto: o autoscroll não está mais rolando.
+    ref.read(gestureAutoscrollProvider.notifier).stop();
     final result = await showGestureFocus(
       context,
       cards: cards,

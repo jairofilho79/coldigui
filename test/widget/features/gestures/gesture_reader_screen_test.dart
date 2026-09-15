@@ -569,6 +569,23 @@ void main() {
       await stopAndSettle(tester);
     });
 
+    testWidgets('abrir o foco para o autoscroll', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(container.read(gestureAutoscrollProvider).running, isTrue);
+
+      await tester.tap(find.byKey(gestureCardKey(2)));
+      await tester.pumpAndSettle();
+      expect(find.byType(GestureFocusView), findsOneWidget);
+      expect(container.read(gestureAutoscrollProvider).running, isFalse);
+
+      await tester.tap(find.byKey(gestureFocusCloseKey));
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('trocar de louvor para o autoscroll', (tester) async {
       // Como no teste de prefetch: `_pump` remonta o `ProviderScope` a cada
       // chamada, e o `autoDispose` zeraria o `running` sozinho — o que
