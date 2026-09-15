@@ -35,7 +35,7 @@ class GestureDocument {
     ChorusBlock(:final children) ||
     LinkBlock(:final children) ||
     FinalBlock(:final children) => children.any(_containsGesture),
-    InstructionCard() || TextLine() => false,
+    InstructionCard() || TextLine() || SectionLabel() => false,
   };
 }
 
@@ -100,7 +100,12 @@ final class FinalBlock extends GestureItem {
 }
 
 /// Instruções de condução — o rótulo é l10n, ver `InstructionCardView`.
-enum InstructionKind { instruments, repeatPraise, backToChorus, backToChorusAndFinish }
+enum InstructionKind {
+  instruments,
+  repeatPraise,
+  backToChorus,
+  backToChorusAndFinish,
+}
 
 /// Cartão de instrução de largura total.
 final class InstructionCard extends GestureItem {
@@ -114,4 +119,18 @@ final class TextLine extends GestureItem {
   const TextLine(this.text);
 
   final String text;
+}
+
+/// Rótulo discreto que o linearizador insere entre trechos expandidos
+/// («coro», «2ª vez»). O parser nunca o produz; só
+/// `linearizeGestureDocument`. Não é cartão (o `flatten` o pula) nem bloco.
+final class SectionLabel extends GestureItem {
+  const SectionLabel.chorus() : pass = null;
+
+  const SectionLabel.pass(int this.pass) : assert(pass >= 2);
+
+  /// `null` = «coro»; `k` (≥ 2) = «kª vez».
+  final int? pass;
+
+  bool get isChorus => pass == null;
 }

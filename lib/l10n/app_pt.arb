@@ -463,6 +463,24 @@
   "gestureFocusNext": "próximo:",
   "gestureFocusEnd": "fim",
   "gestureFocusClose": "Fechar",
+  "gestureSectionChorus": "coro",
+  "gestureSectionPass": "{n}ª vez",
+  "@gestureSectionPass": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "gesturesReaderToggleTheme": "Alternar tema do leitor",
+  "gesturesReaderLinear": "Mudar para leitura linear",
+  "gesturesReaderStructured": "Mudar para leitura estruturada",
+  "gesturesAutoscrollPlay": "Iniciar rolagem automática",
+  "gesturesAutoscrollPause": "Pausar rolagem automática",
+  "gesturesAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@gesturesAutoscrollSpeed": {
+    "placeholders": {
+      "speed": { "type": "int" }
+    }
+  },
   "chordAutoscrollPlay": "Iniciar rolagem automática",
   "chordAutoscrollPause": "Pausar rolagem automática",
   "chordAutoscrollSpeed": "Velocidade da rolagem: {speed}",

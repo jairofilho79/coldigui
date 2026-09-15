@@ -42,6 +42,15 @@ abstract final class StorageKeys {
   /// Corpo da letra no leitor de gestos (`double`).
   static const String gestureReaderFontSize = 'gestureReaderFontSize';
 
+  /// Claro/escuro do leitor de gestos (`light` | `dark`).
+  static const String gestureReaderMode = 'gestureReaderMode';
+
+  /// Leitura linear do leitor de gestos (`bool`, default `true`).
+  static const String gestureReaderLinear = 'gestureReaderLinear';
+
+  /// Velocidade do autoscroll do leitor de gestos (`int` 1–5).
+  static const String gestureAutoscrollSpeed = 'gestureAutoscrollSpeed';
+
   /// Claro/escuro do leitor de cifras (`light` | `dark`).
   static const String chordReaderMode = 'chordReaderMode';
 

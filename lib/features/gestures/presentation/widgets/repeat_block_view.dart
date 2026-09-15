@@ -11,9 +11,15 @@ import 'brace_painter.dart';
 /// `Positioned.fill` herda a altura sem medição intrínseca. Aninhar é só
 /// empilhar `Stack`s: cada nível recua os filhos em [kGestureBraceWidth].
 class RepeatBlockView extends StatelessWidget {
-  const RepeatBlockView({required this.count, required this.children, super.key});
+  const RepeatBlockView({
+    required this.count,
+    required this.palette,
+    required this.children,
+    super.key,
+  });
 
   final int count;
+  final GestureReaderPalette palette;
   final List<Widget> children;
 
   @override
@@ -21,6 +27,7 @@ class RepeatBlockView extends StatelessWidget {
     return BracedChildren(
       dashed: false,
       label: '${count}x',
+      palette: palette,
       children: children,
     );
   }
@@ -30,12 +37,14 @@ class RepeatBlockView extends StatelessWidget {
 class BracedChildren extends StatelessWidget {
   const BracedChildren({
     required this.dashed,
+    required this.palette,
     required this.children,
     this.label,
     super.key,
   });
 
   final bool dashed;
+  final GestureReaderPalette palette;
   final String? label;
   final List<Widget> children;
 
@@ -57,7 +66,11 @@ class BracedChildren extends StatelessWidget {
           width: kGestureBraceWidth,
           child: CustomPaint(
             key: gestureBraceKey,
-            painter: BracePainter(dashed: dashed, label: label),
+            painter: BracePainter(
+              dashed: dashed,
+              label: label,
+              palette: palette,
+            ),
           ),
         ),
       ],

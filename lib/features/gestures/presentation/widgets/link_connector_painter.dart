@@ -6,12 +6,14 @@ const Key gestureLinkConnectorKey = ValueKey('gesture-link-connector');
 
 /// Conector vertical laranja com seta para baixo: os filhos executam sem pausa.
 class LinkConnectorPainter extends CustomPainter {
-  const LinkConnectorPainter();
+  const LinkConnectorPainter({required this.palette});
+
+  final GestureReaderPalette palette;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = GestureReaderPalette.orange
+      ..color = palette.orange
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
@@ -23,9 +25,9 @@ class LinkConnectorPainter extends CustomPainter {
       ..lineTo(x, bottom)
       ..lineTo(x + 5, bottom - 8)
       ..close();
-    canvas.drawPath(head, Paint()..color = GestureReaderPalette.orange);
+    canvas.drawPath(head, Paint()..color = palette.orange);
   }
 
   @override
-  bool shouldRepaint(LinkConnectorPainter old) => false;
+  bool shouldRepaint(LinkConnectorPainter old) => old.palette != palette;
 }

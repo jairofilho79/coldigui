@@ -11,19 +11,22 @@ GestureDocument _fixture(String name) => parseGestureDocument(
 );
 
 void main() {
-  test('182: 14 cartões em ordem de documento; os 5 do coro têm ChorusContext', () {
-    final flat = flattenGestureCards(_fixture('182_quero_viver.json'));
+  test(
+    '182: 14 cartões em ordem de documento; os 5 do coro têm ChorusContext',
+    () {
+      final flat = flattenGestureCards(_fixture('182_quero_viver.json'));
 
-    expect(flat, hasLength(14));
-    expect([for (final f in flat) f.index], List.generate(14, (i) => i));
-    for (final f in flat.take(5)) {
-      expect(f.contexts, [isA<ChorusContext>()]);
-    }
-    expect(flat[5].contexts, isEmpty);
-    expect(flat[5].card.lyrics.single.trigger, 'Vou');
-    // Instruções não entram na lista.
-    expect(flat.last.card.lyrics.single.trigger, 'Viver');
-  });
+      expect(flat, hasLength(14));
+      expect([for (final f in flat) f.index], List.generate(14, (i) => i));
+      for (final f in flat.take(5)) {
+        expect(f.contexts, [isA<ChorusContext>()]);
+      }
+      expect(flat[5].contexts, isEmpty);
+      expect(flat[5].card.lyrics.single.trigger, 'Vou');
+      // Instruções não entram na lista.
+      expect(flat.last.card.lyrics.single.trigger, 'Viver');
+    },
+  );
 
   test('181: os 4 do repeat carregam RepeatContext(2)', () {
     final flat = flattenGestureCards(_fixture('181_jerusalem.json'));
@@ -31,7 +34,9 @@ void main() {
     expect(flat, hasLength(9));
     expect(flat[4].contexts, isEmpty);
     for (final f in flat.skip(5)) {
-      expect(f.contexts, [isA<RepeatContext>().having((c) => c.count, 'count', 2)]);
+      expect(f.contexts, [
+        isA<RepeatContext>().having((c) => c.count, 'count', 2),
+      ]);
     }
   });
 
@@ -39,7 +44,9 @@ void main() {
     final flat = flattenGestureCards(_fixture('sintetico_final_link.json'));
 
     // repeat3 > gesto solto
-    expect(flat[0].contexts, [isA<RepeatContext>().having((c) => c.count, 'count', 3)]);
+    expect(flat[0].contexts, [
+      isA<RepeatContext>().having((c) => c.count, 'count', 3),
+    ]);
     // repeat3 > link > gesto
     expect(flat[1].contexts, [isA<RepeatContext>(), isA<LinkContext>()]);
     expect(flat[2].contexts, [isA<RepeatContext>(), isA<LinkContext>()]);
@@ -56,5 +63,35 @@ void main() {
   test('documento sem gestos devolve lista vazia', () {
     final doc = parseGestureDocument('{"items":[{"type":"text","text":"x"}]}');
     expect(flattenGestureCards(doc), isEmpty);
+  });
+
+  test('SectionLabel não vira cartão nem conta como gesto', () {
+    const card = GestureCard(
+      gestureId: 'c687580e7682',
+      lyrics: [LyricLine(trigger: 'a', text: 'b')],
+    );
+    const doc = GestureDocument(
+      schemaMajor: 1,
+      title: '',
+      dictionaryVersion: 1,
+      items: [SectionLabel.chorus(), card, SectionLabel.pass(2), card],
+    );
+
+    final flat = flattenGestureCards(doc);
+
+    expect(flat, hasLength(2));
+    expect([for (final f in flat) f.index], [0, 1]);
+    expect(
+      const GestureDocument(
+        schemaMajor: 1,
+        title: '',
+        dictionaryVersion: 1,
+        items: [SectionLabel.pass(3)],
+      ).hasGestures,
+      isFalse,
+    );
+    expect(const SectionLabel.chorus().isChorus, isTrue);
+    expect(const SectionLabel.pass(2).isChorus, isFalse);
+    expect(const SectionLabel.pass(2).pass, 2);
   });
 }
