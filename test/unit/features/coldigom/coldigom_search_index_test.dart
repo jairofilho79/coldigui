@@ -46,6 +46,21 @@ void main() {
     expect(index.praiseIds, {'p1', 'p2', 'p3', 'p4'});
   });
 
+  test('sem catalogIds explícito, cai para praiseIds', () {
+    expect(index.catalogIds, index.praiseIds);
+  });
+
+  test('catalogIds ⊇ praiseIds e inclui ids sem material endereçável '
+      '(ex. praise só-YouTube, que fica fora de praiseIds)', () {
+    final withCatalogIds = ColdigomSearchIndex.build(
+      [_entry('p1', '001', 'Ainda há tempo')],
+      catalogIds: {'p1', 'p-yt'},
+    );
+    expect(withCatalogIds.catalogIds, containsAll(withCatalogIds.praiseIds));
+    expect(withCatalogIds.catalogIds, containsAll(['p1', 'p-yt']));
+    expect(withCatalogIds.praiseIds, isNot(contains('p-yt')));
+  });
+
   test('número exato primeiro (com e sem pad)', () {
     expect(ids('10').first, 'p2');
     expect(ids('010').first, 'p2');

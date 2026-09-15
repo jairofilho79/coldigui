@@ -63,9 +63,14 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
   final lyrics = <LyricsMaterial>[];
   final meta = <String, ColdigomPraiseMetadata>{};
   final entries = <ColdigomIndexedPraise>[];
+  // Todo o Isar, não só quem entra no índice de busca — vira `catalogIds`
+  // (ver doc do campo): um praise só-YouTube não sustenta grupo, mas já foi
+  // adotado, e não pode continuar marcado «novo» na pesquisa remota.
+  final catalogIds = <String>{};
 
   for (var i = 0; i < rows.length; i++) {
     final row = rows[i];
+    catalogIds.add(row.praiseId);
     final detail = ColdigomPraiseCacheMapper.toPraiseDetail(row);
     final praiseLouvores = ColdigomLouvorAdapter.toLouvores(detail);
     final praiseTracks = ColdigomLouvorAdapter.toAudioTracks(detail);
@@ -146,7 +151,7 @@ final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
     '[coldigom] catálogo hidratado: ${rows.length} praises em '
     '${stopwatch.elapsedMilliseconds} ms',
   );
-  return ColdigomSearchIndex.build(entries);
+  return ColdigomSearchIndex.build(entries, catalogIds: catalogIds);
 });
 
 /// Índice de busca local Coldigom — vazio até a hidratação terminar.
@@ -215,6 +220,22 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     final future = _run();
     _inFlight = future;
     return future.whenComplete(() => _inFlight = null);
+  }
+
+  /// Sync depois de uma adoção pontual (§6.2, `homeRemoteSearchProvider`).
+  ///
+  /// Um praise adotado no Isar só sai da lista «novo» quando o índice em
+  /// memória re-hidrata — e isso só acontece sozinho quando [sync] devolve
+  /// [ColdigomCatalogSyncReplaced]. Três caminhos reais nunca chegam lá: 304
+  /// (`ColdigomCatalogSyncNoop`, ETag não mudou), falha de sync, e praise
+  /// só-YouTube (fica fora do índice de busca mesmo depois de hidratar — mas
+  /// entra em `catalogIds`, ver `ColdigomSearchIndex`). Nesses três casos as
+  /// linhas adotadas já estão no Isar; só falta reler.
+  Future<void> syncAfterAdoption() async {
+    final result = await sync();
+    if (result is! ColdigomCatalogSyncReplaced && ref.mounted) {
+      ref.invalidate(coldigomCatalogHydrationProvider);
+    }
   }
 
   /// Sync só quando o último foi há ≥ [OfflineConfig.coldigomCatalogSyncMinInterval]

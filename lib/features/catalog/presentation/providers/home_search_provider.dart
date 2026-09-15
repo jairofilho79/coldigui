@@ -101,6 +101,16 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
       if (!localIds.contains(g.groupId)) g,
   ];
 
+  // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`
+  // é `empty` (não "ainda não sei") — tratar isso como "nada é conhecido"
+  // acenderia «N novos» de forma transitória a cada boot, mesmo para praises
+  // que o Isar já tinha. Sem valor ainda, todo extra passa por conhecido:
+  // sem chip, sem contar, até o índice real chegar.
+  final hydration = ref.watch(coldigomCatalogHydrationProvider);
+  final knownIds = hydration.hasValue
+      ? ref.watch(coldigomSearchIndexProvider).catalogIds
+      : {for (final g in newGroups) g.groupId};
+
   return HomeSearchState(
     query: query,
     localGroups: localGroups,
@@ -109,7 +119,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     // O índice pode conhecer um grupo que a busca textual local não achou
     // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
     // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
-    knownIds: ref.watch(coldigomSearchIndexProvider).praiseIds,
+    knownIds: knownIds,
   );
 });
 

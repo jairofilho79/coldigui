@@ -114,8 +114,10 @@ void main() {
     final index = await c.read(coldigomCatalogHydrationProvider.future);
 
     // p-003 não tem material nenhum (nem letra): não sustenta um grupo e
-    // fica fora do índice — mas continua no Isar (`count` = 3).
+    // fica fora do índice — mas continua no Isar (`count` = 3), e por isso
+    // entra em `catalogIds` mesmo fora de `praiseIds` (§6.2, plano 3).
     expect(index.praiseIds, {'p-001', 'p-002'});
+    expect(index.catalogIds, {'p-001', 'p-002', 'p-003'});
     expect(c.read(coldigomLouvoresCacheProvider).length, 1);
     expect(c.read(coldigomAudioTracksCacheProvider).length, 2);
     expect(c.read(coldigomChordMaterialsCacheProvider).length, 1);
@@ -286,6 +288,10 @@ void main() {
       // praise por outro caminho.
       expect(index.praiseIds, isNot(contains('p-yt')));
       expect(index.isEmpty, isTrue);
+      // Mas está no Isar — e é por `catalogIds`, não `praiseIds`, que a
+      // pesquisa remota sabe que já foi adotado (senão o chip «novo»
+      // nunca sumiria pra este praise).
+      expect(index.catalogIds, contains('p-yt'));
       expect(c.read(coldigomYoutubeCacheProvider)['p-yt'], hasLength(1));
     },
   );

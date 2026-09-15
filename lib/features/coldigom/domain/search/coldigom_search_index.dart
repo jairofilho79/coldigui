@@ -68,27 +68,46 @@ final class ColdigomIndexedPraise {
 /// título exato → parcial), sobre praises em vez de `Louvor`: no Coldigom a
 /// unidade da Home é o grupo, e ele já sai montado daqui.
 final class ColdigomSearchIndex {
-  const ColdigomSearchIndex._(this.entries, this.praiseIds);
+  const ColdigomSearchIndex._(this.entries, this.praiseIds, this.catalogIds);
 
   /// Índice vazio — antes da hidratação e em modo degradado.
   static const empty = ColdigomSearchIndex._(
     <ColdigomIndexedPraise>[],
     <String>{},
+    <String>{},
   );
 
-  factory ColdigomSearchIndex.build(List<ColdigomIndexedPraise> entries) {
-    if (entries.isEmpty) return empty;
+  /// [catalogIds] é o Isar inteiro (inclui praises sem material endereçável,
+  /// ex. só YouTube, que ficam fora de [entries]/[praiseIds]) — quando
+  /// omitido cai para os ids das [entries]. Ver [catalogIds].
+  factory ColdigomSearchIndex.build(
+    List<ColdigomIndexedPraise> entries, {
+    Set<String>? catalogIds,
+  }) {
+    if (entries.isEmpty && (catalogIds == null || catalogIds.isEmpty)) {
+      return empty;
+    }
+    final praiseIds = Set<String>.unmodifiable({
+      for (final e in entries) e.praiseId,
+    });
     return ColdigomSearchIndex._(
       List<ColdigomIndexedPraise>.unmodifiable(entries),
-      Set<String>.unmodifiable({for (final e in entries) e.praiseId}),
+      praiseIds,
+      catalogIds == null ? praiseIds : Set<String>.unmodifiable(catalogIds),
     );
   }
 
   final List<ColdigomIndexedPraise> entries;
 
-  /// Ids conhecidos localmente — é contra isto que a pesquisa remota (plano
-  /// 3) decide o que é «novo».
+  /// Ids no índice de busca (com material endereçável) — é contra isto que
+  /// a busca textual local decide match; ver [ColdigomIndexedPraise.build].
   final Set<String> praiseIds;
+
+  /// Todo o Isar, [praiseIds] incluído — é contra isto que a pesquisa remota
+  /// (plano 3, §6.2) decide o que é «novo» (`HomeSearchState.knownIds`): um
+  /// praise já adotado no Isar (mesmo sem entrar no índice de busca, ex.
+  /// só-YouTube) não deve continuar a levar o chip «novo» pra sempre.
+  final Set<String> catalogIds;
 
   bool get isEmpty => entries.isEmpty;
 

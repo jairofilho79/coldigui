@@ -53,9 +53,9 @@ final class HomeRemoteSearchKey {
 /// sobrescrever a lista da tecla seguinte (o antigo contador `_generation`).
 ///
 /// O retry automático do Riverpod 3 fica desligado (`retry: (_, _) => null`):
-/// a falha remota é um estado de UI com retry **manual** (a linha "Coldigom
-/// indisponível"), não uma falha transitória a esconder atrás de ~30 s de
-/// backoff.
+/// a falha remota é um estado de UI com retry **manual** (o estado `failed`
+/// de `SearchFreshnessLine`, com o botão "tentar de novo"), não uma falha
+/// transitória a esconder atrás de ~30 s de backoff.
 final homeRemoteSearchProvider = FutureProvider.autoDispose
     .family<CatalogSearchPage, HomeRemoteSearchKey>((ref, key) async {
       // Query vazia não tem página remota — e não pode custar uma requisição.
@@ -100,11 +100,20 @@ final homeRemoteSearchProvider = FutureProvider.autoDispose
         for (final g in page.groups)
           if (!known.contains(g.groupId)) g,
       ];
-      unawaited(
-        adopt(candidates, knownPraiseIds: known).then((adopted) {
-          if (adopted.isNotEmpty) unawaited(syncNotifier.sync());
-        }),
-      );
+      // Sem candidatos não há o que adotar — poupa ao use case uma chamada
+      // à toa a cada página remota que só confirma o que já sabíamos.
+      if (candidates.isNotEmpty) {
+        unawaited(
+          adopt(candidates, knownPraiseIds: known).then((adopted) {
+            // `syncAfterAdoption`, não `sync`: um `Noop`/falha de sync não
+            // re-hidrata sozinho, e as linhas adotadas já estão no Isar —
+            // ver a doc de `ColdigomCatalogSyncNotifier.syncAfterAdoption`.
+            if (adopted.isNotEmpty) {
+              unawaited(syncNotifier.syncAfterAdoption());
+            }
+          }),
+        );
+      }
 
       final link = ref.keepAlive();
       final timer = Timer(homeRemoteSearchMemoDuration, link.close);

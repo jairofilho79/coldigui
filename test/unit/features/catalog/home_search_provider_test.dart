@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
@@ -126,6 +128,21 @@ LouvorGroup _coldigomGroup(String id) => LouvorGroup(
   coldigomMeta: const ColdigomPraiseMetadata(name: 'Coldigom'),
 );
 
+/// Índice Coldigom que o teste consegue trocar no meio do caminho (fix
+/// round final, achado 4c) — `coldigomSearchIndexProvider` é um `Provider`
+/// simples, então a mutabilidade entra por baixo, via `overrideWith`.
+class _MutableColdigomIndexNotifier extends Notifier<ColdigomSearchIndex> {
+  @override
+  ColdigomSearchIndex build() => ColdigomSearchIndex.empty;
+
+  void update(ColdigomSearchIndex index) => state = index;
+}
+
+final _mutableColdigomIndexProvider =
+    NotifierProvider<_MutableColdigomIndexNotifier, ColdigomSearchIndex>(
+      _MutableColdigomIndexNotifier.new,
+    );
+
 void main() {
   late SharedPreferences prefs;
   late _RecordingAdopter adopter;
@@ -148,6 +165,12 @@ void main() {
     _MutableManifestNotifier? manifest,
     bool online = true,
     ColdigomSearchIndex index = ColdigomSearchIndex.empty,
+    // Por padrão a hidratação já "terminou" com o mesmo `index` — os testes
+    // do achado 2 (gate antes da hidratação) e do achado 1i (invalidação por
+    // `syncAfterAdoption`) passam o próprio override em vez do padrão
+    // (Riverpod rejeita sobrescrever o mesmo provider duas vezes).
+    Override? hydrationOverride,
+    Override? searchIndexOverride,
     List<Override> extra = const [],
   }) {
     final container = ProviderContainer(
@@ -162,7 +185,10 @@ void main() {
         connectivityStreamProvider.overrideWith((ref) => Stream.value(online)),
         adoptColdigomSearchNoveltiesProvider.overrideWithValue(adopter),
         coldigomCatalogSyncProvider.overrideWith(() => syncNotifier),
-        coldigomSearchIndexProvider.overrideWithValue(index),
+        hydrationOverride ??
+            coldigomCatalogHydrationProvider.overrideWith((ref) async => index),
+        searchIndexOverride ??
+            coldigomSearchIndexProvider.overrideWithValue(index),
         ...extra,
       ],
     );
@@ -395,7 +421,10 @@ void main() {
       expect(state.freshness, SearchFreshness.updated);
       expect(state.newGroupIds, isEmpty);
       expect(state.groups.map((g) => g.groupId), contains('cold-1'));
-      expect(adopter.calls, [<String>[]]);
+      // Sem candidatos (o índice já conhecia cold-1), o adopter nem é
+      // chamado — poupa uma volta à toa a cada página remota que só
+      // confirma o que a Home já sabia.
+      expect(adopter.calls, isEmpty);
       expect(syncNotifier.calls, 0);
     },
   );
@@ -535,5 +564,214 @@ void main() {
     await pumpEventQueue();
 
     expect(source.searchCalls, 1);
+  });
+
+  test(
+    'remoto em voo: checking com a lista local visível; updated ao completar',
+    () async {
+      final completer = Completer<CatalogSearchPage>();
+      final source = _RecordingCatalogSource((_) => completer.future);
+      final container = createContainer(source);
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('aleluia');
+      await pumpEventQueue();
+
+      final checking = container.read(homeSearchStateProvider);
+      expect(checking.freshness, SearchFreshness.checking);
+      expect(checking.localGroups, isNotEmpty);
+      expect(checking.groups, checking.localGroups);
+
+      completer.complete(const CatalogSearchPage(groups: [], page: 1));
+      await pumpEventQueue();
+
+      expect(
+        container.read(homeSearchStateProvider).freshness,
+        SearchFreshness.updated,
+      );
+    },
+  );
+
+  test('retry após falha passa por checking antes de updated', () async {
+    var calls = 0;
+    final gate = Completer<void>();
+    final source = _RecordingCatalogSource((query) async {
+      calls++;
+      if (calls == 1) throw Exception('coldigom indisponível');
+      await gate.future;
+      return CatalogSearchPage(groups: const [], page: query.page);
+    });
+    final container = createContainer(source);
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+    expect(
+      container.read(homeSearchStateProvider).freshness,
+      SearchFreshness.failed,
+    );
+
+    container.invalidate(
+      homeRemoteSearchProvider(
+        const HomeRemoteSearchKey(query: 'aleluia', page: 1),
+      ),
+    );
+    // O segundo `search` ainda está preso em `gate`: o estado já trocou de
+    // `failed` para `checking`, não indo direto para `updated`.
+    expect(
+      container.read(homeSearchStateProvider).freshness,
+      SearchFreshness.checking,
+    );
+
+    gate.complete();
+    await pumpEventQueue();
+
+    expect(
+      container.read(homeSearchStateProvider).freshness,
+      SearchFreshness.updated,
+    );
+    expect(calls, 2);
+  });
+
+  test('índice chega depois: quando o catálogo aprende cold-9, o chip some e '
+      'o card não duplica', () async {
+    final cold9 = _coldigomGroup('cold-9');
+    final source = _RecordingCatalogSource(
+      (query) async => CatalogSearchPage(groups: [cold9], page: query.page),
+    );
+    final container = createContainer(
+      source,
+      searchIndexOverride: coldigomSearchIndexProvider.overrideWith(
+        (ref) => ref.watch(_mutableColdigomIndexProvider),
+      ),
+    );
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    var state = container.read(homeSearchStateProvider);
+    expect(state.newGroupIds, {'cold-9'});
+    expect(state.groups.where((g) => g.groupId == 'cold-9'), hasLength(1));
+
+    // O sync que a adoção disparou terminou e re-hidratou: o índice agora
+    // conhece cold-9.
+    container
+        .read(_mutableColdigomIndexProvider.notifier)
+        .update(
+          ColdigomSearchIndex.build([
+            ColdigomIndexedPraise.build(
+              praiseId: 'cold-9',
+              numero: '900',
+              nome: 'Coldigom cold-9',
+              searchTokens: 'coldigom cold-9 900',
+              group: cold9,
+            ),
+          ]),
+        );
+    await pumpEventQueue();
+
+    state = container.read(homeSearchStateProvider);
+    expect(state.newGroupIds, isEmpty);
+    expect(state.groups.where((g) => g.groupId == 'cold-9'), hasLength(1));
+  });
+
+  test(
+    'praise em catalogIds mas fora de praiseIds (já adotado, sem entrar no '
+    'índice de busca — ex. só-YouTube) aparece no fim sem chip «novo»',
+    () async {
+      final cold9 = _coldigomGroup('cold-9');
+      final source = _RecordingCatalogSource(
+        (query) async => CatalogSearchPage(groups: [cold9], page: query.page),
+      );
+      final container = createContainer(
+        source,
+        index: ColdigomSearchIndex.build(const [], catalogIds: {'cold-9'}),
+      );
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('exclusivoremoto');
+      await pumpEventQueue();
+
+      final state = container.read(homeSearchStateProvider);
+      expect(state.localGroups, isEmpty);
+      expect(state.groups.map((g) => g.groupId), ['cold-9']);
+      expect(state.newGroupIds, isEmpty);
+      expect(state.freshness, SearchFreshness.updated);
+    },
+  );
+
+  test('extras não levam chip nem contam como novo enquanto a hidratação '
+      'ainda não terminou (evita «N novos» transitório no boot)', () async {
+    final cold9 = _coldigomGroup('cold-9');
+    final source = _RecordingCatalogSource(
+      (query) async => CatalogSearchPage(groups: [cold9], page: query.page),
+    );
+    final container = createContainer(
+      source,
+      hydrationOverride: coldigomCatalogHydrationProvider.overrideWith(
+        (ref) => Completer<ColdigomSearchIndex>().future,
+      ),
+    );
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    final state = container.read(homeSearchStateProvider);
+    expect(state.freshness, SearchFreshness.updated);
+    expect(state.newGroupIds, isEmpty);
+    expect(state.groups.map((g) => g.groupId), contains('cold-9'));
+  });
+
+  test('adoção sem novo catálogo (sync devolve Noop) ainda assim re-hidrata: '
+      'o Isar já tem as linhas adotadas, só faltava reler', () async {
+    var hydrationBuilds = 0;
+    final cold9 = _coldigomGroup('cold-9');
+    final source = _RecordingCatalogSource(
+      (query) async => CatalogSearchPage(groups: [cold9], page: query.page),
+    );
+    final container = createContainer(
+      source,
+      hydrationOverride: coldigomCatalogHydrationProvider.overrideWith((
+        ref,
+      ) async {
+        hydrationBuilds++;
+        return ColdigomSearchIndex.empty;
+      }),
+    );
+    keepStateAlive(container);
+    final hydrationSub = container.listen(
+      coldigomCatalogHydrationProvider,
+      (_, _) {},
+    );
+    addTearDown(hydrationSub.close);
+    await pumpEventQueue();
+    expect(hydrationBuilds, 1);
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    expect(adopter.calls.single, ['cold-9']);
+    // `_CountingSync.sync()` devolve `Noop`: `syncAfterAdoption` invalida
+    // a hidratação mesmo assim.
+    expect(hydrationBuilds, 2);
   });
 }
