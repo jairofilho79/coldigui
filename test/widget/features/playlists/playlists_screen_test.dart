@@ -9,6 +9,8 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/live/data/live_room_remote_datasource.dart';
+import 'package:coldigui/features/live/presentation/providers/my_live_room_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart';
 import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
@@ -16,6 +18,7 @@ import 'package:coldigui/features/playlists/presentation/providers/playlist_sync
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +28,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _LoggedOutAuth extends AuthNotifier {
   @override
   Future<AuthUser?> build() async => null;
+}
+
+class _LoggedInAuth extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async =>
+      const AuthUser(googleSub: 'sub-1', sessionToken: 'tok', name: 'Jairo');
+}
+
+/// Fake de [LiveRoomRemoteDatasource] para o FAB «Abrir Sala» — nunca toca
+/// em Dio de verdade, devolve [info] fixo e conta chamadas.
+class _FakeLiveRoomRemoteDatasource extends LiveRoomRemoteDatasource {
+  _FakeLiveRoomRemoteDatasource(this.info) : super(Dio(), sessionToken: () => null);
+  final LiveRoomInfo info;
+  int ensureCalls = 0;
+
+  @override
+  Future<LiveRoomInfo> ensureRoom() async {
+    ensureCalls++;
+    return info;
+  }
 }
 
 /// Estado de sync fixo, sem `ref.listen` de auth nem rede.
@@ -185,6 +208,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Entrar na sala'), findsNothing);
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Entrar na sala'), findsOneWidget);
     await tester.tap(find.text('Entrar na sala'));
     await tester.pumpAndSettle();
@@ -197,6 +224,96 @@ void main() {
 
     expect(router.state.uri.toString(), '/ao-vivo/k7x2m9q');
     expect(find.text('sala k7x2m9q'), findsOneWidget);
+  });
+
+  testWidgets('FAB «Sala ao Vivo» → «Abrir Sala» deslogado vai ao Perfil', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.profile,
+          builder: (_, _) => const Scaffold(body: Text('tela de perfil')),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Abrir Sala'), findsOneWidget);
+
+    await tester.tap(find.text('Abrir Sala'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), RoutePaths.profile);
+    expect(find.text('tela de perfil'), findsOneWidget);
+  });
+
+  testWidgets('FAB «Sala ao Vivo» → «Abrir Sala» logado vai à própria sala', (
+    tester,
+  ) async {
+    final fakeDatasource = _FakeLiveRoomRemoteDatasource(
+      const LiveRoomInfo(
+        code: 'k7x2m9q',
+        url: 'https://plpcg.com/ao-vivo/k7x2m9q',
+        ownerName: 'Fulano',
+      ),
+    );
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.liveRoom,
+          builder: (_, state) =>
+              Scaffold(body: Text('sala ${state.pathParameters['code']}')),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedInAuth.new),
+          liveRoomRemoteDatasourceProvider.overrideWithValue(fakeDatasource),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Sala ao Vivo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abrir Sala'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/ao-vivo/k7x2m9q');
+    expect(find.text('sala k7x2m9q'), findsOneWidget);
+    expect(fakeDatasource.ensureCalls, 1);
   });
 
   testWidgets('importar via FAB dispara importSharedFromUrl', (tester) async {

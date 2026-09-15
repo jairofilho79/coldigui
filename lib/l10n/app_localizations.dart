@@ -2783,11 +2783,17 @@ abstract class AppLocalizations {
   /// **'Entre com o Google para transmitir ao vivo'**
   String get liveLoginRequired;
 
-  /// Tile do Perfil que abre a sala ao vivo do usuário logado
+  /// FAB da tela de listas que expande em «Abrir Sala» e «Entrar na sala»
   ///
   /// In pt, this message translates to:
-  /// **'Minha sala ao vivo'**
-  String get profileLiveRoom;
+  /// **'Sala ao Vivo'**
+  String get liveRoomMenu;
+
+  /// Sub-botão do FAB «Sala ao Vivo» que abre a sala ao vivo do usuário logado
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir Sala'**
+  String get liveOpenRoom;
 
   /// No description provided for @lyricsTitle.
   ///

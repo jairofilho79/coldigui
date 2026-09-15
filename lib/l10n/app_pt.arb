@@ -1032,9 +1032,13 @@
   "@liveLoginRequired": {
     "description": "Snackbar ao tentar «Iniciar ao vivo» sem estar logado"
   },
-  "profileLiveRoom": "Minha sala ao vivo",
-  "@profileLiveRoom": {
-    "description": "Tile do Perfil que abre a sala ao vivo do usuário logado"
+  "liveRoomMenu": "Sala ao Vivo",
+  "@liveRoomMenu": {
+    "description": "FAB da tela de listas que expande em «Abrir Sala» e «Entrar na sala»"
+  },
+  "liveOpenRoom": "Abrir Sala",
+  "@liveOpenRoom": {
+    "description": "Sub-botão do FAB «Sala ao Vivo» que abre a sala ao vivo do usuário logado"
   },
   "lyricsTitle": "Letra",
   "lyricsTab": "Letra",

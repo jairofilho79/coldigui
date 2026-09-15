@@ -1647,7 +1647,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get liveLoginRequired => 'Entre com o Google para transmitir ao vivo';
 
   @override
-  String get profileLiveRoom => 'Minha sala ao vivo';
+  String get liveRoomMenu => 'Sala ao Vivo';
+
+  @override
+  String get liveOpenRoom => 'Abrir Sala';
 
   @override
   String get lyricsTitle => 'Letra';

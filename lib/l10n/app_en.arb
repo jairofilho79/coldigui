@@ -916,9 +916,13 @@
   "@liveLoginRequired": {
     "description": "Snackbar when trying to \"Go live\" while signed out"
   },
-  "profileLiveRoom": "My live room",
-  "@profileLiveRoom": {
-    "description": "Profile tile that opens the signed-in user's live room"
+  "liveRoomMenu": "Live Room",
+  "@liveRoomMenu": {
+    "description": "FAB on the playlists screen that expands into \"Open Room\" and \"Join room\""
+  },
+  "liveOpenRoom": "Open Room",
+  "@liveOpenRoom": {
+    "description": "Sub-button of the \"Live Room\" FAB that opens the signed-in user's live room"
   },
   "lyricsTitle": "Lyrics",
   "lyricsTab": "Lyrics",

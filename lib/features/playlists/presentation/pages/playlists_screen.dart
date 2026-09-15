@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/feature_flags_provider.dart';
+import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../live/domain/live_room_link.dart';
+import '../../../live/presentation/providers/my_live_room_provider.dart';
 import '../../../live/presentation/widgets/join_live_room_dialog.dart';
 import '../../../social/presentation/widgets/public_playlists_entry_button.dart';
 import '../../domain/entities/playlist_tab.dart';
@@ -24,7 +27,10 @@ import '../widgets/playlist_sync_error_banner.dart';
 ///
 /// **Layout (polish jun/2026):** [TabBar] sobre fundo creme; lista ou estado vazio
 /// com texto [AppColors.textLight] (contraste no [AppColors.background] do scaffold).
-/// **FAB stack:** [FloatingActionButton.extended] importar (sempre visível); na aba
+/// **FAB stack:** [FloatingActionButton.extended] importar (sempre visível); acima
+/// dele, «Sala ao Vivo» (`heroTag: live-room-menu`) — ao tocar (`_liveMenuOpen`),
+/// expande em «Abrir Sala» (`live-open-room`, sala do usuário logado, ou o Perfil
+/// se deslogado) e «Entrar na sala» (`live-join-room`, cola link/código); na aba
 /// `unsaved`, [FloatingActionButton.small] branco (`heroTag: playlist-delete-all-unsaved`,
 /// `Icons.delete_sweep_outlined`) 12px acima — tooltip [playlistDeleteAllUnsaved].
 /// Com `FF_SOCIAL`, o [PublicPlaylistsEntryButton] («Listas públicas») fica
@@ -43,6 +49,7 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
         PlaylistSyncLifecycleMixin {
   late final TabController _tabController;
   final _tileKeys = <String, GlobalKey>{};
+  bool _liveMenuOpen = false;
 
   @override
   void initState() {
@@ -101,10 +108,35 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     };
   }
 
+  void _toggleLiveMenu() => setState(() => _liveMenuOpen = !_liveMenuOpen);
+
+  /// «Abrir Sala»: sala ao vivo do usuário logado — a antiga ação do Perfil,
+  /// agora sub-botão do FAB «Sala ao Vivo». Deslogado, encaminha para o
+  /// Perfil (única tela com o login do Google no app).
+  Future<void> _openLiveRoom(BuildContext context) async {
+    setState(() => _liveMenuOpen = false);
+    if (ref.read(authStateProvider).asData?.value == null) {
+      context.go(RoutePaths.profile);
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final room = await ref.read(myLiveRoomProvider.notifier).ensure();
+      if (context.mounted) {
+        context.go(RoutePaths.liveRoomFor(room.code));
+      }
+    } on Object {
+      if (context.mounted) {
+        showAppSnackbar(context, l10n.liveRoomError);
+      }
+    }
+  }
+
   /// «Entrar na sala»: cola o link/código e abre a sala ao vivo — o par do
   /// «Importar lista» para quem recebeu o link fora do app (ou onde o
   /// Universal Link não abre no app, como o PWA do iOS).
   Future<void> _joinLiveRoom(BuildContext context) async {
+    setState(() => _liveMenuOpen = false);
     final code = await showJoinLiveRoomDialog(context);
     if (code == null || !context.mounted) return;
     context.go(liveRoomRouteFor(code));
@@ -213,13 +245,33 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
                 child: const Icon(Icons.delete_sweep_outlined),
               ),
             ),
+          if (_liveMenuOpen) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: FloatingActionButton.extended(
+                heroTag: 'live-open-room',
+                onPressed: () => _openLiveRoom(context),
+                icon: const Icon(Icons.sensors),
+                label: Text(l10n.liveOpenRoom),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: FloatingActionButton.extended(
+                heroTag: 'live-join-room',
+                onPressed: () => _joinLiveRoom(context),
+                icon: const Icon(Icons.meeting_room),
+                label: Text(l10n.liveJoinRoom),
+              ),
+            ),
+          ],
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: FloatingActionButton.extended(
-              heroTag: 'live-join-room',
-              onPressed: () => _joinLiveRoom(context),
-              icon: const Icon(Icons.sensors),
-              label: Text(l10n.liveJoinRoom),
+              heroTag: 'live-room-menu',
+              onPressed: _toggleLiveMenu,
+              icon: Icon(_liveMenuOpen ? Icons.close : Icons.sensors),
+              label: Text(l10n.liveRoomMenu),
             ),
           ),
           FloatingActionButton.extended(

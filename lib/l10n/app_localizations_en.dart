@@ -1634,7 +1634,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get liveLoginRequired => 'Sign in with Google to go live';
 
   @override
-  String get profileLiveRoom => 'My live room';
+  String get liveRoomMenu => 'Live Room';
+
+  @override
+  String get liveOpenRoom => 'Open Room';
 
   @override
   String get lyricsTitle => 'Lyrics';

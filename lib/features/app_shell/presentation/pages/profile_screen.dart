@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/theme/color_extensions.dart';
-import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/data/oidc/oidc_callback.dart';
 import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
-import '../../../live/presentation/providers/my_live_room_provider.dart';
 
 /// Hub do Perfil — login Google, Biblioteca, Offline e Sobre.
 class ProfileScreen extends ConsumerWidget {
@@ -82,25 +79,6 @@ class ProfileScreen extends ConsumerWidget {
                   context,
                   RoutePaths.favoriteMaterialKinds,
                 ),
-              ),
-              const SizedBox(height: 10),
-              _ProfilePageTile(
-                icon: Icons.sensors,
-                title: l10n.profileLiveRoom,
-                onTap: () async {
-                  try {
-                    final room = await ref
-                        .read(myLiveRoomProvider.notifier)
-                        .ensure();
-                    if (context.mounted) {
-                      context.go(RoutePaths.liveRoomFor(room.code));
-                    }
-                  } on Object {
-                    if (context.mounted) {
-                      showAppSnackbar(context, l10n.liveRoomError);
-                    }
-                  }
-                },
               ),
             ],
             const SizedBox(height: 10),
