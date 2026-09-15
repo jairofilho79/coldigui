@@ -33,7 +33,14 @@ class HighlightedText extends StatelessWidget {
     fontWeight: FontWeight.w700,
   );
 
-  /// Ocorrências de [query] (normalizada) em [text] — pares `[início, fim)`.
+  /// Separador entre palavras da query: qualquer caractere não-alfanumérico
+  /// (espaço, vírgula, hífen...) — mesma regra do tokenizer FTS5 do backend,
+  /// pra destacar mesmo quando query e texto pontuam diferente entre as
+  /// palavras (ex.: query "a ti pertence" bate com texto "A Ti, pertence").
+  static final RegExp _wordSeparator = RegExp(r'[^a-z0-9]+');
+
+  /// Ocorrências de [query] (normalizada, tokenizada) em [text] — pares
+  /// `[início, fim)`.
   ///
   /// [LouvorSearchTokens.normalize] troca cada caractere por exatamente um
   /// outro (minúsculas + acentos), então os índices da string normalizada
@@ -46,16 +53,18 @@ class HighlightedText extends StatelessWidget {
     final normalizedQuery = LouvorSearchTokens.normalize(trimmedQuery);
     if (normalizedQuery.isEmpty) return const [];
 
-    final matches = <(int, int)>[];
-    var start = 0;
-    while (start <= normalizedText.length) {
-      final index = normalizedText.indexOf(normalizedQuery, start);
-      if (index < 0) break;
-      final end = index + normalizedQuery.length;
-      matches.add((index, end));
-      start = end;
-    }
-    return matches;
+    // Tokens só têm [a-z0-9] (o split já descartou tudo mais), então dá pra
+    // juntar direto na regex sem precisar escapar caractere nenhum.
+    final queryTokens = normalizedQuery
+        .split(_wordSeparator)
+        .where((t) => t.isNotEmpty)
+        .toList(growable: false);
+    if (queryTokens.isEmpty) return const [];
+
+    final pattern = RegExp(queryTokens.join(r'[^a-z0-9]+'));
+    return [
+      for (final m in pattern.allMatches(normalizedText)) (m.start, m.end),
+    ];
   }
 
   @override

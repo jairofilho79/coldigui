@@ -62,6 +62,48 @@ void main() {
     expect(highlighted[1].text, 'Bendito');
   });
 
+  testWidgets(
+    'vírgula no texto entre as palavras da query não impede o destaque',
+    (tester) async {
+      // Regressão: _matches fazia indexOf literal da query normalizada — só
+      // acento/caixa, sem tolerar pontuação. "A Ti, pertence" (vírgula colada
+      // em "Ti") não destacava nada pra query "a ti pertence", mesmo a frase
+      // existindo ali (mesma causa do card sem trecho na busca de letra).
+      await pump(
+        tester,
+        const HighlightedText(
+          text: 'Graças, pois a Ti, pertence todo o louvor',
+          query: 'a ti pertence',
+        ),
+      );
+
+      final highlighted = spansOf(
+        tester,
+      ).where((span) => span.style?.color == AppColors.gold).toList();
+      expect(highlighted, hasLength(1));
+      expect(highlighted.single.text, 'a Ti, pertence');
+    },
+  );
+
+  testWidgets(
+    'vírgula na query entre as palavras do texto não impede o destaque',
+    (tester) async {
+      await pump(
+        tester,
+        const HighlightedText(
+          text: 'a ti pertence todo o louvor',
+          query: 'a ti, pertence',
+        ),
+      );
+
+      final highlighted = spansOf(
+        tester,
+      ).where((span) => span.style?.color == AppColors.gold).toList();
+      expect(highlighted, hasLength(1));
+      expect(highlighted.single.text, 'a ti pertence');
+    },
+  );
+
   testWidgets('estilo de destaque customizado sobrepõe o padrão', (
     tester,
   ) async {
