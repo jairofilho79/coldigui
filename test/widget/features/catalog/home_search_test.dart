@@ -13,7 +13,9 @@ import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
+
 import '../../../helpers/louvores_manifest_test_helpers.dart';
+
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,17 +266,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Coldigom indisponível · tentar de novo'),
+        find.text('Em cache · não foi possível verificar'),
         findsOneWidget,
       );
       // O resultado PLPCG segue na tela apesar da falha remota.
       expect(find.textContaining('Aleluia'), findsOneWidget);
 
       repo.shouldFail = false;
-      await tester.tap(find.text('Coldigom indisponível · tentar de novo'));
+      await tester.tap(find.text('Em cache · não foi possível verificar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Coldigom indisponível · tentar de novo'), findsNothing);
+      expect(find.text('Em cache · não foi possível verificar'), findsNothing);
       expect(repo.calls, 2);
     },
   );
@@ -314,14 +316,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
-    expect(find.text('Coldigom indisponível · tentar de novo'), findsOneWidget);
+    expect(find.text('Em cache · não foi possível verificar'), findsOneWidget);
     expect(repo.calls, 1);
 
     repo.shouldFail = false;
     connectivity.add(true);
     await tester.pumpAndSettle();
 
-    expect(find.text('Coldigom indisponível · tentar de novo'), findsNothing);
+    expect(find.text('Em cache · não foi possível verificar'), findsNothing);
     expect(repo.calls, 2);
   });
 

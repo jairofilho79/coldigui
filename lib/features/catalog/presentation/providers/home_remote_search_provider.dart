@@ -11,8 +11,8 @@ import '../../domain/ports/search_cancellation.dart';
 /// Quanto tempo uma página remota bem-sucedida fica em memo.
 ///
 /// É o LRU que não precisamos escrever: o `keepAlive` segura a instância da
-/// família e o timer a solta. Voltar da página 2 para a 1 dentro da janela não
-/// gasta requisição nenhuma.
+/// família e o timer a solta. Voltar a uma query já vista dentro da janela
+/// não gasta requisição nenhuma.
 const homeRemoteSearchMemoDuration = Duration(minutes: 10);
 
 /// Identidade de uma busca remota: **só** texto e página.

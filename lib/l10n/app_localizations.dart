@@ -140,6 +140,42 @@ abstract class AppLocalizations {
   /// **'Limpar busca'**
   String get searchClear;
 
+  /// No description provided for @searchFreshnessChecking.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em cache · a verificar…'**
+  String get searchFreshnessChecking;
+
+  /// No description provided for @searchFreshnessUpdated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizado'**
+  String get searchFreshnessUpdated;
+
+  /// No description provided for @searchFreshnessUpdatedNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{Atualizado · 1 novo} other{Atualizado · {count} novos}}'**
+  String searchFreshnessUpdatedNew(int count);
+
+  /// No description provided for @searchFreshnessOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em cache · sem ligação'**
+  String get searchFreshnessOffline;
+
+  /// No description provided for @searchFreshnessFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em cache · não foi possível verificar'**
+  String get searchFreshnessFailed;
+
+  /// No description provided for @searchResultNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'novo'**
+  String get searchResultNew;
+
   /// No description provided for @filtersTitle.
   ///
   /// In pt, this message translates to:
@@ -415,12 +451,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível carregar o catálogo Coldigom'**
   String get coldigomLoadError;
-
-  /// No description provided for @coldigomUnavailableRetry.
-  ///
-  /// In pt, this message translates to:
-  /// **'Coldigom indisponível · tentar de novo'**
-  String get coldigomUnavailableRetry;
 
   /// No description provided for @offlineTitle.
   ///

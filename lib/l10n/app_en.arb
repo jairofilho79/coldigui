@@ -29,6 +29,13 @@
   "@searchClear": {
     "description": "Tooltip for the clear (X) button inside SearchBar (UC-01 Home)"
   },
+  "searchFreshnessChecking": "Cached · checking…",
+  "searchFreshnessUpdated": "Up to date",
+  "searchFreshnessUpdatedNew": "{count, plural, one{Up to date · 1 new} other{Up to date · {count} new}}",
+  "@searchFreshnessUpdatedNew": { "placeholders": { "count": { "type": "int" } } },
+  "searchFreshnessOffline": "Cached · offline",
+  "searchFreshnessFailed": "Cached · could not verify",
+  "searchResultNew": "new",
   "filtersTitle": "Filters",
   "filtersTapToExpand": "Tap to see more",
   "sharePdf": "Share",
@@ -117,7 +124,6 @@
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materials",
   "coldigomLoadError": "Could not load the Coldigom catalog",
-  "coldigomUnavailableRetry": "Coldigom unavailable · try again",
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Select categories",
   "offlineDownloadSelected": "Download selected",

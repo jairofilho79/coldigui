@@ -39,9 +39,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Long press: abre direto o material favorito do grupo (mesma resolução
 /// do "+"); sem favorito adicionável, cai no mesmo caminho do tap.
 class LouvorGroupCard extends ConsumerStatefulWidget {
-  const LouvorGroupCard({required this.group, super.key});
+  const LouvorGroupCard({required this.group, this.isNew = false, super.key});
 
   final LouvorGroup group;
+
+  /// Card vindo só da validação remota — chip «novo» (§6.3).
+  final bool isNew;
 
   @override
   ConsumerState<LouvorGroupCard> createState() => _LouvorGroupCardState();
@@ -370,6 +373,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
         offlineAvailability: offlineAvailability,
+        isNew: widget.isNew,
       ),
     );
   }

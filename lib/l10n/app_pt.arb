@@ -29,6 +29,13 @@
   "@searchClear": {
     "description": "Tooltip do botão X dentro do SearchBar (UC-01 Home)"
   },
+  "searchFreshnessChecking": "Em cache · a verificar…",
+  "searchFreshnessUpdated": "Atualizado",
+  "searchFreshnessUpdatedNew": "{count, plural, one{Atualizado · 1 novo} other{Atualizado · {count} novos}}",
+  "@searchFreshnessUpdatedNew": { "placeholders": { "count": { "type": "int" } } },
+  "searchFreshnessOffline": "Em cache · sem ligação",
+  "searchFreshnessFailed": "Em cache · não foi possível verificar",
+  "searchResultNew": "novo",
   "filtersTitle": "Filtros",
   "filtersTapToExpand": "Toque para ver mais",
   "sharePdf": "Compartilhar",
@@ -117,7 +124,6 @@
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materiais",
   "coldigomLoadError": "Não foi possível carregar o catálogo Coldigom",
-  "coldigomUnavailableRetry": "Coldigom indisponível · tentar de novo",
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Selecione as categorias",
   "offlineDownloadSelected": "Baixar selecionados",

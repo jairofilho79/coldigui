@@ -37,6 +37,7 @@ final class HomeSearchState {
     required this.remote,
     this.newGroups = const [],
     this.offline = false,
+    this.knownIds = const {},
   });
 
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
@@ -55,16 +56,29 @@ final class HomeSearchState {
   /// `true` quando o remoto não foi chamado por falta de rede.
   final bool offline;
 
+  /// Ids que o índice Coldigom já conhece (`coldigomSearchIndexProvider`),
+  /// não os do local desta busca: um grupo pode estar em [newGroups] (a
+  /// busca textual local não o achou) e ainda assim já ser conhecido do
+  /// catálogo — ele entra em [groups] mas não é «novo» (§6.3, ruling do
+  /// controller).
+  final Set<String> knownIds;
+
   /// `true` quando não há o que buscar — nenhuma fonte toca a rede.
   bool get isEmptyQuery => query.trim().isEmpty;
 
-  /// Lista exibida: local primeiro, novos no fim (sem reordenar).
+  /// Lista exibida: local primeiro, extras do remoto no fim (sem reordenar) —
+  /// «extra» é só o que a busca textual local não trouxe, «novo» (chip) é
+  /// mais estrito: ver [newGroupIds].
   List<LouvorGroup> get groups => [...localGroups, ...newGroups];
 
-  /// Ids dos cards que levam o chip «novo».
-  Set<String> get newGroupIds => {for (final g in newGroups) g.groupId};
+  /// Ids dos cards que levam o chip «novo»: extras do remoto que o catálogo
+  /// (não só esta busca) ainda não conhecia.
+  Set<String> get newGroupIds => {
+    for (final g in newGroups)
+      if (!knownIds.contains(g.groupId)) g.groupId,
+  };
 
-  int get newCount => newGroups.length;
+  int get newCount => newGroupIds.length;
 
   /// `true` enquanto a página remota está em voo (e há rede).
   bool get remoteLoading => !offline && remote.isLoading;
@@ -81,7 +95,7 @@ final class HomeSearchState {
     if (offline) return SearchFreshness.offline;
     if (remote.isLoading) return SearchFreshness.checking;
     if (remote.hasError) return SearchFreshness.failed;
-    return newGroups.isEmpty
+    return newGroupIds.isEmpty
         ? SearchFreshness.updated
         : SearchFreshness.updatedWithNew;
   }

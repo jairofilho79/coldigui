@@ -436,6 +436,51 @@ void main() {
     },
   );
 
+  test(
+    '«novo» é novo pro catálogo, não só pra esta busca: cold-1 já está no '
+    'índice (outros tokens, a busca local textual não o achou) e não leva '
+    'chip nem conta — cold-9 sim; os dois ficam em groups (§6.3, ruling)',
+    () async {
+      final cold1 = _coldigomGroup('cold-1');
+      final cold9 = _coldigomGroup('cold-9');
+      final source = _RecordingCatalogSource(
+        (query) async =>
+            CatalogSearchPage(groups: [cold1, cold9], page: query.page),
+      );
+      final container = createContainer(
+        source,
+        // Índice conhece cold-1 mas com tokens que a query não bate: ele
+        // não aparece em `localGroups` (busca textual falha), só via
+        // `knownIds` — exatamente o caso que `newGroups` sozinho não cobria.
+        index: ColdigomSearchIndex.build([
+          ColdigomIndexedPraise.build(
+            praiseId: 'cold-1',
+            numero: '900',
+            nome: 'Coldigom cold-1',
+            searchTokens: 'outroassunto',
+            group: cold1,
+          ),
+        ]),
+      );
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('exclusivoremoto');
+      await pumpEventQueue();
+
+      final state = container.read(homeSearchStateProvider);
+      expect(state.localGroups, isEmpty);
+      expect(state.groups.map((g) => g.groupId).toList(), ['cold-1', 'cold-9']);
+      expect(state.newGroupIds, {'cold-9'});
+      expect(state.newCount, 1);
+      expect(state.freshness, SearchFreshness.updatedWithNew);
+      expect(adopter.calls.single, ['cold-9']);
+      expect(syncNotifier.calls, 1);
+    },
+  );
+
   test('remoto falha → failed com a lista local intacta', () async {
     final source = _RecordingCatalogSource(
       (_) async => throw Exception('boom'),

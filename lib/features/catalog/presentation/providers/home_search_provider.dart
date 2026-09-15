@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/plpcg_catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -65,8 +66,12 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   // já está de pé — e resolvido — quando a primeira query chega, em vez de
   // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
   // há rede. `AsyncLoading` inicial conta como online, como no resto da
-  // Home; só um `false` explícito segura o remoto.
-  final online = ref.watch(connectivityStreamProvider).value ?? true;
+  // Home; só um `false` explícito segura o remoto. `select` porque só o
+  // booleano importa — um `AsyncValue` novo com o mesmo `.value` não deve
+  // reconstruir este provider.
+  final online = ref.watch(
+    connectivityStreamProvider.select((c) => c.value ?? true),
+  );
 
   if (query.trim().isEmpty) {
     // Sem query não há página remota: nada de `loading` e nada de rede — a
@@ -101,6 +106,10 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     localGroups: localGroups,
     remote: remote,
     newGroups: newGroups,
+    // O índice pode conhecer um grupo que a busca textual local não achou
+    // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
+    // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
+    knownIds: ref.watch(coldigomSearchIndexProvider).praiseIds,
   );
 });
 

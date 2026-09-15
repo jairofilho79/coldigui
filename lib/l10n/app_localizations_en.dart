@@ -37,6 +37,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchClear => 'Clear search';
 
   @override
+  String get searchFreshnessChecking => 'Cached · checking…';
+
+  @override
+  String get searchFreshnessUpdated => 'Up to date';
+
+  @override
+  String searchFreshnessUpdatedNew(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Up to date · $count new',
+      one: 'Up to date · 1 new',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get searchFreshnessOffline => 'Cached · offline';
+
+  @override
+  String get searchFreshnessFailed => 'Cached · could not verify';
+
+  @override
+  String get searchResultNew => 'new';
+
+  @override
   String get filtersTitle => 'Filters';
 
   @override
@@ -185,9 +211,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coldigomLoadError => 'Could not load the Coldigom catalog';
-
-  @override
-  String get coldigomUnavailableRetry => 'Coldigom unavailable · try again';
 
   @override
   String get offlineTitle => 'Offline';
