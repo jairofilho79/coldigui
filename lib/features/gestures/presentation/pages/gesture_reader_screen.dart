@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,6 +40,9 @@ const Key gestureReaderLinearKey = ValueKey('gesture-reader-linear');
 const Key gestureReaderAutoscrollKey = ValueKey('gesture-reader-autoscroll');
 const Key gestureReaderSpeedKey = ValueKey('gesture-reader-speed');
 
+/// Quanto esperar depois que o dedo solta a página antes de voltar a rolar.
+const Duration kGestureAutoscrollResumeDelay = Duration(seconds: 1);
+
 const _toolbarGroupGap = 8.0;
 const _speedLabelWidth = 34.0;
 
@@ -56,13 +63,24 @@ class GestureReaderScreen extends ConsumerStatefulWidget {
       _GestureReaderScreenState();
 }
 
-class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
+class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
+    with SingleTickerProviderStateMixin {
   late final FocusNode _keyboardFocusNode = FocusNode(
     debugLabel: 'gestureReaderKeys',
   );
   final _documentViewKey = GlobalKey<GestureDocumentViewState>();
+  final ScrollController _scrollController = ScrollController();
   var _louvorNavigationInProgress = false;
   var _prefetched = false;
+
+  Ticker? _autoscrollTicker;
+  Duration? _autoscrollLastTick;
+
+  /// Rolagem manual em curso (ou dentro do 1 s de espera). O `Ticker`
+  /// continua vivo, só deixa de mover a página — assim a retomada parte de
+  /// onde o dedo deixou, sem guardar alvo nenhum.
+  var _pausedByUser = false;
+  Timer? _resumeTimer;
 
   @override
   void initState() {
@@ -82,6 +100,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     _schedulePublishRouteParams();
     if (_r2Key != _r2KeyOf(oldWidget.queryParams)) {
       _prefetched = false;
+      _stopAutoscroll();
     }
   }
 
@@ -94,6 +113,9 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
 
   @override
   void dispose() {
+    _resumeTimer?.cancel();
+    _autoscrollTicker?.dispose();
+    _scrollController.dispose();
     _keyboardFocusNode.dispose();
     super.dispose();
   }
@@ -127,29 +149,46 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
   }
 
   /// `Ctrl+↑/↓` corpo da letra, `Ctrl+←/→` troca de louvor. `F`/`Esc` sobem
-  /// para [AppShortcuts]. As setas sem modificador ficam para o modo foco.
+  /// para [AppShortcuts]. `S` liga/desliga o autoscroll e `[`/`]` regulam sua
+  /// velocidade — essas três não valem com o foco num campo de texto. As
+  /// setas sem modificador ficam para o modo foco.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final keyboard = HardwareKeyboard.instance;
-    if (!(keyboard.isControlPressed || keyboard.isMetaPressed)) {
+    final key = event.logicalKey;
+    if (keyboard.isControlPressed || keyboard.isMetaPressed) {
+      if (key == LogicalKeyboardKey.arrowUp) {
+        ref.read(gestureReaderFontSizeProvider.notifier).increase();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowDown) {
+        ref.read(gestureReaderFontSizeProvider.notifier).decrease();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowRight) {
+        _navigateLouvor(CarouselReaderDirection.next);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.arrowLeft) {
+        _navigateLouvor(CarouselReaderDirection.previous);
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.ignored;
     }
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowUp) {
-      ref.read(gestureReaderFontSizeProvider.notifier).increase();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowDown) {
-      ref.read(gestureReaderFontSizeProvider.notifier).decrease();
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowRight) {
-      _navigateLouvor(CarouselReaderDirection.next);
-      return KeyEventResult.handled;
-    }
-    if (key == LogicalKeyboardKey.arrowLeft) {
-      _navigateLouvor(CarouselReaderDirection.previous);
-      return KeyEventResult.handled;
+    if (!keyboardFocusIsInsideTextField()) {
+      final notifier = ref.read(gestureAutoscrollProvider.notifier);
+      if (key == LogicalKeyboardKey.keyS) {
+        notifier.toggle();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.bracketRight) {
+        notifier.setSpeed(ref.read(gestureAutoscrollProvider).speed + 1);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.bracketLeft) {
+        notifier.setSpeed(ref.read(gestureAutoscrollProvider).speed - 1);
+        return KeyEventResult.handled;
+      }
     }
     return KeyEventResult.ignored;
   }
@@ -187,6 +226,78 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     _keyboardFocusNode.requestFocus();
   }
 
+  /// `Ticker`, não `Timer`: sincroniza com o vsync e morre com o `State`.
+  void _ensureAutoscrollTicker() {
+    _autoscrollTicker ??= createTicker(_onAutoscrollTick);
+    if (!_autoscrollTicker!.isActive) {
+      _autoscrollLastTick = null;
+      _autoscrollTicker!.start();
+    }
+  }
+
+  void _onAutoscrollTick(Duration elapsed) {
+    final lastTick = _autoscrollLastTick;
+    _autoscrollLastTick = elapsed;
+    if (lastTick == null) return; // primeiro tick só marca o relógio.
+
+    final state = ref.read(gestureAutoscrollProvider);
+    if (!state.running) {
+      _autoscrollTicker?.stop();
+      return;
+    }
+    if (_pausedByUser || !_scrollController.hasClients) return;
+
+    final dtSeconds = (elapsed - lastTick).inMicroseconds / Duration.microsecondsPerSecond;
+    if (dtSeconds <= 0) return;
+
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) {
+      ref.read(gestureAutoscrollProvider.notifier).stop();
+      return;
+    }
+    final delta = state.speed * GestureAutoscrollSpeed.pxPerSecondPerLevel * dtSeconds;
+    final next = (position.pixels + delta).clamp(0.0, position.maxScrollExtent);
+    _scrollController.jumpTo(next);
+    if (next >= position.maxScrollExtent) {
+      ref.read(gestureAutoscrollProvider.notifier).stop();
+    }
+  }
+
+  /// Troca de louvor: o motor para na hora, o provider no próximo frame
+  /// (Riverpod proíbe escrever provider dentro de `didUpdateWidget`).
+  void _stopAutoscroll() {
+    _autoscrollTicker?.stop();
+    _resumeTimer?.cancel();
+    _resumeTimer = null;
+    _pausedByUser = false;
+    if (!ref.read(gestureAutoscrollProvider).running) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(gestureAutoscrollProvider.notifier).stop();
+    });
+  }
+
+  /// Dedo/roda na página: pausa; 1 s depois do fim do gesto, volta de onde
+  /// a página ficou. Só o `UserScrollNotification` com direção diz "é o
+  /// usuário" — o `jumpTo` do motor emite `ScrollEnd`, mas nunca direção.
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is UserScrollNotification &&
+        notification.direction != ScrollDirection.idle) {
+      _pausedByUser = true;
+      _resumeTimer?.cancel();
+      _resumeTimer = null;
+    } else if (notification is ScrollEndNotification &&
+        _pausedByUser &&
+        _resumeTimer == null) {
+      _resumeTimer = Timer(kGestureAutoscrollResumeDelay, () {
+        _resumeTimer = null;
+        if (!mounted) return;
+        _pausedByUser = false;
+      });
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -199,6 +310,18 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     final dictionary =
         ref.watch(gestureDictionaryProvider).asData?.value ??
         GestureDictionary.empty;
+
+    // Liga/desliga o motor junto da intenção — o provider só guarda o estado.
+    ref.listen<GestureAutoscrollState>(gestureAutoscrollProvider, (previous, next) {
+      if (next.running) {
+        _ensureAutoscrollTicker();
+      } else {
+        _autoscrollTicker?.stop();
+        _resumeTimer?.cancel();
+        _resumeTimer = null;
+        _pausedByUser = false;
+      }
+    });
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -261,21 +384,25 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                             if (document.isNewerSchema)
                               const NewerSchemaBanner(),
                             Expanded(
-                              child: GestureDocumentView(
-                                key: _documentViewKey,
-                                document: shown,
-                                dictionary: dictionary,
-                                fontSize: fontSize,
-                                palette: palette,
-                                onCardTap: flat.isEmpty
-                                    ? null
-                                    : (index) => _openFocus(
-                                        flat,
-                                        dictionary,
-                                        index,
-                                        fontSize,
-                                        palette,
-                                      ),
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: _onScrollNotification,
+                                child: GestureDocumentView(
+                                  key: _documentViewKey,
+                                  document: shown,
+                                  dictionary: dictionary,
+                                  fontSize: fontSize,
+                                  palette: palette,
+                                  scrollController: _scrollController,
+                                  onCardTap: flat.isEmpty
+                                      ? null
+                                      : (index) => _openFocus(
+                                          flat,
+                                          dictionary,
+                                          index,
+                                          fontSize,
+                                          palette,
+                                        ),
+                                ),
                               ),
                             ),
                           ],

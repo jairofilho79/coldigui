@@ -376,4 +376,170 @@ void main() {
     expect(find.text('1x'), findsOneWidget);
     expect(prefs.getInt(StorageKeys.gestureAutoscrollSpeed), 1);
   });
+
+  group('autoscroll em execução', () {
+    Future<void> pumpShort(WidgetTester tester, {Map<String, String>? queryParams}) async {
+      tester.view.physicalSize = const Size(400, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(tester, document: () async => _fixture('182_quero_viver.json'), queryParams: queryParams);
+    }
+
+    double offset(WidgetTester tester) =>
+        tester.state<ScrollableState>(find.byType(Scrollable).first).position.pixels;
+
+    Future<void> stopAndSettle(WidgetTester tester) async {
+      _containerOf(tester).read(gestureAutoscrollProvider.notifier).stop();
+      await tester.pump();
+    }
+
+    testWidgets('avança com o tempo a 10 px/s por nível', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).setSpeed(2);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16)); // 1º tick só marca o relógio
+      await tester.pump(const Duration(seconds: 1));
+      expect(offset(tester), closeTo(20, 2));
+      await stopAndSettle(tester);
+    });
+
+    testWidgets('para ao chegar no fim', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).setSpeed(5);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(minutes: 5));
+      expect(container.read(gestureAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('rolagem manual pausa; 1 s depois do fim do gesto retoma da posição nova', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 500));
+      final before = offset(tester);
+      expect(before, greaterThan(0));
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+      await tester.pump();
+      final afterDrag = offset(tester);
+      expect(afterDrag, greaterThan(before + 100));
+      // Continua "ligado" — o botão não volta a play.
+      expect(container.read(gestureAutoscrollProvider).running, isTrue);
+
+      // Dentro do 1 s: parado onde o dedo deixou.
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(offset(tester), afterDrag);
+
+      // Passado o 1 s: volta a andar, a partir dali.
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(offset(tester), greaterThan(afterDrag));
+      // Um tick de ~600 ms + um de 500 ms a 30 px/s ≈ 33 px: partiu dali,
+      // não de onde "estaria" sem a pausa.
+      expect(offset(tester), lessThan(afterDrag + 60));
+      await stopAndSettle(tester);
+    });
+
+    testWidgets('novo gesto antes de 1 s rearma a espera', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -100));
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -100));
+      await tester.pump();
+      final afterSecond = offset(tester);
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(offset(tester), afterSecond); // 700 ms < 1 s desde o 2º gesto
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(offset(tester), greaterThan(afterSecond));
+      await stopAndSettle(tester);
+    });
+
+    testWidgets('trocar de louvor para o autoscroll', (tester) async {
+      // Como no teste de prefetch: `_pump` remonta o `ProviderScope` a cada
+      // chamada, e o `autoDispose` zeraria o `running` sozinho — o que
+      // provaria pouco. Aqui só o `GestureReaderScreen` é remontado, dentro
+      // do mesmo `ProviderScope`, espelhando o `context.replace()` do
+      // carousel.
+      tester.view.physicalSize = const Size(400, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      SharedPreferences.setMockInitialValues(const {});
+      final prefs = await SharedPreferences.getInstance();
+      final dict = parseGestureDictionary(_read('dictionary.json'));
+
+      final overrides = [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        gestureDocumentProvider.overrideWith(
+          (ref, key) async => _fixture('182_quero_viver.json'),
+        ),
+        gestureDictionaryProvider.overrideWith((ref) async => dict),
+        gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
+        gestureFigureRepositoryProvider.overrideWithValue(_NoopFigureRepository()),
+      ];
+
+      Widget buildApp(Map<String, String> queryParams) {
+        return ProviderScope(
+          overrides: overrides,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            home: GestureReaderScreen(queryParams: queryParams),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        buildApp({'pdfId': encodePdfId(_r2Key), 'titulo': 'A'}),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final container = _containerOf(tester);
+      container.read(gestureAutoscrollProvider.notifier).toggle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(container.read(gestureAutoscrollProvider).running, isTrue);
+
+      await tester.pumpWidget(
+        buildApp({'pdfId': encodePdfId('assets/praises/p1/m2.gestures'), 'titulo': 'B'}),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(container.read(gestureAutoscrollProvider).running, isFalse);
+    });
+
+    testWidgets('S liga/desliga; [ e ] regulam a velocidade', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+      expect(container.read(gestureAutoscrollProvider).running, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pump();
+      expect(container.read(gestureAutoscrollProvider).running, isFalse);
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketRight);
+      await tester.pump();
+      expect(container.read(gestureAutoscrollProvider).speed, 4);
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
+      await tester.pump();
+      expect(container.read(gestureAutoscrollProvider).speed, 2);
+    });
+  });
 }
