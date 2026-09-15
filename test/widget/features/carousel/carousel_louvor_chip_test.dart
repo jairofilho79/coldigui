@@ -21,6 +21,8 @@ Widget _wrapChip(
   bool showDragHandle = false,
   VoidCallback? onRemove,
   VoidCallback? onTap,
+  String? highlightQuery,
+  String? lyricsSnippet,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -33,6 +35,8 @@ Widget _wrapChip(
             showDragHandle: showDragHandle,
             onTap: onTap,
             onRemove: onRemove,
+            highlightQuery: highlightQuery,
+            lyricsSnippet: lyricsSnippet,
           ),
         ),
       ),
@@ -164,6 +168,44 @@ void main() {
 
     expect(find.byIcon(Icons.add), findsOneWidget);
     expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('sem lyricsSnippet, nenhum trecho aparece', (tester) async {
+    await tester.pumpWidget(_wrapChip(320));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('chuva de bênçãos'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('com lyricsSnippet, o trecho aparece abaixo do título', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapChip(
+        320,
+        lyricsSnippet: '…e a chuva de bênçãos cai sobre nós…',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('chuva de bênçãos'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('lyricsSnippet vazio não desenha a linha do trecho', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrapChip(320, lyricsSnippet: '   '));
+    await tester.pumpAndSettle();
+
+    // Sem trecho visível: só o título e a linha de metadados (2 Text.rich/Text
+    // diretos do chip) — nenhum terceiro texto de conteúdo variável.
+    expect(find.textContaining('…'), findsNothing);
   });
 
   testWidgets('chip coldigom usa fundo preto', (tester) async {
