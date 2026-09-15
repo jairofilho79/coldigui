@@ -69,8 +69,24 @@ const encoder = new TextEncoder();
 export class RoomCore {
   private readonly deps: RoomCoreDeps;
 
+  /**
+   * Fila dos eventos de socket. O `hello` espera `authenticate` (D1) com o
+   * input gate do DO **aberto** — sem esta fila, um `start` mandado logo
+   * atrás do `hello` (é o que a app faz) era processado com o attachment
+   * ainda `pending` e virava `error{not_leader}`, deixando o gestor «no ar»
+   * só localmente. A ordem em que o cliente mandou é a ordem em que se
+   * processa; um handler que rejeita não trava os seguintes.
+   */
+  private queue: Promise<void> = Promise.resolve();
+
   constructor(deps: RoomCoreDeps) {
     this.deps = deps;
+  }
+
+  private serialize(task: () => Promise<void>): Promise<void> {
+    const run = this.queue.then(task, task);
+    this.queue = run.catch(() => undefined);
+    return run;
   }
 
   // ---- HTTP interno (Worker → DO) --------------------------------------
@@ -110,7 +126,11 @@ export class RoomCore {
     socket.attach({ role: 'pending', clientId: '' });
   }
 
-  async onMessage(socket: SocketPort, text: string): Promise<void> {
+  onMessage(socket: SocketPort, text: string): Promise<void> {
+    return this.serialize(() => this.handleMessage(socket, text));
+  }
+
+  private async handleMessage(socket: SocketPort, text: string): Promise<void> {
     const att = socket.attachment() ?? { role: 'pending' as const, clientId: '' };
     const bytes = encoder.encode(text).length;
     if (att.role !== 'leader' && bytes > MAX_CONSUMER_FRAME_BYTES) return;
@@ -149,7 +169,11 @@ export class RoomCore {
    * tira de `getWebSockets()` depois do handler `webSocketClose`) — por isso
    * a presença é calculada excluindo-o explicitamente.
    */
-  async onClose(socket: SocketPort): Promise<void> {
+  onClose(socket: SocketPort): Promise<void> {
+    return this.serialize(() => this.handleClose(socket));
+  }
+
+  private async handleClose(socket: SocketPort): Promise<void> {
     const room = await this.room();
     if (!room) return;
     const att = socket.attachment();

@@ -300,3 +300,39 @@ test('init de novo numa sala existente só atualiza ownerName', async () => {
   assert.equal(h.storage.room().status, 'live');
   assert.equal(h.storage.room().ownerName, 'Fulano Silva');
 });
+
+test('start logo atrás do hello espera a autenticação terminar (sem not_leader)', async () => {
+  // O cliente manda `hello` e `start` seguidos; o `authenticate` do hello
+  // vai a D1 e só resolve depois. Sem serialização, o `start` seria
+  // processado com o attachment ainda `pending` → `error{not_leader}`.
+  const storage = new FakeStorage();
+  const sockets: FakeSocket[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const core = new RoomCore({
+    storage,
+    sockets: () => sockets.filter((s) => s.closed === null),
+    authenticate: async () => { await gate; return 'owner'; },
+    now: () => 1_000_000,
+  });
+  await core.init({ code: CODE, ownerSub: 'owner', ownerName: 'Fulano' });
+  const s = new FakeSocket();
+  sockets.push(s);
+  await core.onOpen(s);
+
+  const hello = core.onMessage(s, JSON.stringify({ t: 'hello', room: CODE, since: 0, clientId: 'c1', sessionToken: 'tok' }));
+  const start = core.onMessage(s, JSON.stringify({ t: 'start', snapshot: snap() }));
+  await Promise.resolve();
+  assert.deepEqual(s.sent, [], 'nada sai antes de o hello autenticar');
+  release();
+  await Promise.all([hello, start]);
+
+  assert.deepEqual(s.ofType('error'), []);
+  assert.equal(s.sent[0]?.t, 'room');
+  assert.equal(s.sent[0]?.role, 'leader');
+  assert.equal(s.sent[0]?.status, 'idle');
+  const live = s.ofType('room')[1];
+  assert.equal(live?.status, 'live');
+  assert.equal(storage.room().status, 'live');
+  assert.equal(storage.room().version, 1);
+});
