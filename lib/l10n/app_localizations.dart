@@ -1691,6 +1691,36 @@ abstract class AppLocalizations {
   /// **'Importar lista'**
   String get playlistImport;
 
+  /// FAB da tela de listas: abre o diálogo para colar o link/código de uma sala ao vivo
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar na sala'**
+  String get liveJoinRoom;
+
+  /// No description provided for @liveJoinRoomTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar numa sala ao vivo'**
+  String get liveJoinRoomTitle;
+
+  /// No description provided for @liveJoinRoomInputLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link ou código da sala'**
+  String get liveJoinRoomInputLabel;
+
+  /// No description provided for @liveJoinRoomInvalid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link ou código de sala inválido'**
+  String get liveJoinRoomInvalid;
+
+  /// No description provided for @liveJoinRoomConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entrar'**
+  String get liveJoinRoomConfirm;
+
   /// No description provided for @playlistImportTitle.
   ///
   /// In pt, this message translates to:

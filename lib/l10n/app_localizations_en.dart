@@ -957,6 +957,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistImport => 'Import playlist';
 
   @override
+  String get liveJoinRoom => 'Join room';
+
+  @override
+  String get liveJoinRoomTitle => 'Join a live room';
+
+  @override
+  String get liveJoinRoomInputLabel => 'Room link or code';
+
+  @override
+  String get liveJoinRoomInvalid => 'Invalid room link or code';
+
+  @override
+  String get liveJoinRoomConfirm => 'Join';
+
+  @override
   String get playlistImportTitle => 'Import shared playlist';
 
   @override

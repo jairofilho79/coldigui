@@ -1,8 +1,11 @@
 import 'dart:async';
+
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/constants/feature_flags.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/feature_flags_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
@@ -16,6 +19,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _LoggedOutAuth extends AuthNotifier {
@@ -150,6 +154,51 @@ void main() {
     expect(find.text('Importar lista'), findsOneWidget);
   });
 
+  testWidgets('FAB «Entrar na sala» leva à sala do link colado', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/listas',
+      routes: [
+        GoRoute(path: '/listas', builder: (_, _) => const PlaylistsScreen()),
+        GoRoute(
+          path: RoutePaths.liveRoom,
+          builder: (_, state) =>
+              Scaffold(body: Text('sala ${state.pathParameters['code']}')),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authStateProvider.overrideWith(_LoggedOutAuth.new),
+          playlistsProvider.overrideWith(() => FakePlaylistsNotifier(const [])),
+        ],
+        child: MaterialApp.router(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entrar na sala'), findsOneWidget);
+    await tester.tap(find.text('Entrar na sala'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'https://v2.plpcg.com/?live=k7x2m9q',
+    );
+    await tester.tap(find.widgetWithText(TextButton, 'Entrar'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), '/ao-vivo/k7x2m9q');
+    expect(find.text('sala k7x2m9q'), findsOneWidget);
+  });
+
   testWidgets('importar via FAB dispara importSharedFromUrl', (tester) async {
     final notifier = FakePlaylistsNotifier(const []);
     await tester.pumpWidget(
@@ -186,14 +235,11 @@ void main() {
     expect(notifier.lastImport?.sharePdfs, 'x,y');
     expect(notifier.lastImport?.shareAudios, 'aud-1');
     expect(notifier.lastImport?.shareName, 'Teste');
-    expect(
-      notifier.lastImport!.entries,
-      const [
-        PlaylistEntry(id: 'x', kind: MaterialKind.pdf),
-        PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
-        PlaylistEntry(id: 'y', kind: MaterialKind.pdf),
-      ],
-    );
+    expect(notifier.lastImport!.entries, const [
+      PlaylistEntry(id: 'x', kind: MaterialKind.pdf),
+      PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+      PlaylistEntry(id: 'y', kind: MaterialKind.pdf),
+    ]);
     expect(find.text('Lista importada'), findsOneWidget);
   });
 

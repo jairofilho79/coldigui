@@ -553,6 +553,14 @@
   },
   "playlistShare": "Compartilhar",
   "playlistImport": "Importar lista",
+  "liveJoinRoom": "Entrar na sala",
+  "@liveJoinRoom": {
+    "description": "FAB da tela de listas: abre o diálogo para colar o link/código de uma sala ao vivo"
+  },
+  "liveJoinRoomTitle": "Entrar numa sala ao vivo",
+  "liveJoinRoomInputLabel": "Link ou código da sala",
+  "liveJoinRoomInvalid": "Link ou código de sala inválido",
+  "liveJoinRoomConfirm": "Entrar",
   "playlistImportTitle": "Importar lista compartilhada",
   "playlistImportUrlLabel": "URL ou link compartilhado",
   "playlistImportPaste": "Colar",

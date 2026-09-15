@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/feature_flags_provider.dart';
@@ -7,6 +8,8 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../live/domain/live_room_link.dart';
+import '../../../live/presentation/widgets/join_live_room_dialog.dart';
 import '../../../social/presentation/widgets/public_playlists_entry_button.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../providers/playlist_sync_lifecycle.dart';
@@ -98,6 +101,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     };
   }
 
+  /// «Entrar na sala»: cola o link/código e abre a sala ao vivo — o par do
+  /// «Importar lista» para quem recebeu o link fora do app (ou onde o
+  /// Universal Link não abre no app, como o PWA do iOS).
+  Future<void> _joinLiveRoom(BuildContext context) async {
+    final code = await showJoinLiveRoomDialog(context);
+    if (code == null || !context.mounted) return;
+    context.go(liveRoomRouteFor(code));
+  }
+
   Future<void> _importPlaylist(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final result = await showImportPlaylistDialog(context);
@@ -169,9 +181,8 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     if (!mounted) return;
     showAppSnackbar(
       context,
-      AppLocalizations.of(
-        context,
-      )!.playlistsRemovedRemotely(result.deletedRemotely),
+      AppLocalizations.of(context)!
+          .playlistsRemovedRemotely(result.deletedRemotely),
     );
   }
 
@@ -202,6 +213,15 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
                 child: const Icon(Icons.delete_sweep_outlined),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: FloatingActionButton.extended(
+              heroTag: 'live-join-room',
+              onPressed: () => _joinLiveRoom(context),
+              icon: const Icon(Icons.sensors),
+              label: Text(l10n.liveJoinRoom),
+            ),
+          ),
           FloatingActionButton.extended(
             heroTag: 'playlist-import',
             onPressed: () => _importPlaylist(context),

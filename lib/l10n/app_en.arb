@@ -538,6 +538,14 @@
   },
   "playlistShare": "Share",
   "playlistImport": "Import playlist",
+  "liveJoinRoom": "Join room",
+  "@liveJoinRoom": {
+    "description": "Playlists screen FAB: opens the dialog to paste a live room link/code"
+  },
+  "liveJoinRoomTitle": "Join a live room",
+  "liveJoinRoomInputLabel": "Room link or code",
+  "liveJoinRoomInvalid": "Invalid room link or code",
+  "liveJoinRoomConfirm": "Join",
   "playlistImportTitle": "Import shared playlist",
   "playlistImportUrlLabel": "Shared URL or link",
   "playlistImportPaste": "Paste",
