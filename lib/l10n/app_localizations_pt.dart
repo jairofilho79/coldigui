@@ -724,7 +724,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'A lista ficará vazia e será excluída.';
 
   @override
-  String get playlistActivate => 'Tornar lista ativa';
+  String get playlistActivate => 'Editar por aqui';
 
   @override
   String get playlistOpenInReader => 'Abrir no leitor';

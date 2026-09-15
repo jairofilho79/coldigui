@@ -11,9 +11,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/entities/playlist_tab.dart';
 import '../../../live/domain/live_coldigom_only.dart';
 import '../../../live/presentation/providers/live_session_controller.dart';
 import '../../../live/presentation/providers/my_live_room_provider.dart';
@@ -53,6 +56,7 @@ class PlaylistTileActions {
     required this.context,
     required this.l10n,
     required this.playlist,
+    required this.tab,
     required this.loading,
     required this.onLoadingChanged,
     required this.onExpandedChanged,
@@ -63,6 +67,11 @@ class PlaylistTileActions {
   final AppLocalizations l10n;
   final SavedPlaylist playlist;
 
+  /// Aba de onde a lista vem — decide qual ação de estado (salvar/favoritar/
+  /// desfavoritar) entra no menu, mesma fonte que já escolhe o ícone do botão
+  /// primário do cabeçalho.
+  final PlaylistTab tab;
+
   /// Valor de `_loading` do tile no instante em que esta ação foi criada.
   final bool loading;
 
@@ -72,41 +81,138 @@ class PlaylistTileActions {
   /// Espelha `setState(() => _expanded = value)` no `State` do tile.
   final ValueChanged<bool> onExpandedChanged;
 
-  List<PopupMenuEntry<String>> menuItems() {
-    final hasUsername =
-        ref.watch(authStateProvider).asData?.value?.hasUsername ?? false;
-
-    return [
-      PopupMenuItem(value: 'activate', child: Text(l10n.playlistActivate)),
-      PopupMenuItem(
-        value: 'openReader',
-        child: Text(l10n.playlistOpenInReader),
-      ),
-      PopupMenuItem(
-        value: 'openAudio',
-        child: Text(l10n.playlistOpenInAudioPlayer),
-      ),
-      if (playlist.salva)
-        PopupMenuItem(value: 'goLive', child: Text(l10n.playlistGoLive)),
-      PopupMenuItem(value: 'share', child: Text(l10n.playlistShare)),
-      if (playlist.salva && !playlist.isPublished)
-        PopupMenuItem(
-          value: 'publish',
-          child: Tooltip(
-            message: hasUsername ? '' : l10n.usernameRequiredToPublish,
-            child: Opacity(
-              opacity: hasUsername ? 1 : 0.45,
-              child: Text(l10n.playlistPublish),
-            ),
+  /// Item do menu com ícone + rótulo (§ redesign de agosto/2026 — grupos
+  /// separados por [PopupMenuDivider], mesmo padrão visual de dimming que já
+  /// existia só em «Publicar»). O rótulo original permanece como [Text] na
+  /// árvore para não quebrar os testes que localizam itens por texto.
+  PopupMenuItem<String> _menuItem({
+    required String value,
+    required IconData icon,
+    required String label,
+    bool enabled = true,
+    String disabledHint = '',
+    bool danger = false,
+  }) {
+    final color = danger
+        ? Theme.of(context).colorScheme.error
+        : AppColors.title.withValues(alpha: 0.75);
+    return PopupMenuItem(
+      value: value,
+      child: Tooltip(
+        message: enabled ? '' : disabledHint,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.45,
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: AppTypography.body.copyWith(
+                    color: danger
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      PopupMenuItem(value: 'rename', child: Text(l10n.playlistRename)),
-      PopupMenuItem(value: 'duplicate', child: Text(l10n.playlistDuplicate)),
-      PopupMenuItem(
-        value: 'generateLeaflet',
-        child: Text(l10n.carouselGenerateLeaflet),
       ),
-      PopupMenuItem(value: 'delete', child: Text(l10n.playlistDelete)),
+    );
+  }
+
+  List<PopupMenuEntry<String>> menuItems() {
+    final authValue = ref.watch(authStateProvider).asData?.value;
+    final loggedIn = authValue != null;
+    final hasUsername = authValue?.hasUsername ?? false;
+    final hasPdf = playlist.pdfIds.isNotEmpty;
+    final hasAudio = playlist.audioIds.isNotEmpty;
+
+    return [
+      _menuItem(
+        value: 'openReader',
+        icon: Icons.menu_book_rounded,
+        label: l10n.playlistOpenInReader,
+        enabled: hasPdf,
+        disabledHint: l10n.playlistEmptyPdfList,
+      ),
+      _menuItem(
+        value: 'openAudio',
+        icon: Icons.headphones_rounded,
+        label: l10n.playlistOpenInAudioPlayer,
+        enabled: hasAudio,
+        disabledHint: l10n.playlistAudioEmpty,
+      ),
+      if (playlist.salva)
+        _menuItem(
+          value: 'goLive',
+          icon: Icons.sensors_rounded,
+          label: l10n.playlistGoLive,
+          enabled: loggedIn,
+          disabledHint: l10n.liveLoginRequired,
+        ),
+      const PopupMenuDivider(),
+      switch (tab) {
+        PlaylistTab.unsaved => _menuItem(
+          value: 'save',
+          icon: Icons.save_outlined,
+          label: l10n.playlistSaveAction,
+        ),
+        PlaylistTab.saved => _menuItem(
+          value: 'favorite',
+          icon: Icons.star_outline_rounded,
+          label: l10n.playlistFavoriteOn,
+        ),
+        PlaylistTab.favorites => _menuItem(
+          value: 'unfavorite',
+          icon: Icons.star_rounded,
+          label: l10n.playlistFavoriteOff,
+        ),
+      },
+      _menuItem(
+        value: 'activate',
+        icon: Icons.check_circle_outline_rounded,
+        label: l10n.playlistActivate,
+      ),
+      const PopupMenuDivider(),
+      _menuItem(
+        value: 'share',
+        icon: Icons.share_rounded,
+        label: l10n.playlistShare,
+      ),
+      if (playlist.salva && !playlist.isPublished)
+        _menuItem(
+          value: 'publish',
+          icon: Icons.public,
+          label: l10n.playlistPublish,
+          enabled: hasUsername,
+          disabledHint: l10n.usernameRequiredToPublish,
+        ),
+      _menuItem(
+        value: 'generateLeaflet',
+        icon: Icons.description_outlined,
+        label: l10n.carouselGenerateLeaflet,
+      ),
+      const PopupMenuDivider(),
+      _menuItem(
+        value: 'rename',
+        icon: Icons.edit_outlined,
+        label: l10n.playlistRename,
+      ),
+      _menuItem(
+        value: 'duplicate',
+        icon: Icons.content_copy_rounded,
+        label: l10n.playlistDuplicate,
+      ),
+      const PopupMenuDivider(),
+      _menuItem(
+        value: 'delete',
+        icon: Icons.delete_outline_rounded,
+        label: l10n.playlistDelete,
+        danger: true,
+      ),
     ];
   }
 
@@ -115,7 +221,7 @@ class PlaylistTileActions {
     showAppSnackbar(context, message);
   }
 
-  /// «Tornar lista ativa» (D6): sem modal — a lista que era ativa continua
+  /// «Editar por aqui» (D6): sem modal — a lista que era ativa continua
   /// existindo, então não há o que "substituir". O snackbar oferece
   /// «Desfazer», que devolve a ativação à lista anterior quando havia uma.
   ///
@@ -365,6 +471,45 @@ class PlaylistTileActions {
     );
   }
 
+  /// «Salvar lista» (só aba não salvos): mesma chamada do botão primário do
+  /// cabeçalho ([PlaylistTileHeader.onPrimaryAction]), agora também
+  /// disponível pelo menu.
+  Future<void> _save() async {
+    if (loading) return;
+    onLoadingChanged(true);
+    try {
+      await ref.read(playlistsProvider.notifier).savePlaylist(playlist.playlistId);
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
+  /// «Marcar como favorita» (só aba salvos).
+  Future<void> _favorite() async {
+    if (loading) return;
+    onLoadingChanged(true);
+    try {
+      await ref
+          .read(playlistsProvider.notifier)
+          .favoritePlaylist(playlist.playlistId);
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
+  /// «Remover dos favoritos» (só aba favoritos).
+  Future<void> _unfavorite() async {
+    if (loading) return;
+    onLoadingChanged(true);
+    try {
+      await ref
+          .read(playlistsProvider.notifier)
+          .unfavoritePlaylist(playlist.playlistId);
+    } finally {
+      onLoadingChanged(false);
+    }
+  }
+
   /// «Duplicar» (C11): cria cópia salva com as mesmas entradas — o nome
   /// («Nome (cópia)», ARB `playlistCopyName`) é decidido aqui porque o
   /// notifier não conhece l10n.
@@ -539,6 +684,12 @@ class PlaylistTileActions {
         if (context.mounted) {
           showAppSnackbar(context, l10n.playlistPublished);
         }
+      case 'save':
+        await _save();
+      case 'favorite':
+        await _favorite();
+      case 'unfavorite':
+        await _unfavorite();
       case 'duplicate':
         await _duplicate();
       case 'generateLeaflet':

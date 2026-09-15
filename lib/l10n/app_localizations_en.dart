@@ -719,7 +719,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The playlist will be empty and will be deleted.';
 
   @override
-  String get playlistActivate => 'Make list active';
+  String get playlistActivate => 'Edit from here';
 
   @override
   String get playlistOpenInReader => 'Open in reader';

@@ -24,7 +24,7 @@ Future<void> _flushAsync() async {
 }
 
 /// D6 — importar por URL torna a importada a lista ativa pelo mesmo caminho
-/// do «Tornar lista ativa»: a lista que era ativa continua salva.
+/// do «Editar por aqui»: a lista que era ativa continua salva.
 void main() {
   late Directory tempDir;
   late Isar isar;

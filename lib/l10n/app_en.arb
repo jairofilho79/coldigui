@@ -403,7 +403,7 @@
   "playlistEmptyCount": "Empty",
   "playlistDeleteLastPdfTitle": "Remove last song?",
   "playlistDeleteLastPdfMessage": "The playlist will be empty and will be deleted.",
-  "playlistActivate": "Make list active",
+  "playlistActivate": "Edit from here",
   "playlistOpenInReader": "Open in reader",
   "playlistOpenInAudioPlayer": "Open in audio player",
   "playlistAudioEmpty": "This playlist has no audio tracks.",

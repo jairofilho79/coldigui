@@ -153,6 +153,30 @@ class _DuplicateRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
   }
 }
 
+/// Registra os pedidos de salvar/favoritar/desfavoritar (menu «Estado»).
+class _PrimaryActionRecordingPlaylistsNotifier extends FakePlaylistsNotifier {
+  _PrimaryActionRecordingPlaylistsNotifier(super.initial);
+
+  final saved = <String>[];
+  final favorited = <String>[];
+  final unfavorited = <String>[];
+
+  @override
+  Future<void> savePlaylist(String playlistId) async {
+    saved.add(playlistId);
+  }
+
+  @override
+  Future<void> favoritePlaylist(String playlistId) async {
+    favorited.add(playlistId);
+  }
+
+  @override
+  Future<void> unfavoritePlaylist(String playlistId) async {
+    unfavorited.add(playlistId);
+  }
+}
+
 class _FakeResolvePdfForReader implements ResolvePdfForReader {
   @override
   Future<LocalPdfSource> call({
@@ -343,6 +367,7 @@ void main() {
     required PlaylistsNotifier playlistsNotifier,
     PlaylistShareActionsNotifier? shareActionsNotifier,
     _RecordingActiveEditor? editor,
+    PlaylistTab tab = PlaylistTab.saved,
   }) {
     final shareNotifier =
         shareActionsNotifier ?? _FakePlaylistShareActionsNotifier();
@@ -359,13 +384,13 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('pt'),
         home: Scaffold(
-          body: PlaylistListTile(item: item, tab: PlaylistTab.saved),
+          body: PlaylistListTile(item: item, tab: tab),
         ),
       ),
     );
   }
 
-  testWidgets('menu exibe Tornar lista ativa e Abrir no leitor', (
+  testWidgets('menu exibe Editar por aqui e Abrir no leitor', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -376,7 +401,7 @@ void main() {
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tornar lista ativa'), findsOneWidget);
+    expect(find.text('Editar por aqui'), findsOneWidget);
     expect(find.text('Abrir no leitor'), findsOneWidget);
     expect(find.text('Abrir no reprodutor'), findsOneWidget);
     expect(find.text('Compartilhar'), findsOneWidget);
@@ -385,9 +410,78 @@ void main() {
     expect(find.text('Carregar no carousel'), findsNothing);
   });
 
+  group('menu — salvar/favoritar/desfavoritar (grupo Estado)', () {
+    testWidgets('aba não salvos mostra "Salvar lista" e chama savePlaylist', (
+      tester,
+    ) async {
+      final notifier = _PrimaryActionRecordingPlaylistsNotifier([item]);
+      await tester.pumpWidget(
+        buildSubject(playlistsNotifier: notifier, tab: PlaylistTab.unsaved),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Salvar lista'), findsOneWidget);
+      expect(find.text('Marcar como favorita'), findsNothing);
+      expect(find.text('Remover dos favoritos'), findsNothing);
+
+      await tester.tap(find.text('Salvar lista'));
+      await tester.pumpAndSettle();
+
+      expect(notifier.saved, ['p1']);
+    });
+
+    testWidgets(
+      'aba salvos mostra "Marcar como favorita" e chama favoritePlaylist',
+      (tester) async {
+        final notifier = _PrimaryActionRecordingPlaylistsNotifier([item]);
+        await tester.pumpWidget(
+          buildSubject(playlistsNotifier: notifier, tab: PlaylistTab.saved),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(PopupMenuButton<String>));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Marcar como favorita'), findsOneWidget);
+
+        await tester.tap(find.text('Marcar como favorita'));
+        await tester.pumpAndSettle();
+
+        expect(notifier.favorited, ['p1']);
+      },
+    );
+
+    testWidgets(
+      'aba favoritos mostra "Remover dos favoritos" e chama unfavoritePlaylist',
+      (tester) async {
+        final notifier = _PrimaryActionRecordingPlaylistsNotifier([item]);
+        await tester.pumpWidget(
+          buildSubject(
+            playlistsNotifier: notifier,
+            tab: PlaylistTab.favorites,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(PopupMenuButton<String>));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Remover dos favoritos'), findsOneWidget);
+
+        await tester.tap(find.text('Remover dos favoritos'));
+        await tester.pumpAndSettle();
+
+        expect(notifier.unfavorited, ['p1']);
+      },
+    );
+  });
+
   // D6: trocar a lista ativa não substitui nada — a anterior continua salva.
   // Nada de modal; a saída é o snackbar com «Desfazer».
-  testWidgets('«Tornar lista ativa» ativa sem diálogo e o snackbar desfaz', (
+  testWidgets('«Editar por aqui» ativa sem diálogo e o snackbar desfaz', (
     tester,
   ) async {
     await prefsWithActive('p0');
@@ -402,7 +496,7 @@ void main() {
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
 
     expect(find.text('Substituir seleção?'), findsNothing);
@@ -454,7 +548,7 @@ void main() {
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
     expect(editor.activated, ['p1']);
 
@@ -518,7 +612,7 @@ void main() {
     // Ativa B (p1) e guarda o callback do «Desfazer» dela.
     await tester.tap(find.byType(PopupMenuButton<String>).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
     final undoOfB = tester
         .widget<SnackBarAction>(find.byType(SnackBarAction))
@@ -527,7 +621,7 @@ void main() {
     // Ativa C (p2).
     await tester.tap(find.byType(PopupMenuButton<String>).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
     expect(editor.activated, ['p1', 'p2']);
 
@@ -560,7 +654,7 @@ void main() {
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
 
     expect(editor.activated, ['p1']);
@@ -582,7 +676,7 @@ void main() {
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
 
     expect(editor.activated, ['p1']);
@@ -604,7 +698,7 @@ void main() {
 
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Tornar lista ativa'));
+    await tester.tap(find.text('Editar por aqui'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -742,7 +836,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // (a) a lista do chip virou a ativa (D6) — mesma asserção usada no
-    // caminho de PDF e no de «Tornar lista ativa».
+    // caminho de PDF e no de «Editar por aqui».
     expect(editor.activated, ['p3']);
     // (b) a sessão recebeu a fila híbrida (D4) com a faixa tocada no início.
     expect(session.queue?.map((t) => t.audioId).toList(), [audioId]);
