@@ -578,9 +578,18 @@ void main() {
       expect(container.read(gestureAutoscrollProvider).running, isTrue);
 
       await tester.tap(find.byKey(gestureCardKey(2)));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(
+        const Duration(milliseconds: 200),
+      ); // 150 ms da transição do overlay
+      final offsetAtOpen = offset(tester);
       expect(find.byType(GestureFocusView), findsOneWidget);
       expect(container.read(gestureAutoscrollProvider).running, isFalse);
+
+      // A página escondida atrás do foco não pode se mexer — se o motor
+      // ainda estivesse rolando, esta espera pegaria o `jumpTo` no ato.
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(offset(tester), offsetAtOpen);
 
       await tester.tap(find.byKey(gestureFocusCloseKey));
       await tester.pumpAndSettle();
