@@ -240,3 +240,17 @@ Notas adicionais descobertas durante a execução (Tasks 1–19), que não const
 6. `unavailable` só no join inicial — depois de já ter estado ligado, reconexão indefinida com teto 30 s.
 7. A Fase 1 não tem apelido.
 8. O link para a lista pública no estado `unavailable` (D5) fica para a Fase 3 (perfil público).
+
+## 14. Refinamento pós-deploy (2026-09-14): só Coldigom, material próprio
+
+Decidido depois do primeiro deploy, ao rever a Fase 1 contra o acervo Coldigom (um louvor com dezenas de materiais tipados, ao contrário do PLPCG):
+
+| Antes | Agora | Porquê |
+|---|---|---|
+| Qualquer lista subia ao vivo | **Só listas com material Coldigom** (`nonColdigomEntries` vazio). «Iniciar ao vivo» e «Retomar» avisam com diálogo; ao vivo, o editor recusa material PLPCG (`AddToActiveOutcome.liveColdigomOnly`). | Escolher o material próprio precisa de grupo e `materialKindId` — só o Coldigom os tem. |
+| O consumidor via o **mesmo arquivo** que o gestor | A projeção mantém **as chaves do gestor** e põe em cada posição **o material do consumidor**: escolha manual (sheet «Material» → `replaceByKey` grava em `liveMaterialOverridesProvider`, só na sessão) > partitura favorita do mesmo louvor (`liveAutoMaterialResolverProvider`, rank de `material_kinds`; partitura só troca por partitura; áudio fica) > material do gestor. | Quem toca trompete quer «Trompete em Si♭», não a voz que o gestor abriu. |
+| — | O controller aquece os praises do snapshot (`liveWarmupProvider`) e espera o do louvor focado antes de resolver a rota. | A escolha automática precisa do grupo em cache antes da primeira abertura. |
+| «Guardar cópia» gravava o snapshot do gestor | Grava o que o consumidor **viu** (`snapshotForCopy`); `state.snapshot` continua o do gestor, porque a reconexão reprojeta por ele. | |
+| Sala com texto `title` e `FilledButton` | Texto `textLight`, `AppButtons.onDarkPrimary` (dourado cheio) / `onDarkSecondary` (transparente), borda dourada. | O vinho `title` é dos cards creme; não se lê no scaffold. |
+
+Wire, DO e Worker não mudaram.
