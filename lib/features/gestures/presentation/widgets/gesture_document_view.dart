@@ -82,7 +82,7 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
                 children: [
                   if (widget.document.title.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.only(bottom: 20),
                       child: Text(
                         widget.document.title.toUpperCase(),
                         key: gestureDocumentTitleKey,
@@ -101,7 +101,7 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
     );
   }
 
-  /// Filhos de um nível com os gaps entre eles: 12 entre cartões, 20 quando
+  /// Filhos de um nível com os gaps entre eles: 4 entre cartões, 16 quando
   /// um dos vizinhos é bloco; dentro de `link`, nenhum.
   List<Widget> _buildItems(List<GestureItem> items, {required bool gapInsideLink}) {
     final out = <Widget>[];

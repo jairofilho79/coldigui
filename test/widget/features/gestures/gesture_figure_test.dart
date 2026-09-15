@@ -81,4 +81,14 @@ void main() {
     await _pump(tester, entry: _entry, figure: (k) async { asked.add(k); return [1]; }, preferGif: true);
     expect(asked, [_entry.gif]);
   });
+
+  testWidgets('figura fica num quadro branco arredondado com borda da paleta', (tester) async {
+    await _pump(tester, entry: _entry, figure: (_) async => [1]);
+    final box = tester.widget<Container>(find.byKey(gestureFigureFrameKey));
+    final decoration = box.decoration! as BoxDecoration;
+    expect(decoration.color, _palette.figureBg);
+    expect(decoration.border, Border.all(color: _palette.figureBorder));
+    expect(decoration.borderRadius, BorderRadius.circular(8));
+    expect(tester.getSize(find.byType(GestureFigure)).width, 96);
+  });
 }

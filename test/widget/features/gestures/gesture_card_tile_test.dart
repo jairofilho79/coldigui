@@ -27,7 +27,12 @@ const _card = GestureCard(
   ],
 );
 
-Future<void> _pump(WidgetTester tester, {double fontSize = 18, ValueChanged<int>? onTap}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  double fontSize = 18,
+  int index = 3,
+  ValueChanged<int>? onTap,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -38,7 +43,7 @@ Future<void> _pump(WidgetTester tester, {double fontSize = 18, ValueChanged<int>
           body: SizedBox(
             width: 400,
             child: GestureCardTile(
-              index: 3,
+              index: index,
               card: _card,
               entry: _entry,
               fontSize: fontSize,
@@ -54,13 +59,30 @@ Future<void> _pump(WidgetTester tester, {double fontSize = 18, ValueChanged<int>
 }
 
 void main() {
-  testWidgets('figura à esquerda, uma LyricLineText por linha, alinhados pelo topo', (tester) async {
+  testWidgets('figura à esquerda, uma LyricLineText por linha, centralizados na vertical', (tester) async {
     await _pump(tester);
     expect(find.byType(LyricLineText), findsNWidgets(2));
     final figure = tester.getRect(find.byType(GestureFigure));
     final lyric = tester.getRect(find.byType(LyricLineText).first);
     expect(figure.left, lessThan(lyric.left));
-    expect(figure.top, lyric.top);
+    // Duas linhas de 18 (≈ 47 dp) são mais baixas que a figura (96): a coluna
+    // de letra tem que ficar no meio da figura, não colada no topo.
+    final column = tester.getRect(
+      find.descendant(of: find.byType(GestureCardTile), matching: find.byType(Column)).first,
+    );
+    expect(column.height, lessThan(figure.height));
+    expect(column.center.dy, closeTo(figure.center.dy, 0.5));
+  });
+
+  testWidgets('zebra: índice ímpar pinta a faixa, par fica transparente', (tester) async {
+    await _pump(tester); // index 3
+    final odd = tester.widget<Material>(find.byKey(gestureCardStripeKey(3)));
+    expect(odd.color, _palette.stripe);
+    expect(tester.getSize(find.byKey(gestureCardStripeKey(3))).width, 400);
+
+    await _pump(tester, index: 2);
+    final even = tester.widget<Material>(find.byKey(gestureCardStripeKey(2)));
+    expect(even.color, Colors.transparent);
   });
 
   testWidgets('lado da figura escala com a fonte: 96 em 18, 149 em 28', (tester) async {

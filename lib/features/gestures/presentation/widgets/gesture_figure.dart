@@ -9,6 +9,9 @@ import '../theme/gesture_reader_palette.dart';
 /// Chave do placeholder de gesto ausente — para testes e para achar na tela.
 Key gesturePlaceholderKey(String gestureId) => ValueKey('gesture-placeholder-$gestureId');
 
+/// Chave do quadro branco que envolve a figura.
+const Key gestureFigureFrameKey = ValueKey('gesture-figure-frame');
+
 /// Figura do gesto num quadrado de [side], fundo branco, `BoxFit.contain`.
 ///
 /// [entry] `null` (id fora do dicionário) ou bytes `null` (download falhou)
@@ -41,8 +44,17 @@ class GestureFigure extends ConsumerWidget {
     return SizedBox(
       width: side,
       height: side,
-      child: ColoredBox(
-        color: palette.figureBg,
+      // Quadro branco arredondado nos dois temas — a imagem tem fundo branco
+      // e borda preta próprios; o padding evita a borda colar no arredondamento.
+      child: Container(
+        key: gestureFigureFrameKey,
+        padding: const EdgeInsets.all(4),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: palette.figureBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: palette.figureBorder),
+        ),
         child: bytes.when(
           loading: () => const Center(
             child: SizedBox(
@@ -86,23 +98,29 @@ class _Placeholder extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: palette.placeholderBorder, width: 1.5),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
-          const SizedBox(height: 4),
-          Text(
-            l10n?.gestureNotFound ?? 'gesto não encontrado',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-          ),
-          Text(
-            gestureId,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-          ),
-        ],
+      // `FittedBox`: dentro do quadro da figura o placeholder ganha menos
+      // espaço que `side` (o padding do quadro consome parte); encolhe em vez
+      // de estourar.
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
+            const SizedBox(height: 4),
+            Text(
+              l10n?.gestureNotFound ?? 'gesto não encontrado',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 9, color: palette.sectionLabel),
+            ),
+            Text(
+              gestureId,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 9, color: palette.sectionLabel),
+            ),
+          ],
+        ),
       ),
     );
   }

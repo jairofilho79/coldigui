@@ -75,9 +75,10 @@ const double kGestureBaseFontSize = 18;
 /// Lado da caixa da figura para [fontSize]: `96 × (fonte / 18)`.
 double gestureFigureSide(double fontSize) => 96 * fontSize / kGestureBaseFontSize;
 
-/// Gap vertical entre cartões e entre blocos (spec §4).
-const double kGestureCardGap = 12;
-const double kGestureBlockGap = 20;
+/// Gap vertical entre cartões e entre blocos. Cartões têm gap pequeno porque a
+/// zebra já os separa.
+const double kGestureCardGap = 4;
+const double kGestureBlockGap = 16;
 
 /// Largura da coluna da chave (`repeat`/`coro`) e do conector (`link`).
 const double kGestureBraceWidth = 28;
