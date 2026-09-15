@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -205,16 +204,15 @@ class _NoResultsContent extends ConsumerWidget {
     final filters = ref.watch(catalogFiltersProvider);
     final hasActiveFilter =
         filters.materiaisUrlValue != null || filters.arranjoUrlValue != null;
-    final connectivity = ref.watch(connectivityStreamProvider);
-    final isOffline = connectivity.value == false;
     // §5.5: com catálogo Coldigom local a busca já respondeu do índice — o
-    // aviso só faz sentido quando não há catálogo nenhum no aparelho. O
-    // índice fica por último no `&&` de propósito: o curto-circuito evita
-    // hidratar/ler Isar quando o aviso já não apareceria por outro motivo.
+    // aviso só faz sentido quando não há catálogo nenhum no aparelho.
+    // `state.offline` já é o sinal de "o remoto nem foi chamado" (não dá
+    // para reusar `remoteFailed`: com a redefinição da task 1 ele é sempre
+    // `false` quando offline). O índice fica por último no `&&` de
+    // propósito: o curto-circuito evita hidratar/ler Isar quando o aviso já
+    // não apareceria por outro motivo.
     final showColdigomOffline =
-        state.remoteFailed &&
-        isOffline &&
-        ref.watch(coldigomSearchIndexProvider).isEmpty;
+        state.offline && ref.watch(coldigomSearchIndexProvider).isEmpty;
 
     // Fundo vinho do `Scaffold` da Home (product owner, onda 4.1):
     // `AppTypography.body`/`hint()` e o `foregroundColor` default de

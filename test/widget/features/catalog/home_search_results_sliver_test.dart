@@ -17,15 +17,17 @@ LouvorGroup _group(String id) =>
 
 HomeSearchState _state({
   String query = 'agua',
-  int page = 1,
   List<LouvorGroup> localGroups = const [],
+  List<LouvorGroup> newGroups = const [],
+  bool offline = false,
   required AsyncValue<CatalogSearchPage> remote,
 }) {
   return HomeSearchState(
     query: query,
-    page: page,
     localGroups: localGroups,
     remote: remote,
+    newGroups: newGroups,
+    offline: offline,
   );
 }
 
@@ -181,7 +183,6 @@ void main() {
       _sliverTestApp([
         homeSearchStateProvider.overrideWithValue(
           _state(
-            page: 2,
             remote: AsyncData(
               CatalogSearchPage(
                 groups: [_group('coldigom-1')],

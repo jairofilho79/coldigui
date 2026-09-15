@@ -3,63 +3,86 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 
+/// O que a linha de estado da Home diz sobre a lista (spec offline
+/// Coldigom §6.1).
+enum SearchFreshness {
+  /// Página remota em voo — «Em cache · a verificar…».
+  checking,
+
+  /// Remoto confirmou a lista local — «Atualizado».
+  updated,
+
+  /// Remoto trouxe louvores que o local não tinha — «Atualizado · N novos».
+  updatedWithNew,
+
+  /// Sem rede: o remoto nem foi chamado — «Em cache · sem ligação».
+  offline,
+
+  /// Remoto falhou; a lista local fica — «Em cache · não foi possível verificar».
+  failed,
+}
+
 /// Tudo o que a Home precisa saber sobre a busca corrente, num valor só (C.2).
 ///
-/// Valor **derivado** por `homeSearchStateProvider` das três fontes — a
-/// `query` debounced, a busca local síncrona e a página remota `AsyncValue`
-/// —, nunca mutado na mão: não há geração a comparar nem escrita cruzada entre
-/// providers, então ele não tem como ficar inconsistente.
+/// Valor **derivado** por `homeSearchStateProvider` — da `query` debounced,
+/// da busca local síncrona (PLPCG + Coldigom, O16), da página remota
+/// `AsyncValue` e da conectividade —, nunca mutado na mão: não há geração a
+/// comparar nem escrita cruzada entre providers. A lista é 100 % local; o
+/// remoto só **valida** (O15): o que ele traz a mais entra em [newGroups],
+/// no fim, com o chip «novo».
 final class HomeSearchState {
   const HomeSearchState({
     required this.query,
-    required this.page,
     required this.localGroups,
     required this.remote,
+    this.newGroups = const [],
+    this.offline = false,
   });
 
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
   final String query;
 
-  /// Página 1-based da fonte remota.
-  final int page;
-
-  /// Resultados PLPCG do índice em memória, sempre no topo da lista.
+  /// Resultados locais: PLPCG (com filtros UC-02) e depois Coldigom.
   final List<LouvorGroup> localGroups;
 
-  /// Página remota (Coldigom): `loading` | `data` | `error`.
+  /// Página 1 remota (Coldigom): `loading` | `data` | `error`. Ignorada
+  /// quando [offline].
   final AsyncValue<CatalogSearchPage> remote;
+
+  /// Grupos que só o remoto tinha, na ordem remota — anexados no fim.
+  final List<LouvorGroup> newGroups;
+
+  /// `true` quando o remoto não foi chamado por falta de rede.
+  final bool offline;
 
   /// `true` quando não há o que buscar — nenhuma fonte toca a rede.
   bool get isEmptyQuery => query.trim().isEmpty;
 
-  /// Grupos da página remota já carregada (vazio enquanto carrega ou falha).
-  List<LouvorGroup> get remoteGroups => remote.value?.groups ?? const [];
+  /// Lista exibida: local primeiro, novos no fim (sem reordenar).
+  List<LouvorGroup> get groups => [...localGroups, ...newGroups];
 
-  /// Lista exibida: PLPCG primeiro, Coldigom depois.
-  ///
-  /// Dedup provisório até a validação remota do plano 3: o índice local
-  /// Coldigom (task 9/10 do plano 1) já pode conter o mesmo `groupId` que a
-  /// página remota devolve, então um grupo remoto cujo id já apareceu na
-  /// lista local é descartado aqui para não duplicar o card na Home.
-  List<LouvorGroup> get groups {
-    final localIds = {for (final g in localGroups) g.groupId};
-    return [
-      ...localGroups,
-      ...remoteGroups.where((g) => !localIds.contains(g.groupId)),
-    ];
-  }
+  /// Ids dos cards que levam o chip «novo».
+  Set<String> get newGroupIds => {for (final g in newGroups) g.groupId};
 
-  /// `true` enquanto a página remota está em voo.
-  bool get remoteLoading => remote.isLoading;
+  int get newCount => newGroups.length;
+
+  /// `true` enquanto a página remota está em voo (e há rede).
+  bool get remoteLoading => !offline && remote.isLoading;
 
   /// `true` só quando a busca remota **terminou** em erro.
   ///
   /// Um refresh depois de uma falha mantém o erro anterior dentro do
-  /// `AsyncLoading`; enquanto ele estiver em voo a linha "Coldigom
-  /// indisponível" some e o spinner aparece — que é o que o usuário acabou de
-  /// pedir ao tocar em "tentar de novo".
-  bool get remoteFailed => !remote.isLoading && remote.hasError;
+  /// `AsyncLoading`; enquanto ele estiver em voo a linha volta a «a
+  /// verificar…» — que é o que o usuário acabou de pedir ao tocar em
+  /// «tentar de novo».
+  bool get remoteFailed => !offline && !remote.isLoading && remote.hasError;
 
-  /// `true` quando a fonte remota indica que há mais uma página.
-  bool get hasNextPage => remote.value?.hasNextPage ?? false;
+  SearchFreshness get freshness {
+    if (offline) return SearchFreshness.offline;
+    if (remote.isLoading) return SearchFreshness.checking;
+    if (remote.hasError) return SearchFreshness.failed;
+    return newGroups.isEmpty
+        ? SearchFreshness.updated
+        : SearchFreshness.updatedWithNew;
+  }
 }

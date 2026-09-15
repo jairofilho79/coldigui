@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/ports/search_cancellation.dart';
@@ -41,7 +43,9 @@ final class HomeRemoteSearchKey {
   String toString() => 'HomeRemoteSearchKey($query, página $page)';
 }
 
-/// Uma página da busca remota, cancelável e memoizada por `(query, página)`.
+/// Página 1 da busca remota — **validação** da lista local (O15), cancelável
+/// e memoizada por `(query, página)`; a página é sempre 1 desde a pesquisa
+/// híbrida, a chave mantém o campo por compatibilidade.
 ///
 /// Cada instância cria a própria [SearchCancellation] e a cancela no
 /// `onDispose`: quando a query muda, o Riverpod descarta a instância antiga e
@@ -81,6 +85,26 @@ final homeRemoteSearchProvider = FutureProvider.autoDispose
       // Provider descartado durante o await (navegação, tecla nova): sem
       // `keepAlive` — memoizar o que ninguém pediu mais só ocuparia memória.
       if (!ref.mounted) return page;
+
+      // §6.2: o que o índice local não conhece vai para o Isar já, e o
+      // ETag mudou — o dump inteiro vem a seguir pelo sync. Lê os providers
+      // **antes** de qualquer await: este provider é autoDispose e um `ref`
+      // descartado não pode ser lido.
+      final adopt = ref.read(adoptColdigomSearchNoveltiesProvider);
+      final known = ref.read(coldigomSearchIndexProvider).praiseIds;
+      final syncNotifier = ref.read(coldigomCatalogSyncProvider.notifier);
+      // Filtra pelo índice já aqui: poupa ao use case (e ao Isar, dentro
+      // dele) o trabalho de revisitar praises que a Home já sabia de cor —
+      // ele ainda confere Isar por conta própria para o resto.
+      final candidates = [
+        for (final g in page.groups)
+          if (!known.contains(g.groupId)) g,
+      ];
+      unawaited(
+        adopt(candidates, knownPraiseIds: known).then((adopted) {
+          if (adopted.isNotEmpty) unawaited(syncNotifier.sync());
+        }),
+      );
 
       final link = ref.keepAlive();
       final timer = Timer(homeRemoteSearchMemoDuration, link.close);

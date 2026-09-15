@@ -1,4 +1,3 @@
-import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/theme/app_theme.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
@@ -65,12 +64,13 @@ const _track = AudioTrack(
 HomeSearchState _state({
   String query = '',
   AsyncValue<CatalogSearchPage>? remote,
+  bool offline = false,
 }) {
   return HomeSearchState(
     query: query,
-    page: 1,
     localGroups: const [],
     remote: remote ?? const AsyncData(CatalogSearchPage.empty),
+    offline: offline,
   );
 }
 
@@ -351,11 +351,11 @@ void main() {
         state: _state(
           query: 'zzz',
           remote: AsyncError(Exception('boom'), StackTrace.empty),
+          offline: true,
         ),
         prefs: prefs,
         overrides: [
           catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
-          connectivityStreamProvider.overrideWith((ref) => Stream.value(false)),
           coldigomSearchIndexProvider.overrideWithValue(
             ColdigomSearchIndex.empty,
           ),
@@ -379,13 +379,11 @@ void main() {
           state: _state(
             query: 'zzz',
             remote: AsyncError(Exception('boom'), StackTrace.empty),
+            offline: true,
           ),
           prefs: prefs,
           overrides: [
             catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
-            connectivityStreamProvider.overrideWith(
-              (ref) => Stream.value(false),
-            ),
             coldigomSearchIndexProvider.overrideWithValue(
               ColdigomSearchIndex.build([
                 ColdigomIndexedPraise.build(
@@ -427,7 +425,6 @@ void main() {
         prefs: prefs,
         overrides: [
           catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
-          connectivityStreamProvider.overrideWith((ref) => Stream.value(true)),
         ],
       );
 
@@ -490,9 +487,6 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-            connectivityStreamProvider.overrideWith(
-              (ref) => Stream.value(false),
-            ),
             // Sem isto, `_NoResultsContent` tentaria hidratar o índice
             // Coldigom via Isar de verdade (não há aqui) e o teste travaria
             // num timer pendente — mesmo cuidado do caso "mostra o aviso".
@@ -519,6 +513,7 @@ void main() {
                   state: _state(
                     query: 'zzz',
                     remote: AsyncError(Exception('boom'), StackTrace.empty),
+                    offline: true,
                   ),
                 ),
               ),

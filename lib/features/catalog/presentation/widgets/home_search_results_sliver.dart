@@ -1,7 +1,6 @@
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/home_coldigom_pagination_controls.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_empty_state.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -10,19 +9,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// O que vai **depois** dos cards, se algo for.
 ///
-/// Os três estados são mutuamente exclusivos, e é justamente isso que a
-/// aritmética antiga de índices (`trailingIndex -= 1`, três flags booleanas)
-/// escondia: ou a página remota está em voo, ou falhou, ou chegou. Um `switch`
-/// exaustivo sobre este enum não deixa um quarto caso passar despercebido.
+/// Os dois estados são mutuamente exclusivos, e é justamente isso que a
+/// aritmética antiga de índices (`trailingIndex -= 1`, flags booleanas)
+/// escondia: ou a página remota está em voo, ou falhou. Um `switch`
+/// exaustivo sobre este enum não deixa um terceiro caso passar despercebido.
 enum HomeSearchTrailingSlot {
   /// Página remota em voo.
   loading,
 
   /// Página remota falhou — linha "Coldigom indisponível · tentar de novo".
   error,
-
-  /// Página remota chegou e há o que paginar.
-  pager,
 }
 
 /// Slot final correspondente a [state] — vazio quando não há nenhum.
@@ -31,9 +27,6 @@ HomeSearchTrailingSlot? homeSearchTrailingSlot(HomeSearchState state) {
   // Busca coldigom falhando é visível (linha com retry) em vez de lista
   // vazia silenciosa (C.8).
   if (state.remoteFailed) return HomeSearchTrailingSlot.error;
-  if (state.page > 1 || state.hasNextPage || state.remoteGroups.isNotEmpty) {
-    return HomeSearchTrailingSlot.pager;
-  }
   return null;
 }
 
@@ -48,13 +41,11 @@ class HomeSearchResultsSliver extends ConsumerWidget {
     final results = state.groups;
     final trailing = homeSearchTrailingSlot(state);
 
-    // Sem grupo nenhum (local nem remoto) e nada em voo/paginável: o antigo
+    // Sem grupo nenhum (local nem remoto) e nada em voo: o antigo
     // `SizedBox.shrink()` vira o estado vazio da Home (C4). A linha de erro
     // remoto continua — ela é o mecanismo genérico de retry (C.8), o estado
     // vazio é só o texto amigável por cima.
-    if (results.isEmpty &&
-        trailing != HomeSearchTrailingSlot.loading &&
-        trailing != HomeSearchTrailingSlot.pager) {
+    if (results.isEmpty && trailing != HomeSearchTrailingSlot.loading) {
       return SliverToBoxAdapter(
         child: Column(
           children: [
@@ -78,8 +69,6 @@ class HomeSearchResultsSliver extends ConsumerWidget {
             return _ColdigomUnavailableRow(
               onRetry: () => retryRemoteSearch(ref),
             );
-          case HomeSearchTrailingSlot.pager:
-            return const HomeColdigomPaginationControls();
         }
       }, childCount: results.length + (trailing == null ? 0 : 1)),
     );

@@ -1,3 +1,4 @@
+import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -10,7 +11,14 @@ import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart'
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_remote_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
+import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
+import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/domain/usecases/adopt_coldigom_search_novelties.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,12 +84,58 @@ class _MutableManifestNotifier extends LouvoresManifestNotifier {
   void emit(LouvoresManifest manifest) => state = AsyncData(manifest);
 }
 
+/// Regista o que a Home pediu para adotar; devolve os ids como adotados.
+class _RecordingAdopter extends AdoptColdigomSearchNovelties {
+  _RecordingAdopter()
+    : super(const ColdigomCatalogLocalDatasource.unavailable());
+
+  final calls = <List<String>>[];
+  Set<String> knownSeen = const {};
+
+  @override
+  Future<Set<String>> call(
+    Iterable<LouvorGroup> remoteGroups, {
+    required Set<String> knownPraiseIds,
+  }) async {
+    knownSeen = knownPraiseIds;
+    final ids = [for (final g in remoteGroups) g.groupId];
+    calls.add(ids);
+    return ids.toSet();
+  }
+}
+
+/// Conta os `sync()` disparados pela pesquisa; não toca na rede.
+class _CountingSync extends ColdigomCatalogSyncNotifier {
+  var calls = 0;
+
+  @override
+  ColdigomCatalogSyncState build() => const ColdigomCatalogSyncState();
+
+  @override
+  Future<ColdigomCatalogSyncResult> sync() async {
+    calls++;
+    return const ColdigomCatalogSyncNoop();
+  }
+}
+
+LouvorGroup _coldigomGroup(String id) => LouvorGroup(
+  groupId: id,
+  numero: '900',
+  nome: 'Coldigom $id',
+  sections: const [],
+  coldigomMeta: const ColdigomPraiseMetadata(name: 'Coldigom'),
+);
+
 void main() {
   late SharedPreferences prefs;
+  late _RecordingAdopter adopter;
+  late _CountingSync syncNotifier;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
+    adopter = _RecordingAdopter();
+    syncNotifier = _CountingSync();
   });
 
   final catalog = [
@@ -92,6 +146,8 @@ void main() {
   ProviderContainer createContainer(
     CatalogSource source, {
     _MutableManifestNotifier? manifest,
+    bool online = true,
+    ColdigomSearchIndex index = ColdigomSearchIndex.empty,
     List<Override> extra = const [],
   }) {
     final container = ProviderContainer(
@@ -103,6 +159,10 @@ void main() {
               _MutableManifestNotifier(LouvoresManifest.fromLouvores(catalog)),
         ),
         catalogSourceProvider.overrideWithValue(source),
+        connectivityStreamProvider.overrideWith((ref) => Stream.value(online)),
+        adoptColdigomSearchNoveltiesProvider.overrideWithValue(adopter),
+        coldigomCatalogSyncProvider.overrideWith(() => syncNotifier),
+        coldigomSearchIndexProvider.overrideWithValue(index),
         ...extra,
       ],
     );
@@ -128,7 +188,7 @@ void main() {
     expect(state.groups, isEmpty);
     expect(state.remoteLoading, isFalse);
     expect(state.remoteFailed, isFalse);
-    expect(state.hasNextPage, isFalse);
+    expect(state.freshness, SearchFreshness.updated);
     expect(state.remote.hasValue, isTrue);
     expect(source.searchCalls, 0);
   });
@@ -182,10 +242,13 @@ void main() {
     },
   );
 
-  test('grupo remoto com o mesmo groupId de um local não duplica (provisório até o plano 3)', () async {
+  test('grupo remoto com o mesmo groupId de um local não duplica', () async {
     // Louvor local 'Aleluia' (numero '001') gera groupId '001:aleluia'
     // (LouvorGroupId.compute); um grupo remoto com o mesmo id simula o
-    // Coldigom ainda devolvendo algo que o índice local já cobre.
+    // Coldigom devolvendo algo que o índice local já cobre — a pesquisa
+    // híbrida final trata isso no próprio `homeSearchStateProvider`
+    // (`newGroups` filtra ids já locais), não mais num getter da
+    // `HomeSearchState`.
     final duplicateOfLocal = LouvorGroup(
       groupId: '001:aleluia',
       numero: '001',
@@ -207,39 +270,10 @@ void main() {
 
     final state = container.read(homeSearchStateProvider);
     expect(state.localGroups, isNotEmpty);
-    expect(state.remoteGroups, isNotEmpty);
+    expect(state.remote.value?.groups, isNotEmpty);
+    expect(state.newGroupIds, isEmpty);
     expect(state.groups.length, state.localGroups.length);
     expect(state.groups.where((g) => g.groupId == '001:aleluia').length, 1);
-  });
-
-  test('página 2 usa outra chave; voltar à 1 reusa o memo', () async {
-    final source = _RecordingCatalogSource.ok();
-    final container = createContainer(source);
-    keepStateAlive(container);
-    await pumpEventQueue();
-
-    container
-        .read(homeSearchDebouncedQueryProvider.notifier)
-        .setImmediate('aleluia');
-    await pumpEventQueue();
-
-    final pageOne = container.read(homeSearchStateProvider).remote.value;
-    expect(pageOne, isNotNull);
-    expect(source.searchCalls, 1);
-
-    container.read(homeSearchPageProvider.notifier).next();
-    await pumpEventQueue();
-
-    expect(container.read(homeSearchStateProvider).page, 2);
-    expect(source.queries.last.page, 2);
-    expect(source.searchCalls, 2);
-
-    container.read(homeSearchPageProvider.notifier).previous();
-    await pumpEventQueue();
-
-    final backToOne = container.read(homeSearchStateProvider).remote.value;
-    expect(identical(pageOne, backToOne), isTrue);
-    expect(source.searchCalls, 2);
   });
 
   test(
@@ -328,8 +362,84 @@ void main() {
     expect(source.searchCalls, 1);
   });
 
-  test('trocar a query volta a página para 1', () async {
-    final source = _RecordingCatalogSource.ok();
+  test(
+    'remoto igual ao local → updated, sem novos, sem adoção nem sync',
+    () async {
+      final coldigom = _coldigomGroup('cold-1');
+      // Índice local conhece cold-1: a busca local devolve-o e o remoto só confirma.
+      final source = _RecordingCatalogSource(
+        (query) async =>
+            CatalogSearchPage(groups: [coldigom], page: query.page),
+      );
+      final container = createContainer(
+        source,
+        index: ColdigomSearchIndex.build([
+          ColdigomIndexedPraise.build(
+            praiseId: 'cold-1',
+            numero: '900',
+            nome: 'Coldigom cold-1',
+            searchTokens: 'coldigom cold-1 900',
+            group: coldigom,
+          ),
+        ]),
+      );
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('coldigom');
+      await pumpEventQueue();
+
+      final state = container.read(homeSearchStateProvider);
+      expect(state.freshness, SearchFreshness.updated);
+      expect(state.newGroupIds, isEmpty);
+      expect(state.groups.map((g) => g.groupId), contains('cold-1'));
+      expect(adopter.calls, [<String>[]]);
+      expect(syncNotifier.calls, 0);
+    },
+  );
+
+  test(
+    'remoto com extra → updatedWithNew, extra no fim, adoção e sync disparados',
+    () async {
+      final source = _RecordingCatalogSource(
+        (query) async => CatalogSearchPage(
+          groups: [_coldigomGroup('cold-2'), _coldigomGroup('cold-1')],
+          page: query.page,
+        ),
+      );
+      final container = createContainer(source);
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('aleluia');
+      await pumpEventQueue();
+
+      final state = container.read(homeSearchStateProvider);
+      expect(state.freshness, SearchFreshness.updatedWithNew);
+      expect(state.newCount, 2);
+      expect(
+        state.groups
+            .map((g) => g.groupId)
+            .toList()
+            .sublist(state.localGroups.length),
+        ['cold-2', 'cold-1'],
+      );
+      expect(state.localGroups.first.groupId, isNot('cold-2'));
+      expect(adopter.calls.single, ['cold-2', 'cold-1']);
+      expect(adopter.knownSeen, isEmpty);
+      expect(syncNotifier.calls, 1);
+      expect(source.queries.single.page, 1);
+    },
+  );
+
+  test('remoto falha → failed com a lista local intacta', () async {
+    final source = _RecordingCatalogSource(
+      (_) async => throw Exception('boom'),
+    );
     final container = createContainer(source);
     keepStateAlive(container);
     await pumpEventQueue();
@@ -339,25 +449,32 @@ void main() {
         .setImmediate('aleluia');
     await pumpEventQueue();
 
-    container.read(homeSearchPageProvider.notifier).next();
+    final state = container.read(homeSearchStateProvider);
+    expect(state.freshness, SearchFreshness.failed);
+    expect(state.localGroups, isNotEmpty);
+    expect(state.groups.length, state.localGroups.length);
+    expect(adopter.calls, isEmpty);
+  });
+
+  test('sem rede → offline sem chamar o remoto', () async {
+    final source = _RecordingCatalogSource.ok();
+    final container = createContainer(source, online: false);
+    keepStateAlive(container);
     await pumpEventQueue();
-    expect(container.read(homeSearchStateProvider).page, 2);
 
     container
         .read(homeSearchDebouncedQueryProvider.notifier)
-        .setImmediate('joão');
+        .setImmediate('aleluia');
     await pumpEventQueue();
 
-    expect(container.read(homeSearchStateProvider).page, 1);
-    // A página volta a 1 **antes** de a remota ser pedida: nunca sai um
-    // request para ('joão', 2) — só o de 'aleluia' p.1, 'aleluia' p.2 e
-    // 'joão' p.1.
-    expect(source.searchCalls, 3);
-    expect(source.queries.last.page, 1);
-    expect(source.queries.last.text, 'joão');
+    final state = container.read(homeSearchStateProvider);
+    expect(state.freshness, SearchFreshness.offline);
+    expect(state.localGroups, isNotEmpty);
+    expect(state.remoteLoading, isFalse);
+    expect(source.searchCalls, 0);
   });
 
-  test('mudar o filtro volta a página para 1 sem re-buscar a remota', () async {
+  test('mudar o filtro não re-busca a remota', () async {
     final source = _RecordingCatalogSource.ok();
     final container = createContainer(source);
     keepStateAlive(container);
@@ -372,8 +489,6 @@ void main() {
     container.read(catalogFiltersProvider.notifier).toggleMaterial('Partitura');
     await pumpEventQueue();
 
-    expect(container.read(homeSearchStateProvider).page, 1);
-    // Página já era 1: a chave remota não mudou, então nada foi re-buscado.
     expect(source.searchCalls, 1);
   });
 }
