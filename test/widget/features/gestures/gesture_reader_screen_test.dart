@@ -657,6 +657,37 @@ void main() {
       expect(container.read(gestureAutoscrollProvider).running, isFalse);
     });
 
+    testWidgets(
+      'um tick entre o início do arrasto e o primeiro update não mata o dedo',
+      (tester) async {
+        await pumpShort(tester);
+        final container = _containerOf(tester);
+        container.read(gestureAutoscrollProvider.notifier).toggle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.pump(const Duration(milliseconds: 300));
+        final before = offset(tester);
+
+        // Gesto manual (em vez de `tester.drag`, que já resolve tudo num só
+        // salto): cruza o slop com `moveBy`, deixa um tick do motor cair na
+        // janela entre o início do arrasto e o primeiro update, e só então
+        // segue movendo — reproduz a corrida `onStart` → tick → `onUpdate`.
+        final gesture = await tester.startGesture(
+          tester.getCenter(find.byType(Scrollable).first),
+        );
+        await gesture.moveBy(const Offset(0, -30));
+        await tester.pump(const Duration(milliseconds: 16));
+        await gesture.moveBy(const Offset(0, -100));
+        await tester.pump();
+        final afterMove = offset(tester);
+        expect(afterMove, greaterThan(before + 80));
+        await gesture.up();
+        await tester.pump();
+        expect(container.read(gestureAutoscrollProvider).running, isTrue);
+        await stopAndSettle(tester);
+      },
+    );
+
     testWidgets('S liga/desliga; [ e ] regulam a velocidade', (tester) async {
       await pumpShort(tester);
       final container = _containerOf(tester);

@@ -286,11 +286,27 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
   }
 
   /// Dedo/roda na página: pausa; 1 s depois do fim do gesto, volta de onde
-  /// a página ficou. Só o `UserScrollNotification` com direção diz "é o
-  /// usuário" — o `jumpTo` do motor emite `ScrollEnd`, mas nunca direção.
+  /// a página ficou. Dois sinais dizem "é o usuário":
+  /// `ScrollStartNotification.dragDetails != null`, disparado dentro de
+  /// `position.drag(...)` assim que o dedo cruza o slop — antes de qualquer
+  /// `onUpdate` — e `UserScrollNotification` com direção, para a roda do
+  /// mouse (`pointerScroll` não passa por `drag`, não tem `dragDetails`).
+  /// Só o `UserScroll` chega tarde demais para o dedo: ele só é emitido no
+  /// primeiro `onUpdate`, ~8–16 ms depois do `onStart` na amostra seguinte
+  /// do ponteiro. Se um tick do `Ticker` cair nessa janela, o `jumpTo` do
+  /// motor passa por `goIdle()` → `beginActivity(Idle)`, que descarta o
+  /// `_drag` do `ScrollableState` — todo update seguinte do dedo vira no-op
+  /// e a página ignora o toque. O `ScrollStart` com `dragDetails` fecha essa
+  /// janela; o `jumpTo` do próprio motor também emite `ScrollStart`, mas com
+  /// `dragDetails == null`, então não conta como usuário aqui.
   bool _onScrollNotification(ScrollNotification notification) {
-    if (notification is UserScrollNotification &&
-        notification.direction != ScrollDirection.idle) {
+    final fingerDown =
+        notification is ScrollStartNotification &&
+        notification.dragDetails != null;
+    final userDirection =
+        notification is UserScrollNotification &&
+        notification.direction != ScrollDirection.idle;
+    if (fingerDown || userDirection) {
       _pausedByUser = true;
       _resumeTimer?.cancel();
       _resumeTimer = null;
