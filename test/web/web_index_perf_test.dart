@@ -44,4 +44,21 @@ void main() {
     expect(html, contains('rendererPreload'));
     expect(html, contains('canvaskit/skwasm.wasm'));
   });
+
+  test(
+    'avisa depois de 15s sem rede e sem o loader ter saído (Important 3)',
+    () {
+      // Offline sem o engine em cache o flutter-first-frame nunca chega: sem
+      // isto o loader gira para sempre.
+      expect(html, contains('window.setTimeout(function () {'));
+      expect(html, contains('15000'));
+      expect(html, contains('navigator.onLine !== false'));
+      expect(
+        html,
+        contains(
+          'Sem ligação — abra o app online uma vez para poder usá-lo offline.',
+        ),
+      );
+    },
+  );
 }

@@ -41,8 +41,8 @@ flutter build web \
   "${DEFINE_ARGS[@]}"
 
 echo "==> Artefato em build/web/"
-"$ROOT_DIR/scripts/verify_web_headers_artifact.sh"
 "$ROOT_DIR/scripts/cache_bust_web_entrypoints.sh"
+"$ROOT_DIR/scripts/verify_web_headers_artifact.sh"
 
 COMMIT="$(git rev-parse --short HEAD)"
 CACHE_TAG="$(

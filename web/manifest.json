@@ -2,6 +2,8 @@
     "name": "Pesquisador de Louvores em Partitura, Cifra e Gestinhos",
     "short_name": "PLPCG",
     "start_url": ".",
+    "id": "/",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#4B2D2B",
     "theme_color": "#D4AF37",

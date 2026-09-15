@@ -39,6 +39,7 @@ def make_frontend_handler(web_dir: Path) -> type[http.server.SimpleHTTPRequestHa
                 "version.json",
                 "manifest.json",
                 "flutter_service_worker.js",
+                "sw.js",
             )
             if path.rsplit("/", 1)[-1] in entry_points or path.endswith(".part.js"):
                 self.send_header("Cache-Control", "no-cache")

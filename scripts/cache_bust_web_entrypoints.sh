@@ -11,6 +11,7 @@
 # skwasm.js velho e o main.dart.wasm novo — LinkError "skwasm"
 # "emscripten_builtin_free" no boot (3.44 → 3.47, set/2026).
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WEB_DIR="${1:-build/web}"
 INDEX="$WEB_DIR/index.html"
@@ -25,8 +26,19 @@ for f in "$INDEX" "$BOOTSTRAP" "$WEB_DIR/main.dart.js" "$WEB_DIR/main.dart.wasm"
 done
 test -f "$CANVASKIT_DIR/skwasm.js"
 
+# Hash de todo o build/web tal como sai do `flutter build` (antes de qualquer
+# reescrita daqui para baixo), exceto o que o próprio pipeline gera/reescreve
+# depois (sw.js, version.json, _headers/_redirects, .last_build_id,
+# flutter_service_worker.js): qualquer byte do shell que mude num deploy muda
+# a tag, mesmo sem tocar em main.dart.js/flutter_bootstrap.js.
 TAG="$(
-  shasum -a 256 "$WEB_DIR/main.dart.js" "$BOOTSTRAP" \
+  cd "$WEB_DIR" \
+    && find . -type f \
+         ! -name 'sw.js' ! -name 'version.json' \
+         ! -name '_headers' ! -name '_redirects' \
+         ! -name '.last_build_id' ! -name 'flutter_service_worker.js' \
+    | LC_ALL=C sort \
+    | xargs shasum -a 256 \
     | shasum -a 256 \
     | cut -c1-12
 )"
@@ -75,6 +87,14 @@ preload_old = "'canvaskit/skwasm.wasm'"
 if preload_old not in content:
     raise SystemExit(f"index.html sem preload {preload_old}")
 content = content.replace(preload_old, f"'{canvaskit_base}/skwasm.wasm'")
+
+# Registo do service worker: a tag no ?v= é o que faz o browser detetar um
+# sw.js novo a cada deploy. Sem o marcador o index.html não é o do repo.
+sw_tag_old = "var swTag = '__PLPCG_TAG__';"
+if sw_tag_old not in content:
+    raise SystemExit(f"index.html sem {sw_tag_old}")
+content = content.replace(sw_tag_old, f"var swTag = '{tag}';")
+
 index.write_text(content)
 
 bootstrap = Path(bootstrap_path)
@@ -114,5 +134,9 @@ version.write_text(json.dumps(data, separators=(",", ":")) + "\n")
 
 print(f"OK: tag={tag} icons={icons_hashed} canvaskit={canvaskit_base}")
 PY
+
+# Listas CRITICAL/WARM do sw.js: precisa das três tags já gravadas em
+# version.json pelo bloco acima. Falha se um ficheiro crítico não existir.
+python3 "$SCRIPT_DIR/generate_sw_manifest.py" "$WEB_DIR"
 
 echo "OK: cache-bust aplicado em ${INDEX}, ${BOOTSTRAP}, ${ICONS_HASHED} e ${CANVASKIT_DIR}/${CANVASKIT_HASH}/"

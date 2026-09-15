@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/database/isar_provider.dart';
+import 'core/platform/web_storage_persistence_provider.dart';
 
 /// Monta [ColdiguiApp] imediatamente, sem esperar [isarInitializerProvider] (A8).
 ///
@@ -21,6 +22,8 @@ class BootstrapApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(isarStatusProvider);
+    // Mesmo motivo: só para o pedido sair no boot (web); nativo é no-op.
+    ref.watch(persistentStorageProvider);
     return const ColdiguiApp();
   }
 }

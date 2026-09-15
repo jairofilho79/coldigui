@@ -1,8 +1,11 @@
 import '../support/fakes/fake_isar.dart';
+
 import 'dart:async';
+
 import 'package:coldigui/app.dart';
 import 'package:coldigui/bootstrap_app.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/platform/web_storage_persistence_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -52,4 +55,32 @@ void main() {
 
     expect(find.byType(ColdiguiApp), findsOneWidget);
   });
+
+  testWidgets(
+    'pede storage persistente no boot (S7), fora do caminho crítico',
+    (tester) async {
+      var requested = false;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            isarOpenerProvider.overrideWithValue(() async => FakeIsar()),
+            persistentStorageProvider.overrideWith((ref) async {
+              requested = true;
+              return true;
+            }),
+          ],
+          child: const BootstrapApp(),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(ColdiguiApp), findsOneWidget);
+      expect(
+        requested,
+        isTrue,
+        reason: 'BootstrapApp observa o provider no boot',
+      );
+      await tester.pumpAndSettle();
+    },
+  );
 }

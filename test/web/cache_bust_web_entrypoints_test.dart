@@ -6,6 +6,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/web_build_fixture.dart';
+
 /// Valida [scripts/cache_bust_web_entrypoints.sh] sobre um `build/web` mínimo.
 ///
 /// O `_headers` serve `/canvaskit/*` como `immutable` por 1 ano e o nome dos
@@ -16,29 +18,6 @@ void main() {
   late Directory tmp;
   late Directory webDir;
 
-  const bootstrap = '''
-{"engineRevision":"abc","mainWasmPath":"main.dart.wasm","jsSupportRuntimePath":"main.dart.mjs","mainJsPath":"main.dart.js"}
-_flutter.loader.load({
-  config: {
-    canvasKitBaseUrl: "canvaskit",
-  },
-});
-''';
-
-  const index = '''
-<link rel="preload" href="main.dart.wasm" as="fetch" crossorigin>
-<script>
-  link.href = 'canvaskit/skwasm.wasm';
-</script>
-<script src="flutter_bootstrap.js" async></script>
-''';
-
-  void write(String relative, String content) {
-    final file = File('${webDir.path}/$relative');
-    file.parent.createSync(recursive: true);
-    file.writeAsStringSync(content);
-  }
-
   Future<ProcessResult> runScript() => Process.run('bash', [
     'scripts/cache_bust_web_entrypoints.sh',
     webDir.path,
@@ -47,20 +26,7 @@ _flutter.loader.load({
   setUp(() {
     tmp = Directory.systemTemp.createTempSync('cache_bust_test');
     webDir = Directory('${tmp.path}/web')..createSync();
-    write('index.html', index);
-    write('flutter_bootstrap.js', bootstrap);
-    write('main.dart.js', 'js');
-    write('main.dart.wasm', 'wasm');
-    write('main.dart.mjs', 'mjs');
-    write('version.json', '{"version":"1.0.0"}');
-    write(
-      'assets/FontManifest.json',
-      '[{"family":"MaterialIcons","fonts":[{"asset":"fonts/MaterialIcons-Regular.otf"}]}]',
-    );
-    write('assets/fonts/MaterialIcons-Regular.otf', 'otf');
-    write('canvaskit/skwasm.js', 'skwasm v1');
-    write('canvaskit/skwasm.wasm', 'skwasm wasm v1');
-    write('canvaskit/chromium/canvaskit.js', 'canvaskit chromium v1');
+    writeFixtureWebBuild(webDir);
   });
 
   tearDown(() => tmp.deleteSync(recursive: true));
@@ -105,18 +71,11 @@ _flutter.loader.load({
     expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
     final tagV1 = readVersion()['canvaskit_tag'] as String;
 
-    // Novo build: canvaskit/ volta a ser plano, com skwasm.js de outro engine.
-    Directory('${webDir.path}/canvaskit').deleteSync(recursive: true);
-    write('canvaskit/skwasm.js', 'skwasm v2');
-    write('canvaskit/skwasm.wasm', 'skwasm wasm v1');
-    write('canvaskit/chromium/canvaskit.js', 'canvaskit chromium v1');
-    write('index.html', index);
-    write('flutter_bootstrap.js', bootstrap);
-    write('assets/fonts/MaterialIcons-Regular.otf', 'otf');
-    write(
-      'assets/FontManifest.json',
-      '[{"family":"MaterialIcons","fonts":[{"asset":"fonts/MaterialIcons-Regular.otf"}]}]',
-    );
+    // Novo build: tudo plano outra vez, com skwasm.js de outro engine.
+    webDir.deleteSync(recursive: true);
+    webDir.createSync();
+    writeFixtureWebBuild(webDir);
+    writeWebFile(webDir, 'canvaskit/skwasm.js', 'skwasm v2');
 
     final second = await runScript();
     expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
@@ -127,6 +86,41 @@ _flutter.loader.load({
       File('${webDir.path}/canvaskit/$tagV2/skwasm.js').readAsStringSync(),
       'skwasm v2',
     );
+  });
+
+  test('tag muda quando um byte qualquer do shell muda (não só os dois entrypoints)', () async {
+    final first = await runScript();
+    expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
+    final tagV1 = readVersion()['web_cache_tag'] as String;
+
+    webDir.deleteSync(recursive: true);
+    webDir.createSync();
+    writeFixtureWebBuild(webDir);
+    // Um ícone, não os entrypoints que o hash antigo olhava: prova que a
+    // tag cobre a árvore inteira (Important 2 da revisão final).
+    writeWebFile(webDir, 'icons/Icon-192.png', 'png v2');
+
+    final second = await runScript();
+    expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
+    final tagV2 = readVersion()['web_cache_tag'] as String;
+
+    expect(tagV2, isNot(tagV1));
+  });
+
+  test('árvore idêntica produz sempre a mesma tag', () async {
+    final first = await runScript();
+    expect(first.exitCode, 0, reason: '${first.stdout}\n${first.stderr}');
+    final tagV1 = readVersion()['web_cache_tag'] as String;
+
+    webDir.deleteSync(recursive: true);
+    webDir.createSync();
+    writeFixtureWebBuild(webDir);
+
+    final second = await runScript();
+    expect(second.exitCode, 0, reason: '${second.stdout}\n${second.stderr}');
+    final tagV2 = readVersion()['web_cache_tag'] as String;
+
+    expect(tagV2, tagV1);
   });
 
   test(
