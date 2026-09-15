@@ -24,7 +24,7 @@ import 'playlist_tile_header.dart';
 /// visual com modal do carousel e [LouvorCard] (pesquisa/biblioteca).
 ///
 /// Fase 4.2: CRUD (renomear, excluir, remover PDF, favorito).
-/// Onda 3 (D6): menu **Tornar lista ativa** (sem modal — snackbar com
+/// Onda 3 (D6): menu **Editar por aqui** (sem modal — snackbar com
 /// «Desfazer») e **Abrir no leitor**; toque em chip expandido abre o PDF
 /// selecionado no leitor — os dois tornam a lista ativa
 /// ([ActivePlaylistEditor.activate]) e navegam via [openPdfInReaderProvider] +
@@ -165,6 +165,7 @@ class _PlaylistListTileState extends ConsumerState<PlaylistListTile> {
       context: context,
       l10n: l10n,
       playlist: widget.item.playlist,
+      tab: widget.tab,
       loading: _loading,
       onLoadingChanged: _setLoading,
       onExpandedChanged: _setExpanded,

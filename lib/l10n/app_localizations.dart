@@ -1232,7 +1232,7 @@ abstract class AppLocalizations {
   /// No description provided for @playlistActivate.
   ///
   /// In pt, this message translates to:
-  /// **'Tornar lista ativa'**
+  /// **'Editar por aqui'**
   String get playlistActivate;
 
   /// No description provided for @playlistOpenInReader.

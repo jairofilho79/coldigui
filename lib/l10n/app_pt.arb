@@ -412,7 +412,7 @@
   "playlistEmptyCount": "Vazia",
   "playlistDeleteLastPdfTitle": "Remover último louvor?",
   "playlistDeleteLastPdfMessage": "A lista ficará vazia e será excluída.",
-  "playlistActivate": "Tornar lista ativa",
+  "playlistActivate": "Editar por aqui",
   "playlistOpenInReader": "Abrir no leitor",
   "playlistOpenInAudioPlayer": "Abrir no reprodutor",
   "playlistAudioEmpty": "Esta lista não tem áudios.",
