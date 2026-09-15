@@ -129,20 +129,20 @@ void main() {
     (tester) async {
       await _pump(
         tester,
-        const HomeSearchState(
+        HomeSearchState(
           query: '',
           localGroups: [],
-          remote: AsyncData(CatalogSearchPage.empty),
+          remote: const AsyncData(CatalogSearchPage.empty),
         ),
       );
       expect(find.byType(SearchFreshnessLine), findsNothing);
 
       await _pump(
         tester,
-        const HomeSearchState(
+        HomeSearchState(
           query: 'zzz',
           localGroups: [],
-          remote: AsyncLoading(),
+          remote: const AsyncLoading(),
         ),
       );
       expect(find.byType(SearchFreshnessLine), findsOneWidget);
@@ -150,7 +150,7 @@ void main() {
 
       await _pump(
         tester,
-        const HomeSearchState(
+        HomeSearchState(
           query: 'zzz',
           localGroups: [],
           remote: AsyncData(CatalogSearchPage.empty),

@@ -31,14 +31,17 @@ enum SearchFreshness {
 /// remoto só **valida** (O15): o que ele traz a mais entra em [newGroups],
 /// no fim, com o chip «novo».
 final class HomeSearchState {
-  const HomeSearchState({
+  HomeSearchState({
     required this.query,
     required this.localGroups,
     required this.remote,
     this.newGroups = const [],
     this.offline = false,
     this.knownIds = const {},
-  });
+  }) : newGroupIds = {
+         for (final g in newGroups)
+           if (!knownIds.contains(g.groupId)) g.groupId,
+       };
 
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
   final String query;
@@ -73,10 +76,10 @@ final class HomeSearchState {
 
   /// Ids dos cards que levam o chip «novo»: extras do remoto que o catálogo
   /// (não só esta busca) ainda não conhecia.
-  Set<String> get newGroupIds => {
-    for (final g in newGroups)
-      if (!knownIds.contains(g.groupId)) g.groupId,
-  };
+  ///
+  /// Calculado uma vez no construtor — lido por `newCount`, `freshness` e os
+  /// widgets, um getter alocando um `Set` novo a cada leitura não compensa.
+  final Set<String> newGroupIds;
 
   int get newCount => newGroupIds.length;
 

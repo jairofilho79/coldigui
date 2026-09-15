@@ -69,7 +69,7 @@ void main() {
   });
 
   test('query vazia', () {
-    const state = HomeSearchState(
+    final state = HomeSearchState(
       query: '  ',
       localGroups: [],
       remote: AsyncData(CatalogSearchPage.empty),
