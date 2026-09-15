@@ -461,6 +461,17 @@
       "n": { "type": "int" }
     }
   },
+  "gesturesReaderToggleTheme": "Toggle reader theme",
+  "gesturesReaderLinear": "Switch to linear reading",
+  "gesturesReaderStructured": "Switch to structured reading",
+  "gesturesAutoscrollPlay": "Start autoscroll",
+  "gesturesAutoscrollPause": "Pause autoscroll",
+  "gesturesAutoscrollSpeed": "Scroll speed: {speed}",
+  "@gesturesAutoscrollSpeed": {
+    "placeholders": {
+      "speed": { "type": "int" }
+    }
+  },
   "chordAutoscrollPlay": "Start autoscroll",
   "chordAutoscrollPause": "Pause autoscroll",
   "chordAutoscrollSpeed": "Scroll speed: {speed}",

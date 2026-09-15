@@ -869,6 +869,26 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get gesturesReaderToggleTheme => 'Alternar tema do leitor';
+
+  @override
+  String get gesturesReaderLinear => 'Mudar para leitura linear';
+
+  @override
+  String get gesturesReaderStructured => 'Mudar para leitura estruturada';
+
+  @override
+  String get gesturesAutoscrollPlay => 'Iniciar rolagem automática';
+
+  @override
+  String get gesturesAutoscrollPause => 'Pausar rolagem automática';
+
+  @override
+  String gesturesAutoscrollSpeed(int speed) {
+    return 'Velocidade da rolagem: $speed';
+  }
+
+  @override
   String get chordAutoscrollPlay => 'Iniciar rolagem automática';
 
   @override

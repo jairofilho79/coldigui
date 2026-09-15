@@ -11,12 +11,18 @@ import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_dictionary.dart';
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_document.dart';
 import 'package:coldigui/features/gestures/presentation/pages/gesture_reader_screen.dart';
+import 'package:coldigui/features/gestures/presentation/providers/gesture_autoscroll_provider.dart';
 import 'package:coldigui/features/gestures/presentation/providers/gesture_reader_font_size_provider.dart';
+import 'package:coldigui/features/gestures/presentation/providers/gesture_reader_linear_provider.dart';
+import 'package:coldigui/features/gestures/presentation/providers/gesture_reader_mode_provider.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_card_tile.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_document_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_focus_view.dart';
+import 'package:coldigui/features/gestures/presentation/widgets/instruction_card_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/newer_schema_banner.dart';
+import 'package:coldigui/features/gestures/presentation/widgets/section_label_view.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +36,8 @@ import '../../../helpers/gesture_test_png.dart';
 const _r2Key = 'assets/praises/p1/m1.gestures';
 
 String _read(String name) => File('test/fixtures/gestures/$name').readAsStringSync();
+
+GestureDocument _fixture(String name) => parseGestureDocument(_read(name));
 
 /// O prefetch da tela não pode ir à rede no teste.
 class _NoopFigureRepository implements GestureFigureRepository {
@@ -58,15 +66,16 @@ Future<SharedPreferences> _pump(
   WidgetTester tester, {
   required Future<GestureDocument?> Function() document,
   Map<String, String>? queryParams,
+  Map<String, Object> prefs = const {},
 }) async {
-  SharedPreferences.setMockInitialValues(const {});
-  final prefs = await SharedPreferences.getInstance();
+  SharedPreferences.setMockInitialValues(prefs);
+  final prefs0 = await SharedPreferences.getInstance();
   final dict = parseGestureDictionary(_read('dictionary.json'));
 
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        sharedPreferencesProvider.overrideWithValue(prefs0),
         gestureDocumentProvider.overrideWith((ref, key) => document()),
         gestureDictionaryProvider.overrideWith((ref) async => dict),
         gestureFigureProvider.overrideWith((ref, k) async => gestureTestPng()),
@@ -84,7 +93,7 @@ Future<SharedPreferences> _pump(
   );
   await tester.pump();
   await tester.pump();
-  return prefs;
+  return prefs0;
 }
 
 ProviderContainer _containerOf(WidgetTester tester) =>
@@ -296,5 +305,75 @@ void main() {
     final cardRect = tester.getRect(find.byKey(gestureCardKey(12)));
     final viewportHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(cardRect.top, inInclusiveRange(0.0, viewportHeight));
+  });
+
+  testWidgets('tema: começa claro; o botão troca o papel e persiste', (tester) async {
+    final prefs = await _pump(tester, document: () async => _fixture('182_quero_viver.json'));
+    final container = _containerOf(tester);
+    Color paper() => tester.widget<ColoredBox>(
+      find.descendant(of: find.byType(GestureDocumentView), matching: find.byType(ColoredBox)).first,
+    ).color;
+
+    expect(paper(), GestureReaderMode.light.palette.paper);
+    await tester.tap(find.byKey(gestureReaderThemeKey));
+    await tester.pump();
+    expect(container.read(gestureReaderModeProvider), GestureReaderMode.dark);
+    expect(paper(), GestureReaderMode.dark.palette.paper);
+    expect(prefs.getString(StorageKeys.gestureReaderMode), 'dark');
+  });
+
+  testWidgets('linear por padrão: 182 mostra o coro 3 vezes e nenhuma instrução', (tester) async {
+    await _pump(tester, document: () async => _fixture('182_quero_viver.json'));
+    expect(find.byType(SectionLabelView), findsNWidgets(3));
+    expect(find.byType(InstructionCardView), findsNothing);
+    expect(find.byType(GestureCardTile), findsNWidgets(24));
+  });
+
+  testWidgets('estruturado: botão desliga o linear, some o rótulo e volta a instrução', (tester) async {
+    final prefs = await _pump(tester, document: () async => _fixture('182_quero_viver.json'));
+    await tester.tap(find.byKey(gestureReaderLinearKey));
+    await tester.pumpAndSettle();
+    expect(_containerOf(tester).read(gestureReaderLinearProvider), isFalse);
+    expect(prefs.getBool(StorageKeys.gestureReaderLinear), isFalse);
+    expect(find.byType(SectionLabelView), findsNothing);
+    expect(find.byType(InstructionCardView), findsNWidgets(2));
+    expect(find.byType(GestureCardTile), findsNWidgets(14));
+  });
+
+  testWidgets('foco em linear abre no cartão expandido (índice 20 existe)', (tester) async {
+    await _pump(tester, document: () async => _fixture('182_quero_viver.json'));
+    await tester.scrollUntilVisible(find.byKey(gestureCardKey(20)), 200);
+    await tester.tap(find.byKey(gestureCardKey(20)));
+    await tester.pumpAndSettle();
+    expect(find.byKey(gestureFocusPageKey(20)), findsOneWidget);
+    await tester.tap(find.byKey(gestureFocusCloseKey));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('barra: play alterna o provider; velocidade cicla 3→4→5→1 e persiste', (tester) async {
+    final prefs = await _pump(tester, document: () async => _fixture('182_quero_viver.json'));
+    final container = _containerOf(tester);
+    expect(find.byTooltip('Iniciar rolagem automática'), findsOneWidget);
+    await tester.tap(find.byKey(gestureReaderAutoscrollKey));
+    await tester.pump();
+    expect(container.read(gestureAutoscrollProvider).running, isTrue);
+    expect(find.byTooltip('Pausar rolagem automática'), findsOneWidget);
+    await tester.tap(find.byKey(gestureReaderAutoscrollKey));
+    await tester.pump();
+    expect(container.read(gestureAutoscrollProvider).running, isFalse);
+
+    expect(find.text('3x'), findsOneWidget);
+    await tester.tap(find.byKey(gestureReaderSpeedKey));
+    await tester.pump();
+    expect(find.text('4x'), findsOneWidget);
+    // Um `pump` entre os dois toques: o botão fecha sobre o campo `autoscroll`
+    // do build anterior, então sem rebuild os dois toques leriam a mesma
+    // velocidade — como no `_ChordReaderToolbar` que este widget espelha.
+    await tester.tap(find.byKey(gestureReaderSpeedKey));
+    await tester.pump();
+    await tester.tap(find.byKey(gestureReaderSpeedKey));
+    await tester.pump();
+    expect(find.text('1x'), findsOneWidget);
+    expect(prefs.getInt(StorageKeys.gestureAutoscrollSpeed), 1);
   });
 }

@@ -1499,6 +1499,42 @@ abstract class AppLocalizations {
   /// **'{n}ª vez'**
   String gestureSectionPass(int n);
 
+  /// No description provided for @gesturesReaderToggleTheme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar tema do leitor'**
+  String get gesturesReaderToggleTheme;
+
+  /// No description provided for @gesturesReaderLinear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mudar para leitura linear'**
+  String get gesturesReaderLinear;
+
+  /// No description provided for @gesturesReaderStructured.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mudar para leitura estruturada'**
+  String get gesturesReaderStructured;
+
+  /// No description provided for @gesturesAutoscrollPlay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciar rolagem automática'**
+  String get gesturesAutoscrollPlay;
+
+  /// No description provided for @gesturesAutoscrollPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar rolagem automática'**
+  String get gesturesAutoscrollPause;
+
+  /// No description provided for @gesturesAutoscrollSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da rolagem: {speed}'**
+  String gesturesAutoscrollSpeed(int speed);
+
   /// No description provided for @chordAutoscrollPlay.
   ///
   /// In pt, this message translates to:

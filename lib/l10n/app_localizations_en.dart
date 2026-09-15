@@ -863,6 +863,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get gesturesReaderToggleTheme => 'Toggle reader theme';
+
+  @override
+  String get gesturesReaderLinear => 'Switch to linear reading';
+
+  @override
+  String get gesturesReaderStructured => 'Switch to structured reading';
+
+  @override
+  String get gesturesAutoscrollPlay => 'Start autoscroll';
+
+  @override
+  String get gesturesAutoscrollPause => 'Pause autoscroll';
+
+  @override
+  String gesturesAutoscrollSpeed(int speed) {
+    return 'Scroll speed: $speed';
+  }
+
+  @override
   String get chordAutoscrollPlay => 'Start autoscroll';
 
   @override

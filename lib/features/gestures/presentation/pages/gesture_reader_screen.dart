@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -15,11 +14,16 @@ import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.da
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/gesture_providers.dart';
 import '../../domain/entities/flat_gesture_card.dart';
+import '../../domain/entities/gesture_autoscroll_speed.dart';
 import '../../domain/entities/gesture_dictionary.dart';
 import '../../domain/entities/gesture_document.dart';
 import '../../domain/entities/gesture_reader_font_size.dart';
+import '../../domain/usecases/linearize_gesture_document.dart';
 import '../../domain/utils/flatten_gesture_cards.dart';
+import '../providers/gesture_autoscroll_provider.dart';
 import '../providers/gesture_reader_font_size_provider.dart';
+import '../providers/gesture_reader_linear_provider.dart';
+import '../providers/gesture_reader_mode_provider.dart';
 import '../theme/gesture_reader_palette.dart';
 import '../theme/gesture_reader_theme.dart';
 import '../widgets/gesture_document_view.dart';
@@ -27,13 +31,21 @@ import '../widgets/gesture_focus_view.dart';
 import '../widgets/newer_schema_banner.dart';
 
 const Key gestureReaderRetryKey = ValueKey('gesture-reader-retry');
+const Key gestureReaderThemeKey = ValueKey('gesture-reader-theme');
+const Key gestureReaderLinearKey = ValueKey('gesture-reader-linear');
+const Key gestureReaderAutoscrollKey = ValueKey('gesture-reader-autoscroll');
+const Key gestureReaderSpeedKey = ValueKey('gesture-reader-speed');
+
+const _toolbarGroupGap = 8.0;
+const _speedLabelWidth = 34.0;
 
 /// Leitor de gestos CIAs — rota `/gestos`, filha do [ShellScaffold].
 ///
 /// Espelho de `ChordReaderScreen`: barras 1–2 vêm do shell; aqui ficam a barra
-/// 3 (`A-`/`A+`, tela cheia) e o papel. Recebe [UrlSyncParams.pdfId] (id do
-/// material, mesmo espaço do PDF), `titulo` e `subtitulo`; publica os params
-/// em [readerRouteParamsProvider] para o [CarouselChips] sincronizar o chip.
+/// 3 (`A-`/`A+`, autoscroll, linear/estruturado, tema e tela cheia) e o papel.
+/// Recebe [UrlSyncParams.pdfId] (id do material, mesmo espaço do PDF),
+/// `titulo` e `subtitulo`; publica os params em [readerRouteParamsProvider]
+/// para o [CarouselChips] sincronizar o chip.
 class GestureReaderScreen extends ConsumerStatefulWidget {
   const GestureReaderScreen({required this.queryParams, super.key});
 
@@ -178,13 +190,15 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final mode = ref.watch(gestureReaderModeProvider);
+    final palette = mode.palette;
+    final linear = ref.watch(gestureReaderLinearProvider);
+    final autoscroll = ref.watch(gestureAutoscrollProvider);
     final fontSize = ref.watch(gestureReaderFontSizeProvider);
     final docAsync = ref.watch(gestureDocumentProvider(_r2Key));
     final dictionary =
         ref.watch(gestureDictionaryProvider).asData?.value ??
         GestureDictionary.empty;
-    // A Task 7 troca por um provider de tema; por ora, sempre claro.
-    final palette = GestureReaderMode.light.palette;
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -199,18 +213,27 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
         child: Material(
           type: MaterialType.transparency,
           child: ColoredBox(
-            color: AppColors.background,
+            color: palette.paper,
             child: SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _GestureReaderToolbar(fontSize: fontSize, l10n: l10n),
+                  _GestureReaderToolbar(
+                    mode: mode,
+                    palette: palette,
+                    fontSize: fontSize,
+                    linear: linear,
+                    autoscroll: autoscroll,
+                    l10n: l10n,
+                  ),
                   Expanded(
                     child: docAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
+                      loading: () => Center(
+                        child: CircularProgressIndicator(color: palette.toolbarIcon),
+                      ),
                       error: (_, _) => _Message(
                         message: l10n.gesturesReaderUnavailable,
+                        color: palette.sectionLabel,
                         onTap: () {
                           ref.invalidate(gestureDocumentProvider(_r2Key));
                           // Um dicionário sem sinal na primeira abertura
@@ -221,12 +244,18 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                       ),
                       data: (document) {
                         if (document == null) {
-                          return _Message(message: l10n.gesturesReaderEmpty);
+                          return _Message(
+                            message: l10n.gesturesReaderEmpty,
+                            color: palette.sectionLabel,
+                          );
                         }
                         if (dictionary.byId.isNotEmpty) {
                           _maybePrefetch(document, dictionary);
                         }
-                        final flat = flattenGestureCards(document);
+                        // Leitura linear: expande antes da página, do flatten
+                        // e do foco, para os três falarem do mesmo índice.
+                        final shown = linear ? linearizeGestureDocument(document) : document;
+                        final flat = flattenGestureCards(shown);
                         return Column(
                           children: [
                             if (document.isNewerSchema)
@@ -234,7 +263,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                             Expanded(
                               child: GestureDocumentView(
                                 key: _documentViewKey,
-                                document: document,
+                                document: shown,
                                 dictionary: dictionary,
                                 fontSize: fontSize,
                                 palette: palette,
@@ -265,9 +294,15 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
 }
 
 class _Message extends StatelessWidget {
-  const _Message({required this.message, this.onTap, super.key});
+  const _Message({
+    required this.message,
+    required this.color,
+    this.onTap,
+    super.key,
+  });
 
   final String message;
+  final Color color;
   final VoidCallback? onTap;
 
   @override
@@ -280,7 +315,7 @@ class _Message extends StatelessWidget {
           child: Text(
             message,
             textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(color: AppColors.textLight),
+            style: AppTypography.body.copyWith(color: color),
           ),
         ),
       ),
@@ -296,19 +331,34 @@ ButtonStyle _toolbarButtonStyle(Color color) => IconButton.styleFrom(
   minimumSize: const Size(44, 44),
 );
 
-/// Barra 3: corpo da letra e tela cheia.
+/// Barra 3: corpo da letra, autoscroll, linear/estruturado, tema, tela cheia.
+///
+/// Espelho de `_ChordReaderToolbar`: ícones na cor da paleta e um traço entre
+/// grupos — sem ele os botões se leem como uma fileira de controles iguais.
 class _GestureReaderToolbar extends ConsumerWidget {
-  const _GestureReaderToolbar({required this.fontSize, required this.l10n});
+  const _GestureReaderToolbar({
+    required this.mode,
+    required this.palette,
+    required this.fontSize,
+    required this.linear,
+    required this.autoscroll,
+    required this.l10n,
+  });
 
+  final GestureReaderMode mode;
+  final GestureReaderPalette palette;
   final double fontSize;
+  final bool linear;
+  final GestureAutoscrollState autoscroll;
   final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = ref.read(gestureReaderFontSizeProvider.notifier);
-    final style = _toolbarButtonStyle(AppColors.gold);
+    final autoscrollNotifier = ref.read(gestureAutoscrollProvider.notifier);
+    final style = _toolbarButtonStyle(palette.toolbarIcon);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -316,17 +366,62 @@ class _GestureReaderToolbar extends ConsumerWidget {
             style: style,
             tooltip: l10n.gesturesReaderDecreaseFont,
             icon: const Icon(Icons.text_decrease),
-            onPressed: GestureReaderFontSize.canDecrease(fontSize)
-                ? size.decrease
-                : null,
+            onPressed: GestureReaderFontSize.canDecrease(fontSize) ? size.decrease : null,
           ),
           IconButton(
             style: style,
             tooltip: l10n.gesturesReaderIncreaseFont,
             icon: const Icon(Icons.text_increase),
-            onPressed: GestureReaderFontSize.canIncrease(fontSize)
-                ? size.increase
-                : null,
+            onPressed: GestureReaderFontSize.canIncrease(fontSize) ? size.increase : null,
+          ),
+          _ToolbarSeparator(color: palette.divider),
+          IconButton(
+            key: gestureReaderAutoscrollKey,
+            style: style,
+            tooltip: autoscroll.running ? l10n.gesturesAutoscrollPause : l10n.gesturesAutoscrollPlay,
+            icon: Icon(autoscroll.running ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            onPressed: autoscrollNotifier.toggle,
+          ),
+          SizedBox(
+            width: _speedLabelWidth,
+            // TextButton, não InkWell: traz o próprio Material.
+            child: TextButton(
+              key: gestureReaderSpeedKey,
+              onPressed: () => autoscrollNotifier.setSpeed(
+                autoscroll.speed >= GestureAutoscrollSpeed.max
+                    ? GestureAutoscrollSpeed.min
+                    : autoscroll.speed + 1,
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: palette.toolbarIcon,
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(_speedLabelWidth, 40),
+                textStyle: AppTypography.label.copyWith(fontWeight: FontWeight.w700),
+              ),
+              child: Tooltip(
+                message: l10n.gesturesAutoscrollSpeed(autoscroll.speed),
+                child: Text('${autoscroll.speed}x'),
+              ),
+            ),
+          ),
+          _ToolbarSeparator(color: palette.divider),
+          IconButton(
+            key: gestureReaderLinearKey,
+            style: style,
+            // O ícone mostra o estado atual; o tooltip, a ação.
+            tooltip: linear ? l10n.gesturesReaderStructured : l10n.gesturesReaderLinear,
+            icon: Icon(linear ? Icons.view_agenda_outlined : Icons.account_tree_outlined),
+            onPressed: () => ref.read(gestureReaderLinearProvider.notifier).toggle(),
+          ),
+          _ToolbarSeparator(color: palette.divider),
+          IconButton(
+            key: gestureReaderThemeKey,
+            style: style,
+            tooltip: l10n.gesturesReaderToggleTheme,
+            icon: Icon(mode == GestureReaderMode.light ? Icons.dark_mode : Icons.light_mode),
+            onPressed: () => ref.read(gestureReaderModeProvider.notifier).toggle(),
           ),
           IconButton(
             style: style,
@@ -336,6 +431,23 @@ class _GestureReaderToolbar extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Traço entre grupos de controles.
+class _ToolbarSeparator extends StatelessWidget {
+  const _ToolbarSeparator({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 18,
+      margin: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap / 2),
+      color: color,
     );
   }
 }
