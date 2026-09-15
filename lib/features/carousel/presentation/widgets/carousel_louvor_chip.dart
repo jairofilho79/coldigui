@@ -95,6 +95,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.materialKindsGroup,
     this.onMaterialKindTap,
     this.highlightQuery,
+    this.lyricsSnippet,
     this.showDragHandle = false,
     this.onTap,
     this.onLongPress,
@@ -135,6 +136,11 @@ class CarouselLouvorChip extends StatelessWidget {
   /// Termo buscado (Home) a destacar no título — cor ouro do tema (C5). Sem
   /// termo ou sem match, o título renderiza normal.
   final String? highlightQuery;
+
+  /// Trecho de uma linha da letra ao redor do match da busca (C5.1) — vem de
+  /// `LouvorGroup.coldigomMeta?.lyricsExcerpt`. `null`/vazio não desenha
+  /// linha nenhuma; o card fica igual ao de hoje.
+  final String? lyricsSnippet;
 
   /// Exibe ícone de drag à esquerda — usado no [ReorderableListView] do modal.
   final bool showDragHandle;
@@ -267,6 +273,21 @@ class CarouselLouvorChip extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if ((lyricsSnippet ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        HighlightedText(
+                          text: lyricsSnippet!,
+                          query: highlightQuery ?? '',
+                          style: AppTypography.body.copyWith(
+                            fontStyle: FontStyle.italic,
+                            fontSize: width < _compactWidth ? 11 : 12.5,
+                            height: 1.2,
+                            color: AppColors.textLight.withValues(alpha: 0.64),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                       const SizedBox(height: 2),
                       Row(
                         children: [

@@ -225,4 +225,30 @@ void main() {
     expect(meta.tagNames, ['PES', 'Coletânea']);
     expect(meta.hasAnyField, isTrue);
   });
+
+  test('toMetadata propaga lyricsExcerpt', () {
+    final detail = PraiseDetailDto.fromJson({
+      'id': 'p1',
+      'name': 'Hino',
+      'number': '001',
+      'rhythm': 'Fox',
+      'lyrics_excerpt': '…e a chuva de bênçãos cai sobre nós…',
+      'materials': const [],
+    });
+
+    final meta = ColdigomLouvorAdapter.toMetadata(detail);
+    expect(meta.lyricsExcerpt, '…e a chuva de bênçãos cai sobre nós…');
+  });
+
+  test('toMetadata sem lyrics_excerpt no JSON devolve null', () {
+    final detail = PraiseDetailDto.fromJson({
+      'id': 'p1',
+      'name': 'Hino',
+      'number': '001',
+      'rhythm': 'Fox',
+      'materials': const [],
+    });
+
+    expect(ColdigomLouvorAdapter.toMetadata(detail).lyricsExcerpt, isNull);
+  });
 }

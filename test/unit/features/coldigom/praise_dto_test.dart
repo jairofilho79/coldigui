@@ -62,5 +62,26 @@ void main() {
 
       expect(detail.materials, isEmpty);
     });
+
+    test('lê lyrics_excerpt quando presente e tolera ausência', () {
+      final comTrecho = PraiseDetailDto.fromJson({
+        'id': 'p1',
+        'name': 'Hino',
+        'number': '001',
+        'rhythm': 'Fox',
+        'lyrics_excerpt': '…e a chuva de bênçãos cai sobre nós…',
+        'materials': const [],
+      });
+      expect(comTrecho.lyricsExcerpt, '…e a chuva de bênçãos cai sobre nós…');
+
+      final semTrecho = PraiseDetailDto.fromJson({
+        'id': 'p2',
+        'name': 'Hino',
+        'number': '002',
+        'rhythm': 'Fox',
+        'materials': const [],
+      });
+      expect(semTrecho.lyricsExcerpt, isNull);
+    });
   });
 }
