@@ -101,6 +101,7 @@ class PraiseDetailDto {
     this.category = '',
     this.author = '',
     this.tagNames = const [],
+    this.lyricsExcerpt,
   });
 
   final String id;
@@ -113,6 +114,10 @@ class PraiseDetailDto {
   final List<String> tagNames;
   final List<MaterialDto> materials;
 
+  /// Trecho de uma linha da letra ao redor do match da busca — só quando a
+  /// busca bateu na letra; `null` no browse comum ou match só no título.
+  final String? lyricsExcerpt;
+
   factory PraiseDetailDto.fromJson(Map<String, dynamic> json) {
     final materialsJson = json['materials'] as List<dynamic>? ?? const [];
     return PraiseDetailDto(
@@ -124,6 +129,7 @@ class PraiseDetailDto {
       category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
       tagNames: splitColdigomCsv(json['tag_names']),
+      lyricsExcerpt: json['lyrics_excerpt'] as String?,
       materials: _parseMaterials(materialsJson),
     );
   }
