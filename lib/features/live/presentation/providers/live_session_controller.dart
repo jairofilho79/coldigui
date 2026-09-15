@@ -12,6 +12,7 @@ import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../playlists/presentation/providers/active_playlist_provider.dart';
 import '../../data/providers/live_providers.dart';
 import '../../domain/entities/live_snapshot.dart';
+import '../../domain/live_material_projection.dart';
 import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
 import '../../domain/protocol/live_frames.dart';
@@ -68,7 +69,17 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   Timer? _probeTimer;
   bool _paused = false;
   Future<void>? _connecting;
+
+  /// Foco do gestor traduzido para a chave **da projeção** (por louvor,
+  /// [liveConsumerKeyForLeaderKey]) — é com ela que o foco local do
+  /// consumidor se compara.
   String? _leaderFocusKey;
+
+  /// Id do material para o qual o consumidor foi levado pela última vez no
+  /// louvor focado (ou que ele escolheu no sheet). Se a projeção do louvor
+  /// focado passar a apontar para outro material, é o gestor que trocou o
+  /// dele e o consumidor não tem escolha própria — aí acompanha a troca.
+  String? _appliedFocusMaterialId;
   bool _applyingFocus = false;
   Timer? _setDebounce;
 
@@ -105,6 +116,12 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       (_, key) => _onLocalFocusChanged(key),
     );
     ref.listen(activeEntriesProvider, (_, _) => _onLocalListChanged());
+    ref.listen(liveMaterialOverridesProvider, (_, next) {
+      // O sheet «Material» do consumidor troca por chave e navega sozinho:
+      // o que está aberto no louvor focado passa a ser a escolha dele.
+      final chosen = _leaderFocusKey == null ? null : next[_leaderFocusKey];
+      if (chosen != null) _appliedFocusMaterialId = chosen.id;
+    });
     listenSelf(
       (_, next) => ref.read(liveLeadingProvider.notifier).set(next.isLeading),
     );
@@ -553,13 +570,35 @@ class LiveSessionController extends Notifier<LiveSessionState> {
           ),
         );
     unawaited(_warmupSnapshot(snapshot));
-    final focus = snapshot.focusKey;
+    final leaderFocus = snapshot.focusKey;
+    final focus = leaderFocus == null
+        ? null
+        : liveConsumerKeyForLeaderKey(snapshot.entries, leaderFocus);
     if (focus != _leaderFocusKey) {
       _leaderFocusKey = focus;
+      _appliedFocusMaterialId = null;
       if (state.followingFocus && focus != null) {
         unawaited(_applyLeaderFocus(focus));
       }
+      return;
     }
+    // Mesmo louvor: se o material projetado nele mudou e não foi o
+    // consumidor que escolheu (`_appliedFocusMaterialId` é o que ele vê),
+    // foi o gestor que trocou o dele — quem não tem material próprio vai
+    // junto; quem tem (favorito/sheet) fica onde está.
+    if (focus != null &&
+        state.followingFocus &&
+        _appliedFocusMaterialId != null &&
+        _projectedMaterialIdFor(focus) != _appliedFocusMaterialId) {
+      unawaited(_applyLeaderFocus(focus));
+    }
+  }
+
+  String? _projectedMaterialIdFor(String key) {
+    for (final entry in ref.read(activeEntriesProvider)) {
+      if (entry.key == key) return entry.id;
+    }
+    return null;
   }
 
   /// Praises Coldigom que a lista do gestor ainda não pediu para aquecer.
@@ -580,6 +619,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
 
   void _clearProjection() {
     _leaderFocusKey = null;
+    _appliedFocusMaterialId = null;
     _warmedPraiseIds = const {};
     if (ref.read(liveProjectionProvider) != null) {
       // O que o consumidor **viu** (materiais dele) — é isso que «Guardar
@@ -623,7 +663,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
         index = items.indexWhere((item) => item.key == key);
         if (index < 0) return;
       }
+      final materialId = items[index].materialId;
       if (items[index].isAudio) {
+        _appliedFocusMaterialId = materialId;
         ref.read(carouselFocusedIndexProvider.notifier).focusKey(key);
         return;
       }
@@ -636,6 +678,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
           _leaderFocusKey != key) {
         return;
       }
+      _appliedFocusMaterialId = materialId;
       ref.read(liveNavigatorProvider)(location);
     } on Object catch (e, stack) {
       _log.error('não foi possível seguir o foco $key', e, stack);
