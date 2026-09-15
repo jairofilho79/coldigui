@@ -41,6 +41,14 @@ class GestureFigure extends ConsumerWidget {
     final key = preferGif ? (entry.gif ?? entry.image) : entry.image;
     final bytes = ref.watch(gestureFigureProvider(key));
 
+    // Erro ou download concluído sem bytes: placeholder **fora** do quadro —
+    // ele tem a própria borda tracejada e não deve encolher para caber no
+    // padding do quadro branco (que é só para a imagem de verdade).
+    final data = bytes.asData?.value;
+    if (bytes.hasError || (bytes.hasValue && data == null)) {
+      return _Placeholder(gestureId: gestureId, side: side, palette: palette);
+    }
+
     return SizedBox(
       width: side,
       height: side,
@@ -55,24 +63,20 @@ class GestureFigure extends ConsumerWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: palette.figureBorder),
         ),
-        child: bytes.when(
-          loading: () => const Center(
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-          error: (_, _) => _Placeholder(gestureId: gestureId, side: side, palette: palette),
-          data: (data) => data == null
-              ? _Placeholder(gestureId: gestureId, side: side, palette: palette)
-              : Image.memory(
-                  data,
-                  fit: BoxFit.contain,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.medium,
+        child: data == null
+            ? const Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-        ),
+              )
+            : Image.memory(
+                data,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.medium,
+              ),
       ),
     );
   }
@@ -98,29 +102,23 @@ class _Placeholder extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: palette.placeholderBorder, width: 1.5),
       ),
-      // `FittedBox`: dentro do quadro da figura o placeholder ganha menos
-      // espaço que `side` (o padding do quadro consome parte); encolhe em vez
-      // de estourar.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
-            const SizedBox(height: 4),
-            Text(
-              l10n?.gestureNotFound ?? 'gesto não encontrado',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-            ),
-            Text(
-              gestureId,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
+          const SizedBox(height: 4),
+          Text(
+            l10n?.gestureNotFound ?? 'gesto não encontrado',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
+          ),
+          Text(
+            gestureId,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
+          ),
+        ],
       ),
     );
   }

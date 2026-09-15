@@ -76,6 +76,12 @@ void main() {
     expect(find.byKey(gesturePlaceholderKey('c687580e7682')), findsOneWidget);
   });
 
+  testWidgets('download falhou (null) → placeholder fica fora do quadro branco', (tester) async {
+    await _pump(tester, entry: _entry, figure: (_) async => null);
+    expect(find.byKey(gesturePlaceholderKey('c687580e7682')), findsOneWidget);
+    expect(find.byKey(gestureFigureFrameKey), findsNothing);
+  });
+
   testWidgets('preferGif pede o GIF quando existe', (tester) async {
     final asked = <String>[];
     await _pump(tester, entry: _entry, figure: (k) async { asked.add(k); return [1]; }, preferGif: true);
