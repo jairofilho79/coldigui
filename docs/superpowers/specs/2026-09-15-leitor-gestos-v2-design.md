@@ -85,7 +85,7 @@ mãos — e, com as mãos ocupadas, ela também não consegue rolar a tela.
 | `sectionLabel` | rótulo discreto (linear) e `text` livre | `#8A7F70` | `#9E9E9E` |
 | `placeholderBg` / `placeholderBorder` | gesto ausente | `#FFF7E6` / `#E0B45C` | `#3D3420` / `#B8933E` |
 | `figureBg` / `figureBorder` | quadro da figura | branco / `0x1A000000` | branco / `0x33FFFFFF` |
-| `toolbarIcon` | ícones da barra 3 | `AppColors.gold` | `AppColors.goldLight` |
+| `toolbarIcon` | ícones da barra 3 | `AppColors.title` (vinho — ouro sobre creme não tem contraste; é o que a cifra faz) | `AppColors.goldLight` |
 | `divider` | separador da barra e rodapé do foco | `0x666A2F2F` | `0x66FFFFFF` |
 
 `BracePainter`, `LinkConnectorPainter`, `FinalSectionView`,
@@ -209,7 +209,9 @@ blocos não existem mais); `FINAL` e `ligação` continuam.
 **persistido** (`StorageKeys.gestureAutoscrollSpeed`); `running` some com o
 `autoDispose`. `toggle()`, `setSpeed()`, `stop()` como na cifra.
 
-`kGestureAutoscrollPxPerSecondPerSpeed = 10` → 10–50 px/s (cifra: 12–60).
+`GestureAutoscrollSpeed { min 1, max 5, initial 3, pxPerSecondPerLevel 10 }`
+(entidade de domínio, forma de `GestureReaderFontSize`) → 10–50 px/s
+(cifra: 12–60).
 
 ### 6.2 Motor
 
@@ -217,16 +219,20 @@ No `State` de `GestureReaderScreen` (`SingleTickerProviderStateMixin`),
 cópia de `_ensureAutoscrollTicker`/`_onAutoscrollTick`/`_stopAutoscroll` da
 cifra, mais:
 
-- `_userScrolling` (bool) e `_resumeTimer` (`Timer?`).
+- `_pausedByUser` (bool) e `_resumeTimer` (`Timer?`). O `Ticker` **não** para
+  durante a pausa: só deixa de mover a página.
 - `NotificationListener<ScrollNotification>` em volta da view:
-  - `UserScrollNotification` com `direction != idle` → `_userScrolling = true`,
-    `_resumeTimer?.cancel()`, `_ticker.stop()`.
-  - `ScrollEndNotification` (ou `UserScrollNotification` com `idle`) enquanto
-    `_userScrolling` → `_userScrolling = false`, `_resumeTimer = Timer(1 s, …)`.
-  - No timer: se `mounted && running` → `_ensureAutoscrollTicker()`; o tick
-    seguinte parte de `position.pixels` (o motor nunca guarda alvo, então a
-    "nova posição" é automática).
-- `_onAutoscrollTick` retorna sem rolar enquanto `_userScrolling`.
+  - `UserScrollNotification` com `direction != idle` → `_pausedByUser = true`,
+    `_resumeTimer?.cancel()`.
+  - `ScrollEndNotification` enquanto `_pausedByUser` e sem timer armado →
+    `_resumeTimer = Timer(1 s, () => _pausedByUser = false)`. (O `jumpTo` do
+    motor também emite `ScrollEnd`, mas com `_pausedByUser == false` é
+    ignorado; a roda do mouse emite `UserScroll` + `ScrollEnd`, então cada
+    notch pausa e rearma.)
+  - Quando o timer dispara, o tick seguinte parte de `position.pixels` (o
+    motor nunca guarda alvo, então a "nova posição" é automática).
+- `_onAutoscrollTick` atualiza o relógio e retorna sem rolar enquanto
+  `_pausedByUser`.
 - Chegou em `maxScrollExtent` → `stop()` (botão volta a ▶).
 - `didUpdateWidget` com outro `pdfId` → `_stopAutoscroll()` + cancela timer.
 - `dispose` cancela timer e ticker.
