@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../audio_player/domain/entities/audio_track.dart';
+import '../../catalog/domain/entities/catalog_material.dart';
 import '../../catalog/domain/entities/louvor.dart';
 import '../../catalog/domain/entities/youtube_material.dart';
 import '../../chords/domain/entities/chord_material.dart';
@@ -69,6 +70,34 @@ class ColdigomCacheWriter {
       youtubeMaterials: ColdigomLouvorAdapter.toYoutubeMaterials(detail),
       metaByGroupId: {praiseId: ColdigomLouvorAdapter.toMetadata(detail)},
     );
+  }
+
+  /// Funde só letras — a hidratação e a adoção dos «novos» da pesquisa.
+  void mergeLyrics(Iterable<LyricsMaterial> lyrics) {
+    _ref.read(coldigomLyricsCacheProvider.notifier).mergeLyrics(lyrics);
+  }
+
+  /// Funde o catálogo inteiro hidratado do Isar (O4) — **uma** escrita por
+  /// cache. 1690 `mergePraiseDetail` copiariam o mapa de 20 k entradas 1690
+  /// vezes; aqui cada notifier copia uma vez.
+  void mergeCatalog({
+    required List<Louvor> louvores,
+    required List<AudioTrack> audioTracks,
+    required List<ChordMaterial> chordMaterials,
+    required List<GestureMaterial> gestureMaterials,
+    required List<YoutubeMaterial> youtubeMaterials,
+    required List<LyricsMaterial> lyrics,
+    required Map<String, ColdigomPraiseMetadata> metaByGroupId,
+  }) {
+    _merge(
+      louvores: louvores,
+      audioTracks: audioTracks,
+      chordMaterials: chordMaterials,
+      gestureMaterials: gestureMaterials,
+      youtubeMaterials: youtubeMaterials,
+      metaByGroupId: metaByGroupId,
+    );
+    mergeLyrics(lyrics);
   }
 
   void _merge({

@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../presentation/providers/coldigom_catalog_providers.dart';
 import '../sources/coldigom_catalog_source.dart';
 import 'coldigom_providers.dart';
 
-/// Fonte Coldigom sobre os cinco caches em memória.
+/// Fonte Coldigom sobre os sete caches em memória.
 ///
 /// Recompõe a cada merge — é o preço de ler cache como valor —, mas o custo
 /// fica contido aqui: a fonte PLPCG (e seu índice) vive em
@@ -16,6 +17,8 @@ final coldigomCatalogSourceProvider = Provider<ColdigomCatalogSource>((ref) {
     gestures: ref.watch(coldigomGestureMaterialsCacheProvider),
     praiseMeta: ref.watch(coldigomPraiseMetaCacheProvider),
     youtube: ref.watch(coldigomYoutubeCacheProvider),
+    lyrics: ref.watch(coldigomLyricsCacheProvider),
     searchRepository: ref.watch(coldigomSearchRepositoryProvider),
+    index: ref.watch(coldigomSearchIndexProvider),
   );
 });

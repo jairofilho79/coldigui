@@ -1,10 +1,11 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
+import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/offline_availability_badge.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/material_availability_map_provider.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -68,8 +69,9 @@ void main() {
 
   Future<_MapNotifier> pumpCard(
     WidgetTester tester,
-    Map<String, PdfOfflineAvailability> initial,
-  ) async {
+    Map<String, PdfOfflineAvailability> initial, {
+    LouvorGroup? group,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final notifier = _MapNotifier(initial);
     await tester.pumpWidget(
@@ -77,7 +79,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           _mapProvider.overrideWith(() => notifier),
-          offlineAvailabilityMapProvider.overrideWith(
+          materialAvailabilityMapProvider.overrideWith(
             (ref) => ref.watch(_mapProvider),
           ),
         ],
@@ -85,7 +87,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('pt'),
-          home: Scaffold(body: LouvorGroupCard(group: pdfOnlyGroup())),
+          home: Scaffold(body: LouvorGroupCard(group: group ?? pdfOnlyGroup())),
         ),
       ),
     );
@@ -124,5 +126,33 @@ void main() {
 
     expect(badgeOf(tester), PdfOfflineAvailability.cachedLru);
     expect(find.byIcon(Icons.cloud_done), findsOneWidget);
+  });
+
+  testWidgets('grupo com áudio baixado (sem PDF baixado) mostra a badge', (
+    tester,
+  ) async {
+    final group = LouvorGroup(
+      groupId: '001:aleluia',
+      numero: '001',
+      nome: 'Aleluia',
+      sections: pdfOnlyGroup().sections,
+      audioTracks: const [
+        AudioTrack(
+          audioId: 'aud-1',
+          r2Key: 'assets/praises/p/a.mp3',
+          nome: 'Aleluia',
+          numero: '001',
+          groupId: '001:aleluia',
+          categoria: 'Áudio',
+          classificacao: 'Coro',
+        ),
+      ],
+    );
+
+    await pumpCard(tester, {
+      'aud-1': PdfOfflineAvailability.persistentOffline,
+    }, group: group);
+
+    expect(badgeOf(tester), PdfOfflineAvailability.persistentOffline);
   });
 }

@@ -12,20 +12,19 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-LouvorGroup _group(String id) =>
-    LouvorGroup(groupId: id, numero: '001', nome: id, sections: const []);
-
 HomeSearchState _state({
   String query = 'agua',
-  int page = 1,
   List<LouvorGroup> localGroups = const [],
+  List<LouvorGroup> newGroups = const [],
+  bool offline = false,
   required AsyncValue<CatalogSearchPage> remote,
 }) {
   return HomeSearchState(
     query: query,
-    page: page,
     localGroups: localGroups,
     remote: remote,
+    newGroups: newGroups,
+    offline: offline,
   );
 }
 
@@ -95,132 +94,4 @@ void main() {
       expect(find.text('Nenhum louvor para «zzz»'), findsOneWidget);
     },
   );
-
-  testWidgets(
-    'remoto falho e sem grupos ainda mostra "Coldigom indisponível" (C.8 preservado)',
-    (tester) async {
-      await tester.pumpWidget(
-        _sliverTestApp([
-          homeSearchStateProvider.overrideWithValue(
-            _state(
-              query: 'zzz',
-              remote: AsyncError(Exception('boom'), StackTrace.empty),
-            ),
-          ),
-        ]),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Nenhum louvor para «zzz»'), findsOneWidget);
-      expect(
-        find.text('Coldigom indisponível · tentar de novo'),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets('remoto em erro mostra a linha "Coldigom indisponível"', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _sliverTestApp([
-        homeSearchStateProvider.overrideWithValue(
-          _state(remote: AsyncError(Exception('boom'), StackTrace.empty)),
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Coldigom indisponível · tentar de novo'), findsOneWidget);
-    // Sem paginador enquanto a página remota está em erro.
-    expect(find.text('Página 1'), findsNothing);
-
-    // O toque re-dispara a busca (`retryRemoteSearch`) sem quebrar a árvore.
-    await tester.tap(find.text('Coldigom indisponível · tentar de novo'));
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets('não mostra linha de erro quando a busca remota tem dados', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _sliverTestApp([
-        homeSearchStateProvider.overrideWithValue(
-          _state(remote: const AsyncData(CatalogSearchPage.empty)),
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Coldigom indisponível · tentar de novo'), findsNothing);
-  });
-
-  testWidgets('remoto carregando mostra o spinner e esconde o paginador', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _sliverTestApp([
-        homeSearchStateProvider.overrideWithValue(
-          _state(
-            localGroups: [_group('local-1')],
-            remote: const AsyncLoading(),
-          ),
-        ),
-      ]),
-    );
-    await tester.pump();
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Página 1'), findsNothing);
-  });
-
-  testWidgets('paginador aparece quando a página remota trouxe resultados', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _sliverTestApp([
-        homeSearchStateProvider.overrideWithValue(
-          _state(
-            page: 2,
-            remote: AsyncData(
-              CatalogSearchPage(
-                groups: [_group('coldigom-1')],
-                page: 2,
-                hasNextPage: true,
-              ),
-            ),
-          ),
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Página 2'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-  });
-
-  testWidgets('avançar a página usa homeSearchPageProvider', (tester) async {
-    await tester.pumpWidget(
-      _sliverTestApp([
-        homeSearchStateProvider.overrideWithValue(
-          _state(
-            remote: const AsyncData(
-              CatalogSearchPage(groups: [], page: 1, hasNextPage: true),
-            ),
-          ),
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(HomeSearchResultsSliver)),
-    );
-
-    await tester.tap(find.byIcon(Icons.chevron_right));
-    await tester.pumpAndSettle();
-
-    expect(container.read(homeSearchPageProvider), 2);
-  });
 }

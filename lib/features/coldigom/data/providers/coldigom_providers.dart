@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../audio_player/domain/entities/audio_track.dart';
+import '../../../catalog/domain/entities/catalog_material.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
@@ -170,6 +171,31 @@ final coldigomYoutubeCacheProvider =
       ColdigomYoutubeCacheNotifier,
       Map<String, List<YoutubeMaterial>>
     >(ColdigomYoutubeCacheNotifier.new);
+
+/// Cache de letras Coldigom indexadas por praise/`groupId` (O6).
+///
+/// Uma letra por praise — chave pelo `groupId`, como os metadados.
+class ColdigomLyricsCacheNotifier
+    extends Notifier<Map<String, LyricsMaterial>> {
+  @override
+  Map<String, LyricsMaterial> build() => const {};
+
+  void mergeLyrics(Iterable<LyricsMaterial> lyrics) {
+    if (lyrics.isEmpty) return;
+    final next = Map<String, LyricsMaterial>.from(state);
+    for (final item in lyrics) {
+      next[item.groupId] = item;
+    }
+    state = next;
+  }
+
+  LyricsMaterial? findByGroupId(String groupId) => state[groupId];
+}
+
+final coldigomLyricsCacheProvider =
+    NotifierProvider<ColdigomLyricsCacheNotifier, Map<String, LyricsMaterial>>(
+      ColdigomLyricsCacheNotifier.new,
+    );
 
 /// Ponto único de escrita nos caches acima — ver [ColdigomCacheWriter].
 ///

@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/connectivity_stream_provider.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/plpcg_catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
@@ -9,14 +12,14 @@ import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
 
-/// Estado da busca e filtros na Home (UC-01 + UC-02).
+/// Estado da busca e filtros na Home (UC-01 + UC-02 + pesquisa híbrida §6).
 ///
 /// Pipeline declarativo (C.2):
 /// ```
 /// homeSearchQueryProvider (texto cru)
 ///   → homeSearchDebouncedQueryProvider (300 ms)
-///       ├→ homeLocalSearchProvider   (índice PLPCG, síncrono, + filtros)
-///       └→ homeRemoteSearchProvider((query, página))  (Coldigom, cancelável)
+///       ├→ homeLocalSearchProvider   (PLPCG + filtros, depois Coldigom local)
+///       └→ homeRemoteSearchProvider((query, 1))  (Coldigom, valida; só com rede)
 ///             → homeSearchStateProvider → HomeSearchResultsSliver
 /// ```
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
@@ -31,62 +34,102 @@ final homeSearchQueryProvider = NotifierProvider<HomeSearchQuery, String>(
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
-/// Página 1-based da busca remota; volta a 1 quando a query ou os filtros mudam.
-final homeSearchPageProvider = NotifierProvider<HomeSearchPage, int>(
-  HomeSearchPage.new,
-);
-
-/// Resultados PLPCG da query + filtros correntes — **síncronos**.
+/// Resultados locais da query + filtros correntes — **síncronos**, PLPCG
+/// primeiro e Coldigom depois (O16).
 ///
-/// Observa manifest (via [plpcgCatalogSourceProvider]), query e filtros: um
-/// refresh de manifest em segundo plano ou um chip de material re-derivam só
-/// esta lista, sem tocar a rede.
+/// Observa manifest (via [plpcgCatalogSourceProvider]), o índice Coldigom
+/// hidratado (via [coldigomCatalogSourceProvider]), query e filtros: um
+/// refresh de manifest, um sync do catálogo Coldigom ou um chip de material
+/// re-derivam só esta lista, sem tocar a rede. Os filtros UC-02 valem só
+/// para o PLPCG.
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
-  final source = ref.watch(plpcgCatalogSourceProvider);
-  return source.searchLocal(CatalogQuery(text: query, filters: filters));
+  final plpcg = ref.watch(plpcgCatalogSourceProvider);
+  final coldigom = ref.watch(coldigomCatalogSourceProvider);
+  final catalogQuery = CatalogQuery(text: query, filters: filters);
+  return [
+    ...plpcg.searchLocal(catalogQuery),
+    ...coldigom.searchLocal(catalogQuery),
+  ];
 });
 
 /// Estado único da busca da Home — o que os widgets observam.
+///
+/// A lista é a local (PLPCG + Coldigom do índice); o remoto só valida (O15):
+/// sem rede nem é instanciado (`offline`), com rede o que ele trouxer a mais
+/// entra em `newGroups`, no fim, na ordem remota.
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
-  final page = ref.watch(homeSearchPageProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
+  // Observado incondicionalmente (mesmo com query vazia): assim o provider
+  // já está de pé — e resolvido — quando a primeira query chega, em vez de
+  // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
+  // há rede. `AsyncLoading` inicial conta como online, como no resto da
+  // Home; só um `false` explícito segura o remoto. `select` porque só o
+  // booleano importa — um `AsyncValue` novo com o mesmo `.value` não deve
+  // reconstruir este provider.
+  final online = ref.watch(
+    connectivityStreamProvider.select((c) => c.value ?? true),
+  );
 
   if (query.trim().isEmpty) {
     // Sem query não há página remota: nada de `loading` e nada de rede — a
     // família nem chega a ser instanciada.
     return HomeSearchState(
       query: query,
-      page: page,
       localGroups: localGroups,
       remote: const AsyncData(CatalogSearchPage.empty),
     );
   }
 
+  if (!online) {
+    return HomeSearchState(
+      query: query,
+      localGroups: localGroups,
+      remote: const AsyncLoading(),
+      offline: true,
+    );
+  }
+
   final remote = ref.watch(
-    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: page)),
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: 1)),
   );
+  final localIds = {for (final g in localGroups) g.groupId};
+  final newGroups = [
+    for (final g in remote.value?.groups ?? const <LouvorGroup>[])
+      if (!localIds.contains(g.groupId)) g,
+  ];
+
+  // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`
+  // é `empty` (não "ainda não sei") — tratar isso como "nada é conhecido"
+  // acenderia «N novos» de forma transitória a cada boot, mesmo para praises
+  // que o Isar já tinha. Sem valor ainda, todo extra passa por conhecido:
+  // sem chip, sem contar, até o índice real chegar.
+  final hydration = ref.watch(coldigomCatalogHydrationProvider);
+  final knownIds = hydration.hasValue
+      ? ref.watch(coldigomSearchIndexProvider).catalogIds
+      : {for (final g in newGroups) g.groupId};
 
   return HomeSearchState(
     query: query,
-    page: page,
     localGroups: localGroups,
     remote: remote,
+    newGroups: newGroups,
+    // O índice pode conhecer um grupo que a busca textual local não achou
+    // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
+    // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
+    knownIds: knownIds,
   );
 });
 
-/// Re-dispara a busca remota da página corrente (linha de retry e reconexão).
-///
-/// Invalida só a chave `(query, página)` que está na tela: as outras páginas
-/// já memoizadas continuam válidas.
+/// Re-dispara a validação remota da query corrente (linha de estado e
+/// reconexão). Invalida só a chave `(query, 1)` que está na tela.
 void retryRemoteSearch(WidgetRef ref) {
   final query = ref.read(homeSearchDebouncedQueryProvider);
-  final page = ref.read(homeSearchPageProvider);
   if (query.trim().isEmpty) return;
   ref.invalidate(
-    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: page)),
+    homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: 1)),
   );
 }
 
@@ -125,36 +168,6 @@ class HomeSearchDebouncer extends Notifier<String> {
     ref.read(homeSearchQueryProvider.notifier).setQuery(query);
     _debounceTimer?.cancel();
     state = query;
-  }
-}
-
-/// Página 1-based da busca remota.
-///
-/// O reset para 1 mora aqui (e não em quem digita) porque é a única regra que
-/// liga query/filtros à paginação: quando a página já é 1, nada muda — e como
-/// a chave remota é `(query, página)`, um chip de filtro não re-busca nada.
-class HomeSearchPage extends Notifier<int> {
-  @override
-  int build() {
-    ref.listen<String>(homeSearchDebouncedQueryProvider, (previous, next) {
-      if (previous == next) return;
-      state = 1;
-    });
-    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
-      state = 1;
-    });
-    return 1;
-  }
-
-  /// Avança uma página.
-  void next() {
-    state = state + 1;
-  }
-
-  /// Volta uma página (nunca abaixo de 1).
-  void previous() {
-    if (state <= 1) return;
-    state = state - 1;
   }
 }
 

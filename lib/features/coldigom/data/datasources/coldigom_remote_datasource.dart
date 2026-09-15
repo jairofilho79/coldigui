@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../constants/coldigom_endpoints.dart';
+import '../models/coldigom_catalog_dto.dart';
 import '../models/praise_dto.dart';
 
 /// Query params de listagem `/api/praises` (filtros server-side).
@@ -56,6 +57,27 @@ class ColdigomPraisesQuery {
     if (values.isEmpty) return;
     params[key] = values.join(',');
   }
+}
+
+/// Resultado de [ColdigomRemoteDatasource.fetchCatalog].
+///
+/// `sealed` para o use case de sync ter de tratar os dois desfechos —
+/// «não mudou» não é erro, é a resposta mais comum.
+sealed class ColdigomCatalogFetchResult {
+  const ColdigomCatalogFetchResult();
+}
+
+/// `304` — o ETag local ainda é o do servidor; nada a gravar.
+final class ColdigomCatalogNotModified extends ColdigomCatalogFetchResult {
+  const ColdigomCatalogNotModified();
+}
+
+/// `200` — catálogo novo e o ETag que o acompanha (para o próximo pedido).
+final class ColdigomCatalogFresh extends ColdigomCatalogFetchResult {
+  const ColdigomCatalogFresh({required this.catalog, required this.etag});
+
+  final ColdigomCatalogDto catalog;
+  final String? etag;
 }
 
 /// Cliente HTTP da API coldigom (busca, browse, facets e detalhe).
@@ -119,6 +141,38 @@ class ColdigomRemoteDatasource {
     }
 
     return PlpcgPraisesPageDto.fromJson(data);
+  }
+
+  /// Dump do catálogo (`GET /api/plpcg/catalog`) com revalidação por ETag.
+  ///
+  /// [ifNoneMatch] é o ETag guardado do último sync; o Worker responde `304`
+  /// sem corpo quando nada mudou. O `receiveTimeout` sobe para 60 s só aqui:
+  /// o corpo tem ~2,5 MB (gzip ~500 KB) e o padrão de 30 s do
+  /// `coldigomDioProvider` foi pensado para páginas de 20 itens.
+  Future<ColdigomCatalogFetchResult> fetchCatalog({String? ifNoneMatch}) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      ColdigomEndpoints.plpcgCatalog,
+      options: Options(
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {'If-None-Match': ?ifNoneMatch},
+        // 304 não é erro: sem isto o Dio lança `DioException.badResponse`.
+        validateStatus: (status) => status == 200 || status == 304,
+      ),
+    );
+
+    if (response.statusCode == 304) return const ColdigomCatalogNotModified();
+
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        message: 'Resposta vazia do catálogo coldigom',
+      );
+    }
+    return ColdigomCatalogFresh(
+      catalog: ColdigomCatalogDto.fromJson(data),
+      etag: response.headers.value('etag'),
+    );
   }
 
   /// Busca louvores por texto (`GET /api/praises?q=`).

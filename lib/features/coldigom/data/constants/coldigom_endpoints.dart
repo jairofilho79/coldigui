@@ -4,6 +4,9 @@ abstract final class ColdigomEndpoints {
 
   /// Listagem leve para o app PLPCG (materials slim, sem texto da letra).
   static const plpcgPraises = '/api/plpcg/praises';
+
+  /// Dump compacto do catálogo inteiro para o Isar local (ETag + 304).
+  static const plpcgCatalog = '/api/plpcg/catalog';
   static const filterOptions = '/api/praises/filters';
   static const materialKinds = '/api/materials/kinds';
   static const tags = '/api/tags';

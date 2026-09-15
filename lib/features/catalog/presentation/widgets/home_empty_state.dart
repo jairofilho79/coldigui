@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_data_source.dart';
 import '../providers/catalog_filters_provider.dart';
@@ -95,6 +95,12 @@ CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
       youtube.classificacao,
       youtube.source,
     ),
+    LyricsMaterial(:final numero, :final nome) => (
+      numero,
+      nome,
+      '',
+      LouvorDataSource.coldigom,
+    ),
   };
   return CarouselItem(
     materialId: material.id,
@@ -138,9 +144,7 @@ class _NoQueryContent extends ConsumerWidget {
                 children: [
                   Text(
                     l10n.homeEmptyRecent,
-                    style: AppTypography.label.copyWith(
-                      color: AppColors.title,
-                    ),
+                    style: AppTypography.label.copyWith(color: AppColors.title),
                   ),
                   const SizedBox(height: 8),
                   // «Janela deslizante» (C6): rolagem horizontal em vez de
@@ -200,9 +204,15 @@ class _NoResultsContent extends ConsumerWidget {
     final filters = ref.watch(catalogFiltersProvider);
     final hasActiveFilter =
         filters.materiaisUrlValue != null || filters.arranjoUrlValue != null;
-    final connectivity = ref.watch(connectivityStreamProvider);
-    final isOffline = connectivity.value == false;
-    final showColdigomOffline = state.remoteFailed && isOffline;
+    // §5.5: com catálogo Coldigom local a busca já respondeu do índice — o
+    // aviso só faz sentido quando não há catálogo nenhum no aparelho.
+    // `state.offline` já é o sinal de "o remoto nem foi chamado" (não dá
+    // para reusar `remoteFailed`: com a redefinição da task 1 ele é sempre
+    // `false` quando offline). O índice fica por último no `&&` de
+    // propósito: o curto-circuito evita hidratar/ler Isar quando o aviso já
+    // não apareceria por outro motivo.
+    final showColdigomOffline =
+        state.offline && ref.watch(coldigomSearchIndexProvider).isEmpty;
 
     // Fundo vinho do `Scaffold` da Home (product owner, onda 4.1):
     // `AppTypography.body`/`hint()` e o `foregroundColor` default de

@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:coldigui/core/constants/offline_config.dart';
 
 import 'offline_test_helpers.dart';
+
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
@@ -39,6 +40,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   })
   onFetch;
   int callCount = 0;
+  CancelToken? lastCancelToken;
 
   @override
   Future<Uint8List> fetchBytes(
@@ -47,6 +49,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
     CancelToken? cancelToken,
   }) async {
     callCount++;
+    lastCancelToken = cancelToken;
     return onFetch(filePath, onReceiveProgress: onReceiveProgress);
   }
 }
@@ -262,6 +265,36 @@ void main() {
     await expectLater(
       useCase(pdfId: pdfId, remotePath: remotePath),
       throwsA(isA<Exception>()),
+    );
+    expect(datasource.callCount, 1);
+  });
+
+  test('repassa cancelToken ao datasource remoto', () async {
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async => pdfBytes,
+    );
+    final useCase = createUseCase(datasource);
+    final token = CancelToken();
+
+    await useCase(pdfId: pdfId, remotePath: remotePath, cancelToken: token);
+
+    expect(datasource.lastCancelToken, same(token));
+  });
+
+  test('DioException de cancelamento não é retentada', () async {
+    final datasource = _FakePdfBytesDatasource(
+      onFetch: (_, {onReceiveProgress}) async {
+        throw DioException(
+          requestOptions: RequestOptions(path: remotePath),
+          type: DioExceptionType.cancel,
+        );
+      },
+    );
+    final useCase = createUseCase(datasource);
+
+    await expectLater(
+      useCase(pdfId: pdfId, remotePath: remotePath, cancelToken: CancelToken()),
+      throwsA(isA<DioException>()),
     );
     expect(datasource.callCount, 1);
   });

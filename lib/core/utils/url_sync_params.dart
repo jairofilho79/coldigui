@@ -27,6 +27,9 @@ abstract final class UrlSyncParams {
   /// Identificador da faixa na rota `/audio`.
   static const String audioId = 'audioId';
 
+  /// Identificador do praise Coldigom na rota `/letra`.
+  static const String praiseId = 'praiseId';
+
   /// CSV de audioIds no share de playlist (`shareaudios`).
   static const String shareAudios = 'shareaudios';
 

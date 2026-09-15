@@ -23,6 +23,11 @@ Future<void> pumpApp(
 }) async {
   await tester.pumpWidget(
     ProviderScope(
+      // `key` único: um segundo `pumpApp` no mesmo teste (outro estado dos
+      // mesmos overrides) precisa de um `ProviderScope` novo — sem isto o
+      // Flutter reaproveita o Element antigo e um `NotifierProvider.overrideWith`
+      // trocado não reconstrói o notifier (limitação conhecida do Riverpod).
+      key: UniqueKey(),
       overrides: overrides,
       child: MaterialApp(
         locale: locale,

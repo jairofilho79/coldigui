@@ -265,7 +265,9 @@ class AudioPlayerScreen extends ConsumerWidget {
                   if (session.errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      l10n.audioPlaybackError,
+                      session.notDownloaded
+                          ? l10n.audioNotDownloaded
+                          : l10n.audioPlaybackError,
                       textAlign: TextAlign.center,
                       style: AppTypography.label.copyWith(
                         color: AppColors.textLight,

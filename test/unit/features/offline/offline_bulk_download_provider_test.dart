@@ -7,6 +7,7 @@ import 'package:coldigui/core/failures/app_failure.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 
 import 'offline_test_helpers.dart';
+
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
@@ -60,6 +61,9 @@ class _StubRepo implements OfflinePdfRepository {
 
   @override
   Future<void> remove(String pdfId) async {}
+
+  @override
+  Future<void> removeMany(Set<String> pdfIds) async {}
 
   @override
   Future<void> remapPdfId({
@@ -440,44 +444,41 @@ void main() {
     );
   });
 
-  test(
-    'InsufficientDiskSpaceException define estado failed com StorageFailure (E8) '
-    'e não chama markConfigured (Task 3/B4)',
-    () async {
-      final offlineMode = _TrackingOfflineModeNotifier();
-      final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
-          downloadOfflinePackagesProvider.overrideWith(
-            (ref) => _ThrowingDownloadOfflinePackages(
-              error: const InsufficientDiskSpaceException(
-                requiredBytes: 5000,
-                availableBytes: 0,
-              ),
-              store: pdfStoragePortFor(store),
-              prefs: prefs,
-              checkpointStore: checkpointStore,
+  test('InsufficientDiskSpaceException define estado failed com StorageFailure (E8) '
+      'e não chama markConfigured (Task 3/B4)', () async {
+    final offlineMode = _TrackingOfflineModeNotifier();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+        downloadOfflinePackagesProvider.overrideWith(
+          (ref) => _ThrowingDownloadOfflinePackages(
+            error: const InsufficientDiskSpaceException(
+              requiredBytes: 5000,
+              availableBytes: 0,
             ),
+            store: pdfStoragePortFor(store),
+            prefs: prefs,
+            checkpointStore: checkpointStore,
           ),
-          offlineModeProvider.overrideWith(() => offlineMode),
-          offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
-          isarAvailableProvider.overrideWithValue(true),
-        ],
-      );
-      addTearDown(container.dispose);
-      await pumpMicrotasks();
+        ),
+        offlineModeProvider.overrideWith(() => offlineMode),
+        offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        isarAvailableProvider.overrideWithValue(true),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpMicrotasks();
 
-      await container.read(offlineBulkDownloadProvider.notifier).start([
-        'Partitura',
-      ]);
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
 
-      final state = container.read(offlineBulkDownloadProvider);
-      expect(state.status, OfflineBulkDownloadStatus.failed);
-      expect(state.failure, isA<StorageFailure>());
-      expect(offlineMode.markConfiguredCallCount, 0);
-    },
-  );
+    final state = container.read(offlineBulkDownloadProvider);
+    expect(state.status, OfflineBulkDownloadStatus.failed);
+    expect(state.failure, isA<StorageFailure>());
+    expect(offlineMode.markConfiguredCallCount, 0);
+  });
 
   test('2 falhas em 10 completa com completedWithWarnings, failedCount == 2 e '
       'chama markConfigured (Task 3/B4)', () async {

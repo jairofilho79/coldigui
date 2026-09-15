@@ -99,6 +99,9 @@ class _StubRepo implements OfflinePdfRepository {
   Future<void> remove(String pdfId) async {}
 
   @override
+  Future<void> removeMany(Set<String> pdfIds) async {}
+
+  @override
   Future<void> remapPdfId({
     required String fromPdfId,
     required String toPdfId,

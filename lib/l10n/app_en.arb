@@ -29,6 +29,13 @@
   "@searchClear": {
     "description": "Tooltip for the clear (X) button inside SearchBar (UC-01 Home)"
   },
+  "searchFreshnessChecking": "Cached · checking…",
+  "searchFreshnessUpdated": "Up to date",
+  "searchFreshnessUpdatedNew": "{count, plural, one{Up to date · 1 new} other{Up to date · {count} new}}",
+  "@searchFreshnessUpdatedNew": { "placeholders": { "count": { "type": "int" } } },
+  "searchFreshnessOffline": "Cached · offline",
+  "searchFreshnessFailed": "Cached · could not verify",
+  "searchResultNew": "new",
   "filtersTitle": "Filters",
   "filtersTapToExpand": "Tap to see more",
   "sharePdf": "Share",
@@ -117,7 +124,6 @@
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materials",
   "coldigomLoadError": "Could not load the Coldigom catalog",
-  "coldigomUnavailableRetry": "Coldigom unavailable · try again",
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Select categories",
   "offlineDownloadSelected": "Download selected",
@@ -407,6 +413,9 @@
   "youtubeMaterialSection": "YouTube",
   "chordMaterialSection": "Chords",
   "chordUnavailableRetry": "Chord sheet unavailable · try again",
+  "materialNotDownloadedOffline": "Not downloaded · offline",
+  "materialNeedsConnection": "Needs a connection",
+  "materialSheetOfflineBanner": "Offline · only what is on the device opens",
   "playlistStorageUnavailable": "Local storage is unavailable. Playlists can't be saved.",
   "liveFollowingCannotEdit": "You're following someone else's list — leave the session to edit yours",
   "@liveFollowingCannotEdit": {
@@ -512,6 +521,7 @@
     "description": "Title of the audio-flag sync error row on the audio player screen"
   },
   "audioPlaybackError": "Could not play this audio.",
+  "audioNotDownloaded": "This audio was not downloaded — offline, only what is on the device plays",
   "audioWebBackgroundNotice": "On the web, background playback and system controls depend on the browser — this is not an app bug.",
   "audioWebPlatformHintTooltip": "About web playback",
   "@audioWebPlatformHintTooltip": {
@@ -909,5 +919,36 @@
   "profileLiveRoom": "My live room",
   "@profileLiveRoom": {
     "description": "Profile tile that opens the signed-in user's live room"
-  }
+  },
+  "lyricsTitle": "Lyrics",
+  "lyricsTab": "Lyrics",
+  "lyricsReaderEmpty": "No lyrics stored for this hymn",
+  "lyricsReaderIncreaseFont": "Increase text size",
+  "lyricsReaderDecreaseFont": "Decrease text size",
+  "offlineColdigomPlpcgSection": "PLPCG collection (PDFs)",
+  "offlineColdigomSection": "Coldigom by material type",
+  "offlineColdigomCatalogStatus": "Catalog: {count} hymns · updated {ago}",
+  "offlineColdigomCatalogMissing": "Connect to the internet to download the catalog",
+  "offlineColdigomAgoJustNow": "just now",
+  "offlineColdigomAgoMinutes": "{n} min ago",
+  "offlineColdigomAgoHours": "{n} h ago",
+  "offlineColdigomAgoDays": "{n} d ago",
+  "offlineColdigomSignInPrompt": "Sign in with Google to download your favorite types",
+  "offlineColdigomFavoriteKinds": "Your favorite types",
+  "offlineColdigomNoFavorites": "No favorites — pick some in Favorite materials or open “Other types”",
+  "offlineColdigomOtherKinds": "Other types",
+  "offlineColdigomKindSummary": "{count} materials · {size}",
+  "offlineColdigomDownloadSelected": "Download selected ({size})",
+  "offlineColdigomStop": "Stop",
+  "offlineColdigomProgress": "{kind} · {done}/{total}",
+  "offlineColdigomDone": "{count, plural, =0{Nothing new to download} one{1 material downloaded} other{{count} materials downloaded}}",
+  "offlineColdigomFailures": "{count, plural, one{1 not downloaded} other{{count} not downloaded}}",
+  "offlineColdigomStopped": "{n, plural, one{Stopped — 1 remaining} other{Stopped — {n} remaining}}",
+  "offlineColdigomOutOfSpace": "Not enough space on this device",
+  "offlineColdigomRetry": "Try again",
+  "offlineColdigomRemove": "Remove downloaded Coldigom audio and PDFs",
+  "offlineColdigomRemoveNote": "Chords, gestures and lyrics stay on the device.",
+  "offlineColdigomRemoveConfirmTitle": "Remove Coldigom downloads?",
+  "offlineColdigomRemoved": "{pdfs} PDFs and {audios} audios removed",
+  "offlineColdigomSpaceWarning": "Estimated {size} exceeds free space ({free}) — the download may stop midway."
 }

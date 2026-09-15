@@ -16,12 +16,14 @@ import '../../domain/entities/offline_stats.dart';
 import '../providers/offline_bulk_download_provider.dart';
 import '../providers/offline_cache_status_provider.dart';
 import '../providers/offline_category_selection_provider.dart';
+import '../providers/offline_coldigom_download_provider.dart';
 import '../providers/offline_maintenance_lock_provider.dart';
 import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
 import 'offline_settings_widgets/category_filter_chip.dart';
 import 'offline_settings_widgets/checkpoint_banner.dart';
+import 'offline_settings_widgets/coldigom_section.dart';
 import 'offline_settings_widgets/keep_app_open_banner.dart';
 import 'offline_settings_widgets/progress_section.dart';
 
@@ -69,15 +71,25 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       ref.read(offlineBulkDownloadProvider.notifier).pauseForBackground();
+      ref.read(offlineColdigomDownloadProvider.notifier).pauseForBackground();
     }
   }
 
-  bool get _maintenanceBusy {
+  /// Manutenção PLPCG (bulk/reconcile/refresh) — o que desabilita os botões
+  /// da secção PLPCG. Não inclui o download Coldigom: senão o «Parar» dele
+  /// ficaria desabilitado enquanto ele mesmo está a correr.
+  bool get _plpcgMaintenanceBusy {
     final bulk = ref.watch(offlineBulkDownloadProvider);
     final reconcile = ref.watch(offlineReconcileProvider);
     final cacheStatus = ref.watch(offlineCacheStatusProvider);
     return bulk.isActive || reconcile.isRunning || cacheStatus.isRefreshing;
   }
+
+  /// Manutenção geral (PLPCG + Coldigom) — usada pelos botões PLPCG, que
+  /// devem esperar o Coldigom (o lock é partilhado) e vice-versa.
+  bool get _maintenanceBusy =>
+      _plpcgMaintenanceBusy ||
+      ref.watch(offlineColdigomDownloadProvider).isActive;
 
   Future<void> _refreshStats() async {
     final l10n = AppLocalizations.of(context)!;
@@ -85,14 +97,12 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
     try {
       await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
     }
   }
 
@@ -139,9 +149,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
 
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);
     if (!lock.tryAcquire(OfflineMaintenanceOwner.clear)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.offlineMaintenanceBusy)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineMaintenanceBusy)));
       return;
     }
 
@@ -216,9 +225,8 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
           l10n,
           next.failedCount,
         );
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(completionMessage)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(completionMessage)));
       }
     });
 
@@ -227,7 +235,7 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           GoldenTaggedContainer(
-            label: l10n.offlineStatsTitle,
+            label: l10n.offlineColdigomPlpcgSection,
             child: _OfflineContent(
               cacheStatus: cacheStatus,
               l10n: l10n,
@@ -250,6 +258,13 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
               onResumeCheckpoint: () => ref
                   .read(offlineBulkDownloadProvider.notifier)
                   .resumeFromCheckpoint(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          GoldenTaggedContainer(
+            label: l10n.offlineColdigomSection,
+            child: ColdigomOfflineSection(
+              maintenanceBusy: _plpcgMaintenanceBusy,
             ),
           ),
           if (cacheStatus.showRemovedWarning) ...[
@@ -512,9 +527,7 @@ class _OfflineContent extends StatelessWidget {
           alignment: Alignment.center,
           child: TextButton(
             onPressed: maintenanceBusy || !canClearCache ? null : onClearCache,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.title,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.title),
             child: Text(l10n.offlineClearCache),
           ),
         ),

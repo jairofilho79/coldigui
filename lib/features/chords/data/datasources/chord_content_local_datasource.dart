@@ -78,4 +78,20 @@ class ChordContentLocalDatasource {
       debugPrint('[cifras] escrita do cache de $key falhou: $error');
     }
   }
+
+  /// `r2Key`s com corpo gravado (exclui o marcador negativo) — insumo do
+  /// mapa de disponibilidade offline; vazio sem Isar.
+  List<String> allKeysWithContent() {
+    final isar = _isar;
+    if (isar == null) return const [];
+    try {
+      return [
+        for (final row in isar.chordContentCaches.where().findAll())
+          if (row.content.isNotEmpty) row.r2Key,
+      ];
+    } on Object catch (error) {
+      debugPrint('[cifras] listagem do cache falhou: $error');
+      return const [];
+    }
+  }
 }

@@ -145,6 +145,23 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   @override
+  Future<void> removeMany(Set<String> pdfIds) async {
+    if (pdfIds.isEmpty) return;
+
+    final indexes = await _local.findByPdfIds(pdfIds);
+    for (final index in indexes) {
+      await _store.delete(index.storagePath);
+    }
+    // Uma baixa só no índice (não uma por PDF, como `remove` em laço) — é
+    // isso que faz `onIndexChanged` disparar 1× em vez de N (ver doc da
+    // interface).
+    await _local.deleteByPdfIds(pdfIds);
+    for (final pdfId in pdfIds) {
+      _pendingTouchAt.remove(pdfId);
+    }
+  }
+
+  @override
   Future<void> remapPdfId({
     required String fromPdfId,
     required String toPdfId,

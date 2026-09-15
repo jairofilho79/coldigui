@@ -11,6 +11,7 @@ import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/coldigom_praise_metadata.dart';
 import '../../domain/repositories/coldigom_search_repository.dart';
+import '../../domain/search/coldigom_search_index.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
 
 /// [CatalogSource] do acervo Coldigom sobre os caches em memória por tipo.
@@ -19,8 +20,8 @@ import '../../domain/utils/coldigom_praise_id.dart';
 /// praise (`assets/praises/{praiseId}/…`) — é por ele que [groupForMaterial]
 /// acha o grupo sem consultar a rede.
 ///
-/// É a fonte **remota**: [searchLocal] é sempre vazio (não há índice do acervo
-/// Coldigom no cliente) e [search] vai ao [searchRepository].
+/// [searchLocal] consulta [index], hidratado do Isar no boot (O4); [search]
+/// vai ao [searchRepository] (busca remota dos «novos», §6).
 class ColdigomCatalogSource implements CatalogSource {
   const ColdigomCatalogSource({
     this.louvores = const {},
@@ -29,7 +30,9 @@ class ColdigomCatalogSource implements CatalogSource {
     this.gestures = const {},
     this.praiseMeta = const {},
     this.youtube = const {},
+    this.lyrics = const {},
     this.searchRepository,
+    this.index = ColdigomSearchIndex.empty,
   });
 
   /// PDFs Coldigom em cache, por `pdfId`.
@@ -50,8 +53,14 @@ class ColdigomCatalogSource implements CatalogSource {
   /// Links de YouTube em cache, por `groupId`.
   final Map<String, List<YoutubeMaterial>> youtube;
 
+  /// Letras Coldigom em cache, por `groupId` (O6).
+  final Map<String, LyricsMaterial> lyrics;
+
   /// Porta de busca remota; `null` desliga [search] (fontes de teste).
   final ColdigomSearchRepository? searchRepository;
+
+  /// Índice de busca local, hidratado do Isar — vazio antes da hidratação.
+  final ColdigomSearchIndex index;
 
   /// PDFs Coldigom em cache pertencentes a [groupId].
   List<Louvor> louvoresOfGroup(String groupId) {
@@ -64,10 +73,12 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Versão síncrona de [groupById] — os caches já estão em memória.
   ///
-  /// O grupo sai dos caches de PDF, cifra, áudio e YouTube. Devolve o grupo
-  /// mesmo com um material só — o corte "sem alternativa" é de quem chama.
-  /// Um praise que só tem link de YouTube continua `null`: YouTube não é
-  /// endereçável e não sustenta um grupo sozinho.
+  /// O grupo sai dos caches de PDF, cifra, áudio, gesto e letra. Devolve o
+  /// grupo mesmo com um material só — o corte "sem alternativa" é de quem
+  /// chama. Um praise que só tem link de YouTube continua `null`: YouTube
+  /// não é endereçável e não sustenta um grupo sozinho — já a letra sustenta
+  /// (ao contrário do YouTube, `lyrics:<praiseId>` é endereçável): é o caso
+  /// de um praise só com letra.
   LouvorGroup? findGroupById(String groupId) {
     if (groupId.isEmpty) return null;
     final pdfs = louvoresOfGroup(groupId);
@@ -83,10 +94,12 @@ class ColdigomCatalogSource implements CatalogSource {
       for (final gesture in gestures.values)
         if (gesture.groupId == groupId) gesture,
     ];
+    final groupLyrics = lyrics[groupId];
     if (pdfs.isEmpty &&
         tracks.isEmpty &&
         groupChords.isEmpty &&
-        groupGestures.isEmpty) {
+        groupGestures.isEmpty &&
+        groupLyrics == null) {
       return null;
     }
 
@@ -96,6 +109,7 @@ class ColdigomCatalogSource implements CatalogSource {
       chordMaterials: groupChords,
       gestureMaterials: groupGestures,
       youtubeMaterials: youtube[groupId] ?? const [],
+      lyricsByGroupId: groupLyrics == null ? null : {groupId: groupLyrics},
       coldigomMetaByGroupId: praiseMeta,
     );
     return groups.isEmpty ? null : groups.first;
@@ -116,6 +130,9 @@ class ColdigomCatalogSource implements CatalogSource {
       case MaterialKind.gesture:
         final gesture = gestures[materialId];
         return gesture == null ? null : GestureMaterialRef(gesture);
+      case MaterialKind.lyrics:
+        // `lyrics:<praiseId>` — o praise é o groupId.
+        return lyrics[materialId.substring('lyrics:'.length)];
       // YouTube não vive no espaço de ids do app (o id vem do Worker).
       case MaterialKind.youtube:
       case MaterialKind.unknown:
@@ -125,6 +142,9 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Versão síncrona de [groupForMaterial].
   LouvorGroup? findGroupForMaterial(String materialId) {
+    if (materialIdKindOf(materialId) == MaterialKind.lyrics) {
+      return findGroupById(materialId.substring('lyrics:'.length));
+    }
     final praiseId = coldigomPraiseIdFromPdfId(materialId);
     if (praiseId == null) return null;
     return findGroupById(praiseId);
@@ -142,9 +162,10 @@ class ColdigomCatalogSource implements CatalogSource {
   Future<LouvorGroup?> groupForMaterial(String materialId) async =>
       findGroupForMaterial(materialId);
 
-  /// Não há índice local do acervo Coldigom — a busca é sempre remota.
+  /// Resultados locais do índice hidratado — vazio antes da hidratação.
+  /// Os filtros UC-02 não se aplicam ao Coldigom (O16).
   @override
-  List<LouvorGroup> searchLocal(CatalogQuery query) => const [];
+  List<LouvorGroup> searchLocal(CatalogQuery query) => index.search(query.text);
 
   /// Uma página de `/api/plpcg/praises`, com cancelamento.
   ///

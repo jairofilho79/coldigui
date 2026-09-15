@@ -28,6 +28,8 @@ Todas as rotas com Bearer aceitam `sess_…` (sessão do Worker, `user_sessions`
 Setup OAuth: [docs/GOOGLE_OAUTH_SETUP.md](../../docs/GOOGLE_OAUTH_SETUP.md).
 Spec sync: [docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md](../../docs/USER_AUTH_PLAYLIST_SYNC_SPEC.md).
 
+> O catálogo Coldigom não passa por este Worker: o app lê `GET https://coldigom-api.jairofilho79.workers.dev/api/plpcg/catalog` (ETag/304) diretamente — ver `patches/coldigom-api-plpcg-catalog.patch`.
+
 ## Lista ao Vivo (Durable Object `LiveRoom`)
 
 | Rota | Auth | O quê |

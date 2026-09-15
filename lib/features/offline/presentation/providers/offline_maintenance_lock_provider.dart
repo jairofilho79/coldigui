@@ -2,13 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Quem pode segurar o lock de manutenção offline (spec C.1 / B14).
-enum OfflineMaintenanceOwner { bulk, missing, clear, reconcile }
+enum OfflineMaintenanceOwner { bulk, missing, clear, reconcile, coldigom }
 
 /// Lock cooperativo de manutenção offline (spec C.1 / B14).
 ///
-/// Bulk download, download de faltantes, limpar cache e reconcile mexem no
-/// mesmo par índice+disco: rodar em paralelo faz um enxergar arquivos que o
-/// outro ainda não indexou (e apagá-los como órfãos). Só um dono por vez.
+/// Bulk download, download de faltantes, limpar cache e reconcile — e o
+/// download/remoção Coldigom — mexem no mesmo par índice+disco: rodar em
+/// paralelo faz um enxergar arquivos que o outro ainda não indexou (e
+/// apagá-los como órfãos). Só um dono por vez.
 final offlineMaintenanceLockProvider =
     NotifierProvider<OfflineMaintenanceLock, OfflineMaintenanceOwner?>(
       OfflineMaintenanceLock.new,

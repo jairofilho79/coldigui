@@ -5,15 +5,15 @@ import '../../../gestures/domain/entities/gesture_material.dart';
 import 'louvor.dart';
 import 'youtube_material.dart';
 
-/// Qualquer material abrível de um louvor — PDF, cifra, gestos, áudio ou
-/// YouTube.
+/// Qualquer material abrível de um louvor — PDF, cifra, gestos, áudio,
+/// YouTube ou letra.
 ///
 /// Fachada `sealed` sobre as entidades que já existem: nenhuma delas muda de
 /// forma (Isar/JSON intactos), cada uma ganha um invólucro aqui. Isso dá ao app
 /// um único vocabulário (`kind`) e um único ponto de abertura
 /// (`openMaterialProvider`), sem ainda unificar as listas de [LouvorGroup].
 ///
-/// `sealed` obriga o `switch` do opener a cobrir os cinco casos — um material
+/// `sealed` obriga o `switch` do opener a cobrir os seis casos — um material
 /// novo quebra a compilação em vez de cair num `else` silencioso.
 sealed class CatalogMaterial {
   const CatalogMaterial();
@@ -145,4 +145,38 @@ final class YoutubeMaterialRef extends CatalogMaterial {
 
   @override
   String? get materialKindId => material.materialKindId;
+}
+
+/// Letra do louvor (Coldigom) — abre no leitor `/letra`.
+///
+/// Material sintético (O6): o texto vem no dump do catálogo e vive no Isar,
+/// nunca no R2. Não tem `material_kind` — logo não entra nos favoritos nem
+/// nas contagens de download — e não é adicionável a playlist nesta entrega.
+final class LyricsMaterial extends CatalogMaterial {
+  const LyricsMaterial({
+    required this.praiseId,
+    required this.nome,
+    required this.numero,
+    this.categoria = 'Letra',
+  });
+
+  final String praiseId;
+  final String nome;
+  final String numero;
+
+  @override
+  final String categoria;
+
+  /// Mesmo id do material sintético do Worker (`lyrics:<praiseId>`).
+  @override
+  String get id => 'lyrics:$praiseId';
+
+  @override
+  MaterialKind get kind => MaterialKind.lyrics;
+
+  @override
+  String get groupId => praiseId;
+
+  @override
+  String? get materialKindId => null;
 }

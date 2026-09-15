@@ -23,7 +23,7 @@ import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.da
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_availability_map_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/material_availability_map_provider.dart';
 import 'package:coldigui/features/offline/presentation/utils/pdf_offline_error_ui.dart';
 import 'package:coldigui/features/pdf_opening/domain/entities/pdf_offline_availability.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -39,9 +39,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Long press: abre direto o material favorito do grupo (mesma resolução
 /// do "+"); sem favorito adicionável, cai no mesmo caminho do tap.
 class LouvorGroupCard extends ConsumerStatefulWidget {
-  const LouvorGroupCard({required this.group, super.key});
+  const LouvorGroupCard({required this.group, this.isNew = false, super.key});
 
   final LouvorGroup group;
+
+  /// Card vindo só da validação remota — chip «novo» (§6.3).
+  final bool isNew;
 
   @override
   ConsumerState<LouvorGroupCard> createState() => _LouvorGroupCardState();
@@ -332,15 +335,26 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         ? null
         : preferredMaterialForGroup(widget.group, rank: favoriteRank);
 
-    // A5: um mapa único do índice, lido por `select` — sem query por card.
-    final offlineAvailability = primary != null
-        ? ref.watch(
-            offlineAvailabilityMapProvider.select(
-              (map) =>
-                  map[primary.pdfId] ?? PdfOfflineAvailability.notAvailable,
-            ),
-          )
-        : PdfOfflineAvailability.notAvailable;
+    // §5.5: o grupo é «disponível» se **algum** material dele está no
+    // aparelho — PDF, áudio, cifra ou gestos. Persistente ganha de LRU.
+    final materialIds = [for (final m in widget.group.materials) m.id];
+    final offlineAvailability = ref.watch(
+      materialAvailabilityMapProvider.select((map) {
+        var best = PdfOfflineAvailability.notAvailable;
+        for (final id in materialIds) {
+          final value = map[id];
+          // `map[id]` é nulável (`PdfOfflineAvailability?`); o `==` acima não
+          // promove o tipo, então devolvemos as constantes, não `value`.
+          if (value == PdfOfflineAvailability.persistentOffline) {
+            return PdfOfflineAvailability.persistentOffline;
+          }
+          if (value == PdfOfflineAvailability.cachedLru) {
+            best = PdfOfflineAvailability.cachedLru;
+          }
+        }
+        return best;
+      }),
+    );
 
     final VoidCallback? onAdd = isLoading
         ? null
@@ -367,6 +381,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         isAdded: isMultiMaterial ? false : isAdded,
         loading: isLoading,
         offlineAvailability: offlineAvailability,
+        isNew: widget.isNew,
       ),
     );
   }

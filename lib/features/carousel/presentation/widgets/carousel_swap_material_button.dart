@@ -157,7 +157,7 @@ Future<void> showCarouselSwapMaterialSheet({
               activeQueue: activeListAudioQueue(ref),
             ),
           );
-        case YoutubeMaterialRef():
+        case YoutubeMaterialRef() || LyricsMaterial():
           await ref.read(openMaterialProvider).open(context, ref, material);
       }
     },

@@ -44,13 +44,17 @@ abstract class OfflinePdfRepository {
   /// Remove arquivo no disco e entrada no índice (idempotente se ausente).
   Future<void> remove(String pdfId);
 
+  /// Remove [pdfIds] em lote — arquivos primeiro, depois **uma** baixa no
+  /// índice Isar (`deleteByPdfIds`), não uma por PDF como [remove] em laço
+  /// faria. Quem deriva estado do índice ouve uma única mudança em vez de N
+  /// (ex.: remoção Coldigom de ~1700 PDFs bumpava `offlineIndexRevisionProvider`
+  /// ~1700×). Idempotente se algum `pdfId` ausente.
+  Future<void> removeMany(Set<String> pdfIds);
+
   /// Reindexa [fromPdfId] como [toPdfId] sem mover o arquivo no disco.
   ///
   /// Idempotente se [fromPdfId] ausente ou [toPdfId] já indexado.
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  });
+  Future<void> remapPdfId({required String fromPdfId, required String toPdfId});
 
   /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
   Future<String?> findPdfIdByAbsolutePath(String absolutePath);

@@ -41,6 +41,10 @@ const _modalChipRadius = 24.0;
 const _topBarChipRadius = 8.0;
 const _compactWidth = carouselChipMetadataCompactWidth;
 
+/// Largura aproximada do chip «novo» (padding + texto de 10px + borda) —
+/// reservada da linha de metadados quando ele aparece ao lado dela.
+const _newChipReserve = 44.0;
+
 /// Layout do chip — barra superior do shell vs modal/leitor.
 enum CarouselLouvorChipVariant {
   /// Pill (`borderRadius` 24); `#numero — nome` na linha do título.
@@ -106,6 +110,7 @@ class CarouselLouvorChip extends StatelessWidget {
     this.canGoNext = false,
     this.onPrevious,
     this.onNext,
+    this.isNew = false,
     super.key,
   });
 
@@ -177,6 +182,10 @@ class CarouselLouvorChip extends StatelessWidget {
   /// Ação da zona direita — sem efeito se [showNavArrows] for falso.
   final VoidCallback? onNext;
 
+  /// Grupo que só o remoto trouxe (§6.3) — chip «novo» ao lado do badge
+  /// offline, sem competir com o título.
+  final bool isNew;
+
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
   Widget? get _trailingAction {
@@ -200,15 +209,11 @@ class CarouselLouvorChip extends StatelessWidget {
     );
     // Áudio, cifra e gesto já sabem o que são; só PDF depende da categoria
     // (o manifest mistura Partitura/Cifra/Gestos em `type: pdf`).
-    final categoryIcon = LouvorMaterialIcons.forKind(
-      switch (item.kind) {
-        MaterialKind.pdf ||
-        MaterialKind.unknown => LouvorMaterialIcons.kindForCategory(
-          item.categoria,
-        ),
-        _ => item.kind,
-      },
-    );
+    final categoryIcon = LouvorMaterialIcons.forKind(switch (item.kind) {
+      MaterialKind.pdf || MaterialKind.unknown =>
+        LouvorMaterialIcons.kindForCategory(item.categoria),
+      _ => item.kind,
+    });
     final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)
@@ -238,6 +243,13 @@ class CarouselLouvorChip extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final width = constraints.maxWidth;
+                  // O chip «novo» tira espaço da linha de metadados — reserva
+                  // essa largura antes de decidir o breakpoint (compacto vs.
+                  // médio), senão `ChipMetadataRow` escolhe um layout largo
+                  // demais para o que sobra e estoura.
+                  final metadataWidth = isNew
+                      ? (width - _newChipReserve).clamp(0.0, width)
+                      : width;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -256,16 +268,29 @@ class CarouselLouvorChip extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      ChipMetadataRow(
-                        width: width,
-                        numero: _isTopBar ? item.numero : null,
-                        summary: metadataSummary,
-                        materialKindsGroup: materialKindsGroup,
-                        onMaterialKindTap: onMaterialKindTap,
-                        classificationLabel: classificationLabel,
-                        categoria: item.categoria,
-                        categoryIcon: categoryIcon,
-                        offlineAvailability: offlineAvailability,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChipMetadataRow(
+                              width: metadataWidth,
+                              numero: _isTopBar ? item.numero : null,
+                              summary: metadataSummary,
+                              materialKindsGroup: materialKindsGroup,
+                              onMaterialKindTap: onMaterialKindTap,
+                              classificationLabel: classificationLabel,
+                              categoria: item.categoria,
+                              categoryIcon: categoryIcon,
+                              offlineAvailability: offlineAvailability,
+                            ),
+                          ),
+                          if (isNew) ...[
+                            const SizedBox(width: 4),
+                            _NewChip(
+                              label: AppLocalizations.of(context)!
+                                  .searchResultNew,
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   );
@@ -299,9 +324,7 @@ class CarouselLouvorChip extends StatelessWidget {
         ? ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: chipNavZoneWidth,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: chipNavZoneWidth),
               child: body,
             ),
           )
@@ -358,5 +381,32 @@ class CarouselLouvorChip extends StatelessWidget {
   static String _titleLine(CarouselItem item, bool topBar) {
     if (topBar || item.numero.isEmpty) return item.nome;
     return '#${item.numero} — ${item.nome}';
+  }
+}
+
+/// Chip «novo» — mesmo estilo do badge offline: pequeno, dourado, sem
+/// competir com o título.
+class _NewChip extends StatelessWidget {
+  const _NewChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.gold, width: 1),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.label.copyWith(
+          fontSize: 10,
+          color: Colors.white.withValues(alpha: 0.95),
+        ),
+      ),
+    );
   }
 }

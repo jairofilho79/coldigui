@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/platform/platform_capabilities_provider.dart';
+import '../../../../core/providers/device_connectivity_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../offline/data/providers/offline_audio_providers.dart';
 import '../../../playlists/presentation/providers/playlist_session_prefs.dart';
 import '../../data/audio_media_session.dart';
 import '../../data/audio_player_web_providers.dart';
@@ -32,6 +34,7 @@ class AudioPlayerSessionState {
     this.errorMessage,
     this.restoredWithoutPlayback = false,
     this.speed = 1.0,
+    this.notDownloaded = false,
   });
 
   final List<AudioTrack> queue;
@@ -39,6 +42,11 @@ class AudioPlayerSessionState {
   final bool playing;
   final bool buffering;
   final String? errorMessage;
+
+  /// `true` quando a última carga falhou porque a faixa não está no
+  /// aparelho e não há rede — a tela troca a mensagem genérica por
+  /// `audioNotDownloaded`.
+  final bool notDownloaded;
 
   /// Velocidade de reprodução (`0.75`, `1.0`, `1.25`, `1.5` na UI) — C12.
   /// Reaplicada em [AudioPlayerSessionNotifier._applyQueue] porque trocar de
@@ -71,6 +79,7 @@ class AudioPlayerSessionState {
     bool clearError = false,
     bool? restoredWithoutPlayback,
     double? speed,
+    bool? notDownloaded,
   }) {
     return AudioPlayerSessionState(
       queue: queue ?? this.queue,
@@ -81,6 +90,7 @@ class AudioPlayerSessionState {
       restoredWithoutPlayback:
           restoredWithoutPlayback ?? this.restoredWithoutPlayback,
       speed: speed ?? this.speed,
+      notDownloaded: clearError ? false : (notDownloaded ?? this.notDownloaded),
     );
   }
 }
@@ -165,6 +175,17 @@ const audioBufferingTimeout = Duration(seconds: 20);
 final audioPlaybackPositionStoreProvider = Provider<AudioPlaybackPositionStore>(
   (ref) => AudioPlaybackPositionStore(ref.watch(sharedPreferencesProvider)),
 );
+
+/// A faixa não está no aparelho e não há rede — não é falha de rede
+/// genérica, é «baixe primeiro» (spec offline Coldigom §5.1).
+class AudioNotDownloadedException implements Exception {
+  const AudioNotDownloadedException(this.audioId);
+
+  final String audioId;
+
+  @override
+  String toString() => 'AudioNotDownloadedException($audioId)';
+}
 
 /// Sessão única de áudio — fonte de verdade para page e playlist face.
 class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
@@ -447,8 +468,35 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
     _mediaSessionAttached = true;
   }
 
-  Future<Uri> _playbackUriForTrack(AudioTrack track) async {
-    // HTTP + CORP + crossOrigin. blob: com anonymous falha no Chrome/Safari.
+  /// Aparelho primeiro (O7): índice de áudio → `Uri.file` no nativo, blob URL
+  /// direto da Cache API na web (`resolveFromCache` — achado do review
+  /// final: sem materializar os bytes em Dart no meio do caminho, como
+  /// `readBytes` + `resolveFromBytes` faziam). Miss (índice ou cache) → URL
+  /// de rede (HTTP + CORP; o `crossOrigin` do `<audio>` é condicional — ver
+  /// `unlockWebAudioIfNeeded`). Só a faixa que vai tocar já
+  /// (`isStartTrack`) lança [AudioNotDownloadedException] quando offline —
+  /// as demais faixas da fila recebem a URL de rede mesmo sem conexão e só
+  /// falham (erro genérico) se e quando o player de fato tentar tocá-las
+  /// (fix round 1: uma faixa qualquer da fila ausente não podia derrubar a
+  /// fila inteira).
+  Future<Uri> _playbackUriForTrack(
+    AudioTrack track, {
+    required bool isStartTrack,
+    required Future<bool> Function() hasConnection,
+  }) async {
+    final local = await ref
+        .read(offlineAudioRepositoryProvider)
+        .lookup(track.audioId);
+    if (local != null) {
+      if (!ref.read(platformCapabilitiesProvider).isWeb) {
+        return Uri.file(local.storageKey);
+      }
+      final blob = await _sourceResolver?.resolveFromCache(local.storageKey);
+      if (blob != null) return blob;
+    }
+    if (isStartTrack && !await hasConnection()) {
+      throw AudioNotDownloadedException(track.audioId);
+    }
     return Uri.parse(AudioTrackUrl.fetchUrlForTrack(track));
   }
 
@@ -532,35 +580,92 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
 
     try {
       final player = _ensurePlayer;
+      final isWeb = ref.read(platformCapabilitiesProvider).isWeb;
+      // Fila nova: limpa só o *pending* de uma tentativa anterior
+      // abandonada — nunca o que está tocando (fix round 2: `beginQueue`
+      // mexe só em pending; é `commitQueue`, lá embaixo, depois do último
+      // `gen != _generation`, quem promove e só aí revoga o que tocava).
+      // Seguro chamar aqui, antes mesmo de saber se esta geração vai
+      // vencer a corrida — sem isto, `resolveFromCache`/`resolveFromBytes`
+      // acumulariam blob: de tentativas descartadas pra sempre.
+      if (isWeb) {
+        _sourceResolver?.beginQueue();
+      }
+      // Rede consultada no máximo 1× por fila, só se e quando a faixa
+      // inicial não estiver no aparelho (fix round 1) — cache local, não
+      // dispara plugin nenhum se todas as faixas locais resolverem antes.
+      bool? connectivityCache;
+      Future<bool> hasConnection() async {
+        return connectivityCache ??= await ref
+            .read(deviceConnectivityProvider)
+            .hasConnection();
+      }
+
+      // Todas as URIs são resolvidas primeiro (nem `_playbackUriForTrack`
+      // nem `resolveFromCache` fazem I/O de rede — no máximo um `cache.match`
+      // local — então isto é barato mesmo pra filas longas). É a fila
+      // inteira, não só a faixa inicial, que decide o `crossOrigin` do
+      // desbloqueio de gesto logo abaixo (achado do review final: uma fila
+      // mista blob+rede com `anonymous` ligado quebrava a faixa `blob:`).
+      final uris = <Uri>[];
+      for (var i = 0; i < tracks.length; i++) {
+        final uri = await _playbackUriForTrack(
+          tracks[i],
+          isStartTrack: i == safeIndex,
+          hasConnection: hasConnection,
+        );
+        if (gen != _generation) return;
+        uris.add(uri);
+      }
+
       if (ref.read(platformCapabilitiesProvider).needsUserGestureForAudio &&
           autoplay) {
         await unlockWebAudioIfNeeded(
           player,
-          immediateUrl: AudioTrackUrl.fetchUrlForTrack(tracks[safeIndex]),
+          immediateUrl: uris[safeIndex].toString(),
+          // blob: não é cross-origin nenhum — `anonymous` quebra a
+          // reprodução em Chrome/Safari (fix round 1, ver doc do helper).
+          // Um único `<audio>` serve a sessão toda, então QUALQUER blob: na
+          // fila (não só a faixa inicial) desliga `anonymous` — uma fila
+          // mista rede→blob ou blob→rede não pode achar que só a primeira
+          // faixa importa.
+          crossOrigin: uris.any((u) => u.scheme == 'blob')
+              ? null
+              : WebCrossOrigin.anonymous,
         );
         if (gen != _generation) return;
       }
 
       _ensureMediaSessionAttached();
 
-      final sources = <AudioSource>[];
-      for (final track in tracks) {
-        final uri = await _playbackUriForTrack(track);
-        if (gen != _generation) return;
-        sources.add(
+      final sources = <AudioSource>[
+        for (var i = 0; i < tracks.length; i++)
           AudioSource.uri(
-            uri,
+            uris[i],
             tag: MediaItem(
-              id: track.audioId,
-              title: track.categoria.isNotEmpty ? track.categoria : track.nome,
-              album: track.nome,
-              artist: track.author.isNotEmpty
-                  ? track.author
-                  : (track.numero.isNotEmpty ? track.numero : 'Coldigom'),
-              extras: {'groupId': track.groupId, 'r2Key': track.r2Key},
+              id: tracks[i].audioId,
+              title: tracks[i].categoria.isNotEmpty
+                  ? tracks[i].categoria
+                  : tracks[i].nome,
+              album: tracks[i].nome,
+              artist: tracks[i].author.isNotEmpty
+                  ? tracks[i].author
+                  : (tracks[i].numero.isNotEmpty
+                        ? tracks[i].numero
+                        : 'Coldigom'),
+              extras: {'groupId': tracks[i].groupId, 'r2Key': tracks[i].r2Key},
             ),
           ),
-        );
+      ];
+
+      // Fix round 2: só a geração vencedora chega aqui — o laço acima já
+      // teria devolvido cedo em qualquer `gen != _generation`. É só agora,
+      // imediatamente antes de o player assumir as fontes novas, que os
+      // blobs da fila em reprodução são revogados (`commitQueue` promove o
+      // que `beginQueue`/`resolveFromCache`/`resolveFromBytes` vinham só
+      // montando em pending).
+      if (isWeb) {
+        _sourceResolver?.commitQueue();
       }
 
       // O contador abraça só a mexida no player: entra antes e sai depois,
@@ -571,7 +676,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
           sources,
           initialIndex: safeIndex,
           initialPosition: initialPosition,
-          preload: autoplay && !ref.read(platformCapabilitiesProvider).isWeb,
+          preload: autoplay && !isWeb,
         );
       } finally {
         _sourcesInFlight--;
@@ -594,6 +699,14 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
       if (autoplay) {
         await player.play();
       }
+    } on AudioNotDownloadedException catch (e) {
+      if (gen != _generation) return;
+      debugPrint('[audio] faixa não baixada e sem rede: ${e.audioId}');
+      state = state.copyWith(
+        errorMessage: e.toString(),
+        notDownloaded: true,
+        playing: false,
+      );
     } on Object catch (e) {
       // Chamada superada: quem venceu já cuidou do estado (e um
       // `PlayerInterruptedException` daqui é justamente o esperado).

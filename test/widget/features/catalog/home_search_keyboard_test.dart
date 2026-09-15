@@ -88,7 +88,6 @@ Future<void> _pumpHome(
         homeSearchStateProvider.overrideWithValue(
           HomeSearchState(
             query: 'aleluia',
-            page: 1,
             localGroups: results,
             remote: const AsyncData(CatalogSearchPage.empty),
           ),

@@ -5,7 +5,7 @@ import 'pdf_path_normalizer.dart';
 /// Substitui o antigo `MaterialIdKind` (pdf/chord/unknown) e o enum privado do
 /// sheet Coldigom: catálogo, carousel, playlist, adapter Coldigom e ícones
 /// falam todos deste enum.
-enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
+enum MaterialKind { pdf, chord, audio, youtube, gesture, lyrics, unknown }
 
 /// Classifica [id] pela extensão do path que ele codifica.
 ///
@@ -36,6 +36,14 @@ enum MaterialKind { pdf, chord, audio, youtube, gesture, unknown }
 MaterialKind materialIdKindOf(String id) {
   if (id.isEmpty) return MaterialKind.unknown;
 
+  // Letra não vive no espaço Base64 dos paths: o id é `lyrics:<praiseId>`
+  // (o mesmo que o Worker manda no material sintético, O6).
+  if (id.startsWith('lyrics:')) {
+    return id.length > 'lyrics:'.length
+        ? MaterialKind.lyrics
+        : MaterialKind.unknown;
+  }
+
   final String relPath;
   try {
     relPath = PdfPathNormalizer.getPdfRelPath(id);
@@ -60,7 +68,7 @@ MaterialKind materialIdKindOf(String id) {
 /// Ao contrário de [materialIdKindOf] (heurística de extensão do id), este é
 /// o `type` que o Worker de fato gravou — a fonte da verdade para favoritos
 /// de material type por kind. Case-insensitive; tipo desconhecido (ex.:
-/// `lyrics`) vira [MaterialKind.unknown].
+/// `video`) vira [MaterialKind.unknown].
 MaterialKind materialKindOfRawType(String type) {
   return switch (type.toLowerCase()) {
     'pdf' => MaterialKind.pdf,
@@ -68,6 +76,7 @@ MaterialKind materialKindOfRawType(String type) {
     'gestures' => MaterialKind.gesture,
     'mp3' || 'audio' => MaterialKind.audio,
     'youtube' => MaterialKind.youtube,
+    'lyrics' => MaterialKind.lyrics,
     _ => MaterialKind.unknown,
   };
 }

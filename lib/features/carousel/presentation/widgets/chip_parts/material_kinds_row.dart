@@ -5,13 +5,15 @@ import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:flutter/material.dart';
 
-/// Ordem de exibição — PDF · cifra · gestos · áudio · YouTube (B.2).
+/// Ordem de exibição — PDF · cifra · gestos · áudio · YouTube · letra (B.2),
+/// mesma ordem das abas do sheet de materiais.
 const _kindOrder = [
   MaterialKind.pdf,
   MaterialKind.chord,
   MaterialKind.gesture,
   MaterialKind.audio,
   MaterialKind.youtube,
+  MaterialKind.lyrics,
 ];
 
 /// Linha de ícones por tipo de material presente no [group] (C5).

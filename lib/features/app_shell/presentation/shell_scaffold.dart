@@ -15,6 +15,7 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../live/presentation/widgets/live_lifecycle_listener.dart';
 import '../../live/presentation/widgets/live_session_banner.dart';
 import '../../material_kind_prefs/presentation/providers/material_kind_prefs_sync_provider.dart';
@@ -67,7 +68,8 @@ class ShellScaffold extends ConsumerWidget {
     return path == RoutePaths.reader ||
         path == RoutePaths.audio ||
         path == RoutePaths.chords ||
-        path == RoutePaths.gestos;
+        path == RoutePaths.gestos ||
+        path == RoutePaths.lyrics;
   }
 
   /// Destinos na mesma ordem/índices de [tabs] (por sua vez, [appTabsFor]) —
@@ -150,6 +152,13 @@ class ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(playlistSyncProvider);
     ref.watch(materialKindPrefsSyncProvider);
+    // Catálogo Coldigom local (O4/O5): hidrata do Isar e sincroniza no boot
+    // sem bloquear o shell — a Home mostra o PLPCG primeiro, como hoje.
+    // `listen` (não `watch`): mantém os providers vivos sem re-renderizar o
+    // shell inteiro a cada hidratação/sync (a Home lê o resultado por conta
+    // própria via `coldigomSearchIndexProvider`/`coldigomCatalogSyncProvider`).
+    ref.listen(coldigomCatalogHydrationProvider, (_, _) {});
+    ref.listen(coldigomCatalogSyncProvider, (_, _) {});
     final path = GoRouterState.of(context).uri.path;
     final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);

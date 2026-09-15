@@ -98,6 +98,9 @@ class MaterialTypePreferenceControl extends ConsumerWidget {
       MaterialKind.gesture => l10n.gesturesMaterialSection,
       MaterialKind.audio => l10n.audioMaterialSection,
       MaterialKind.youtube => l10n.youtubeMaterialSection,
+      // Letra nunca chega aqui — não tem `material_kind` — mas o switch é
+      // exaustivo.
+      MaterialKind.lyrics => type,
       MaterialKind.unknown => type,
     };
   }

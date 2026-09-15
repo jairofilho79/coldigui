@@ -1,5 +1,9 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
+import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
@@ -8,6 +12,7 @@ import 'package:coldigui/features/offline/presentation/pages/offline_settings_sc
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_category_selection_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_missing_louvores_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
@@ -16,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FixedCacheStatusNotifier extends OfflineCacheStatusNotifier {
   _FixedCacheStatusNotifier(this.fixed);
@@ -24,6 +30,22 @@ class _FixedCacheStatusNotifier extends OfflineCacheStatusNotifier {
 
   @override
   OfflineCacheStatus build() => fixed;
+}
+
+/// Deslogado — a secção Coldigom nova mostra só o convite (O9).
+class _LoggedOut extends AuthNotifier {
+  @override
+  Future<AuthUser?> build() async => null;
+}
+
+class _FixedSync extends ColdigomCatalogSyncNotifier {
+  _FixedSync(this.fixed);
+  final ColdigomCatalogSyncState fixed;
+  @override
+  ColdigomCatalogSyncState build() => fixed;
+  @override
+  Future<ColdigomCatalogSyncResult> sync() async =>
+      const ColdigomCatalogSyncNoop();
 }
 
 /// Lock de manutenção já tomado por outro dono (spec C.1).
@@ -111,6 +133,10 @@ class _FixedCategorySelectionNotifier extends OfflineCategorySelectionNotifier {
   OfflineCategorySelectionState build() => fixed;
 }
 
+/// Prefs mockadas — só a secção Coldigom (`sharedPreferencesProvider`) lê
+/// isto nesta suíte; renovada a cada teste no `setUp`.
+late SharedPreferences _prefs;
+
 Widget _offlineTestApp({
   required OfflineCacheStatus cacheStatus,
   OfflineCategorySelectionState selectionState =
@@ -122,6 +148,7 @@ Widget _offlineTestApp({
   List<Override> extraOverrides = const [],
 }) {
   return ProviderScope(
+    key: UniqueKey(),
     retry: (retryCount, error) => null,
     overrides: [
       offlineCacheStatusProvider.overrideWith(
@@ -133,6 +160,17 @@ Widget _offlineTestApp({
       offlineReconcileProvider.overrideWith(_IdleReconcileNotifier.new),
       offlineBulkDownloadProvider.overrideWith(
         bulkDownloadNotifier ?? _IdleBulkNotifier.new,
+      ),
+      // Secção Coldigom nova: deslogada e sem catálogo/stats — os testes
+      // desta suíte não exercitam essa secção, só precisam de overrides
+      // para o `/offline` montar sem tocar em Isar/rede de verdade.
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+      authStateProvider.overrideWith(_LoggedOut.new),
+      coldigomCatalogSyncProvider.overrideWith(
+        () => _FixedSync(const ColdigomCatalogSyncState()),
+      ),
+      offlineColdigomStatsProvider.overrideWith(
+        (ref) async => OfflineColdigomStats.empty,
       ),
       ...extraOverrides,
     ],
@@ -146,6 +184,11 @@ Widget _offlineTestApp({
 }
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   testWidgets('shows stats section with single download and clear buttons', (
     tester,
   ) async {
@@ -158,9 +201,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('PDFs armazenados'), findsOneWidget);
+    expect(find.text('Acervo PLPCG (PDFs)'), findsOneWidget);
     expect(find.text('3 PDFs offline'), findsOneWidget);
-    expect(find.text('Atualizar'), findsOneWidget);
+    // Duas seções, dois botões «Atualizar» (PLPCG + Coldigom).
+    expect(find.text('Atualizar'), findsNWidgets(2));
     expect(find.text('Limpar cache offline'), findsOneWidget);
     expect(find.text('Baixar selecionados'), findsOneWidget);
     expect(find.text('Baixar faltantes'), findsNothing);
@@ -265,9 +309,8 @@ void main() {
           bulkDownloaded: {CatalogMaterials.partitura},
         ),
         extraOverrides: [
-          offlineMissingLouvoresProvider(
-            CatalogMaterials.partitura,
-          ).overrideWith((ref) async => [missingLouvor]),
+          offlineMissingLouvoresProvider(CatalogMaterials.partitura)
+              .overrideWith((ref) async => [missingLouvor]),
         ],
       ),
     );
@@ -409,5 +452,25 @@ void main() {
 
     expect(find.text('Parando...'), findsOneWidget);
     expect(find.text('Parar'), findsNothing);
+  });
+
+  testWidgets('sem overflow a 400px de largura (duas secções juntas)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _offlineTestApp(
+        cacheStatus: const OfflineCacheStatus(
+          stats: OfflineStats(byCategory: {'Partitura': 3}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
   });
 }

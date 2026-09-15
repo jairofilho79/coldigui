@@ -50,6 +50,7 @@ class FetchAndStorePdf {
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) async {
     final protectedPdfIds = await _favoritePdfIdsResolver.resolve();
     final excludePdfIds = {...protectedPdfIds, pdfId};
@@ -63,6 +64,7 @@ class FetchAndStorePdf {
     final bytes = await _fetchBytesWithRetry(
       remotePath,
       onProgress: onProgress,
+      cancelToken: cancelToken,
     );
 
     if (!persistentDownload) {
@@ -122,6 +124,7 @@ class FetchAndStorePdf {
   Future<Uint8List> _fetchBytesWithRetry(
     String remotePath, {
     ProgressCallback? onProgress,
+    CancelToken? cancelToken,
   }) async {
     Object? lastError;
 
@@ -134,6 +137,7 @@ class FetchAndStorePdf {
         return await _bytesDatasource.fetchBytes(
           remotePath,
           onReceiveProgress: onProgress,
+          cancelToken: cancelToken,
         );
       } on DioException catch (e) {
         lastError = e;

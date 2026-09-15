@@ -86,6 +86,7 @@ class _TrackingFetchAndStore extends FetchAndStorePdf {
     String? category,
     ProgressCallback? onProgress,
     bool persistentDownload = false,
+    CancelToken? cancelToken,
   }) async {
     resolvedPdfIds.add(pdfId);
     return LocalPdfSource(

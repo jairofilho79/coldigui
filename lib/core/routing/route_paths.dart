@@ -52,4 +52,7 @@ abstract final class RoutePaths {
   static const String liveRoom = '/ao-vivo/:code';
 
   static String liveRoomFor(String code) => '/ao-vivo/$code';
+
+  /// Leitor de letra Coldigom ([LyricsReaderScreen]) — irmã de [chords], branch Home.
+  static const String lyrics = '/letra';
 }
