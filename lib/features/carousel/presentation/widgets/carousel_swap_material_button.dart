@@ -7,7 +7,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -120,19 +119,19 @@ Future<void> showCarouselSwapMaterialSheet({
     resolved,
     // O louvor já está na lista: o `+` de cada material não faz sentido aqui.
     canAddToPlaylist: false,
-    // PDF aqui **troca** a entrada da lista ativa em vez de empilhar uma rota
-    // nova; áudio toca sem tirar o usuário da partitura (ouvir enquanto lê); o
-    // resto segue pelo opener único.
+    // O que se lê (PDF, cifra, gestos) **troca** a entrada da lista ativa —
+    // é o mesmo louvor com outro material — em vez de empilhar uma rota nova
+    // ou entrar no fim da lista; áudio toca sem tirar o usuário da partitura
+    // (ouvir enquanto lê); YouTube segue pelo opener único.
     onMaterialSelected: (material) async {
       switch (material) {
-        case PdfMaterial(:final louvor):
-          await _onPdfMaterialSelected(
+        case PdfMaterial() || ChordMaterialRef() || GestureMaterialRef():
+          await _onReadableMaterialSelected(
             ref: ref,
             context: context,
             currentMaterialId: currentMaterialId,
             currentEntryKey: currentEntryKey,
             selected: material,
-            selectedLouvor: louvor,
           );
         case AudioMaterial(:final track):
           // A entrada focada já é um áudio: escolher outra voz **troca** a
@@ -158,7 +157,7 @@ Future<void> showCarouselSwapMaterialSheet({
               activeQueue: activeListAudioQueue(ref),
             ),
           );
-        case ChordMaterialRef() || GestureMaterialRef() || YoutubeMaterialRef():
+        case YoutubeMaterialRef():
           await ref.read(openMaterialProvider).open(context, ref, material);
       }
     },
@@ -173,13 +172,19 @@ String? _keyForMaterialId(WidgetRef ref, String materialId) {
   return null;
 }
 
-Future<void> _onPdfMaterialSelected({
+/// Um material que se lê (PDF, cifra ou gestos) escolhido no sheet de troca.
+///
+/// A lista obedece ao **louvor**, não ao material: a entrada focada é trocada
+/// no lugar (`replaceByKey`) e a rota do leitor é substituída — a cifra e os
+/// gestos do mesmo louvor nunca entram como entrada nova no fim da lista.
+/// `navigateToPdfId` resolve a rota certa para cada tipo (`/leitor`, `/cifra`,
+/// `/gestos`).
+Future<void> _onReadableMaterialSelected({
   required WidgetRef ref,
   required BuildContext context,
   required String? currentMaterialId,
   required String? currentEntryKey,
   required CatalogMaterial selected,
-  required Louvor selectedLouvor,
 }) async {
   if (!context.mounted) return;
   final path = GoRouterState.of(context).uri.path;
@@ -205,11 +210,14 @@ Future<void> _onPdfMaterialSelected({
 
   if (!context.mounted) return;
   if (currentMaterialId == null || currentMaterialId.isEmpty) {
-    await openLouvorInReader(
-      ref: ref,
-      context: context,
-      louvor: selectedLouvor,
-    );
+    // Sem entrada focada não há o que trocar: abre como do catálogo
+    // (o PDF entra na lista pelo `openLouvorInReader`; cifra/gestos pelo
+    // opener único).
+    if (selected case PdfMaterial(:final louvor)) {
+      await openLouvorInReader(ref: ref, context: context, louvor: louvor);
+    } else {
+      await ref.read(openMaterialProvider).open(context, ref, selected);
+    }
     return;
   }
 

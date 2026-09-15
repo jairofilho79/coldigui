@@ -1,4 +1,5 @@
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -131,8 +132,21 @@ class _RecordingActiveEditor extends ActivePlaylistEditor {
   /// `(chave da ocorrência, entrada nova)` de cada [replaceByKey].
   final List<(String, PlaylistEntry)> replaced = [];
 
+  /// Ids de cada [addToActive] — o sheet de troca não deve anexar nada.
+  final List<String> added = [];
+
   @override
   List<PlaylistEntry>? build() => initialEntries;
+
+  @override
+  Future<AddToActiveOutcome> addToActive(
+    String materialId, {
+    MaterialKind? kind,
+    bool allowDuplicate = false,
+  }) async {
+    added.add(materialId);
+    return AddToActiveOutcome.added;
+  }
 
   @override
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
@@ -334,7 +348,12 @@ void main() {
     expect(find.text('leitor'), findsOneWidget);
   });
 
-  testWidgets('cifra abre a rota de cifra', (tester) async {
+  // Cifra e gestos são **o mesmo louvor** com outro material: trocam a
+  // entrada no lugar (como o PDF) e substituem a rota do leitor — nunca
+  // entram como louvor novo no fim da lista (era o que `addToActive` fazia).
+  testWidgets('cifra troca a entrada e substitui a rota, sem anexar', (
+    tester,
+  ) async {
     final group = LouvorGroup.fromLouvores(
       [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
       chordMaterials: const [_chord],
@@ -347,12 +366,19 @@ void main() {
     await tester.tap(find.text('Cifra I'));
     await tester.pumpAndSettle();
 
-    expect(harness.location, startsWith(RoutePaths.chords));
-    expect(find.text('cifra'), findsOneWidget);
-    expect(harness.carousel.replaced, isEmpty);
+    expect(harness.carousel.replaced, [
+      ('pdf1', const PlaylistEntry(id: 'chord1', kind: MaterialKind.chord)),
+    ]);
+    expect(harness.carousel.added, isEmpty);
+    // A rota vem de `navigateToPdfId` (que desvia cifra para `/cifra` em
+    // produção) e substitui o leitor em vez de empilhar.
+    expect(harness.readerActions.navigated, ['chord1']);
+    expect(harness.location, '${RoutePaths.reader}?pdfId=chord1');
   });
 
-  testWidgets('gesto abre a rota de gestos', (tester) async {
+  testWidgets('gesto troca a entrada e substitui a rota, sem anexar', (
+    tester,
+  ) async {
     final group = LouvorGroup.fromLouvores(
       [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
       gestureMaterials: const [_gesture],
@@ -367,9 +393,12 @@ void main() {
     await tester.tap(find.text('Gestos I'));
     await tester.pumpAndSettle();
 
-    expect(harness.location, startsWith(RoutePaths.gestos));
-    expect(find.text('gestos'), findsOneWidget);
-    expect(harness.carousel.replaced, isEmpty);
+    expect(harness.carousel.replaced, [
+      ('pdf1', const PlaylistEntry(id: 'gesture1', kind: MaterialKind.gesture)),
+    ]);
+    expect(harness.carousel.added, isEmpty);
+    expect(harness.readerActions.navigated, ['gesture1']);
+    expect(harness.location, '${RoutePaths.reader}?pdfId=gesture1');
   });
 
   testWidgets('áudio toca com a fila do grupo e fica no leitor', (
