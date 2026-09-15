@@ -31,7 +31,7 @@ void _walk(
         _walk(children, [...contexts, const LinkContext()], out);
       case FinalBlock(:final children):
         _walk(children, [...contexts, const FinalContext()], out);
-      case InstructionCard() || TextLine():
+      case InstructionCard() || TextLine() || SectionLabel():
         break;
     }
   }

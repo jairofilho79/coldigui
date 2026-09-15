@@ -57,4 +57,26 @@ void main() {
     final doc = parseGestureDocument('{"items":[{"type":"text","text":"x"}]}');
     expect(flattenGestureCards(doc), isEmpty);
   });
+
+  test('SectionLabel não vira cartão nem conta como gesto', () {
+    const card = GestureCard(gestureId: 'c687580e7682', lyrics: [LyricLine(trigger: 'a', text: 'b')]);
+    const doc = GestureDocument(
+      schemaMajor: 1,
+      title: '',
+      dictionaryVersion: 1,
+      items: [SectionLabel.chorus(), card, SectionLabel.pass(2), card],
+    );
+
+    final flat = flattenGestureCards(doc);
+
+    expect(flat, hasLength(2));
+    expect([for (final f in flat) f.index], [0, 1]);
+    expect(
+      const GestureDocument(schemaMajor: 1, title: '', dictionaryVersion: 1, items: [SectionLabel.pass(3)]).hasGestures,
+      isFalse,
+    );
+    expect(const SectionLabel.chorus().isChorus, isTrue);
+    expect(const SectionLabel.pass(2).isChorus, isFalse);
+    expect(const SectionLabel.pass(2).pass, 2);
+  });
 }

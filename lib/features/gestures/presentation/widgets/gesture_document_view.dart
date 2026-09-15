@@ -117,7 +117,7 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
 
   static bool _isBlock(GestureItem item) => switch (item) {
     RepeatBlock() || ChorusBlock() || LinkBlock() || FinalBlock() => true,
-    GestureCard() || InstructionCard() || TextLine() => false,
+    GestureCard() || InstructionCard() || TextLine() || SectionLabel() => false,
   };
 
   Widget _buildItem(GestureItem item) {
@@ -149,6 +149,9 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
         return InstructionCardView(kind: kind);
       case TextLine(:final text):
         return TextLineView(text: text, fontSize: widget.fontSize);
+      case SectionLabel():
+        // Renderização real na Task 6 (SectionLabelView).
+        return const SizedBox.shrink();
     }
   }
 }
