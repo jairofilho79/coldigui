@@ -16,7 +16,7 @@ A Home dispara duas buscas em paralelo por tecla: uma local (só título/número
 |---|---|
 | D1 | **Layout: opção A do mockup** — uma linha simples entre o título e a linha de metadados, itálico, cor muted, trecho casado em dourado (`AppColors.gold`), reaproveitando o widget `HighlightedText` já usado no título. Sem ícone, sem fundo, sem borda extra. |
 | D2 | **Trecho calculado no servidor** (`coldigom/api`), não baixando `.chord` no client. O client só recebe uma string curta já pronta pra exibir. |
-| D3 | **Uma linha só.** Quebras de linha da letra viram espaço; o trecho é truncado a ~110 caracteres em bordas de palavra, com "…" quando corta no meio. |
+| D3 | **Uma linha só.** Quebras de linha da letra viram espaço; o trecho é truncado a ~120 caracteres em bordas de palavra (~55 de cada lado do match), com "…" quando corta no meio. |
 | D4 | **Só busca textual.** Buscas puramente numéricas (`parseNumericSearch`) ou link de YouTube (`extractYouTubeVideoId`) nunca calculam/retornam trecho — não fazem sentido como "match na letra". |
 | D5 | **Campo aditivo e sempre presente quando aplicável**: `lyrics_excerpt: string | null` em cada item de `GET /api/plpcg/praises` — `null` quando não há match na letra ou a busca não é textual. Não quebra outros consumidores do endpoint (web admin) — campo desconhecido é ignorado. |
 | D6 | **Sem novo campo em `Louvor`/`CarouselItem`.** O trecho viaja pelo canal que já existe para dados extras do Coldigom: `ColdigomPraiseMetadata` (hoje usada pelo sheet de materiais) ganha o campo e chega ao card via `LouvorGroup.coldigomMeta`. |
@@ -34,7 +34,7 @@ export function buildLyricsExcerpt(lyrics: string, rawQuery: string): string | n
 - Normaliza `lyrics` e `rawQuery` (NFD unicode, remove marcas diacríticas, minúsculas) mantendo um mapa de índice normalizado → índice original (a remoção de acento muda o comprimento da string).
 - Tenta achar a frase completa normalizada primeiro; sem match, tenta o primeiro token (mesma tokenização de `buildFtsMatchQuery` em `praiseQuery.ts`: remove pontuação, separa por espaço).
 - Sem nenhum match → `null`.
-- Com match, expande a partir dos índices originais até a borda de palavra mais próxima (~55 caracteres de cada lado, teto de ~110 no total), troca `\n`/`\t`/espaços repetidos por um espaço só, e prefixa/sufixa com "…" quando o corte não coincide com início/fim da letra.
+- Com match, expande a partir dos índices originais até a borda de palavra mais próxima (~55 caracteres de cada lado, teto de ~120 no total), troca `\n`/`\t`/espaços repetidos por um espaço só, e prefixa/sufixa com "…" quando o corte não coincide com início/fim da letra.
 
 Função pura, sem I/O — testável isolada, no padrão de `escapeLikePattern`/`buildFtsMatchQuery` já existentes em `praiseQuery.ts`.
 
