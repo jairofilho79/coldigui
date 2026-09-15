@@ -79,13 +79,18 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   /// `_gen` de quando o `start` mais recente foi de fato mandado (`_conn`
   /// não nulo) — `null` enquanto nenhum foi mandado nesta conexão.
   ///
-  /// RoomCore responde ao `hello` (`room{idle}`) **antes** de processar o
-  /// `start` já enfileirado atrás dele (`await authenticate` dentro do
-  /// `hello`); o `room{live}` que confirma o `start` chega **na mesma
-  /// conexão** em que ele foi mandado. Comparar com `_gen` distingue esse eco
-  /// (nada a fazer) de um `room{idle}`/`room{live}` de uma conexão nova
-  /// (reconexão/retomada — reenviar `start` ou `set`, respectivamente).
+  /// O `room{live}` que confirma o `start` chega **na mesma conexão** em que
+  /// ele foi mandado. Comparar com `_gen` distingue esse eco (nada a fazer)
+  /// de um `room{idle}`/`room{live}` de uma conexão nova (reconexão/retomada
+  /// — reenviar `start` ou `set`, respectivamente).
   int? _startSentGen;
+
+  /// `_gen` da conexão cujo `room` já chegou com `role: leader` — só nela o
+  /// `start` pode ir na hora. Numa conexão nova o `start` espera o `room`:
+  /// mandado colado no `hello`, o DO processava-o enquanto o `hello` ainda
+  /// autenticava (socket `pending` → `error{not_leader}`), e o gestor ficava
+  /// «no ar» só localmente, com a sala `ended` para os consumidores.
+  int? _leaderGreetedGen;
 
   @override
   LiveSessionState build() {
@@ -217,10 +222,14 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       if (!ref.mounted) return;
     }
     final conn = _conn;
-    if (conn != null) {
+    if (conn != null && _leaderGreetedGen == _gen) {
+      // Conexão já cumprimentada como gestor (ex.: retomou e a sala estava
+      // `ended`): não vem `room` nenhum, o `start` vai já.
       conn.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
       _startSentGen = _gen;
     }
+    // Senão, `_onRoomAsLeader` manda o `start` quando o `room{leader}` desta
+    // conexão chegar (`_pendingStart`).
     state = state.copyWith(
       role: LiveRole.leader,
       roomStatus: LiveRoomStatus.live,
@@ -506,6 +515,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
 
   void _onRoom(LiveRoomFrame frame) {
     _reconnectAttempt = 0;
+    _leaderGreetedGen = frame.role == LiveRole.leader ? _gen : null;
     final keepSnapshot =
         frame.version <= state.version && state.snapshot != null;
     state = state.copyWith(
@@ -678,10 +688,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     if (frame.role != LiveRole.leader) return;
     if (frame.status == LiveRoomStatus.live) {
       _pendingStart = false;
-      // Eco do nosso próprio `start` nesta mesma conexão (mesmo `_gen`):
-      // RoomCore responde ao `hello` com `room{idle}` antes de processar o
-      // `start` já enfileirado atrás dele — o `room{live}` seguinte não é
-      // uma reconexão, não precisa de `set` nenhum.
+      // Eco do nosso próprio `start` nesta mesma conexão (mesmo `_gen`): o
+      // `room{live}` que o confirma não é uma reconexão, não precisa de
+      // `set` nenhum.
       final isEchoOfOwnStart = _startSentGen == _gen;
       _startSentGen = null;
       if (isEchoOfOwnStart) return;
@@ -691,9 +700,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       return;
     }
     if (_pendingStart && _startSentGen != _gen) {
-      // O `start` ainda não foi mandado nesta conexão (primeiro handshake
-      // falhou antes de `startLive` conseguir mandar, ou é uma reconexão
-      // nova): manda agora.
+      // O `start` ainda não foi mandado nesta conexão (caminho normal do
+      // `startLive` numa conexão nova, reconexão, ou primeiro handshake
+      // falhado): agora que o `room{leader}` chegou, manda.
       _conn?.send(encodeLiveStart(liveSnapshotOfActiveList(ref)));
       _startSentGen = _gen;
       state = state.copyWith(roomStatus: LiveRoomStatus.live);

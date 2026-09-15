@@ -114,41 +114,46 @@ void main() {
   LiveSessionController controller() =>
       container.read(liveSessionProvider.notifier);
 
-  test(
-    'startLive manda hello com token e start com a lista ativa e o foco',
-    () async {
-      container.read(carouselFocusedKeyProvider.notifier).focus('b');
-      await controller().startLive(code: code, playlistId: 'p1');
-      final sent = transport.last.sent
-          .map((s) => jsonDecode(s) as Map<String, Object?>)
-          .toList();
-      expect(sent[0]['t'], 'hello');
-      expect(sent[0]['sessionToken'], 'sess_owner');
-      expect(sent[1]['t'], 'start');
-      final snapshot = sent[1]['snapshot'] as Map<String, Object?>;
-      expect(snapshot['playlistId'], 'p1');
-      expect(snapshot['name'], 'Culto');
-      expect((snapshot['entries'] as List).length, 2);
-      expect(snapshot['focusKey'], 'b');
-      // Pref de retomada gravada.
-      expect(container.read(liveLeaderSessionPrefsProvider).read()?.code, code);
-    },
-  );
-
-  test('ordem real dos frames: room{idle} antes de room{live} (eco do hello '
-      'antes do start) não duplica start nem manda set à toa', () async {
+  test('startLive manda hello com token; o start com a lista ativa e o foco só '
+      'sai depois do room{leader} dessa conexão', () async {
+    container.read(carouselFocusedKeyProvider.notifier).focus('b');
     await controller().startLive(code: code, playlistId: 'p1');
-    // RoomCore responde ao `hello` antes de processar o `start` já
-    // enfileirado atrás dele — o primeiro `room` que volta é `idle`.
+    // Mandar `start` colado no `hello` é corrida com o `authenticate` do
+    // DO (o `start` era processado com o socket ainda `pending` →
+    // `error{not_leader}`, e o gestor ficava «no ar» só localmente).
+    expect(sentTypes(transport), ['hello']);
     transport.last.emit(roomFrame(status: 'idle'));
     await Future<void>.delayed(Duration.zero);
-    // Só depois o DO aplica o `start` e manda o `room{live}` que o confirma.
-    transport.last.emit(roomFrame());
-    await Future<void>.delayed(Duration.zero);
-    final types = sentTypes(transport);
-    expect(types.where((t) => t == 'start').length, 1);
-    expect(types.where((t) => t == 'set').length, 0);
+    final sent = transport.last.sent
+        .map((s) => jsonDecode(s) as Map<String, Object?>)
+        .toList();
+    expect(sent[0]['t'], 'hello');
+    expect(sent[0]['sessionToken'], 'sess_owner');
+    expect(sent[1]['t'], 'start');
+    final snapshot = sent[1]['snapshot'] as Map<String, Object?>;
+    expect(snapshot['playlistId'], 'p1');
+    expect(snapshot['name'], 'Culto');
+    expect((snapshot['entries'] as List).length, 2);
+    expect(snapshot['focusKey'], 'b');
+    // Pref de retomada gravada.
+    expect(container.read(liveLeaderSessionPrefsProvider).read()?.code, code);
   });
+
+  test(
+    'ordem real dos frames: room{idle} (resposta ao hello) dispara o start; '
+    'o room{live} que o confirma não duplica start nem manda set à toa',
+    () async {
+      await controller().startLive(code: code, playlistId: 'p1');
+      transport.last.emit(roomFrame(status: 'idle'));
+      await Future<void>.delayed(Duration.zero);
+      // Só depois o DO aplica o `start` e manda o `room{live}` que o confirma.
+      transport.last.emit(roomFrame());
+      await Future<void>.delayed(Duration.zero);
+      final types = sentTypes(transport);
+      expect(types.where((t) => t == 'start').length, 1);
+      expect(types.where((t) => t == 'set').length, 0);
+    },
+  );
 
   test('handshake falha antes do primeiro start: a reconexão reenvia start uma única vez', () async {
     transport.failNext(1);
@@ -311,6 +316,8 @@ void main() {
 
     expect(transport.attempts, 2);
     expect(transport.connections.first.isOpen, isFalse);
+    transport.last.emit(roomFrame(status: 'idle'));
+    await Future<void>.delayed(Duration.zero);
     final sent = transport.last.sent
         .map((s) => jsonDecode(s) as Map<String, Object?>)
         .toList();
@@ -319,6 +326,34 @@ void main() {
     expect(sent[1]['t'], 'start');
     expect(container.read(liveSessionProvider).role, LiveRole.leader);
   });
+
+  test('já cumprimentado como gestor (sala ended/idle): startLive manda start '
+      'na hora, sem esperar room nenhum', () async {
+    // Retomou a sessão (hello com token) e a sala já tinha encerrado.
+    await controller().join(code);
+    transport.last.emit(roomFrame(status: 'ended'));
+    await Future<void>.delayed(Duration.zero);
+    expect(sentTypes(transport), ['hello']);
+
+    await controller().startLive(code: code, playlistId: 'p1');
+    expect(transport.attempts, 1);
+    expect(sentTypes(transport), ['hello', 'start']);
+  });
+
+  test(
+    'room{consumer} numa conexão nova (token recusado) não recebe start',
+    () async {
+      await controller().startLive(code: code, playlistId: 'p1');
+      transport.last.emit(
+        jsonEncode({'t': 'error', 'room': code, 'code': 'unauthorized'}),
+      );
+      transport.last.emit(roomFrame(role: 'consumer', status: 'idle'));
+      await Future<void>.delayed(Duration.zero);
+      expect(sentTypes(transport), ['hello']);
+      expect(container.read(liveSessionProvider).role, LiveRole.consumer);
+      expect(container.read(liveSessionProvider).isLeading, isFalse);
+    },
+  );
 
   test('handshake falha enquanto pausado: join(code) de novo religa (attempts == 2)', () {
     fakeAsync((async) {
