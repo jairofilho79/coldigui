@@ -16,6 +16,7 @@ import '../../domain/live_material_projection.dart';
 import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
 import '../../domain/protocol/live_frames.dart';
+import 'live_debug_log.dart';
 import 'live_leader_session_prefs.dart';
 import 'live_material_choice_provider.dart';
 import 'live_navigation_providers.dart';
@@ -334,6 +335,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     if (state.lastError != null) state = state.copyWith(clearLastError: true);
     _sub = conn.messages.listen((text) => _onMessage(gen, text));
     unawaited(conn.done.then((d) => _onDisconnect(gen, d)));
+    liveDebug(() => 'gen=$gen SEND hello since=${state.version}');
     conn.send(
       encodeLiveHello(
         room: code,
@@ -377,6 +379,11 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   }
 
   void _onDisconnect(int gen, LiveDisconnect disconnect) {
+    liveDebug(
+      () =>
+          'gen=$gen CLOSE code=${disconnect.code} phase=${state.phase.name}'
+          '${gen != _gen ? ' (geração velha)' : ''}',
+    );
     if (gen != _gen || !ref.mounted) return;
     _sub = null;
     _conn = null;
@@ -497,6 +504,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     }
     final frame = decodeLiveServerFrame(text);
     if (frame == null) return;
+    liveDebug(() => 'RECV ${_describeFrame(frame)}');
     if (frame is LiveErrorFrame && frame.code == 'not_found') {
       _finish(LivePhase.notFound);
       return;
@@ -679,6 +687,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
         return;
       }
       _appliedFocusMaterialId = materialId;
+      liveDebug(
+        () => 'seguir ${liveShort(key)} -> navega ${liveShort(materialId)}',
+      );
       ref.read(liveNavigatorProvider)(location);
     } on Object catch (e, stack) {
       _log.error('não foi possível seguir o foco $key', e, stack);
@@ -696,6 +707,11 @@ class LiveSessionController extends Notifier<LiveSessionState> {
   }
 
   void _onLocalFocusChanged(String? key) {
+    liveDebug(
+      () =>
+          'foco local -> ${liveShort(key)} '
+          '(${state.isFollowing ? 'seguindo, aplicando=$_applyingFocus' : 'gestor'})',
+    );
     if (state.isFollowing) {
       if (_applyingFocus) return;
       if (key != null && key != _leaderFocusKey && state.followingFocus) {
@@ -706,25 +722,62 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     _scheduleLeaderSet();
   }
 
-  void _onLocalListChanged() => _scheduleLeaderSet();
+  void _onLocalListChanged() {
+    liveDebug(
+      () => 'lista local mudou (${ref.read(activeEntriesProvider).length})',
+    );
+    _scheduleLeaderSet();
+  }
 
   void _scheduleLeaderSet() {
-    if (!state.isLeading || _conn == null) return;
+    if (!state.isLeading || _conn == null) {
+      liveDebug(
+        () =>
+            'set NÃO agendado: leading=${state.isLeading} conn=${_conn != null}',
+      );
+      return;
+    }
     _setDebounce?.cancel();
     _setDebounce = Timer(kLiveLeaderSetDebounce, () {
-      if (!ref.mounted || !state.isLeading) return;
+      if (!ref.mounted || !state.isLeading) {
+        liveDebug(() => 'set cancelado no timer: leading=${state.isLeading}');
+        return;
+      }
       _sendLeaderSet();
     });
   }
+
+  String _describeFrame(LiveServerFrame frame) => switch (frame) {
+    LiveRoomFrame() =>
+      'room status=${frame.status.name} role=${frame.role.name} '
+          'v=${frame.version} focus=${liveShort(frame.snapshot?.focusKey)} '
+          'n=${frame.snapshot?.entries.length}',
+    LiveSnapshotFrame() =>
+      'snapshot v=${frame.version} focus=${liveShort(frame.snapshot.focusKey)} '
+          'n=${frame.snapshot.entries.length}',
+    LiveAckFrame() => 'ack v=${frame.version}',
+    LivePresenceFrame() =>
+      'presence leader=${frame.leaderPresent} viewers=${frame.viewers}',
+    LiveEndedFrame() => 'ended ${frame.reason.name}',
+    LiveErrorFrame() => 'error ${frame.code}',
+  };
 
   /// `set` com a lista ativa — a não ser que não haja lista ativa nenhuma
   /// (`liveSnapshotOfActiveList` daria `playlistId: ''` → `bad_frame`).
   void _sendLeaderSet() {
     if (ref.read(activePlaylistProvider) == null) {
       _log.warn('sala ${state.code}: sem lista ativa, set não enviado');
+      liveDebug(() => 'set NÃO enviado: sem lista ativa');
       return;
     }
-    _conn?.send(encodeLiveSet(liveSnapshotOfActiveList(ref)));
+    final snapshot = liveSnapshotOfActiveList(ref);
+    liveDebug(
+      () =>
+          'SEND set focus=${liveShort(snapshot.focusKey)} '
+          '(foco local=${liveShort(ref.read(carouselFocusedKeyProvider))}) '
+          'n=${snapshot.entries.length} conn=${_conn != null}',
+    );
+    _conn?.send(encodeLiveSet(snapshot));
   }
 
   void _onRoomAsLeader(LiveRoomFrame frame) {
