@@ -1,7 +1,7 @@
 # Trecho da letra em dourado — resultados de pesquisa que batem na letra
 
 **Data:** 2026-09-15
-**Estado:** aprovado (brainstorm em sessão; mockup visual validado — opção A)
+**Estado:** implementado — 2026-09-15 (código pronto nos dois repos; falta só o deploy manual do `coldigom-api` e os commits manuais do `coldigom/api`, item 7 abaixo)
 **Escopo:** quando a pesquisa da Home bate no louvor pela letra (não pelo título/número), o card do resultado passa a mostrar uma linha com o trecho da letra que deu match, com a parte casada em dourado — mesmo padrão já usado no destaque do título.
 **Repos:** `coldigom/api` (novo campo `lyrics_excerpt` em `GET /api/plpcg/praises`) **e** `coldigui` (consumo do campo + UI do card).
 **Mockup:** https://claude.ai/artifact/3aS8nemGrbzjkDJPh1Aa1o (opção A escolhida pelo usuário).
@@ -123,3 +123,7 @@ Padding(
 | Letra muito longa deixa a query `SELECT id, lyrics FROM praises WHERE id IN (...)` pesada | Limitada às linhas da página atual (`limit`, 20 por padrão) e só quando `has_lyrics=1` — no pior caso 20 letras por busca. |
 | Trecho cai no meio de uma palavra feia (ex. divide sílaba) | Expansão sempre para a borda de espaço mais próxima, nunca corta no meio de uma palavra. |
 | Cliente antigo (versão do app antes desta mudança) recebe `lyrics_excerpt` e ignora | Campo aditivo, sem risco — `PraiseDetailDto.fromJson` de versões antigas simplesmente não lê a chave nova. |
+
+## 9. Ajuste pós-revisão final (2026-09-15)
+
+A revisão final de branch (subagent-driven-development) encontrou que o fallback original de `buildLyricsExcerpt` — cair para o primeiro token quando a frase completa não aparece contígua na letra — devolvia um trecho que o client quase nunca conseguia destacar em dourado (o `HighlightedText` do client só casa substring contíguo da busca inteira, não por token). **Ruling:** o fallback foi removido — `buildLyricsExcerpt` só devolve um trecho quando a frase completa é encontrada contígua; caso contrário devolve `null` (mesmo resultado gracioso já previsto na tabela de riscos acima). Busca de uma palavra só não é afetada. Um teste widget cobrindo `highlightQuery` + `lyricsSnippet` juntos (dourado parcial, uma linha) foi adicionado como guarda de regressão. O algoritmo de truncamento (`extractWindow`) também foi corrigido para orçar o contexto ao redor do match em vez de um corte cego no fim, evitando cortar palavra ou o próprio match.
