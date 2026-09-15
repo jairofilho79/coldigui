@@ -91,8 +91,9 @@ class ColdigomRemoteDatasource {
 
   /// Listagem PLPCG com materials slim (`GET /api/plpcg/praises`).
   ///
-  /// Busca `q` ainda encontra por letra no servidor; a resposta não inclui
-  /// o texto da letra. [cancelToken] aborta a requisição de verdade (a busca
+  /// Busca `q` ainda encontra por letra no servidor; a resposta traz um
+  /// trecho curto (`lyrics_excerpt`, uma linha) quando o match foi na letra
+  /// — nunca o texto completo. [cancelToken] aborta a requisição de verdade (a busca
   /// da Home cancela a página anterior a cada tecla nova); cancelar faz o Dio
   /// lançar `DioException` com `type == DioExceptionType.cancel`.
   Future<PlpcgPraisesPageDto> listPlpcgPraises(

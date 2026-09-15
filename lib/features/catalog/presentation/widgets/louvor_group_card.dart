@@ -298,6 +298,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
     final isMultiMaterial = widget.group.totalMaterials > 1;
     final hasAudio = widget.group.audioTracks.isNotEmpty;
     final highlightQuery = ref.watch(homeSearchDebouncedQueryProvider);
+    final lyricsSnippet = widget.group.coldigomMeta?.lyricsExcerpt;
 
     final chipItem = primary != null
         ? _toCarouselItem(primary)
@@ -359,6 +360,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
         materialKindsGroup: widget.group,
         onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
         highlightQuery: highlightQuery,
+        lyricsSnippet: lyricsSnippet,
         onTap: isLoading ? null : _handleTap,
         onLongPress: isLoading
             ? null
