@@ -1,14 +1,19 @@
 import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart';
-import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_palette.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/lyric_line_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+final _palette = GestureReaderMode.light.palette;
 
 Future<RichText> _pump(WidgetTester tester, LyricLine line, {double width = 400}) async {
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: SizedBox(width: width, child: LyricLineText(line: line, fontSize: 18)),
+        body: SizedBox(
+          width: width,
+          child: LyricLineText(line: line, fontSize: 18, palette: _palette),
+        ),
       ),
     ),
   );
@@ -28,10 +33,10 @@ void main() {
     final rich = await _pump(tester, const LyricLine(trigger: 'Quero', text: 'viver'));
     final spans = _spans(rich);
     expect(spans[0].text, 'Quero');
-    expect(spans[0].style?.color, GestureReaderPalette.trigger);
+    expect(spans[0].style?.color, _palette.trigger);
     expect(spans[0].style?.fontWeight, FontWeight.bold);
     expect(spans[1].text, ' viver');
-    expect(spans[1].style?.color, GestureReaderPalette.lyric);
+    expect(spans[1].style?.color, _palette.lyric);
     expect(spans[1].style?.fontWeight, isNot(FontWeight.bold));
   });
 

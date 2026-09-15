@@ -27,6 +27,7 @@ class GestureDocumentView extends StatefulWidget {
     required this.document,
     required this.dictionary,
     required this.fontSize,
+    required this.palette,
     this.onCardTap,
     this.scrollController,
     super.key,
@@ -35,6 +36,7 @@ class GestureDocumentView extends StatefulWidget {
   final GestureDocument document;
   final GestureDictionary dictionary;
   final double fontSize;
+  final GestureReaderPalette palette;
   final ValueChanged<int>? onCardTap;
   final ScrollController? scrollController;
 
@@ -65,7 +67,7 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
     final items = _buildItems(widget.document.items, gapInsideLink: false);
 
     return ColoredBox(
-      color: GestureReaderPalette.paper,
+      color: widget.palette.paper,
       child: SingleChildScrollView(
         controller: widget.scrollController,
         padding: const EdgeInsets.symmetric(vertical: kGesturePageMargin),
@@ -85,7 +87,7 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
                         widget.document.title.toUpperCase(),
                         key: gestureDocumentTitleKey,
                         style: AppTypography.headline.copyWith(
-                          color: GestureReaderPalette.lyric,
+                          color: widget.palette.lyric,
                         ),
                       ),
                     ),
@@ -131,24 +133,35 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
             card: item,
             entry: widget.dictionary.resolve(item.gestureId),
             fontSize: widget.fontSize,
+            palette: widget.palette,
             onTap: widget.onCardTap,
           ),
         );
       case RepeatBlock(:final count, :final children):
         return RepeatBlockView(
           count: count,
+          palette: widget.palette,
           children: _buildItems(children, gapInsideLink: false),
         );
       case ChorusBlock(:final children):
-        return ChorusBlockView(children: _buildItems(children, gapInsideLink: false));
+        return ChorusBlockView(
+          palette: widget.palette,
+          children: _buildItems(children, gapInsideLink: false),
+        );
       case LinkBlock(:final children):
-        return LinkBlockView(children: _buildItems(children, gapInsideLink: true));
+        return LinkBlockView(
+          palette: widget.palette,
+          children: _buildItems(children, gapInsideLink: true),
+        );
       case FinalBlock(:final children):
-        return FinalSectionView(children: _buildItems(children, gapInsideLink: false));
+        return FinalSectionView(
+          palette: widget.palette,
+          children: _buildItems(children, gapInsideLink: false),
+        );
       case InstructionCard(:final kind):
-        return InstructionCardView(kind: kind);
+        return InstructionCardView(kind: kind, palette: widget.palette);
       case TextLine(:final text):
-        return TextLineView(text: text, fontSize: widget.fontSize);
+        return TextLineView(text: text, fontSize: widget.fontSize, palette: widget.palette);
       case SectionLabel():
         // Renderização real na Task 6 (SectionLabelView).
         return const SizedBox.shrink();

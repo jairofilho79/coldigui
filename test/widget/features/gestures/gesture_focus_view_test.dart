@@ -6,6 +6,7 @@ import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_dictionary.dart';
 import 'package:coldigui/features/gestures/domain/usecases/parse_gesture_document.dart';
 import 'package:coldigui/features/gestures/domain/utils/flatten_gesture_cards.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_focus_view.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -16,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/gesture_test_png.dart';
+
+final _palette = GestureReaderMode.light.palette;
 
 String _read(String name) => File('test/fixtures/gestures/$name').readAsStringSync();
 
@@ -35,7 +38,14 @@ Future<Future<int?>> _open(WidgetTester tester, String fixture, int initialIndex
             body: Center(
               child: ElevatedButton(
                 onPressed: () {
-                  result = showGestureFocus(context, cards: cards, dictionary: dict, initialIndex: initialIndex, fontSize: 18);
+                  result = showGestureFocus(
+                    context,
+                    cards: cards,
+                    dictionary: dict,
+                    initialIndex: initialIndex,
+                    fontSize: 18,
+                    palette: _palette,
+                  );
                 },
                 child: const Text('abrir'),
               ),
@@ -66,7 +76,14 @@ Future<Future<int?>> _openCards(WidgetTester tester, List<FlatGestureCard> cards
             body: Center(
               child: ElevatedButton(
                 onPressed: () {
-                  result = showGestureFocus(context, cards: cards, dictionary: dict, initialIndex: initialIndex, fontSize: 18);
+                  result = showGestureFocus(
+                    context,
+                    cards: cards,
+                    dictionary: dict,
+                    initialIndex: initialIndex,
+                    fontSize: 18,
+                    palette: _palette,
+                  );
                 },
                 child: const Text('abrir'),
               ),

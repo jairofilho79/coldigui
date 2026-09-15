@@ -1,11 +1,14 @@
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_dictionary.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/gesture_test_png.dart';
+
+final _palette = GestureReaderMode.light.palette;
 
 const _entry = GestureEntry(
   id: 'c687580e7682',
@@ -35,7 +38,13 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         home: Scaffold(
-          body: GestureFigure(entry: entry, gestureId: 'c687580e7682', side: 96, preferGif: preferGif),
+          body: GestureFigure(
+            entry: entry,
+            gestureId: 'c687580e7682',
+            side: 96,
+            preferGif: preferGif,
+            palette: _palette,
+          ),
         ),
       ),
     ),

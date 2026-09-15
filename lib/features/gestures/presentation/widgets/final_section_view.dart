@@ -9,8 +9,9 @@ const Key gestureFinalDividerKey = ValueKey('gesture-final-divider');
 
 /// `FINAL`: divisor traço-ponto + rótulo à esquerda, depois os filhos.
 class FinalSectionView extends StatelessWidget {
-  const FinalSectionView({required this.children, super.key});
+  const FinalSectionView({required this.palette, required this.children, super.key});
 
+  final GestureReaderPalette palette;
   final List<Widget> children;
 
   @override
@@ -25,20 +26,20 @@ class FinalSectionView extends StatelessWidget {
             children: [
               Text(
                 l10n?.gestureContextFinal ?? 'FINAL',
-                style: const TextStyle(
-                  color: GestureReaderPalette.wine,
+                style: TextStyle(
+                  color: palette.wine,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: SizedBox(
                   height: 2,
                   child: CustomPaint(
                     key: gestureFinalDividerKey,
-                    painter: _DashDotPainter(),
+                    painter: _DashDotPainter(palette),
                   ),
                 ),
               ),
@@ -52,12 +53,14 @@ class FinalSectionView extends StatelessWidget {
 }
 
 class _DashDotPainter extends CustomPainter {
-  const _DashDotPainter();
+  const _DashDotPainter(this.palette);
+
+  final GestureReaderPalette palette;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = GestureReaderPalette.wine
+      ..color = palette.wine
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     final y = size.height / 2;
@@ -71,5 +74,5 @@ class _DashDotPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashDotPainter old) => false;
+  bool shouldRepaint(_DashDotPainter old) => old.palette != palette;
 }

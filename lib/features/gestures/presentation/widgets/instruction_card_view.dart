@@ -14,9 +14,10 @@ String instructionLabel(AppLocalizations l10n, InstructionKind kind) => switch (
 
 /// Cartão de largura total com a instrução (`Instrumentos`, `Voltar ao coro`…).
 class InstructionCardView extends StatelessWidget {
-  const InstructionCardView({required this.kind, super.key});
+  const InstructionCardView({required this.kind, required this.palette, super.key});
 
   final InstructionKind kind;
+  final GestureReaderPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -25,17 +26,13 @@ class InstructionCardView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: GestureReaderPalette.instructionBg,
+        color: palette.instructionBg,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: GestureReaderPalette.instructionBorder),
+        border: Border.all(color: palette.instructionBorder),
       ),
       child: Text(
         instructionLabel(l10n, kind),
-        style: const TextStyle(
-          color: GestureReaderPalette.instructionText,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: palette.instructionText, fontSize: 14, fontWeight: FontWeight.w600),
       ),
     );
   }

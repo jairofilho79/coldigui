@@ -45,6 +45,7 @@ Future<int?> showGestureFocus(
   required GestureDictionary dictionary,
   required int initialIndex,
   required double fontSize,
+  required GestureReaderPalette palette,
 }) {
   return showGeneralDialog<int>(
     context: context,
@@ -56,6 +57,7 @@ Future<int?> showGestureFocus(
       dictionary: dictionary,
       initialIndex: initialIndex,
       fontSize: fontSize,
+      palette: palette,
     ),
   );
 }
@@ -67,6 +69,7 @@ class GestureFocusView extends ConsumerStatefulWidget {
     required this.dictionary,
     required this.initialIndex,
     required this.fontSize,
+    required this.palette,
     super.key,
   });
 
@@ -74,6 +77,7 @@ class GestureFocusView extends ConsumerStatefulWidget {
   final GestureDictionary dictionary;
   final int initialIndex;
   final double fontSize;
+  final GestureReaderPalette palette;
 
   @override
   ConsumerState<GestureFocusView> createState() => _GestureFocusViewState();
@@ -139,7 +143,7 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
       autofocus: true,
       onKeyEvent: _onKey,
       child: Material(
-        color: GestureReaderPalette.paper,
+        color: widget.palette.paper,
         child: SafeArea(
           child: Column(
             children: [
@@ -148,7 +152,7 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
                 child: IconButton(
                   key: gestureFocusCloseKey,
                   tooltip: l10n.gestureFocusClose,
-                  icon: const Icon(Icons.close, color: GestureReaderPalette.lyric),
+                  icon: Icon(Icons.close, color: widget.palette.lyric),
                   onPressed: _close,
                 ),
               ),
@@ -169,13 +173,18 @@ class _GestureFocusViewState extends ConsumerState<GestureFocusView> {
                           dictionary: widget.dictionary,
                           fontSize: widget.fontSize + 6,
                           maxWidth: constraints.maxWidth,
+                          palette: widget.palette,
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              _NextFooter(l10n: l10n, nextTrigger: next == null ? null : nextTrigger),
+              _NextFooter(
+                l10n: l10n,
+                nextTrigger: next == null ? null : nextTrigger,
+                palette: widget.palette,
+              ),
             ],
           ),
         ),
@@ -190,6 +199,7 @@ class _FocusPage extends StatelessWidget {
     required this.dictionary,
     required this.fontSize,
     required this.maxWidth,
+    required this.palette,
     super.key,
   });
 
@@ -197,6 +207,7 @@ class _FocusPage extends StatelessWidget {
   final GestureDictionary dictionary;
   final double fontSize;
   final double maxWidth;
+  final GestureReaderPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -214,12 +225,9 @@ class _FocusPage extends StatelessWidget {
                 for (final ctx in flat.contexts)
                   Chip(
                     label: Text(blockContextLabel(l10n, ctx)),
-                    labelStyle: const TextStyle(
-                      color: GestureReaderPalette.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    side: const BorderSide(color: GestureReaderPalette.blue),
-                    backgroundColor: GestureReaderPalette.paper,
+                    labelStyle: TextStyle(color: palette.blue, fontWeight: FontWeight.bold),
+                    side: BorderSide(color: palette.blue),
+                    backgroundColor: palette.paper,
                     visualDensity: VisualDensity.compact,
                   ),
               ],
@@ -230,12 +238,13 @@ class _FocusPage extends StatelessWidget {
             gestureId: flat.card.gestureId,
             side: side,
             preferGif: true,
+            palette: palette,
           ),
           const SizedBox(height: 16),
           for (final line in flat.card.lyrics)
             Align(
               alignment: Alignment.centerLeft,
-              child: LyricLineText(line: line, fontSize: fontSize),
+              child: LyricLineText(line: line, fontSize: fontSize, palette: palette),
             ),
         ],
       ),
@@ -245,12 +254,13 @@ class _FocusPage extends StatelessWidget {
 
 /// Rodapé fixo: `próximo:` + gatilho seguinte em vermelho, ou `fim`.
 class _NextFooter extends StatelessWidget {
-  const _NextFooter({required this.l10n, required this.nextTrigger});
+  const _NextFooter({required this.l10n, required this.nextTrigger, required this.palette});
 
   final AppLocalizations l10n;
 
   /// `null` no último cartão.
   final String? nextTrigger;
+  final GestureReaderPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -259,26 +269,24 @@ class _NextFooter extends StatelessWidget {
       key: gestureFocusNextKey,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: GestureReaderPalette.instructionBorder)),
-      ),
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: palette.divider))),
       child: trigger == null
           ? Text(
               l10n.gestureFocusEnd,
-              style: const TextStyle(color: GestureReaderPalette.freeText, fontSize: 16),
+              style: TextStyle(color: palette.sectionLabel, fontSize: 16),
             )
           : Row(
               children: [
                 Text(
                   '${l10n.gestureFocusNext} ',
-                  style: const TextStyle(color: GestureReaderPalette.freeText, fontSize: 16),
+                  style: TextStyle(color: palette.sectionLabel, fontSize: 16),
                 ),
                 Expanded(
                   child: Text(
                     trigger,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: GestureReaderPalette.trigger,
+                    style: TextStyle(
+                      color: palette.trigger,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),

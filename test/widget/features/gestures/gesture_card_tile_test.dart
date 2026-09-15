@@ -1,6 +1,7 @@
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_dictionary.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_card_tile.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/lyric_line_text.dart';
@@ -9,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/gesture_test_png.dart';
+
+final _palette = GestureReaderMode.light.palette;
 
 const _entry = GestureEntry(
   id: 'c687580e7682', name: 'x', description: '', exampleTriggers: [],
@@ -34,7 +37,14 @@ Future<void> _pump(WidgetTester tester, {double fontSize = 18, ValueChanged<int>
         home: Scaffold(
           body: SizedBox(
             width: 400,
-            child: GestureCardTile(index: 3, card: _card, entry: _entry, fontSize: fontSize, onTap: onTap),
+            child: GestureCardTile(
+              index: 3,
+              card: _card,
+              entry: _entry,
+              fontSize: fontSize,
+              palette: _palette,
+              onTap: onTap,
+            ),
           ),
         ),
       ),

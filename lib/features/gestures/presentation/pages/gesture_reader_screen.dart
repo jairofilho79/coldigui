@@ -20,6 +20,8 @@ import '../../domain/entities/gesture_document.dart';
 import '../../domain/entities/gesture_reader_font_size.dart';
 import '../../domain/utils/flatten_gesture_cards.dart';
 import '../providers/gesture_reader_font_size_provider.dart';
+import '../theme/gesture_reader_palette.dart';
+import '../theme/gesture_reader_theme.dart';
 import '../widgets/gesture_document_view.dart';
 import '../widgets/gesture_focus_view.dart';
 import '../widgets/newer_schema_banner.dart';
@@ -158,6 +160,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     GestureDictionary dictionary,
     int index,
     double fontSize,
+    GestureReaderPalette palette,
   ) async {
     final result = await showGestureFocus(
       context,
@@ -165,6 +168,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
       dictionary: dictionary,
       initialIndex: index,
       fontSize: fontSize,
+      palette: palette,
     );
     if (!mounted || result == null) return;
     await _documentViewKey.currentState?.scrollToCard(result);
@@ -179,6 +183,8 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
     final dictionary =
         ref.watch(gestureDictionaryProvider).asData?.value ??
         GestureDictionary.empty;
+    // A Task 7 troca por um provider de tema; por ora, sempre claro.
+    final palette = GestureReaderMode.light.palette;
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -231,6 +237,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                                 document: document,
                                 dictionary: dictionary,
                                 fontSize: fontSize,
+                                palette: palette,
                                 onCardTap: flat.isEmpty
                                     ? null
                                     : (index) => _openFocus(
@@ -238,6 +245,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen> {
                                         dictionary,
                                         index,
                                         fontSize,
+                                        palette,
                                       ),
                               ),
                             ),

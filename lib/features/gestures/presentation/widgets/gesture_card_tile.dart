@@ -20,6 +20,7 @@ class GestureCardTile extends StatelessWidget {
     required this.card,
     required this.entry,
     required this.fontSize,
+    required this.palette,
     this.onTap,
     super.key,
   });
@@ -28,6 +29,7 @@ class GestureCardTile extends StatelessWidget {
   final GestureCard card;
   final GestureEntry? entry;
   final double fontSize;
+  final GestureReaderPalette palette;
   final ValueChanged<int>? onTap;
 
   @override
@@ -40,14 +42,14 @@ class GestureCardTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureFigure(entry: entry, gestureId: card.gestureId, side: side),
+          GestureFigure(entry: entry, gestureId: card.gestureId, side: side, palette: palette),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final line in card.lyrics)
-                  LyricLineText(line: line, fontSize: fontSize),
+                  LyricLineText(line: line, fontSize: fontSize, palette: palette),
               ],
             ),
           ),

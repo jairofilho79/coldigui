@@ -6,8 +6,9 @@ import 'repeat_block_view.dart';
 
 /// `CORO`: rótulo azul negrito acima, chave **tracejada** à direita dos filhos.
 class ChorusBlockView extends StatelessWidget {
-  const ChorusBlockView({required this.children, super.key});
+  const ChorusBlockView({required this.palette, required this.children, super.key});
 
+  final GestureReaderPalette palette;
   final List<Widget> children;
 
   @override
@@ -20,15 +21,15 @@ class ChorusBlockView extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(
             l10n?.gestureContextChorus ?? 'CORO',
-            style: const TextStyle(
-              color: GestureReaderPalette.blue,
+            style: TextStyle(
+              color: palette.blue,
               fontWeight: FontWeight.bold,
               fontSize: 13,
               letterSpacing: 1,
             ),
           ),
         ),
-        BracedChildren(dashed: true, children: children),
+        BracedChildren(dashed: true, palette: palette, children: children),
       ],
     );
   }

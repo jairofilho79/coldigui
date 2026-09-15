@@ -9,6 +9,7 @@ import 'package:coldigui/features/gestures/presentation/widgets/brace_painter.da
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_card_tile.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_document_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/gesture_figure.dart';
+import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/instruction_card_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/link_connector_painter.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/newer_schema_banner.dart';
@@ -18,6 +19,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/gesture_test_png.dart';
+
+final _palette = GestureReaderMode.light.palette;
 
 String _read(String name) => File('test/fixtures/gestures/$name').readAsStringSync();
 
@@ -47,6 +50,7 @@ Future<GlobalKey<GestureDocumentViewState>> _pump(
                   document: parseGestureDocument(_read(fixture)),
                   dictionary: dict,
                   fontSize: fontSize,
+                  palette: _palette,
                   onCardTap: onCardTap,
                 ),
               ),
@@ -115,6 +119,7 @@ void main() {
               ),
               dictionary: parseGestureDictionary(_read('dictionary.json')),
               fontSize: 18,
+              palette: _palette,
             ),
           ),
         ),

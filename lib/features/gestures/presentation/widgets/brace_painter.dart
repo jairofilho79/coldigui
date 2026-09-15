@@ -13,9 +13,10 @@ const Key gestureBraceKey = ValueKey('gesture-brace');
 /// [label] (`Nx`) é pintado centralizado verticalmente, à esquerda da chave.
 /// [dashed] é a variante do `coro`.
 class BracePainter extends CustomPainter {
-  const BracePainter({required this.dashed, this.label});
+  const BracePainter({required this.dashed, required this.palette, this.label});
 
   final bool dashed;
+  final GestureReaderPalette palette;
   final String? label;
 
   static const double _stroke = 2;
@@ -24,7 +25,7 @@ class BracePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = GestureReaderPalette.blue
+      ..color = palette.blue
       ..style = PaintingStyle.stroke
       ..strokeWidth = _stroke
       ..strokeCap = StrokeCap.round;
@@ -49,11 +50,7 @@ class BracePainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
         text: label,
-        style: const TextStyle(
-          color: GestureReaderPalette.blue,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: palette.blue, fontSize: 12, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: x - 2);
@@ -79,5 +76,6 @@ class BracePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(BracePainter old) => old.dashed != dashed || old.label != label;
+  bool shouldRepaint(BracePainter old) =>
+      old.dashed != dashed || old.label != label || old.palette != palette;
 }

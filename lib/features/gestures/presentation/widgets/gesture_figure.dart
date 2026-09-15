@@ -19,6 +19,7 @@ class GestureFigure extends ConsumerWidget {
     required this.entry,
     required this.gestureId,
     required this.side,
+    required this.palette,
     this.preferGif = false,
     super.key,
   });
@@ -26,12 +27,13 @@ class GestureFigure extends ConsumerWidget {
   final GestureEntry? entry;
   final String gestureId;
   final double side;
+  final GestureReaderPalette palette;
   final bool preferGif;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = this.entry;
-    if (entry == null) return _Placeholder(gestureId: gestureId, side: side);
+    if (entry == null) return _Placeholder(gestureId: gestureId, side: side, palette: palette);
 
     final key = preferGif ? (entry.gif ?? entry.image) : entry.image;
     final bytes = ref.watch(gestureFigureProvider(key));
@@ -40,7 +42,7 @@ class GestureFigure extends ConsumerWidget {
       width: side,
       height: side,
       child: ColoredBox(
-        color: GestureReaderPalette.paper,
+        color: palette.figureBg,
         child: bytes.when(
           loading: () => const Center(
             child: SizedBox(
@@ -49,9 +51,9 @@ class GestureFigure extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
-          error: (_, _) => _Placeholder(gestureId: gestureId, side: side),
+          error: (_, _) => _Placeholder(gestureId: gestureId, side: side, palette: palette),
           data: (data) => data == null
-              ? _Placeholder(gestureId: gestureId, side: side)
+              ? _Placeholder(gestureId: gestureId, side: side, palette: palette)
               : Image.memory(
                   data,
                   fit: BoxFit.contain,
@@ -65,10 +67,11 @@ class GestureFigure extends ConsumerWidget {
 }
 
 class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.gestureId, required this.side});
+  const _Placeholder({required this.gestureId, required this.side, required this.palette});
 
   final String gestureId;
   final double side;
+  final GestureReaderPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -79,25 +82,25 @@ class _Placeholder extends StatelessWidget {
       height: side,
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: GestureReaderPalette.placeholderBg,
+        color: palette.placeholderBg,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: GestureReaderPalette.placeholderBorder, width: 1.5),
+        border: Border.all(color: palette.placeholderBorder, width: 1.5),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.pan_tool_outlined, size: 20, color: GestureReaderPalette.placeholderBorder),
+          Icon(Icons.pan_tool_outlined, size: 20, color: palette.placeholderBorder),
           const SizedBox(height: 4),
           Text(
             l10n?.gestureNotFound ?? 'gesto não encontrado',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 9, color: GestureReaderPalette.freeText),
+            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
           ),
           Text(
             gestureId,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 9, color: GestureReaderPalette.freeText),
+            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
           ),
         ],
       ),
