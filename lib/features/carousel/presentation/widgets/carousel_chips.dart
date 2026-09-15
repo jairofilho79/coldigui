@@ -90,6 +90,25 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
     _onReaderRouteChanged();
   }
 
+  /// A rota é uma dependência herdada (`GoRouterState.of` lê um
+  /// `InheritedNotifier`): é por aqui que a troca de rota chega — a barra vive
+  /// no shell, acima do `navigationShell`, e não recebe `didUpdateWidget` só
+  /// porque o leitor trocou de louvor.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _onReaderRouteChanged();
+  }
+
+  /// Sincroniza o foco da lista com o material da rota do leitor — **só
+  /// quando a rota mudou**.
+  ///
+  /// Quem navega pela lista (setas, teclado, chip) foca a entrada **antes** de
+  /// resolver a rota, e resolver um PDF leva mais de um frame. Se a barra
+  /// reconstruir nesse meio-tempo (o warmup Coldigom re-emite o lookup e a
+  /// lista), a rota ainda é a do louvor anterior — refocar por ela devolveria
+  /// o foco ao louvor de onde o usuário saiu, e o gestor ao vivo mandaria o
+  /// `set` "um louvor atrás".
   void _onReaderRouteChanged() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -101,14 +120,13 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       }
 
       final materialId = _resolveReaderMaterialId(readOnly: true);
-      if (materialId != _lastSyncedReaderMaterialId) {
-        setState(() {
-          _lastSyncedReaderMaterialId = materialId;
-          _carouselNavLoading = false;
-          _openingReader = false;
-        });
-      }
+      if (materialId == _lastSyncedReaderMaterialId) return;
 
+      setState(() {
+        _lastSyncedReaderMaterialId = materialId;
+        _carouselNavLoading = false;
+        _openingReader = false;
+      });
       if (materialId != null) _focusMaterialId(materialId);
     });
   }
