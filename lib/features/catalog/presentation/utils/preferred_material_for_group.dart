@@ -39,11 +39,22 @@ CatalogMaterial? preferredMaterialForGroup(
 CatalogMaterial? _bestFavoriteMaterial(
   LouvorGroup group,
   Map<String, int> rank,
-) {
+) => bestFavoriteMaterialForGroup(group, rank, where: canAddMaterialToPlaylist);
+
+/// Material do grupo que passa em [where] com a melhor posição em [rank]
+/// (favorito nº 1 antes do nº 2…), ou `null` se nenhum deles é favorito.
+///
+/// É o núcleo de [preferredMaterialForGroup] e do material próprio de quem
+/// segue uma lista ao vivo (que só troca partitura por partitura).
+CatalogMaterial? bestFavoriteMaterialForGroup(
+  LouvorGroup group,
+  Map<String, int> rank, {
+  required bool Function(CatalogMaterial material) where,
+}) {
   CatalogMaterial? best;
   var bestPosition = 1 << 30;
   for (final material in group.materials) {
-    if (!canAddMaterialToPlaylist(material)) continue;
+    if (!where(material)) continue;
     final kindId = material.materialKindId;
     final position = kindId == null ? null : rank[kindId];
     if (position == null || position >= bestPosition) continue;

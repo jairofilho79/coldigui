@@ -7,6 +7,7 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
+import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../playlists/presentation/providers/active_playlist_provider.dart';
 import '../../data/providers/live_providers.dart';
@@ -15,6 +16,7 @@ import '../../domain/live_reconnect_policy.dart';
 import '../../domain/ports/live_transport.dart';
 import '../../domain/protocol/live_frames.dart';
 import 'live_leader_session_prefs.dart';
+import 'live_material_choice_provider.dart';
 import 'live_navigation_providers.dart';
 import 'live_projection_provider.dart';
 import 'live_session_state.dart';
@@ -529,6 +531,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       _clearProjection();
       return;
     }
+    _seenEntries = null;
     ref
         .read(liveProjectionProvider.notifier)
         .set(
@@ -539,6 +542,7 @@ class LiveSessionController extends Notifier<LiveSessionState> {
             entries: snapshot.entries,
           ),
         );
+    unawaited(_warmupSnapshot(snapshot));
     final focus = snapshot.focusKey;
     if (focus != _leaderFocusKey) {
       _leaderFocusKey = focus;
@@ -548,19 +552,67 @@ class LiveSessionController extends Notifier<LiveSessionState> {
     }
   }
 
+  /// Praises Coldigom que a lista do gestor ainda não pediu para aquecer.
+  /// O material próprio do consumidor (`liveAutoMaterialResolverProvider`)
+  /// só existe com o grupo em cache; a projeção recalcula quando ele chega.
+  Set<String> _warmedPraiseIds = const {};
+
+  Future<void> _warmupSnapshot(LiveSnapshot snapshot) async {
+    final ids = {
+      for (final entry in snapshot.entries)
+        ?coldigomPraiseIdFromPdfId(entry.id),
+    };
+    final fresh = ids.difference(_warmedPraiseIds);
+    if (fresh.isEmpty) return;
+    _warmedPraiseIds = {..._warmedPraiseIds, ...fresh};
+    await ref.read(liveWarmupProvider)(fresh);
+  }
+
   void _clearProjection() {
     _leaderFocusKey = null;
+    _warmedPraiseIds = const {};
     if (ref.read(liveProjectionProvider) != null) {
+      // O que o consumidor **viu** (materiais dele) — é isso que «Guardar
+      // cópia» grava; `state.snapshot` continua o do gestor, porque uma
+      // reconexão reprojeta a partir dele (chaves do gestor).
+      _seenEntries = [for (final e in ref.read(activeEntriesProvider)) e.entry];
       ref.read(liveProjectionProvider.notifier).clear();
     }
+    ref.read(liveMaterialOverridesProvider.notifier).clear();
+  }
+
+  List<PlaylistEntry>? _seenEntries;
+
+  /// Snapshot para «Guardar cópia»: a lista do gestor com os materiais que
+  /// este consumidor escolheu (favoritos/sheet) enquanto seguia. Sem projeção
+  /// vista (ex.: `ended` antes de qualquer `room{live}`), o snapshot puro.
+  LiveSnapshot? get snapshotForCopy {
+    final snapshot = state.snapshot;
+    if (snapshot == null) return null;
+    final seen = ref.read(liveProjectionProvider) != null
+        ? [for (final e in ref.read(activeEntriesProvider)) e.entry]
+        : _seenEntries;
+    if (seen == null || seen.length != snapshot.entries.length) return snapshot;
+    return snapshot.copyWith(entries: seen);
   }
 
   Future<void> _applyLeaderFocus(String key) async {
-    final items = ref.read(carouselItemsProvider);
-    final index = items.indexWhere((item) => item.key == key);
+    var items = ref.read(carouselItemsProvider);
+    var index = items.indexWhere((item) => item.key == key);
     if (index < 0) return;
     _applyingFocus = true;
     try {
+      // Espera o grupo do louvor focado (timeout do warmup) antes de
+      // resolver: assim a primeira abertura já sai com o material do
+      // consumidor, e não com o do gestor seguido de uma troca.
+      final praiseId = coldigomPraiseIdFromPdfId(items[index].materialId);
+      if (praiseId != null) {
+        await ref.read(liveWarmupProvider)({praiseId});
+        if (!ref.mounted || _leaderFocusKey != key) return;
+        items = ref.read(carouselItemsProvider);
+        index = items.indexWhere((item) => item.key == key);
+        if (index < 0) return;
+      }
       if (items[index].isAudio) {
         ref.read(carouselFocusedIndexProvider.notifier).focusKey(key);
         return;

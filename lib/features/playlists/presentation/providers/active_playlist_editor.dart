@@ -8,6 +8,8 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../live/domain/live_coldigom_only.dart';
+import '../../../live/domain/live_material_projection.dart';
+import '../../../live/presentation/providers/live_material_choice_provider.dart';
 import '../../../live/presentation/providers/live_projection_provider.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/active_entry.dart';
@@ -265,7 +267,15 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   ///
   /// Devolve `false` se a chave não existe na lista ativa.
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
-    if (isFollowingLive) return false;
+    if (isFollowingLive) {
+      // Seguindo: a troca é o material **próprio** do consumidor para a
+      // chave do gestor (`projectLiveEntries`) — só na sessão, nada no Isar.
+      if (!ref.read(activeEntriesProvider).any((e) => e.key == key)) {
+        return false;
+      }
+      ref.read(liveMaterialOverridesProvider.notifier).set(key, replacement);
+      return true;
+    }
     if (isLeadingLive && !isColdigomEntry(replacement)) return false;
     await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
@@ -489,11 +499,19 @@ final activePlaylistEditorProvider =
 /// Entradas da lista ativa com posição e chave, já com o override otimista.
 ///
 /// Enquanto o app segue um gestor ao vivo ([liveProjectionProvider] não
-/// nulo), a lista ativa **é** o snapshot dele — barra, leitor e player não
+/// nulo), a lista ativa **é** o snapshot dele — com as chaves do gestor e o
+/// material do consumidor em cada posição ([projectLiveEntries]: escolha
+/// manual > favoritos > material do gestor). Barra, leitor e player não
 /// sabem a diferença; a lista local fica intocada e volta ao sair.
 final activeEntriesProvider = Provider<List<ActiveEntry>>((ref) {
   final live = ref.watch(liveProjectionProvider);
-  if (live != null) return activeEntriesOf(live.entries);
+  if (live != null) {
+    return projectLiveEntries(
+      live.entries,
+      manual: ref.watch(liveMaterialOverridesProvider),
+      auto: ref.watch(liveAutoMaterialResolverProvider),
+    );
+  }
   final override = ref.watch(activePlaylistEditorProvider);
   final entries =
       override ?? ref.watch(activePlaylistProvider)?.entries ?? const [];
