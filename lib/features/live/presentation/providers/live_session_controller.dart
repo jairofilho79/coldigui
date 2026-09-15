@@ -98,6 +98,9 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       (_, key) => _onLocalFocusChanged(key),
     );
     ref.listen(activeEntriesProvider, (_, _) => _onLocalListChanged());
+    listenSelf(
+      (_, next) => ref.read(liveLeadingProvider.notifier).set(next.isLeading),
+    );
     return const LiveSessionState();
   }
 

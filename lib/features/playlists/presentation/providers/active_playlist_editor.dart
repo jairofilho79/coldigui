@@ -7,6 +7,7 @@ import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
+import '../../../live/domain/live_coldigom_only.dart';
 import '../../../live/presentation/providers/live_projection_provider.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/active_entry.dart';
@@ -37,6 +38,11 @@ enum AddToActiveOutcome {
   /// A lista ativa é a projeção de uma sessão ao vivo: o consumidor não
   /// edita (spec lista-ao-vivo D4). Nada foi gravado.
   following,
+
+  /// O gestor está transmitindo e o material não é do Coldigom
+  /// (`isColdigomEntry`): a lista ao vivo só leva material Coldigom. Nada
+  /// foi gravado.
+  liveColdigomOnly,
 }
 
 /// Todas as mutações da seleção (D3).
@@ -79,6 +85,12 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// mutação daqui é ignorada (a UI também as desativa).
   bool get isFollowingLive => ref.read(liveProjectionProvider) != null;
 
+  /// `true` enquanto este app transmite a lista ativa como gestor — entra
+  /// só material Coldigom (`live_coldigom_only.dart`). Lê o espelho
+  /// [liveLeadingProvider]: o controller da sessão observa este editor, e
+  /// ler o controller daqui fecharia um ciclo.
+  bool get isLeadingLive => ref.read(liveLeadingProvider);
+
   /// Adiciona [materialId] à lista ativa, criando um rascunho se não houver.
   ///
   /// Sem storage devolve [AddToActiveOutcome.storageUnavailable] em vez de
@@ -90,6 +102,15 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
     bool allowDuplicate = false,
   }) async {
     if (isFollowingLive) return AddToActiveOutcome.following;
+    if (isLeadingLive &&
+        !isColdigomEntry(
+          PlaylistEntry(
+            id: materialId,
+            kind: kind ?? materialIdKindOf(materialId),
+          ),
+        )) {
+      return AddToActiveOutcome.liveColdigomOnly;
+    }
     // O app monta durante a abertura do Isar (A8): um toque nos primeiros
     // segundos do boot frio espera o banco decidir em vez de responder
     // «armazenamento indisponível» para um banco que só está abrindo.
@@ -245,6 +266,7 @@ class ActivePlaylistEditor extends Notifier<List<PlaylistEntry>?> {
   /// Devolve `false` se a chave não existe na lista ativa.
   Future<bool> replaceByKey(String key, PlaylistEntry replacement) async {
     if (isFollowingLive) return false;
+    if (isLeadingLive && !isColdigomEntry(replacement)) return false;
     await _settlePendingReorder();
     final activeId = ref.read(activePlaylistIdProvider);
     if (activeId == null) return false;

@@ -1,7 +1,10 @@
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/live/domain/entities/live_snapshot.dart';
 import 'package:coldigui/features/live/presentation/providers/live_leader_session_prefs.dart';
 import 'package:coldigui/features/live/presentation/providers/live_session_controller.dart';
 import 'package:coldigui/features/live/presentation/widgets/live_session_banner.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,8 +61,9 @@ void main() {
 
   Future<_StubController> pump(
     WidgetTester tester,
-    LiveSessionState state,
-  ) async {
+    LiveSessionState state, {
+    SavedPlaylist? active,
+  }) async {
     final stub = _StubController(state);
     await pumpApp(
       tester,
@@ -67,6 +71,7 @@ void main() {
       overrides: [
         ...standardTestOverrides(prefs: prefs),
         liveSessionProvider.overrideWith(() => stub),
+        if (active != null) activePlaylistProvider.overrideWithValue(active),
       ],
     );
     return stub;
@@ -206,6 +211,29 @@ void main() {
     expect(find.text('Você estava ao vivo com «Culto»'), findsOneWidget);
     await tester.tap(find.text('Retomar'));
     expect(stub.calls, ['resume:k7x2m9q']);
+  });
+
+  testWidgets('Retomar com material PLPCG na lista ativa só avisa', (
+    tester,
+  ) async {
+    await prefs.setString(
+      kLiveLeaderSessionPrefsKey,
+      '{"code":"k7x2m9q","playlistId":"p1","playlistName":"Culto"}',
+    );
+    final stub = await pump(
+      tester,
+      const LiveSessionState(),
+      active: SavedPlaylist(
+        playlistId: 'p1',
+        nome: 'Culto',
+        createdAt: DateTime(2026),
+        entries: [PlaylistEntry.classified(encodePdfId('ColAdultos/001.pdf'))],
+      ),
+    );
+    await tester.tap(find.text('Retomar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Só materiais do Coldigom'), findsOneWidget);
+    expect(stub.calls, isEmpty);
   });
 
   testWidgets('idle sem nada pendente não renderiza', (tester) async {

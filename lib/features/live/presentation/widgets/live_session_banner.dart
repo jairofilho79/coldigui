@@ -7,10 +7,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../playlists/presentation/providers/active_playlist_provider.dart';
 import '../../domain/entities/live_snapshot.dart';
+import '../../domain/live_coldigom_only.dart';
 import '../../domain/live_room_link.dart';
 import '../providers/live_leader_session_prefs.dart';
 import '../providers/live_session_controller.dart';
+import 'live_coldigom_only_dialog.dart';
 
 /// Faixa persistente acima da barra da lista ativa (spec §6.3): diz a quem
 /// segue quem está a seguir, e ao gestor quantos seguem. Um widget para os
@@ -31,10 +34,17 @@ class LiveSessionBanner extends ConsumerWidget {
         icon: Icons.sensors,
         text: l10n.liveWasLive(pending.playlistName),
         actions: [
-          _Action(
-            l10n.liveResume,
-            () => unawaited(controller.resumeLeader(pending)),
-          ),
+          _Action(l10n.liveResume, () {
+            // «Retomar» transmite a lista ativa **de agora** — a mesma regra
+            // «só Coldigom» do «Iniciar ao vivo» vale aqui.
+            final entries =
+                ref.read(activePlaylistProvider)?.entries ?? const [];
+            if (nonColdigomEntries(entries).isNotEmpty) {
+              unawaited(showLiveColdigomOnlyDialog(context));
+              return;
+            }
+            unawaited(controller.resumeLeader(pending));
+          }),
           _Action(
             l10n.liveEnd,
             () => unawaited(controller.discardLeaderSession()),

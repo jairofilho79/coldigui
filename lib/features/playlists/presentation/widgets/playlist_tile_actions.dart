@@ -14,8 +14,10 @@ import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/share_position_origin.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../live/domain/live_coldigom_only.dart';
 import '../../../live/presentation/providers/live_session_controller.dart';
 import '../../../live/presentation/providers/my_live_room_provider.dart';
+import '../../../live/presentation/widgets/live_coldigom_only_dialog.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
@@ -414,14 +416,18 @@ class PlaylistTileActions {
     }
   }
 
-  /// «Iniciar ao vivo» (só lista salva, spec lista-ao-vivo): exige login;
-  /// garante a sala no Worker, torna a lista ativa, começa a transmitir e
-  /// abre a sala (link + QR).
+  /// «Iniciar ao vivo» (só lista salva, spec lista-ao-vivo): exige login e
+  /// lista só com material Coldigom; garante a sala no Worker, torna a lista
+  /// ativa, começa a transmitir e abre a sala (link + QR).
   Future<void> _goLive() async {
     if (loading) return;
     final user = ref.read(authStateProvider).asData?.value;
     if (user == null) {
       _showError(l10n.liveLoginRequired);
+      return;
+    }
+    if (nonColdigomEntries(playlist.entries).isNotEmpty) {
+      if (context.mounted) await showLiveColdigomOnlyDialog(context);
       return;
     }
     onLoadingChanged(true);
