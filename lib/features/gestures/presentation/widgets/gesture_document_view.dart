@@ -10,6 +10,7 @@ import 'gesture_card_tile.dart';
 import 'instruction_card_view.dart';
 import 'link_block_view.dart';
 import 'repeat_block_view.dart';
+import 'section_label_view.dart';
 import 'text_line_view.dart';
 
 const Key gestureDocumentTitleKey = ValueKey('gesture-document-title');
@@ -163,8 +164,11 @@ class GestureDocumentViewState extends State<GestureDocumentView> {
       case TextLine(:final text):
         return TextLineView(text: text, fontSize: widget.fontSize, palette: widget.palette);
       case SectionLabel():
-        // Renderização real na Task 6 (SectionLabelView).
-        return const SizedBox.shrink();
+        return SectionLabelView(
+          label: item,
+          fontSize: widget.fontSize,
+          palette: widget.palette,
+        );
     }
   }
 }

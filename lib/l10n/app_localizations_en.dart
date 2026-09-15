@@ -855,6 +855,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gestureFocusClose => 'Close';
 
   @override
+  String get gestureSectionChorus => 'chorus';
+
+  @override
+  String gestureSectionPass(int n) {
+    return 'time $n';
+  }
+
+  @override
   String get chordAutoscrollPlay => 'Start autoscroll';
 
   @override

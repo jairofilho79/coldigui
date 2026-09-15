@@ -454,6 +454,13 @@
   "gestureFocusNext": "next:",
   "gestureFocusEnd": "end",
   "gestureFocusClose": "Close",
+  "gestureSectionChorus": "chorus",
+  "gestureSectionPass": "time {n}",
+  "@gestureSectionPass": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
   "chordAutoscrollPlay": "Start autoscroll",
   "chordAutoscrollPause": "Pause autoscroll",
   "chordAutoscrollSpeed": "Scroll speed: {speed}",

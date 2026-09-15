@@ -1487,6 +1487,18 @@ abstract class AppLocalizations {
   /// **'Fechar'**
   String get gestureFocusClose;
 
+  /// No description provided for @gestureSectionChorus.
+  ///
+  /// In pt, this message translates to:
+  /// **'coro'**
+  String get gestureSectionChorus;
+
+  /// No description provided for @gestureSectionPass.
+  ///
+  /// In pt, this message translates to:
+  /// **'{n}ª vez'**
+  String gestureSectionPass(int n);
+
   /// No description provided for @chordAutoscrollPlay.
   ///
   /// In pt, this message translates to:
