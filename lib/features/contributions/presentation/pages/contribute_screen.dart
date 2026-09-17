@@ -79,22 +79,22 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final draft = state.draft;
     final isBug = draft.kind == ContributionKind.bug;
 
-    // Spec P9/§3/§6.2: o snapshot do aparelho só é coletado e só vai no
-    // payload quando o kind é bug — os outros kinds não precisam (nem
-    // devem) carregar tela/plataforma/idioma do usuário.
-    DeviceSnapshot? snapshot;
-    if (isBug) {
-      final online = ref.watch(connectivityStreamProvider).value ?? true;
-      final snapshotAsync = ref.watch(
-        _deviceSnapshotProvider((
-          screen: MediaQuery.sizeOf(context),
-          pixelRatio: MediaQuery.devicePixelRatioOf(context),
-          locale: Localizations.localeOf(context).toLanguageTag(),
-          online: online,
-        )),
-      );
-      snapshot = snapshotAsync.value;
-    }
+    // `appVersion` vai no payload de **todo** kind (não é dado de
+    // dispositivo — o servidor guarda `app_version` sempre); por isso o
+    // snapshot é coletado sempre. Só o objeto `device` inteiro (tela,
+    // plataforma, idioma…) é bug-only — isso o `ContributeFormNotifier`
+    // garante ao montar o payload, e o cartão de consentimento (abaixo)
+    // só aparece para bug.
+    final online = ref.watch(connectivityStreamProvider).value ?? true;
+    final snapshotAsync = ref.watch(
+      _deviceSnapshotProvider((
+        screen: MediaQuery.sizeOf(context),
+        pixelRatio: MediaQuery.devicePixelRatioOf(context),
+        locale: Localizations.localeOf(context).toLanguageTag(),
+        online: online,
+      )),
+    );
+    final snapshot = snapshotAsync.value;
 
     ref.listen(contributeFormProvider(args), (previous, next) {
       final messenger = ScaffoldMessenger.of(context);
@@ -257,9 +257,9 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   }
 
   Future<void> _send(DeviceSnapshot? snapshot) {
-    // `snapshot` só existe (não nulo) quando o kind é bug — a tela só
-    // coleta o aparelho nesse caso (spec P9/§3/§6.2); o `ContributeFormNotifier`
-    // também garante que `device` nunca vai no payload fora de bug.
+    // `appVersion` vem do snapshot em qualquer kind; `device` (o objeto
+    // inteiro) só é usado pelo `ContributeFormNotifier` quando o kind é
+    // bug — ele zera isso sozinho para os demais (spec P9/§3/§6.2).
     return ref
         .read(contributeFormProvider(_args).notifier)
         .submit(device: snapshot, appVersion: snapshot?.versionLabel ?? '');

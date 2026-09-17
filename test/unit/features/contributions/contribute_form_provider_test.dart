@@ -135,7 +135,10 @@ void main() {
     nOther.setTitle('t');
     nOther.setBody('b');
     await nOther.submit(device: snapshot, appVersion: snapshot.versionLabel);
+    // `appVersion` não é dado de dispositivo — o servidor guarda
+    // `app_version` para todo kind, só o objeto `device` é bug-only.
     expect(dsOther.lastPayload!['device'], isNull);
+    expect(dsOther.lastPayload!['appVersion'], '1.2.3+4');
 
     final dsBug = _FakeDs(
       (_) async => (id: 'c2', status: ContributionStatus.pendente),
