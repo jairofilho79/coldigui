@@ -15,6 +15,8 @@ import '../../features/app_shell/presentation/pages/profile_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
+import '../../features/contributions/presentation/pages/contribute_screen.dart';
+import '../../features/contributions/presentation/utils/open_contribute.dart';
 import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
 import '../../features/live/presentation/pages/live_room_screen.dart';
@@ -74,6 +76,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return state.error != null ? RoutePaths.home : null;
     },
     routes: [
+      // Irmã do shell (não filha): abre por cima de qualquer aba, com o
+      // próprio `AppBar`/voltar, em vez de trocar o conteúdo da aba atual.
+      GoRoute(
+        path: RoutePaths.contribute,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final q = safeQueryParameters(state.uri);
+          return ContributeScreen(target: targetFromQuery(q), from: q['from']);
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             ShellScaffold(navigationShell: navigationShell),

@@ -1807,4 +1807,249 @@ class AppLocalizationsEn extends AppLocalizations {
   String offlineColdigomSpaceWarning(String size, String free) {
     return 'Estimated $size exceeds free space ($free) — the download may stop midway.';
   }
+
+  @override
+  String get contributeTitle => 'Help improve PLPCG';
+
+  @override
+  String get contributeSignInPrompt => 'Sign in with Google to contribute.';
+
+  @override
+  String get contributeKindLabel => 'What do you want to tell us?';
+
+  @override
+  String get contributeKindBug => 'App bug';
+
+  @override
+  String get contributeKindWrongInfo => 'Wrong information';
+
+  @override
+  String get contributeKindContent => 'Content';
+
+  @override
+  String get contributeKindImprovement => 'Improvement';
+
+  @override
+  String get contributeKindOther => 'Other';
+
+  @override
+  String get contributeSubkindLabel => 'About what?';
+
+  @override
+  String get contributeSubkindBugScreen => 'A screen';
+
+  @override
+  String get contributeSubkindBugReader => 'Reader';
+
+  @override
+  String get contributeSubkindBugAudio => 'Audio';
+
+  @override
+  String get contributeSubkindBugSearch => 'Search';
+
+  @override
+  String get contributeSubkindBugOffline => 'Offline';
+
+  @override
+  String get contributeSubkindBugLogin => 'Login';
+
+  @override
+  String get contributeSubkindBugPlaylistLive => 'Playlists / live';
+
+  @override
+  String get contributeSubkindBugOther => 'Other';
+
+  @override
+  String get contributeSubkindWrongMetadata => 'Title, number, key…';
+
+  @override
+  String get contributeSubkindWrongLyrics => 'Lyrics';
+
+  @override
+  String get contributeSubkindWrongMaterial => 'Material from another praise';
+
+  @override
+  String get contributeSubkindWrongKind => 'Wrong material type';
+
+  @override
+  String get contributeSubkindDuplicate => 'Duplicate praise';
+
+  @override
+  String get contributeSubkindAddMaterial => 'Add material';
+
+  @override
+  String get contributeSubkindAddPraise => 'Add praise';
+
+  @override
+  String get contributeSubkindReplaceMaterial => 'Replace material';
+
+  @override
+  String get contributeSubkindRemove => 'Remove';
+
+  @override
+  String get contributeSubkindFeature => 'New feature';
+
+  @override
+  String get contributeSubkindBehavior => 'Change a behavior';
+
+  @override
+  String get contributeMaterialLabel => 'About which material?';
+
+  @override
+  String get contributeMaterialWhole => 'The praise in general';
+
+  @override
+  String get contributeMetadataField => 'Field';
+
+  @override
+  String get contributeMetadataCurrent => 'Current value';
+
+  @override
+  String get contributeMetadataProposed => 'Correct value';
+
+  @override
+  String get contributeMetadataTitle => 'Title';
+
+  @override
+  String get contributeMetadataNumber => 'Number';
+
+  @override
+  String get contributeMetadataAuthor => 'Author';
+
+  @override
+  String get contributeMetadataTonality => 'Key';
+
+  @override
+  String get contributeMetadataRhythm => 'Rhythm';
+
+  @override
+  String get contributeMetadataCategory => 'Category';
+
+  @override
+  String get contributeMetadataTags => 'Tags';
+
+  @override
+  String get contributeDuplicateOf => 'Same as (number or title)';
+
+  @override
+  String get contributeSuggestedKind => 'Material type (optional)';
+
+  @override
+  String get contributeTitleField => 'Title';
+
+  @override
+  String get contributeBodyField => 'Description';
+
+  @override
+  String get contributeBodyHintBug =>
+      'What you did, what you expected and what happened';
+
+  @override
+  String get contributeAttachments => 'Attachments';
+
+  @override
+  String get contributeAddFile => 'Attach file';
+
+  @override
+  String get contributeAttachmentTooLarge =>
+      'Above 32 MB, send via a Drive link.';
+
+  @override
+  String get contributeAttachmentTypeNotAllowed => 'File type not accepted.';
+
+  @override
+  String get contributeAttachmentTooMany => '5 files maximum.';
+
+  @override
+  String get contributeLinks => 'Links (YouTube / Drive)';
+
+  @override
+  String get contributeAddLink => 'Add link';
+
+  @override
+  String get contributeLinkNotAllowed => 'Only YouTube or Google Drive links.';
+
+  @override
+  String get contributeDeviceTitle => 'This will be sent';
+
+  @override
+  String get contributeSameDeviceQuestion =>
+      'Did the bug happen on this device?';
+
+  @override
+  String get contributeSameDeviceYes => 'Yes';
+
+  @override
+  String get contributeSameDeviceNo => 'No';
+
+  @override
+  String get contributeOtherDevice => 'On which device?';
+
+  @override
+  String get contributeSend => 'Send';
+
+  @override
+  String get contributeSent => 'Received, thank you!';
+
+  @override
+  String get contributeErrorOffline => 'No connection. Try again.';
+
+  @override
+  String contributeErrorQuota(String time) {
+    return 'Daily limit reached; back at $time.';
+  }
+
+  @override
+  String contributeErrorRejected(String error) {
+    return 'The submission was rejected: $error';
+  }
+
+  @override
+  String get contributeErrorUnknown => 'Couldn\'t send. Try again.';
+
+  @override
+  String get contributeReportTooltip => 'Report';
+
+  @override
+  String get myContributionsTitle => 'My contributions';
+
+  @override
+  String get myContributionsEmpty => 'You haven\'t sent any contributions yet.';
+
+  @override
+  String get contributionStatusRecebida => 'Sent · checking attachments';
+
+  @override
+  String get contributionStatusPendente => 'Awaiting review';
+
+  @override
+  String get contributionStatusEmAnalise => 'Under review';
+
+  @override
+  String get contributionStatusAceita => 'Accepted';
+
+  @override
+  String get contributionStatusRecusada => 'Rejected';
+
+  @override
+  String get contributionStatusAplicada => 'Applied';
+
+  @override
+  String get contributionStatusBloqueada =>
+      'Could not be reviewed: attachment rejected by security scan';
+
+  @override
+  String get contributionDecisionNote => 'Team\'s note';
+
+  @override
+  String get contributionFilesTitle => 'Attachments';
+
+  @override
+  String get contributionFileScanPending => 'checking';
+
+  @override
+  String get contributionFileScanClean => 'ok';
+
+  @override
+  String get contributionFileScanBlocked => 'rejected';
 }

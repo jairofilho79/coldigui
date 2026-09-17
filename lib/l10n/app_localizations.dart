@@ -3028,6 +3028,480 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estimativa de {size} acima do espaço livre ({free}) — o download pode parar a meio.'**
   String offlineColdigomSpaceWarning(String size, String free);
+
+  /// No description provided for @contributeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajude a melhorar o PLPCG'**
+  String get contributeTitle;
+
+  /// No description provided for @contributeSignInPrompt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre com Google para contribuir.'**
+  String get contributeSignInPrompt;
+
+  /// No description provided for @contributeKindLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que você quer contar?'**
+  String get contributeKindLabel;
+
+  /// No description provided for @contributeKindBug.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bug na app'**
+  String get contributeKindBug;
+
+  /// No description provided for @contributeKindWrongInfo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informação errada'**
+  String get contributeKindWrongInfo;
+
+  /// No description provided for @contributeKindContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conteúdo'**
+  String get contributeKindContent;
+
+  /// No description provided for @contributeKindImprovement.
+  ///
+  /// In pt, this message translates to:
+  /// **'Melhoria'**
+  String get contributeKindImprovement;
+
+  /// No description provided for @contributeKindOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outro'**
+  String get contributeKindOther;
+
+  /// No description provided for @contributeSubkindLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre o quê?'**
+  String get contributeSubkindLabel;
+
+  /// No description provided for @contributeSubkindBugScreen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uma tela'**
+  String get contributeSubkindBugScreen;
+
+  /// No description provided for @contributeSubkindBugReader.
+  ///
+  /// In pt, this message translates to:
+  /// **'Leitor'**
+  String get contributeSubkindBugReader;
+
+  /// No description provided for @contributeSubkindBugAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudio'**
+  String get contributeSubkindBugAudio;
+
+  /// No description provided for @contributeSubkindBugSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Busca'**
+  String get contributeSubkindBugSearch;
+
+  /// No description provided for @contributeSubkindBugOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Offline'**
+  String get contributeSubkindBugOffline;
+
+  /// No description provided for @contributeSubkindBugLogin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Login'**
+  String get contributeSubkindBugLogin;
+
+  /// No description provided for @contributeSubkindBugPlaylistLive.
+  ///
+  /// In pt, this message translates to:
+  /// **'Listas / ao vivo'**
+  String get contributeSubkindBugPlaylistLive;
+
+  /// No description provided for @contributeSubkindBugOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outro'**
+  String get contributeSubkindBugOther;
+
+  /// No description provided for @contributeSubkindWrongMetadata.
+  ///
+  /// In pt, this message translates to:
+  /// **'Título, número, tom…'**
+  String get contributeSubkindWrongMetadata;
+
+  /// No description provided for @contributeSubkindWrongLyrics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra'**
+  String get contributeSubkindWrongLyrics;
+
+  /// No description provided for @contributeSubkindWrongMaterial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Material de outro louvor'**
+  String get contributeSubkindWrongMaterial;
+
+  /// No description provided for @contributeSubkindWrongKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de material errado'**
+  String get contributeSubkindWrongKind;
+
+  /// No description provided for @contributeSubkindDuplicate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Louvor duplicado'**
+  String get contributeSubkindDuplicate;
+
+  /// No description provided for @contributeSubkindAddMaterial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar material'**
+  String get contributeSubkindAddMaterial;
+
+  /// No description provided for @contributeSubkindAddPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar louvor'**
+  String get contributeSubkindAddPraise;
+
+  /// No description provided for @contributeSubkindReplaceMaterial.
+  ///
+  /// In pt, this message translates to:
+  /// **'Substituir material'**
+  String get contributeSubkindReplaceMaterial;
+
+  /// No description provided for @contributeSubkindRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get contributeSubkindRemove;
+
+  /// No description provided for @contributeSubkindFeature.
+  ///
+  /// In pt, this message translates to:
+  /// **'Funcionalidade nova'**
+  String get contributeSubkindFeature;
+
+  /// No description provided for @contributeSubkindBehavior.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mudar um comportamento'**
+  String get contributeSubkindBehavior;
+
+  /// No description provided for @contributeMaterialLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sobre qual material?'**
+  String get contributeMaterialLabel;
+
+  /// No description provided for @contributeMaterialWhole.
+  ///
+  /// In pt, this message translates to:
+  /// **'O louvor em geral'**
+  String get contributeMaterialWhole;
+
+  /// No description provided for @contributeMetadataField.
+  ///
+  /// In pt, this message translates to:
+  /// **'Campo'**
+  String get contributeMetadataField;
+
+  /// No description provided for @contributeMetadataCurrent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor atual'**
+  String get contributeMetadataCurrent;
+
+  /// No description provided for @contributeMetadataProposed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor correto'**
+  String get contributeMetadataProposed;
+
+  /// No description provided for @contributeMetadataTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Título'**
+  String get contributeMetadataTitle;
+
+  /// No description provided for @contributeMetadataNumber.
+  ///
+  /// In pt, this message translates to:
+  /// **'Número'**
+  String get contributeMetadataNumber;
+
+  /// No description provided for @contributeMetadataAuthor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Autor'**
+  String get contributeMetadataAuthor;
+
+  /// No description provided for @contributeMetadataTonality.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tom'**
+  String get contributeMetadataTonality;
+
+  /// No description provided for @contributeMetadataRhythm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ritmo'**
+  String get contributeMetadataRhythm;
+
+  /// No description provided for @contributeMetadataCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get contributeMetadataCategory;
+
+  /// No description provided for @contributeMetadataTags.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tags'**
+  String get contributeMetadataTags;
+
+  /// No description provided for @contributeDuplicateOf.
+  ///
+  /// In pt, this message translates to:
+  /// **'É o mesmo que (número ou título)'**
+  String get contributeDuplicateOf;
+
+  /// No description provided for @contributeSuggestedKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de material (opcional)'**
+  String get contributeSuggestedKind;
+
+  /// No description provided for @contributeTitleField.
+  ///
+  /// In pt, this message translates to:
+  /// **'Título'**
+  String get contributeTitleField;
+
+  /// No description provided for @contributeBodyField.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição'**
+  String get contributeBodyField;
+
+  /// No description provided for @contributeBodyHintBug.
+  ///
+  /// In pt, this message translates to:
+  /// **'O que você fez, o que esperava e o que aconteceu'**
+  String get contributeBodyHintBug;
+
+  /// No description provided for @contributeAttachments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexos'**
+  String get contributeAttachments;
+
+  /// No description provided for @contributeAddFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexar arquivo'**
+  String get contributeAddFile;
+
+  /// No description provided for @contributeAttachmentTooLarge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acima de 32 MB, envie pelo link do Drive.'**
+  String get contributeAttachmentTooLarge;
+
+  /// No description provided for @contributeAttachmentTypeNotAllowed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de arquivo não aceito.'**
+  String get contributeAttachmentTypeNotAllowed;
+
+  /// No description provided for @contributeAttachmentTooMany.
+  ///
+  /// In pt, this message translates to:
+  /// **'No máximo 5 arquivos.'**
+  String get contributeAttachmentTooMany;
+
+  /// No description provided for @contributeLinks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Links (YouTube / Drive)'**
+  String get contributeLinks;
+
+  /// No description provided for @contributeAddLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar link'**
+  String get contributeAddLink;
+
+  /// No description provided for @contributeLinkNotAllowed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só links do YouTube ou do Google Drive.'**
+  String get contributeLinkNotAllowed;
+
+  /// No description provided for @contributeDeviceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Isto será enviado'**
+  String get contributeDeviceTitle;
+
+  /// No description provided for @contributeSameDeviceQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'O bug aconteceu neste dispositivo?'**
+  String get contributeSameDeviceQuestion;
+
+  /// No description provided for @contributeSameDeviceYes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sim'**
+  String get contributeSameDeviceYes;
+
+  /// No description provided for @contributeSameDeviceNo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não'**
+  String get contributeSameDeviceNo;
+
+  /// No description provided for @contributeOtherDevice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em qual dispositivo?'**
+  String get contributeOtherDevice;
+
+  /// No description provided for @contributeSend.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar'**
+  String get contributeSend;
+
+  /// No description provided for @contributeSent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido, obrigado!'**
+  String get contributeSent;
+
+  /// No description provided for @contributeErrorOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem ligação. Tente de novo.'**
+  String get contributeErrorOffline;
+
+  /// No description provided for @contributeErrorQuota.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite diário atingido; volta às {time}.'**
+  String contributeErrorQuota(String time);
+
+  /// No description provided for @contributeErrorRejected.
+  ///
+  /// In pt, this message translates to:
+  /// **'O envio foi recusado: {error}'**
+  String contributeErrorRejected(String error);
+
+  /// No description provided for @contributeErrorUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível enviar. Tente de novo.'**
+  String get contributeErrorUnknown;
+
+  /// No description provided for @contributeReportTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reportar'**
+  String get contributeReportTooltip;
+
+  /// No description provided for @myContributionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas contribuições'**
+  String get myContributionsTitle;
+
+  /// No description provided for @myContributionsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você ainda não enviou nenhuma contribuição.'**
+  String get myContributionsEmpty;
+
+  /// No description provided for @contributionStatusRecebida.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviada · verificando anexos'**
+  String get contributionStatusRecebida;
+
+  /// No description provided for @contributionStatusPendente.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando análise'**
+  String get contributionStatusPendente;
+
+  /// No description provided for @contributionStatusEmAnalise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em análise'**
+  String get contributionStatusEmAnalise;
+
+  /// No description provided for @contributionStatusAceita.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aceita'**
+  String get contributionStatusAceita;
+
+  /// No description provided for @contributionStatusRecusada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recusada'**
+  String get contributionStatusRecusada;
+
+  /// No description provided for @contributionStatusAplicada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicada'**
+  String get contributionStatusAplicada;
+
+  /// No description provided for @contributionStatusBloqueada.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não pôde ser analisada: anexo recusado pela verificação de segurança'**
+  String get contributionStatusBloqueada;
+
+  /// No description provided for @contributionDecisionNote.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nota da equipe'**
+  String get contributionDecisionNote;
+
+  /// No description provided for @contributionFilesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexos'**
+  String get contributionFilesTitle;
+
+  /// No description provided for @contributionFileScanPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'verificando'**
+  String get contributionFileScanPending;
+
+  /// No description provided for @contributionFileScanClean.
+  ///
+  /// In pt, this message translates to:
+  /// **'ok'**
+  String get contributionFileScanClean;
+
+  /// No description provided for @contributionFileScanBlocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'recusado'**
+  String get contributionFileScanBlocked;
 }
 
 class _AppLocalizationsDelegate

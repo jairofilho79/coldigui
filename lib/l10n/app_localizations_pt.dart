@@ -1821,4 +1821,253 @@ class AppLocalizationsPt extends AppLocalizations {
   String offlineColdigomSpaceWarning(String size, String free) {
     return 'Estimativa de $size acima do espaço livre ($free) — o download pode parar a meio.';
   }
+
+  @override
+  String get contributeTitle => 'Ajude a melhorar o PLPCG';
+
+  @override
+  String get contributeSignInPrompt => 'Entre com Google para contribuir.';
+
+  @override
+  String get contributeKindLabel => 'O que você quer contar?';
+
+  @override
+  String get contributeKindBug => 'Bug na app';
+
+  @override
+  String get contributeKindWrongInfo => 'Informação errada';
+
+  @override
+  String get contributeKindContent => 'Conteúdo';
+
+  @override
+  String get contributeKindImprovement => 'Melhoria';
+
+  @override
+  String get contributeKindOther => 'Outro';
+
+  @override
+  String get contributeSubkindLabel => 'Sobre o quê?';
+
+  @override
+  String get contributeSubkindBugScreen => 'Uma tela';
+
+  @override
+  String get contributeSubkindBugReader => 'Leitor';
+
+  @override
+  String get contributeSubkindBugAudio => 'Áudio';
+
+  @override
+  String get contributeSubkindBugSearch => 'Busca';
+
+  @override
+  String get contributeSubkindBugOffline => 'Offline';
+
+  @override
+  String get contributeSubkindBugLogin => 'Login';
+
+  @override
+  String get contributeSubkindBugPlaylistLive => 'Listas / ao vivo';
+
+  @override
+  String get contributeSubkindBugOther => 'Outro';
+
+  @override
+  String get contributeSubkindWrongMetadata => 'Título, número, tom…';
+
+  @override
+  String get contributeSubkindWrongLyrics => 'Letra';
+
+  @override
+  String get contributeSubkindWrongMaterial => 'Material de outro louvor';
+
+  @override
+  String get contributeSubkindWrongKind => 'Tipo de material errado';
+
+  @override
+  String get contributeSubkindDuplicate => 'Louvor duplicado';
+
+  @override
+  String get contributeSubkindAddMaterial => 'Adicionar material';
+
+  @override
+  String get contributeSubkindAddPraise => 'Adicionar louvor';
+
+  @override
+  String get contributeSubkindReplaceMaterial => 'Substituir material';
+
+  @override
+  String get contributeSubkindRemove => 'Remover';
+
+  @override
+  String get contributeSubkindFeature => 'Funcionalidade nova';
+
+  @override
+  String get contributeSubkindBehavior => 'Mudar um comportamento';
+
+  @override
+  String get contributeMaterialLabel => 'Sobre qual material?';
+
+  @override
+  String get contributeMaterialWhole => 'O louvor em geral';
+
+  @override
+  String get contributeMetadataField => 'Campo';
+
+  @override
+  String get contributeMetadataCurrent => 'Valor atual';
+
+  @override
+  String get contributeMetadataProposed => 'Valor correto';
+
+  @override
+  String get contributeMetadataTitle => 'Título';
+
+  @override
+  String get contributeMetadataNumber => 'Número';
+
+  @override
+  String get contributeMetadataAuthor => 'Autor';
+
+  @override
+  String get contributeMetadataTonality => 'Tom';
+
+  @override
+  String get contributeMetadataRhythm => 'Ritmo';
+
+  @override
+  String get contributeMetadataCategory => 'Categoria';
+
+  @override
+  String get contributeMetadataTags => 'Tags';
+
+  @override
+  String get contributeDuplicateOf => 'É o mesmo que (número ou título)';
+
+  @override
+  String get contributeSuggestedKind => 'Tipo de material (opcional)';
+
+  @override
+  String get contributeTitleField => 'Título';
+
+  @override
+  String get contributeBodyField => 'Descrição';
+
+  @override
+  String get contributeBodyHintBug =>
+      'O que você fez, o que esperava e o que aconteceu';
+
+  @override
+  String get contributeAttachments => 'Anexos';
+
+  @override
+  String get contributeAddFile => 'Anexar arquivo';
+
+  @override
+  String get contributeAttachmentTooLarge =>
+      'Acima de 32 MB, envie pelo link do Drive.';
+
+  @override
+  String get contributeAttachmentTypeNotAllowed =>
+      'Tipo de arquivo não aceito.';
+
+  @override
+  String get contributeAttachmentTooMany => 'No máximo 5 arquivos.';
+
+  @override
+  String get contributeLinks => 'Links (YouTube / Drive)';
+
+  @override
+  String get contributeAddLink => 'Adicionar link';
+
+  @override
+  String get contributeLinkNotAllowed =>
+      'Só links do YouTube ou do Google Drive.';
+
+  @override
+  String get contributeDeviceTitle => 'Isto será enviado';
+
+  @override
+  String get contributeSameDeviceQuestion =>
+      'O bug aconteceu neste dispositivo?';
+
+  @override
+  String get contributeSameDeviceYes => 'Sim';
+
+  @override
+  String get contributeSameDeviceNo => 'Não';
+
+  @override
+  String get contributeOtherDevice => 'Em qual dispositivo?';
+
+  @override
+  String get contributeSend => 'Enviar';
+
+  @override
+  String get contributeSent => 'Recebido, obrigado!';
+
+  @override
+  String get contributeErrorOffline => 'Sem ligação. Tente de novo.';
+
+  @override
+  String contributeErrorQuota(String time) {
+    return 'Limite diário atingido; volta às $time.';
+  }
+
+  @override
+  String contributeErrorRejected(String error) {
+    return 'O envio foi recusado: $error';
+  }
+
+  @override
+  String get contributeErrorUnknown =>
+      'Não foi possível enviar. Tente de novo.';
+
+  @override
+  String get contributeReportTooltip => 'Reportar';
+
+  @override
+  String get myContributionsTitle => 'Minhas contribuições';
+
+  @override
+  String get myContributionsEmpty =>
+      'Você ainda não enviou nenhuma contribuição.';
+
+  @override
+  String get contributionStatusRecebida => 'Enviada · verificando anexos';
+
+  @override
+  String get contributionStatusPendente => 'Aguardando análise';
+
+  @override
+  String get contributionStatusEmAnalise => 'Em análise';
+
+  @override
+  String get contributionStatusAceita => 'Aceita';
+
+  @override
+  String get contributionStatusRecusada => 'Recusada';
+
+  @override
+  String get contributionStatusAplicada => 'Aplicada';
+
+  @override
+  String get contributionStatusBloqueada =>
+      'Não pôde ser analisada: anexo recusado pela verificação de segurança';
+
+  @override
+  String get contributionDecisionNote => 'Nota da equipe';
+
+  @override
+  String get contributionFilesTitle => 'Anexos';
+
+  @override
+  String get contributionFileScanPending => 'verificando';
+
+  @override
+  String get contributionFileScanClean => 'ok';
+
+  @override
+  String get contributionFileScanBlocked => 'recusado';
 }

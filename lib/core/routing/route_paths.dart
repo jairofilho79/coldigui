@@ -55,4 +55,11 @@ abstract final class RoutePaths {
 
   /// Leitor de letra Coldigom ([LyricsReaderScreen]) — irmã de [chords], branch Home.
   static const String lyrics = '/letra';
+
+  /// Formulário «Ajude a melhorar o PLPCG» ([ContributeScreen]) — fora do
+  /// shell, no navigator raiz: abre por cima de qualquer aba.
+  static const String contribute = '/contribuir';
+
+  /// «Minhas contribuições» — histórico dos envios do usuário.
+  static const String myContributions = '/contribuicoes';
 }

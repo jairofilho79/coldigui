@@ -146,24 +146,21 @@ void main() {
       },
     );
 
-    test(
-      '/listas/publicas é aninhada em /listas (pilha de 2 matches)',
-      () {
-        final router = buildRouter(const FeatureFlags());
+    test('/listas/publicas é aninhada em /listas (pilha de 2 matches)', () {
+      final router = buildRouter(const FeatureFlags());
 
-        final match = router.configuration.findMatch(
-          Uri.parse(RoutePaths.publicPlaylists),
-        );
-        expect(match.isError, isFalse);
+      final match = router.configuration.findMatch(
+        Uri.parse(RoutePaths.publicPlaylists),
+      );
+      expect(match.isError, isFalse);
 
-        // `findMatch` devolve um único `ShellRouteMatch` de nível superior
-        // (a `StatefulShellRoute`); a pilha de rotas de fato (`/listas` +
-        // `/listas/publicas`) mora em `ShellRouteMatch.matches`.
-        final shellMatch = match.matches.single as ShellRouteMatch;
-        expect(shellMatch.matches.length, 2);
-        expect(shellMatch.matches.first.matchedLocation, RoutePaths.playlists);
-      },
-    );
+      // `findMatch` devolve um único `ShellRouteMatch` de nível superior
+      // (a `StatefulShellRoute`); a pilha de rotas de fato (`/listas` +
+      // `/listas/publicas`) mora em `ShellRouteMatch.matches`.
+      final shellMatch = match.matches.single as ShellRouteMatch;
+      expect(shellMatch.matches.length, 2);
+      expect(shellMatch.matches.first.matchedLocation, RoutePaths.playlists);
+    });
 
     test(
       'a Home (initialLocation) sempre casa, com qualquer combinação de flags',
@@ -185,8 +182,12 @@ void main() {
       const flags = FeatureFlags(events: true, social: false);
       final router = buildRouter(flags);
 
-      final shellRoute =
-          router.configuration.routes.single as StatefulShellRoute;
+      // `.routes` (não `.single`): `/contribuir` é uma rota irmã no
+      // navigator raiz desde a Tarefa 4 — o shell continua sendo o único
+      // `StatefulShellRoute`, só não é mais a única rota de nível superior.
+      final shellRoute = router.configuration.routes
+          .whereType<StatefulShellRoute>()
+          .single;
 
       expect(shellRoute.branches.length, appTabsFor(flags).length);
     });
