@@ -10,6 +10,7 @@ void main() {
         size: 10,
         kind: ContributionKind.content,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       isNull,
     );
@@ -19,6 +20,7 @@ void main() {
         size: 10,
         kind: ContributionKind.bug,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       isNull,
     );
@@ -28,6 +30,7 @@ void main() {
         size: 10,
         kind: ContributionKind.content,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       AttachmentError.typeNotAllowed,
     );
@@ -39,6 +42,7 @@ void main() {
         size: 10,
         kind: ContributionKind.bug,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       AttachmentError.typeNotAllowed,
     );
@@ -50,6 +54,7 @@ void main() {
         size: kMaxAttachmentBytes,
         kind: ContributionKind.content,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       isNull,
     );
@@ -59,6 +64,7 @@ void main() {
         size: kMaxAttachmentBytes + 1,
         kind: ContributionKind.content,
         currentCount: 0,
+        currentTotalBytes: 0,
       ),
       AttachmentError.tooLarge,
     );
@@ -68,8 +74,31 @@ void main() {
         size: 1,
         kind: ContributionKind.content,
         currentCount: 5,
+        currentTotalBytes: 0,
       ),
       AttachmentError.tooMany,
+    );
+  });
+  test('96 MB é o teto da soma dos anexos', () {
+    expect(
+      validateAttachment(
+        name: 'a.pdf',
+        size: kMaxAttachmentBytes,
+        kind: ContributionKind.content,
+        currentCount: 2,
+        currentTotalBytes: kMaxRequestBytes - kMaxAttachmentBytes,
+      ),
+      isNull,
+    );
+    expect(
+      validateAttachment(
+        name: 'a.pdf',
+        size: kMaxAttachmentBytes,
+        kind: ContributionKind.content,
+        currentCount: 2,
+        currentTotalBytes: kMaxRequestBytes - kMaxAttachmentBytes + 1,
+      ),
+      AttachmentError.totalTooLarge,
     );
   });
   test('links: https e host da lista', () {

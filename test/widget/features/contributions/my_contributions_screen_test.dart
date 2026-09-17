@@ -80,6 +80,32 @@ class _PagingRecordingNotifier extends MyContributionsNotifier {
   }
 }
 
+/// `loadMore()` sempre falha, mas mantém a lista já carregada — espelha o
+/// `catch` de `MyContributionsNotifier.loadMore()` real (`loadingMore` volta
+/// a `false`, `nextCursor` continua o mesmo). Usado para provar que o
+/// gatilho de construção do último item não vira uma tempestade de pedidos.
+class _FailingPagingNotifier extends MyContributionsNotifier {
+  int loadMoreCalls = 0;
+
+  @override
+  Future<MyContributionsState> build() async => MyContributionsState(
+    items: [
+      _summary('p1', status: ContributionStatus.pendente),
+      _summary('p2', status: ContributionStatus.pendente),
+    ],
+    nextCursor: 'c2',
+  );
+
+  @override
+  Future<void> loadMore() async {
+    loadMoreCalls++;
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(loadingMore: false));
+    throw Exception('falha de rede');
+  }
+}
+
 List<Override> _loggedOverrides(List<ContributionSummary> items) => [
   authStateProvider.overrideWith(
     () => FakeAuthNotifier(
@@ -234,6 +260,35 @@ void main() {
       // chama `loadMore()` de novo.
       await tester.pumpAndSettle();
       expect(notifier.loadMoreCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'falha ao paginar não vira tempestade de tentativas ao reconstruir o '
+    'último item',
+    (tester) async {
+      final notifier = _FailingPagingNotifier();
+
+      await pumpApp(
+        tester,
+        const MyContributionsScreen(),
+        overrides: [
+          authStateProvider.overrideWith(
+            () => FakeAuthNotifier(
+              const AuthUser(googleSub: 'u', sessionToken: 'sess_t'),
+            ),
+          ),
+          myContributionsProvider.overrideWith(() => notifier),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      // Sem o cursor já pedido (`_requestedCursor`), cada rebuild do último
+      // item (o `loadingMore: false` da falha causa um) dispararia
+      // `loadMore()` de novo — um pedido por frame, para sempre.
+      expect(notifier.loadMoreCalls, 1);
+      expect(find.text('Contribuição p1'), findsOneWidget);
+      expect(find.text('Contribuição p2'), findsOneWidget);
     },
   );
 }

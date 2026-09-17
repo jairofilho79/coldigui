@@ -35,11 +35,28 @@ void main() {
   });
 
   test('humanLines mostra o que vai ser enviado, sem campos vazios', () {
-    final labels = snap.humanLines().map((l) => l.$1).toList();
+    final ids = snap.humanLines().map((l) => l.$1).toList();
     expect(
-      labels,
-      containsAll(['App', 'Plataforma', 'Dispositivo', 'Sistema', 'Tela']),
+      ids,
+      containsAll([
+        DeviceLine.app,
+        DeviceLine.platform,
+        DeviceLine.device,
+        DeviceLine.system,
+        DeviceLine.screen,
+      ]),
     );
-    expect(labels, isNot(contains('Navegador')));
+    // Sem `userAgent`: a linha do navegador não existe (não só "vazia").
+    expect(ids, isNot(contains(DeviceLine.browser)));
   });
+
+  test(
+    'humanLines não devolve rótulo pronto — identificador puro, sem l10n',
+    () {
+      // `DeviceSnapshot` é domínio: nada de `'App'`/`'sim'`/`'não'` em
+      // português prontos aqui — isso é responsabilidade de quem exibe
+      // (`DeviceConsentCard`). `online`/`pwa` chegam como `'true'`/`'false'`.
+      expect(snap.humanLines(), contains((DeviceLine.online, 'true')));
+    },
+  );
 }
