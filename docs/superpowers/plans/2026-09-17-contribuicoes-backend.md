@@ -849,7 +849,7 @@ describe('headMatchesDeclared', () => {
 
 describe('safeOriginalName', () => {
   it('tira separadores e controle, limita a 200', () => {
-    expect(safeOriginalName('../x/\\y.pdf')).toBe('..xy.pdf');
+    expect(safeOriginalName('../x/\\y\u0007.pdf')).toBe('..xy.pdf');
     expect(safeOriginalName('a'.repeat(300) + '.pdf').length).toBe(200);
     expect(safeOriginalName('   ')).toBe('arquivo');
   });
@@ -991,7 +991,7 @@ export function headMatchesDeclared(head: Uint8Array, declared: DeclaredType): b
 /** Vai para Content-Disposition e para a tela do admin: nada de caminho nem controle. */
 export function safeOriginalName(name: string): string {
   // eslint-disable-next-line no-control-regex
-  const cleaned = name.replace(/[\\/\u0000-"]/g, '').trim();
+  const cleaned = name.replace(/[\\/\u0000-\u001f\u007f"]/g, '').trim();
   return (cleaned || 'arquivo').slice(0, 200);
 }
 ```
