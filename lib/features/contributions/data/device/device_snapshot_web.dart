@@ -1,5 +1,6 @@
 import 'dart:ui' show Size;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:web/web.dart' as web;
 
@@ -14,10 +15,20 @@ class WebDeviceSnapshotPort implements DeviceSnapshotPort {
     required String locale,
     required bool online,
   }) async {
-    final pkg = await PackageInfo.fromPlatform();
+    // Um bug report não pode morrer porque o plugin de versão falhou —
+    // degrada para valores desconhecidos em vez de propagar a exceção.
+    var appVersion = 'desconhecida';
+    var buildNumber = '0';
+    try {
+      final pkg = await PackageInfo.fromPlatform();
+      appVersion = pkg.version;
+      buildNumber = pkg.buildNumber;
+    } catch (e) {
+      debugPrint('[contributions] package_info falhou: $e');
+    }
     return DeviceSnapshot(
-      appVersion: pkg.version,
-      buildNumber: pkg.buildNumber,
+      appVersion: appVersion,
+      buildNumber: buildNumber,
       platform: 'web',
       locale: locale,
       screenW: screen.width.round(),
