@@ -1,3 +1,4 @@
+import { handleIntrospect } from './auth/introspect';
 import { upsertUser } from './auth/session';
 import { handleDeleteSession, sessionResponse } from './auth/session_handlers';
 import { setUsername } from './auth/username';
@@ -498,6 +499,14 @@ export default {
 
     if (url.pathname === '/api/auth/session') {
       return withCors(await handleAuthSession(request, env), request, 'auth');
+    }
+
+    if (url.pathname === '/api/auth/introspect') {
+      if (request.method !== 'GET') {
+        return jsonResponse({ error: 'method not allowed' }, { status: 405 });
+      }
+      // Sem withCors: é chamado pelo coldigom-api, não por navegador.
+      return handleIntrospect(env.DB, request);
     }
 
     if (url.pathname === '/api/auth/username') {

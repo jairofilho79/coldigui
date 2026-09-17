@@ -10,6 +10,7 @@ API do catálogo PLPCG (público), autenticação Google e sync de playlists.
 | `GET` | `/api/catalog/checksum` | Não | SHA-256 hex (`204` se `If-None-Match` bater) |
 | `POST` | `/api/auth/session` | Bearer Google `id_token` | Valida JWT, UPSERT em `users`, cria linha em `user_sessions` e devolve perfil + `sessionToken` (60 d deslizantes) |
 | `DELETE` | `/api/auth/session` | Bearer `sess_…` | Revoga a sessão (204, idempotente) |
+| `GET` | `/api/auth/introspect` | Bearer `sess_…` (só sessão) | Servidor-a-servidor para o coldigom-api: `{ userId, email, name, username }` sem renovar a sessão |
 | `PUT` | `/api/auth/username` | Bearer | Define username único (uma vez) |
 | `GET` | `/api/social/users?q=` | Bearer | Busca usernames (conta listas públicas; `@` opcional) |
 | `GET` | `/api/social/users/:username/playlists` | Bearer | Listas públicas do perfil |

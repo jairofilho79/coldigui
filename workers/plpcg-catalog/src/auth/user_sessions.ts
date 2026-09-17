@@ -41,14 +41,15 @@ export async function createSession(
 }
 
 /**
- * `{ sub }` de uma sessão válida, ou `null`. Renova `last_seen_at`/`expires_at`
- * (deslizante) só quando a última renovação tem mais de 1 h (spec D3).
+ * `{ sub }` de uma sessão válida, ou `null` — **sem** renovar nada. É o que a
+ * introspecção usa: ser consultado pelo coldigom-api não é uso do usuário e
+ * não pode empurrar o `expires_at`.
  */
-export async function findSession(
+export async function lookupSession(
   db: D1Database,
   token: string,
   now: Date = new Date(),
-): Promise<{ sub: string } | null> {
+): Promise<{ sub: string; lastSeenAt: string } | null> {
   const hash = await hashSessionToken(token);
   const row = await db
     .prepare(
@@ -57,18 +58,28 @@ export async function findSession(
     )
     .bind(hash, now.toISOString())
     .first<SessionLookupRow>();
-  if (!row) return null;
+  return row ? { sub: row.google_sub, lastSeenAt: row.last_seen_at } : null;
+}
 
-  const lastSeen = Date.parse(row.last_seen_at);
+/**
+ * `{ sub }` de uma sessão válida, ou `null`. Renova `last_seen_at`/`expires_at`
+ * (deslizante) só quando a última renovação tem mais de 1 h (spec D3).
+ */
+export async function findSession(
+  db: D1Database,
+  token: string,
+  now: Date = new Date(),
+): Promise<{ sub: string } | null> {
+  const found = await lookupSession(db, token, now);
+  if (!found) return null;
+  const lastSeen = Date.parse(found.lastSeenAt);
   if (now.getTime() - lastSeen > SESSION_TOUCH_INTERVAL_MS) {
     await db
-      .prepare(
-        `UPDATE user_sessions SET last_seen_at = ?, expires_at = ? WHERE token_hash = ?`,
-      )
-      .bind(now.toISOString(), expiresFrom(now), hash)
+      .prepare(`UPDATE user_sessions SET last_seen_at = ?, expires_at = ? WHERE token_hash = ?`)
+      .bind(now.toISOString(), expiresFrom(now), await hashSessionToken(token))
       .run();
   }
-  return { sub: row.google_sub };
+  return { sub: found.sub };
 }
 
 /** Apaga a sessão; token desconhecido é no-op (idempotente). */

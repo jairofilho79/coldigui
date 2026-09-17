@@ -25,6 +25,7 @@
  * | `UPDATE user_material_kind_prefs SET … WHERE user_id = ?` | idem |
  * | `SELECT username, name FROM users WHERE google_sub = ?` (via `getUsername`/`live/handlers.ts`) | `FROM users` + `google_sub = ?` |
  * | `SELECT google_sub FROM users WHERE username = ?` (rota social) | `FROM users` + `username = ?` |
+ * | `SELECT email, name, username FROM users WHERE google_sub = ?` (`introspect.ts`) | `FROM users` + `google_sub = ?` |
  * | `SELECT code FROM live_rooms WHERE owner_sub = ?` (`live/handlers.ts`) | `live_rooms` + `owner_sub = ?` |
  * | `SELECT code FROM live_rooms WHERE code = ?` | `live_rooms`, sem `owner_sub = ?` |
  * | `INSERT INTO live_rooms (…) VALUES (…) ON CONFLICT DO NOTHING RETURNING code` | `live_rooms` + `INSERT` |
@@ -135,7 +136,7 @@ interface StoredRow {
 
 export interface FakeD1Options {
   /** Linhas de `users` (a rota social resolve `username` → `google_sub`). */
-  users?: Array<{ google_sub: string; username: string; name?: string }>;
+  users?: Array<{ google_sub: string; username: string; name?: string; email?: string | null }>;
   /** Linhas de `user_audio_flags`. */
   audioFlags?: AudioFlagRow[];
   /** Linhas de `short_links`. */
@@ -298,6 +299,8 @@ export class FakeD1Database {
   readonly sessions = new Map<string, SessionRow>();
   /** `user_id` → `name`, para o `ownerNameOf` da Lista ao Vivo. */
   readonly userNames = new Map<string, string>();
+  /** `user_id` → `email`, para o `handleIntrospect` (coldigom-api). */
+  readonly userEmails = new Map<string, string | null>();
   /** Linhas de `live_rooms`, por `code`. */
   readonly liveRooms = new Map<string, LiveRoomRow>();
   /** Todo SQL executado, na ordem — útil para asserções de "não escreveu". */
@@ -316,6 +319,7 @@ export class FakeD1Database {
       this.usernames.set(user.google_sub, user.username);
       this.usersByUsername.set(user.username, user.google_sub);
       if (user.name) this.userNames.set(user.google_sub, user.name);
+      this.userEmails.set(user.google_sub, user.email ?? null);
     }
   }
 
@@ -545,7 +549,7 @@ export class FakeD1Database {
     const sub = bindings[0] as string;
     const username = this.usernames.get(sub);
     if (username === undefined) return [];
-    return [{ username, name: this.userNames.get(sub) ?? null }];
+    return [{ username, name: this.userNames.get(sub) ?? null, email: this.userEmails.get(sub) ?? null }];
   }
 
   /**
