@@ -17,4 +17,9 @@ abstract final class ColdigomEndpoints {
   /// kind — calculado sob demanda pelo Worker, sem tabela própria no app.
   static String materialTypesForKind(String kindId) =>
       '$materialKinds/$kindId/types';
+
+  /// Contribuições da comunidade (Bearer `sess_…`).
+  static const contributions = '/api/contributions';
+  static const contributionsMine = '/api/contributions/mine';
+  static String contribution(String id) => '/api/contributions/$id';
 }
