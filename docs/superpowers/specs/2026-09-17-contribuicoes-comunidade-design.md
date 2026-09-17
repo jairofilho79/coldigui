@@ -1,7 +1,7 @@
 # Contribuições da comunidade — bugs, informação errada, conteúdo e sugestões
 
 **Data:** 2026-09-17
-**Estado:** aprovado em brainstorm; spec para revisão
+**Estado:** implementado (2026-09-17) em `worktree-contribuicoes-app` (coldigui) e `worktree-contribuicoes-api` (coldigom, base `develop`); pendem merge, deploy §10 e homologação. Desvios registados em §12.
 **Escopo deste spec (peças A + B):**
 - **A. App (coldigui)** — formulário «Ajude a melhorar o PLPCG» só para logados, com entrada pelo Perfil, pelo sheet de materiais e pelo leitor/player; coleta automática de dados do dispositivo em bugs; tela «Minhas contribuições» com o estado de cada envio.
 - **B. Backend (coldigom-api + plpcg-catalog)** — endpoint de envio com anexos e links, quarentena no R2, pipeline assíncrono de verificação (checagem estrutural + Google Safe Browsing + VirusTotal, gratuitos), rotas admin de leitura/decisão já prontas para a peça C.
@@ -299,3 +299,20 @@ Lista paginada por cursor, `pull-to-refresh`, chip de estado colorido + tipo + d
 3. coldigom-api: rotas `POST/GET mine/:id`, `scan.ts` + Queue + cron, rotas admin.
 4. Flutter: domain/data (`DeviceSnapshotPort`, datasource, providers) → `ContributeScreen` → entradas (Perfil, sheet, leitor/player) → `MyContributionsScreen` → i18n.
 5. Deploy §10 e validação em `v2.plpcg.com` com um envio real de cada `kind`.
+
+## 12. Desvios registados na implementação (2026-09-17)
+
+| Onde | O que o spec diz | O que foi feito | Porquê |
+|---|---|---|---|
+| §4.2 lista admin | `?cursor=` | `?page=` + `{ data, pagination }` (50/página) | mesmo padrão da `ValidationQueuePage` do Coldigom |
+| §4.2 upload | 5 × 32 MiB por pedido | teto **por pedido** `MAX_REQUEST_BYTES = 96 MiB` (servidor `413 request_too_large`; app `kMaxRequestBytes`) e `payload` ≤ 64 KiB | limite de 100 MB do edge da Cloudflare; **gate de deploy**: validar um upload real de ~90 MiB no Worker publicado e baixar para 48–64 MiB se der OOM (1102) |
+| §5 passo 0/1 | dedupe antes do estrutural; dedupe copia `scan_detail` | estrutural corre **antes** do dedupe; dedupe grava `dedupedFrom` | um gémeo com `declared_type` diferente continua a ser verificado por assinatura |
+| §5 VT | veredito de `last_analysis_stats` | stats todas a zero **não** são veredito (lookup → `unknown`, poll → `adiado`) | nunca liberar sem nenhum motor ter olhado |
+| §4.2 cota | cota atómica | leitura + incremento sem transação (limite **soft** documentado) | o orçamento real do VT tem contador próprio no consumer |
+| §4.1 | — | introspect com `AbortSignal.timeout(5 s)`; Safe Browsing com `X-Goog-Api-Key` | não pendurar o POST; chave fora da URL |
+| §6.2 item 1 | sem alvo, nenhum kind selecionado | kind padrão «Outro» | simplificação do formulário; revisitar após homologação |
+| §6.2 item 5 | — | `appVersion` vai em **todos** os kinds; `device` só em bug (o servidor descarta `device` para não-bug) | versão da app não é dado de dispositivo |
+| §6.2 item 6 | — | mensagens de recusa mapeadas por código (`rejectionMessage`) | códigos wire crus não servem ao usuário |
+| §6.4 | — | `loadMore` dispara ao construir o último item (uma vez por cursor) | listas curtas nunca rolam |
+| §7 admin | `Content-Disposition` simples | `filename="ascii"; filename*=UTF-8''…` | nomes com acento |
+| peça C (futuro) | — | viewer web deve usar fetch + blob URL **com** `sandbox` no elemento (`requireAuth` exige `Origin`, cookie SameSite=Lax) | ver `docs/CONTRIBUICOES.md` do coldigom |
