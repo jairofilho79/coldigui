@@ -42,18 +42,29 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
   }
 
   /// Dispara `loadMore()` perto do fim da lista — fora do `build`, então o
-  /// pedido de rede não corre durante a construção de outro widget.
+  /// pedido de rede não corre durante a construção de outro widget. Cobre
+  /// listas longas: o `ListView.builder` só constrói os itens perto do
+  /// scroll atual, então o item final só existe (e o gatilho abaixo só
+  /// dispara) quando o usuário rola até lá.
   void _maybeLoadMore() {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
     if (position.pixels < position.maxScrollExtent - 200) return;
+    _loadMore();
+  }
+
+  /// Mesmo gatilho do fim da lista, mas chamado direto do `itemBuilder` ao
+  /// construir o último item — cobre listas curtas o bastante para caber
+  /// inteiras no viewport (o `ListView` nunca emite notificação de scroll
+  /// nesse caso, então `_maybeLoadMore` sozinho nunca dispararia).
+  void _loadMore() {
     final current = ref.read(myContributionsProvider).value;
     if (current == null || current.nextCursor == null || current.loadingMore) {
       return;
     }
     // Falha na próxima página é silenciosa aqui: `loadMore()` já reverte
-    // `loadingMore` e mantém os itens carregados; o próximo scroll tenta de
-    // novo sozinho.
+    // `loadingMore` e mantém os itens carregados; o próximo scroll (ou a
+    // próxima construção do último item) tenta de novo sozinho.
     unawaited(
       ref.read(myContributionsProvider.notifier).loadMore().catchError((_) {}),
     );
@@ -137,6 +148,16 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(child: CircularProgressIndicator()),
             );
+          }
+          if (index == state.items.length - 1 &&
+              state.nextCursor != null &&
+              !state.loadingMore) {
+            // Agendado para depois do frame (nunca síncrono dentro do
+            // `build`): constrói o último item já pede a próxima página,
+            // mesmo que a lista inteira caiba no viewport sem rolar.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _loadMore();
+            });
           }
           final c = state.items[index];
           return ListTile(

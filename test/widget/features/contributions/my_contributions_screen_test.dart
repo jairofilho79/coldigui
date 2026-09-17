@@ -47,6 +47,39 @@ class _FixedNotifier extends MyContributionsNotifier {
       MyContributionsState(items: _items);
 }
 
+/// Registra quantas vezes `loadMore()` foi chamado — usado para provar que a
+/// tela dispara a paginação ao *construir* o último item, não só ao rolar
+/// (round 1: listas curtas o bastante para caber no viewport nunca emitem
+/// notificação de scroll).
+class _PagingRecordingNotifier extends MyContributionsNotifier {
+  int loadMoreCalls = 0;
+
+  @override
+  Future<MyContributionsState> build() async => MyContributionsState(
+    items: [
+      _summary('p1', status: ContributionStatus.pendente),
+      _summary('p2', status: ContributionStatus.pendente),
+    ],
+    nextCursor: 'c2',
+  );
+
+  @override
+  Future<void> loadMore() async {
+    loadMoreCalls++;
+    final current = state.value;
+    if (current == null || current.nextCursor == null) return;
+    state = AsyncData(
+      MyContributionsState(
+        items: [
+          ...current.items,
+          _summary('p3', status: ContributionStatus.pendente),
+        ],
+        nextCursor: null,
+      ),
+    );
+  }
+}
+
 List<Override> _loggedOverrides(List<ContributionSummary> items) => [
   authStateProvider.overrideWith(
     () => FakeAuthNotifier(
@@ -169,6 +202,38 @@ void main() {
       expect(find.textContaining('foto.jpg'), findsOneWidget);
       expect(find.textContaining('ok'), findsWidgets);
       expect(find.textContaining('verificando'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'lista curta cabe no viewport e ainda assim pagina ao construir o '
+    'último item, sem precisar rolar',
+    (tester) async {
+      final notifier = _PagingRecordingNotifier();
+
+      await pumpApp(
+        tester,
+        const MyContributionsScreen(),
+        overrides: [
+          authStateProvider.overrideWith(
+            () => FakeAuthNotifier(
+              const AuthUser(googleSub: 'u', sessionToken: 'sess_t'),
+            ),
+          ),
+          myContributionsProvider.overrideWith(() => notifier),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(notifier.loadMoreCalls, 1);
+      expect(find.text('Contribuição p1'), findsOneWidget);
+      expect(find.text('Contribuição p2'), findsOneWidget);
+      expect(find.text('Contribuição p3'), findsOneWidget);
+
+      // `nextCursor` virou `null`: reconstruir o (novo) último item não
+      // chama `loadMore()` de novo.
+      await tester.pumpAndSettle();
+      expect(notifier.loadMoreCalls, 1);
     },
   );
 }
