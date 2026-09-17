@@ -843,7 +843,7 @@ describe('headMatchesDeclared', () => {
     expect(headMatchesDeclared(enc('<html>'), 'pdf')).toBe(false);
     expect(headMatchesDeclared(enc('{t: x}'), 'chordpro')).toBe(true);
     expect(headMatchesDeclared(new Uint8Array([0x4d, 0x5a]), 'txt')).toBe(false);
-    expect(headMatchesDeclared(enc('a b'), 'txt')).toBe(false);
+    expect(headMatchesDeclared(enc('a\u0000b'), 'txt')).toBe(false);
   });
 });
 
@@ -920,7 +920,7 @@ describe('checkStructural — imagens', () => {
 describe('checkStructural — texto', () => {
   it('utf-8 válido é limpo; byte nulo e > 256 KB são suspeita', () => {
     expect(checkStructural(enc('{t: Louvor}\n[C]Ainda'), 'chordpro').status).toBe('limpa');
-    expect(checkStructural(enc('a b'), 'txt')).toMatchObject({ status: 'suspeita', reason: 'binary_in_text' });
+    expect(checkStructural(enc('a\u0000b'), 'txt')).toMatchObject({ status: 'suspeita', reason: 'binary_in_text' });
     expect(checkStructural(new Uint8Array(256 * 1024 + 1).fill(0x61), 'txt')).toMatchObject({ status: 'suspeita', reason: 'text_too_large' });
   });
 });
@@ -991,7 +991,7 @@ export function headMatchesDeclared(head: Uint8Array, declared: DeclaredType): b
 /** Vai para Content-Disposition e para a tela do admin: nada de caminho nem controle. */
 export function safeOriginalName(name: string): string {
   // eslint-disable-next-line no-control-regex
-  const cleaned = name.replace(/[\\/ -"]/g, '').trim();
+  const cleaned = name.replace(/[\\/\u0000-"]/g, '').trim();
   return (cleaned || 'arquivo').slice(0, 200);
 }
 ```
