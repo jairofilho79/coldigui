@@ -9,7 +9,11 @@ import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
+import 'package:coldigui/features/contributions/presentation/utils/open_contribute.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
@@ -321,6 +325,13 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     );
     final miniPlayerOverlayVisible = isFullscreen && hasPlayingTrack;
 
+    // O botão «Reportar» só aparece quando dá pra montar um alvo — sem
+    // `louvor` (pdfId vazio ou ainda não aquecido no lookup), a bandeirinha
+    // some em vez de abrir o formulário sem contexto nenhum.
+    final reportLouvor = pdfId.isEmpty
+        ? null
+        : ref.watch(catalogMaterialLookupProvider).louvor(pdfId);
+
     return _ReaderScaffold(
       titulo: titulo,
       showTitle: sessionLoading && carouselEmpty,
@@ -336,6 +347,19 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           : null,
       shareLoading: _shareLoading,
       shareTooltip: l10n?.sharePdf ?? 'Compartilhar',
+      onReport: reportLouvor == null
+          ? null
+          : () => openContribute(
+              context,
+              target: ContributionTarget(
+                source: reportLouvor.source == LouvorDataSource.coldigom
+                    ? ContributionSource.coldigom
+                    : ContributionSource.plpcg,
+                praiseId: reportLouvor.groupId,
+                materialId: pdfId,
+              ),
+            ),
+      reportTooltip: l10n?.contributeReportTooltip ?? 'Reportar',
       fullscreenTooltip: l10n?.readerFullscreenTooltip ?? 'Tela cheia (F)',
       exitFullscreenTooltip:
           l10n?.readerExitFullscreenTooltip ?? 'Sair da tela cheia (Esc)',
@@ -411,6 +435,8 @@ class _ReaderScaffold extends StatelessWidget {
     this.onShare,
     this.shareLoading = false,
     this.shareTooltip,
+    this.onReport,
+    this.reportTooltip,
     this.fullscreenTooltip,
     this.exitFullscreenTooltip,
     this.fitModeTooltip,
@@ -437,6 +463,11 @@ class _ReaderScaffold extends StatelessWidget {
   final void Function(Rect? sharePositionOrigin)? onShare;
   final bool shareLoading;
   final String? shareTooltip;
+
+  /// UC — «Reportar» (contribuições da comunidade): `null` quando não dá pra
+  /// resolver o louvor do `pdfId` da rota, e a bandeirinha some.
+  final VoidCallback? onReport;
+  final String? reportTooltip;
   final String? fullscreenTooltip;
   final String? exitFullscreenTooltip;
   final String? fitModeTooltip;
@@ -479,6 +510,15 @@ class _ReaderScaffold extends StatelessWidget {
                   ? Text(titulo, overflow: TextOverflow.ellipsis)
                   : null,
               actions: [
+                if (onReport != null)
+                  IconButton(
+                    tooltip: reportTooltip,
+                    icon: const Icon(Icons.flag_outlined),
+                    // Ação navega para fora do leitor — sem
+                    // `_runAndRestoreKeyboardFocus`, que devolveria o foco de
+                    // teclado a uma tela que já não está em cena.
+                    onPressed: onReport,
+                  ),
                 if (onShare != null)
                   Builder(
                     builder: (buttonContext) {

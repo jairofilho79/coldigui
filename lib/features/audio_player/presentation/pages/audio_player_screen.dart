@@ -14,7 +14,11 @@ import 'package:coldigui/features/audio_player/data/web_audio_environment.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_web_platform_hint.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
+import 'package:coldigui/features/contributions/presentation/utils/open_contribute.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -177,6 +181,24 @@ class AudioPlayerScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                          ),
+                        ),
+                      if (track != null)
+                        IconButton(
+                          tooltip: l10n.contributeReportTooltip,
+                          onPressed: () => openContribute(
+                            context,
+                            target: ContributionTarget(
+                              source: track.source == LouvorDataSource.coldigom
+                                  ? ContributionSource.coldigom
+                                  : ContributionSource.plpcg,
+                              praiseId: track.groupId,
+                              materialId: track.audioId,
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.flag_outlined,
+                            color: AppColors.textLight,
                           ),
                         ),
                     ],

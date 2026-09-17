@@ -1,5 +1,7 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
@@ -20,9 +22,9 @@ import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/providers/available_chords_provider.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
-import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -30,6 +32,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------- fixtures
@@ -631,47 +634,49 @@ void main() {
       },
     );
 
-    testWidgets('toque no gesto chama onMaterialSelected com GestureMaterialRef', (
-      tester,
-    ) async {
-      final opener = _OpenMaterialSpy();
-      await _pumpSheet(
-        tester,
-        group: groupWithGestures([gesture()]),
-        opener: opener,
-      );
+    testWidgets(
+      'toque no gesto chama onMaterialSelected com GestureMaterialRef',
+      (tester) async {
+        final opener = _OpenMaterialSpy();
+        await _pumpSheet(
+          tester,
+          group: groupWithGestures([gesture()]),
+          opener: opener,
+        );
 
-      await tester.tap(find.byIcon(Icons.pan_tool_outlined));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.pan_tool_outlined));
+        await tester.pumpAndSettle();
 
-      expect(opener.opened, isA<GestureMaterialRef>());
-    });
+        expect(opener.opened, isA<GestureMaterialRef>());
+      },
+    );
 
-    testWidgets('PDF com gestos vira duas abas; a de Gestos lista o documento', (
-      tester,
-    ) async {
-      final group = LouvorGroup(
-        groupId: 'g1',
-        numero: '692',
-        nome: 'Comigo habita',
-        sections: LouvorGroup.fromLouvores([
-          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
-        ]).first.sections,
-        gestureMaterials: [gesture()],
-      );
+    testWidgets(
+      'PDF com gestos vira duas abas; a de Gestos lista o documento',
+      (tester) async {
+        final group = LouvorGroup(
+          groupId: 'g1',
+          numero: '692',
+          nome: 'Comigo habita',
+          sections: LouvorGroup.fromLouvores([
+            _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+          ]).first.sections,
+          gestureMaterials: [gesture()],
+        );
 
-      await _pumpSheet(tester, group: group);
+        await _pumpSheet(tester, group: group);
 
-      expect(find.text('Partituras'), findsOneWidget);
-      expect(find.text('Gestos'), findsOneWidget);
-      expect(find.byIcon(Icons.pan_tool_outlined), findsNothing);
+        expect(find.text('Partituras'), findsOneWidget);
+        expect(find.text('Gestos'), findsOneWidget);
+        expect(find.byIcon(Icons.pan_tool_outlined), findsNothing);
 
-      await tester.tap(find.text('Gestos'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Gestos'));
+        await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.pan_tool_outlined), findsOneWidget);
-      expect(find.text('Partitura'), findsNothing);
-    });
+        expect(find.byIcon(Icons.pan_tool_outlined), findsOneWidget);
+        expect(find.text('Partitura'), findsNothing);
+      },
+    );
   });
 
   group('áudio', () {
@@ -1050,5 +1055,95 @@ void main() {
       expect(find.text('Tom'), findsOneWidget);
       expect(find.text('Dm'), findsOneWidget);
     });
+  });
+
+  group('contribuições (Tarefa 5)', () {
+    testWidgets('header tem o botão Reportar com tooltip', (tester) async {
+      final group = LouvorGroup.fromLouvores([
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+      ]).first;
+
+      await _pumpSheet(tester, group: group);
+
+      expect(find.byTooltip('Reportar'), findsOneWidget);
+    });
+
+    testWidgets(
+      'toque no Reportar abre o formulário com o alvo certo antes de fechar '
+      'o sheet',
+      (tester) async {
+        // `openContribute` precisa achar um `GoRouter` a partir do `context`
+        // do sheet — diferente do `_pumpSheet` genérico, aqui a árvore
+        // precisa de um router de verdade com `/contribuir` de destino.
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final group = LouvorGroup.fromLouvores([
+          _pdf(
+            categoria: 'Partitura',
+            pdfId: 'pdf1',
+            source: LouvorDataSource.coldigom,
+          ),
+        ]).first;
+
+        Map<String, String>? capturedQuery;
+        final router = GoRouter(
+          initialLocation: '/',
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, _) => Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) => ElevatedButton(
+                    onPressed: () => showMaterialSheet(context, ref, group),
+                    child: const Text('abrir'),
+                  ),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: RoutePaths.contribute,
+              builder: (context, state) {
+                capturedQuery = state.uri.queryParameters;
+                return const Scaffold(body: Text('stub-contribuir'));
+              },
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              isarStatusProvider.overrideWithValue(IsarStatus.available),
+              activeEntriesProvider.overrideWithValue(const []),
+            ],
+            child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              routerConfig: router,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('abrir'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(MaterialSheet), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Reportar'));
+        await tester.pumpAndSettle();
+
+        // Se o `pop` tivesse rodado antes do `push` (ordem errada), o
+        // `context` do sheet já estaria morto quando `openContribute`
+        // tentasse achar o `GoRouter` — a navegação não teria acontecido e
+        // o stub abaixo não apareceria.
+        expect(find.text('stub-contribuir'), findsOneWidget);
+        expect(find.byType(MaterialSheet), findsNothing);
+        expect(capturedQuery?['source'], 'coldigom');
+        expect(capturedQuery?['praiseId'], 'g1');
+      },
+    );
   });
 }

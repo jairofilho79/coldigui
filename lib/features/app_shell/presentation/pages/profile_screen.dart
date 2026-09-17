@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -70,6 +71,12 @@ class ProfileScreen extends ConsumerWidget {
               title: 'Biblioteca',
               onTap: () => goToShellDestination(context, RoutePaths.library),
             ),
+            const SizedBox(height: 10),
+            _ProfilePageTile(
+              icon: Icons.volunteer_activism_outlined,
+              title: l10n.contributeTitle,
+              onTap: () => context.push(RoutePaths.contribute),
+            ),
             if (auth.asData?.value != null) ...[
               const SizedBox(height: 10),
               _ProfilePageTile(
@@ -79,6 +86,13 @@ class ProfileScreen extends ConsumerWidget {
                   context,
                   RoutePaths.favoriteMaterialKinds,
                 ),
+              ),
+              const SizedBox(height: 10),
+              _ProfilePageTile(
+                icon: Icons.inbox_outlined,
+                title: l10n.myContributionsTitle,
+                onTap: () =>
+                    goToShellDestination(context, RoutePaths.myContributions),
               ),
             ],
             const SizedBox(height: 10),

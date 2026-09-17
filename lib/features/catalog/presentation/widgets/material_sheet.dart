@@ -18,6 +18,9 @@ import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
+import '../../../contributions/domain/entities/contribution_kind.dart';
+import '../../../contributions/domain/entities/contribution_target.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../../material_kind_prefs/domain/usecases/order_by_favorite_kinds.dart';
 import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../domain/entities/catalog_material.dart';
@@ -669,6 +672,32 @@ class _SheetHeader extends StatelessWidget {
                     color: AppColors.title,
                   ),
                 ),
+        ),
+        IconButton(
+          tooltip: l10n.contributeReportTooltip,
+          onPressed: () {
+            // `openContribute` primeiro: o push vai para o navigator raiz
+            // enquanto o `context` do sheet ainda está montado. Se o `pop`
+            // viesse antes, o `context` morreria e `GoRouter.of(context)`
+            // dentro de `openContribute` já não teria a quem perguntar.
+            openContribute(
+              context,
+              target: ContributionTarget(
+                source: group.isColdigom
+                    ? ContributionSource.coldigom
+                    : ContributionSource.plpcg,
+                praiseId: group.groupId,
+              ),
+            );
+            Navigator.of(context).pop();
+          },
+          icon: const Icon(Icons.flag_outlined, color: AppColors.title),
+          style: IconButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(44, 44),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
         ),
         IconButton(
           tooltip: l10n.carouselListClose,
