@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/contribution_kind.dart';
+import '../utils/contribution_labels.dart';
 
 /// `Wrap` de `ChoiceChip` para os 5 [ContributionKind] (spec §6.2 item 1).
 /// Tamanho padrão do Material (alvo de toque ≥48dp) — o telefone é a
@@ -27,22 +28,13 @@ class KindChips extends StatelessWidget {
         for (final kind in ContributionKind.values)
           ChoiceChip(
             key: Key('kind-${kind.wireName}'),
-            label: Text(_kindLabel(l10n, kind)),
+            label: Text(contributionKindLabel(l10n, kind)),
             selected: selected == kind,
             onSelected: (_) => onSelected(kind),
           ),
       ],
     );
   }
-
-  static String _kindLabel(AppLocalizations l10n, ContributionKind kind) =>
-      switch (kind) {
-        ContributionKind.bug => l10n.contributeKindBug,
-        ContributionKind.wrongInfo => l10n.contributeKindWrongInfo,
-        ContributionKind.content => l10n.contributeKindContent,
-        ContributionKind.improvement => l10n.contributeKindImprovement,
-        ContributionKind.other => l10n.contributeKindOther,
-      };
 }
 
 /// `Wrap` de `ChoiceChip` dos subkinds de [kind] (spec §6.2 item 2) — só

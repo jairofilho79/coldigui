@@ -9,8 +9,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
-import '../../domain/entities/contribution_kind.dart';
 import '../providers/my_contributions_provider.dart';
+import '../utils/contribution_labels.dart';
 import '../widgets/contribution_status_chip.dart';
 import '../widgets/sign_in_to_contribute.dart';
 
@@ -27,6 +27,14 @@ class MyContributionsScreen extends ConsumerStatefulWidget {
 
 class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
   final _scrollController = ScrollController();
+
+  /// Cursor já pedido pelo gatilho de *construção* do último item (abaixo).
+  /// Sem isto, uma falha na próxima página reconstrói o item final a cada
+  /// rebuild (o `loadingMore` volta a `false` e o `nextCursor` não muda) e
+  /// `_loadMoreFromBuild` disparava `loadMore()` de novo a cada frame — uma
+  /// tempestade de pedidos, um por rebuild. Rolar a lista (`_maybeLoadMore`)
+  /// continua livre para tentar de novo a qualquer momento.
+  String? _requestedCursor;
 
   @override
   void initState() {
@@ -46,6 +54,10 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
   /// listas longas: o `ListView.builder` só constrói os itens perto do
   /// scroll atual, então o item final só existe (e o gatilho abaixo só
   /// dispara) quando o usuário rola até lá.
+  ///
+  /// Sempre tenta de novo (não olha `_requestedCursor`): é o único jeito de
+  /// tentar de novo depois de uma falha, além do botão "tentar de novo" do
+  /// estado de erro da lista inteira.
   void _maybeLoadMore() {
     if (!_scrollController.hasClients) return;
     final position = _scrollController.position;
@@ -57,6 +69,16 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
   /// construir o último item — cobre listas curtas o bastante para caber
   /// inteiras no viewport (o `ListView` nunca emite notificação de scroll
   /// nesse caso, então `_maybeLoadMore` sozinho nunca dispararia).
+  ///
+  /// Só pede uma vez por cursor: se a página anterior falhou, o `nextCursor`
+  /// não muda, e reconstruir o mesmo último item (que acontece a cada
+  /// rebuild da tela) não pode reemitir o pedido sozinho.
+  void _loadMoreFromBuild(String cursor) {
+    if (_requestedCursor == cursor) return;
+    _requestedCursor = cursor;
+    _loadMore();
+  }
+
   void _loadMore() {
     final current = ref.read(myContributionsProvider).value;
     if (current == null || current.nextCursor == null || current.loadingMore) {
@@ -64,10 +86,18 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
     }
     // Falha na próxima página é silenciosa aqui: `loadMore()` já reverte
     // `loadingMore` e mantém os itens carregados; o próximo scroll (ou a
-    // próxima construção do último item) tenta de novo sozinho.
+    // próxima construção do último item, uma vez por cursor) tenta de novo.
     unawaited(
       ref.read(myContributionsProvider.notifier).loadMore().catchError((_) {}),
     );
+  }
+
+  Future<void> _onRefresh() {
+    // Um novo `refresh()` pode repetir o mesmo `nextCursor` da página
+    // anterior (ex.: a primeira página não mudou) — sem isto, o gatilho de
+    // construção não pediria a próxima página de novo.
+    _requestedCursor = null;
+    return ref.read(myContributionsProvider.notifier).refresh();
   }
 
   @override
@@ -99,11 +129,7 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
               style: AppTypography.body.copyWith(color: AppColors.textLight),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () =>
-                  ref.read(myContributionsProvider.notifier).refresh(),
-              child: Text(l10n.retry),
-            ),
+            FilledButton(onPressed: _onRefresh, child: Text(l10n.retry)),
           ],
         ),
       ),
@@ -115,12 +141,9 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
     AppLocalizations l10n,
     MyContributionsState state,
   ) {
-    Future<void> onRefresh() =>
-        ref.read(myContributionsProvider.notifier).refresh();
-
     if (state.items.isEmpty) {
       return RefreshIndicator(
-        onRefresh: onRefresh,
+        onRefresh: _onRefresh,
         child: ListView(
           controller: _scrollController,
           children: [
@@ -138,7 +161,7 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: onRefresh,
+      onRefresh: _onRefresh,
       child: ListView.builder(
         controller: _scrollController,
         itemCount: state.items.length + (state.loadingMore ? 1 : 0),
@@ -155,8 +178,9 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
             // Agendado para depois do frame (nunca síncrono dentro do
             // `build`): constrói o último item já pede a próxima página,
             // mesmo que a lista inteira caiba no viewport sem rolar.
+            final cursor = state.nextCursor!;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) _loadMore();
+              if (mounted) _loadMoreFromBuild(cursor);
             });
           }
           final c = state.items[index];
@@ -166,7 +190,8 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
               style: AppTypography.body.copyWith(color: AppColors.textLight),
             ),
             subtitle: Text(
-              '${_kindLabel(l10n, c.kind)} · ${_formatDate(c.createdAt)}',
+              '${contributionKindLabel(l10n, c.kind)} · '
+              '${_formatDate(c.createdAt)}',
               style: AppTypography.body.copyWith(
                 color: AppColors.textLight.withValues(alpha: 0.7),
               ),
@@ -179,17 +204,6 @@ class _MyContributionsScreenState extends ConsumerState<MyContributionsScreen> {
     );
   }
 }
-
-/// Espelha `_kindLabel` de `contribution_kind_chips.dart` — privado lá, não
-/// vale a pena publicar só para isto.
-String _kindLabel(AppLocalizations l10n, ContributionKind kind) =>
-    switch (kind) {
-      ContributionKind.bug => l10n.contributeKindBug,
-      ContributionKind.wrongInfo => l10n.contributeKindWrongInfo,
-      ContributionKind.content => l10n.contributeKindContent,
-      ContributionKind.improvement => l10n.contributeKindImprovement,
-      ContributionKind.other => l10n.contributeKindOther,
-    };
 
 /// `dd/MM/yyyy` em hora local — mesmo padrão sem `intl` de
 /// `formatLeafletHeaderDate`.

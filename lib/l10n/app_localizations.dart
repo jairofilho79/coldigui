@@ -3329,6 +3329,12 @@ abstract class AppLocalizations {
   /// **'No máximo 5 arquivos.'**
   String get contributeAttachmentTooMany;
 
+  /// No description provided for @contributeAttachmentTotalTooLarge.
+  ///
+  /// In pt, this message translates to:
+  /// **'No total, os anexos não podem passar de 96 MB.'**
+  String get contributeAttachmentTotalTooLarge;
+
   /// No description provided for @contributeLinks.
   ///
   /// In pt, this message translates to:
@@ -3347,11 +3353,83 @@ abstract class AppLocalizations {
   /// **'Só links do YouTube ou do Google Drive.'**
   String get contributeLinkNotAllowed;
 
+  /// No description provided for @contributeTooManyLinks.
+  ///
+  /// In pt, this message translates to:
+  /// **'No máximo 5 links.'**
+  String get contributeTooManyLinks;
+
   /// No description provided for @contributeDeviceTitle.
   ///
   /// In pt, this message translates to:
   /// **'Isto será enviado'**
   String get contributeDeviceTitle;
+
+  /// No description provided for @contributeDeviceLineApp.
+  ///
+  /// In pt, this message translates to:
+  /// **'App'**
+  String get contributeDeviceLineApp;
+
+  /// No description provided for @contributeDeviceLinePlatform.
+  ///
+  /// In pt, this message translates to:
+  /// **'Plataforma'**
+  String get contributeDeviceLinePlatform;
+
+  /// No description provided for @contributeDeviceLineDevice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dispositivo'**
+  String get contributeDeviceLineDevice;
+
+  /// No description provided for @contributeDeviceLineSystem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sistema'**
+  String get contributeDeviceLineSystem;
+
+  /// No description provided for @contributeDeviceLineBrowser.
+  ///
+  /// In pt, this message translates to:
+  /// **'Navegador'**
+  String get contributeDeviceLineBrowser;
+
+  /// No description provided for @contributeDeviceLineScreen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tela'**
+  String get contributeDeviceLineScreen;
+
+  /// No description provided for @contributeDeviceLineLocale.
+  ///
+  /// In pt, this message translates to:
+  /// **'Idioma'**
+  String get contributeDeviceLineLocale;
+
+  /// No description provided for @contributeDeviceLineOnline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Online'**
+  String get contributeDeviceLineOnline;
+
+  /// No description provided for @contributeDeviceLinePwa.
+  ///
+  /// In pt, this message translates to:
+  /// **'PWA instalada'**
+  String get contributeDeviceLinePwa;
+
+  /// No description provided for @commonYes.
+  ///
+  /// In pt, this message translates to:
+  /// **'sim'**
+  String get commonYes;
+
+  /// No description provided for @commonNo.
+  ///
+  /// In pt, this message translates to:
+  /// **'não'**
+  String get commonNo;
 
   /// No description provided for @contributeSameDeviceQuestion.
   ///

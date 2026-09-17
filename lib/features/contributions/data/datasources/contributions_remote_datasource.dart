@@ -29,9 +29,14 @@ class ContributionsRemoteDatasource {
 
   final Dio _dio;
 
-  Options _auth(String sessionToken, {Duration? sendTimeout}) => Options(
+  Options _auth(
+    String sessionToken, {
+    Duration? sendTimeout,
+    Duration? receiveTimeout,
+  }) => Options(
     headers: {'Authorization': 'Bearer $sessionToken'},
     sendTimeout: sendTimeout,
+    receiveTimeout: receiveTimeout,
     // 4xx são respostas do contrato, não falhas de transporte.
     validateStatus: (status) => status != null && status < 500,
   );
@@ -59,7 +64,15 @@ class ContributionsRemoteDatasource {
     final response = await _dio.post<Map<String, dynamic>>(
       ColdigomEndpoints.contributions,
       data: form,
-      options: _auth(sessionToken, sendTimeout: const Duration(minutes: 5)),
+      // `receiveTimeout` próprio (2 min): o padrão do `contributionsDioProvider`
+      // é 60s, curto demais para o servidor terminar de escanear os anexos
+      // (o multipart em si já subiu — `sendTimeout` de 5 min cobre isso)
+      // antes de responder com o `201`/rejeição.
+      options: _auth(
+        sessionToken,
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 2),
+      ),
       onSendProgress: onProgress,
     );
     _throwIfUnauthorized(response.statusCode);

@@ -8,6 +8,12 @@ const int kMaxLinks = 5;
 const int kMaxTitleLength = 120;
 const int kMaxBodyLength = 4000;
 
+/// Teto da soma dos anexos de um envio (espelha `request_too_large`/
+/// `payload_too_large` do servidor) — 5 arquivos de 32 MB cada já passaria
+/// de 96 MB sem este teto, e o multipart inteiro tende a estourar limites de
+/// proxy/CDN bem antes disso.
+const int kMaxRequestBytes = 96 * 1024 * 1024;
+
 const Set<String> kAllowedExtensions = {
   'pdf',
   'mp3',
@@ -26,18 +32,21 @@ const Set<String> kAllowedLinkHosts = {
   'docs.google.com',
 };
 
-enum AttachmentError { tooLarge, typeNotAllowed, tooMany }
+enum AttachmentError { tooLarge, typeNotAllowed, tooMany, totalTooLarge }
 
 String _extensionOf(String name) =>
     name.contains('.') ? name.split('.').last.toLowerCase() : '';
 
 /// `null` = anexo aceito. `bug` só aceita imagem (screenshot) — o resto das
-/// extensões fica para os outros kinds.
+/// extensões fica para os outros kinds. `currentTotalBytes` é a soma dos
+/// anexos já aceitos no rascunho — barra a soma do envio inteiro, não só
+/// cada arquivo (espelha `request_too_large`/`payload_too_large` do servidor).
 AttachmentError? validateAttachment({
   required String name,
   required int size,
   required ContributionKind kind,
   required int currentCount,
+  required int currentTotalBytes,
 }) {
   if (currentCount >= kMaxAttachments) return AttachmentError.tooMany;
   final ext = _extensionOf(name);
@@ -46,6 +55,9 @@ AttachmentError? validateAttachment({
       : kAllowedExtensions;
   if (!allowed.contains(ext)) return AttachmentError.typeNotAllowed;
   if (size > kMaxAttachmentBytes) return AttachmentError.tooLarge;
+  if (currentTotalBytes + size > kMaxRequestBytes) {
+    return AttachmentError.totalTooLarge;
+  }
   return null;
 }
 

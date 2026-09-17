@@ -8,6 +8,7 @@ import '../../../catalog/presentation/providers/catalog_material_lookup_provider
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../material_kind_prefs/presentation/providers/coldigom_material_kinds_provider.dart';
 import '../../domain/entities/contribution_kind.dart';
+import '../utils/contribution_labels.dart';
 
 /// «Sobre qual material?» (spec §6.2 item 3) — só quando há `praiseId`:
 /// junta PDFs (PLPCG + coldigom), áudios e cifras do mesmo `groupId`.
@@ -37,8 +38,17 @@ class MaterialDropdown extends ConsumerWidget {
       for (final c in lookup.chordsById.values)
         if (c.groupId == praiseId) (c.chordId, c.categoria),
     ];
+    // `DropdownButtonFormField` derruba com um assert se `initialValue` não
+    // for `null` nem bater com nenhum item — o que acontece quando o
+    // material escolhido (ex.: veio de uma rota externa) ainda não está no
+    // `catalogMaterialLookupProvider` (cache ainda carregando, ou o id não
+    // pertence a este `praiseId`). Cai para "geral" (`null`) nesse caso; o
+    // rascunho continua com o `value` real — só a seleção visual regride.
+    final selected = value != null && options.any((o) => o.$1 == value)
+        ? value
+        : null;
     return DropdownButtonFormField<String?>(
-      initialValue: value,
+      initialValue: selected,
       decoration: InputDecoration(labelText: l10n.contributeMaterialLabel),
       // `hint` além do item `value: null`: deixa a seleção "geral" visível
       // mesmo quando o `DropdownButtonFormField` não repinta o item nulo
@@ -94,7 +104,7 @@ class MetadataFields extends ConsumerWidget {
             for (final f in MetadataField.values)
               DropdownMenuItem(
                 value: f,
-                child: Text(_metadataFieldLabel(l10n, f)),
+                child: Text(metadataFieldLabel(l10n, f)),
               ),
           ],
           onChanged: (f) {
@@ -153,19 +163,6 @@ class MetadataFields extends ConsumerWidget {
       MetadataField.tags => null,
     };
   }
-
-  static String _metadataFieldLabel(
-    AppLocalizations l10n,
-    MetadataField field,
-  ) => switch (field) {
-    MetadataField.title => l10n.contributeMetadataTitle,
-    MetadataField.number => l10n.contributeMetadataNumber,
-    MetadataField.author => l10n.contributeMetadataAuthor,
-    MetadataField.tonality => l10n.contributeMetadataTonality,
-    MetadataField.rhythm => l10n.contributeMetadataRhythm,
-    MetadataField.category => l10n.contributeMetadataCategory,
-    MetadataField.tags => l10n.contributeMetadataTags,
-  };
 }
 
 /// «É o mesmo que» de `wrong_info/duplicate` (spec §6.2 item 5): busca livre

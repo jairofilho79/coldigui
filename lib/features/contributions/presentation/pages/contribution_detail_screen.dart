@@ -8,6 +8,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/contribution_kind.dart';
 import '../../domain/entities/contribution_summary.dart';
 import '../providers/my_contributions_provider.dart';
+import '../utils/contribution_labels.dart';
 import '../widgets/contribution_status_chip.dart';
 
 /// Detalhe de uma contribuição (spec §6.4): título, estado, corpo, campos
@@ -80,7 +81,7 @@ class _DetailBody extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          _kindLabel(l10n, c.kind),
+          contributionKindLabel(l10n, c.kind),
           style: AppTypography.body.copyWith(
             color: AppColors.textLight.withValues(alpha: 0.7),
           ),
@@ -145,15 +146,6 @@ class _DetailBody extends StatelessWidget {
   }
 }
 
-String _kindLabel(AppLocalizations l10n, ContributionKind kind) =>
-    switch (kind) {
-      ContributionKind.bug => l10n.contributeKindBug,
-      ContributionKind.wrongInfo => l10n.contributeKindWrongInfo,
-      ContributionKind.content => l10n.contributeKindContent,
-      ContributionKind.improvement => l10n.contributeKindImprovement,
-      ContributionKind.other => l10n.contributeKindOther,
-    };
-
 /// `limpa` → ok; `suspeita`/`infectada` → recusado; qualquer outro (fila,
 /// adiado…) → verificando.
 String _scanLabel(AppLocalizations l10n, String scanStatus) =>
@@ -176,16 +168,5 @@ String? _metadataLine(AppLocalizations l10n, Map<String, dynamic> fields) {
   if (field == null) return null;
   final current = fields['current'] as String?;
   final proposed = fields['proposed'] as String? ?? '';
-  return '${_metadataFieldLabel(l10n, field)}: ${current ?? '—'} → $proposed';
+  return '${metadataFieldLabel(l10n, field)}: ${current ?? '—'} → $proposed';
 }
-
-String _metadataFieldLabel(AppLocalizations l10n, MetadataField field) =>
-    switch (field) {
-      MetadataField.title => l10n.contributeMetadataTitle,
-      MetadataField.number => l10n.contributeMetadataNumber,
-      MetadataField.author => l10n.contributeMetadataAuthor,
-      MetadataField.tonality => l10n.contributeMetadataTonality,
-      MetadataField.rhythm => l10n.contributeMetadataRhythm,
-      MetadataField.category => l10n.contributeMetadataCategory,
-      MetadataField.tags => l10n.contributeMetadataTags,
-    };

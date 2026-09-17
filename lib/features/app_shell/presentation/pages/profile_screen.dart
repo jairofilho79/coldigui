@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -12,6 +11,7 @@ import '../../../auth/domain/entities/auth_user.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../auth/presentation/widgets/create_username_dialog.dart';
 import '../../../auth/presentation/widgets/google_sign_in_button.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
 
 /// Hub do Perfil — login Google, Biblioteca, Offline e Sobre.
 class ProfileScreen extends ConsumerWidget {
@@ -75,7 +75,10 @@ class ProfileScreen extends ConsumerWidget {
             _ProfilePageTile(
               icon: Icons.volunteer_activism_outlined,
               title: l10n.contributeTitle,
-              onTap: () => context.push(RoutePaths.contribute),
+              // `openContribute` (não `context.push` direto): manda o
+              // `from` no payload — o Perfil é de onde a maioria dos
+              // envios parte, e sem o `from` isso não vai pro servidor.
+              onTap: () => openContribute(context),
             ),
             if (auth.asData?.value != null) ...[
               const SizedBox(height: 10),

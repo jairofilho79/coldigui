@@ -352,9 +352,9 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           : () => openContribute(
               context,
               target: ContributionTarget(
-                source: reportLouvor.source == LouvorDataSource.coldigom
-                    ? ContributionSource.coldigom
-                    : ContributionSource.plpcg,
+                source: contributionSourceOf(
+                  isColdigom: reportLouvor.source == LouvorDataSource.coldigom,
+                ),
                 praiseId: reportLouvor.groupId,
                 materialId: pdfId,
               ),

@@ -72,7 +72,33 @@ class AttachmentsSection extends StatelessWidget {
         ? kImageExtensions
         : kAllowedExtensions;
     final files = await pickFiles(allowedExtensions: allowed);
+    // Contagem/soma locais, atualizadas a cada anexo aceito neste mesmo
+    // lote — `attachments` (o parâmetro do widget) fica parado durante todo
+    // o `for`, então sem isto um segundo arquivo do mesmo pick não veria o
+    // primeiro para o teto da soma (item 4) nem para o de quantidade.
+    var count = attachments.length;
+    var totalBytes = attachments.fold<int>(0, (sum, a) => sum + a.size);
     for (final file in files) {
+      // Tamanho ANTES de ler os bytes: `lengthSync()`/`length()` não exigem
+      // carregar o arquivo inteiro na memória — ler primeiro (como era
+      // antes) desperdiça memória e tempo num arquivo que vai ser recusado
+      // de qualquer forma (ex.: 200 MB batendo no teto de 32 MB por arquivo).
+      final size = file.lengthSync() ?? await file.length() ?? 0;
+      final sizeError = validateAttachment(
+        name: file.name,
+        size: size,
+        kind: kind,
+        currentCount: count,
+        currentTotalBytes: totalBytes,
+      );
+      if (sizeError != null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_attachmentErrorMessage(l10n, sizeError))),
+          );
+        }
+        continue;
+      }
       final Uint8List bytes;
       try {
         bytes = await file.readAsBytes();
@@ -81,17 +107,18 @@ class AttachmentsSection extends StatelessWidget {
         continue;
       }
       final error = onAdd(
-        ContributionAttachment(
-          name: file.name,
-          size: file.lengthSync() ?? bytes.length,
-          bytes: bytes,
-        ),
+        ContributionAttachment(name: file.name, size: size, bytes: bytes),
       );
-      if (error != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_attachmentErrorMessage(l10n, error))),
-        );
+      if (error != null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_attachmentErrorMessage(l10n, error))),
+          );
+        }
+        continue;
       }
+      count++;
+      totalBytes += size;
     }
   }
 
@@ -102,5 +129,6 @@ class AttachmentsSection extends StatelessWidget {
     AttachmentError.tooLarge => l10n.contributeAttachmentTooLarge,
     AttachmentError.typeNotAllowed => l10n.contributeAttachmentTypeNotAllowed,
     AttachmentError.tooMany => l10n.contributeAttachmentTooMany,
+    AttachmentError.totalTooLarge => l10n.contributeAttachmentTotalTooLarge,
   };
 }

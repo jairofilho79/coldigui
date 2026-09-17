@@ -683,9 +683,7 @@ class _SheetHeader extends StatelessWidget {
             openContribute(
               context,
               target: ContributionTarget(
-                source: group.isColdigom
-                    ? ContributionSource.coldigom
-                    : ContributionSource.plpcg,
+                source: contributionSourceOf(isColdigom: group.isColdigom),
                 praiseId: group.groupId,
               ),
             );

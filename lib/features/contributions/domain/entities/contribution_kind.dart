@@ -54,3 +54,16 @@ enum ContributionSource {
   const ContributionSource(this.wireName);
   final String wireName;
 }
+
+/// Mapeia a origem de um material (`LouvorDataSource`, do catálogo) para o
+/// [ContributionSource] do formulário — mesma regra repetida no sheet, no
+/// leitor de PDF e no player de áudio ao montar o `ContributionTarget` de
+/// «Reportar».
+///
+/// `import` do próprio `LouvorDataSource` como `dynamic` seria pior (perde
+/// checagem de tipo); em vez disso os três chamadores só passam
+/// `origem == LouvorDataSource.coldigom` — a assinatura fica em `bool` para
+/// não criar uma dependência de domínio (contributions) sobre domínio
+/// (catalog) por causa de um único enum de dois valores.
+ContributionSource contributionSourceOf({required bool isColdigom}) =>
+    isColdigom ? ContributionSource.coldigom : ContributionSource.plpcg;

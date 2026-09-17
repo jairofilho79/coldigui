@@ -50,7 +50,15 @@ class MyContributionsNotifier extends AsyncNotifier<MyContributionsState> {
 
   Future<void> refresh() async {
     ref.invalidateSelf();
-    await future;
+    // O erro já vira `AsyncError` no `state` (é para isso que
+    // `invalidateSelf` + `build()` servem) — sem o `catch`, o
+    // `RefreshIndicator` (que faz `await onRefresh()`) deixaria a exceção
+    // subir e cairia na tela vermelha de erro não tratado do Flutter.
+    try {
+      await future;
+    } on Object {
+      // Ignorado de propósito: `_buildError` já mostra o estado de erro.
+    }
   }
 
   /// Busca a próxima página e anexa aos itens já carregados — no-op sem

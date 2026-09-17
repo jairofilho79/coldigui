@@ -189,9 +189,10 @@ class AudioPlayerScreen extends ConsumerWidget {
                           onPressed: () => openContribute(
                             context,
                             target: ContributionTarget(
-                              source: track.source == LouvorDataSource.coldigom
-                                  ? ContributionSource.coldigom
-                                  : ContributionSource.plpcg,
+                              source: contributionSourceOf(
+                                isColdigom:
+                                    track.source == LouvorDataSource.coldigom,
+                              ),
                               praiseId: track.groupId,
                               materialId: track.audioId,
                             ),

@@ -26,7 +26,7 @@ class DeviceConsentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final lines = snapshot?.humanLines() ?? const <(String, String)>[];
+    final lines = snapshot?.humanLines() ?? const <(DeviceLine, String)>[];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -55,9 +55,17 @@ class DeviceConsentCard extends StatelessWidget {
                     children: [
                       SizedBox(
                         width: 96,
-                        child: Text(line.$1, style: AppTypography.label),
+                        child: Text(
+                          _lineLabel(l10n, line.$1),
+                          style: AppTypography.label,
+                        ),
                       ),
-                      Expanded(child: Text(line.$2, style: AppTypography.body)),
+                      Expanded(
+                        child: Text(
+                          _lineValue(l10n, line.$1, line.$2),
+                          style: AppTypography.body,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -101,3 +109,30 @@ class DeviceConsentCard extends StatelessWidget {
     );
   }
 }
+
+/// Rótulo de cada [DeviceLine] — `DeviceSnapshot` (domínio) não sabe de
+/// l10n; só quem exibe mapeia o identificador para o texto no idioma certo.
+String _lineLabel(AppLocalizations l10n, DeviceLine line) => switch (line) {
+  DeviceLine.app => l10n.contributeDeviceLineApp,
+  DeviceLine.platform => l10n.contributeDeviceLinePlatform,
+  DeviceLine.device => l10n.contributeDeviceLineDevice,
+  DeviceLine.system => l10n.contributeDeviceLineSystem,
+  DeviceLine.browser => l10n.contributeDeviceLineBrowser,
+  DeviceLine.screen => l10n.contributeDeviceLineScreen,
+  DeviceLine.locale => l10n.contributeDeviceLineLocale,
+  DeviceLine.online => l10n.contributeDeviceLineOnline,
+  DeviceLine.pwa => l10n.contributeDeviceLinePwa,
+};
+
+/// Valor de cada linha — `online`/`pwa` chegam como `'true'`/`'false'`
+/// (`DeviceSnapshot.humanLines`, de propósito: `'sim'/'não'` também é l10n).
+/// `commonYes`/`commonNo` (não `contributeSameDeviceYes`/`No`): o texto do
+/// `SegmentedButton` logo abaixo já usa exatamente "Sim"/"Não" — reaproveitar
+/// a mesma chave faria o `find.text('Sim')` de um teste de widget bater em
+/// dois lugares.
+String _lineValue(AppLocalizations l10n, DeviceLine line, String raw) =>
+    switch (line) {
+      DeviceLine.online ||
+      DeviceLine.pwa => raw == 'true' ? l10n.commonYes : l10n.commonNo,
+      _ => raw,
+    };

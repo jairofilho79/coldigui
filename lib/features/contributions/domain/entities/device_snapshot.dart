@@ -51,18 +51,35 @@ class DeviceSnapshot {
     if (userAgent != null) 'user_agent': userAgent,
   };
 
-  /// Linhas do cartão «Isto será enviado». Rótulos curtos e fixos (o cartão
-  /// é técnico; não passa por l10n de propósito — o valor é o que importa).
-  List<(String, String)> humanLines() => [
-    ('App', versionLabel),
-    ('Plataforma', platform),
+  /// Linhas do cartão «Isto será enviado» — identificador + valor bruto (sem
+  /// rótulo pronto: `DeviceSnapshot` é domínio puro, não sabe de l10n). Quem
+  /// exibe (`DeviceConsentCard`) mapeia [DeviceLine] para o rótulo no idioma
+  /// da pessoa; `online`/`pwa` mandam `'true'`/`'false'` (não `'sim'/'não'`
+  /// — isso também é l10n) para quem exibe traduzir.
+  List<(DeviceLine, String)> humanLines() => [
+    (DeviceLine.app, versionLabel),
+    (DeviceLine.platform, platform),
     if (manufacturer != null || model != null)
-      ('Dispositivo', [manufacturer, model].whereType<String>().join(' ')),
-    if (osVersion != null) ('Sistema', osVersion!),
-    if (userAgent != null) ('Navegador', userAgent!),
-    ('Tela', '$screenW×$screenH @${pixelRatio}x'),
-    ('Idioma', locale),
-    ('Online', online ? 'sim' : 'não'),
-    if (platform == 'web') ('PWA instalada', pwaStandalone ? 'sim' : 'não'),
+      (DeviceLine.device, [manufacturer, model].whereType<String>().join(' ')),
+    if (osVersion != null) (DeviceLine.system, osVersion!),
+    if (userAgent != null) (DeviceLine.browser, userAgent!),
+    (DeviceLine.screen, '$screenW×$screenH @${pixelRatio}x'),
+    (DeviceLine.locale, locale),
+    (DeviceLine.online, online.toString()),
+    if (platform == 'web') (DeviceLine.pwa, pwaStandalone.toString()),
   ];
+}
+
+/// Identificador de cada linha de [DeviceSnapshot.humanLines] — o rótulo em
+/// si (l10n) é responsabilidade de quem exibe, não do domínio.
+enum DeviceLine {
+  app,
+  platform,
+  device,
+  system,
+  browser,
+  screen,
+  locale,
+  online,
+  pwa,
 }

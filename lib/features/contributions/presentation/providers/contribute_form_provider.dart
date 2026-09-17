@@ -140,6 +140,10 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
                 size: a.size,
                 kind: kind,
                 currentCount: 0,
+                // Só nos interessa se o *tipo* ainda serve para o novo kind
+                // aqui — o teto da soma não deveria descartar um anexo já
+                // aceito só por causa da troca de kind.
+                currentTotalBytes: 0,
               ) ==
               null,
         )
@@ -190,6 +194,10 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
       size: a.size,
       kind: state.draft.kind,
       currentCount: state.draft.attachments.length,
+      currentTotalBytes: state.draft.attachments.fold(
+        0,
+        (sum, x) => sum + x.size,
+      ),
     );
     if (err != null) return err;
     _draft(state.draft.copyWith(attachments: [...state.draft.attachments, a]));

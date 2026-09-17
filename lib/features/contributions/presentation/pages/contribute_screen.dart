@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/connectivity_stream_provider.dart';
+import '../../../../core/routing/route_paths.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/device/device_snapshot_provider.dart';
@@ -12,6 +13,7 @@ import '../../domain/entities/device_snapshot.dart';
 import '../../domain/validators/attachment_rules.dart';
 import '../providers/contribute_form_provider.dart';
 import '../utils/pick_files.dart';
+import '../utils/rejection_message.dart';
 import '../widgets/contribution_attachments_section.dart';
 import '../widgets/contribution_context_fields.dart';
 import '../widgets/contribution_kind_chips.dart';
@@ -68,7 +70,10 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final user = ref.watch(authStateProvider).asData?.value;
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.contributeTitle)),
+        appBar: AppBar(
+          title: Text(l10n.contributeTitle),
+          leading: const _ContributeBackButton(),
+        ),
         body: const SignInToContribute(),
       );
     }
@@ -101,7 +106,15 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       switch (next.submit) {
         case ContributeSent():
           messenger.showSnackBar(SnackBar(content: Text(l10n.contributeSent)));
-          context.pop();
+          // `canPop()` primeiro: um link direto ou um F5 na web abre
+          // `/contribuir` como única entrada no histórico — `pop()` sem
+          // checar antes lança (`GoException`/assert). `go` manda pro
+          // Perfil, que é de onde a maioria dos envios parte.
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(RoutePaths.profile);
+          }
         case ContributeFailed(:final failure):
           messenger.showSnackBar(
             SnackBar(content: Text(_failureMessage(l10n, failure, next))),
@@ -112,10 +125,19 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       }
     });
 
-    final canSend = draft.isValid && state.submit is! ContributeSending;
+    // Nem `ContributeSending` nem `ContributeSent` deixam mandar de novo:
+    // sending já está a caminho, e sent só demora a fechar a tela por causa
+    // do próprio `ref.listen` acima (troca de frame) — sem isto, um segundo
+    // toque bem cronometrado duplicaria o envio no servidor.
+    final canSend =
+        draft.isValid &&
+        (state.submit is ContributeIdle || state.submit is ContributeFailed);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.contributeTitle)),
+      appBar: AppBar(
+        title: Text(l10n.contributeTitle),
+        leading: const _ContributeBackButton(),
+      ),
       // `SingleChildScrollView` (não `ListView`): o formulário inteiro
       // precisa existir na árvore de elementos de uma vez — um `ListView`
       // (sliver) só constrói os filhos perto do viewport.
@@ -274,9 +296,10 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     ContributeFailure.quota => l10n.contributeErrorQuota(
       _formatLocalTime(state.quotaResetAt),
     ),
-    ContributeFailure.rejected => l10n.contributeErrorRejected(
-      '${state.rejectedError ?? ''}'
-      '${state.rejectedFile != null ? ' (${state.rejectedFile})' : ''}',
+    ContributeFailure.rejected => rejectionMessage(
+      l10n,
+      state.rejectedError ?? '',
+      state.rejectedFile,
     ),
     ContributeFailure.unauthorized ||
     ContributeFailure.unknown => l10n.contributeErrorUnknown,
@@ -287,5 +310,23 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
+  }
+}
+
+/// Botão de voltar do `AppBar` com o mesmo fallback do `ContributeSent`
+/// acima: sem isto, o `AppBar` padrão só mostra a seta quando `canPop()` já
+/// era `true` na hora de montar a tela, mas some (sem fallback nenhum) num
+/// link direto ou F5 na web — a pessoa fica sem jeito de sair da tela.
+class _ContributeBackButton extends StatelessWidget {
+  const _ContributeBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const BackButtonIcon(),
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      onPressed: () =>
+          context.canPop() ? context.pop() : context.go(RoutePaths.profile),
+    );
   }
 }

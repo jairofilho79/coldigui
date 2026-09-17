@@ -1961,6 +1961,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contributeAttachmentTooMany => '5 files maximum.';
 
   @override
+  String get contributeAttachmentTotalTooLarge =>
+      'Attachments can\'t total more than 96 MB.';
+
+  @override
   String get contributeLinks => 'Links (YouTube / Drive)';
 
   @override
@@ -1970,7 +1974,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contributeLinkNotAllowed => 'Only YouTube or Google Drive links.';
 
   @override
+  String get contributeTooManyLinks => '5 links maximum.';
+
+  @override
   String get contributeDeviceTitle => 'This will be sent';
+
+  @override
+  String get contributeDeviceLineApp => 'App';
+
+  @override
+  String get contributeDeviceLinePlatform => 'Platform';
+
+  @override
+  String get contributeDeviceLineDevice => 'Device';
+
+  @override
+  String get contributeDeviceLineSystem => 'System';
+
+  @override
+  String get contributeDeviceLineBrowser => 'Browser';
+
+  @override
+  String get contributeDeviceLineScreen => 'Screen';
+
+  @override
+  String get contributeDeviceLineLocale => 'Language';
+
+  @override
+  String get contributeDeviceLineOnline => 'Online';
+
+  @override
+  String get contributeDeviceLinePwa => 'PWA installed';
+
+  @override
+  String get commonYes => 'yes';
+
+  @override
+  String get commonNo => 'no';
 
   @override
   String get contributeSameDeviceQuestion =>
