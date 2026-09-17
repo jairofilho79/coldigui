@@ -16,6 +16,8 @@ import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
 import '../../features/contributions/presentation/pages/contribute_screen.dart';
+import '../../features/contributions/presentation/pages/contribution_detail_screen.dart';
+import '../../features/contributions/presentation/pages/my_contributions_screen.dart';
 import '../../features/contributions/presentation/utils/open_contribute.dart';
 import '../../features/gestures/presentation/pages/gesture_reader_screen.dart';
 import '../../features/library/presentation/pages/library_screen.dart';
@@ -212,6 +214,17 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
         GoRoute(
           path: RoutePaths.favoriteMaterialKinds,
           builder: (context, state) => const FavoriteMaterialKindsScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.myContributions,
+          builder: (context, state) => const MyContributionsScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) =>
+                  ContributionDetailScreen(id: state.pathParameters['id']!),
+            ),
+          ],
         ),
         GoRoute(
           path: RoutePaths.offline,
