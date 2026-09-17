@@ -28,41 +28,42 @@ class DeviceConsentCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final lines = snapshot?.humanLines() ?? const <(String, String)>[];
     return Card(
-      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.contributeDeviceTitle, style: AppTypography.headline),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (snapshot == null)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
               )
             else
-              // `Wrap` (não uma linha por rótulo): as ~7 linhas de
-              // `humanLines()` cabem lado a lado — evita um cartão alto
-              // demais para o formulário inteiro caber sem rolar.
-              Wrap(
-                spacing: 12,
-                runSpacing: 2,
-                children: [
-                  for (final line in lines)
-                    Text(
-                      '${line.$1}: ${line.$2}',
-                      style: AppTypography.body.copyWith(fontSize: 12),
-                    ),
-                ],
-              ),
-            const SizedBox(height: 8),
+              for (final line in lines)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 96,
+                        child: Text(line.$1, style: AppTypography.label),
+                      ),
+                      Expanded(child: Text(line.$2, style: AppTypography.body)),
+                    ],
+                  ),
+                ),
+            const SizedBox(height: 12),
             Text(l10n.contributeSameDeviceQuestion, style: AppTypography.body),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             SegmentedButton<bool>(
               segments: [
                 ButtonSegment(

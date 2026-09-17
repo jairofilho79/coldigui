@@ -7,6 +7,7 @@ import 'package:coldigui/features/contributions/data/providers/contributions_pro
 import 'package:coldigui/features/contributions/domain/entities/contribution_attachment.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_summary.dart';
+import 'package:coldigui/features/contributions/domain/entities/device_snapshot.dart';
 import 'package:coldigui/features/contributions/domain/validators/attachment_rules.dart';
 import 'package:coldigui/features/contributions/presentation/providers/contribute_form_provider.dart';
 import 'package:dio/dio.dart';
@@ -110,6 +111,44 @@ void main() {
       isA<ContributeSent>().having((s) => s.id, 'id', 'c9'),
     );
     expect(ds.lastPayload!['appVersion'], '1.2.3+4');
+  });
+
+  test('device só vai no payload quando o kind é bug', () async {
+    const snapshot = DeviceSnapshot(
+      appVersion: '1.2.3',
+      buildNumber: '4',
+      platform: 'android',
+      locale: 'pt',
+      screenW: 400,
+      screenH: 800,
+      pixelRatio: 2,
+      online: true,
+      pwaStandalone: false,
+    );
+
+    final dsOther = _FakeDs(
+      (_) async => (id: 'c1', status: ContributionStatus.pendente),
+    );
+    final cOther = _container(dsOther);
+    final nOther = cOther.read(contributeFormProvider(args).notifier);
+    nOther.setKind(ContributionKind.other);
+    nOther.setTitle('t');
+    nOther.setBody('b');
+    await nOther.submit(device: snapshot, appVersion: snapshot.versionLabel);
+    expect(dsOther.lastPayload!['device'], isNull);
+
+    final dsBug = _FakeDs(
+      (_) async => (id: 'c2', status: ContributionStatus.pendente),
+    );
+    final cBug = _container(dsBug);
+    final nBug = cBug.read(contributeFormProvider(args).notifier);
+    nBug.setKind(ContributionKind.bug);
+    nBug.setSubkind(ContributionSubkind.bugReader);
+    nBug.setTitle('t');
+    nBug.setBody('b');
+    nBug.setSameDevice(true);
+    await nBug.submit(device: snapshot, appVersion: snapshot.versionLabel);
+    expect(dsBug.lastPayload!['device']['platform'], 'android');
   });
 
   test('429 → Failed(quota) com resetAt; 413 → Failed(rejected) com file; DioException de rede → offline', () async {

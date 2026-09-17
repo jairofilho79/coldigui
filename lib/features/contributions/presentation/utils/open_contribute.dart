@@ -7,8 +7,14 @@ import '../../domain/entities/contribution_target.dart';
 
 /// Abre o formulário com o alvo e a rota de origem (`from`), que vira
 /// `app_route` no payload — é o que mais ajuda a reproduzir um bug.
+///
+/// `GoRouter.of(context).routerDelegate.currentConfiguration.uri` (não
+/// `GoRouterState.of(context)`): esse `context` pode estar dentro de uma
+/// rota modal (ex.: bottom sheet da Tarefa 5), onde não há `GoRouteState`
+/// ancestral e `GoRouterState.of` lança.
 void openContribute(BuildContext context, {ContributionTarget? target}) {
-  final from = GoRouterState.of(context).uri.toString();
+  final from = GoRouter.of(context).routerDelegate.currentConfiguration.uri
+      .toString();
   final uri = Uri(
     path: RoutePaths.contribute,
     queryParameters: {

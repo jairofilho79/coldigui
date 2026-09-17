@@ -77,17 +77,24 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final state = ref.watch(contributeFormProvider(args));
     final notifier = ref.read(contributeFormProvider(args).notifier);
     final draft = state.draft;
+    final isBug = draft.kind == ContributionKind.bug;
 
-    final online = ref.watch(connectivityStreamProvider).value ?? true;
-    final snapshotAsync = ref.watch(
-      _deviceSnapshotProvider((
-        screen: MediaQuery.sizeOf(context),
-        pixelRatio: MediaQuery.devicePixelRatioOf(context),
-        locale: Localizations.localeOf(context).toLanguageTag(),
-        online: online,
-      )),
-    );
-    final snapshot = snapshotAsync.value;
+    // Spec P9/§3/§6.2: o snapshot do aparelho só é coletado e só vai no
+    // payload quando o kind é bug — os outros kinds não precisam (nem
+    // devem) carregar tela/plataforma/idioma do usuário.
+    DeviceSnapshot? snapshot;
+    if (isBug) {
+      final online = ref.watch(connectivityStreamProvider).value ?? true;
+      final snapshotAsync = ref.watch(
+        _deviceSnapshotProvider((
+          screen: MediaQuery.sizeOf(context),
+          pixelRatio: MediaQuery.devicePixelRatioOf(context),
+          locale: Localizations.localeOf(context).toLanguageTag(),
+          online: online,
+        )),
+      );
+      snapshot = snapshotAsync.value;
+    }
 
     ref.listen(contributeFormProvider(args), (previous, next) {
       final messenger = ScaffoldMessenger.of(context);
@@ -111,13 +118,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       appBar: AppBar(title: Text(l10n.contributeTitle)),
       // `SingleChildScrollView` (não `ListView`): o formulário inteiro
       // precisa existir na árvore de elementos de uma vez — um `ListView`
-      // (sliver) só constrói os filhos perto do viewport, e o cartão do
-      // dispositivo (bem abaixo, só para bug) ficaria fora do `find`.
+      // (sliver) só constrói os filhos perto do viewport.
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -125,15 +131,15 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   l10n.contributeKindLabel,
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 KindChips(selected: draft.kind, onSelected: notifier.setKind),
                 if (subkindsOf(draft.kind).isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Text(
                     l10n.contributeSubkindLabel,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   SubkindChips(
                     kind: draft.kind,
                     selected: draft.subkind,
@@ -141,7 +147,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   ),
                 ],
                 if (widget.target?.praiseId != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   MaterialDropdown(
                     praiseId: widget.target!.praiseId!,
                     value: draft.target?.materialId,
@@ -149,7 +155,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   ),
                 ],
                 if (draft.subkind == ContributionSubkind.wrongMetadata) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   MetadataFields(
                     praiseId: widget.target?.praiseId,
                     field: draft.metadataField,
@@ -161,7 +167,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   ),
                 ],
                 if (draft.subkind == ContributionSubkind.duplicate) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   DuplicateField(
                     onSelected: ({required praiseId, required source}) =>
                         notifier.setDuplicate(
@@ -171,25 +177,22 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                   ),
                 ],
                 if (draft.kind == ContributionKind.content) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   SuggestedKindDropdown(
                     value: draft.suggestedKindId,
                     onChanged: notifier.setSuggestedKind,
                   ),
                 ],
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 TextFormField(
                   key: const Key('contribute-title'),
                   initialValue: draft.title,
                   maxLength: kMaxTitleLength,
                   decoration: InputDecoration(
                     labelText: l10n.contributeTitleField,
-                    isDense: true,
-                    counterText: '',
                   ),
                   onChanged: notifier.setTitle,
                 ),
-                const SizedBox(height: 4),
                 TextFormField(
                   key: const Key('contribute-body'),
                   initialValue: draft.body,
@@ -201,17 +204,28 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                     hintText: draft.kind == ContributionKind.bug
                         ? l10n.contributeBodyHintBug
                         : null,
-                    isDense: true,
-                    counterText: '',
                   ),
                   onChanged: notifier.setBody,
                 ),
-                // Para bug, o cartão de consentimento vem logo após a
-                // descrição — é ele quem bloqueia o envio (spec §6.3), então
-                // fica perto do botão em vez de disputar espaço com anexos e
-                // links, que são opcionais em qualquer kind.
-                if (draft.kind == ContributionKind.bug) ...[
-                  const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                AttachmentsSection(
+                  kind: draft.kind,
+                  attachments: draft.attachments,
+                  pickFiles: widget.pickFiles,
+                  onAdd: notifier.addAttachment,
+                  onRemove: notifier.removeAttachment,
+                ),
+                const SizedBox(height: 16),
+                LinksSection(
+                  links: draft.links,
+                  onAdd: notifier.addLink,
+                  onRemove: notifier.removeLink,
+                ),
+                // Ordem do spec §6.2: o cartão de consentimento do
+                // dispositivo vem depois de anexos/links, logo antes do
+                // botão de enviar — só para bug.
+                if (isBug) ...[
+                  const SizedBox(height: 16),
                   DeviceConsentCard(
                     snapshot: snapshot,
                     sameDevice: draft.sameDevice,
@@ -220,21 +234,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                     onOtherDeviceNote: notifier.setOtherDeviceNote,
                   ),
                 ],
-                const SizedBox(height: 8),
-                AttachmentsSection(
-                  kind: draft.kind,
-                  attachments: draft.attachments,
-                  pickFiles: widget.pickFiles,
-                  onAdd: notifier.addAttachment,
-                  onRemove: notifier.removeAttachment,
-                ),
-                const SizedBox(height: 8),
-                LinksSection(
-                  links: draft.links,
-                  onAdd: notifier.addLink,
-                  onRemove: notifier.removeLink,
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 if (state.submit case ContributeSending(:final progress))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -257,6 +257,9 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   }
 
   Future<void> _send(DeviceSnapshot? snapshot) {
+    // `snapshot` só existe (não nulo) quando o kind é bug — a tela só
+    // coleta o aparelho nesse caso (spec P9/§3/§6.2); o `ContributeFormNotifier`
+    // também garante que `device` nunca vai no payload fora de bug.
     return ref
         .read(contributeFormProvider(_args).notifier)
         .submit(device: snapshot, appVersion: snapshot?.versionLabel ?? '');

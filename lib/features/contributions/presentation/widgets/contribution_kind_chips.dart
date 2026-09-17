@@ -4,10 +4,9 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/contribution_kind.dart';
 
 /// `Wrap` de `ChoiceChip` para os 5 [ContributionKind] (spec §6.2 item 1).
-/// Densidade negativa + fonte menor: com o subkind de bug (8 chips) logo
-/// abaixo, o formulário inteiro precisa caber sem rolar nos testes de
-/// widget — ver o comentário em `ContributeScreen` sobre o cartão de
-/// dispositivo.
+/// Tamanho padrão do Material (alvo de toque ≥48dp) — o telefone é a
+/// plataforma principal; a tela rola (`SingleChildScrollView`) em vez de
+/// espremer os chips para caber sem rolagem.
 class KindChips extends StatelessWidget {
   const KindChips({
     required this.selected,
@@ -22,19 +21,13 @@ class KindChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Wrap(
-      spacing: 4,
-      runSpacing: 2,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         for (final kind in ContributionKind.values)
           ChoiceChip(
             key: Key('kind-${kind.wireName}'),
-            visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-            label: Text(
-              _kindLabel(l10n, kind),
-              style: const TextStyle(fontSize: 12),
-            ),
+            label: Text(_kindLabel(l10n, kind)),
             selected: selected == kind,
             onSelected: (_) => onSelected(kind),
           ),
@@ -70,19 +63,13 @@ class SubkindChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Wrap(
-      spacing: 4,
-      runSpacing: 2,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         for (final subkind in subkindsOf(kind))
           ChoiceChip(
             key: Key('subkind-${subkind.wireName}'),
-            visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-            label: Text(
-              _subkindLabel(l10n, subkind),
-              style: const TextStyle(fontSize: 12),
-            ),
+            label: Text(_subkindLabel(l10n, subkind)),
             selected: selected == subkind,
             onSelected: (_) => onSelected(subkind),
           ),

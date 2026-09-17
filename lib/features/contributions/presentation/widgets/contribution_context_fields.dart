@@ -40,6 +40,10 @@ class MaterialDropdown extends ConsumerWidget {
     return DropdownButtonFormField<String?>(
       initialValue: value,
       decoration: InputDecoration(labelText: l10n.contributeMaterialLabel),
+      // `hint` além do item `value: null`: deixa a seleção "geral" visível
+      // mesmo quando o `DropdownButtonFormField` não repinta o item nulo
+      // como conteúdo do botão.
+      hint: Text(l10n.contributeMaterialWhole),
       items: [
         DropdownMenuItem(
           value: null,
@@ -83,6 +87,7 @@ class MetadataFields extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<MetadataField>(
+          key: const Key('contribute-metadata-field'),
           initialValue: field,
           decoration: InputDecoration(labelText: l10n.contributeMetadataField),
           items: [
@@ -95,12 +100,23 @@ class MetadataFields extends ConsumerWidget {
           onChanged: (f) {
             if (f == null) return;
             onFieldChanged(f);
-            final prefill = _prefillFor(f, meta);
-            if (prefill != null) onCurrentChanged(prefill);
+            // Só preenche se o usuário ainda não editou "Valor atual" —
+            // trocar de campo depois de digitar não pode apagar o que a
+            // pessoa já escreveu.
+            if ((current ?? '').trim().isEmpty) {
+              final prefill = _prefillFor(f, meta);
+              if (prefill != null) onCurrentChanged(prefill);
+            }
           },
         ),
         const SizedBox(height: 8),
         TextFormField(
+          // `ValueKey(field)`: sem isto, o `TextFormField` mantém o
+          // `EditableText` já montado quando `field` muda — `initialValue`
+          // só vale na primeira construção, então o prefill nunca apareceria
+          // (a raiz do bug reportado na revisão). Trocar a `Key` força o
+          // Flutter a recriar o campo com o novo valor inicial.
+          key: ValueKey(field),
           initialValue: current,
           decoration: InputDecoration(
             labelText: l10n.contributeMetadataCurrent,

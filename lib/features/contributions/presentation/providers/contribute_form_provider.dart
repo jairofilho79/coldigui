@@ -78,20 +78,31 @@ class ContributeFormState {
   final String? rejectedError;
   final String? rejectedFile;
 
+  // Sentinela (não `??`): `??` nunca deixaria `copyWith` **limpar** um campo
+  // para `null` (ex.: uma rejeição sem `file` depois de uma com `file`
+  // manteria o `« (g.pdf)»` antigo na mensagem — bug reportado na revisão).
   ContributeFormState copyWith({
     ContributionDraft? draft,
     ContributeSubmitState? submit,
-    DateTime? quotaResetAt,
-    String? rejectedError,
-    String? rejectedFile,
+    Object? quotaResetAt = _sentinel,
+    Object? rejectedError = _sentinel,
+    Object? rejectedFile = _sentinel,
   }) => ContributeFormState(
     draft: draft ?? this.draft,
     submit: submit ?? this.submit,
-    quotaResetAt: quotaResetAt ?? this.quotaResetAt,
-    rejectedError: rejectedError ?? this.rejectedError,
-    rejectedFile: rejectedFile ?? this.rejectedFile,
+    quotaResetAt: quotaResetAt == _sentinel
+        ? this.quotaResetAt
+        : quotaResetAt as DateTime?,
+    rejectedError: rejectedError == _sentinel
+        ? this.rejectedError
+        : rejectedError as String?,
+    rejectedFile: rejectedFile == _sentinel
+        ? this.rejectedFile
+        : rejectedFile as String?,
   );
 }
+
+const Object _sentinel = Object();
 
 /// Um notifier por (alvo, rota de origem): abrir «Reportar» em dois louvores
 /// não mistura rascunhos. Com alvo, o kind padrão é «Informação errada» (P2).
@@ -207,23 +218,49 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     required DeviceSnapshot? device,
     required String appVersion,
   }) async {
+    if (!state.draft.isValid) return;
+
     // `.future` (não `ref.read(authStateProvider).asData`): o build do
     // `AuthNotifier` é assíncrono — ler o `AsyncValue` sem aguardar pegaria
     // `AsyncLoading` (token nulo) sempre que o auth ainda não assentou.
-    final token = (await ref.read(authStateProvider.future))?.sessionToken;
+    // Dentro do próprio `try`: se o build do `AuthNotifier` falhar (ex.:
+    // sessão corrompida), isso também vira "sem sessão" — não deixa a
+    // exceção escapar de `submit` como `unknown`.
+    String? token;
+    try {
+      token = (await ref.read(authStateProvider.future))?.sessionToken;
+    } on Object {
+      token = null;
+    }
+    if (!ref.mounted) return;
     if (token == null) {
       state = state.copyWith(
         submit: const ContributeFailed(ContributeFailure.unauthorized),
       );
       return;
     }
-    if (!state.draft.isValid) return;
-    state = state.copyWith(submit: const ContributeSending(0));
-    final payload = state.draft.toPayload(
-      device: device?.toJson(),
-      appVersion: appVersion,
-    );
+
     try {
+      // Limpa erro/quota de uma tentativa anterior — sem isto, uma segunda
+      // recusa sem `file` mostraria o `file` da primeira (sentinela no
+      // `copyWith` acima resolve a mecânica; aqui é onde o novo envio
+      // precisa mesmo zerá-los).
+      state = state.copyWith(
+        submit: const ContributeSending(0),
+        quotaResetAt: null,
+        rejectedError: null,
+        rejectedFile: null,
+      );
+      // Spec P9/§3/§6.2: só bug carrega o aparelho no payload — garantido
+      // aqui (não só na tela) para nenhum chamador futuro vazar o snapshot
+      // num kind que não pediu consentimento para isso.
+      final effectiveDevice = state.draft.kind == ContributionKind.bug
+          ? device
+          : null;
+      final payload = state.draft.toPayload(
+        device: effectiveDevice?.toJson(),
+        appVersion: appVersion,
+      );
       final out = await ref
           .read(contributionsRemoteDatasourceProvider)
           .submit(
@@ -231,28 +268,34 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
             payload: payload,
             attachments: state.draft.attachments,
             onProgress: (sent, total) {
+              if (!ref.mounted) return;
               if (total > 0) {
                 state = state.copyWith(submit: ContributeSending(sent / total));
               }
             },
           );
+      if (!ref.mounted) return;
       state = state.copyWith(submit: ContributeSent(out.id));
     } on ContributionQuotaExceeded catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         submit: const ContributeFailed(ContributeFailure.quota),
         quotaResetAt: e.resetAt,
       );
     } on ContributionRejected catch (e) {
+      if (!ref.mounted) return;
       state = state.copyWith(
         submit: const ContributeFailed(ContributeFailure.rejected),
         rejectedError: e.error,
         rejectedFile: e.file,
       );
     } on AuthUnauthorizedException {
+      if (!ref.mounted) return;
       state = state.copyWith(
         submit: const ContributeFailed(ContributeFailure.unauthorized),
       );
     } on DioException catch (e) {
+      if (!ref.mounted) return;
       final offline =
           e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -264,6 +307,7 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
         ),
       );
     } on Object catch (e) {
+      if (!ref.mounted) return;
       debugPrint('[contributions] submit falhou: $e');
       state = state.copyWith(
         submit: const ContributeFailed(ContributeFailure.unknown),
