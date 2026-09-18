@@ -6,7 +6,10 @@ abstract final class StorageKeys {
   static const String pdfPreferredFitMode = 'pdfPreferredFitMode';
   static const String perfDebug = 'plpcjf_perf_debug';
 
-  /// Checkpoint JSON do bulk download UC-09 (Fase 3.5).
+  /// **Legado** — checkpoint JSON do bulk ZIP (Fase 3.5), pipeline removido em
+  /// set/2026. Ninguém mais escreve aqui; a chave fica só para
+  /// [OfflineBulkCategoriesStore.removeLegacyCheckpoint] apagar o blob antigo
+  /// quando o utilizador limpa o cache offline.
   static const String offlineBulkCheckpoint = 'offlineBulkCheckpoint';
 
   /// Materiais de UI cujo bulk ZIP já foi concluído (UC-09/UC-10).

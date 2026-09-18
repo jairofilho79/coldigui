@@ -86,6 +86,8 @@ void main() {
       await offlineAvailableStore.markConfigured();
       await bulkCategoriesStore.addCategories([CatalogMaterials.partitura]);
       await selectedCategoriesStore.save({CatalogMaterials.partitura});
+      // Instalação antiga: blob do checkpoint do bulk ZIP (pipeline removido).
+      await prefs.setString(StorageKeys.offlineBulkCheckpoint, '{"done":1}');
 
       final rootBefore = await store.rootDirectory;
       expect(await rootBefore.list(recursive: true).length, greaterThan(0));
@@ -100,6 +102,7 @@ void main() {
       expect(await rootAfter.list().length, 0);
       expect(bulkCategoriesStore.load(), isEmpty);
       expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
+      expect(prefs.getString(StorageKeys.offlineBulkCheckpoint), isNull);
       expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);
       expect(
         prefs.getString(StorageKeys.offlineAvailable),

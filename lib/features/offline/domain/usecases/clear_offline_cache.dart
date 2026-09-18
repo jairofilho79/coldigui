@@ -69,6 +69,7 @@ class ClearOfflineCache {
   Future<void> _fullClear() async {
     await _store.deleteTree();
     await _bulkCategoriesStore.clear();
+    await _bulkCategoriesStore.removeLegacyCheckpoint();
     await _selectedCategoriesStore.clear();
     await _offlineAvailableStore.clear();
   }

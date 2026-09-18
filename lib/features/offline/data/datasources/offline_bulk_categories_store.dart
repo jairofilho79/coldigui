@@ -81,4 +81,11 @@ class OfflineBulkCategoriesStore {
   Future<void> clear() async {
     await _prefs.remove(StorageKeys.offlineBulkCategories);
   }
+
+  /// Apaga o checkpoint do bulk ZIP que instalações antigas ainda guardam
+  /// ([StorageKeys.offlineBulkCheckpoint]); o pipeline que o escrevia foi
+  /// removido e nada mais o lê.
+  Future<void> removeLegacyCheckpoint() async {
+    await _prefs.remove(StorageKeys.offlineBulkCheckpoint);
+  }
 }
