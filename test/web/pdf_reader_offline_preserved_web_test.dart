@@ -45,9 +45,6 @@ class _InMemoryOfflinePdfRepository implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> findIndexEntry(String id) async => null;
 
   @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
-
-  @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
 
   @override

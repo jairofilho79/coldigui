@@ -5,7 +5,6 @@ import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
@@ -40,9 +39,6 @@ class _StatsRepo implements OfflinePdfRepository {
 
   @override
   Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => null;
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
 
   @override
   Future<List<OfflinePdfEntry>> listAll() async => [];
@@ -247,20 +243,14 @@ class _SkippedReconcileNotifier extends OfflineReconcileNotifier {
   );
 
   @override
-  Future<void> requestReconcile({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-  }) async {
+  Future<void> requestReconcile() async {
     state = state.copyWith(lastSkipReason: ReconcileSkipReason.locked);
   }
 }
 
 class _TestReconcileNotifier extends OfflineReconcileNotifier {
   @override
-  Future<void> requestReconcile({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-  }) async {
+  Future<void> requestReconcile() async {
     state = state.copyWith(isRunning: true);
     await Future<void>.delayed(Duration.zero);
     state = OfflineReconcileState(

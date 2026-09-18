@@ -65,9 +65,6 @@ abstract class OfflinePdfRepository {
   /// Todos os registros do índice — sem validar disco (bulk/reconcile 3.5/3.6).
   Future<List<OfflinePdfEntry>> listAll();
 
-  /// Indexa PDFs já gravados em disco (bulk UC-09) em chunks Isar.
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items);
-
   /// Upsert em lote com escrita atômica (quando bytes ainda não estão no disco).
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items);
 

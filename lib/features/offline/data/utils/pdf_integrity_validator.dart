@@ -15,7 +15,7 @@ abstract final class PdfIntegrityValidator {
   static Future<bool> isValidPdfFile(String path) =>
       validatePdfStoragePath(path);
 
-  /// Variante síncrona para isolates (`compute`) e extração ZIP.
+  /// Variante síncrona para isolates (`compute`).
   static bool isValidPdfFileSync(String path) =>
       validatePdfStoragePathSync(path);
 }

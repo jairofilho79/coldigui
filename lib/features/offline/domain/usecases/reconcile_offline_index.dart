@@ -4,10 +4,8 @@ import '../../../../core/constants/offline_config.dart';
 import '../ports/pdf_storage_port.dart';
 import '../../data/utils/reconcile_chunk_validation.dart';
 import '../../data/utils/reconcile_path_validator.dart';
-import '../entities/offline_manifest.dart';
 import '../entities/reconcile_result.dart';
 import '../repositories/offline_pdf_repository.dart';
-import '../utils/offline_category_resolver.dart';
 
 /// Motivo pelo qual um reconcile não chegou a rodar (spec C.1).
 enum ReconcileSkipReason {
@@ -62,13 +60,12 @@ class ReconcileSkipped extends ReconcileOutcome {
 
 /// UC-10 — Reconcile índice Isar vs disco (Fase 3.5 mínimo / 3.6 completo).
 ///
-/// Remove entradas Isar sem arquivo válido; opcionalmente remove PDFs órfãos
-/// no disco. Validação de disco em isolate via [compute].
+/// Remove entradas Isar sem arquivo válido e apaga PDFs órfãos no disco.
+/// Validação de disco em isolate via [compute].
 ///
-/// Reconcile **completo** nunca apaga arquivos quando o índice é indisponível,
-/// está vazio com arquivos no disco, ou cobre menos da metade do que está no
-/// disco (spec C.1 / B5 / D.3). Reconcile **escopado** não passa por essas
-/// guardas: ali o índice não precisa cobrir o acervo inteiro.
+/// Nunca apaga arquivos quando o índice é indisponível, está vazio com
+/// arquivos no disco, ou cobre menos da metade do que está no disco
+/// (spec C.1 / B5 / D.3).
 class ReconcileOfflineIndex {
   ReconcileOfflineIndex(this._repository, this._store);
 
@@ -76,48 +73,34 @@ class ReconcileOfflineIndex {
   final PdfStoragePort _store;
 
   /// [isIndexAvailable] vem de `isarAvailableProvider`: `false` aborta o
-  /// reconcile completo em vez de tratar o disco inteiro como órfão.
-  Future<ReconcileOutcome> call({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-    bool isIndexAvailable = true,
-  }) async {
-    final scopedPdfIds = _pdfIdsForScope(materialPackage);
-    final isFullReconcile = scopedPdfIds == null;
-
-    if (isFullReconcile && !isIndexAvailable) {
+  /// reconcile em vez de tratar o disco inteiro como órfão.
+  Future<ReconcileOutcome> call({bool isIndexAvailable = true}) async {
+    if (!isIndexAvailable) {
       debugPrint('[offline] reconcile pulado: índice indisponível');
       return const ReconcileSkipped(ReconcileSkipReason.indexUnavailable);
     }
 
-    final allEntries = await _repository.listAll();
-    final entries = scopedPdfIds == null
-        ? allEntries
-        : allEntries.where((e) => scopedPdfIds.contains(e.pdfId)).toList();
+    final entries = await _repository.listAll();
 
-    if (isFullReconcile) {
-      // Um `listOrphans` com proteção vazia é a contagem de tudo que está no
-      // disco — a mesma chamada serve às duas guardas.
-      final filesOnDisk = await _store.listOrphans(const <String>{});
-      if (filesOnDisk.isNotEmpty) {
-        if (entries.isEmpty) {
-          debugPrint(
-            '[offline] reconcile pulado: índice vazio com '
-            '${filesOnDisk.length} arquivos no disco',
-          );
-          return const ReconcileSkipped(
-            ReconcileSkipReason.emptyIndexWithFiles,
-          );
-        }
-        // Índice cobrindo menos da metade do disco é índice truncado, não
-        // acervo órfão: apagar a diferença seria perda de dados (spec D.3).
-        if (entries.length * 2 < filesOnDisk.length) {
-          debugPrint(
-            '[offline] reconcile pulado: índice com ${entries.length} '
-            'entradas para ${filesOnDisk.length} arquivos no disco',
-          );
-          return const ReconcileSkipped(ReconcileSkipReason.indexTooSmall);
-        }
+    // Um `listOrphans` com proteção vazia é a contagem de tudo que está no
+    // disco — a mesma chamada serve às duas guardas.
+    final filesOnDisk = await _store.listOrphans(const <String>{});
+    if (filesOnDisk.isNotEmpty) {
+      if (entries.isEmpty) {
+        debugPrint(
+          '[offline] reconcile pulado: índice vazio com '
+          '${filesOnDisk.length} arquivos no disco',
+        );
+        return const ReconcileSkipped(ReconcileSkipReason.emptyIndexWithFiles);
+      }
+      // Índice cobrindo menos da metade do disco é índice truncado, não
+      // acervo órfão: apagar a diferença seria perda de dados (spec D.3).
+      if (entries.length * 2 < filesOnDisk.length) {
+        debugPrint(
+          '[offline] reconcile pulado: índice com ${entries.length} '
+          'entradas para ${filesOnDisk.length} arquivos no disco',
+        );
+        return const ReconcileSkipped(ReconcileSkipReason.indexTooSmall);
       }
     }
 
@@ -156,36 +139,14 @@ class ReconcileOfflineIndex {
       }
     }
 
+    // Órfão é arquivo sem **nenhuma** entrada válida no índice (spec C.1).
+    final protectedPaths = indexedPaths;
+
     var orphanFiles = 0;
-    final isScopedBulk =
-        materialCategory != null &&
-        scopedPdfIds != null &&
-        materialPackage != null;
-
-    // Órfão é arquivo sem **nenhuma** entrada no índice: num reconcile
-    // escopado, os PDFs indexados fora do escopo (outro pacote na mesma
-    // pasta de categoria) também são protegidos (spec C.1).
-    final protectedPaths = <String>{
-      ...indexedPaths,
-      if (!isFullReconcile)
-        for (final entry in allEntries)
-          if (!scopedPdfIds.contains(entry.pdfId)) entry.absolutePath,
-    };
-
-    if (isScopedBulk) {
-      final diskOrphans = await _store.listOrphans(protectedPaths);
-      for (final path in diskOrphans) {
-        if (_pathBelongsToScope(path, scopedPdfIds)) {
-          await _store.delete(path);
-          orphanFiles++;
-        }
-      }
-    } else if (scopedPdfIds == null) {
-      final diskOrphans = await _store.listOrphans(protectedPaths);
-      for (final path in diskOrphans) {
-        await _store.delete(path);
-        orphanFiles++;
-      }
+    final diskOrphans = await _store.listOrphans(protectedPaths);
+    for (final path in diskOrphans) {
+      await _store.delete(path);
+      orphanFiles++;
     }
 
     return ReconcileDone(
@@ -193,25 +154,5 @@ class ReconcileOfflineIndex {
       orphanFiles: orphanFiles,
       keptFiles: indexedPaths.length,
     );
-  }
-
-  Set<String>? _pdfIdsForScope(OfflineMaterialPackage? materialPackage) {
-    if (materialPackage == null) return null;
-
-    final ids = <String>{};
-    for (final part in materialPackage.parts) {
-      ids.addAll(part.pdfs);
-    }
-    return ids;
-  }
-
-  bool _pathBelongsToScope(String absolutePath, Set<String> scopedPdfIds) {
-    for (final pdfId in scopedPdfIds) {
-      final category = OfflineCategoryResolver.fromPdfId(pdfId);
-      if (absolutePath.contains('/$category/')) {
-        return true;
-      }
-    }
-    return false;
   }
 }

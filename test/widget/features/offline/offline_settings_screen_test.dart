@@ -6,7 +6,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
@@ -59,10 +58,7 @@ class _IdleReconcileNotifier extends OfflineReconcileNotifier {
   OfflineReconcileState build() => const OfflineReconcileState();
 
   @override
-  Future<void> requestReconcile({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-  }) async {}
+  Future<void> requestReconcile() async {}
 }
 
 class _IdleBulkNotifier extends OfflineBulkDownloadNotifier {

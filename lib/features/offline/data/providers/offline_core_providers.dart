@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/device_connectivity_provider.dart';
-import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../catalog/data/providers/catalog_local_providers.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
@@ -18,8 +17,6 @@ import '../../domain/usecases/resolve_pdf_for_reader.dart';
 import '../datasources/favorite_pdf_ids_resolver.dart';
 import '../datasources/offline_available_store.dart';
 import '../datasources/offline_bulk_categories_store.dart';
-import '../datasources/offline_bulk_checkpoint_store.dart';
-import '../datasources/offline_manifest_remote_datasource.dart';
 import '../datasources/offline_selected_categories_store.dart';
 import 'offline_repository_providers.dart';
 
@@ -53,21 +50,12 @@ final validatePdfAvailabilityProvider = Provider<ValidatePdfAvailability>((
   return ValidatePdfAvailability(ref.watch(offlinePdfRepositoryProvider));
 });
 
-/// DI — manifest remoto de pacotes offline (UC-09).
-final offlineManifestRemoteDatasourceProvider =
-    Provider<OfflineManifestRemoteDatasource>((ref) {
-      return OfflineManifestRemoteDatasource(
-        ref.watch(dioProvider),
-        ref.watch(sharedPreferencesProvider),
-      );
-    });
-
 /// DI — PDFs em playlists favoritas (protegidos da eviction LRU).
 final favoritePdfIdsResolverProvider = Provider<FavoritePdfIdsResolver>((ref) {
   return FavoritePdfIdsResolver(ref.watch(playlistLocalDatasourceProvider));
 });
 
-/// DI — categorias de material com bulk ZIP concluído (UC-09/UC-10).
+/// DI — categorias de material com bulk PDF a PDF concluído (UC-09/UC-10).
 final offlineBulkCategoriesStoreProvider = Provider<OfflineBulkCategoriesStore>(
   (ref) {
     return OfflineBulkCategoriesStore(ref.watch(sharedPreferencesProvider));
@@ -124,20 +112,12 @@ final listMissingLouvoresByMaterialProvider =
       );
     });
 
-/// DI — checkpoint de resume bulk (SharedPreferences — sem archive).
-final offlineBulkCheckpointStoreProvider = Provider<OfflineBulkCheckpointStore>(
-  (ref) {
-    return OfflineBulkCheckpointStore(ref.watch(sharedPreferencesProvider));
-  },
-);
-
 /// DI — [ClearOfflineCache] (Fase 3.6).
 final clearOfflineCacheProvider = Provider<ClearOfflineCache>((ref) {
   return ClearOfflineCache(
     ref.watch(offlinePdfRepositoryProvider),
     ref.watch(catalogLocalDatasourceProvider),
     ref.watch(pdfStoragePortProvider),
-    ref.watch(offlineBulkCheckpointStoreProvider),
     ref.watch(offlineBulkCategoriesStoreProvider),
     ref.watch(offlineSelectedCategoriesStoreProvider),
     ref.watch(offlineAvailableStoreProvider),

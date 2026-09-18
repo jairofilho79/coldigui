@@ -63,9 +63,6 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<List<OfflinePdfEntry>> listAll() async => [];
 
   @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
-
-  @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) async {}
 
   @override

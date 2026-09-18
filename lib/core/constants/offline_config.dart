@@ -35,37 +35,13 @@ abstract final class OfflineConfig {
   /// Timeout de envio por request em [PdfBytesDatasource._fetchRemote].
   static const Duration pdfDownloadSendTimeout = Duration(seconds: 10);
 
-  /// Watchdog inter-chunk para download de ZIP bulk (UC-09).
-  ///
-  /// `Duration.zero` = sem limite (recomendado para arquivos grandes).
-  static const Duration zipDownloadReceiveTimeout = Duration.zero;
-
-  /// Watchdog inter-chunk do download bulk: sem bytes por esse intervalo, a
-  /// tentativa é cancelada internamente e conta como retryável (C.2).
-  ///
-  /// Complementa [zipDownloadReceiveTimeout] (`Duration.zero` = sem teto total):
-  /// o teto aqui é sobre o *intervalo entre chunks*, não sobre o download todo.
-  static const Duration zipDownloadStallTimeout = Duration(seconds: 90);
-
-  /// Timeout de conexão por request em [ZipPackageDownloader.download].
-  static const Duration zipDownloadConnectTimeout = Duration(seconds: 60);
-
-  /// Timeout de envio por request em [ZipPackageDownloader.download].
-  static const Duration zipDownloadSendTimeout = Duration(seconds: 30);
-
   /// Tamanho de chunk para upsert Isar no bulk UC-09 (Fase 3.5).
   static const int bulkIsarChunkSize = 75;
-
-  /// Subpasta transitória de ZIPs bulk sob `plpcg_pdfs/`.
-  static const String zipTempSubdir = '_bulk_zips';
 
   /// Nome do bucket Cache API para PDFs offline na web (Solução C).
   ///
   /// Distinto de [pdfCacheName] (legado Service Worker — não alterar).
   static const String pdfCacheStoreName = 'plpcg-pdfs-store-v1';
-
-  /// Downloads simultâneos de PDF individual no bulk web (UC-09).
-  static const int bulkWebFetchConcurrency = 8;
 
   /// Quota padrão do cache on-demand de PDFs (LRU eviction — backlog #10).
   static const int defaultPdfCacheQuotaBytes = 500 * 1024 * 1024;
@@ -99,7 +75,7 @@ abstract final class OfflineConfig {
   static const String audioCacheStoreName = 'plpcg-audio-store-v1';
 
   /// Downloads Coldigom simultâneos (spec offline Coldigom §5.2): 3 no
-  /// nativo (como o on-demand de PDF), 6 na web (o bulk web usa 8).
+  /// nativo (como o on-demand de PDF), 6 na web.
   static int get coldigomDownloadConcurrency => kIsWeb ? 6 : 3;
 
   /// Estimativa de bytes por `type` quando o dump não traz `size` (O13).

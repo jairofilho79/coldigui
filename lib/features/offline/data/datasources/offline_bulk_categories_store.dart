@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
 
-/// Persistência das categorias de material cujo bulk ZIP já foi concluído.
+/// Persistência das categorias de material com bulk PDF a PDF concluído.
 class OfflineBulkCategoriesStore {
   const OfflineBulkCategoriesStore(this._prefs);
 

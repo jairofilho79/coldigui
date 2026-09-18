@@ -128,10 +128,6 @@ class _UnusedRepository implements OfflinePdfRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) =>
-      throw UnimplementedError();
-
-  @override
   Future<void> upsertBatch(List<OfflinePdfBatchItem> items) =>
       throw UnimplementedError();
 

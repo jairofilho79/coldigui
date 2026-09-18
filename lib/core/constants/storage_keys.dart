@@ -30,12 +30,6 @@ abstract final class StorageKeys {
   /// Timestamp (epoch ms) do último poll de checksum UC-12 (backlog #15).
   static const String lastChecksumPollAt = 'lastChecksumPollAt';
 
-  /// JSON serializado do manifest offline (`/offline-manifest.json`).
-  static const String offlineManifestJson = 'offline_manifest_json';
-
-  /// Epoch ms da última busca bem-sucedida do manifest offline.
-  static const String offlineManifestCacheTime = 'offline_manifest_cache_time';
-
   /// Corpo da letra no leitor de cifras, em px.
   static const String chordReaderFontSize = 'chordReaderFontSize';
 

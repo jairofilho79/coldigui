@@ -7,12 +7,10 @@ import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasou
 import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_bulk_categories_store.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_selected_categories_store.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
 import 'package:coldigui/features/offline/domain/usecases/clear_offline_cache.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -33,7 +31,6 @@ void main() {
   late PdfLocalStore store;
   late OfflinePdfRepositoryImpl repository;
   late SharedPreferences prefs;
-  late OfflineBulkCheckpointStore checkpointStore;
   late OfflineBulkCategoriesStore bulkCategoriesStore;
   late OfflineSelectedCategoriesStore selectedCategoriesStore;
   late OfflineAvailableStore offlineAvailableStore;
@@ -57,7 +54,6 @@ void main() {
       local: OfflinePdfLocalDatasource(isar),
     );
     prefs = await SharedPreferences.getInstance();
-    checkpointStore = OfflineBulkCheckpointStore(prefs);
     bulkCategoriesStore = OfflineBulkCategoriesStore(prefs);
     selectedCategoriesStore = OfflineSelectedCategoriesStore(prefs);
     offlineAvailableStore = OfflineAvailableStore(prefs);
@@ -65,7 +61,6 @@ void main() {
       repository,
       _StubCatalogLocal(),
       pdfStoragePortFor(store),
-      checkpointStore,
       bulkCategoriesStore,
       selectedCategoriesStore,
       offlineAvailableStore,
@@ -80,7 +75,7 @@ void main() {
   });
 
   test(
-    'limpa índice, diretório PDFs, checkpoint bulk e flag offline',
+    'limpa índice, diretório PDFs, categorias bulk e flag offline',
     () async {
       await repository.upsert(
         pdfId: encodePdfId('ColAdultos/a.pdf'),
@@ -91,15 +86,6 @@ void main() {
       await offlineAvailableStore.markConfigured();
       await bulkCategoriesStore.addCategories([CatalogMaterials.partitura]);
       await selectedCategoriesStore.save({CatalogMaterials.partitura});
-      await checkpointStore.save(
-        OfflineBulkCheckpoint(
-          categories: const [CatalogMaterials.partitura],
-          categoryIndex: 0,
-          partIndex: 0,
-          extractedPdfCount: 0,
-          startedAt: DateTime.utc(2026, 1, 1),
-        ),
-      );
 
       final rootBefore = await store.rootDirectory;
       expect(await rootBefore.list(recursive: true).length, greaterThan(0));
@@ -112,7 +98,6 @@ void main() {
       expect((await repository.listAll()).length, 0);
       final rootAfter = await store.rootDirectory;
       expect(await rootAfter.list().length, 0);
-      expect(await checkpointStore.load(), isNull);
       expect(bulkCategoriesStore.load(), isEmpty);
       expect(prefs.getString(StorageKeys.offlineBulkCategories), isNull);
       expect(prefs.getString(StorageKeys.offlineSelectedCategories), isNull);

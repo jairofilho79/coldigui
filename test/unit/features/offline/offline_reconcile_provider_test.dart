@@ -11,7 +11,6 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
@@ -49,17 +48,11 @@ class _CountingReconcile extends ReconcileOfflineIndex {
 
   int callCount = 0;
   bool? lastIsIndexAvailable;
-  OfflineMaterialPackage? lastPackage;
 
   @override
-  Future<ReconcileOutcome> call({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-    bool isIndexAvailable = true,
-  }) async {
+  Future<ReconcileOutcome> call({bool isIndexAvailable = true}) async {
     callCount++;
     lastIsIndexAvailable = isIndexAvailable;
-    lastPackage = materialPackage;
     return const ReconcileDone(
       removedFromIndex: 0,
       orphanFiles: 0,
@@ -77,9 +70,6 @@ class _StubRepo implements OfflinePdfRepository {
 
   @override
   Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => null;
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
 
   @override
   Future<List<OfflinePdfEntry>> listAll() async => [];
@@ -305,33 +295,6 @@ void main() {
 
     expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
-
-  test(
-    'reconcile escopado ignora o throttle e não persiste timestamp',
-    () async {
-      SharedPreferences.setMockInitialValues({
-        StorageKeys.lastReconcileAt: DateTime.now().millisecondsSinceEpoch,
-      });
-      prefs = await SharedPreferences.getInstance();
-
-      final container = createContainer();
-      final package = OfflineMaterialPackage(
-        parts: const [],
-        totalSize: 0,
-        totalParts: 0,
-      );
-
-      await container
-          .read(offlineReconcileProvider.notifier)
-          .requestReconcile(
-            materialPackage: package,
-            materialCategory: 'Partitura',
-          );
-
-      expect(reconcile.callCount, 1);
-      expect(reconcile.lastPackage, same(package));
-    },
-  );
 
   test('StorageUnavailableException na migração não escapa', () async {
     migrate.throwStorageUnavailable = true;

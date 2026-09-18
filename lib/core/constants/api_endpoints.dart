@@ -45,6 +45,4 @@ abstract final class ApiEndpoints {
 
   /// `POST` + Bearer → novo código; o link antigo morre.
   static const String liveRoomRegenerate = '/api/live/room/regenerate';
-
-  static const String offlineManifest = '/offline-manifest.json';
 }

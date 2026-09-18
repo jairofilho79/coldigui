@@ -9,7 +9,6 @@ import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../data/providers/offline_providers.dart';
-import '../../domain/entities/offline_manifest.dart';
 import '../../domain/entities/reconcile_result.dart';
 import '../../domain/usecases/reconcile_offline_index.dart';
 import 'offline_maintenance_lock_provider.dart';
@@ -75,23 +74,14 @@ class OfflineReconcileNotifier extends Notifier<OfflineReconcileState> {
   }
 
   /// Reconcile imediato — deduplica se já em execução ou throttle recente.
-  ///
-  /// Com [materialPackage]/[materialCategory] roda **escopado** (usado pelo
-  /// bulk ao concluir), sem throttle e sem persistir `lastReconcileAt`.
-  Future<void> requestReconcile({
-    OfflineMaterialPackage? materialPackage,
-    String? materialCategory,
-  }) async {
+  Future<void> requestReconcile() async {
     if (state.isRunning) return;
 
-    final isScoped = materialPackage != null;
-    if (!isScoped) {
-      final lastAt = _loadLastReconcileAt();
-      if (lastAt != null &&
-          DateTime.now().difference(lastAt) <
-              OfflineConfig.reconcileMinInterval) {
-        return;
-      }
+    final lastAt = _loadLastReconcileAt();
+    if (lastAt != null &&
+        DateTime.now().difference(lastAt) <
+            OfflineConfig.reconcileMinInterval) {
+      return;
     }
 
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);
@@ -107,18 +97,12 @@ class OfflineReconcileNotifier extends Notifier<OfflineReconcileState> {
       await ref.read(migrateOfflineStorageProvider).call();
       final outcome = await ref
           .read(reconcileOfflineIndexProvider)
-          .call(
-            materialPackage: materialPackage,
-            materialCategory: materialCategory,
-            isIndexAvailable: ref.read(isarAvailableProvider),
-          );
+          .call(isIndexAvailable: ref.read(isarAvailableProvider));
 
       switch (outcome) {
         case ReconcileDone():
           final now = DateTime.now();
-          if (!isScoped) {
-            await _persistLastReconcileAt(now);
-          }
+          await _persistLastReconcileAt(now);
           state = OfflineReconcileState(
             lastResult: outcome.result,
             lastRunAt: now,

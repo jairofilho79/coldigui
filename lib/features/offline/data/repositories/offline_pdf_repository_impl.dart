@@ -8,7 +8,6 @@ import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../domain/entities/offline_pdf_batch_item.dart';
 import '../../domain/entities/offline_pdf_entry.dart';
 import '../../domain/repositories/offline_pdf_repository.dart';
-import '../../domain/utils/offline_category_resolver.dart';
 import '../../domain/ports/pdf_storage_port.dart';
 import '../datasources/offline_pdf_local_datasource.dart';
 import '../utils/pdf_integrity_validator.dart';
@@ -205,33 +204,6 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   Future<List<OfflinePdfEntry>> listAll() async {
     final indexes = await _local.findAll();
     return indexes.map(_toEntry).toList();
-  }
-
-  @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {
-    if (items.isEmpty) return;
-
-    final validItems = [
-      for (final item in items)
-        if (item.absolutePath.isNotEmpty) item,
-    ];
-    if (validItems.isEmpty) return;
-
-    final now = DateTime.now();
-    final indexes = validItems
-        .map(
-          (item) => OfflinePdfIndex()
-            ..pdfId = item.pdfId
-            ..storagePath = item.absolutePath
-            ..category = OfflineCategoryResolver.fromPdfId(item.pdfId)
-            ..fileSize = item.fileSize
-            ..downloadedAt = now
-            ..lastAccessedAt = now
-            ..isPersistent = true,
-        )
-        .toList();
-
-    await _local.putAllByPdfId(indexes);
   }
 
   @override

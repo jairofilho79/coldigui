@@ -1,19 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
-import 'package:coldigui/features/offline/data/models/offline_manifest_dto.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,47 +103,6 @@ void main() {
     );
     expect(store.purgeLegacyCalls, 0);
     isar.close(deleteFromDisk: true);
-  });
-
-  test('fetchManifest usa manifest persistido quando rede falha', () async {
-    final prefs = await SharedPreferences.getInstance();
-    const manifest = OfflineManifest(
-      version: '1',
-      packages: {
-        'Partitura': OfflineMaterialPackage(
-          parts: [
-            OfflinePackagePart(
-              filename: 'p.zip',
-              size: 1,
-              url: 'https://example.com/p.zip',
-              pdfs: ['abc'],
-            ),
-          ],
-          totalSize: 1,
-          totalParts: 1,
-        ),
-      },
-    );
-
-    await prefs.setString(
-      StorageKeys.offlineManifestJson,
-      jsonEncode(OfflineManifestDto.toJson(manifest)),
-    );
-
-    final datasource = OfflineManifestRemoteDatasource(
-      Dio(),
-      prefs,
-      networkOverride: () async {
-        throw DioException.connectionError(
-          requestOptions: RequestOptions(path: '/offline-manifest.json'),
-          reason: 'offline',
-        );
-      },
-    );
-    final loaded = await datasource.fetchManifest();
-
-    expect(loaded.version, '1');
-    expect(loaded.packages['Partitura']?.totalParts, 1);
   });
 
   test('v2 marca PDFs como persistentes quando offline configurado', () async {

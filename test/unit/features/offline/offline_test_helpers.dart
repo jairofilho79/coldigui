@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/core/database/collections/louvor_cache.dart';
@@ -10,16 +9,12 @@ import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_reso
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_storage_native.dart';
 import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
 import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
-import 'package:dio/dio.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 export 'package:coldigui/core/utils/pdf_id_codec.dart';
 
@@ -37,21 +32,6 @@ Isar openOfflineCatalogTestIsar(Directory dir) {
     directory: dir.path,
     name: 'offline_catalog_test_${DateTime.now().microsecondsSinceEpoch}',
   );
-}
-
-Future<String> createSampleZip({
-  required Directory dir,
-  required Map<String, List<int>> pdfEntries,
-}) async {
-  final archive = Archive();
-  for (final entry in pdfEntries.entries) {
-    archive.addFile(ArchiveFile(entry.key, entry.value.length, entry.value));
-  }
-
-  final encoded = ZipEncoder().encode(archive);
-  final zipPath = '${dir.path}/sample.zip';
-  await File(zipPath).writeAsBytes(encoded);
-  return zipPath;
 }
 
 Future<Directory> createTempDocsDir() async {
@@ -95,16 +75,4 @@ FetchAndStorePdf createTestFetchAndStorePdf(
     favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
     cacheQuotaBytes: cacheQuotaBytes,
   );
-}
-
-/// Datasource de manifest com [fetchManifest] fixo para testes.
-class FakeOfflineManifestRemoteDatasource
-    extends OfflineManifestRemoteDatasource {
-  FakeOfflineManifestRemoteDatasource(this._manifest, SharedPreferences prefs)
-    : super(Dio(), prefs, networkOverride: () async => _manifest);
-
-  final OfflineManifest _manifest;
-
-  @override
-  Future<OfflineManifest> fetchManifest() async => _manifest;
 }

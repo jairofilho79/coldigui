@@ -35,9 +35,6 @@ class _StubRepo implements OfflinePdfRepository {
   Future<OfflinePdfEntry?> findIndexEntry(String pdfId) async => null;
 
   @override
-  Future<void> indexExtractedBatch(List<ExtractedPdfItem> items) async {}
-
-  @override
   Future<List<OfflinePdfEntry>> listAll() async => [];
 
   @override

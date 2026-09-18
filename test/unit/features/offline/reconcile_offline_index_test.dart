@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -77,22 +76,7 @@ void main() {
     );
     await File(entry.absolutePath).delete();
 
-    final package = OfflineMaterialPackage(
-      parts: [
-        OfflinePackagePart(
-          filename: 'Partitura-1.zip',
-          size: 100,
-          url: '/packages/Partitura-1.zip',
-          pdfs: [pdfId],
-        ),
-      ],
-      totalSize: 100,
-      totalParts: 1,
-    );
-
-    final result = _done(
-      await useCase(materialPackage: package, materialCategory: 'Partitura'),
-    );
+    final result = _done(await useCase());
 
     expect(result.removedFromIndex, 1);
     expect(await repository.lookup(pdfId), isNull);
@@ -218,128 +202,10 @@ void main() {
     },
   );
 
-  test(
-    'reconcile escopado não é pulado por índice menor que o disco',
-    () async {
-      final indexed = await repository.upsert(
-        pdfId: pdfId,
-        bytes: pdfBytes,
-        category: 'ColAdultos',
-      );
-      final orphan = await store.writeAtomic(pdfBytes, 'ColAdultos/002.pdf');
-      for (var i = 3; i <= 8; i++) {
-        await store.writeAtomic(
-          pdfBytes,
-          'ColAdultos/${i.toString().padLeft(3, '0')}.pdf',
-        );
-      }
-
-      final package = OfflineMaterialPackage(
-        parts: [
-          OfflinePackagePart(
-            filename: 'Partitura-1.zip',
-            size: 100,
-            url: '/packages/Partitura-1.zip',
-            pdfs: [pdfId],
-          ),
-        ],
-        totalSize: 100,
-        totalParts: 1,
-      );
-
-      final outcome = await useCase(
-        materialPackage: package,
-        materialCategory: 'Partitura',
-      );
-
-      expect(outcome, isA<ReconcileDone>());
-      expect(await File(indexed.absolutePath).exists(), isTrue);
-      expect(await File(orphan).exists(), isFalse);
-    },
-  );
-
   test('reconcile completo com índice vazio e disco vazio conclui', () async {
     final outcome = await useCase();
 
     expect(outcome, isA<ReconcileDone>());
     expect((outcome as ReconcileDone).orphanFiles, 0);
   });
-
-  test(
-    'reconcile escopado preserva PDF indexado fora do escopo na mesma pasta',
-    () async {
-      final outOfScopeId = encodePdfId('ColAdultos/002.pdf');
-      final inScope = await repository.upsert(
-        pdfId: pdfId,
-        bytes: pdfBytes,
-        category: 'ColAdultos',
-      );
-      final outOfScope = await repository.upsert(
-        pdfId: outOfScopeId,
-        bytes: pdfBytes,
-        category: 'ColAdultos',
-      );
-
-      final package = OfflineMaterialPackage(
-        parts: [
-          OfflinePackagePart(
-            filename: 'Partitura-1.zip',
-            size: 100,
-            url: '/packages/Partitura-1.zip',
-            pdfs: [pdfId],
-          ),
-        ],
-        totalSize: 100,
-        totalParts: 1,
-      );
-
-      final outcome = _done(
-        await useCase(materialPackage: package, materialCategory: 'Partitura'),
-      );
-
-      expect(outcome.orphanFiles, 0);
-      expect(await File(inScope.absolutePath).exists(), isTrue);
-      expect(await File(outOfScope.absolutePath).exists(), isTrue);
-      expect(await repository.lookup(outOfScopeId), isNotNull);
-    },
-  );
-
-  test(
-    'reconcile escopado com índice vazio só apaga órfãos do escopo',
-    () async {
-      final scopedOrphan = await store.writeAtomic(
-        pdfBytes,
-        'Partitura/001.pdf',
-      );
-      final outOfScope = await store.writeAtomic(
-        pdfBytes,
-        'ColAdultos/001.pdf',
-      );
-
-      final package = OfflineMaterialPackage(
-        parts: [
-          OfflinePackagePart(
-            filename: 'Partitura-1.zip',
-            size: 100,
-            url: '/packages/Partitura-1.zip',
-            pdfs: [encodePdfId('Partitura/999.pdf')],
-          ),
-        ],
-        totalSize: 100,
-        totalParts: 1,
-      );
-
-      final outcome = _done(
-        await useCase(
-          materialPackage: package,
-          materialCategory: 'Partitura',
-          isIndexAvailable: false,
-        ),
-      );
-
-      expect(outcome.orphanFiles, 1);
-      expect(await File(scopedOrphan).exists(), isFalse);
-      expect(await File(outOfScope).exists(), isTrue);
-    },
-  );
 }

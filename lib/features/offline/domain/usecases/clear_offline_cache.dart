@@ -2,7 +2,6 @@ import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../../catalog/domain/constants/catalog_materials.dart';
 import '../../data/datasources/offline_available_store.dart';
 import '../../data/datasources/offline_bulk_categories_store.dart';
-import '../../data/datasources/offline_bulk_checkpoint_store.dart';
 import '../../data/datasources/offline_selected_categories_store.dart';
 import '../ports/pdf_storage_port.dart';
 import '../repositories/offline_pdf_repository.dart';
@@ -11,14 +10,13 @@ import '../utils/offline_material_resolver.dart';
 /// UC-10 — Limpar cache offline (Fase 3.6).
 ///
 /// Remove PDFs das [materials] selecionadas (índice + arquivo).
-/// Wipe total quando o índice ficar vazio: tree + checkpoint + bulk/seleção +
+/// Wipe total quando o índice ficar vazio: tree + bulk/seleção +
 /// `OFFLINE_AVAILABLE=FALSE`.
 class ClearOfflineCache {
   ClearOfflineCache(
     this._repository,
     this._catalogLocal,
     this._store,
-    this._checkpointStore,
     this._bulkCategoriesStore,
     this._selectedCategoriesStore,
     this._offlineAvailableStore,
@@ -27,7 +25,6 @@ class ClearOfflineCache {
   final OfflinePdfRepository _repository;
   final CatalogLocalDatasource _catalogLocal;
   final PdfStoragePort _store;
-  final OfflineBulkCheckpointStore _checkpointStore;
   final OfflineBulkCategoriesStore _bulkCategoriesStore;
   final OfflineSelectedCategoriesStore _selectedCategoriesStore;
   final OfflineAvailableStore _offlineAvailableStore;
@@ -61,11 +58,6 @@ class ClearOfflineCache {
 
     await _bulkCategoriesStore.removeCategories(scope);
 
-    final checkpoint = await _checkpointStore.load();
-    if (checkpoint != null && checkpoint.categories.any(scope.contains)) {
-      await _checkpointStore.clear();
-    }
-
     final remaining = await _repository.listAll();
     if (remaining.isEmpty) {
       await _fullClear();
@@ -76,7 +68,6 @@ class ClearOfflineCache {
 
   Future<void> _fullClear() async {
     await _store.deleteTree();
-    await _checkpointStore.clear();
     await _bulkCategoriesStore.clear();
     await _selectedCategoriesStore.clear();
     await _offlineAvailableStore.clear();

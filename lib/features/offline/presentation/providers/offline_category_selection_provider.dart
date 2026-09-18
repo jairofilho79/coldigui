@@ -22,7 +22,7 @@ class OfflineCategorySelectionState {
   /// Categorias selecionadas com packages já baixados — escopo de faltantes.
   Set<String> get missingScope => selected.intersection(bulkDownloaded);
 
-  /// Categorias selecionadas sem packages — escopo de bulk ZIP.
+  /// Categorias selecionadas sem bulk concluído — escopo do primeiro bulk.
   Set<String> get packagesScope => selected.difference(bulkDownloaded);
 
   OfflineCategorySelectionState copyWith({
