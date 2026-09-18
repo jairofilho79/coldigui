@@ -6,11 +6,14 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/plpcg_catalog_source_provider.dart';
+import '../../data/sources/composite_catalog_source.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
+import 'known_praise_ids_provider.dart';
+import 'manifest_material_aliases_provider.dart';
 
 /// Estado da busca e filtros na Home (UC-01 + UC-02 + pesquisa híbrida §6).
 ///
@@ -18,7 +21,7 @@ import 'home_search_state.dart';
 /// ```
 /// homeSearchQueryProvider (texto cru)
 ///   → homeSearchDebouncedQueryProvider (300 ms)
-///       ├→ homeLocalSearchProvider   (PLPCG + filtros, depois Coldigom local)
+///       ├→ homeLocalSearchProvider   (PLPCG + filtros, depois Coldigom local fora do manifest)
 ///       └→ homeRemoteSearchProvider((query, 1))  (Coldigom, valida; só com rede)
 ///             → homeSearchStateProvider → HomeSearchResultsSliver
 /// ```
@@ -35,7 +38,8 @@ final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
 /// Resultados locais da query + filtros correntes — **síncronos**, PLPCG
-/// primeiro e Coldigom depois (O16).
+/// primeiro e Coldigom depois, sem os praises que o manifest já cobre
+/// (spec §5.2).
 ///
 /// Observa manifest (via [plpcgCatalogSourceProvider]), o índice Coldigom
 /// hidratado (via [coldigomCatalogSourceProvider]), query e filtros: um
@@ -48,10 +52,11 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final plpcg = ref.watch(plpcgCatalogSourceProvider);
   final coldigom = ref.watch(coldigomCatalogSourceProvider);
   final catalogQuery = CatalogQuery(text: query, filters: filters);
-  return [
-    ...plpcg.searchLocal(catalogQuery),
-    ...coldigom.searchLocal(catalogQuery),
-  ];
+  return mergeLocalSearchResults(
+    plpcg: plpcg.searchLocal(catalogQuery),
+    coldigom: coldigom.searchLocal(catalogQuery),
+    manifestPraiseIds: ref.watch(manifestMaterialAliasesProvider).praiseIds,
+  );
 });
 
 /// Estado único da busca da Home — o que os widgets observam.
@@ -108,7 +113,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   // sem chip, sem contar, até o índice real chegar.
   final hydration = ref.watch(coldigomCatalogHydrationProvider);
   final knownIds = hydration.hasValue
-      ? ref.watch(coldigomSearchIndexProvider).catalogIds
+      ? ref.watch(knownPraiseIdsProvider)
       : {for (final g in newGroups) g.groupId};
 
   return HomeSearchState(

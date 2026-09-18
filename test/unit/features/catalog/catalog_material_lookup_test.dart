@@ -216,5 +216,47 @@ void main() {
       expect(lookup.withPraiseMeta(comMeta).coldigomMeta, same(outraMeta));
       expect(lookup.withPraiseMeta(forinho), same(forinho));
     });
+
+    test('louvor(): id Coldigom de material coberto cai no manifest via alias', () {
+      final legado = Louvor.fromManifest(
+        nome: 'A',
+        numero: '001',
+        categoria: 'Partitura',
+        classificacao: 'ColAdultos',
+        pdf: 'https://coldigom.test/assets/praises/p1/m1.pdf',
+        pdfId: 'legado-a',
+        praiseId: 'p1',
+        materialId: 'm1',
+      );
+      final coldigomId = encodePdfId('assets/praises/p1/m1.pdf');
+      final lookup = CatalogMaterialLookup(
+        plpcgLouvoresByPdfId: {'legado-a': legado},
+        legacyPdfIdByColdigomPdfId: {coldigomId: 'legado-a'},
+      );
+
+      expect(lookup.louvor(coldigomId), same(legado));
+      expect(lookup.louvor('desconhecido'), isNull);
+    });
+
+    test('louvor(): cache Coldigom quente vence o alias', () {
+      final coldigomId = encodePdfId('assets/praises/p1/m1.pdf');
+      final nativo = Louvor.fromManifest(
+        nome: 'A',
+        numero: '001',
+        categoria: 'Partitura',
+        classificacao: 'Balada',
+        pdf: 'm1.pdf',
+        pdfId: coldigomId,
+        groupId: 'p1',
+        source: LouvorDataSource.coldigom,
+        praiseId: 'p1',
+      );
+      final lookup = CatalogMaterialLookup(
+        coldigomLouvoresByPdfId: {coldigomId: nativo},
+        legacyPdfIdByColdigomPdfId: {coldigomId: 'legado-a'},
+      );
+
+      expect(lookup.louvor(coldigomId), same(nativo));
+    });
   });
 }

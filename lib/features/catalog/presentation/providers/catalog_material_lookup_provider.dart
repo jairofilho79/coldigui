@@ -9,6 +9,7 @@ import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/youtube_material.dart';
 import 'louvores_by_pdf_id_provider.dart';
+import 'manifest_material_aliases_provider.dart';
 
 /// Leitura **síncrona** de material por id, para a presentation (C.3).
 ///
@@ -28,6 +29,7 @@ final class CatalogMaterialLookup {
     this.gesturesById = const {},
     this.praiseMetaByGroupId = const {},
     this.youtubeByGroupId = const {},
+    this.legacyPdfIdByColdigomPdfId = const {},
   });
 
   /// PDFs do manifest PLPCG, por `pdfId` (`louvoresByPdfIdProvider`).
@@ -51,12 +53,20 @@ final class CatalogMaterialLookup {
   /// Links de YouTube em cache, por `groupId`.
   final Map<String, List<YoutubeMaterial>> youtubeByGroupId;
 
-  /// PDF de [materialId] — manifest PLPCG primeiro, cache Coldigom depois.
-  ///
-  /// Os dois acervos compartilham o espaço de ids, então uma consulta só
-  /// atende as duas origens.
-  Louvor? louvor(String materialId) =>
-      plpcgLouvoresByPdfId[materialId] ?? coldigomLouvoresByPdfId[materialId];
+  /// Id Coldigom → `pdfId` legado dos materiais que o manifest cobre
+  /// (`manifestMaterialAliasesProvider`). Serve o alias sem rede de
+  /// [louvor] para playlists recentes com ids Coldigom.
+  final Map<String, String> legacyPdfIdByColdigomPdfId;
+
+  /// PDF de [materialId] — manifest, cache Coldigom, e por fim o alias
+  /// (id Coldigom de material que o manifest também lista).
+  Louvor? louvor(String materialId) {
+    final direct =
+        plpcgLouvoresByPdfId[materialId] ?? coldigomLouvoresByPdfId[materialId];
+    if (direct != null) return direct;
+    final legacyId = legacyPdfIdByColdigomPdfId[materialId];
+    return legacyId == null ? null : plpcgLouvoresByPdfId[legacyId];
+  }
 
   /// Faixa de áudio em cache, ou `null`.
   AudioTrack? audioTrack(String audioId) => audioTracksById[audioId];
@@ -115,5 +125,8 @@ final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
     gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
     praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
     youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
+    legacyPdfIdByColdigomPdfId: ref
+        .watch(manifestMaterialAliasesProvider)
+        .legacyPdfIdByColdigomPdfId,
   );
 });

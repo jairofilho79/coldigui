@@ -774,4 +774,44 @@ void main() {
     // a hidratação mesmo assim.
     expect(hydrationBuilds, 2);
   });
+
+  test('praise do manifest devolvido pelo remoto não é «novo» nem candidato a adoção',
+      () async {
+    final manifestComPraise = LouvoresManifest.fromLouvores([
+      ...catalog,
+      Louvor.fromManifest(
+        nome: 'Firme',
+        numero: '010',
+        categoria: 'Partitura',
+        classificacao: 'ColAdultos',
+        pdf: 'https://coldigom.test/assets/praises/pf/m.pdf',
+        pdfId: 'id-010',
+        praiseId: 'pf',
+        materialId: 'm',
+      ),
+    ]);
+    final source = _RecordingCatalogSource(
+      (query) async => CatalogSearchPage(
+        groups: [_coldigomGroup('pf'), _coldigomGroup('novo')],
+        page: query.page,
+      ),
+    );
+    final container = createContainer(
+      source,
+      manifest: _MutableManifestNotifier(manifestComPraise),
+    );
+    keepStateAlive(container);
+    await container.read(louvoresManifestProvider.future);
+
+    container.read(homeSearchDebouncedQueryProvider.notifier).setImmediate('zzz');
+    await container.read(
+      homeRemoteSearchProvider(const HomeRemoteSearchKey(query: 'zzz', page: 1)).future,
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(homeSearchStateProvider);
+    expect(state.newGroupIds, {'novo'});
+    expect(adopter.calls.single, ['novo']);
+    expect(adopter.knownSeen, contains('pf'));
+  });
 }

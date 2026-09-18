@@ -4,11 +4,14 @@ import 'package:coldigui/features/catalog/data/providers/catalog_source_provider
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_remote_search_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Fonte de catálogo que registra cada busca (query + cancelamento) e responde
 /// pelo roteiro do teste.
@@ -58,7 +61,15 @@ class _RecordingCatalogSource implements CatalogSource {
 
 ProviderContainer _createContainer(CatalogSource source) {
   final container = ProviderContainer(
-    overrides: [catalogSourceProvider.overrideWithValue(source)],
+    overrides: [
+      catalogSourceProvider.overrideWithValue(source),
+      // `homeRemoteSearchProvider` lê `knownPraiseIdsProvider`, que observa
+      // `manifestMaterialAliasesProvider` → `louvoresManifestProvider`: sem
+      // este override, um `ProviderContainer` nu tentaria abrir o Isar e
+      // bater na rede (achado do Task 8 — mesmo cuidado de
+      // `home_search_provider_test.dart`).
+      louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+    ],
   );
   addTearDown(container.dispose);
   return container;

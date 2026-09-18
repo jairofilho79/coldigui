@@ -7,6 +7,7 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../data/providers/catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/ports/search_cancellation.dart';
+import 'known_praise_ids_provider.dart';
 
 /// Quanto tempo uma página remota bem-sucedida fica em memo.
 ///
@@ -91,7 +92,9 @@ final homeRemoteSearchProvider = FutureProvider.autoDispose
       // **antes** de qualquer await: este provider é autoDispose e um `ref`
       // descartado não pode ser lido.
       final adopt = ref.read(adoptColdigomSearchNoveltiesProvider);
-      final known = ref.read(coldigomSearchIndexProvider).praiseIds;
+      // Índice Coldigom ∪ praises do manifest — um praise do manifest nunca
+      // é adotado para o Isar Coldigom.
+      final known = ref.read(knownPraiseIdsProvider);
       final syncNotifier = ref.read(coldigomCatalogSyncProvider.notifier);
       // Filtra pelo índice já aqui: poupa ao use case (e ao Isar, dentro
       // dele) o trabalho de revisitar praises que a Home já sabia de cor —
