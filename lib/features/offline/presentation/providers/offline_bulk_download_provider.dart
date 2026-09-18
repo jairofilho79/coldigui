@@ -6,16 +6,14 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/failures/app_failure.dart';
-import '../../data/providers/offline_bulk_providers.dart';
 import '../../data/providers/offline_core_providers.dart';
 import 'offline_cache_status_provider.dart';
 import 'offline_category_selection_provider.dart';
 import 'offline_maintenance_lock_provider.dart';
 import 'offline_mode_provider.dart';
-import '../../domain/entities/offline_bulk_checkpoint.dart';
 import '../../domain/entities/offline_download_progress.dart';
 import '../../domain/exceptions/offline_bulk_exceptions.dart';
-import '../../domain/usecases/download_offline_packages.dart';
+import '../../domain/usecases/download_missing_pdfs.dart';
 
 /// Mantém a tela ligada durante bulk download prolongado (backlog #12).
 abstract interface class BulkDownloadWakelock {
@@ -37,7 +35,7 @@ final bulkDownloadWakelockProvider = Provider<BulkDownloadWakelock>(
   (ref) => const WakelockPlusBulkDownloadWakelock(),
 );
 
-/// Estado do bulk download UC-09 na UI (Fase 3.5).
+/// Estado do bulk download UC-09 na UI.
 enum OfflineBulkDownloadStatus {
   idle,
   running,
@@ -52,51 +50,39 @@ class OfflineBulkDownloadState {
   const OfflineBulkDownloadState({
     this.status = OfflineBulkDownloadStatus.idle,
     this.progress,
-    this.checkpoint,
     this.failure,
-    this.unmatchedZipEntries = const [],
     this.failedCount = 0,
   });
 
   final OfflineBulkDownloadStatus status;
   final OfflineDownloadProgress? progress;
-  final OfflineBulkCheckpoint? checkpoint;
 
   /// Falha classificada (E8) da última execução — a UI traduz via
   /// `failureMessage`.
   final AppFailure? failure;
-  final List<String> unmatchedZipEntries;
 
-  /// PDFs esperados que falharam na última execução (Task 3/B4) — usado para
-  /// diferenciar `completed` de `completedWithWarnings` e exibir "N falhas".
+  /// PDFs que falharam na última execução — diferencia `completed` de
+  /// `completedWithWarnings` e alimenta "N falhas".
   final int failedCount;
 
   bool get isRunning => status == OfflineBulkDownloadStatus.running;
   bool get isCancelling => status == OfflineBulkDownloadStatus.cancelling;
   bool get isActive => isRunning || isCancelling;
-  bool get hasCheckpoint => checkpoint != null;
   bool get completedWithWarnings =>
       status == OfflineBulkDownloadStatus.completedWithWarnings;
 
   OfflineBulkDownloadState copyWith({
     OfflineBulkDownloadStatus? status,
     OfflineDownloadProgress? progress,
-    OfflineBulkCheckpoint? checkpoint,
     AppFailure? failure,
-    List<String>? unmatchedZipEntries,
     int? failedCount,
-    bool clearCheckpoint = false,
     bool clearError = false,
-    bool clearUnmatchedZipEntries = false,
+    bool clearProgress = false,
   }) {
     return OfflineBulkDownloadState(
       status: status ?? this.status,
-      progress: progress ?? this.progress,
-      checkpoint: clearCheckpoint ? null : (checkpoint ?? this.checkpoint),
+      progress: clearProgress ? null : (progress ?? this.progress),
       failure: clearError ? null : (failure ?? this.failure),
-      unmatchedZipEntries: clearUnmatchedZipEntries
-          ? const []
-          : (unmatchedZipEntries ?? this.unmatchedZipEntries),
       failedCount: failedCount ?? this.failedCount,
     );
   }
@@ -107,9 +93,12 @@ final offlineBulkDownloadProvider =
       OfflineBulkDownloadNotifier.new,
     );
 
-/// Orquestra [DownloadOfflinePackages] com progresso, cancelamento,
-/// [offlineModeProvider.markConfigured] (`OFFLINE_AVAILABLE=TRUE`) e refresh
-/// de [offlineCacheStatusProvider] ao concluir (Fase 3.7).
+/// Orquestra [DownloadMissingPdfs] (PDF a PDF, do coldigom) com progresso,
+/// cancelamento, [offlineModeProvider.markConfigured]
+/// (`OFFLINE_AVAILABLE=TRUE`) e refresh de [offlineCacheStatusProvider].
+///
+/// Sem checkpoint: «retomar» é carregar em «Baixar selecionados» de novo — o
+/// use case pré-filtra o que já está no índice (spec §6.2).
 class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
   CancelToken? _cancelToken;
   var _wakelockHeld = false;
@@ -123,9 +112,6 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       _cancelToken?.cancel();
       _releaseWakelock();
     });
-
-    Future.microtask(_loadCheckpoint);
-
     return const OfflineBulkDownloadState();
   }
 
@@ -141,15 +127,6 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     _wakelockHeld = false;
   }
 
-  Future<void> _loadCheckpoint() async {
-    final checkpoint = await ref
-        .read(offlineBulkCheckpointStoreProvider)
-        .load();
-    if (checkpoint != null) {
-      state = state.copyWith(checkpoint: checkpoint);
-    }
-  }
-
   Future<void> start(List<String> categories) async {
     if (state.isRunning) return;
     if (!_ensureStorageAvailable()) return;
@@ -159,90 +136,38 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     // garantia de que o lock de manutenção não vaza pela sessão inteira.
     try {
       _lastStartedCategories = List<String>.from(categories);
-      _cancelToken = CancelToken();
+      final label = categories.join(', ');
+      final cancelToken = _cancelToken = CancelToken();
       state = state.copyWith(
         status: OfflineBulkDownloadStatus.running,
         clearError: true,
-        clearCheckpoint: true,
-        clearUnmatchedZipEntries: true,
+        clearProgress: true,
         failedCount: 0,
       );
       await _acquireWakelock();
 
       final result = await ref
-          .read(downloadOfflinePackagesProvider)
+          .read(downloadMissingPdfsProvider)
           .call(
-            categories: categories,
-            cancelToken: _cancelToken,
-            onProgress: (progress) => _onDownloadProgress(progress),
+            materialCategories: categories.toSet(),
+            cancelToken: cancelToken,
+            onProgress: (done, total) => _onDownloadProgress(
+              OfflineDownloadProgress(
+                currentCategory: label,
+                donePdfs: done,
+                totalPdfs: total,
+              ),
+            ),
           );
 
       await _completeBulkDownload(result);
     } on OfflineBulkCancelledException {
       await _releaseWakelock();
-      final checkpoint = await ref
-          .read(offlineBulkCheckpointStoreProvider)
-          .load();
       state = state.copyWith(
         status: OfflineBulkDownloadStatus.cancelled,
-        checkpoint: checkpoint,
-        progress: null,
+        clearProgress: true,
       );
       await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
-    } on InsufficientDiskSpaceException catch (e) {
-      await _failBulkDownload(e);
-    } on DioException catch (e) {
-      await _failBulkDownload(e);
-    } on Object catch (e) {
-      await _failBulkDownload(e);
-    } finally {
-      _releaseMaintenanceLock();
-    }
-  }
-
-  Future<void> resumeFromCheckpoint() async {
-    if (state.isRunning) return;
-    if (!_ensureStorageAvailable()) return;
-
-    final checkpoint =
-        state.checkpoint ??
-        await ref.read(offlineBulkCheckpointStoreProvider).load();
-    if (checkpoint == null) return;
-    if (!_acquireMaintenanceLock()) return;
-
-    try {
-      _lastStartedCategories = List<String>.from(checkpoint.categories);
-      _cancelToken = CancelToken();
-      state = state.copyWith(
-        status: OfflineBulkDownloadStatus.running,
-        clearError: true,
-        failedCount: 0,
-      );
-      await _acquireWakelock();
-
-      final result = await ref
-          .read(downloadOfflinePackagesProvider)
-          .call(
-            categories: checkpoint.categories,
-            cancelToken: _cancelToken,
-            resumeCheckpoint: checkpoint,
-            onProgress: (progress) => _onDownloadProgress(progress),
-          );
-
-      await _completeBulkDownload(result);
-    } on OfflineBulkCancelledException {
-      await _releaseWakelock();
-      final saved = await ref.read(offlineBulkCheckpointStoreProvider).load();
-      state = state.copyWith(
-        status: OfflineBulkDownloadStatus.cancelled,
-        checkpoint: saved,
-        progress: null,
-      );
-      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
-    } on InsufficientDiskSpaceException catch (e) {
-      await _failBulkDownload(e);
-    } on DioException catch (e) {
-      await _failBulkDownload(e);
     } on Object catch (e) {
       await _failBulkDownload(e);
     } finally {
@@ -260,7 +185,7 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
       failure: const StorageFailure(
         StorageUnavailableException('offline.bulk'),
       ),
-      progress: null,
+      clearProgress: true,
     );
     return false;
   }
@@ -294,34 +219,26 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
 
   Future<void> _failBulkDownload(Object error) async {
     await _releaseWakelock();
-    final checkpoint = await ref
-        .read(offlineBulkCheckpointStoreProvider)
-        .load();
     state = state.copyWith(
       status: OfflineBulkDownloadStatus.failed,
       failure: AppFailure.from(error),
-      checkpoint: checkpoint,
-      progress: null,
+      clearProgress: true,
     );
     await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
   }
 
-  Future<void> _completeBulkDownload(
-    DownloadOfflinePackagesResult result,
-  ) async {
+  Future<void> _completeBulkDownload(DownloadMissingResult result) async {
     await _releaseWakelock();
-    final failedCount = result.failedPdfIds.length;
+    final failedCount = result.failedCount;
+    final attempted = result.downloadedCount + failedCount;
     // Nada foi de fato gravado neste lote — não é honesto marcar
     // OFFLINE_AVAILABLE=TRUE (Task 3/B4).
-    final nothingWasStored =
-        result.totalPdfs > 0 && failedCount == result.totalPdfs;
+    final nothingWasStored = attempted > 0 && result.downloadedCount == 0;
     state = state.copyWith(
-      status: result.hasWarnings
+      status: failedCount > 0
           ? OfflineBulkDownloadStatus.completedWithWarnings
           : OfflineBulkDownloadStatus.completed,
-      progress: null,
-      clearCheckpoint: true,
-      unmatchedZipEntries: result.unmatchedZipEntries,
+      clearProgress: true,
       failedCount: failedCount,
     );
     if (_lastStartedCategories.isNotEmpty) {
@@ -342,14 +259,10 @@ class OfflineBulkDownloadNotifier extends Notifier<OfflineBulkDownloadState> {
     state = state.copyWith(status: OfflineBulkDownloadStatus.cancelling);
   }
 
-  /// Pausa bulk em andamento ao ir para background (salva checkpoint via cancel).
+  /// Para o bulk ao ir para background — o que já foi gravado fica.
   void pauseForBackground() {
     if (!state.isRunning) return;
     _cancelToken?.cancel('app backgrounded');
-  }
-
-  void dismissCheckpoint() {
-    ref.read(offlineBulkCheckpointStoreProvider).clear();
-    state = state.copyWith(clearCheckpoint: true);
+    state = state.copyWith(status: OfflineBulkDownloadStatus.cancelling);
   }
 }

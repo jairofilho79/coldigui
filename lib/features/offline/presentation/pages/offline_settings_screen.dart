@@ -22,7 +22,6 @@ import '../providers/offline_mode_provider.dart';
 import '../providers/offline_reconcile_provider.dart';
 import '../widgets/offline_missing_louvores_sheet.dart';
 import 'offline_settings_widgets/category_filter_chip.dart';
-import 'offline_settings_widgets/checkpoint_banner.dart';
 import 'offline_settings_widgets/coldigom_section.dart';
 import 'offline_settings_widgets/keep_app_open_banner.dart';
 import 'offline_settings_widgets/progress_section.dart';
@@ -30,10 +29,7 @@ import 'offline_settings_widgets/progress_section.dart';
 /// Mensagem do snackbar de conclusão do bulk download (Task 3/B4 — fix
 /// round 1).
 ///
-/// Decide pelo `failedCount` real, não pelo `status`: `completedWithWarnings`
-/// também é disparado quando só há `unmatchedZipEntries` (ZIP com entradas
-/// sem pdfId no manifest) e nenhum `failedPdfIds` — nesse caso a mensagem de
-/// sucesso simples é a correta, não "concluído com 0 arquivos com falha".
+/// Decide pelo `failedCount` real.
 String offlineBulkCompletionMessage(AppLocalizations l10n, int failedCount) {
   return failedCount > 0
       ? l10n.offlineDownloadCompletedWithFailures(failedCount)
@@ -252,12 +248,6 @@ class _OfflineSettingsScreenState extends ConsumerState<OfflineSettingsScreen>
               onRefresh: _refreshStats,
               onStopDownload: () =>
                   ref.read(offlineBulkDownloadProvider.notifier).cancel(),
-              onDismissCheckpoint: () => ref
-                  .read(offlineBulkDownloadProvider.notifier)
-                  .dismissCheckpoint(),
-              onResumeCheckpoint: () => ref
-                  .read(offlineBulkDownloadProvider.notifier)
-                  .resumeFromCheckpoint(),
             ),
           ),
           const SizedBox(height: 16),
@@ -346,8 +336,6 @@ class _OfflineContent extends StatelessWidget {
     required this.onClearCache,
     required this.onRefresh,
     required this.onStopDownload,
-    required this.onDismissCheckpoint,
-    required this.onResumeCheckpoint,
   });
 
   final OfflineCacheStatus cacheStatus;
@@ -361,8 +349,6 @@ class _OfflineContent extends StatelessWidget {
   final VoidCallback onClearCache;
   final VoidCallback onRefresh;
   final VoidCallback onStopDownload;
-  final VoidCallback onDismissCheckpoint;
-  final VoidCallback onResumeCheckpoint;
 
   String _categoryLabel(String material) {
     final downloaded = cacheStatus.stats.byCategory[material] ?? 0;
@@ -462,14 +448,6 @@ class _OfflineContent extends StatelessWidget {
               ),
           ],
         ),
-        if (bulkState.hasCheckpoint && !bulkState.isActive) ...[
-          const SizedBox(height: 14),
-          CheckpointBanner(
-            l10n: l10n,
-            onDismiss: onDismissCheckpoint,
-            onResume: onResumeCheckpoint,
-          ),
-        ],
         const SizedBox(height: 14),
         Wrap(
           spacing: 8,

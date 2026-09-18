@@ -70,37 +70,12 @@ class _IdleBulkNotifier extends OfflineBulkDownloadNotifier {
   OfflineBulkDownloadState build() => const OfflineBulkDownloadState();
 }
 
-class _RunningBulkWithFetchProgressNotifier
-    extends OfflineBulkDownloadNotifier {
-  @override
-  OfflineBulkDownloadState build() => OfflineBulkDownloadState(
-    status: OfflineBulkDownloadStatus.running,
-    progress: OfflineDownloadProgress(
-      phase: OfflineDownloadPhase.fetching,
-      currentCategory: 'Partitura',
-      categoryIndex: 0,
-      totalCategories: 1,
-      currentPart: 1,
-      totalParts: 3,
-      donePdfs: 0,
-      totalPdfs: 100,
-      zipBytesReceived: 45 * 1024 * 1024,
-      zipBytesTotal: 82 * 1024 * 1024,
-    ),
-  );
-}
-
 class _RunningBulkPdfOnlyProgressNotifier extends OfflineBulkDownloadNotifier {
   @override
   OfflineBulkDownloadState build() => OfflineBulkDownloadState(
     status: OfflineBulkDownloadStatus.running,
     progress: const OfflineDownloadProgress(
-      phase: OfflineDownloadPhase.fetching,
       currentCategory: 'Partitura',
-      categoryIndex: 0,
-      totalCategories: 1,
-      currentPart: 0,
-      totalParts: 0,
       donePdfs: 12,
       totalPdfs: 100,
     ),
@@ -112,12 +87,7 @@ class _CancellingBulkNotifier extends OfflineBulkDownloadNotifier {
   OfflineBulkDownloadState build() => const OfflineBulkDownloadState(
     status: OfflineBulkDownloadStatus.cancelling,
     progress: OfflineDownloadProgress(
-      phase: OfflineDownloadPhase.fetching,
       currentCategory: 'Partitura',
-      categoryIndex: 0,
-      totalCategories: 1,
-      currentPart: 0,
-      totalParts: 0,
       donePdfs: 12,
       totalPdfs: 100,
     ),
@@ -398,30 +368,7 @@ void main() {
     );
   });
 
-  testWidgets('shows zip byte progress during native fetching phase', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {}),
-        ),
-        bulkDownloadNotifier: _RunningBulkWithFetchProgressNotifier.new,
-      ),
-    );
-    await tester.pump();
-
-    expect(find.byType(LinearProgressIndicator), findsNWidgets(2));
-    expect(find.textContaining('0/100 PDFs'), findsOneWidget);
-    expect(find.textContaining('Baixando pacote 1/3'), findsOneWidget);
-    expect(find.textContaining('45,0 MB'), findsOneWidget);
-    expect(find.textContaining('82,0 MB'), findsOneWidget);
-    expect(find.text('Parar'), findsOneWidget);
-  });
-
-  testWidgets('shows only pdf progress without zip bar on web-style fetch', (
-    tester,
-  ) async {
+  testWidgets('shows pdf progress with one bar', (tester) async {
     await tester.pumpWidget(
       _offlineTestApp(
         cacheStatus: const OfflineCacheStatus(

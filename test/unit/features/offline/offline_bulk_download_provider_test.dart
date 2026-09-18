@@ -1,32 +1,24 @@
-import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/failures/app_failure.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-
-import 'offline_test_helpers.dart';
-
-import 'package:coldigui/features/offline/data/datasources/offline_bulk_checkpoint_store.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_manifest_remote_datasource.dart';
-import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
-import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
-import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
-import 'package:coldigui/features/offline/data/providers/offline_bulk_providers.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
+import 'package:coldigui/features/catalog/data/datasources/catalog_local_datasource.dart';
+import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
+import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_batch_item.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
-import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
-import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
-import 'package:coldigui/features/offline/domain/usecases/extract_and_store_pdfs.dart';
-import 'package:coldigui/features/offline/domain/usecases/reconcile_offline_index.dart';
+import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
+import 'package:coldigui/features/offline/domain/usecases/download_missing_pdfs.dart';
+import 'package:coldigui/features/offline/domain/usecases/fetch_and_store_pdf.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_mode_provider.dart';
+import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,35 +93,86 @@ class _StubRepo implements OfflinePdfRepository {
   Future<void> flushPendingTouchLastAccessed() async {}
 }
 
-class _ThrowingDownloadOfflinePackages extends DownloadOfflinePackages {
-  _ThrowingDownloadOfflinePackages({
-    required this.error,
-    required PdfStoragePort store,
-    required SharedPreferences prefs,
-    required super.checkpointStore,
-  }) : super(
-         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-         zipDownloader: ZipPackageDownloader(Dio(), store),
-         extractAndStorePdfs: ExtractAndStorePdfs(
-           _StubRepo(),
-           store,
-           ZipPackageDownloader(Dio(), store),
-         ),
-         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-       );
+/// Base dos fakes: dependências inertes — nenhum teste aqui exercita o
+/// download real, só a orquestração do notifier.
+abstract class _FakeDownloadMissingPdfs extends DownloadMissingPdfs {
+  _FakeDownloadMissingPdfs()
+    : super(
+        const CatalogLocalDatasource.unavailable(),
+        _StubRepo(),
+        FetchAndStorePdf(
+          PdfBytesDatasource(Dio()),
+          _StubRepo(),
+          favoritePdfIdsResolver: FavoritePdfIdsResolver.testing(),
+        ),
+      );
+}
 
+class _ThrowingDownloadMissingPdfs extends _FakeDownloadMissingPdfs {
+  _ThrowingDownloadMissingPdfs(this.error);
   final Object error;
 
   @override
-  Future<DownloadOfflinePackagesResult> call({
-    required List<String> categories,
-    void Function(OfflineDownloadProgress progress)? onProgress,
+  Future<DownloadMissingResult> call({
+    Set<String>? materialCategories,
+    void Function(int done, int total)? onProgress,
     CancelToken? cancelToken,
-    OfflineBulkCheckpoint? resumeCheckpoint,
+  }) async => throw error;
+}
+
+/// Usecase fake que retorna um [DownloadMissingResult] fixo e conta execuções
+/// — cobre `_completeBulkDownload` (falhas parciais/totais) e os testes de
+/// lock (spec C.1).
+class _ResultDownloadMissingPdfs extends _FakeDownloadMissingPdfs {
+  _ResultDownloadMissingPdfs(this.result);
+  final DownloadMissingResult result;
+  int callCount = 0;
+  Set<String>? lastCategories;
+
+  @override
+  Future<DownloadMissingResult> call({
+    Set<String>? materialCategories,
+    void Function(int done, int total)? onProgress,
+    CancelToken? cancelToken,
   }) async {
-    throw error;
+    callCount++;
+    lastCategories = materialCategories;
+    return result;
   }
 }
+
+/// Emite progresso e só termina quando [gate] completa — para testar
+/// «Parar» e a `ProgressSection`.
+class _GatedDownloadMissingPdfs extends _FakeDownloadMissingPdfs {
+  final gate = Completer<void>();
+  CancelToken? token;
+
+  @override
+  Future<DownloadMissingResult> call({
+    Set<String>? materialCategories,
+    void Function(int done, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    token = cancelToken;
+    onProgress?.call(0, 10);
+    onProgress?.call(3, 10);
+    await gate.future;
+    if (cancelToken?.isCancelled ?? false) {
+      throw const OfflineBulkCancelledException();
+    }
+    return const DownloadMissingResult(
+      downloadedCount: 10,
+      skippedCount: 0,
+      failedCount: 0,
+    );
+  }
+}
+
+const _success = DownloadMissingResult(
+  downloadedCount: 5,
+  skippedCount: 0,
+  failedCount: 0,
+);
 
 /// Wakelock que falha ao ligar — cobre o vazamento do lock de manutenção.
 class _ThrowingWakelock implements BulkDownloadWakelock {
@@ -149,31 +192,6 @@ class _FakeWakelock implements BulkDownloadWakelock {
 
   @override
   Future<void> disable() async => disableCount++;
-}
-
-class _SuccessDownloadOfflinePackages extends DownloadOfflinePackages {
-  _SuccessDownloadOfflinePackages({
-    required PdfStoragePort store,
-    required SharedPreferences prefs,
-    required super.checkpointStore,
-  }) : super(
-         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-         zipDownloader: ZipPackageDownloader(Dio(), store),
-         extractAndStorePdfs: ExtractAndStorePdfs(
-           _StubRepo(),
-           store,
-           ZipPackageDownloader(Dio(), store),
-         ),
-         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-       );
-
-  @override
-  Future<DownloadOfflinePackagesResult> call({
-    required List<String> categories,
-    void Function(OfflineDownloadProgress progress)? onProgress,
-    CancelToken? cancelToken,
-    OfflineBulkCheckpoint? resumeCheckpoint,
-  }) async => const DownloadOfflinePackagesResult();
 }
 
 class _IdleOfflineModeNotifier extends OfflineModeNotifier {
@@ -197,67 +215,6 @@ class _TrackingOfflineModeNotifier extends OfflineModeNotifier {
   }
 }
 
-/// Usecase fake que retorna um [DownloadOfflinePackagesResult] fixo — usado
-/// para exercitar `_completeBulkDownload` com falhas parciais/totais.
-class _ResultDownloadOfflinePackages extends DownloadOfflinePackages {
-  _ResultDownloadOfflinePackages({
-    required this.result,
-    required PdfStoragePort store,
-    required SharedPreferences prefs,
-    required super.checkpointStore,
-  }) : super(
-         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-         zipDownloader: ZipPackageDownloader(Dio(), store),
-         extractAndStorePdfs: ExtractAndStorePdfs(
-           _StubRepo(),
-           store,
-           ZipPackageDownloader(Dio(), store),
-         ),
-         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-       );
-
-  final DownloadOfflinePackagesResult result;
-
-  @override
-  Future<DownloadOfflinePackagesResult> call({
-    required List<String> categories,
-    void Function(OfflineDownloadProgress progress)? onProgress,
-    CancelToken? cancelToken,
-    OfflineBulkCheckpoint? resumeCheckpoint,
-  }) async => result;
-}
-
-/// Usecase fake que só conta execuções — usado nos testes de lock (spec C.1).
-class _CountingDownloadOfflinePackages extends DownloadOfflinePackages {
-  _CountingDownloadOfflinePackages({
-    required PdfStoragePort store,
-    required SharedPreferences prefs,
-    required super.checkpointStore,
-  }) : super(
-         manifestDatasource: OfflineManifestRemoteDatasource(Dio(), prefs),
-         zipDownloader: ZipPackageDownloader(Dio(), store),
-         extractAndStorePdfs: ExtractAndStorePdfs(
-           _StubRepo(),
-           store,
-           ZipPackageDownloader(Dio(), store),
-         ),
-         reconcileOfflineIndex: ReconcileOfflineIndex(_StubRepo(), store),
-       );
-
-  int callCount = 0;
-
-  @override
-  Future<DownloadOfflinePackagesResult> call({
-    required List<String> categories,
-    void Function(OfflineDownloadProgress progress)? onProgress,
-    CancelToken? cancelToken,
-    OfflineBulkCheckpoint? resumeCheckpoint,
-  }) async {
-    callCount++;
-    return const DownloadOfflinePackagesResult();
-  }
-}
-
 class _IdleCacheStatusNotifier extends OfflineCacheStatusNotifier {
   @override
   OfflineCacheStatus build() => OfflineCacheStatus.empty;
@@ -271,38 +228,24 @@ class _IdleCacheStatusNotifier extends OfflineCacheStatusNotifier {
 
 void main() {
   late SharedPreferences prefs;
-  late PdfLocalStore store;
-  late OfflineBulkCheckpointStore checkpointStore;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    store = PdfLocalStore(
-      getApplicationDocumentsDirectory: () async =>
-          Directory.systemTemp.createTempSync('bulk_provider_test_'),
-    );
-    checkpointStore = OfflineBulkCheckpointStore(prefs);
   });
 
   ProviderContainer createContainer(
     Object error, {
     BulkDownloadWakelock? wakelock,
-    DownloadOfflinePackages? useCase,
+    DownloadMissingPdfs? useCase,
   }) {
     final fakeWakelock = wakelock ?? _FakeWakelock();
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         bulkDownloadWakelockProvider.overrideWithValue(fakeWakelock),
-        downloadOfflinePackagesProvider.overrideWith(
-          (ref) =>
-              useCase ??
-              _ThrowingDownloadOfflinePackages(
-                error: error,
-                store: pdfStoragePortFor(store),
-                prefs: prefs,
-                checkpointStore: checkpointStore,
-              ),
+        downloadMissingPdfsProvider.overrideWithValue(
+          useCase ?? _ThrowingDownloadMissingPdfs(error),
         ),
         offlineModeProvider.overrideWith(_IdleOfflineModeNotifier.new),
         offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
@@ -321,7 +264,7 @@ void main() {
   test('DioException receiveTimeout vira NetworkFailure (E8)', () {
     final failure = AppFailure.from(
       DioException(
-        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        requestOptions: RequestOptions(path: '/assets/test.pdf'),
         type: DioExceptionType.receiveTimeout,
       ),
     );
@@ -331,7 +274,7 @@ void main() {
   test('DioException connectionError vira NetworkFailure (E8)', () {
     final failure = AppFailure.from(
       DioException(
-        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        requestOptions: RequestOptions(path: '/assets/test.pdf'),
         type: DioExceptionType.connectionError,
       ),
     );
@@ -343,7 +286,7 @@ void main() {
     () async {
       final container = createContainer(
         DioException(
-          requestOptions: RequestOptions(path: '/packages/test.zip'),
+          requestOptions: RequestOptions(path: '/assets/test.pdf'),
           type: DioExceptionType.receiveTimeout,
         ),
       );
@@ -364,7 +307,7 @@ void main() {
     () async {
       final container = createContainer(
         DioException(
-          requestOptions: RequestOptions(path: '/packages/test.zip'),
+          requestOptions: RequestOptions(path: '/assets/test.pdf'),
           type: DioExceptionType.connectionError,
         ),
       );
@@ -384,7 +327,7 @@ void main() {
     final wakelock = _FakeWakelock();
     final container = createContainer(
       DioException(
-        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        requestOptions: RequestOptions(path: '/assets/test.pdf'),
         type: DioExceptionType.receiveTimeout,
       ),
       wakelock: wakelock,
@@ -404,11 +347,7 @@ void main() {
     final container = createContainer(
       StateError('unused'),
       wakelock: wakelock,
-      useCase: _SuccessDownloadOfflinePackages(
-        store: pdfStoragePortFor(store),
-        prefs: prefs,
-        checkpointStore: checkpointStore,
-      ),
+      useCase: _ResultDownloadMissingPdfs(_success),
     );
     await pumpMicrotasks();
 
@@ -451,15 +390,12 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
-        downloadOfflinePackagesProvider.overrideWith(
-          (ref) => _ThrowingDownloadOfflinePackages(
-            error: const InsufficientDiskSpaceException(
+        downloadMissingPdfsProvider.overrideWithValue(
+          _ThrowingDownloadMissingPdfs(
+            const InsufficientDiskSpaceException(
               requiredBytes: 5000,
               availableBytes: 0,
             ),
-            store: pdfStoragePortFor(store),
-            prefs: prefs,
-            checkpointStore: checkpointStore,
           ),
         ),
         offlineModeProvider.overrideWith(() => offlineMode),
@@ -487,15 +423,13 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
-        downloadOfflinePackagesProvider.overrideWith(
-          (ref) => _ResultDownloadOfflinePackages(
-            result: const DownloadOfflinePackagesResult(
-              failedPdfIds: ['pdf-a', 'pdf-b'],
-              totalPdfs: 10,
+        downloadMissingPdfsProvider.overrideWithValue(
+          _ResultDownloadMissingPdfs(
+            const DownloadMissingResult(
+              downloadedCount: 8,
+              skippedCount: 0,
+              failedCount: 2,
             ),
-            store: pdfStoragePortFor(store),
-            prefs: prefs,
-            checkpointStore: checkpointStore,
           ),
         ),
         offlineModeProvider.overrideWith(() => offlineMode),
@@ -516,44 +450,39 @@ void main() {
     expect(offlineMode.markConfiguredCallCount, 1);
   });
 
-  test(
-    'quando failedPdfIds cobre 100% do totalPdfs (nada foi gravado) não chama '
-    'markConfigured mesmo sem exceção fatal (Task 3/B4)',
-    () async {
-      final offlineMode = _TrackingOfflineModeNotifier();
-      final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
-          downloadOfflinePackagesProvider.overrideWith(
-            (ref) => _ResultDownloadOfflinePackages(
-              result: const DownloadOfflinePackagesResult(
-                failedPdfIds: ['pdf-a', 'pdf-b', 'pdf-c'],
-                totalPdfs: 3,
-              ),
-              store: pdfStoragePortFor(store),
-              prefs: prefs,
-              checkpointStore: checkpointStore,
+  test('quando todas as tentativas falham (nada foi gravado) não chama '
+      'markConfigured mesmo sem exceção fatal (Task 3/B4)', () async {
+    final offlineMode = _TrackingOfflineModeNotifier();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
+        downloadMissingPdfsProvider.overrideWithValue(
+          _ResultDownloadMissingPdfs(
+            const DownloadMissingResult(
+              downloadedCount: 0,
+              skippedCount: 0,
+              failedCount: 10,
             ),
           ),
-          offlineModeProvider.overrideWith(() => offlineMode),
-          offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
-          isarAvailableProvider.overrideWithValue(true),
-        ],
-      );
-      addTearDown(container.dispose);
-      await pumpMicrotasks();
+        ),
+        offlineModeProvider.overrideWith(() => offlineMode),
+        offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
+        isarAvailableProvider.overrideWithValue(true),
+      ],
+    );
+    addTearDown(container.dispose);
+    await pumpMicrotasks();
 
-      await container.read(offlineBulkDownloadProvider.notifier).start([
-        'Partitura',
-      ]);
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+    ]);
 
-      final state = container.read(offlineBulkDownloadProvider);
-      expect(state.status, OfflineBulkDownloadStatus.completedWithWarnings);
-      expect(state.failedCount, 3);
-      expect(offlineMode.markConfiguredCallCount, 0);
-    },
-  );
+    final state = container.read(offlineBulkDownloadProvider);
+    expect(state.status, OfflineBulkDownloadStatus.completedWithWarnings);
+    expect(state.failedCount, 10);
+    expect(offlineMode.markConfiguredCallCount, 0);
+  });
 
   test('StorageUnavailableException vira StorageFailure (E8)', () {
     expect(
@@ -565,16 +494,12 @@ void main() {
   });
 
   test('bulk com Isar indisponível falha antes de baixar', () async {
-    final useCase = _CountingDownloadOfflinePackages(
-      store: pdfStoragePortFor(store),
-      prefs: prefs,
-      checkpointStore: checkpointStore,
-    );
+    final useCase = _ResultDownloadMissingPdfs(_success);
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         bulkDownloadWakelockProvider.overrideWithValue(_FakeWakelock()),
-        downloadOfflinePackagesProvider.overrideWith((ref) => useCase),
+        downloadMissingPdfsProvider.overrideWithValue(useCase),
         offlineModeProvider.overrideWith(_IdleOfflineModeNotifier.new),
         offlineCacheStatusProvider.overrideWith(_IdleCacheStatusNotifier.new),
         isarAvailableProvider.overrideWithValue(false),
@@ -594,11 +519,7 @@ void main() {
   });
 
   test('bulk não roda com o lock de manutenção tomado', () async {
-    final useCase = _CountingDownloadOfflinePackages(
-      store: pdfStoragePortFor(store),
-      prefs: prefs,
-      checkpointStore: checkpointStore,
-    );
+    final useCase = _ResultDownloadMissingPdfs(_success);
     final container = createContainer(Object(), useCase: useCase);
     await pumpMicrotasks();
     container
@@ -617,11 +538,7 @@ void main() {
   });
 
   test('bulk libera o lock de manutenção ao concluir', () async {
-    final useCase = _CountingDownloadOfflinePackages(
-      store: pdfStoragePortFor(store),
-      prefs: prefs,
-      checkpointStore: checkpointStore,
-    );
+    final useCase = _ResultDownloadMissingPdfs(_success);
     final container = createContainer(Object(), useCase: useCase);
     await pumpMicrotasks();
 
@@ -634,11 +551,7 @@ void main() {
   });
 
   test('start libera o lock de manutenção se o wakelock falhar', () async {
-    final useCase = _CountingDownloadOfflinePackages(
-      store: pdfStoragePortFor(store),
-      prefs: prefs,
-      checkpointStore: checkpointStore,
-    );
+    final useCase = _ResultDownloadMissingPdfs(_success);
     final container = createContainer(
       Object(),
       wakelock: _ThrowingWakelock(),
@@ -658,43 +571,10 @@ void main() {
     expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
 
-  test(
-    'resumeFromCheckpoint libera o lock de manutenção se o wakelock falhar',
-    () async {
-      await checkpointStore.save(
-        OfflineBulkCheckpoint(
-          categories: const ['Partitura'],
-          categoryIndex: 0,
-          partIndex: 0,
-          extractedPdfCount: 0,
-          startedAt: DateTime.now(),
-        ),
-      );
-      final useCase = _CountingDownloadOfflinePackages(
-        store: pdfStoragePortFor(store),
-        prefs: prefs,
-        checkpointStore: checkpointStore,
-      );
-      final container = createContainer(
-        Object(),
-        wakelock: _ThrowingWakelock(),
-        useCase: useCase,
-      );
-      await pumpMicrotasks();
-
-      await container
-          .read(offlineBulkDownloadProvider.notifier)
-          .resumeFromCheckpoint();
-
-      expect(useCase.callCount, 0);
-      expect(container.read(offlineMaintenanceLockProvider), isNull);
-    },
-  );
-
   test('bulk libera o lock de manutenção ao falhar', () async {
     final container = createContainer(
       DioException(
-        requestOptions: RequestOptions(path: '/packages/test.zip'),
+        requestOptions: RequestOptions(path: '/assets/test.pdf'),
         type: DioExceptionType.connectionError,
       ),
     );
@@ -710,4 +590,66 @@ void main() {
     );
     expect(container.read(offlineMaintenanceLockProvider), isNull);
   });
+
+  test('start repassa as categorias e o cancel token ao use case', () async {
+    final useCase = _ResultDownloadMissingPdfs(_success);
+    final container = createContainer(Object(), useCase: useCase);
+
+    await container.read(offlineBulkDownloadProvider.notifier).start([
+      'Partitura',
+      'Cifra',
+    ]);
+
+    expect(useCase.lastCategories, {'Partitura', 'Cifra'});
+    expect(
+      container.read(offlineBulkDownloadProvider).status,
+      OfflineBulkDownloadStatus.completed,
+    );
+  });
+
+  test(
+    'progresso (done, total) chega ao estado com as categorias como rótulo',
+    () async {
+      final useCase = _GatedDownloadMissingPdfs();
+      final container = createContainer(Object(), useCase: useCase);
+      final notifier = container.read(offlineBulkDownloadProvider.notifier);
+
+      final running = notifier.start(['Partitura']);
+      await pumpMicrotasks();
+
+      final progress = container.read(offlineBulkDownloadProvider).progress;
+      expect(progress, isNotNull);
+      expect(progress!.donePdfs, 3);
+      expect(progress.totalPdfs, 10);
+      expect(progress.currentCategory, 'Partitura');
+
+      useCase.gate.complete();
+      await running;
+    },
+  );
+
+  test(
+    'cancel cancela o token e termina em cancelled sem checkpoint',
+    () async {
+      final useCase = _GatedDownloadMissingPdfs();
+      final container = createContainer(Object(), useCase: useCase);
+      final notifier = container.read(offlineBulkDownloadProvider.notifier);
+
+      final running = notifier.start(['Partitura']);
+      await pumpMicrotasks();
+      notifier.cancel();
+      expect(
+        container.read(offlineBulkDownloadProvider).status,
+        OfflineBulkDownloadStatus.cancelling,
+      );
+      expect(useCase.token!.isCancelled, isTrue);
+
+      useCase.gate.complete();
+      await running;
+
+      final state = container.read(offlineBulkDownloadProvider);
+      expect(state.status, OfflineBulkDownloadStatus.cancelled);
+      expect(state.progress, isNull);
+    },
+  );
 }

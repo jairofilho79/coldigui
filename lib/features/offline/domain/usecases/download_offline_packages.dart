@@ -8,7 +8,6 @@ import '../../data/datasources/offline_bulk_checkpoint_store.dart';
 import '../../data/datasources/offline_manifest_remote_datasource.dart';
 import '../../data/datasources/zip_package_downloader.dart';
 import '../entities/offline_bulk_checkpoint.dart';
-import '../entities/offline_download_progress.dart';
 import '../entities/offline_manifest.dart';
 import '../entities/offline_pdf_batch_item.dart';
 import '../exceptions/offline_bulk_exceptions.dart';
@@ -56,7 +55,7 @@ class DownloadOfflinePackages {
 
   Future<DownloadOfflinePackagesResult> call({
     required List<String> categories,
-    void Function(OfflineDownloadProgress progress)? onProgress,
+    void Function(ZipDownloadProgress progress)? onProgress,
     CancelToken? cancelToken,
     OfflineBulkCheckpoint? resumeCheckpoint,
   }) async {
@@ -121,7 +120,7 @@ class DownloadOfflinePackages {
         if (!kIsWeb) {
           onProgress?.call(
             _buildProgress(
-              phase: OfflineDownloadPhase.fetching,
+              phase: ZipDownloadPhase.fetching,
               materialCategory: materialCategory,
               catIdx: catIdx,
               categoriesLength: categories.length,
@@ -144,7 +143,7 @@ class DownloadOfflinePackages {
               : (received, total) {
                   onProgress?.call(
                     _buildProgress(
-                      phase: OfflineDownloadPhase.fetching,
+                      phase: ZipDownloadPhase.fetching,
                       materialCategory: materialCategory,
                       catIdx: catIdx,
                       categoriesLength: categories.length,
@@ -164,7 +163,7 @@ class DownloadOfflinePackages {
         if (!kIsWeb) {
           onProgress?.call(
             _buildProgress(
-              phase: OfflineDownloadPhase.extracting,
+              phase: ZipDownloadPhase.extracting,
               materialCategory: materialCategory,
               catIdx: catIdx,
               categoriesLength: categories.length,
@@ -185,7 +184,7 @@ class DownloadOfflinePackages {
           onExtractProgress: (extracted, total) {
             onProgress?.call(
               _buildProgress(
-                phase: OfflineDownloadPhase.extracting,
+                phase: ZipDownloadPhase.extracting,
                 materialCategory: materialCategory,
                 catIdx: catIdx,
                 categoriesLength: categories.length,
@@ -199,7 +198,7 @@ class DownloadOfflinePackages {
           onProgress: (done, total) {
             onProgress?.call(
               _buildProgress(
-                phase: OfflineDownloadPhase.storing,
+                phase: ZipDownloadPhase.storing,
                 materialCategory: materialCategory,
                 catIdx: catIdx,
                 categoriesLength: categories.length,
@@ -303,7 +302,7 @@ class DownloadOfflinePackages {
 
       onProgress?.call(
         _buildProgress(
-          phase: OfflineDownloadPhase.syncing,
+          phase: ZipDownloadPhase.syncing,
           materialCategory: lastCategory,
           catIdx: checkpoint.categories.length - 1,
           categoriesLength: categories.length,
@@ -461,8 +460,8 @@ class DownloadOfflinePackages {
     }
   }
 
-  OfflineDownloadProgress _buildProgress({
-    required OfflineDownloadPhase phase,
+  ZipDownloadProgress _buildProgress({
+    required ZipDownloadPhase phase,
     required String materialCategory,
     required int catIdx,
     required int categoriesLength,
@@ -474,10 +473,10 @@ class DownloadOfflinePackages {
     int? zipBytesTotal,
   }) {
     if (kIsWeb) {
-      final webPhase = phase == OfflineDownloadPhase.syncing
-          ? OfflineDownloadPhase.syncing
-          : OfflineDownloadPhase.fetching;
-      return OfflineDownloadProgress(
+      final webPhase = phase == ZipDownloadPhase.syncing
+          ? ZipDownloadPhase.syncing
+          : ZipDownloadPhase.fetching;
+      return ZipDownloadProgress(
         phase: webPhase,
         currentCategory: materialCategory,
         categoryIndex: catIdx,
@@ -489,7 +488,7 @@ class DownloadOfflinePackages {
       );
     }
 
-    return OfflineDownloadProgress(
+    return ZipDownloadProgress(
       phase: phase,
       currentCategory: materialCategory,
       categoryIndex: catIdx,
@@ -502,4 +501,37 @@ class DownloadOfflinePackages {
       zipBytesTotal: zipBytesTotal,
     );
   }
+}
+
+/// Fases do pipeline ZIP legado (fetching → extracting → storing → syncing).
+///
+/// Só existe para o [DownloadOfflinePackages] compilar até ser apagado
+/// (Task 13); a UI já usa `OfflineDownloadProgress` (PDF a PDF).
+enum ZipDownloadPhase { fetching, extracting, storing, syncing }
+
+/// Progresso reportado pelo pipeline ZIP legado — ver [ZipDownloadPhase].
+class ZipDownloadProgress {
+  const ZipDownloadProgress({
+    required this.phase,
+    required this.currentCategory,
+    required this.categoryIndex,
+    required this.totalCategories,
+    required this.currentPart,
+    required this.totalParts,
+    required this.donePdfs,
+    required this.totalPdfs,
+    this.zipBytesReceived,
+    this.zipBytesTotal,
+  });
+
+  final ZipDownloadPhase phase;
+  final String currentCategory;
+  final int categoryIndex;
+  final int totalCategories;
+  final int currentPart;
+  final int totalParts;
+  final int donePdfs;
+  final int totalPdfs;
+  final int? zipBytesReceived;
+  final int? zipBytesTotal;
 }

@@ -130,9 +130,6 @@
   "offlineStopDownload": "Stop",
   "offlineStoppingDownload": "Stopping...",
   "offlineCancelDownload": "Cancel",
-  "offlineResumeBanner": "An offline download was interrupted.",
-  "offlineResumeDownload": "Resume",
-  "offlineDismissCheckpoint": "Dismiss",
   "offlineDownloadCompleted": "Offline download completed",
   "offlineDownloadCompletedWithFailures": "{failedCount, plural, one{Download completed with 1 failed file} other{Download completed with {failedCount} failed files}}",
   "@offlineDownloadCompletedWithFailures": {
@@ -145,36 +142,13 @@
   "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
   "offlineMaintenanceBusy": "Another offline operation is running. Try again shortly.",
   "offlinePhaseFetching": "downloading",
-  "offlinePhaseExtracting": "extracting",
-  "offlinePhaseStoring": "storing",
-  "offlinePhaseSyncing": "syncing",
-  "offlineProgressDetail": "{category} — part {part}/{totalParts} — {done}/{total} PDFs ({phase})",
+  "offlineProgressDetail": "{category} — {done}/{total} PDFs ({phase})",
   "@offlineProgressDetail": {
     "placeholders": {
       "category": { "type": "String" },
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
       "done": { "type": "int" },
       "total": { "type": "int" },
       "phase": { "type": "String" }
-    }
-  },
-  "offlineProgressDetailWeb": "{category} — {done}/{total} PDFs ({phase})",
-  "@offlineProgressDetailWeb": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "done": { "type": "int" },
-      "total": { "type": "int" },
-      "phase": { "type": "String" }
-    }
-  },
-  "offlineFetchProgress": "Downloading package {part}/{totalParts} — {received} / {total}",
-  "@offlineFetchProgress": {
-    "placeholders": {
-      "part": { "type": "int" },
-      "totalParts": { "type": "int" },
-      "received": { "type": "String" },
-      "total": { "type": "String" }
     }
   },
   "offlineStatsTitle": "Stored PDFs",

@@ -488,24 +488,6 @@ abstract class AppLocalizations {
   /// **'Cancelar'**
   String get offlineCancelDownload;
 
-  /// No description provided for @offlineResumeBanner.
-  ///
-  /// In pt, this message translates to:
-  /// **'Há um download offline interrompido.'**
-  String get offlineResumeBanner;
-
-  /// No description provided for @offlineResumeDownload.
-  ///
-  /// In pt, this message translates to:
-  /// **'Retomar'**
-  String get offlineResumeDownload;
-
-  /// No description provided for @offlineDismissCheckpoint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Descartar'**
-  String get offlineDismissCheckpoint;
-
   /// No description provided for @offlineDownloadCompleted.
   ///
   /// In pt, this message translates to:
@@ -548,57 +530,15 @@ abstract class AppLocalizations {
   /// **'baixando'**
   String get offlinePhaseFetching;
 
-  /// No description provided for @offlinePhaseExtracting.
-  ///
-  /// In pt, this message translates to:
-  /// **'extraindo'**
-  String get offlinePhaseExtracting;
-
-  /// No description provided for @offlinePhaseStoring.
-  ///
-  /// In pt, this message translates to:
-  /// **'armazenando'**
-  String get offlinePhaseStoring;
-
-  /// No description provided for @offlinePhaseSyncing.
-  ///
-  /// In pt, this message translates to:
-  /// **'sincronizando'**
-  String get offlinePhaseSyncing;
-
   /// No description provided for @offlineProgressDetail.
   ///
   /// In pt, this message translates to:
-  /// **'{category} — parte {part}/{totalParts} — {done}/{total} PDFs ({phase})'**
+  /// **'{category} — {done}/{total} PDFs ({phase})'**
   String offlineProgressDetail(
     String category,
-    int part,
-    int totalParts,
     int done,
     int total,
     String phase,
-  );
-
-  /// No description provided for @offlineProgressDetailWeb.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category} — {done}/{total} PDFs ({phase})'**
-  String offlineProgressDetailWeb(
-    String category,
-    int done,
-    int total,
-    String phase,
-  );
-
-  /// No description provided for @offlineFetchProgress.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixando pacote {part}/{totalParts} — {received} / {total}'**
-  String offlineFetchProgress(
-    int part,
-    int totalParts,
-    String received,
-    String total,
   );
 
   /// No description provided for @offlineStatsTitle.

@@ -7,7 +7,6 @@ import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart'
 import 'package:coldigui/features/offline/data/datasources/zip_package_downloader.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_bulk_checkpoint.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_manifest.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_offline_packages.dart';
@@ -825,11 +824,11 @@ void main() {
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
-    final fetchProgress = <OfflineDownloadProgress>[];
+    final fetchProgress = <ZipDownloadProgress>[];
     await useCase.call(
       categories: const ['Partitura'],
       onProgress: (progress) {
-        if (progress.phase == OfflineDownloadPhase.fetching &&
+        if (progress.phase == ZipDownloadPhase.fetching &&
             progress.zipBytesReceived != null) {
           fetchProgress.add(progress);
         }
@@ -907,7 +906,7 @@ void main() {
     await useCase.call(
       categories: const ['Partitura'],
       onProgress: (progress) {
-        if (progress.phase == OfflineDownloadPhase.extracting) {
+        if (progress.phase == ZipDownloadPhase.extracting) {
           extractingDonePdfs.add(progress.donePdfs);
         }
       },
@@ -978,11 +977,11 @@ void main() {
       checkpointStore: OfflineBulkCheckpointStore(prefs),
     );
 
-    final syncingPhases = <OfflineDownloadPhase>[];
+    final syncingPhases = <ZipDownloadPhase>[];
     await dualUseCase.call(
       categories: const ['Partitura', 'Cifra'],
       onProgress: (progress) {
-        if (progress.phase == OfflineDownloadPhase.syncing) {
+        if (progress.phase == ZipDownloadPhase.syncing) {
           syncingPhases.add(progress.phase);
         }
       },

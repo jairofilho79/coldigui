@@ -231,15 +231,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlineCancelDownload => 'Cancel';
 
   @override
-  String get offlineResumeBanner => 'An offline download was interrupted.';
-
-  @override
-  String get offlineResumeDownload => 'Resume';
-
-  @override
-  String get offlineDismissCheckpoint => 'Dismiss';
-
-  @override
   String get offlineDownloadCompleted => 'Offline download completed';
 
   @override
@@ -273,44 +264,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offlinePhaseFetching => 'downloading';
 
   @override
-  String get offlinePhaseExtracting => 'extracting';
-
-  @override
-  String get offlinePhaseStoring => 'storing';
-
-  @override
-  String get offlinePhaseSyncing => 'syncing';
-
-  @override
   String offlineProgressDetail(
-    String category,
-    int part,
-    int totalParts,
-    int done,
-    int total,
-    String phase,
-  ) {
-    return '$category — part $part/$totalParts — $done/$total PDFs ($phase)';
-  }
-
-  @override
-  String offlineProgressDetailWeb(
     String category,
     int done,
     int total,
     String phase,
   ) {
     return '$category — $done/$total PDFs ($phase)';
-  }
-
-  @override
-  String offlineFetchProgress(
-    int part,
-    int totalParts,
-    String received,
-    String total,
-  ) {
-    return 'Downloading package $part/$totalParts — $received / $total';
   }
 
   @override
