@@ -10,6 +10,7 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -43,19 +44,24 @@ class _StubFetchAndStorePdf extends FetchAndStorePdf {
       );
 }
 
-/// Resolver fixo — sempre retorna [_source], sem tocar rede/Isar.
+/// Resolver fixo — sempre retorna [_source], sem tocar rede/Isar. Guarda os
+/// `pdfId` recebidos para o teste conferir a chave de armazenamento.
 class _FixedResolvePdfForReader extends ResolvePdfForReader {
   _FixedResolvePdfForReader(this._source)
     : super(_StubOfflinePdfRepository(), _StubFetchAndStorePdf());
 
   final LocalPdfSource _source;
+  final resolvedPdfIds = <String>[];
 
   @override
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,
     ProgressCallback? onProgress,
-  }) async => _source;
+  }) async {
+    resolvedPdfIds.add(pdfId);
+    return _source;
+  }
 }
 
 void main() {
@@ -162,6 +168,60 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(logs.any((l) => l.contains('[coldigom] warmup falhou')), isTrue);
     });
+  });
+
+  group('navigateToPdfId — id Coldigom de material coberto pelo manifest', () {
+    // Manifest servido pelo coldigom: `pdf` é a URL absoluta em
+    // `/assets/praises/…`, e o alias X → L nasce dela.
+    const r2Key = 'assets/praises/p9/m9.pdf';
+    final legacyPdfId = encodePdfId('assets/ColAdultos/692.pdf');
+    final coldigomPdfId = encodePdfId(r2Key);
+    final covered = Louvor.fromManifest(
+      nome: 'Comigo habita',
+      numero: '692',
+      categoria: 'Partitura',
+      classificacao: 'Balada',
+      pdf: 'https://coldigom.example/$r2Key',
+      pdfId: legacyPdfId,
+      praiseId: 'p9',
+      materialId: 'm9',
+    );
+
+    test(
+      'com cache Coldigom frio a rota leva o id pedido, não o legado',
+      () async {
+        final resolver = _FixedResolvePdfForReader(source);
+        final container = ProviderContainer(
+          overrides: [
+            louvoresManifestOverride(LouvoresManifest.fromLouvores([covered])),
+            ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
+              (Louvor _) async {},
+            ),
+            resolvePdfForReaderProvider.overrideWithValue(resolver),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(louvoresManifestProvider.future);
+        expect(container.read(coldigomLouvoresCacheProvider), isEmpty);
+
+        final location = await container
+            .read(readerCarouselActionsProvider.notifier)
+            .navigateToPdfId(targetPdfId: coldigomPdfId);
+
+        expect(location, isNotNull);
+        final query = Uri.parse(location!).queryParameters;
+        expect(
+          query['pdfId'],
+          coldigomPdfId,
+          reason:
+              'o carrossel e a Lista ao Vivo procuram o id da entrada; o id '
+              'legado do alias só serve para achar o louvor',
+        );
+        // A chave de armazenamento continua a do louvor resolvido (índice
+        // offline partilhado com o download em massa do manifest).
+        expect(resolver.resolvedPdfIds, [legacyPdfId]);
+      },
+    );
   });
 
   group('navigateToKey — foca a ocorrência e resolve a rota', () {

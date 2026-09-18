@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../offline/data/providers/offline_providers.dart';
 import '../../data/datasources/connectivity_network_connection_checker.dart';
 import '../../data/policies/wifi_only_prefetch_network_policy.dart';
@@ -33,7 +32,8 @@ final prefetchAdjacentCarouselPdfsProvider =
       );
     });
 
-/// Catálogo atual para lookup de vizinhos no prefetch.
-final prefetchLouvorCatalogProvider = Provider<List<Louvor>?>((ref) {
-  return ref.watch(louvoresManifestProvider).value?.louvores;
+/// Resolve o louvor de um vizinho no prefetch — manifest, cache Coldigom e
+/// alias legado, pelo mesmo lookup que o leitor usa (não só o manifest).
+final prefetchLouvorResolverProvider = Provider<PrefetchLouvorResolver>((ref) {
+  return ref.watch(catalogMaterialLookupProvider).louvor;
 });

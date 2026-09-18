@@ -220,6 +220,28 @@ class _LouvorFindingPlaylistsNotifier extends FakePlaylistsNotifier {
   }
 }
 
+/// Simula o alias do lookup com cache Coldigom frio: a entrada guarda o id
+/// Coldigom, mas o louvor resolvido é o do manifest (`pdfId` legado ≠ pedido).
+class _AliasedLouvorPlaylistsNotifier extends FakePlaylistsNotifier {
+  _AliasedLouvorPlaylistsNotifier(super.initial, {required this.legacyPdfId});
+
+  final String legacyPdfId;
+
+  @override
+  Louvor? findLouvorByPdfId(String pdfId) {
+    return Louvor.fromManifest(
+      nome: 'Louvor $pdfId',
+      numero: '002',
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+      pdf: 'https://coldigom.example/assets/praises/p9/m9.pdf',
+      pdfId: legacyPdfId,
+      praiseId: 'p9',
+      materialId: 'm9',
+    );
+  }
+}
+
 class _FakeChordCacheNotifier extends ColdigomChordMaterialsCacheNotifier {
   _FakeChordCacheNotifier(this.initial);
 
@@ -759,6 +781,67 @@ void main() {
     expect(editor.activated, ['p1']);
     expect(find.text(pdfIdB), findsOneWidget);
   });
+
+  testWidgets(
+    'entrada com id Coldigom e louvor via alias mantém o id pedido na rota',
+    (tester) async {
+      // Boot frio: o alias devolve o louvor do manifest (id legado). A rota
+      // precisa levar o id da entrada, senão o carrossel não acha o chip e a
+      // Lista ao Vivo segue um id que a lista não tem.
+      final legacyPdfId = _pdfId('ColAdultos/692.pdf');
+      final notifier = _AliasedLouvorPlaylistsNotifier(
+        [item],
+        legacyPdfId: legacyPdfId,
+      );
+      final editor = _RecordingActiveEditor();
+      final router = GoRouter(
+        initialLocation: RoutePaths.playlists,
+        routes: [
+          GoRoute(
+            path: RoutePaths.playlists,
+            builder: (_, _) => Scaffold(
+              body: PlaylistListTile(item: item, tab: PlaylistTab.saved),
+            ),
+          ),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, state) => Scaffold(
+              body: Text('leitor:${state.uri.queryParameters['pdfId']}'),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            playlistsProvider.overrideWith(() => notifier),
+            activePlaylistEditorProvider.overrideWith(() => editor),
+            resolvePdfForReaderProvider.overrideWithValue(
+              _FakeResolvePdfForReader(),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ensaio domingo'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('002'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('leitor:$pdfIdB'), findsOneWidget);
+      expect(find.text('leitor:$legacyPdfId'), findsNothing);
+    },
+  );
 
   // Fix round 1 (revisão Task 4, Importante 1): o caminho de áudio (chip e
   // menu «Abrir no reprodutor» chamam o mesmo `openAudioTrack`) não tinha o

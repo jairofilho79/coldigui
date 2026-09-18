@@ -1,9 +1,11 @@
 import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import '../../../offline/domain/usecases/resolve_pdf_for_reader.dart';
 import '../../../pdf_opening/domain/usecases/validate_pdf_availability.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../ports/prefetch_network_policy.dart';
+
+/// Resolve o [Louvor] de um `pdfId` (manifest, cache Coldigom ou alias).
+typedef PrefetchLouvorResolver = Louvor? Function(String pdfId);
 
 /// Prefetch fire-and-forget dos PDFs adjacentes no carousel in-reader (#8).
 class PrefetchAdjacentCarouselPdfs {
@@ -21,8 +23,12 @@ class PrefetchAdjacentCarouselPdfs {
   ///
   /// Os vizinhos chegam como **materialId** (o id de uma entrada da lista
   /// ativa): quem chama já resolveu qual ocorrência é a corrente.
+  ///
+  /// [resolveLouvor] responde pelo id — em produção é o lookup com alias
+  /// (`CatalogMaterialLookup.louvor`), para uma entrada com id Coldigom de
+  /// material coberto pelo manifest também ganhar prefetch com cache frio.
   Future<void> call({
-    required List<Louvor>? catalog,
+    required PrefetchLouvorResolver resolveLouvor,
     required String? previousMaterialId,
     required String? nextMaterialId,
   }) async {
@@ -32,7 +38,7 @@ class PrefetchAdjacentCarouselPdfs {
       if (pdfId == null) continue;
       if (await _validateAvailability.isCachedOnDisk(pdfId: pdfId)) continue;
 
-      final louvor = findLouvorByPdfId(catalog, pdfId);
+      final louvor = resolveLouvor(pdfId);
       if (louvor == null) continue;
 
       await _prefetchLouvor(louvor);

@@ -47,14 +47,14 @@ final readerAdjacentPdfPrefetchProvider = Provider.autoDispose
         final position = ref.read(readerCarouselPositionProvider(params.pdfId));
         if (position == null) return;
 
-        final catalog = ref.read(prefetchLouvorCatalogProvider);
+        final resolveLouvor = ref.read(prefetchLouvorResolverProvider);
         final prefetch = ref.read(prefetchAdjacentCarouselPdfsProvider);
 
         await Future<void>.delayed(Duration.zero);
         if (generation != prefetchGeneration) return;
 
         await prefetch.call(
-          catalog: catalog,
+          resolveLouvor: resolveLouvor,
           previousMaterialId: _pdfIdOrNull(position.previousMaterialId),
           nextMaterialId: _pdfIdOrNull(position.nextMaterialId),
         );

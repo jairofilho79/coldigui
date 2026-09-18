@@ -63,6 +63,12 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
       louvor,
     );
 
+    // `louvor.pdfId` é a chave de armazenamento (índice offline). A **rota**
+    // leva o id pedido: com cache Coldigom frio, o alias devolve o louvor do
+    // manifest (id legado L ≠ X) e, se L fosse para a rota, o carrossel não
+    // acharia o chip da entrada X e a Lista ao Vivo seguiria um id que a lista
+    // não tem. Depois do warmup o mesmo toque passaria X — ids trocando dentro
+    // da sessão. O leitor resolve o id da rota pelo mesmo lookup com alias.
     final remotePath = LouvorPdfPath.fromLouvor(louvor);
     final source = await ref.read(resolvePdfForReaderProvider)(
       pdfId: louvor.pdfId,
@@ -73,7 +79,7 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
         .read(openPdfInReaderProvider)
         .call(
           pdfPath: source.absolutePath,
-          pdfId: louvor.pdfId,
+          pdfId: targetPdfId,
           titulo: louvor.nome,
         );
   }
