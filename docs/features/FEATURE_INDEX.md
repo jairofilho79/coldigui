@@ -867,8 +867,7 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `DownloadOfflinePackages` | `lib/features/offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | UC-09 — fila por categoria; checkpoint SharedPreferences; cancel Dio; ENOSPC → `InsufficientDiskSpaceException` |
-| `ExtractAndStorePdfs` | `lib/features/offline/domain/usecases/extract_and_store_pdfs.dart` | **Implementado 3.5 + testes** | UC-09 — `compute(extractZipPdfs)`; chunks 75 Isar; skip cache hit; remove ZIP após extração |
+| `DownloadOfflinePackages` / `ExtractAndStorePdfs` | — | **Removidos set/2026** | Pipeline ZIP bulk por categoria (fila + extração `compute(extractZipPdfs)`) apagado; primeira configuração agora é PDF a PDF via [DownloadMissingPdfs] com `CancelToken`; ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `ReconcileOfflineIndex` | `lib/features/offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.6 + testes + benchmark** | Global isolate/chunked `< 20s/5000`; escopo pós-bulk preservado |
 | `OfflineMaterialResolver` | `lib/features/offline/domain/utils/offline_material_resolver.dart` | **Implementado jun/2026** | UC-10 — `toUiMaterial(categoria)` → chip UI (`Partitura`, `Cifra`, `Gestos em Gravura`); expande Cifra nível I/II |
 | `GetOfflineStatsByCategory` | `lib/features/offline/domain/usecases/get_offline_stats_by_category.dart` | **Implementado 3.6 + jun/2026** | UC-10 — baixados por material (índice + [CatalogLocalDatasource]); faltantes via manifest remoto → [OfflineStats] |
@@ -894,13 +893,9 @@ Arquitetura replanejada no [MVP Roadmap § Fase 3](../MVP%20Roadmap.md): store n
 | `validatePdfAvailabilityProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.4** | DI [ValidatePdfAvailability] — provider em offline para evitar ciclo DI |
 | `offlineCacheStatusProvider` | `lib/features/offline/presentation/providers/offline_cache_status_provider.dart` | **Implementado 3.7 + jun/2026** | [OfflineCacheStatus]; `refresh` / `refreshAll`; stats por material + faltantes; UI disco: apenas bytes usados |
 | `offlineMissingDownloadProvider` | `lib/features/offline/presentation/providers/offline_missing_download_provider.dart` | **Implementado 3.7 + jun/2026** | Notifier [DownloadMissingPdfs]; progresso sobre faltantes |
-| `offlineManifestRemoteDatasourceProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI manifest `/offline-manifest.json` |
-| `zipPackageDownloaderProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI ZIP transitório `_bulk_zips/` |
-| `offlineBulkCheckpointStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI checkpoint JSON [StorageKeys.offlineBulkCheckpoint] |
+| `offlineManifestRemoteDatasourceProvider` / `zipPackageDownloaderProvider` / `offlineBulkCheckpointStoreProvider` / `extractAndStorePdfsProvider` / `downloadOfflinePackagesProvider` | — | **Removidos set/2026** | DI do pipeline ZIP bulk (manifest `/offline-manifest.json`, download ZIP, checkpoint, extração, orquestrador) — apagados junto com o pipeline; ver [DownloadMissingPdfs] e spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `offlineAvailableStoreProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado jun/2026** | DI [OfflineAvailableStore] via [sharedPreferencesProvider] |
-| `extractAndStorePdfsProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI [ExtractAndStorePdfs] |
 | `reconcileOfflineIndexProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5 + 3.6** | DI [ReconcileOfflineIndex] — escopo pós-bulk ou global (isolate/chunked) |
-| `downloadOfflinePackagesProvider` | `lib/features/offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI orquestrador bulk UC-09 |
 | `offlineBulkDownloadProvider` | `lib/features/offline/presentation/providers/offline_bulk_download_provider.dart` | **Implementado 3.5 + 3.7 + jun/2026** | Notifier progresso/cancel/resume; ao concluir → [offlineModeProvider.markConfigured] + refresh [offlineCacheStatusProvider] |
 | `offlineModeProvider` | `lib/features/offline/presentation/providers/offline_mode_provider.dart` | **Implementado jun/2026** | `bool` — gate UI UC-09 vs UC-10; migração automática se `validCount ≥ 200` e flag ausente; bloqueia re-inferência quando `FALSE` |
 | `offlineReconcileProvider` | `lib/features/offline/presentation/providers/offline_reconcile_provider.dart` | **Implementado 3.6** | [MigrateOfflineStorage] → [ReconcileOfflineIndex]; debounce foreground; [OfflineSettingsScreen] init |
@@ -996,8 +991,7 @@ ResolvePdfForReader (3.2) ✅
 
 | Assinatura | Comportamento |
 |------------|---------------|
-| `DownloadOfflinePackages.call({categories, onProgress, cancelToken})` | Fila por categoria; checkpoint [StorageKeys.offlineBulkCheckpoint]; cancel via Dio; ENOSPC → `InsufficientDiskSpaceException` |
-| `ExtractAndStorePdfs.call({zipPath, materialCategory, resumeCheckpoint?, onProgress})` | `compute(extractZipPdfs)`; chunks [OfflineConfig.bulkIsarChunkSize] Isar; skip cache hit; remove ZIP após extração |
+| ~~`DownloadOfflinePackages.call(...)` / `ExtractAndStorePdfs.call(...)`~~ | **Removidos set/2026** — pipeline ZIP bulk por categoria (fila + extração) apagado; primeira configuração agora é PDF a PDF via [DownloadMissingPdfs] com `CancelToken`; ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6 |
 | `ReconcileOfflineIndex.call({materialPackage?, materialCategory?})` | Escopo pós-categoria quando params presentes; global quando omitidos |
 | `offlineBulkDownloadProvider` | Notifier: start/cancel/resume; progresso [OfflineDownloadProgress]; ao concluir → [offlineModeProvider.markConfigured] (`OFFLINE_AVAILABLE=TRUE`); snackbars via [OfflineSettingsScreen] |
 
@@ -1075,12 +1069,14 @@ Share/Save (cache hit):
 
 **Checkpoint mínimo (3.4):** 1º tap baixa e persiste; 2º tap `openFile`; share WhatsApp sem reler bytes; cold start sem scan PDF.
 
-### Fluxo implementado Fase 3.5 — prefetch bulk (UC-09)
+### Fluxo Fase 3.5 — prefetch bulk ZIP (UC-09) — **removido set/2026**
+
+**Removido set/2026** — todo este pipeline ZIP (`DownloadOfflinePackages`, `offline-manifest.json`, `ExtractAndStorePdfs`) foi apagado; a primeira configuração offline (UC-09) passou a ser PDF a PDF via [DownloadMissingPdfs] com `CancelToken`, sem ZIP/checkpoint (ver spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) §6). Diagrama abaixo preservado como registro histórico do fluxo antigo:
 
 ```text
-OfflineSettingsScreen → DownloadOfflinePackages(categories)
-  → offline-manifest.json → ZIP por categoria (fila background / isolate)
-  → ExtractAndStorePdfs(zipPath, resumeCheckpoint?)
+OfflineSettingsScreen → DownloadOfflinePackages(categories)  [removido]
+  → offline-manifest.json → ZIP por categoria (fila background / isolate)  [removido]
+  → ExtractAndStorePdfs(zipPath, resumeCheckpoint?)  [removido]
       → descompacta → PdfLocalStore.writeAtomic (chunks 50–100)
       → OfflinePdfRepository.upsert (txn Isar por chunk)
   → ReconcileOfflineIndex() — fim de cada categoria
@@ -2018,7 +2014,7 @@ Modal — tap outro louvor (leitor)
 | `OfflinePdfLocalDatasource` | `offline/data/datasources/offline_pdf_local_datasource.dart` | **Implementado 3.1** | `findByPdfId`, `put`, `deleteByPdfId`, `countByCategory`, `findAll` |
 | `OfflinePdfRepositoryImpl` | `offline/data/repositories/offline_pdf_repository_impl.dart` | **Implementado + testes** | Implementação de [OfflinePdfRepository]; `clearAll`, `removeIndexEntries`, `listAll` |
 | `FetchAndStorePdf` | `offline/domain/usecases/fetch_and_store_pdf.dart` | **Implementado 3.3 + testes** | `call({pdfId, remotePath, category?})` — fetch + upsert; retry [OfflineConfig.maxRetryAttempts] |
-| `DownloadOfflinePackages` | `offline/domain/usecases/download_offline_packages.dart` | **Implementado 3.5 + testes** | Orquestrador bulk UC-09 |
+| `DownloadOfflinePackages` | `offline/domain/usecases/download_offline_packages.dart` | **Removido set/2026** | Orquestrador bulk ZIP UC-09 — substituído por [DownloadMissingPdfs] PDF a PDF |
 | `ReconcileOfflineIndex` | `offline/domain/usecases/reconcile_offline_index.dart` | **Implementado 3.5 + 3.6 + benchmark** | Reconcile escopado ou global |
 | `GetOfflineStatsByCategory` | `offline/domain/usecases/get_offline_stats_by_category.dart` | **Implementado 3.6 + jun/2026** | Stats material UI + faltantes manifest |
 | `DownloadMissingPdfs` | `offline/domain/usecases/download_missing_pdfs.dart` | **Implementado 3.6 + jun/2026** | Pré-filtra faltantes; fetch só misses |
@@ -2035,7 +2031,7 @@ Modal — tap outro louvor (leitor)
 | `resolvePdfForReaderProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.2 + 3.4** | `Provider<ResolvePdfForReader>` — consumido por [LouvorCard] |
 | `validatePdfAvailabilityProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.4** | `Provider<ValidatePdfAvailability>` — DI em offline (evita ciclo com pdf_opening) |
 | `reconcileOfflineIndexProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.5 + 3.6** | DI [ReconcileOfflineIndex] |
-| `downloadOfflinePackagesProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.5** | DI bulk UC-09 |
+| `downloadOfflinePackagesProvider` | `offline/data/providers/offline_providers.dart` | **Removido set/2026** | DI do orquestrador bulk ZIP — apagado com o pipeline |
 | `getOfflineStatsByCategoryProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6 + jun/2026** | DI + catalog + manifest |
 | `downloadMissingPdfsProvider` | `offline/data/providers/offline_providers.dart` | **Implementado 3.6** | DI [DownloadMissingPdfs] |
 | `offlineAvailableStoreProvider` | `offline/data/providers/offline_providers.dart` | **Implementado jun/2026** | DI [OfflineAvailableStore] |
@@ -2738,9 +2734,7 @@ LouvorGroupCard menu ⋮ → Compartilhar (shareLoading — só 1 material)
 | `test/unit/features/offline/download_missing_pdfs_test.dart` | Skip cached; fetch missing | **Implementado 3.6** |
 | `test/unit/features/offline/clear_offline_cache_test.dart` | Índice + tree + checkpoint | **Implementado 3.6** |
 | `test/unit/features/offline/migrate_offline_storage_test.dart` | v0→v1 | **Implementado 3.6** |
-| `test/unit/features/offline/extract_and_store_pdfs_test.dart` | ZIP fixture; skip cache hit | **Implementado 3.5** |
-| `test/unit/features/offline/download_offline_packages_test.dart` | Espaço insuficiente; sucesso; resume; cancel | **Implementado 3.5** |
-| `test/unit/features/offline/offline_bulk_checkpoint_store_test.dart` | Round-trip JSON checkpoint | **Implementado 3.5** |
+| ~~`test/unit/features/offline/extract_and_store_pdfs_test.dart`~~ / ~~`download_offline_packages_test.dart`~~ / ~~`offline_bulk_checkpoint_store_test.dart`~~ | Cobriam o pipeline ZIP bulk (fixture ZIP, espaço insuficiente, resume/cancel, checkpoint JSON) | **Removidos set/2026** — apagados com o pipeline ZIP; ver `test/unit/features/offline/download_missing_pdfs_test.dart` (`CancelToken`) |
 | `test/unit/features/offline/download_missing_pdfs_test.dart` | Skip hit; progresso total=faltantes; sem refetch | **Implementado 3.6 + jun/2026** |
 | `test/unit/features/offline/get_offline_stats_by_category_test.dart` | Agregação material UI + missing manifest | **Implementado jun/2026** |
 | `test/unit/features/offline/offline_material_resolver_test.dart` | toUiMaterial cifra/partitura | **Implementado jun/2026** |

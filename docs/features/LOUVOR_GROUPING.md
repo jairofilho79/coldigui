@@ -255,7 +255,7 @@ Categorias no manifest: Partitura, Cifra nível I/II, Cifra, Gestos em Gravura.
 4. ~~**Worker D1 local:** `workers/plpcg-catalog/` + `seed_d1_louvores.py`~~ ✅
 5. **Deploy remoto:** migrar + seed + deploy D1 em produção (`wrangler`).
 6. **Curadoria:** revisar `tmp/grouping-revisao.csv` antes do próximo seed.
-7. **PWA web:** migrar de `/louvores-manifest.json` para `/api/catalog/*` (opcional).
+7. ~~**PWA web:** migrar de `/louvores-manifest.json` para `/api/catalog/*` (opcional).~~ Obsoleto (set/2026) — o app agora lê `/api/plpcg/manifest` do `coldigom-api`; `/api/catalog/*` deixou de ser usado.
 
 ---
 
