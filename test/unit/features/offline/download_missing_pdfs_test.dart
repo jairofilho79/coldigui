@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' show max;
 import 'dart:typed_data';
@@ -8,6 +9,7 @@ import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dar
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
+import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_missing_pdfs.dart';
 import 'package:coldigui/features/pdf_opening/data/datasources/pdf_bytes_datasource.dart';
 import 'package:dio/dio.dart';
@@ -99,6 +101,30 @@ class _FailingPdfBytesDatasource extends PdfBytesDatasource {
           requestOptions: RequestOptions(path: filePath),
           statusCode: 404,
         ),
+      );
+    }
+    return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
+  }
+}
+
+class _GatedPdfBytesDatasource extends PdfBytesDatasource {
+  _GatedPdfBytesDatasource() : super(Dio());
+
+  final gate = Completer<void>();
+  int fetchCount = 0;
+
+  @override
+  Future<Uint8List> fetchBytes(
+    String filePath, {
+    ProgressCallback? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) async {
+    fetchCount++;
+    await gate.future;
+    if (cancelToken?.isCancelled ?? false) {
+      throw DioException.requestCancelled(
+        requestOptions: RequestOptions(path: filePath),
+        reason: 'cancelled',
       );
     }
     return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
@@ -330,5 +356,29 @@ void main() {
     expect(failingDatasource.fetchCount, 2);
     expect(await repository.lookup(okPdfId), isNotNull);
     expect(await repository.lookup(failPdfId), isNull);
+  });
+
+  test('cancelToken interrompe: workers não puxam mais ids e o use case lança', () async {
+    final pdfIds = List.generate(
+      6,
+      (i) => encodePdfId('ColAdultos/${i.toString().padLeft(3, '0')}.pdf'),
+    );
+    for (final pdfId in pdfIds) {
+      await _seedCatalogLouvor(isar, pdfId: pdfId);
+    }
+
+    final gated = _GatedPdfBytesDatasource();
+    final gatedUseCase = await buildUseCase(gated);
+
+    final token = CancelToken();
+    final future = gatedUseCase(cancelToken: token);
+    await Future<void>.delayed(Duration.zero);
+    expect(gated.fetchCount, 3, reason: 'concorrência 3 em voo');
+
+    token.cancel('user');
+    gated.gate.complete();
+
+    await expectLater(future, throwsA(isA<OfflineBulkCancelledException>()));
+    expect(gated.fetchCount, 3, reason: 'nenhum id novo depois do cancel');
   });
 }

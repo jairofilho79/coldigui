@@ -1,7 +1,10 @@
 import 'dart:math' show min;
 
+import 'package:dio/dio.dart';
+
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
 import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
+import '../exceptions/offline_bulk_exceptions.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_category_resolver.dart';
 import '../utils/offline_material_resolver.dart';
@@ -51,6 +54,11 @@ class DownloadMissingPdfs {
 
     /// Chamado após cada fetch (ou falha). [total] = quantidade de faltantes.
     void Function(int done, int total)? onProgress,
+
+    /// Cancelamento do utilizador (UC-09 «Parar»): os workers deixam de
+    /// puxar ids e o use case termina com [OfflineBulkCancelledException].
+    /// O que já foi gravado fica — a próxima chamada pré-filtra.
+    CancelToken? cancelToken,
   }) async {
     final allPdfIds = await _collectPdfIds(materialCategories);
     final pdfById = await _catalogLocal.loadPdfIdToPdfMap();
@@ -71,6 +79,7 @@ class DownloadMissingPdfs {
 
       Future<void> worker() async {
         while (true) {
+          if (cancelToken?.isCancelled ?? false) break;
           if (nextIndex >= missingPdfIds.length) break;
           final index = nextIndex++;
           final pdfId = missingPdfIds[index];
@@ -84,9 +93,11 @@ class DownloadMissingPdfs {
               ),
               category: OfflineCategoryResolver.fromPdfId(pdfId),
               persistentDownload: true,
+              cancelToken: cancelToken,
             );
             downloaded++;
           } on Object {
+            if (cancelToken?.isCancelled ?? false) break;
             failed++;
           }
 
@@ -97,6 +108,9 @@ class DownloadMissingPdfs {
 
       final workerCount = min(_maxConcurrentDownloads, missingPdfIds.length);
       await Future.wait(List.generate(workerCount, (_) => worker()));
+      if (cancelToken?.isCancelled ?? false) {
+        throw const OfflineBulkCancelledException();
+      }
     }
 
     return DownloadMissingResult(
