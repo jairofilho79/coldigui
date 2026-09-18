@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../coldigom/data/providers/coldigom_dio_provider.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../domain/usecases/filter_by_material_and_arranjo.dart';
 import '../../domain/usecases/filter_by_special_arrangement.dart';
@@ -17,11 +17,12 @@ import 'catalog_manifest_sync_providers.dart';
 
 export 'catalog_local_providers.dart';
 
-/// Cliente remoto do catálogo (manifest + checksum).
+/// Cliente remoto do catálogo (manifest + checksum) — Dio do coldigom, só
+/// `RetryInterceptor`.
 final catalogRemoteDatasourceProvider = Provider<CatalogRemoteDatasource>((
   ref,
 ) {
-  return CatalogRemoteDatasource(ref.watch(dioProvider));
+  return CatalogRemoteDatasource(ref.watch(coldigomDioProvider));
 });
 
 /// Persistência local Isar do catálogo — ver [catalogLocalDatasourceProvider].

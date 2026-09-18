@@ -1,17 +1,6 @@
-/// Endpoints HTTP do backend Cloudflare (PLPCG).
+/// Endpoints HTTP do Worker `plpcg-catalog` (auth, social, playlists, flags,
+/// links, live). Catálogo e assets vivem em `ColdigomEndpoints`.
 abstract final class ApiEndpoints {
-  /// Catálogo completo — Worker `plpcg-catalog` + D1.
-  ///
-  /// `GET` → array JSON de louvores (`groupId` incluído).
-  /// Ver [CatalogRemoteDatasource.fetchManifest].
-  static const String louvoresManifest = '/api/catalog/louvores';
-
-  /// Checksum SHA-256 do catálogo — Worker `plpcg-catalog` + D1.
-  ///
-  /// `GET` → `200` hex ou `204` se inalterado.
-  /// Ver [CatalogRemoteDatasource.fetchChecksum].
-  static const String louvoresManifestChecksum = '/api/catalog/checksum';
-
   /// Sessão Google — Worker `plpcg-catalog` + D1 `users`.
   ///
   /// `POST` + `Authorization: Bearer <id_token>` → perfil (`googleSub`, …).
@@ -58,7 +47,4 @@ abstract final class ApiEndpoints {
   static const String liveRoomRegenerate = '/api/live/room/regenerate';
 
   static const String offlineManifest = '/offline-manifest.json';
-  static const String uploadLouvor = '/api/upload-louvor';
-  static const String assetsPdf = '/assets';
-  static const String packagesZip = '/packages';
 }

@@ -1,0 +1,71 @@
+[
+  {
+    "nome": "Canção Um",
+    "classificacao": "Avulsos, GLTM",
+    "numero": "",
+    "categoria": "Partitura",
+    "pdf": "https://coldigom.test/assets/praises/pf/mp.pdf",
+    "pdfId": "cGYvbXAtcGFydGl0dXJhLnBkZg",
+    "groupId": "avulso:cancao-um",
+    "shortId": "000c",
+    "praiseId": "pf",
+    "materialId": "mp"
+  },
+  {
+    "nome": "Canção Um",
+    "classificacao": "Avulsos, GLTM",
+    "numero": "",
+    "categoria": "Partitura",
+    "pdf": "https://coldigom.test/assets/praises/pf/mp.pdf",
+    "pdfId": "cGYvbXAtbGVnYWN5LTIucGRm",
+    "groupId": "avulso:cancao-um-legado",
+    "shortId": "000d",
+    "praiseId": "pf",
+    "materialId": "mp"
+  },
+  {
+    "nome": "Canção Um",
+    "classificacao": "Avulsos, GLTM",
+    "numero": "",
+    "categoria": "Cifra",
+    "pdf": "https://coldigom.test/assets/praises/pf/mc.pdf",
+    "pdfId": "cGYvbWMtY2lmcmEucGRm",
+    "groupId": "avulso:cancao-um",
+    "shortId": "000e",
+    "praiseId": "pf",
+    "materialId": "mc"
+  },
+  {
+    "nome": "Canção Dois",
+    "classificacao": "Avulsos, GLTM",
+    "numero": "",
+    "categoria": "Partitura",
+    "pdf": "https://coldigom.test/assets/praises/pd/md.pdf",
+    "pdfId": "cGQvbWQtcGFydGl0dXJhLnBkZg",
+    "groupId": "avulso:cancao-um",
+    "shortId": "000f",
+    "praiseId": "pd",
+    "materialId": "md"
+  },
+  {
+    "nome": "Canção Três",
+    "classificacao": "ColAdultos",
+    "numero": "045",
+    "categoria": "Partitura",
+    "pdf": "https://coldigom.test/assets/praises/pt/mt.pdf",
+    "pdfId": "cHQvbXQtcGFydGl0dXJhLnBkZg",
+    "groupId": "045:cancao-tres"
+  },
+  {
+    "nome": "Canção Quatro",
+    "classificacao": "Avulsos, GLTM",
+    "numero": "",
+    "categoria": "Partitura",
+    "pdf": "https://coldigom.test/assets/praises/px-antigo/mx.pdf",
+    "pdfId": "cHgvbXgtcGFydGl0dXJhLnBkZg",
+    "groupId": "avulso:cancao-quatro",
+    "shortId": "0010",
+    "praiseId": "px",
+    "materialId": "mx"
+  }
+]

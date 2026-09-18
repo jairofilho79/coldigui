@@ -7,6 +7,13 @@ abstract final class ColdigomEndpoints {
 
   /// Dump compacto do catálogo inteiro para o Isar local (ETag + 304).
   static const plpcgCatalog = '/api/plpcg/catalog';
+
+  /// Catálogo PLPCG no shape do manifest (`pdfId`/`groupId`/`shortId`
+  /// legados + `praiseId`/`materialId`; `pdf` absoluto). ETag + 304.
+  static const plpcgManifest = '/api/plpcg/manifest';
+
+  /// Hex SHA-256 de [plpcgManifest]; `If-None-Match` → 204.
+  static const plpcgManifestChecksum = '/api/plpcg/manifest/checksum';
   static const filterOptions = '/api/praises/filters';
   static const materialKinds = '/api/materials/kinds';
   static const tags = '/api/tags';

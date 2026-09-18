@@ -1,12 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/constants/api_endpoints.dart';
-import '../../../../core/constants/app_config.dart';
+import '../../../coldigom/data/constants/coldigom_endpoints.dart';
 import '../../domain/entities/louvor.dart';
 import '../models/louvor_dto.dart';
 
-/// Desfecho da consulta condicional a `/api/catalog/checksum` (UC-12).
+/// Desfecho da consulta condicional a `/api/plpcg/manifest/checksum` (UC-12).
 enum ManifestChecksumStatus {
   /// `204`/`304` — o checksum enviado em `If-None-Match` continua válido.
   unchanged,
@@ -20,7 +19,7 @@ enum ManifestChecksumStatus {
   unavailable,
 }
 
-/// Resposta de `/api/catalog/checksum` com `If-None-Match` condicional.
+/// Resposta de `/api/plpcg/manifest/checksum` com `If-None-Match` condicional.
 @immutable
 class ManifestChecksumResult {
   const ManifestChecksumResult(this.status, {this.checksum});
@@ -34,7 +33,7 @@ class ManifestChecksumResult {
   bool get isUnchanged => status == ManifestChecksumStatus.unchanged;
 }
 
-/// Resposta condicional de `/api/catalog/louvores` (UC-12).
+/// Resposta condicional de `/api/plpcg/manifest` (UC-12).
 @immutable
 class ManifestFetchResult {
   const ManifestFetchResult({required this.louvores, this.etag});
@@ -48,17 +47,15 @@ class ManifestFetchResult {
   final String? etag;
 }
 
-/// Fonte remota do catálogo (Worker + D1) — UC-12.
-///
-/// Baixa `/api/catalog/louvores` via [Dio] e valida entradas antes de retornar.
-/// As variantes condicionais enviam `If-None-Match` para que o Worker possa
-/// responder `304`/`204` e evitar o download de ~4600 itens (A1).
+/// Fonte remota do catálogo — coldigom `GET /api/plpcg/manifest` (UC-12).
+/// Mesmo contrato condicional (`If-None-Match` → 304/204) do antigo Worker
+/// `plpcg-catalog`.
 class CatalogRemoteDatasource {
   const CatalogRemoteDatasource(this._dio);
 
   final Dio _dio;
 
-  /// Baixa `/api/catalog/louvores` (Worker + D1), valida shape e filtra entradas inválidas.
+  /// Baixa `/api/plpcg/manifest` (coldigom), valida shape e filtra entradas inválidas.
   ///
   /// Entradas sem [Louvor.pdfId] não vazio ou com campos obrigatórios ausentes
   /// são ignoradas (paridade com `prepareLouvoresManifestPayload` do Svelte).
@@ -74,15 +71,8 @@ class CatalogRemoteDatasource {
   Future<ManifestFetchResult> fetchManifestConditional({
     String? ifNoneMatch,
   }) async {
-    if (AppConfig.apiBaseUrl.isEmpty) {
-      throw StateError(
-        'PLPCG_API_BASE_URL não definido. '
-        'Use --dart-define=PLPCG_API_BASE_URL=https://...',
-      );
-    }
-
     final response = await _dio.get<dynamic>(
-      ApiEndpoints.louvoresManifest,
+      ColdigomEndpoints.plpcgManifest,
       options: Options(
         headers: _ifNoneMatchHeaders(ifNoneMatch),
         validateStatus: (status) =>
@@ -120,7 +110,7 @@ class CatalogRemoteDatasource {
     return ManifestFetchResult(louvores: louvores, etag: _readEtag(response));
   }
 
-  /// Consulta `/api/catalog/checksum` (Worker + D1).
+  /// Consulta `/api/plpcg/manifest/checksum` (coldigom).
   ///
   /// Retorna hex SHA-256 em `200`; `null` se `204` (inalterado, header `If-None-Match`)
   /// ou em falha de rede.
@@ -138,7 +128,7 @@ class CatalogRemoteDatasource {
   }) async {
     try {
       final response = await _dio.get<String>(
-        ApiEndpoints.louvoresManifestChecksum,
+        ColdigomEndpoints.plpcgManifestChecksum,
         options: Options(
           responseType: ResponseType.plain,
           headers: _ifNoneMatchHeaders(ifNoneMatch),
