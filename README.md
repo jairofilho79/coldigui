@@ -2,11 +2,18 @@
 
 A new Flutter project.
 
-## Modo dual PLPCG + Coldigom (fase 1)
+## Catálogo e backends
 
-A busca na Home consulta o manifest PLPCG (chips **vermelhos**) e a API coldigom em produção (chips **pretos**, borda dourada). Itens coldigom podem ser adicionados ao carousel, abertos no leitor e usados em playlists/folheto.
+O catálogo (manifest + checksum), os PDFs e os materiais Coldigom vêm do Worker
+`coldigom-api` (`COLDIGOM_API_BASE_URL`). O Worker `plpcg-catalog`
+(`PLPCG_API_BASE_URL`) serve auth, playlists, links curtos e Lista ao Vivo.
+Os dois defines são obrigatórios — sem um deles o app mostra a tela de
+configuração ausente. Ficheiros prontos em `dart_defines/*.json`
+(`--dart-define-from-file`).
 
-API coldigom: `https://coldigom-api.jairofilho79.workers.dev` (`COLDIGOM_API_BASE_URL`)
+Um louvor = um praise do coldigom: as entradas legadas do manifest (`pdfId`,
+`shortId`) e os materiais Coldigom (áudio, cifra, letra, gestos) aparecem no
+mesmo card. Ver `docs/superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md`.
 
 ## Testes
 

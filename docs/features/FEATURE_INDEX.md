@@ -10,14 +10,14 @@
 | Feature | UCs | Prioridade | Status | Use cases |
 |---------|-----|------------|--------|-----------|
 | `core` | transversal | Alta | **Concluído** (Fase 0 + share anchor jun/2026; isar_plus jun/2026) | `PdfPathNormalizer`, `LouvorSearchTokens`, `sharePositionOriginFromContext*`, schemas Isar Plus + codegen, `isarProvider`, `AppConfig` |
-| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + agrupamento + **D1 jun/2026**) | Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorGroupCard]; ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **catálogo Coldigom local set/2026** — [ColdigomPraiseCache] + [SyncColdigomCatalog] (ETag/304, `GET /api/plpcg/catalog` via `patches/coldigom-api-plpcg-catalog.patch`), [coldigomCatalogHydrationProvider], [ColdigomSearchIndex] (busca local Coldigom na Home, O16); spec [offline Coldigom](../superpowers/specs/2026-09-14-offline-coldigom-design.md); **pesquisa híbrida set/2026** — lista local única + validação remota ([SearchFreshness], [SearchFreshnessLine], chip «novo», [AdoptColdigomSearchNovelties]); paginação Coldigom da Home removida (O15/O16) |
+| `catalog` | UC-01, UC-02, UC-12 | Alta | **Concluído** (Fase 1.5 + agrupamento + **D1 jun/2026**) | Worker `plpcg-catalog` + D1; `/api/catalog/*`; [LouvorCache.groupId]; [LouvorGroupCard]; ver [LOUVOR_GROUPING.md](./LOUVOR_GROUPING.md); **catálogo Coldigom local set/2026** — [ColdigomPraiseCache] + [SyncColdigomCatalog] (ETag/304, `GET /api/plpcg/catalog` via `patches/coldigom-api-plpcg-catalog.patch`), [coldigomCatalogHydrationProvider], [ColdigomSearchIndex] (busca local Coldigom na Home, O16); spec [offline Coldigom](../superpowers/specs/2026-09-14-offline-coldigom-design.md); **pesquisa híbrida set/2026** — lista local única + validação remota ([SearchFreshness], [SearchFreshnessLine], chip «novo», [AdoptColdigomSearchNovelties]); paginação Coldigom da Home removida (O15/O16); **catálogo pelo coldigom set/2026** — `GET /api/plpcg/manifest` + `/checksum` ([CatalogRemoteDatasource] no Dio coldigom); `praiseId`/`materialId` no [Louvor]/[LouvorCache]; `effectiveGroupId` = `praiseId`; fusão por praise no [CompositeCatalogSource] com [ManifestMaterialAliases]; [knownPraiseIdsProvider]; spec [catálogo coldigom modo único](../superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md) |
 | `library` | UC-03 | Alta | **Concluído** (Fase 1.4 + 1.5 + refatoração Visualização + **lista agrupada jun/2026**) | [libraryGroupResultsProvider] — Browse → Group → Sort → Paginate grupos; [LouvorGroupCard]; layout `maxWidth: 896`; [LibraryViewControls]; sync URL |
 | `pdf_opening` | UC-04 | Alta | **Concluído** (Fase 2.1 ✅ + 2.5 ✅ + 3.4 ✅ + 4.7 ✅ + **share card ⋮ jun/2026**) | `OpenPdfInReader` com `pdfId` na rota; `SharePdf`, `SavePdf` (fast path local), `ValidatePdfAvailability`, `isLocalPdfPath`, `LouvorPdfPath`; consumido por [LouvorGroupCard] / [LouvorCard], [openLouvorInReader], [PdfReaderScreen], [openCarouselPdfInReader] e [PlaylistListTile] |
 | `pdf_reader` | UC-11 | Alta | **Em progresso** (Fase 2.3 ✅ + **2.4 ✅ fullscreen** + 3.4 ✅ + 4.7 ✅ + lifecycle ✅ + UI 3 barras ✅ + carousel nav fix v3 ✅ + **long-press indicador página ✅** + **swipe horizontal ✅** + **indicador estável animateToPage ✅**) | [_ReaderScaffold]: barra 3 + [PdfReaderPageIndicator]; swipe → [PdfReaderDisplayedPageNotifier]; scroll vertical fixo; sessão `autoDispose`; [readerFullscreenProvider] |
 | `chords` | UC-11 (variante) | Média | **Concluído** (leitor ChordPro ago/2026) | Seção Cifras em [showLouvorMaterialSheet]; rota `/cifra` ([ChordReaderScreen]); [parseChordPro] + [ChordProView] com barras de sílaba; claro/escuro local ([ChordReaderMode]); id no espaço do `pdfId` ([materialIdKindOf]); spec [leitor de cifras](../superpowers/specs/2026-08-29-leitor-cifras-chordpro-design.md) |
 | `gestures` | UC-17 | Média | **Concluído** (leitor de gestos set/2026) | Rota `/gestos` ([GestureReaderScreen]); documento JSON `coldigom.gestures/1` ([parseGestureDocument]) + dicionário com ETag ([gestureDictionaryProvider]); cache Isar ([GestureDocumentCache], [GestureDictionaryCache]) + figuras em store próprio ([GestureFigureStorePort]); blocos por `Stack` ([BracedChildren]); modo foco ([GestureFocusView]); [GestureMaterialRef] no catálogo; spec [leitor de gestos](../superpowers/specs/2026-09-11-leitor-gestos-design.md); **v2 (set/2026)** — tema claro/escuro local ([GestureReaderMode]), leitura linear default ([linearizeGestureDocument], [SectionLabel]), autoscroll com retomada após rolagem manual ([gestureAutoscrollProvider]), zebra + figura em quadro; spec [leitor de gestos v2](../superpowers/specs/2026-09-15-leitor-gestos-v2-design.md) |
 | `lyrics` | UC-01 (variante) | Média | **Concluído** (letra Coldigom set/2026) | Rota `/letra` ([LyricsReaderScreen]); [LyricsMaterial] (`MaterialKind.lyrics`, id `lyrics:<praiseId>`, sem download/favoritos — O6); texto do Isar; aba «Letra» no [MaterialSheet] |
-| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026 + **fix quota UC-04/10 jun/2026**) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado; **fix** LRU 500 MB só sem flag `TRUE` ([isFullOfflineMode] / [persistentDownload]); **offline Coldigom parte 2 set/2026** — [OfflineAudioIndex] + [AudioStoragePort] (áudio persistente), [DownloadColdigomMaterials] por kind (O7–O13), [RemoveColdigomDownloads], [materialAvailabilityMapProvider] (PDF + áudio + cifra + gestos), secção Coldigom no [OfflineSettingsScreen] ([ColdigomOfflineSection]); sheet desabilitado sem rede (O14); **local-first set/2026** ([audio_player], sem linha própria nesta tabela) — [OfflineAudioRepository.lookup] antes da rede; `AudioNotDownloadedException` sem rede |
+| `offline` | UC-09, UC-10 | Alta | **Concluído** (Fase 3.7 + manutenção jun/2026 + **fix quota UC-04/10 jun/2026**) | 3.1–3.7 ✅ local-first + bulk + manutenção + UI; gate `OFFLINE_AVAILABLE` na tela offline (UC-09 vs UC-10); refresh stats; chips por material; download faltantes pré-filtrado; **fix** LRU 500 MB só sem flag `TRUE` ([isFullOfflineMode] / [persistentDownload]); **offline Coldigom parte 2 set/2026** — [OfflineAudioIndex] + [AudioStoragePort] (áudio persistente), [DownloadColdigomMaterials] por kind (O7–O13), [RemoveColdigomDownloads], [materialAvailabilityMapProvider] (PDF + áudio + cifra + gestos), secção Coldigom no [OfflineSettingsScreen] ([ColdigomOfflineSection]); sheet desabilitado sem rede (O14); **local-first set/2026** ([audio_player], sem linha própria nesta tabela) — [OfflineAudioRepository.lookup] antes da rede; `AudioNotDownloadedException` sem rede; **UC-09 sem ZIP set/2026** — primeira configuração via [DownloadMissingPdfs] (PDF a PDF, `CancelToken`); pipeline ZIP/checkpoint/`offline-manifest.json` removidos |
 | `carousel` | UC-05, UC-07 | Média | **Concluído** (Fase 4.1 + 4.7 ✅ + polish chip + abrir leitor + barra compartilhada + nav leitor fix v3 ✅ + overflow smartphone ✅ + **share lista barra ✅** + metadados chip modo médio ✅ + trailing add/lista + **share card ⋮ UC-04 ✅** + **ícones barra vinho ✅** + **fix drag modal seleção ✅** + **fix flicker reorder ✅**) | [carouselBarIconButtonStyle]; [CarouselBarTrailingActions]; [CarouselNavigatorBar]; [carouselLouvoresDisplayProvider] na barra; reorder otimista + debounce persist; [carouselSelectionReorderProxyDecorator] no modal |
 | `playlists` | UC-06, UC-07 | Média | **Concluído** (Fase 4.2–4.5 ✅ + 4.8 ✅ + polish UI tile + screen ✅ + **fix share jun/2026** + **debug abrir lista jun/2026**) | UC-06 ✅: CRUD + rascunhos; abas [PlaylistsScreen]; lista ativa [activePlaylistIdProvider]; [resolveActivePlaylistFromCarousel]; debug abrir [playlistOpenDebugLog*]; UC-07 ✅: share/import + deep link + debug [playlistShareDebugLog*]; share em [CarouselBarTrailingActions] e [PlaylistListTile] com `sharePositionOrigin`; **link curto por shortId set/2026** (`?s=…&n=…`, import por deep link/colar); **gate Coldigom set/2026**: lista fora do PLPCG puro → só folheto, sem link/QR, após aviso ([showColdigomShareDialog]) |
 | `leaflet` | UC-08 | Média | **Concluído** (Fase 4.6 + redesign PWA jun/2026 + fix render jun/2026) | [LeafletContent] PLPCG (`Material` off-screen); `LeafletEntry` `{numero,nome}`; [LeafletContentLabels]; captura PNG + share |
@@ -62,7 +62,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 
 | Débito | Onde | Quando pagar |
 |---|---|---|
-| Gate Coldigom no share de listas: lista com material fora do acervo PLPCG não gera link nem QR (só folheto, com aviso [showColdigomShareDialog]); o share não emite mais link longo e o encurtador `/l/` ficou sem chamador. | `playlist_share_actions_provider.dart`, `coldigom_share_dialog.dart`, `generate_playlist_share_url.dart` (formato longo), `share_link_shortener.dart` | Após a remoção do acervo PLPCG do coldigui — apagar gate + dialog + emissão do formato longo + `/l/` (parse de links longos antigos pode ficar). Registrado em 2026-09-14. |
+| Gate Coldigom no share de listas: lista com material fora do acervo PLPCG não gera link nem QR (só folheto, com aviso [showColdigomShareDialog]); o share não emite mais link longo e o encurtador `/l/` ficou sem chamador. | `playlist_share_actions_provider.dart`, `coldigom_share_dialog.dart`, `generate_playlist_share_url.dart` (formato longo), `share_link_shortener.dart` | Follow-up da spec catálogo-coldigom §11 (o acervo foi fundido em 2026-09-18; o gate ainda decide por entradas Coldigom sem `shortId`) — apagar gate + dialog + emissão do formato longo + `/l/` (parse de links longos antigos pode ficar). Registrado em 2026-09-14. |
 
 ## APIs públicas — Core
 
@@ -86,7 +86,7 @@ core → catalog → library → pdf_opening → pdf_reader → offline → caro
 | `buildLibraryLocation` | `lib/core/utils/library_url_builder.dart` | **Implementado + testes** | Monta `/biblioteca` com `materiais`, `arranjo`, `arranjoEspecial`, `ordenar`, `itensPorPagina`, `pagina`; omite defaults (UC-03 Fase 1.4) |
 | `buildLibraryLocationFromUri` | `lib/core/utils/library_url_builder.dart` | **Implementado + testes** | Normaliza `Uri` da Biblioteca para comparação no sync GoRouter |
 | `buildReaderLocation` | `lib/core/utils/reader_url_builder.dart` | **Implementado 4.7 + testes** | Monta `/leitor` com `file`, `pdfId?`, `titulo?`, `subtitulo?`; encode via `Uri.encodeComponent` (UC-04 / UC-11) |
-| `ApiEndpoints` | `lib/core/constants/api_endpoints.dart` | **Implementado + D1 jun/2026** | `louvoresManifest` → `/api/catalog/louvores`; `louvoresManifestChecksum` → `/api/catalog/checksum` (Worker + D1); demais endpoints inalterados |
+| `ApiEndpoints` | `lib/core/constants/api_endpoints.dart` | **Implementado + catálogo pelo coldigom set/2026** | só rotas do Worker `plpcg-catalog`; catálogo e assets em `ColdigomEndpoints` (`plpcgManifest`, `plpcgManifestChecksum`) |
 | `AppConfig` | `lib/core/constants/app_config.dart` | **Implementado + D1 dev jun/2026** | `apiBaseUrl` compile-time; `isApiBaseUrlMissing`; ver [dart_defines/plpcg.json], [dart_defines/plpcg.dev.json] + [PlpcgDartDefines.xcconfig] |
 | `StorageKeys` | `lib/core/constants/storage_keys.dart` | Constantes | Chaves SharedPreferences; inclui `pdfViewerMode` (UC-04 Fase 2.5) |
 | `OfflineConfig` | `lib/core/constants/offline_config.dart` | Constantes | `maxRetryAttempts`, `retryBackoffBase`, batch e TTLs; **`defaultPdfCacheQuotaBytes` = 500 MB** — quota LRU só para cache on-demand (UC-04); **não** aplica a UC-10 com `persistentDownload`; revisar constantes legadas PWA (`sw*`, `pdfCacheName`) |
@@ -293,8 +293,8 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + groupId + pad numero jun/2026** | Entidade + `fromManifest()` — [LouvorNumeroNormalizer] em `numero`; `groupId` opcional; `effectiveGroupId`; tokens UC-01 |
-| `LouvorGroup` | `lib/features/catalog/domain/entities/louvor_group.dart` | **Implementado jun/2026 + testes** | Louvor lógico — `groupId`, `numero`, `nome`, `sections`; `fromLouvores()`; `totalMaterials`, `totalArrangements`, `primaryLouvor` |
+| `Louvor` | `lib/features/catalog/domain/entities/louvor.dart` | **Implementado + praiseId/materialId set/2026** | Entidade + `fromManifest()` — [LouvorNumeroNormalizer] em `numero`; `groupId` opcional; `praiseId`, `materialId`; `effectiveGroupId` = praiseId → groupId → calculado; tokens UC-01 |
+| `LouvorGroup` | `lib/features/catalog/domain/entities/louvor_group.dart` | **Implementado jun/2026 + testes** | Louvor lógico — `groupId`, `numero`, `nome`, `sections`; `fromLouvores()`; `totalMaterials`, `totalArrangements`, `primaryLouvor`; `groupId` vem de `Louvor.effectiveGroupId` = praiseId → groupId → calculado |
 | `LouvorMaterialSection` | idem | **Implementado jun/2026** | Sublista por `classificacao` + `displayLabel` + `materials` |
 | `LouvorMaterialEntry` | idem | **Implementado jun/2026** | Folha: `categoria`, `pdfId`, `Louvor` |
 | `LouvorNumeroNormalizer` | `lib/features/catalog/domain/utils/louvor_numero_normalizer.dart` | **Implementado jun/2026 + testes** | `catalogPadWidth=3`; `normalize(numero)` — pad-left em dígitos puros; espelha `normalize_numero()` |
@@ -445,36 +445,34 @@ Schemas anotados com `@Collection()`; codegen via `dart run build_runner build`.
 
 **Consumidores:** [Louvor.fromManifest], [LouvorGroupId.compute], [SearchLouvorByNumberOrText._matchesNumero], `assign_louvor_group_ids.py` (`normalize_numero`).
 
-### `plpcg-catalog` Worker — API HTTP (jun/2026)
+### Catálogo pelo coldigom — API HTTP (set/2026)
 
 | Rota | Método | Resposta | Descrição |
 |------|--------|----------|-----------|
-| `/api/catalog/louvores` | `GET` | `200` JSON array | Louvores ordenados por `numero`, `nome`; campos `{ nome, numero, classificacao, categoria, pdf, pdfId, groupId }` |
-| `/api/catalog/checksum` | `GET` | `200` text/plain hex ou `204` | SHA-256 do manifest canônico; header `ETag`; `If-None-Match` → `204` |
+| `/api/plpcg/manifest` | `GET` | `200` JSON array ou `304` | Manifest no shape legado (`pdfId`/`groupId`/`shortId`) + `praiseId`/`materialId`; `pdf` absoluto; `ETag`/`If-None-Match` |
+| `/api/plpcg/manifest/checksum` | `GET` | `200` text/plain hex ou `204`/`304` | Hex SHA-256 do manifest; `If-None-Match` → `204` |
 
-**Schema D1:** tabela `louvores` (PK `pdf_id`) + `catalog_meta` (`checksum`, `row_count`).
+Worker `plpcg-catalog` + `/api/catalog/*` (D1) ficam desligados do app; congelamento/remoção é follow-up (spec §11).
 
-**Scripts:** `scripts/seed_d1_louvores.py` → `workers/plpcg-catalog/seed/001_louvores.sql`.
+**Consumidores Flutter:** [CatalogRemoteDatasource] (Dio coldigom via `coldigomDioProvider`), [ColdigomEndpoints.plpcgManifest], [ColdigomEndpoints.plpcgManifestChecksum].
 
-**Consumidores Flutter:** [CatalogRemoteDatasource], [ApiEndpoints.louvoresManifest], [ApiEndpoints.louvoresManifestChecksum].
-
-### `ApiEndpoints` — catálogo D1 (jun/2026)
+### `ColdigomEndpoints` — catálogo (set/2026)
 
 | Constante | Valor | Consumidor |
 |-----------|-------|------------|
-| `louvoresManifest` | `/api/catalog/louvores` | [CatalogRemoteDatasource.fetchManifest] |
-| `louvoresManifestChecksum` | `/api/catalog/checksum` | [CatalogRemoteDatasource.fetchChecksum] |
+| `plpcgManifest` | `/api/plpcg/manifest` | [CatalogRemoteDatasource.fetchManifest] / [CatalogRemoteDatasource.fetchManifestConditional] |
+| `plpcgManifestChecksum` | `/api/plpcg/manifest/checksum` | [CatalogRemoteDatasource.fetchChecksum] / [CatalogRemoteDatasource.fetchChecksumConditional] |
 
-**Base URL:** [AppConfig.apiBaseUrl] — produção `https://plpcg.com`; dev local `http://127.0.0.1:8787` via [dart_defines/plpcg.dev.json].
+**Base URL:** [ColdigomApiConfig.baseUrl] (`COLDIGOM_API_BASE_URL`), obrigatório — sem `defaultValue`.
 
-### `CatalogRemoteDatasource` — API pública (jun/2026)
+### `CatalogRemoteDatasource` — API pública (set/2026)
 
 | Método | Endpoint | Retorno | Descrição |
 |--------|----------|---------|-----------|
-| `fetchManifest()` | [ApiEndpoints.louvoresManifest] | `Future<List<Louvor>>` | Parse via [LouvorDto.fromJson]; ignora entradas sem `pdfId` |
-| `fetchChecksum()` | [ApiEndpoints.louvoresManifestChecksum] | `Future<String?>` | Hex SHA-256; `null` se `204` (inalterado) ou erro de rede |
-
-**Gate:** lança `StateError` se [AppConfig.apiBaseUrl] vazio.
+| `fetchManifest()` | [ColdigomEndpoints.plpcgManifest] | `Future<List<Louvor>>` | Parse via [LouvorDto.fromJson]; ignora entradas sem `pdfId` |
+| `fetchManifestConditional({ifNoneMatch})` | [ColdigomEndpoints.plpcgManifest] | `Future<ManifestFetchResult>` | `304` → `ManifestFetchResult.notModified()`; senão manifest + `etag` do header |
+| `fetchChecksum()` | [ColdigomEndpoints.plpcgManifestChecksum] | `Future<String?>` | Hex SHA-256; `null` se `204`/`304` (inalterado) ou erro de rede |
+| `fetchChecksumConditional({ifNoneMatch})` | [ColdigomEndpoints.plpcgManifestChecksum] | `Future<ManifestChecksumResult>` | Distingue `unchanged` (`204`/`304`/igual ao enviado) de `changed` e `unavailable` (erro/vazio) |
 
 **Consumidores:** [CatalogRepositoryImpl.loadManifest], [ForceRefreshCatalog], Fase 5 `PollManifestChecksum` (pendente).
 
@@ -1986,7 +1984,7 @@ Modal — tap outro louvor (leitor)
 
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
-| `CatalogRemoteDatasource` | `lib/features/catalog/data/datasources/catalog_remote_datasource.dart` | **Implementado + D1 jun/2026** | `fetchManifest()` — `GET /api/catalog/louvores`; `fetchChecksum()` — `GET /api/catalog/checksum` (200/204) |
+| `CatalogRemoteDatasource` | `lib/features/catalog/data/datasources/catalog_remote_datasource.dart` | **Implementado + catálogo pelo coldigom set/2026** | `fetchManifest()` / `fetchManifestConditional()` — `GET /api/plpcg/manifest` (coldigom, ETag/304); `fetchChecksum()` / `fetchChecksumConditional()` — `GET /api/plpcg/manifest/checksum` (200/204/304) |
 | `CatalogLocalDatasource` | `lib/features/catalog/data/datasources/catalog_local_datasource.dart` | **Implementado + testes** | `saveLouvores` / `loadLouvores`; `loadPdfIdToCategoriaMap` — UC-10 stats offline |
 | `LouvorToCache` / `LouvorCacheToEntity` | `lib/features/catalog/data/mappers/louvor_cache_mapper.dart` | **Implementado + groupId jun/2026** | Mapper `Louvor` ↔ `LouvorCache` inclui `groupId`; [LouvorCacheToEntity] → `fromManifest` |
 | `CatalogRepositoryImpl` | `lib/features/catalog/data/repositories/catalog_repository_impl.dart` | **Implementado + testes** | `loadManifest` remoto → Isar com fallback; `forceRefreshManifest` remoto obrigatório sem fallback |

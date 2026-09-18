@@ -139,6 +139,8 @@ flowchart TB
 
 ### 2.3 Endpoints API e assets dinâmicos
 
+> **set/2026:** estes endpoints do site `plpcg.com` foram desligados. O app usa `GET /api/plpcg/manifest`, `GET /api/plpcg/manifest/checksum` e `GET /assets/praises/**` do Worker `coldigom-api`; `/offline-manifest.json` e `/packages/**` não têm substituto (offline PDF a PDF).
+
 | Endpoint | Arquivo | Função |
 |----------|---------|--------|
 | `GET /louvores-manifest.json` | `src/routes/louvores-manifest.json/+server.js` | Catálogo de louvores (R2 → fallback static) |
@@ -1146,6 +1148,8 @@ flowchart TB
 ## 11. Anexos
 
 ### 11.1 Endpoints API completos
+
+> **set/2026:** estes endpoints do site `plpcg.com` foram desligados. O app usa `GET /api/plpcg/manifest`, `GET /api/plpcg/manifest/checksum` e `GET /assets/praises/**` do Worker `coldigom-api`; `/offline-manifest.json` e `/packages/**` não têm substituto (offline PDF a PDF).
 
 | Método | Endpoint | Auth | Resposta |
 |--------|----------|------|----------|

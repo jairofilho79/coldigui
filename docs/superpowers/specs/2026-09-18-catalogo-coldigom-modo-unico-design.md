@@ -189,3 +189,14 @@ Também ganha as versões síncronas `findGroupById`/`findGroupForMaterial` (os 
 - **`/api/plpcg/catalog`:** se o patch entrar no coldigom, a hidratação existente cobre e o filtro do composite continua correto.
 - **Worker `plpcg-catalog`:** congelar/remover `/api/catalog/*` quando não houver builds antigas em uso.
 - **Áudio/cifra/gestos direto** (sem proxy) — mesma verificação de CORS/CORP de F5.
+
+## 12. Estado implementado e desvios
+
+Quatro desvios decididos ao planear (plano `2026-09-18-catalogo-coldigom-modo-unico.md`, «Desvios do spec»), implementados assim:
+
+1. **§5.3 — `ColdigomCacheWriter` não muda.** O writer teria de ler o manifest (`louvoresManifestProvider`), que arranca Isar/rede em todo teste que toca o writer. Quem exclui PDFs cobertos é o `CompositeCatalogSource` ao fundir (ele já tem os aliases). Efeito visível idêntico: uma entrada por material (D4). Task 7.
+2. **§4.5 — o alias não é `coldigomPdfIdFor(praiseId, materialId)`.** Medido em 2026-09-18: 64 entradas do manifest (e 1473 PDFs do coldigom) têm `r2_key` numa pasta de **outro** praise (material movido). O id Coldigom correto é `encodePdfId(r2Key)` e o `r2Key` é exatamente o path do campo `pdf` depois da base — para os 4429 (0 divergências). Logo: `coldigomPdfIdFromManifestPdf(pdf)`. Task 5.
+3. **§6.2 — sem botão «retomar».** Depois de cancelar, o botão «Baixar selecionados» já é a retomada (`DownloadMissingPdfs` pré-filtra o que existe). Task 12.
+4. **§4.2 — o adapter Coldigom também preenche `praiseId`/`materialId`.** Assim `effectiveGroupId` é o `praiseId` nos dois acervos, sem depender do path do `pdfId` (que pode apontar para outro praise, ver desvio 2). Task 2.
+
+**Verificação `LouvorGroup.isColdigom` (fim da Unidade 5, plano):** chamadores levantados em 2026-09-18 — `material_sheet.dart` (origem do «Reportar»: um grupo do manifest com extras reporta como `coldigom` com `praiseId = group.groupId`, que agora **é** o praise id — válido) e `adopt_coldigom_search_novelties.dart` (`known` inclui os praises do manifest, Task 8). Nenhum chamador depende de «PLPCG puro»; nada foi alterado em `isColdigom`.

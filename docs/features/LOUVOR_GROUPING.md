@@ -2,7 +2,10 @@
 
 > **Para agentes:** documento normativo para agrupamento de catálogo. APIs implementadas: [FEATURE_INDEX.md § Agrupamento manifest](./FEATURE_INDEX.md#agrupamento-manifest-groupid--implementado-jun2026).
 
-**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side; [LouvorNumeroNormalizer] pad 3 dígitos; Worker `plpcg-catalog` + D1 (local); [LouvorCache.groupId] persistido; deploy remoto D1 pendente; fallback [LouvorGroupId] se JSON legado omitir `groupId`.  
+**Status:** **parcialmente implementado** (jun/2026) — app agrupa client-side; [LouvorNumeroNormalizer] pad 3 dígitos; Worker `plpcg-catalog` + D1 (local); [LouvorCache.groupId] persistido; deploy remoto D1 pendente; fallback [LouvorGroupId] se JSON legado omitir `groupId`.
+
+**Atualização set/2026:** a identidade do louvor lógico passou a ser o `praiseId` do coldigom (`Louvor.effectiveGroupId` = `praiseId` → `groupId` do manifest → calculado). O `groupId` fuzzy do script Python continua no manifest e no Isar, mas só decide quando não há `praiseId` (cache anterior ao primeiro sync). Consequência aceite: 82 grupos fuzzy que juntavam 2 praises separam-se; 64 praises que estavam em 2 grupos fundem-se. Ver spec `docs/superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md` §4.2.
+
 **Relacionado:** UC-01 (Home), UC-03 (Biblioteca), UC-12 (manifest)  
 **Índice geral:** [FEATURE_INDEX.md](./FEATURE_INDEX.md) · [AGENT_PIPELINE.md](../AGENT_PIPELINE.md)
 
