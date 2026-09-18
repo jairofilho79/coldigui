@@ -1,7 +1,7 @@
 import 'dart:math' show min;
 
-import '../../../../core/utils/pdf_path_normalizer.dart';
 import '../../../catalog/data/datasources/catalog_local_datasource.dart';
+import '../../../pdf_opening/domain/utils/louvor_pdf_path.dart';
 import '../repositories/offline_pdf_repository.dart';
 import '../utils/offline_category_resolver.dart';
 import '../utils/offline_material_resolver.dart';
@@ -32,6 +32,9 @@ const _maxConcurrentDownloads = 3;
 ///
 /// Usa o catálogo Isar (D1 local) como SSOT dos PDFs esperados. Pré-filtra PDFs
 /// válidos (índice + arquivo no disco) e faz fetch **somente** dos ausentes.
+///
+/// O PDF vem da URL absoluta do manifest (`LouvorCache.pdf`); sem ela cai no
+/// path legado `/assets/...`.
 class DownloadMissingPdfs {
   DownloadMissingPdfs(
     this._catalogLocal,
@@ -50,6 +53,7 @@ class DownloadMissingPdfs {
     void Function(int done, int total)? onProgress,
   }) async {
     final allPdfIds = await _collectPdfIds(materialCategories);
+    final pdfById = await _catalogLocal.loadPdfIdToPdfMap();
     final validPdfIds = await _collectValidPdfIds();
     final missingPdfIds = [
       for (final pdfId in allPdfIds)
@@ -74,7 +78,10 @@ class DownloadMissingPdfs {
           try {
             await _fetchAndStorePdf(
               pdfId: pdfId,
-              remotePath: _remotePathFromPdfId(pdfId),
+              remotePath: LouvorPdfPath.remotePath(
+                pdf: pdfById[pdfId] ?? '',
+                pdfId: pdfId,
+              ),
               category: OfflineCategoryResolver.fromPdfId(pdfId),
               persistentDownload: true,
             );
@@ -132,13 +139,5 @@ class DownloadMissingPdfs {
         ))
           entry.key,
     ];
-  }
-
-  static String _remotePathFromPdfId(String pdfId) {
-    var relPath = PdfPathNormalizer.getPdfRelPath(pdfId);
-    if (!relPath.startsWith('assets/')) {
-      relPath = 'assets/$relPath';
-    }
-    return '/$relPath';
   }
 }

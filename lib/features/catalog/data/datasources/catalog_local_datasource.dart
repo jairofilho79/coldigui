@@ -48,4 +48,13 @@ class CatalogLocalDatasource {
     final caches = isar.louvorCaches.where().findAll();
     return {for (final cache in caches) cache.pdfId: cache.categoria};
   }
+
+  /// Mapa pdfId → [Louvor.pdf] (URL absoluta no manifest servido pelo
+  /// coldigom) para o download em massa (UC-09/UC-10).
+  Future<Map<String, String>> loadPdfIdToPdfMap() async {
+    final isar = _isar;
+    if (isar == null) return const {};
+    final caches = isar.louvorCaches.where().findAll();
+    return {for (final cache in caches) cache.pdfId: cache.pdf};
+  }
 }

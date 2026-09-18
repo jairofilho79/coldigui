@@ -22,6 +22,7 @@ Future<void> _seedCatalogLouvor(
   Isar isar, {
   required String pdfId,
   String categoria = CatalogMaterials.partitura,
+  String pdf = '001.pdf',
 }) async {
   isar.write((isar) {
     final coll = isar.louvorCaches;
@@ -31,7 +32,7 @@ Future<void> _seedCatalogLouvor(
       ..numero = '001'
       ..categoria = categoria
       ..classificacao = 'ColAdultos'
-      ..pdf = '001.pdf'
+      ..pdf = pdf
       ..groupId = '001:teste';
     entry.id = coll.autoIncrement();
     coll.put(entry);
@@ -42,6 +43,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
   _FakePdfBytesDatasource() : super(Dio());
 
   int fetchCount = 0;
+  final paths = <String>[];
 
   @override
   Future<Uint8List> fetchBytes(
@@ -50,6 +52,7 @@ class _FakePdfBytesDatasource extends PdfBytesDatasource {
     CancelToken? cancelToken,
   }) async {
     fetchCount++;
+    paths.add(filePath);
     return Uint8List.fromList([0x25, 0x50, 0x44, 0x46]);
   }
 }
@@ -182,6 +185,25 @@ void main() {
     expect(result.failedCount, 0);
     expect(bytesDatasource.fetchCount, 1);
     expect(await repository.lookup(pdfId2), isNotNull);
+  });
+
+  test('usa a URL absoluta do campo pdf quando o catálogo a tem', () async {
+    await _seedCatalogLouvor(
+      isar,
+      pdfId: encodePdfId('ColAdultos/001.pdf'),
+      pdf: 'https://coldigom.test/assets/praises/p1/m1.pdf',
+    );
+    await _seedCatalogLouvor(isar, pdfId: encodePdfId('ColAdultos/002.pdf'));
+
+    await useCase();
+
+    expect(
+      bytesDatasource.paths,
+      unorderedEquals([
+        'https://coldigom.test/assets/praises/p1/m1.pdf',
+        '/assets/ColAdultos/002.pdf',
+      ]),
+    );
   });
 
   test('inclui pdf do catálogo fora de qualquer package do manifest', () async {

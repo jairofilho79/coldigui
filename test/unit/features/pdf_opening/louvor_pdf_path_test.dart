@@ -51,4 +51,32 @@ void main() {
 
     expect(LouvorPdfPath.fromLouvor(louvor), '/assets/ColAdultos/001.pdf');
   });
+
+  test('pdf absoluto (manifest coldigom) vence a derivação por pdfId', () {
+    final louvor = Louvor.fromManifest(
+      nome: 'Teste',
+      numero: '001',
+      categoria: 'Partitura',
+      classificacao: 'ColAdultos',
+      pdf: 'https://coldigom.test/assets/praises/p1/m1.pdf',
+      pdfId: _encodePdfId('ColAdultos/001.pdf'),
+    );
+
+    expect(
+      LouvorPdfPath.fromLouvor(louvor),
+      'https://coldigom.test/assets/praises/p1/m1.pdf',
+    );
+  });
+
+  test('pdf só com nome de ficheiro continua na derivação legada', () {
+    final louvor = _louvorWithPdfId('ColAdultos/001.pdf'); // pdf: '001.pdf'
+    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/ColAdultos/001.pdf');
+  });
+
+  test('remotePath aceita http e ignora espaços à volta', () {
+    expect(
+      LouvorPdfPath.remotePath(pdf: ' http://x/a.pdf ', pdfId: 'ignored'),
+      'http://x/a.pdf',
+    );
+  });
 }
