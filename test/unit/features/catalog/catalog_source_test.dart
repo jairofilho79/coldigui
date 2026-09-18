@@ -326,6 +326,37 @@ void main() {
       expect(await _coldigomSource().groupById('p404'), isNull);
     });
 
+    test('findGroupForMaterial usa o praiseId do material, não a pasta do id', () {
+      // Material movido: o `r2_key` vive na pasta de outro praise (~1400 PDFs
+      // do coldigom). O grupo é o do `praiseId` que o adapter gravou.
+      final movedId = encodePdfId('assets/praises/outro/m9.pdf');
+      final moved = Louvor.fromManifest(
+        nome: 'Comigo habita',
+        numero: '002',
+        categoria: 'Gestos',
+        classificacao: 'Country',
+        pdf: 'm9.pdf',
+        pdfId: movedId,
+        groupId: 'p1',
+        source: LouvorDataSource.coldigom,
+        praiseId: 'p1',
+      );
+      final source = ColdigomCatalogSource(
+        louvores: {_coldigomPdfId: _coldigomPdf, movedId: moved},
+      );
+
+      final group = source.findGroupForMaterial(movedId);
+
+      expect(group, isNotNull);
+      expect(group!.groupId, 'p1');
+      expect(group.totalPdfs, 2);
+      // Sem o material em cache, o path do id continua a ser o fallback.
+      expect(
+        const ColdigomCatalogSource().findGroupForMaterial(movedId),
+        isNull,
+      );
+    });
+
     test('partsOfGroup devolve os caches do praise sem montar grupo', () {
       final parts = _coldigomSource(
         youtube: {'p1': [_coldigomYoutube]},
@@ -491,6 +522,35 @@ void main() {
       expect(fused.totalPdfs, 3, reason: '2 legados + 1 extra, sem o coberto');
       expect(fused.audioTracks.single.audioId, _fusedAudioId);
       expect(page.groups.last.groupId, 'p1');
+    });
+
+    test('search mantém o grupo remoto quando a fusão fica sem PDF', () async {
+      // Praise coberto pelo alias mas sem PDF no manifest desta instância e
+      // com o único PDF remoto coberto: `fromLouvores([])` não tem `.first`.
+      final remoteGroup = LouvorGroup.fromLouvores(
+        [_fusedCoveredPdf],
+        audioTracks: [_fusedTrack],
+      ).single;
+      final repository = _RecordingSearchRepository(
+        ColdigomSearchResult(
+          groups: [remoteGroup],
+          louvores: const [],
+          page: 1,
+          hasNextPage: false,
+        ),
+      );
+      final composite = CompositeCatalogSource(
+        plpcg: PlpcgCatalogSource(
+          catalog: const [],
+          index: PlpcgSearchIndex.build(const []),
+        ),
+        coldigom: ColdigomCatalogSource(searchRepository: repository),
+        aliases: ManifestMaterialAliases.fromLouvores(_fusedManifest),
+      );
+
+      final page = await composite.search(_query('firme'));
+
+      expect(page.groups.single, same(remoteGroup));
     });
   });
 

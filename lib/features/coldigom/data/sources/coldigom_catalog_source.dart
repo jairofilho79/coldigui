@@ -184,7 +184,10 @@ class ColdigomCatalogSource implements CatalogSource {
     if (materialIdKindOf(materialId) == MaterialKind.lyrics) {
       return findGroupById(materialId.substring('lyrics:'.length));
     }
-    final praiseId = coldigomPraiseIdFromPdfId(materialId);
+    // O material em cache sabe o seu praise; o path do id é fallback, porque
+    // ~1400 PDFs do coldigom têm `r2_key` na pasta de outro praise.
+    final praiseId =
+        louvores[materialId]?.praiseId ?? coldigomPraiseIdFromPdfId(materialId);
     if (praiseId == null) return null;
     return findGroupById(praiseId);
   }

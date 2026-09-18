@@ -75,7 +75,11 @@ class CompositeCatalogSource implements CatalogSource {
           if (!aliases.coversColdigomPdf(entry.pdfId)) entry.louvor,
     ];
     final pdfs = [...plpcg.louvoresOfGroup(praiseId), ...remotePdfs];
-    final base = LouvorGroup.fromLouvores(pdfs).first;
+    // Sem PDF nenhum (praise só de áudio/cifra cujo manifest ainda não tem a
+    // entrada) não há de onde tirar número/nome: o grupo remoto fica como está.
+    final groups = LouvorGroup.fromLouvores(pdfs);
+    if (groups.isEmpty) return group;
+    final base = groups.first;
     return LouvorGroup(
       groupId: praiseId,
       numero: base.numero,
