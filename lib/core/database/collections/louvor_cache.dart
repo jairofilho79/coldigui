@@ -24,4 +24,11 @@ class LouvorCache {
 
   /// Id curto de share — espelha [Louvor.shortId]; `null` quando ausente.
   String? shortId;
+
+  /// Id do praise coldigom — espelha [Louvor.praiseId]; `null` antes do
+  /// primeiro sync do manifest servido pelo coldigom.
+  String? praiseId;
+
+  /// Id do material coldigom — espelha [Louvor.materialId].
+  String? materialId;
 }

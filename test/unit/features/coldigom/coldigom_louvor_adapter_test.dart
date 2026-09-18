@@ -200,6 +200,30 @@ void main() {
         'k-yt',
       );
     });
+
+    test('toLouvores preenche praiseId e materialId do praise', () {
+      const praise = PraiseDetailDto(
+        id: 'praise-1',
+        name: 'Comigo habita',
+        number: '692',
+        rhythm: 'Balada',
+        materials: [
+          MaterialDto(
+            id: 'mat-1',
+            type: 'pdf',
+            r2Key: 'assets/praises/outro-praise/mat-1.pdf',
+          ),
+        ],
+      );
+
+      final louvor = ColdigomLouvorAdapter.toLouvores(praise).single;
+
+      expect(louvor.praiseId, 'praise-1');
+      expect(louvor.materialId, 'mat-1');
+      // O r2Key pode estar na pasta de outro praise (material movido): a
+      // identidade do grupo é o praiseId, não o path.
+      expect(louvor.effectiveGroupId, 'praise-1');
+    });
   });
 
   // Migrado de test/widget/features/coldigom/coldigom_material_sheet_test.dart

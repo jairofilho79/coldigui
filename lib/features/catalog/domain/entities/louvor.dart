@@ -3,7 +3,9 @@ import 'louvor_data_source.dart';
 import '../utils/louvor_group_id.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
-/// Entidade de domínio — louvor do manifest PLPCG.
+/// Entidade de domínio — um PDF do catálogo (manifest servido pelo coldigom
+/// ou material Coldigom nativo). [praiseId] agrupa materiais do mesmo louvor
+/// (ver [LouvorGroup]).
 ///
 /// Campos espelham o JSON de `louvores-manifest.json`.
 /// [searchTitleNorm], [searchContentTokens] e [searchCompactContent] são
@@ -24,6 +26,8 @@ class Louvor {
     this.source = LouvorDataSource.plpcg,
     this.materialKindId,
     this.shortId,
+    this.praiseId,
+    this.materialId,
   });
 
   /// Título do louvor (manifest `nome`).
@@ -67,8 +71,20 @@ class Louvor {
   /// ainda sem atribuição — aí o link de share cai no formato longo.
   final String? shortId;
 
-  /// `groupId` efetivo (manifest ou calculado).
+  /// Id do praise no coldigom — identidade do louvor lógico nos dois acervos.
+  ///
+  /// Manifest: vem do `/api/plpcg/manifest`; `null` no cache Isar anterior ao
+  /// primeiro sync pós-migração e em fixtures antigas. Coldigom: `praise.id`.
+  final String? praiseId;
+
+  /// Id do material no coldigom (nome do ficheiro sem extensão em
+  /// `assets/praises/<praiseId>/<materialId>.pdf`). `null` como [praiseId].
+  final String? materialId;
+
+  /// Identidade do louvor lógico: [praiseId] quando existe (um card por
+  /// praise, spec D3); senão o `groupId` do manifest; senão calculado.
   String get effectiveGroupId =>
+      praiseId ??
       LouvorGroupId.effective(groupId: groupId, numero: numero, nome: nome);
 
   /// Cria [Louvor] a partir do manifest com campos de busca pré-computados.
@@ -85,6 +101,8 @@ class Louvor {
     LouvorDataSource source = LouvorDataSource.plpcg,
     String? materialKindId,
     String? shortId,
+    String? praiseId,
+    String? materialId,
   }) {
     final normalizedNumero = LouvorNumeroNormalizer.normalize(numero);
     final searchTitleNorm = LouvorSearchTokens.normalize(nome);
@@ -110,6 +128,8 @@ class Louvor {
       source: source,
       materialKindId: materialKindId,
       shortId: shortId,
+      praiseId: praiseId,
+      materialId: materialId,
     );
   }
 }

@@ -2,9 +2,9 @@ import '../../domain/entities/louvor.dart';
 
 /// DTO de serialização do catálogo remoto → entidade [Louvor].
 ///
-/// Shape idêntico ao JSON de `/api/catalog/louvores` (Worker D1) e
-/// `louvores-manifest.json` legado. [groupId] é obrigatório no D1;
-/// omitido no JSON antigo → `''` (fallback via [LouvorGroupId.effective]).
+/// Shape idêntico ao JSON de `/api/plpcg/manifest` (coldigom) —
+/// `praiseId`/`materialId` presentes; o JSON legado do Worker
+/// `plpcg-catalog` os omitia.
 class LouvorDto {
   const LouvorDto({
     required this.nome,
@@ -15,6 +15,8 @@ class LouvorDto {
     required this.pdfId,
     this.groupId = '',
     this.shortId,
+    this.praiseId,
+    this.materialId,
   });
 
   final String nome;
@@ -31,6 +33,12 @@ class LouvorDto {
   /// `null` no catálogo antigo ou no material ainda não atribuído.
   final String? shortId;
 
+  /// Id do praise coldigom; `null` no catálogo antigo.
+  final String? praiseId;
+
+  /// Id do material coldigom; `null` no catálogo antigo.
+  final String? materialId;
+
   /// Parse do JSON do catálogo (`/api/catalog/louvores` ou manifest legado).
   factory LouvorDto.fromJson(Map<String, dynamic> json) => LouvorDto(
         nome: json['nome'] as String,
@@ -41,6 +49,8 @@ class LouvorDto {
         pdfId: json['pdfId'] as String,
         groupId: json['groupId'] as String? ?? '',
         shortId: json['shortId'] is String ? json['shortId'] as String : null,
+        praiseId: _nonEmptyString(json['praiseId']),
+        materialId: _nonEmptyString(json['materialId']),
       );
 
   /// Converte para entidade de domínio com tokens de busca pré-computados.
@@ -53,5 +63,15 @@ class LouvorDto {
         pdfId: pdfId,
         groupId: groupId,
         shortId: shortId,
+        praiseId: praiseId,
+        materialId: materialId,
       );
+}
+
+/// `String` não vazia (após `trim`) ou `null` — o manifest só deve mandar
+/// string, mas o parser não quebra com outro tipo.
+String? _nonEmptyString(Object? value) {
+  if (value is! String) return null;
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

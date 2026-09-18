@@ -177,6 +177,8 @@ class CatalogRepositoryImpl implements CatalogRepository {
           a.categoria != b.categoria ||
           a.classificacao != b.classificacao ||
           a.pdf != b.pdf ||
+          a.praiseId != b.praiseId ||
+          a.materialId != b.materialId ||
           a.shortId != b.shortId) {
         return false;
       }

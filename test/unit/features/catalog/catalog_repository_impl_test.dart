@@ -13,6 +13,7 @@ Louvor _louvor(
   String nome = 'Louvor',
   String numero = '001',
   String? shortId,
+  String? praiseId,
 }) => Louvor.fromManifest(
   nome: nome,
   numero: numero,
@@ -21,6 +22,7 @@ Louvor _louvor(
   pdf: '001.pdf',
   pdfId: pdfId,
   shortId: shortId,
+  praiseId: praiseId,
 );
 
 class _TestRemote extends CatalogRemoteDatasource {
@@ -370,6 +372,22 @@ void main() {
         );
         expect(local.saveCalls, 1);
         expect(local.store.single.shortId, '0000');
+      },
+    );
+
+    test(
+      'manifest com praiseId novo não é considerado idêntico ao cache',
+      () async {
+        final remote = _TestRemote(louvores: [_louvor('a', praiseId: 'p-a')]);
+        final local = _TestLocal()..store.add(_louvor('a'));
+        final prefs = await SharedPreferences.getInstance();
+        final repo = _repo(remote: remote, local: local, prefs: prefs);
+        final cached = await repo.loadCachedLouvores();
+
+        final outcome = await repo.syncManifest(cached: cached);
+
+        expect(outcome.cacheReplaced, isTrue);
+        expect(local.store.single.praiseId, 'p-a');
       },
     );
 

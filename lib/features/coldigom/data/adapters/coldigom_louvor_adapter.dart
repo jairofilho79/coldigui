@@ -48,6 +48,8 @@ abstract final class ColdigomLouvorAdapter {
           groupId: praise.id,
           source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
+          praiseId: praise.id,
+          materialId: material.id,
         ),
       );
     }
