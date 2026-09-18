@@ -6,11 +6,11 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
+import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
@@ -26,15 +26,10 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
   String? materialId,
   String? audioId,
 }) {
-  final lookup = ref.watch(catalogMaterialLookupProvider);
   return findSwapMaterialGroup(
     pdfId: materialId,
     audioId: audioId,
-    plpcgCatalog: ref.watch(louvoresManifestProvider).value?.louvores,
-    coldigomCache: lookup.coldigomLouvoresByPdfId,
-    audioCache: lookup.audioTracksById,
-    chordCache: lookup.chordsById,
-    gestureCache: lookup.gesturesById,
+    source: ref.watch(compositeCatalogSourceProvider),
   );
 }
 

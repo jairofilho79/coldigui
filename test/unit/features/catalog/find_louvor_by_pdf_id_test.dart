@@ -1,11 +1,15 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
+import 'package:coldigui/features/catalog/data/sources/composite_catalog_source.dart';
+import 'package:coldigui/features/catalog/data/sources/plpcg_catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
+import 'package:coldigui/features/catalog/domain/entities/manifest_material_aliases.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
+import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/domain/utils/coldigom_praise_id.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -113,30 +117,44 @@ void main() {
       numero: '001',
       nome: 'Grande Deus',
     );
+    // Praise partilhado pelo manifest — no modo único, um louvor PLPCG com
+    // faixa Coldigom liga-se pelo `praiseId` do alias (Task 8), não por uma
+    // coincidência crua de `groupId` (o `ColdigomLouvorAdapter` sempre grava
+    // `groupId: praise.id`, nunca o hash do PLPCG).
+    const sharedPraiseId = 'p-plpcg-shared';
     final plpcgPartitura = Louvor.fromManifest(
       nome: 'Grande Deus',
       numero: '001',
       categoria: 'Partitura',
       classificacao: 'ColAdultos',
       pdf: '001.pdf',
-      pdfId: 'plpcg-part',
+      // Precisa decodificar para `.pdf` — `_manifestLouvorFor` do composite
+      // gateia por `materialIdKindOf` antes do lookup pelo praiseId.
+      pdfId: encodePdfId('ColAdultos/plpcg-part.pdf'),
       groupId: sharedGroupId,
+      praiseId: sharedPraiseId,
     );
     final track = AudioTrack(
       audioId: 'a1',
       r2Key: 'k',
       nome: 'Grande Deus',
       numero: '001',
-      groupId: sharedGroupId,
+      groupId: sharedPraiseId,
       categoria: 'Áudio',
       classificacao: 'ColAdultos',
     );
 
+    CompositeCatalogSource plpcgSource({Map<String, AudioTrack> audio = const {}}) =>
+        CompositeCatalogSource(
+          plpcg: PlpcgCatalogSource(catalog: [plpcgPartitura]),
+          coldigom: ColdigomCatalogSource(audioTracks: audio),
+          aliases: ManifestMaterialAliases.fromLouvores([plpcgPartitura]),
+        );
+
     test('inclui áudio mesmo com um só PDF', () {
       final group = findSwapMaterialGroup(
         pdfId: plpcgPartitura.pdfId,
-        plpcgCatalog: [plpcgPartitura],
-        audioCache: {track.audioId: track},
+        source: plpcgSource(audio: {track.audioId: track}),
       );
       expect(group, isNotNull);
       expect(group!.totalMaterials, 2);
@@ -144,10 +162,7 @@ void main() {
 
     test('retorna null sem alternativa', () {
       expect(
-        findSwapMaterialGroup(
-          pdfId: plpcgPartitura.pdfId,
-          plpcgCatalog: [plpcgPartitura],
-        ),
+        findSwapMaterialGroup(pdfId: plpcgPartitura.pdfId, source: plpcgSource()),
         isNull,
       );
     });
@@ -177,8 +192,13 @@ void main() {
     test('inclui cifra do cache no grupo de um PDF coldigom', () {
       final group = findSwapMaterialGroup(
         pdfId: coldigomPdfId,
-        coldigomCache: {coldigomPdfId: coldigomPdf},
-        chordCache: {chordId: chord},
+        source: CompositeCatalogSource(
+          plpcg: const PlpcgCatalogSource(),
+          coldigom: ColdigomCatalogSource(
+            louvores: {coldigomPdfId: coldigomPdf},
+            chords: {chordId: chord},
+          ),
+        ),
       );
 
       expect(group, isNotNull);
@@ -189,8 +209,13 @@ void main() {
     test('resolve grupo a partir do id da cifra', () {
       final group = findSwapMaterialGroup(
         pdfId: chordId,
-        coldigomCache: {coldigomPdfId: coldigomPdf},
-        chordCache: {chordId: chord},
+        source: CompositeCatalogSource(
+          plpcg: const PlpcgCatalogSource(),
+          coldigom: ColdigomCatalogSource(
+            louvores: {coldigomPdfId: coldigomPdf},
+            chords: {chordId: chord},
+          ),
+        ),
       );
 
       expect(group, isNotNull);
@@ -203,18 +228,23 @@ void main() {
       final outroChordId = encodePdfId('assets/praises/p8/mat.chord');
       final group = findSwapMaterialGroup(
         pdfId: coldigomPdfId,
-        coldigomCache: {coldigomPdfId: coldigomPdf},
-        chordCache: {
-          outroChordId: ChordMaterial(
-            chordId: outroChordId,
-            r2Key: 'assets/praises/p8/mat.chord',
-            nome: 'Outro',
-            numero: '003',
-            groupId: 'p8',
-            categoria: 'Cifra',
-            classificacao: 'ColAdultos',
+        source: CompositeCatalogSource(
+          plpcg: const PlpcgCatalogSource(),
+          coldigom: ColdigomCatalogSource(
+            louvores: {coldigomPdfId: coldigomPdf},
+            chords: {
+              outroChordId: ChordMaterial(
+                chordId: outroChordId,
+                r2Key: 'assets/praises/p8/mat.chord',
+                nome: 'Outro',
+                numero: '003',
+                groupId: 'p8',
+                categoria: 'Cifra',
+                classificacao: 'ColAdultos',
+              ),
+            },
           ),
-        },
+        ),
       );
 
       expect(group, isNull);
