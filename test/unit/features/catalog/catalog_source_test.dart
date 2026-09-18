@@ -241,6 +241,26 @@ void main() {
     test('groupById devolve null para praise desconhecido', () async {
       expect(await _coldigomSource().groupById('p404'), isNull);
     });
+
+    test('partsOfGroup devolve os caches do praise sem montar grupo', () {
+      final parts = _coldigomSource(
+        youtube: {'p1': [_coldigomYoutube]},
+      ).partsOfGroup('p1');
+
+      expect(parts.pdfs.single.pdfId, _coldigomPdfId);
+      expect(parts.chords.single.chordId, _coldigomChordId);
+      expect(parts.audioTracks.single.audioId, _coldigomAudioId);
+      expect(parts.youtube.single.id, 'yt-1');
+      expect(parts.lyrics, isNull);
+      expect(parts.meta, isNull);
+      expect(parts.isEmpty, isFalse);
+    });
+
+    test('partsOfGroup de praise desconhecido é empty', () {
+      final parts = _coldigomSource().partsOfGroup('nope');
+      expect(parts.isEmpty, isTrue);
+      expect(_coldigomSource().partsOfGroup('').isEmpty, isTrue);
+    });
   });
 
   group('CompositeCatalogSource', () {

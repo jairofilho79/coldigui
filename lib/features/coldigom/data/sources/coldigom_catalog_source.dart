@@ -14,6 +14,45 @@ import '../../domain/repositories/coldigom_search_repository.dart';
 import '../../domain/search/coldigom_search_index.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
 
+/// Tudo o que os caches Coldigom têm de um praise, por tipo — o insumo que
+/// o `CompositeCatalogSource` funde com os PDFs do manifest (spec §5.1).
+final class ColdigomGroupParts {
+  const ColdigomGroupParts({
+    required this.pdfs,
+    required this.audioTracks,
+    required this.chords,
+    required this.gestures,
+    required this.youtube,
+    this.lyrics,
+    this.meta,
+  });
+
+  static const empty = ColdigomGroupParts(
+    pdfs: [],
+    audioTracks: [],
+    chords: [],
+    gestures: [],
+    youtube: [],
+  );
+
+  final List<Louvor> pdfs;
+  final List<AudioTrack> audioTracks;
+  final List<ChordMaterial> chords;
+  final List<GestureMaterial> gestures;
+  final List<YoutubeMaterial> youtube;
+  final LyricsMaterial? lyrics;
+  final ColdigomPraiseMetadata? meta;
+
+  /// Sem material endereçável nem letra. YouTube sozinho não sustenta um
+  /// grupo (não é endereçável); a letra sustenta (`lyrics:<praiseId>`).
+  bool get isEmpty =>
+      pdfs.isEmpty &&
+      audioTracks.isEmpty &&
+      chords.isEmpty &&
+      gestures.isEmpty &&
+      lyrics == null;
+}
+
 /// [CatalogSource] do acervo Coldigom sobre os caches em memória por tipo.
 ///
 /// O `groupId` Coldigom é o praise id, que também está no path de todo id do
@@ -71,45 +110,45 @@ class ColdigomCatalogSource implements CatalogSource {
     ];
   }
 
+  /// Caches do praise [praiseId], por tipo; [ColdigomGroupParts.empty] para
+  /// id vazio ou desconhecido. Nunca toca a rede.
+  ColdigomGroupParts partsOfGroup(String praiseId) {
+    if (praiseId.isEmpty) return ColdigomGroupParts.empty;
+    return ColdigomGroupParts(
+      pdfs: louvoresOfGroup(praiseId),
+      audioTracks: [
+        for (final track in audioTracks.values)
+          if (track.groupId == praiseId) track,
+      ],
+      chords: [
+        for (final chord in chords.values)
+          if (chord.groupId == praiseId) chord,
+      ],
+      gestures: [
+        for (final gesture in gestures.values)
+          if (gesture.groupId == praiseId) gesture,
+      ],
+      youtube: youtube[praiseId] ?? const [],
+      lyrics: lyrics[praiseId],
+      meta: praiseMeta[praiseId],
+    );
+  }
+
   /// Versão síncrona de [groupById] — os caches já estão em memória.
   ///
-  /// O grupo sai dos caches de PDF, cifra, áudio, gesto e letra. Devolve o
-  /// grupo mesmo com um material só — o corte "sem alternativa" é de quem
-  /// chama. Um praise que só tem link de YouTube continua `null`: YouTube
-  /// não é endereçável e não sustenta um grupo sozinho — já a letra sustenta
-  /// (ao contrário do YouTube, `lyrics:<praiseId>` é endereçável): é o caso
-  /// de um praise só com letra.
+  /// Devolve o grupo mesmo com um material só — o corte "sem alternativa" é
+  /// de quem chama. Um praise só com link de YouTube continua `null`
+  /// ([ColdigomGroupParts.isEmpty]).
   LouvorGroup? findGroupById(String groupId) {
-    if (groupId.isEmpty) return null;
-    final pdfs = louvoresOfGroup(groupId);
-    final tracks = [
-      for (final track in audioTracks.values)
-        if (track.groupId == groupId) track,
-    ];
-    final groupChords = [
-      for (final chord in chords.values)
-        if (chord.groupId == groupId) chord,
-    ];
-    final groupGestures = [
-      for (final gesture in gestures.values)
-        if (gesture.groupId == groupId) gesture,
-    ];
-    final groupLyrics = lyrics[groupId];
-    if (pdfs.isEmpty &&
-        tracks.isEmpty &&
-        groupChords.isEmpty &&
-        groupGestures.isEmpty &&
-        groupLyrics == null) {
-      return null;
-    }
-
+    final parts = partsOfGroup(groupId);
+    if (parts.isEmpty) return null;
     final groups = LouvorGroup.fromLouvores(
-      pdfs,
-      audioTracks: tracks,
-      chordMaterials: groupChords,
-      gestureMaterials: groupGestures,
-      youtubeMaterials: youtube[groupId] ?? const [],
-      lyricsByGroupId: groupLyrics == null ? null : {groupId: groupLyrics},
+      parts.pdfs,
+      audioTracks: parts.audioTracks,
+      chordMaterials: parts.chords,
+      gestureMaterials: parts.gestures,
+      youtubeMaterials: parts.youtube,
+      lyricsByGroupId: parts.lyrics == null ? null : {groupId: parts.lyrics!},
       coldigomMetaByGroupId: praiseMeta,
     );
     return groups.isEmpty ? null : groups.first;
