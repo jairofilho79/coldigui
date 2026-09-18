@@ -45,15 +45,11 @@ Future<void> warmupColdigomPraiseIds(
 
   final inFlight = <Future<void>>[];
   for (final praiseId in unique) {
-    final hasPdf = ref
-        .read(coldigomLouvoresCacheProvider)
-        .values
-        .any((l) => coldigomPraiseIdFromPdfId(l.pdfId) == praiseId);
-    final hasAudio = ref
-        .read(coldigomAudioTracksCacheProvider)
-        .values
-        .any((t) => t.groupId == praiseId);
-    if (hasPdf && hasAudio) continue;
+    // Meta só entra no cache junto com o detalhe completo do praise (busca,
+    // browse, hidratação, warmup): com ela, não há o que aquecer.
+    if (ref.read(coldigomPraiseMetaCacheProvider).containsKey(praiseId)) {
+      continue;
+    }
 
     late Future<void> task;
     task = _warmupOnePraise(
@@ -110,33 +106,30 @@ void warmupColdigomInBackground(
   );
 }
 
-/// Busca sob demanda os materiais do praise ao abrir o leitor, se o cache
-/// tiver só o PDF escolhido — habilita "Trocar material" na toolbar.
+/// Busca sob demanda os materiais do praise ao abrir o leitor — também para
+/// PDFs do manifest (`praiseId`): é assim que o sheet de um louvor legado
+/// ganha áudio/cifra/letra (spec §5.5).
 ///
 /// Best-effort: nunca lança para o chamador, mesmo com falha/timeout de
 /// rede (A3) — apenas registra via [debugPrint] e retorna.
 final ensureColdigomPraiseMaterialsCachedProvider =
     Provider<Future<void> Function(Louvor)>((ref) {
       return (Louvor louvor) async {
-        if (louvor.source != LouvorDataSource.coldigom) return;
-
-        final praiseId = coldigomPraiseIdFromPdfId(louvor.pdfId);
+        final praiseId =
+            louvor.praiseId ?? coldigomPraiseIdFromPdfId(louvor.pdfId);
         if (praiseId == null) return;
 
-        ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
-          louvor,
-        ]);
+        // Só materiais Coldigom nativos entram no cache Coldigom; um louvor
+        // do manifest já vive na fonte PLPCG e o composite funde os dois.
+        if (louvor.source == LouvorDataSource.coldigom) {
+          ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
+            louvor,
+          ]);
+        }
 
-        final cache = ref.read(coldigomLouvoresCacheProvider);
-        final siblingsInCache = cache.values
-            .where((l) => coldigomPraiseIdFromPdfId(l.pdfId) == praiseId)
-            .length;
-        final audioSiblings = ref
-            .read(coldigomAudioTracksCacheProvider)
-            .values
-            .where((t) => t.groupId == praiseId)
-            .length;
-        if (siblingsInCache > 1 || audioSiblings > 0) return;
+        if (ref.read(coldigomPraiseMetaCacheProvider).containsKey(praiseId)) {
+          return;
+        }
 
         await _warmupOnePraise(
           ref.read(coldigomRemoteDatasourceProvider),

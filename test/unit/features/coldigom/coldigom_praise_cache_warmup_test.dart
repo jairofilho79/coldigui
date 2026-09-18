@@ -7,6 +7,7 @@ import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dar
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_remote_datasource.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:dio/dio.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart';
@@ -94,6 +95,17 @@ Louvor _coldigomLouvor({required String praiseId, String pdf = 'm1.pdf'}) {
   );
 }
 
+Louvor _manifestLouvor({required String praiseId}) => Louvor.fromManifest(
+  nome: 'Firme nas promessas',
+  numero: '010',
+  categoria: 'Partitura',
+  classificacao: 'ColAdultos',
+  pdf: 'https://coldigom.test/assets/praises/$praiseId/m.pdf',
+  pdfId: 'legado-010',
+  praiseId: praiseId,
+  materialId: 'm',
+);
+
 void main() {
   group('ensureColdigomPraiseMaterialsCachedProvider', () {
     test('não propaga exceção de rede — apenas registra e retorna', () async {
@@ -164,9 +176,77 @@ void main() {
         expect(logs.any((l) => l.contains('[coldigom]')), isTrue);
       });
     });
+
+    test('louvor do manifest com praiseId aquece o praise sem entrar no cache Coldigom', () async {
+      final datasource = _ControllableColdigomDatasource(
+        (praiseId) async => _detailFor(praiseId),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(ensureColdigomPraiseMaterialsCachedProvider)(
+        _manifestLouvor(praiseId: 'pf'),
+      );
+
+      expect(datasource.calls, ['pf']);
+      expect(
+        container.read(coldigomPraiseMetaCacheProvider).keys,
+        contains('pf'),
+      );
+      expect(
+        container.read(coldigomLouvoresCacheProvider).containsKey('legado-010'),
+        isFalse,
+      );
+    });
+
+    test('não busca de novo quando o praise já tem meta em cache', () async {
+      final datasource = _ControllableColdigomDatasource(
+        (praiseId) async => _detailFor(praiseId),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(coldigomPraiseMetaCacheProvider.notifier).mergeMeta({
+        'pf': const ColdigomPraiseMetadata(name: 'Firme'),
+      });
+
+      await container.read(ensureColdigomPraiseMaterialsCachedProvider)(
+        _manifestLouvor(praiseId: 'pf'),
+      );
+
+      expect(datasource.calls, isEmpty);
+    });
   });
 
   group('warmupColdigomPraiseIds', () {
+    test('pula praise que já tem meta em cache', () async {
+      final datasource = _ControllableColdigomDatasource(
+        (praiseId) async => _detailFor(praiseId),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(coldigomPraiseMetaCacheProvider.notifier).mergeMeta({
+        'p-quente': const ColdigomPraiseMetadata(name: 'Quente'),
+      });
+
+      await container.read(_warmupRunnerProvider.notifier).run([
+        'p-quente',
+        'p-frio',
+      ]);
+
+      expect(datasource.calls, ['p-frio']);
+    });
     test('id cujo fetch falha não impede warmup dos demais ids', () async {
       final logs = <String>[];
       final originalDebugPrint = debugPrint;
