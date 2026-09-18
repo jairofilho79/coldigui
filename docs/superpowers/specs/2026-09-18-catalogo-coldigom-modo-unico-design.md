@@ -170,12 +170,14 @@ Também ganha as versões síncronas `findGroupById`/`findGroupForMaterial` (os 
 
 ## 9. Validação manual (prod v2, pós-deploy)
 
+0. Verificar em devtools o preflight `OPTIONS` de `/api/plpcg/manifest*`: `Access-Control-Allow-Headers` inclui `If-None-Match` e `Access-Control-Expose-Headers` inclui `ETag` — verificado com `curl` em 2026-09-18: ok.
 1. Abrir PDF de playlist antiga (id legado) e de link `?s=`.
 2. Abrir playlist recente com id Coldigom de material coberto.
 3. Sheet de materiais de louvor do manifest mostra áudio/cifra após warmup.
 4. Busca «a ti senhor»: um card, remoto em «Atualizado».
 5. Primeira configuração offline de «Gestos em Gravura» (253) até o fim; contadores da tela offline iguais antes/depois do primeiro sync para o que já estava baixado.
 6. `window.__plpcgPerf` / rede: PDFs saem de `coldigom-api…/assets/praises/…`, sem chamadas a `plpcg.com/assets`.
+7. Abrir entrada de playlist recente com id Coldigom após boot frio: o carrossel destaca o chip tocado e a Lista ao Vivo envia a entrada certa (a rota leva o id pedido; o alias só resolve o louvor).
 
 ## 10. Docs e entrega
 
@@ -184,7 +186,7 @@ Também ganha as versões síncronas `findGroupById`/`findGroupForMaterial` (os 
 
 ## 11. Follow-ups (fora desta entrega)
 
-- **Lista ao Vivo:** traduzir entrada legada → id Coldigom (`praiseId`/`materialId` do manifest) e deixar listas antigas subir ao vivo.
+- **Lista ao Vivo:** traduzir entrada legada → id Coldigom (`praiseId`/`materialId` do manifest) e deixar listas antigas subir ao vivo. Nota: um card fundido adiciona o id **legado** ao ser tocado, então uma lista ativa que já tenha o id Coldigom X do mesmo material pode acabar com X e L lado a lado — a tradução legado ↔ Coldigom deste follow-up é o que os reconcilia.
 - **Share:** rever o gate «só PLPCG puro» à luz da fusão (entradas Coldigom continuam sem `shortId`).
 - **`/api/plpcg/catalog`:** se o patch entrar no coldigom, a hidratação existente cobre e o filtro do composite continua correto.
 - **Worker `plpcg-catalog`:** congelar/remover `/api/catalog/*` quando não houver builds antigas em uso.
@@ -194,7 +196,7 @@ Também ganha as versões síncronas `findGroupById`/`findGroupForMaterial` (os 
 
 Quatro desvios decididos ao planear (plano `2026-09-18-catalogo-coldigom-modo-unico.md`, «Desvios do spec»), implementados assim:
 
-1. **§5.3 — `ColdigomCacheWriter` não muda.** O writer teria de ler o manifest (`louvoresManifestProvider`), que arranca Isar/rede em todo teste que toca o writer. Quem exclui PDFs cobertos é o `CompositeCatalogSource` ao fundir (ele já tem os aliases). Efeito visível idêntico: uma entrada por material (D4). Task 7.
+1. **§5.3 — `ColdigomCacheWriter` não muda.** O writer teria de ler o manifest (`louvoresManifestProvider`), que arranca Isar/rede em todo teste que toca o writer. Quem exclui PDFs cobertos é o `CompositeCatalogSource` ao fundir (ele já tem os aliases). Efeito visível idêntico: uma entrada por material (D4). Task 7. Consequência: com este desvio os PDFs Coldigom cobertos **entram** no `coldigomLouvoresCache` em memória após busca/warmup — o filtro do composite é o que os mantém fora do grupo fundido, e por isso não é redundante.
 2. **§4.5 — o alias não é `coldigomPdfIdFor(praiseId, materialId)`.** Medido em 2026-09-18: 64 entradas do manifest (e 1473 PDFs do coldigom) têm `r2_key` numa pasta de **outro** praise (material movido). O id Coldigom correto é `encodePdfId(r2Key)` e o `r2Key` é exatamente o path do campo `pdf` depois da base — para os 4429 (0 divergências). Logo: `coldigomPdfIdFromManifestPdf(pdf)`. Task 5.
 3. **§6.2 — sem botão «retomar».** Depois de cancelar, o botão «Baixar selecionados» já é a retomada (`DownloadMissingPdfs` pré-filtra o que existe). Task 12.
 4. **§4.2 — o adapter Coldigom também preenche `praiseId`/`materialId`.** Assim `effectiveGroupId` é o `praiseId` nos dois acervos, sem depender do path do `pdfId` (que pode apontar para outro praise, ver desvio 2). Task 2.
