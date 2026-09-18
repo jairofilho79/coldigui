@@ -119,16 +119,23 @@ class _ControllablePlayer extends AudioPlayer {
   }
 }
 
-AudioTrack _track(String id, {Duration? duration}) => AudioTrack(
-  audioId: id,
-  r2Key: 'assets/praises/p1/$id.mp3',
-  nome: id.toUpperCase(),
-  numero: '001',
-  groupId: 'p1',
-  categoria: 'Áudio',
-  classificacao: 'Coro',
-  duration: duration,
-);
+/// URL absoluta usada nas faixas "de rede" dos testes abaixo —
+/// `ColdigomAssetUrl.directUrlForKey` devolve chaves já absolutas sem
+/// alteração, então isto exercita o fallback de rede sem depender do valor
+/// de compilação de `ColdigomApiConfig.baseUrl` (vazio no VM de CI).
+const _remoteTrackUrl = 'https://cdn.test/assets/praises/p1/a2.mp3';
+
+AudioTrack _track(String id, {Duration? duration, String? r2Key}) =>
+    AudioTrack(
+      audioId: id,
+      r2Key: r2Key ?? 'assets/praises/p1/$id.mp3',
+      nome: id.toUpperCase(),
+      numero: '001',
+      groupId: 'p1',
+      categoria: 'Áudio',
+      classificacao: 'Coro',
+      duration: duration,
+    );
 
 class _Connectivity implements DeviceConnectivity {
   _Connectivity(this.online);
@@ -220,7 +227,7 @@ void main() {
 
     await container.read(audioPlayerSessionProvider.notifier).playQueue([
       _track('a1'),
-      _track('a2'),
+      _track('a2', r2Key: _remoteTrackUrl),
     ]);
 
     final sources = player.setSourcesCalls.single;
@@ -228,7 +235,7 @@ void main() {
       uriOf(sources[0]),
       Uri.file('/docs/plpcg_audio/assets/praises/p1/a1.mp3'),
     );
-    expect(uriOf(sources[1]).scheme, 'https');
+    expect(uriOf(sources[1]), Uri.parse(_remoteTrackUrl));
     expect(container.read(audioPlayerSessionProvider).notDownloaded, isFalse);
     // Faixa inicial local, faixa 2 não-inicial: nenhuma das duas precisa
     // perguntar a conectividade (fix round 1, finding 3).
@@ -285,7 +292,7 @@ void main() {
 
     await container.read(audioPlayerSessionProvider.notifier).playQueue([
       _track('a1'),
-      _track('a2'),
+      _track('a2', r2Key: _remoteTrackUrl),
     ]);
 
     final state = container.read(audioPlayerSessionProvider);
@@ -293,7 +300,7 @@ void main() {
     expect(state.errorMessage, isNull);
     final sources = player.setSourcesCalls.single;
     expect(uriOf(sources[0]), Uri.file('/x/a1.mp3'));
-    expect(uriOf(sources[1]).scheme, 'https');
+    expect(uriOf(sources[1]), Uri.parse(_remoteTrackUrl));
     // Faixa 2 (não-inicial) cai direto pra URL de rede sem perguntar a
     // conectividade — só a inicial precisaria, e ela achou local.
     expect(connectivity.calls, 0);
@@ -341,13 +348,18 @@ void main() {
 
     final first = notifier.playQueue([_track('a1')]);
     // `_applyQueue` da 1ª chamada já suspendeu no `await lookup('a1')`.
-    final second = notifier.playQueue([_track('a2')]);
+    final second = notifier.playQueue([
+      _track('a2', r2Key: _remoteTrackUrl),
+    ]);
     // idem pra 2ª, em `await lookup('a2')` — a geração agora é a dela.
 
     repo.pendingLookups['a2']!.complete(null);
     await second;
     expect(player.setSourcesCalls.length, 1);
-    expect(uriOf(player.setSourcesCalls.single.single).scheme, 'https');
+    expect(
+      uriOf(player.setSourcesCalls.single.single),
+      Uri.parse(_remoteTrackUrl),
+    );
 
     repo.pendingLookups['a1']!.complete(null);
     await first;

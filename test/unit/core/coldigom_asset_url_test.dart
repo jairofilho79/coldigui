@@ -30,7 +30,8 @@ void main() {
     test('cai para URL direta quando apiBase vazio', () {
       final url = ColdigomAssetUrl.fetchUrlForKey(key, apiBase: '');
       expect(url, endsWith('/assets/praises/abc/def.chord'));
-      expect(url, startsWith('https://'));
+      expect(url, isNot(contains('/api/coldigom/')));
+      expect(url, ColdigomAssetUrl.directUrlForKey(key));
     });
 
     test('devolve a propria chave quando ja e URL absoluta', () {
