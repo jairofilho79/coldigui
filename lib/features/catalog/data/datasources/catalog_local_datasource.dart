@@ -4,6 +4,10 @@ import '../../../../core/database/collections/louvor_cache.dart';
 import '../../domain/entities/louvor.dart';
 import '../mappers/louvor_cache_mapper.dart';
 
+/// Linha enxuta do cache para o download em massa (UC-09/UC-10): `pdfId`,
+/// `categoria` (filtro por material) e `pdf` (URL absoluta do manifest).
+typedef CatalogPdfRow = ({String pdfId, String categoria, String pdf});
+
 /// Cache local Isar do catálogo (ADR-001) — UC-01/12.
 ///
 /// Persiste e lê [Louvor] via schema [LouvorCache] para busca offline.
@@ -49,12 +53,16 @@ class CatalogLocalDatasource {
     return {for (final cache in caches) cache.pdfId: cache.categoria};
   }
 
-  /// Mapa pdfId → [Louvor.pdf] (URL absoluta no manifest servido pelo
-  /// coldigom) para o download em massa (UC-09/UC-10).
-  Future<Map<String, String>> loadPdfIdToPdfMap() async {
+  /// Linhas ([CatalogPdfRow]) de todos os PDFs do cache, numa só leitura —
+  /// o download em massa deriva daqui o filtro por categoria e a URL de cada
+  /// PDF sem varrer `louvorCaches` duas vezes (UC-09/UC-10).
+  Future<List<CatalogPdfRow>> loadPdfRows() async {
     final isar = _isar;
-    if (isar == null) return const {};
+    if (isar == null) return const [];
     final caches = isar.louvorCaches.where().findAll();
-    return {for (final cache in caches) cache.pdfId: cache.pdf};
+    return [
+      for (final cache in caches)
+        (pdfId: cache.pdfId, categoria: cache.categoria, pdf: cache.pdf),
+    ];
   }
 }

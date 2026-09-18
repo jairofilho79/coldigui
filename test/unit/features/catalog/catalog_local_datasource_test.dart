@@ -80,4 +80,25 @@ void main() {
     expect(loaded.single.groupId, '003:clamo-a-ti');
     expect(loaded.single.effectiveGroupId, '003:clamo-a-ti');
   });
+
+  test('loadPdfRows devolve pdfId, categoria e pdf de cada linha', () async {
+    await datasource.saveLouvores([
+      _sampleLouvor(pdfId: 'id-1', numero: '001'),
+      _sampleLouvor(pdfId: 'id-2', numero: '002'),
+    ]);
+
+    final rows = await datasource.loadPdfRows();
+    expect(rows, hasLength(2));
+    expect(
+      rows.map((r) => (r.pdfId, r.categoria, r.pdf)),
+      containsAll([
+        ('id-1', 'Partitura', '001.pdf'),
+        ('id-2', 'Partitura', '002.pdf'),
+      ]),
+    );
+    expect(
+      await const CatalogLocalDatasource.unavailable().loadPdfRows(),
+      isEmpty,
+    );
+  });
 }

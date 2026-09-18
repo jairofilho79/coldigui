@@ -60,8 +60,11 @@ class DownloadMissingPdfs {
     /// O que já foi gravado fica — a próxima chamada pré-filtra.
     CancelToken? cancelToken,
   }) async {
-    final allPdfIds = await _collectPdfIds(materialCategories);
-    final pdfById = await _catalogLocal.loadPdfIdToPdfMap();
+    // Uma só leitura de `louvorCaches`: dela saem os ids filtrados por
+    // categoria e a URL de cada PDF.
+    final rows = await _catalogLocal.loadPdfRows();
+    final allPdfIds = _collectPdfIds(rows, materialCategories);
+    final pdfById = {for (final row in rows) row.pdfId: row.pdf};
     final validPdfIds = await _collectValidPdfIds();
     final missingPdfIds = [
       for (final pdfId in allPdfIds)
@@ -135,23 +138,26 @@ class DownloadMissingPdfs {
     return validPdfIds;
   }
 
-  Future<List<String>> _collectPdfIds(Set<String>? materialCategories) async {
+  /// Ids únicos de [rows] (o cache pode repetir um `pdfId` em duas entradas)
+  /// filtrados por [materialCategories]; `null` = todas as categorias.
+  List<String> _collectPdfIds(
+    List<CatalogPdfRow> rows,
+    Set<String>? materialCategories,
+  ) {
     if (materialCategories != null && materialCategories.isEmpty) {
       return const [];
     }
 
-    final pdfIdToCategoria = await _catalogLocal.loadPdfIdToCategoriaMap();
-
-    if (materialCategories == null) {
-      return pdfIdToCategoria.keys.toList();
+    final pdfIds = <String>{};
+    for (final row in rows) {
+      if (materialCategories != null &&
+          !materialCategories.contains(
+            OfflineMaterialResolver.toUiMaterial(row.categoria),
+          )) {
+        continue;
+      }
+      pdfIds.add(row.pdfId);
     }
-
-    return [
-      for (final entry in pdfIdToCategoria.entries)
-        if (materialCategories.contains(
-          OfflineMaterialResolver.toUiMaterial(entry.value),
-        ))
-          entry.key,
-    ];
+    return pdfIds.toList();
   }
 }
