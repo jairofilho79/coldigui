@@ -10,7 +10,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
@@ -71,7 +70,6 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       nome: widget.group.nome,
       categoria: louvor.categoria,
       classificacao: louvor.classificacao,
-      source: louvor.source,
     );
   }
 
@@ -311,7 +309,6 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
             nome: widget.group.nome,
             categoria: hasAudio ? 'Áudio' : '',
             classificacao: singleAudio?.classificacao ?? '',
-            source: singleAudio?.source ?? LouvorDataSource.coldigom,
           );
 
     // C5: a linha de metadados do card mostra os ícones por tipo de material

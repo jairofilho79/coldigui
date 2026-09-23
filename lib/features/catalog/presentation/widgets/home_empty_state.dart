@@ -8,7 +8,6 @@ import '../../../carousel/domain/entities/carousel_item.dart';
 import '../../../carousel/presentation/widgets/carousel_louvor_chip.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/catalog_material.dart';
-import '../../domain/entities/louvor_data_source.dart';
 import '../providers/catalog_filters_provider.dart';
 import '../providers/catalog_material_lookup_provider.dart';
 import '../providers/home_search_state.dart';
@@ -60,47 +59,36 @@ CatalogMaterial? _resolveMaterial(CatalogMaterialLookup lookup, String id) {
 }
 
 /// Adapta um [CatalogMaterial] já resolvido para o `item` que
-/// [CarouselLouvorChip] espera — mesmo chip da barra de playlist do leitor
-/// (C6): dá de graça a cor por [LouvorDataSource] (vermelho PLPCG / preto
-/// Coldigom), a borda dourada e a linha "classificação · categoria".
+/// [CarouselLouvorChip] espera — o mesmo chip da barra de playlist do leitor
+/// (C6): a borda dourada e a linha "classificação · categoria" vêm de graça.
 CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
-  final (numero, nome, classificacao, source) = switch (material) {
+  final (numero, nome, classificacao) = switch (material) {
     PdfMaterial(:final louvor) => (
       louvor.numero,
       louvor.nome,
       louvor.classificacao,
-      louvor.source,
     ),
     ChordMaterialRef(:final chord) => (
       chord.numero,
       chord.nome,
       chord.classificacao,
-      chord.source,
     ),
     GestureMaterialRef(:final gesture) => (
       gesture.numero,
       gesture.nome,
       gesture.classificacao,
-      gesture.source,
     ),
     AudioMaterial(:final track) => (
       track.numero,
       track.nome,
       track.classificacao,
-      track.source,
     ),
     YoutubeMaterialRef(material: final youtube) => (
       youtube.numero,
       youtube.nome,
       youtube.classificacao,
-      youtube.source,
     ),
-    LyricsMaterial(:final numero, :final nome) => (
-      numero,
-      nome,
-      '',
-      LouvorDataSource.coldigom,
-    ),
+    LyricsMaterial(:final numero, :final nome) => (numero, nome, ''),
   };
   return CarouselItem(
     materialId: material.id,
@@ -110,7 +98,6 @@ CarouselItem _toCarouselItem(CatalogMaterial material, int index) {
     nome: nome,
     categoria: material.categoria,
     classificacao: classificacao,
-    source: source,
   );
 }
 

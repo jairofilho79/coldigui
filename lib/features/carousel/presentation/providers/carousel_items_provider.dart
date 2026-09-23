@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
 import '../../domain/entities/carousel_item.dart';
@@ -10,7 +9,7 @@ import 'carousel_focused_index_provider.dart';
 /// em que estão na lista (spec 2026-09-12, D1: sem faces).
 ///
 /// Derivação pura de `activeEntriesProvider` + o lookup síncrono por id
-/// (manifest PLPCG e caches Coldigom) — A4: nenhum mapa O(catálogo) por
+/// (catálogo) — A4: nenhum mapa O(catálogo) por
 /// mutação; o carousel não tem estado próprio (D3). `index` é a posição na
 /// lista inteira, então continua válido nos filtros abaixo.
 final carouselItemsProvider = Provider<List<CarouselItem>>((ref) {
@@ -76,7 +75,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
         nome: track.nome,
         categoria: track.categoria,
         classificacao: track.classificacao,
-        source: track.source,
       );
     }
     return CarouselItem(
@@ -88,7 +86,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
       nome: fallbackCarouselNome(entry.id),
       categoria: '',
       classificacao: '',
-      source: louvorDataSourceFromPdfId(entry.id),
     );
   }
 
@@ -103,7 +100,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
       nome: chord.nome,
       categoria: chord.categoria,
       classificacao: chord.classificacao,
-      source: chord.source,
     );
   }
 
@@ -118,7 +114,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
       nome: gesture.nome,
       categoria: gesture.categoria,
       classificacao: gesture.classificacao,
-      source: gesture.source,
     );
   }
 
@@ -133,7 +128,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
       nome: louvor.nome,
       categoria: louvor.categoria,
       classificacao: louvor.classificacao,
-      source: louvor.source,
     );
   }
 
@@ -146,7 +140,6 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
     nome: fallbackCarouselNome(entry.id),
     categoria: '',
     classificacao: '',
-    source: louvorDataSourceFromPdfId(entry.id),
   );
 }
 

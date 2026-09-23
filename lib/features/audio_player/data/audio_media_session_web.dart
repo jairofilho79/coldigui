@@ -5,6 +5,7 @@ import 'dart:js_interop_unsafe';
 import 'package:web/web.dart' hide AudioTrack;
 
 import '../domain/entities/audio_track.dart';
+import '../domain/utils/audio_media_artist.dart';
 import 'audio_media_session_stub.dart';
 
 /// Media Session + Audio Session (Safari) + reclaim ao voltar do background.
@@ -46,9 +47,7 @@ class AudioMediaSessionController {
     window.navigator.mediaSession.metadata = MediaMetadata(
       MediaMetadataInit(
         title: track.categoria.isNotEmpty ? track.categoria : track.nome,
-        artist: track.author.isNotEmpty
-            ? track.author
-            : (track.numero.isNotEmpty ? track.numero : 'PLPCG'),
+        artist: audioMediaArtist(track),
         album: track.nome,
       ),
     );

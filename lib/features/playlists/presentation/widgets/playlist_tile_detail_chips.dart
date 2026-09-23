@@ -1,4 +1,3 @@
-import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart'
@@ -136,7 +135,6 @@ class PlaylistTileDetailChips extends ConsumerWidget {
       nome: track?.nome ?? fallbackCarouselNome(entry.id),
       categoria: track?.categoria ?? '',
       classificacao: track?.classificacao ?? '',
-      source: track?.source ?? louvorDataSourceFromPdfId(entry.id),
     );
   }
 
@@ -159,11 +157,9 @@ class PlaylistTileDetailChips extends ConsumerWidget {
         nome: louvor.nome,
         categoria: louvor.categoria,
         classificacao: louvor.classificacao,
-        source: louvor.source,
       );
     }
 
-    final inferredSource = louvorDataSourceFromPdfId(pdfId);
     final dashIndex = label.indexOf(' — ');
     if (dashIndex > 0) {
       return CarouselItem(
@@ -175,7 +171,6 @@ class PlaylistTileDetailChips extends ConsumerWidget {
         nome: label.substring(dashIndex + 3).trim(),
         categoria: '',
         classificacao: '',
-        source: inferredSource,
       );
     }
 
@@ -188,7 +183,6 @@ class PlaylistTileDetailChips extends ConsumerWidget {
       nome: label,
       categoria: '',
       classificacao: '',
-      source: inferredSource,
     );
   }
 }

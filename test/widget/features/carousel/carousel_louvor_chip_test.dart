@@ -1,5 +1,4 @@
 import 'package:coldigui/core/theme/color_extensions.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -174,27 +173,18 @@ void main() {
     await tester.pumpWidget(_wrapChip(320));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('chuva de bênçãos'),
-      findsNothing,
-    );
+    expect(find.textContaining('chuva de bênçãos'), findsNothing);
   });
 
   testWidgets('com lyricsSnippet, o trecho aparece abaixo do título', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _wrapChip(
-        320,
-        lyricsSnippet: '…e a chuva de bênçãos cai sobre nós…',
-      ),
+      _wrapChip(320, lyricsSnippet: '…e a chuva de bênçãos cai sobre nós…'),
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('chuva de bênçãos'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('chuva de bênçãos'), findsOneWidget);
   });
 
   testWidgets('lyricsSnippet vazio não desenha a linha do trecho', (
@@ -271,46 +261,41 @@ void main() {
     },
   );
 
-  testWidgets(
-    'lyricsSnippet longo trunca em uma linha só, com reticências',
-    (tester) async {
-      const longSnippet =
-          'este é um trecho de letra propositalmente bem mais longo do que '
-          'a largura disponível do chip para forçar o truncamento em uma '
-          'única linha';
-      await tester.pumpWidget(
-        _wrapChip(160, lyricsSnippet: longSnippet),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('lyricsSnippet longo trunca em uma linha só, com reticências', (
+    tester,
+  ) async {
+    const longSnippet =
+        'este é um trecho de letra propositalmente bem mais longo do que '
+        'a largura disponível do chip para forçar o truncamento em uma '
+        'única linha';
+    await tester.pumpWidget(_wrapChip(160, lyricsSnippet: longSnippet));
+    await tester.pumpAndSettle();
 
-      final snippetText = tester
-          .widgetList<Text>(find.byType(Text))
-          .singleWhere((widget) => widget.data == longSnippet);
+    final snippetText = tester
+        .widgetList<Text>(find.byType(Text))
+        .singleWhere((widget) => widget.data == longSnippet);
 
-      expect(snippetText.maxLines, 1);
-      expect(snippetText.overflow, TextOverflow.ellipsis);
-    },
-  );
+    expect(snippetText.maxLines, 1);
+    expect(snippetText.overflow, TextOverflow.ellipsis);
+  });
 
-  testWidgets('chip coldigom usa fundo preto', (tester) async {
-    const coldigomItem = CarouselItem(
+  testWidgets('chip usa AppColors.title para qualquer material', (
+    tester,
+  ) async {
+    const item = CarouselItem(
       materialId: 'coldigom-id',
       index: 0,
       numero: '031',
       nome: 'Sal da terra',
       categoria: 'Partitura',
       classificacao: 'Country',
-      source: LouvorDataSource.coldigom,
     );
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: SizedBox(
-              width: 360,
-              child: CarouselLouvorChip(item: coldigomItem),
-            ),
+            child: SizedBox(width: 360, child: CarouselLouvorChip(item: item)),
           ),
         ),
       ),
@@ -324,6 +309,6 @@ void main() {
       ),
     );
     final decoration = container.decoration! as BoxDecoration;
-    expect(decoration.color, AppColors.chipColdigom);
+    expect(decoration.color, AppColors.title);
   });
 }

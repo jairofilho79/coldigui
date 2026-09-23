@@ -16,6 +16,7 @@ import '../../data/audio_web_unlock.dart';
 import '../../data/datasources/audio_playback_position_store.dart';
 import '../../data/web_audio_source_resolver.dart';
 import '../../domain/entities/audio_track.dart';
+import '../../domain/utils/audio_media_artist.dart';
 import '../../domain/utils/audio_track_url.dart';
 import 'audio_player_position_provider.dart';
 
@@ -648,11 +649,7 @@ class AudioPlayerSessionNotifier extends Notifier<AudioPlayerSessionState> {
                   ? tracks[i].categoria
                   : tracks[i].nome,
               album: tracks[i].nome,
-              artist: tracks[i].author.isNotEmpty
-                  ? tracks[i].author
-                  : (tracks[i].numero.isNotEmpty
-                        ? tracks[i].numero
-                        : 'Coldigom'),
+              artist: audioMediaArtist(tracks[i]),
               extras: {'groupId': tracks[i].groupId, 'r2Key': tracks[i].r2Key},
             ),
           ),

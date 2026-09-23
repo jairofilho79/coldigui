@@ -1,4 +1,3 @@
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/core/presentation/widgets/highlighted_text.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
@@ -224,9 +223,7 @@ class CarouselLouvorChip extends StatelessWidget {
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)
         : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
-    final backgroundColor = item.source == LouvorDataSource.coldigom
-        ? AppColors.chipColdigom
-        : AppColors.title;
+    const backgroundColor = AppColors.title;
 
     final l10n = AppLocalizations.of(context);
     final body = Padding(

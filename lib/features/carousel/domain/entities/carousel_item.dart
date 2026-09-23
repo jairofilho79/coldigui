@@ -1,5 +1,4 @@
 import '../../../../core/utils/material_id_kind.dart';
-import '../../../catalog/domain/entities/louvor_data_source.dart';
 import '../../../playlists/domain/entities/active_entry.dart';
 
 export '../../../../core/utils/material_id_kind.dart' show MaterialKind;
@@ -8,7 +7,7 @@ export '../../../../core/utils/material_id_kind.dart' show MaterialKind;
 ///
 /// Deixou de ser uma linha persistida: é uma **view** de `ActiveEntry` da
 /// lista ativa (sem faces, spec 2026-09-12 D1 — PDF, cifra, gesto e áudio na
-/// mesma lista), enriquecida com os metadados do manifest/caches.
+/// mesma lista), enriquecida com os metadados do catálogo.
 /// [index] é a posição **na lista inteira** (0..n-1) e [key] é a chave
 /// estável por ocorrência — duas ocorrências do mesmo louvor têm a mesma
 /// [materialId] e chaves diferentes.
@@ -26,7 +25,6 @@ class CarouselItem {
     required this.nome,
     required this.categoria,
     required this.classificacao,
-    this.source = LouvorDataSource.plpcg,
   }) : kind = kind ?? MaterialKind.pdf,
        key = key ?? materialId;
 
@@ -53,9 +51,6 @@ class CarouselItem {
 
   /// Classificação normalizada (ex.: ColAdultos).
   final String classificacao;
-
-  /// Origem dos metadados — define cor do chip na UI.
-  final LouvorDataSource source;
 
   /// Rótulo legado — tipicamente `numero — nome` (folheto UC-08).
   String get label => numero.isEmpty ? nome : '$numero — $nome';
