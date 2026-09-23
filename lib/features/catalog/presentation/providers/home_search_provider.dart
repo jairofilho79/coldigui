@@ -3,10 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/connectivity_stream_provider.dart';
-import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
-import '../../data/providers/plpcg_catalog_source_provider.dart';
-import '../../data/sources/composite_catalog_source.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/usecases/matches_catalog_filters.dart';
@@ -14,7 +11,6 @@ import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
 import 'known_praise_ids_provider.dart';
-import 'manifest_material_aliases_provider.dart';
 
 /// Estado da busca e filtros na Home (UC-01 + UC-02 + pesquisa híbrida §6).
 ///
@@ -22,8 +18,8 @@ import 'manifest_material_aliases_provider.dart';
 /// ```
 /// homeSearchQueryProvider (texto cru)
 ///   → homeSearchDebouncedQueryProvider (300 ms)
-///       ├→ homeLocalSearchProvider   (PLPCG, depois Coldigom local fora do manifest; filtros)
-///       └→ homeRemoteSearchProvider((query, 1))  (Coldigom, valida; só com rede)
+///       ├→ homeLocalSearchProvider   (índice do catálogo + filtros)
+///       └→ homeRemoteSearchProvider((query, 1))  (valida e traz «novos»; só com rede)
 ///             → homeSearchStateProvider → HomeSearchResultsSliver
 /// ```
 /// Sync URL: [homeSearchUrlSyncQueryProvider] + [catalogFiltersProvider]
@@ -38,36 +34,26 @@ final homeSearchQueryProvider = NotifierProvider<HomeSearchQuery, String>(
 final homeSearchDebouncedQueryProvider =
     NotifierProvider<HomeSearchDebouncer, String>(HomeSearchDebouncer.new);
 
-/// Resultados locais da query + filtros correntes — **síncronos**, PLPCG
-/// primeiro e Coldigom depois, sem os praises que o manifest já cobre
-/// (spec §5.2).
+/// Resultados locais da query + filtros correntes — **síncronos**, do índice
+/// do catálogo (`ColdigomSearchIndex.search`: número exato → título exato →
+/// parcial) filtrados por `matchesCatalogFilters` (spec fim-fonte §2.4).
 ///
-/// Observa manifest (via [plpcgCatalogSourceProvider]), o índice Coldigom
-/// hidratado (via [coldigomCatalogSourceProvider]), query e filtros: um
-/// refresh de manifest, um sync do catálogo Coldigom ou um chip de filtro
-/// re-derivam só esta lista, sem tocar a rede. Os filtros do catálogo valem
-/// para toda a lista (`matchesCatalogFilters`).
+/// Observa o índice hidratado, a query e os filtros: um sync do catálogo ou
+/// um chip re-derivam só esta lista, sem tocar a rede.
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
-  final plpcg = ref.watch(plpcgCatalogSourceProvider);
-  final coldigom = ref.watch(coldigomCatalogSourceProvider);
-  final catalogQuery = CatalogQuery(text: query);
-  final merged = mergeLocalSearchResults(
-    plpcg: plpcg.searchLocal(catalogQuery),
-    coldigom: coldigom.searchLocal(catalogQuery),
-    manifestPraiseIds: ref.watch(manifestMaterialAliasesProvider).praiseIds,
-  );
-  if (filters.isEmpty) return merged;
+  final results = ref.watch(coldigomSearchIndexProvider).search(query);
+  if (filters.isEmpty) return results;
   return [
-    for (final group in merged)
+    for (final group in results)
       if (matchesCatalogFilters(group, filters)) group,
   ];
 });
 
 /// Estado único da busca da Home — o que os widgets observam.
 ///
-/// A lista é a local (PLPCG + Coldigom do índice); o remoto só valida (O15):
+/// A lista é a local (índice do catálogo); o remoto só valida (O15):
 /// sem rede nem é instanciado (`offline`), com rede o que ele trouxer a mais
 /// entra em `newGroups`, no fim, na ordem remota.
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {

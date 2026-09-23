@@ -14,6 +14,7 @@ import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -113,11 +114,20 @@ List<Override> _homeSearchTestOverrides({
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
-    // Acervo vazio: estes testes medem debounce/eco de URL sobre a busca PLPCG.
-    // Alimentar o mesmo catálogo nas duas fontes duplicaria cada resultado —
-    // artefato da fixture, não do produto. Coldigom tem cobertura própria em
-    // test/unit/features/coldigom/coldigom_search_repository_test.dart.
+    // Manifesto vazio só para o lookup dos «recentes» do estado vazio (até
+    // o plano 3); o catálogo destes testes vem do índice, e a busca remota
+    // fica vazia por omissão (a validação remota tem cobertura própria).
+    louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+    ...catalogIndexOverrides(
+      catalogIndexOf([
+        for (final louvor in catalog)
+          catalogGroup(
+            praiseId: 'p-${louvor.numero}',
+            number: louvor.numero,
+            name: louvor.nome,
+          ),
+      ]),
+    ),
     coldigomSearchRepositoryProvider.overrideWithValue(
       coldigom ?? _FakeColdigomRepo(const []),
     ),

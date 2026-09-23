@@ -2,21 +2,17 @@ import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_remote_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:coldigui/features/coldigom/domain/usecases/adopt_coldigom_search_novelties.dart';
@@ -26,18 +22,10 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Louvor _louvor({required String nome, required String numero}) =>
-    Louvor.fromManifest(
-      nome: nome,
-      numero: numero,
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: '$numero.pdf',
-      pdfId: 'id-$numero',
-    );
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
-/// Fonte de catálogo que conta as buscas remotas e responde pelo roteiro.
-class _RecordingCatalogSource implements CatalogSource {
+/// Fonte Coldigom que conta as buscas remotas e responde pelo roteiro.
+class _RecordingCatalogSource extends ColdigomCatalogSource {
   _RecordingCatalogSource(this._respond);
 
   factory _RecordingCatalogSource.ok() {
@@ -53,9 +41,6 @@ class _RecordingCatalogSource implements CatalogSource {
   int get searchCalls => queries.length;
 
   @override
-  List<LouvorGroup> searchLocal(CatalogQuery query) => const [];
-
-  @override
   Future<CatalogSearchPage> search(
     CatalogQuery query, {
     SearchCancellation? cancellation,
@@ -63,27 +48,6 @@ class _RecordingCatalogSource implements CatalogSource {
     queries.add(query);
     return _respond(query);
   }
-
-  @override
-  Future<LouvorGroup?> groupById(String groupId) async => null;
-
-  @override
-  Future<CatalogMaterial?> materialById(String materialId) async => null;
-
-  @override
-  Future<LouvorGroup?> groupForMaterial(String materialId) async => null;
-}
-
-/// Manifest fixo que o teste pode re-emitir (refresh de fundo).
-class _MutableManifestNotifier extends LouvoresManifestNotifier {
-  _MutableManifestNotifier(this._initial);
-
-  final LouvoresManifest _initial;
-
-  @override
-  Future<LouvoresManifest> build() async => _initial;
-
-  void emit(LouvoresManifest manifest) => state = AsyncData(manifest);
 }
 
 /// Regista o que a Home pediu para adotar; devolve os ids como adotados.
@@ -128,12 +92,18 @@ LouvorGroup _coldigomGroup(String id) => LouvorGroup(
   coldigomMeta: const ColdigomPraiseMetadata(name: 'Coldigom'),
 );
 
+/// Catálogo local dos testes: «Aleluia» (001) e «São João» (002).
+final _defaultIndex = catalogIndexOf([
+  catalogGroup(praiseId: 'p-001', number: '001', name: 'Aleluia'),
+  catalogGroup(praiseId: 'p-002', number: '002', name: 'São João'),
+]);
+
 /// Índice Coldigom que o teste consegue trocar no meio do caminho (fix
 /// round final, achado 4c) — `coldigomSearchIndexProvider` é um `Provider`
 /// simples, então a mutabilidade entra por baixo, via `overrideWith`.
 class _MutableColdigomIndexNotifier extends Notifier<ColdigomSearchIndex> {
   @override
-  ColdigomSearchIndex build() => ColdigomSearchIndex.empty;
+  ColdigomSearchIndex build() => _defaultIndex;
 
   void update(ColdigomSearchIndex index) => state = index;
 }
@@ -155,40 +125,32 @@ void main() {
     syncNotifier = _CountingSync();
   });
 
-  final catalog = [
-    _louvor(nome: 'Aleluia', numero: '001'),
-    _louvor(nome: 'São João', numero: '002'),
-  ];
-
   ProviderContainer createContainer(
-    CatalogSource source, {
-    _MutableManifestNotifier? manifest,
+    ColdigomCatalogSource source, {
     bool online = true,
-    ColdigomSearchIndex index = ColdigomSearchIndex.empty,
+    ColdigomSearchIndex? index,
     // Por padrão a hidratação já "terminou" com o mesmo `index` — os testes
-    // do achado 2 (gate antes da hidratação) e do achado 1i (invalidação por
-    // `syncAfterAdoption`) passam o próprio override em vez do padrão
-    // (Riverpod rejeita sobrescrever o mesmo provider duas vezes).
+    // do gate antes da hidratação e da invalidação por `syncAfterAdoption`
+    // passam o próprio override (Riverpod rejeita sobrescrever o mesmo
+    // provider duas vezes).
     Override? hydrationOverride,
     Override? searchIndexOverride,
     List<Override> extra = const [],
   }) {
+    final effectiveIndex = index ?? _defaultIndex;
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresManifestProvider.overrideWith(
-          () =>
-              manifest ??
-              _MutableManifestNotifier(LouvoresManifest.fromLouvores(catalog)),
-        ),
-        catalogSourceProvider.overrideWithValue(source),
+        coldigomCatalogSourceProvider.overrideWithValue(source),
         connectivityStreamProvider.overrideWith((ref) => Stream.value(online)),
         adoptColdigomSearchNoveltiesProvider.overrideWithValue(adopter),
         coldigomCatalogSyncProvider.overrideWith(() => syncNotifier),
         hydrationOverride ??
-            coldigomCatalogHydrationProvider.overrideWith((ref) async => index),
+            coldigomCatalogHydrationProvider.overrideWith(
+              (ref) async => effectiveIndex,
+            ),
         searchIndexOverride ??
-            coldigomSearchIndexProvider.overrideWithValue(index),
+            coldigomSearchIndexProvider.overrideWithValue(effectiveIndex),
         ...extra,
       ],
     );
@@ -239,44 +201,37 @@ void main() {
     expect(source.searchCalls, 1);
   });
 
-  test(
-    'grupos concatenam local (PLPCG) e remoto (Coldigom) nessa ordem',
-    () async {
-      final coldigomGroup = LouvorGroup(
-        groupId: 'coldigom-1',
-        numero: '900',
-        nome: 'Coldigom',
-        sections: const [],
-      );
-      final source = _RecordingCatalogSource(
-        (query) async =>
-            CatalogSearchPage(groups: [coldigomGroup], page: query.page),
-      );
-      final container = createContainer(source);
-      keepStateAlive(container);
-      await pumpEventQueue();
+  test('grupos concatenam local e remoto nessa ordem', () async {
+    final coldigomGroup = LouvorGroup(
+      groupId: 'coldigom-1',
+      numero: '900',
+      nome: 'Coldigom',
+      sections: const [],
+    );
+    final source = _RecordingCatalogSource(
+      (query) async =>
+          CatalogSearchPage(groups: [coldigomGroup], page: query.page),
+    );
+    final container = createContainer(source);
+    keepStateAlive(container);
+    await pumpEventQueue();
 
-      container
-          .read(homeSearchDebouncedQueryProvider.notifier)
-          .setImmediate('aleluia');
-      await pumpEventQueue();
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
 
-      final state = container.read(homeSearchStateProvider);
-      expect(state.localGroups, isNotEmpty);
-      expect(state.groups.last.groupId, 'coldigom-1');
-      expect(state.groups.length, state.localGroups.length + 1);
-    },
-  );
+    final state = container.read(homeSearchStateProvider);
+    expect(state.localGroups, isNotEmpty);
+    expect(state.groups.last.groupId, 'coldigom-1');
+    expect(state.groups.length, state.localGroups.length + 1);
+  });
 
   test('grupo remoto com o mesmo groupId de um local não duplica', () async {
-    // Louvor local 'Aleluia' (numero '001') gera groupId '001:aleluia'
-    // (LouvorGroupId.compute); um grupo remoto com o mesmo id simula o
-    // Coldigom devolvendo algo que o índice local já cobre — a pesquisa
-    // híbrida final trata isso no próprio `homeSearchStateProvider`
-    // (`newGroups` filtra ids já locais), não mais num getter da
-    // `HomeSearchState`.
+    // Um grupo remoto com o id de um praise que o índice já devolveu não
+    // duplica: `newGroups` filtra ids já locais.
     final duplicateOfLocal = LouvorGroup(
-      groupId: '001:aleluia',
+      groupId: 'p-001',
       numero: '001',
       nome: 'Aleluia (remoto)',
       sections: const [],
@@ -299,7 +254,7 @@ void main() {
     expect(state.remote.value?.groups, isNotEmpty);
     expect(state.newGroupIds, isEmpty);
     expect(state.groups.length, state.localGroups.length);
-    expect(state.groups.where((g) => g.groupId == '001:aleluia').length, 1);
+    expect(state.groups.where((g) => g.groupId == 'p-001').length, 1);
   });
 
   test(
@@ -321,7 +276,7 @@ void main() {
       await pumpEventQueue();
 
       expect(container.read(homeSearchStateProvider).remoteFailed, isTrue);
-      // Os resultados PLPCG continuam visíveis apesar da falha remota.
+      // Os resultados locais continuam visíveis apesar da falha remota.
       expect(container.read(homeSearchStateProvider).groups, isNotEmpty);
 
       container.invalidate(
@@ -357,12 +312,14 @@ void main() {
     expect(source.searchCalls, 1);
   });
 
-  test('novo manifest re-deriva só a busca local', () async {
-    final manifest = _MutableManifestNotifier(
-      LouvoresManifest.fromLouvores(catalog),
-    );
+  test('novo índice re-deriva só a busca local', () async {
     final source = _RecordingCatalogSource.ok();
-    final container = createContainer(source, manifest: manifest);
+    final container = createContainer(
+      source,
+      searchIndexOverride: coldigomSearchIndexProvider.overrideWith(
+        (ref) => ref.watch(_mutableColdigomIndexProvider),
+      ),
+    );
     keepStateAlive(container);
     await pumpEventQueue();
 
@@ -375,12 +332,18 @@ void main() {
     final before = container.read(homeSearchStateProvider).localGroups;
     expect(before, isNotEmpty);
 
-    manifest.emit(
-      LouvoresManifest.fromLouvores([
-        ...catalog,
-        _louvor(nome: 'Aleluia nova', numero: '003'),
-      ]),
-    );
+    container
+        .read(_mutableColdigomIndexProvider.notifier)
+        .update(
+          catalogIndexOf([
+            catalogGroup(praiseId: 'p-001', number: '001', name: 'Aleluia'),
+            catalogGroup(
+              praiseId: 'p-003',
+              number: '003',
+              name: 'Aleluia nova',
+            ),
+          ]),
+        );
     await pumpEventQueue();
 
     final after = container.read(homeSearchStateProvider).localGroups;
@@ -459,7 +422,7 @@ void main() {
       );
       expect(state.localGroups.first.groupId, isNot('cold-2'));
       expect(adopter.calls.single, ['cold-2', 'cold-1']);
-      expect(adopter.knownSeen, isEmpty);
+      expect(adopter.knownSeen, {'p-001', 'p-002'});
       expect(syncNotifier.calls, 1);
       expect(source.queries.single.page, 1);
     },
@@ -807,45 +770,5 @@ void main() {
     // `_CountingSync.sync()` devolve `Noop`: `syncAfterAdoption` invalida
     // a hidratação mesmo assim.
     expect(hydrationBuilds, 2);
-  });
-
-  test('praise do manifest devolvido pelo remoto não é «novo» nem candidato a adoção',
-      () async {
-    final manifestComPraise = LouvoresManifest.fromLouvores([
-      ...catalog,
-      Louvor.fromManifest(
-        nome: 'Firme',
-        numero: '010',
-        categoria: 'Partitura',
-        classificacao: 'ColAdultos',
-        pdf: 'https://coldigom.test/assets/praises/pf/m.pdf',
-        pdfId: 'id-010',
-        praiseId: 'pf',
-        materialId: 'm',
-      ),
-    ]);
-    final source = _RecordingCatalogSource(
-      (query) async => CatalogSearchPage(
-        groups: [_coldigomGroup('pf'), _coldigomGroup('novo')],
-        page: query.page,
-      ),
-    );
-    final container = createContainer(
-      source,
-      manifest: _MutableManifestNotifier(manifestComPraise),
-    );
-    keepStateAlive(container);
-    await container.read(louvoresManifestProvider.future);
-
-    container.read(homeSearchDebouncedQueryProvider.notifier).setImmediate('zzz');
-    await container.read(
-      homeRemoteSearchProvider(const HomeRemoteSearchKey(query: 'zzz', page: 1)).future,
-    );
-    await Future<void>.delayed(Duration.zero);
-
-    final state = container.read(homeSearchStateProvider);
-    expect(state.newGroupIds, {'novo'});
-    expect(adopter.calls.single, ['novo']);
-    expect(adopter.knownSeen, contains('pf'));
   });
 }

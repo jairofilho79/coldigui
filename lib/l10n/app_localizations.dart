@@ -338,12 +338,6 @@ abstract class AppLocalizations {
   /// **'Página {page}'**
   String pageCurrent(int page);
 
-  /// No description provided for @catalogStaleBanner.
-  ///
-  /// In pt, this message translates to:
-  /// **'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.'**
-  String get catalogStaleBanner;
-
   /// No description provided for @catalogLoadError.
   ///
   /// In pt, this message translates to:
@@ -2357,10 +2351,10 @@ abstract class AppLocalizations {
   /// **'Limpar filtros'**
   String get homeClearFilters;
 
-  /// Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)
+  /// Aviso da página inicial sem resultado quando a busca remota não foi chamada por falta de rede e o catálogo local está vazio (spec fim-fonte §9.2)
   ///
   /// In pt, this message translates to:
-  /// **'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.'**
+  /// **'Sem conexão — o catálogo pode estar incompleto nesta busca.'**
   String get homeColdigomOffline;
 
   /// No description provided for @favoriteMaterialKindsTitle.

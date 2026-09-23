@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -8,28 +10,30 @@ import 'package:coldigui/core/utils/home_url_builder.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/recently_opened_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_search_results_sliver.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// UC-01, UC-02 — Home / Pesquisador.
+/// UC-01, UC-02 — página inicial / Pesquisador.
 ///
-/// Busca com debounce 300ms, filtros do catálogo (tom, ritmo, categoria,
-/// tags, tipo de material — os mesmos da /biblioteca), resultados como
-/// [LouvorGroupCard] e sync URL (`pesquisa=` + params de filtro, spec
-/// fim-fonte §2.5).
+/// Busca com debounce 300ms no índice local do catálogo, filtros do catálogo
+/// (tom, ritmo, categoria, tags, tipo de material — os mesmos da
+/// /biblioteca), resultados como [LouvorGroupCard] e sync URL (`pesquisa=` +
+/// params de filtro, spec fim-fonte §2.5). Enquanto o índice está vazio
+/// mostra carregamento; vazio com o sync falhado mostra `catalogLoadError` +
+/// «Tentar novamente».
 ///
 /// **Ciclo de vida Riverpod:** hidratação de URL e `goRouter.go` são adiados com
 /// `addPostFrameCallback` em [didUpdateWidget] e [_syncUrlFromState]
-/// — evita `Tried to modify a provider while the widget tree was building` quando o
-/// manifest (~4600 itens) conclui e a árvore reconstrói.
+/// — evita `Tried to modify a provider while the widget tree was building`
+/// quando o índice (~2063 grupos) conclui e a árvore reconstrói.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({
     super.key,
@@ -193,10 +197,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     goReplacingUrl(context, goRouter, target);
   }
 
+  void _retryCatalog() {
+    unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final manifestAsync = ref.watch(louvoresManifestProvider);
+    final status = ref.watch(catalogIndexStatusProvider);
     // Mantém o `recentlyOpenedProvider` com um observador vivo enquanto a
     // Home existe — sem isto os `ref.listen` internos dele (leitor/cifra,
     // sessão de áudio) não disparam (Riverpod 3.3, ver docstring do provider).
@@ -214,12 +222,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
 
-    // Reconexão (C.8): volta a rede com o manifest ou a página remota em erro
-    // → tenta de novo sozinho, sem esperar o usuário tocar em "Tentar de novo".
-    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
+    // Reconexão (C.8): volta a rede com o catálogo vazio ou a página remota
+    // em erro → tenta de novo sozinho, sem esperar o usuário tocar em
+    // «Tentar novamente» (spec §2.1). O sync do catálogo só na transição
+    // offline → online, como na /biblioteca: o primeiro `true` do stream
+    // (vindo de loading) ou um `true` repetido não contam — o boot já
+    // sincroniza e o índice pode só não ter hidratado ainda.
+    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
       if (next.value != true) return;
-      if (ref.read(louvoresManifestProvider).hasError) {
-        ref.invalidate(louvoresManifestProvider);
+      final wasOffline = previous?.value == false;
+      if (wasOffline && ref.read(coldigomSearchIndexProvider).isEmpty) {
+        _retryCatalog();
       }
       if (ref.read(homeSearchStateProvider).remoteFailed) {
         retryRemoteSearch(ref);
@@ -261,11 +274,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                 ),
-                if (manifestAsync.isLoading) ...[
+                if (status == CatalogIndexStatus.loading) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   const CatalogLoadingSliver(),
                 ],
-                if (manifestAsync.hasError) ...[
+                if (status == CatalogIndexStatus.failed) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   SliverToBoxAdapter(
                     child: Column(
@@ -279,35 +292,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(height: 8),
                         FilledButton(
-                          onPressed: () =>
-                              ref.invalidate(louvoresManifestProvider),
+                          onPressed: _retryCatalog,
                           child: Text(l10n.retry),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-                if (manifestAsync.value?.isStale == true) ...[
-                  const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                  SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.gold.withValues(alpha: 0.45),
-                        ),
-                      ),
-                      child: Text(
-                        l10n.catalogStaleBanner,
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.title.withValues(alpha: 0.85),
-                        ),
-                      ),
                     ),
                   ),
                 ],

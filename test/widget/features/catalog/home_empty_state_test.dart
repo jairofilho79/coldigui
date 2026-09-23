@@ -336,36 +336,37 @@ void main() {
       expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
     });
 
-    testWidgets('remoto falho e offline mostra o aviso Coldigom', (
-      tester,
-    ) async {
-      final prefs = await SharedPreferences.getInstance();
-      await _pump(
-        tester,
-        state: _state(
-          query: 'zzz',
-          remote: AsyncError(Exception('boom'), StackTrace.empty),
-          offline: true,
-        ),
-        prefs: prefs,
-        overrides: [
-          catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
-          coldigomSearchIndexProvider.overrideWithValue(
-            ColdigomSearchIndex.empty,
+    testWidgets(
+      'remoto falho e offline mostra o aviso de catálogo incompleto',
+      (tester) async {
+        final prefs = await SharedPreferences.getInstance();
+        await _pump(
+          tester,
+          state: _state(
+            query: 'zzz',
+            remote: AsyncError(Exception('boom'), StackTrace.empty),
+            offline: true,
           ),
-        ],
-      );
+          prefs: prefs,
+          overrides: [
+            catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
+            coldigomSearchIndexProvider.overrideWithValue(
+              ColdigomSearchIndex.empty,
+            ),
+          ],
+        );
 
-      expect(
-        find.text(
-          'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
-        ),
-        findsOneWidget,
-      );
-    });
+        expect(
+          find.text(
+            'Sem conexão — o catálogo pode estar incompleto nesta busca.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
-      'remoto falho, offline mas com catálogo Coldigom local não mostra o aviso',
+      'remoto falho, offline mas com catálogo local não mostra o aviso',
       (tester) async {
         final prefs = await SharedPreferences.getInstance();
         await _pump(
@@ -399,149 +400,153 @@ void main() {
 
         expect(
           find.text(
-            'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
+            'Sem conexão — o catálogo pode estar incompleto nesta busca.',
           ),
           findsNothing,
         );
       },
     );
 
-    testWidgets('remoto falho mas online não mostra o aviso Coldigom', (
-      tester,
-    ) async {
-      final prefs = await SharedPreferences.getInstance();
-      await _pump(
-        tester,
-        state: _state(
-          query: 'zzz',
-          remote: AsyncError(Exception('boom'), StackTrace.empty),
-        ),
-        prefs: prefs,
-        overrides: [
-          catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
-        ],
-      );
-
-      expect(
-        find.text(
-          'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
-        ),
-        findsNothing,
-      );
-    });
-  });
-
-  group('contraste sobre o fundo vinho (onda 4.1, feedback do product owner)', () {
-    testWidgets('sem consulta: rótulo de recentes e hint em branco', (
-      tester,
-    ) async {
-      final prefs = await SharedPreferences.getInstance();
-      final playlist = SavedPlaylist(
-        playlistId: 'p1',
-        nome: 'Culto de domingo',
-        entries: [PlaylistEntry.classified('pdf-1')],
-        createdAt: DateTime.utc(2026, 9, 1),
-      );
-
-      await _pumpOnWine(
-        tester,
-        state: _state(),
-        prefs: prefs,
-        overrides: [
-          activePlaylistProvider.overrideWithValue(playlist),
-          recentlyOpenedProvider.overrideWith(
-            () => _FixedRecentlyOpened(const ['pdf-1']),
-          ),
-          catalogMaterialLookupProvider.overrideWithValue(
-            CatalogMaterialLookup(
-              plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
-            ),
-          ),
-        ],
-      );
-
-      // O rótulo vive dentro do card creme próprio da seção (C6) — vinho,
-      // como qualquer texto sobre `AppColors.card`, independente do fundo
-      // do `Scaffold` por trás.
-      expect(_textColor(tester, 'Abertos recentemente'), AppColors.title);
-      expect(
-        _textColor(tester, 'Busque por título ou número'),
-        AppColors.textLight.withValues(alpha: 0.7),
-      );
-      // O card do material usa `CarouselLouvorChip` — título em branco
-      // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
-      expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
-    });
-
     testWidgets(
-      'consulta sem resultado: título, dicas, botão e aviso Coldigom em branco',
+      'remoto falho mas online não mostra o aviso de catálogo incompleto',
       (tester) async {
         final prefs = await SharedPreferences.getInstance();
-        final container = ProviderContainer(
+        await _pump(
+          tester,
+          state: _state(
+            query: 'zzz',
+            remote: AsyncError(Exception('boom'), StackTrace.empty),
+          ),
+          prefs: prefs,
           overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-            louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-            // Sem isto, `_NoResultsContent` tentaria hidratar o índice
-            // Coldigom via Isar de verdade (não há aqui) e o teste travaria
-            // num timer pendente — mesmo cuidado do caso "mostra o aviso".
-            coldigomSearchIndexProvider.overrideWithValue(
-              ColdigomSearchIndex.empty,
-            ),
+            catalogFiltersProvider.overrideWith(_DefaultFiltersNotifier.new),
           ],
         );
-        addTearDown(container.dispose);
-        container.read(catalogFiltersProvider.notifier).toggleTag('PES');
-
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp(
-              theme: AppTheme.light,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              locale: const Locale('pt'),
-              home: Scaffold(
-                body: HomeEmptyState(
-                  state: _state(
-                    query: 'zzz',
-                    remote: AsyncError(Exception('boom'), StackTrace.empty),
-                    offline: true,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
 
         expect(
-          _textColor(tester, 'Nenhum louvor para «zzz»'),
-          AppColors.textLight,
-        );
-        expect(
-          _textColor(
-            tester,
-            'Tente outro termo, ou confira o número e a grafia.',
+          find.text(
+            'Sem conexão — o catálogo pode estar incompleto nesta busca.',
           ),
-          AppColors.textLight.withValues(alpha: 0.7),
-        );
-        expect(
-          _buttonForegroundColor(
-            tester,
-            find.widgetWithText(OutlinedButton, 'Limpar filtros'),
-          ),
-          AppColors.textLight,
-        );
-        expect(
-          _textColor(
-            tester,
-            'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.',
-          ),
-          AppColors.textLight.withValues(alpha: 0.75),
+          findsNothing,
         );
       },
     );
   });
+
+  group(
+    'contraste sobre o fundo vinho (onda 4.1, feedback do product owner)',
+    () {
+      testWidgets('sem consulta: rótulo de recentes e hint em branco', (
+        tester,
+      ) async {
+        final prefs = await SharedPreferences.getInstance();
+        final playlist = SavedPlaylist(
+          playlistId: 'p1',
+          nome: 'Culto de domingo',
+          entries: [PlaylistEntry.classified('pdf-1')],
+          createdAt: DateTime.utc(2026, 9, 1),
+        );
+
+        await _pumpOnWine(
+          tester,
+          state: _state(),
+          prefs: prefs,
+          overrides: [
+            activePlaylistProvider.overrideWithValue(playlist),
+            recentlyOpenedProvider.overrideWith(
+              () => _FixedRecentlyOpened(const ['pdf-1']),
+            ),
+            catalogMaterialLookupProvider.overrideWithValue(
+              CatalogMaterialLookup(
+                plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
+              ),
+            ),
+          ],
+        );
+
+        // O rótulo vive dentro do card creme próprio da seção (C6) — vinho,
+        // como qualquer texto sobre `AppColors.card`, independente do fundo
+        // do `Scaffold` por trás.
+        expect(_textColor(tester, 'Abertos recentemente'), AppColors.title);
+        expect(
+          _textColor(tester, 'Busque por título ou número'),
+          AppColors.textLight.withValues(alpha: 0.7),
+        );
+        // O card do material usa `CarouselLouvorChip` — título em branco
+        // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
+        expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
+      });
+
+      testWidgets(
+        'consulta sem resultado: título, dicas, botão e aviso de catálogo incompleto em branco',
+        (tester) async {
+          final prefs = await SharedPreferences.getInstance();
+          final container = ProviderContainer(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(prefs),
+              louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+              // Sem isto, `_NoResultsContent` tentaria hidratar o índice
+              // Coldigom via Isar de verdade (não há aqui) e o teste travaria
+              // num timer pendente — mesmo cuidado do caso "mostra o aviso".
+              coldigomSearchIndexProvider.overrideWithValue(
+                ColdigomSearchIndex.empty,
+              ),
+            ],
+          );
+          addTearDown(container.dispose);
+          container.read(catalogFiltersProvider.notifier).toggleTag('PES');
+
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: MaterialApp(
+                theme: AppTheme.light,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                locale: const Locale('pt'),
+                home: Scaffold(
+                  body: HomeEmptyState(
+                    state: _state(
+                      query: 'zzz',
+                      remote: AsyncError(Exception('boom'), StackTrace.empty),
+                      offline: true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            _textColor(tester, 'Nenhum louvor para «zzz»'),
+            AppColors.textLight,
+          );
+          expect(
+            _textColor(
+              tester,
+              'Tente outro termo, ou confira o número e a grafia.',
+            ),
+            AppColors.textLight.withValues(alpha: 0.7),
+          );
+          expect(
+            _buttonForegroundColor(
+              tester,
+              find.widgetWithText(OutlinedButton, 'Limpar filtros'),
+            ),
+            AppColors.textLight,
+          );
+          expect(
+            _textColor(
+              tester,
+              'Sem conexão — o catálogo pode estar incompleto nesta busca.',
+            ),
+            AppColors.textLight.withValues(alpha: 0.75),
+          );
+        },
+      );
+    },
+  );
 }
 
 class _DefaultFiltersNotifier extends CatalogFiltersNotifier {

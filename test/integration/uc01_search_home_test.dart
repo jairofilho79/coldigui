@@ -1,25 +1,17 @@
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
-import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  test('UC-01 integração — busca por número no catálogo em memória', () {
-    const search = SearchLouvorByNumberOrText();
-    final catalog = [
-      Louvor.fromManifest(
-        nome: 'Louvor de teste',
-        numero: '100',
-        categoria: 'Partitura',
-        classificacao: 'ColAdultos',
-        pdf: '100.pdf',
-        pdfId: 'test-id',
-      ),
-    ];
+import '../helpers/coldigom_catalog_test_helpers.dart';
 
-    final results = search.callIndexed(PlpcgSearchIndex.build(catalog), '100');
+void main() {
+  test('UC-01 integração — busca por número no índice do catálogo', () {
+    final index = catalogIndexOf([
+      catalogGroup(praiseId: 'p-100', number: '100', name: 'Louvor de teste'),
+      catalogGroup(praiseId: 'p-101', number: '101', name: 'Outro louvor'),
+    ]);
+
+    final results = index.search('100');
 
     expect(results, hasLength(1));
-    expect(results.first.pdfId, 'test-id');
+    expect(results.first.groupId, 'p-100');
   });
 }

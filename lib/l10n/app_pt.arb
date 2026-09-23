@@ -92,7 +92,6 @@
       }
     }
   },
-  "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
   "catalogLoadError": "Não foi possível carregar o catálogo",
   "retry": "Tentar novamente",
   "storagePreparing": "Preparando o armazenamento local…",
@@ -773,9 +772,9 @@
   "@homeClearFilters": {
     "description": "Botão da Home sem resultado, visível só com filtro fora do padrão (C4)"
   },
-  "homeColdigomOffline": "Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.",
+  "homeColdigomOffline": "Sem conexão — o catálogo pode estar incompleto nesta busca.",
   "@homeColdigomOffline": {
-    "description": "Aviso da Home sem resultado quando a busca remota falhou e o dispositivo está offline (C4)"
+    "description": "Aviso da página inicial sem resultado quando a busca remota não foi chamada por falta de rede e o catálogo local está vazio (spec fim-fonte §9.2)"
   },
   "favoriteMaterialKindsTitle": "Materiais favoritos",
   "favoriteMaterialKindsHelp": "Escolha até {max} tipos de material. Eles aparecem primeiro ao abrir um louvor.",

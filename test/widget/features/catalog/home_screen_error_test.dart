@@ -4,6 +4,8 @@ import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Widget _homeErrorTestApp({
@@ -20,6 +23,10 @@ Widget _homeErrorTestApp({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
+      // O estado vazio ainda resolve os «recentes» pelo lookup de materiais,
+      // que lê o manifesto até o plano 3 o reapontar — sem isto ele abriria
+      // o Isar e a rede de verdade.
+      louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ...extraOverrides,
     ],
     child: MaterialApp(
@@ -31,13 +38,16 @@ Widget _homeErrorTestApp({
   );
 }
 
-/// `pumpAndSettle` trava com o shimmer do skeleton (animação em loop) —
-/// mesmo cuidado do `home_screen_l10n_test.dart` para o estado de loading.
+/// `pumpAndSettle` trava com o shimmer do skeleton (animação em loop).
 Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 5; i++) {
     await tester.pump(const Duration(milliseconds: 50));
   }
 }
+
+const _failed = ColdigomCatalogSyncState(
+  lastResult: ColdigomCatalogSyncFailed('sem rede'),
+);
 
 void main() {
   setUp(() async {
@@ -45,16 +55,16 @@ void main() {
   });
 
   testWidgets(
-    'HomeScreen em erro mostra botão "Tentar novamente" que invalida o manifest',
+    'catálogo vazio com sync falhado: erro e «Tentar novamente» chama sync()',
     (tester) async {
       final prefs = await SharedPreferences.getInstance();
-      var buildCount = 0;
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
 
       await tester.pumpWidget(
         _homeErrorTestApp(
           prefs: prefs,
           extraOverrides: [
-            louvoresManifestErrorOverride(onBuild: () => buildCount++),
+            ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
             connectivityStreamProvider.overrideWith(
               (ref) => const Stream<bool>.empty(),
             ),
@@ -63,74 +73,116 @@ void main() {
       );
       await _settle(tester);
 
-      expect(buildCount, 1);
       expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
-      expect(
-        find.widgetWithText(FilledButton, 'Tentar novamente'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Tentar novamente'));
+      final retry = find.widgetWithText(FilledButton, 'Tentar novamente');
+      await tester.ensureVisible(retry);
+      await tester.tap(retry);
       await _settle(tester);
 
-      expect(buildCount, 2);
+      expect(sync.syncCalls, 1);
     },
   );
 
   testWidgets(
-    'HomeScreen recarrega automaticamente quando a conectividade volta',
+    'a rede volta (offline → online) com o catálogo vazio: sync() sozinho',
     (tester) async {
       final prefs = await SharedPreferences.getInstance();
-      var buildCount = 0;
-      final connectivityController = StreamController<bool>();
-      addTearDown(connectivityController.close);
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
 
       await tester.pumpWidget(
         _homeErrorTestApp(
           prefs: prefs,
           extraOverrides: [
-            louvoresManifestErrorOverride(onBuild: () => buildCount++),
+            ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
             connectivityStreamProvider.overrideWith(
-              (ref) => connectivityController.stream,
+              (ref) => connectivity.stream,
+            ),
+          ],
+        ),
+      );
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      connectivity.add(false);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 1);
+
+      // Outra queda e volta: outra tentativa.
+      connectivity.add(false);
+      await _settle(tester);
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 2);
+    },
+  );
+
+  testWidgets(
+    'o primeiro «online» do stream (sem queda antes) não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _homeErrorTestApp(
+          prefs: prefs,
+          extraOverrides: [
+            ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+            connectivityStreamProvider.overrideWith(
+              (ref) => connectivity.stream,
             ),
           ],
         ),
       );
       await _settle(tester);
 
-      expect(buildCount, 1);
-
-      connectivityController.add(true);
+      // loading → online: o boot já pede o sync; não é uma reconexão.
+      connectivity.add(true);
       await _settle(tester);
+      expect(sync.syncCalls, 0);
 
-      expect(buildCount, 2);
+      // online → online (evento repetido): também não.
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
     },
   );
 
-  testWidgets(
-    'HomeScreen sem erro permanece sem mensagem de erro quando a rede volta',
-    (tester) async {
-      final prefs = await SharedPreferences.getInstance();
-      final connectivityController = StreamController<bool>();
-      addTearDown(connectivityController.close);
+  testWidgets('catálogo pronto: sem erro, e a volta da rede não sincroniza', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sync = FakeColdigomCatalogSyncNotifier(_failed);
+    final connectivity = StreamController<bool>();
+    addTearDown(connectivity.close);
 
-      await tester.pumpWidget(
-        _homeErrorTestApp(
-          prefs: prefs,
-          extraOverrides: [
-            louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-            connectivityStreamProvider.overrideWith(
-              (ref) => connectivityController.stream,
-            ),
-          ],
-        ),
-      );
-      await _settle(tester);
+    await tester.pumpWidget(
+      _homeErrorTestApp(
+        prefs: prefs,
+        extraOverrides: [
+          ...catalogIndexOverrides(
+            catalogIndexOf([catalogGroup(praiseId: 'p1', name: 'Aleluia')]),
+            sync: sync,
+          ),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ],
+      ),
+    );
+    await _settle(tester);
 
-      connectivityController.add(true);
-      await _settle(tester);
+    connectivity.add(false);
+    await _settle(tester);
+    connectivity.add(true);
+    await _settle(tester);
 
-      expect(find.text('Não foi possível carregar o catálogo'), findsNothing);
-    },
-  );
+    expect(find.text('Não foi possível carregar o catálogo'), findsNothing);
+    expect(sync.syncCalls, 0);
+  });
 }

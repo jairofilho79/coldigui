@@ -152,10 +152,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get catalogStaleBanner =>
-      'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.';
-
-  @override
   String get catalogLoadError => 'Não foi possível carregar o catálogo';
 
   @override
@@ -1385,7 +1381,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get homeColdigomOffline =>
-      'Sem conexão — o acervo Coldigom pode estar incompleto nesta busca.';
+      'Sem conexão — o catálogo pode estar incompleto nesta busca.';
 
   @override
   String get favoriteMaterialKindsTitle => 'Materiais favoritos';

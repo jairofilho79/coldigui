@@ -14,6 +14,7 @@ import 'package:coldigui/features/catalog/presentation/providers/home_search_sta
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -67,6 +68,7 @@ Future<void> _pumpHome(
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(true),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+        catalogIndexStatusProvider.overrideWithValue(CatalogIndexStatus.ready),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         coldigomSearchRepositoryProvider.overrideWithValue(
           _EmptyColdigomRepo(),

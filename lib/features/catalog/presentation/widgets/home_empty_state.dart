@@ -27,8 +27,8 @@ const _recentCardWidth = 220.0;
 ///   lista ativa que a onda 4 pôs aqui saiu na 4.2: a barra do carousel já
 ///   mostra a lista, o louvor em foco e o botão de abrir — product owner);
 /// - consulta sem resultado: "nenhum louvor" + dicas + limpar filtros (se
-///   houver algum ativo) + aviso Coldigom (se a busca remota falhou e o
-///   dispositivo está offline).
+///   houver algum ativo) + aviso de catálogo incompleto (sem rede e sem
+///   catálogo local).
 class HomeEmptyState extends ConsumerWidget {
   const HomeEmptyState({required this.state, super.key});
 

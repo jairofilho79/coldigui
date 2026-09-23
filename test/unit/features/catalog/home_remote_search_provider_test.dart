@@ -1,21 +1,20 @@
 import 'dart:async';
 
-import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_remote_search_provider.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
+import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 /// Fonte de catálogo que registra cada busca (query + cancelamento) e responde
 /// pelo roteiro do teste.
-class _RecordingCatalogSource implements CatalogSource {
+class _RecordingCatalogSource extends ColdigomCatalogSource {
   _RecordingCatalogSource(this._respond);
 
   /// Responde sempre com uma página vazia da página pedida.
@@ -37,9 +36,6 @@ class _RecordingCatalogSource implements CatalogSource {
   int get searchCalls => queries.length;
 
   @override
-  List<LouvorGroup> searchLocal(CatalogQuery query) => const [];
-
-  @override
   Future<CatalogSearchPage> search(
     CatalogQuery query, {
     SearchCancellation? cancellation,
@@ -48,27 +44,19 @@ class _RecordingCatalogSource implements CatalogSource {
     cancellations.add(cancellation);
     return _respond(query, cancellation);
   }
-
-  @override
-  Future<LouvorGroup?> groupById(String groupId) async => null;
-
-  @override
-  Future<CatalogMaterial?> materialById(String materialId) async => null;
-
-  @override
-  Future<LouvorGroup?> groupForMaterial(String materialId) async => null;
 }
 
-ProviderContainer _createContainer(CatalogSource source) {
+ProviderContainer _createContainer(ColdigomCatalogSource source) {
   final container = ProviderContainer(
     overrides: [
-      catalogSourceProvider.overrideWithValue(source),
-      // `homeRemoteSearchProvider` lê `knownPraiseIdsProvider`, que observa
-      // `manifestMaterialAliasesProvider` → `louvoresManifestProvider`: sem
-      // este override, um `ProviderContainer` nu tentaria abrir o Isar e
-      // bater na rede (achado do Task 8 — mesmo cuidado de
-      // `home_search_provider_test.dart`).
-      louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+      coldigomCatalogSourceProvider.overrideWithValue(source),
+      // `homeRemoteSearchProvider` lê `knownPraiseIdsProvider` (índice) e o
+      // notifier do sync: sem estes overrides um container nu tentaria
+      // abrir o Isar e bater na rede.
+      coldigomSearchIndexProvider.overrideWithValue(ColdigomSearchIndex.empty),
+      coldigomCatalogSyncProvider.overrideWith(
+        FakeColdigomCatalogSyncNotifier.new,
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -95,9 +83,8 @@ void main() {
     final container = _createContainer(source);
 
     final page = await container.read(
-      homeRemoteSearchProvider(
-        const HomeRemoteSearchKey(query: '   ', page: 1),
-      ).future,
+      homeRemoteSearchProvider(const HomeRemoteSearchKey(query: '   ', page: 1))
+          .future,
     );
 
     expect(page.groups, isEmpty);

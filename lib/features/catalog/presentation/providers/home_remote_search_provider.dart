@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
-import '../../data/providers/catalog_source_provider.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/ports/search_cancellation.dart';
 import 'known_praise_ids_provider.dart';
@@ -18,9 +18,9 @@ const homeRemoteSearchMemoDuration = Duration(minutes: 10);
 
 /// Identidade de uma busca remota: **só** texto e página.
 ///
-/// Os filtros do catálogo ficam de fora de propósito — são aplicados em
-/// memória (`matchesCatalogFilters`) sobre a lista local e os «novos» do
-/// remoto. É por isso que mexer num chip de filtro não re-busca nada na rede.
+/// Os filtros do catálogo ficam de fora de propósito: são aplicados no
+/// cliente (`matchesCatalogFilters`), inclusive aos «novos». É por isso que
+/// mexer num chip não re-busca nada na rede.
 final class HomeRemoteSearchKey {
   const HomeRemoteSearchKey({required this.query, required this.page});
 
@@ -66,9 +66,9 @@ final homeRemoteSearchProvider = FutureProvider.autoDispose
       ref.onDispose(cancellation.cancel);
 
       // `read`, não `watch`: o repositório Coldigom grava os caches ao
-      // responder, o que recompõe `catalogSourceProvider`. Observar a fonte
+      // responder, o que recompõe a fonte do catálogo. Observar a fonte
       // aqui faria a resposta re-disparar a própria busca, em laço.
-      final source = ref.read(catalogSourceProvider);
+      final source = ref.read(coldigomCatalogSourceProvider);
 
       final CatalogSearchPage page;
       try {
@@ -92,8 +92,7 @@ final homeRemoteSearchProvider = FutureProvider.autoDispose
       // **antes** de qualquer await: este provider é autoDispose e um `ref`
       // descartado não pode ser lido.
       final adopt = ref.read(adoptColdigomSearchNoveltiesProvider);
-      // Índice Coldigom ∪ praises do manifest — um praise do manifest nunca
-      // é adotado para o Isar Coldigom.
+      // Praises que o catálogo local já conhece (`catalogIds`).
       final known = ref.read(knownPraiseIdsProvider);
       final syncNotifier = ref.read(coldigomCatalogSyncProvider.notifier);
       // Filtra pelo índice já aqui: poupa ao use case (e ao Isar, dentro

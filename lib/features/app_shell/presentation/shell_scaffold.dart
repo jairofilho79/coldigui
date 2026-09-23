@@ -152,8 +152,9 @@ class ShellScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(playlistSyncProvider);
     ref.watch(materialKindPrefsSyncProvider);
-    // Catálogo Coldigom local (O4/O5): hidrata do Isar e sincroniza no boot
-    // sem bloquear o shell — a Home mostra o PLPCG primeiro, como hoje.
+    // Catálogo local (O4/O5, C6): hidrata (Isar ou memória) e sincroniza no
+    // boot sem bloquear o shell — a página inicial e a /biblioteca mostram
+    // carregamento até o índice chegar.
     // `listen` (não `watch`): mantém os providers vivos sem re-renderizar o
     // shell inteiro a cada hidratação/sync (a Home lê o resultado por conta
     // própria via `coldigomSearchIndexProvider`/`coldigomCatalogSyncProvider`).

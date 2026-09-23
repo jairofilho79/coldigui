@@ -92,7 +92,6 @@
       }
     }
   },
-  "catalogStaleBanner": "Catalog last updated over 7 days ago. Connect to refresh.",
   "catalogLoadError": "Could not load the catalog",
   "retry": "Try again",
   "storagePreparing": "Preparing local storage…",
@@ -702,7 +701,7 @@
   "homeNoResults": "No songs found for “{query}”",
   "homeNoResultsTips": "Try another term, or check the number and spelling.",
   "homeClearFilters": "Clear filters",
-  "homeColdigomOffline": "No connection — the Coldigom catalog may be incomplete for this search.",
+  "homeColdigomOffline": "No connection — the catalog may be incomplete for this search.",
   "favoriteMaterialKindsTitle": "Favorite materials",
   "favoriteMaterialKindsHelp": "Pick up to {max} material types. They show first when you open a hymn.",
   "favoriteMaterialKindsYours": "Your favorites ({count} of {max})",

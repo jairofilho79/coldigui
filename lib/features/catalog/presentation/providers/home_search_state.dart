@@ -25,7 +25,7 @@ enum SearchFreshness {
 /// Tudo o que a Home precisa saber sobre a busca corrente, num valor só (C.2).
 ///
 /// Valor **derivado** por `homeSearchStateProvider` — da `query` debounced,
-/// da busca local síncrona (PLPCG + Coldigom, O16), da página remota
+/// da busca local síncrona no índice do catálogo, da página remota
 /// `AsyncValue` e da conectividade —, nunca mutado na mão: não há geração a
 /// comparar nem escrita cruzada entre providers. A lista é 100 % local; o
 /// remoto só **valida** (O15): o que ele traz a mais entra em [newGroups],
@@ -46,12 +46,12 @@ final class HomeSearchState {
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
   final String query;
 
-  /// Resultados locais: PLPCG e depois Coldigom, já com os filtros do
-  /// catálogo (`matchesCatalogFilters`).
+  /// Resultados locais: índice do catálogo, já filtrado
+  /// (`matchesCatalogFilters`).
   final List<LouvorGroup> localGroups;
 
-  /// Página 1 remota (Coldigom): `loading` | `data` | `error`. Ignorada
-  /// quando [offline].
+  /// Página 1 remota (`/api/plpcg/praises`): `loading` | `data` | `error`.
+  /// Ignorada quando [offline].
   final AsyncValue<CatalogSearchPage> remote;
 
   /// Grupos que só o remoto tinha, na ordem remota — anexados no fim.
@@ -60,7 +60,7 @@ final class HomeSearchState {
   /// `true` quando o remoto não foi chamado por falta de rede.
   final bool offline;
 
-  /// Ids que o índice Coldigom já conhece (`coldigomSearchIndexProvider`),
+  /// Ids que o catálogo local já conhece (`knownPraiseIdsProvider`),
   /// não os do local desta busca: um grupo pode estar em [newGroups] (a
   /// busca textual local não o achou) e ainda assim já ser conhecido do
   /// catálogo — ele entra em [groups] mas não é «novo» (§6.3, ruling do
