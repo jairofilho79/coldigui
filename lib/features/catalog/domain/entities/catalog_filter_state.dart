@@ -51,6 +51,15 @@ class CatalogFilterState {
       tags.isEmpty &&
       materialKindIds.isEmpty;
 
+  /// Quantos valores estão escolhidos, somando todos os filtros — a
+  /// contagem do cabeçalho do painel (`filtersActiveCount`).
+  int get activeCount =>
+      tonalities.length +
+      rhythms.length +
+      categories.length +
+      tags.length +
+      materialKindIds.length;
+
   CatalogFilterState copyWith({
     Set<String>? tonalities,
     Set<String>? rhythms,

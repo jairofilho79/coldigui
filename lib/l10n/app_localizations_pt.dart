@@ -69,6 +69,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get filtersTapToExpand => 'Toque para ver mais';
 
   @override
+  String filtersActiveCount(int count) {
+    return 'Filtros ($count)';
+  }
+
+  @override
   String get sharePdf => 'Compartilhar';
 
   @override

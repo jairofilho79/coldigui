@@ -87,9 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   static const double _maxContentWidth = 896;
 
+  /// Filtros gravados (C13) ao montar: restringem os resultados mesmo sem
+  /// nada na URL, então o painel abre para mostrá-los.
+  late final bool _hadSavedFiltersAtMount;
+
   @override
   void initState() {
     super.initState();
+    _hadSavedFiltersAtMount = !ref.read(catalogFiltersProvider).isEmpty;
     _searchBarInitialValue = widget.initialSearchQuery;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromUrl());
   }
@@ -256,7 +261,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: FiltersPanel(
-                    initiallyExpanded: widget._hasInitialFilters,
+                    initiallyExpanded:
+                        widget._hasInitialFilters || _hadSavedFiltersAtMount,
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),

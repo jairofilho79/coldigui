@@ -65,9 +65,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   var _urlSyncEnabled = false;
   final _scrollController = ScrollController();
 
+  /// Filtros gravados (C13) ao montar: restringem os resultados mesmo sem
+  /// nada na URL, então o painel abre para mostrá-los.
+  late final bool _hadSavedFiltersAtMount;
+
   @override
   void initState() {
     super.initState();
+    _hadSavedFiltersAtMount = !ref.read(catalogFiltersProvider).isEmpty;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromUrl());
   }
 
@@ -243,7 +248,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FiltersPanel(
-                        initiallyExpanded: widget._hasInitialFilters,
+                        initiallyExpanded:
+                            widget._hasInitialFilters ||
+                            _hadSavedFiltersAtMount,
                       ),
                       const SizedBox(height: 12),
                       const LibraryViewControls(),

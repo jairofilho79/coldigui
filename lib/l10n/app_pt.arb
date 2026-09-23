@@ -38,6 +38,13 @@
   "searchResultNew": "novo",
   "filtersTitle": "Filtros",
   "filtersTapToExpand": "Toque para ver mais",
+  "filtersActiveCount": "Filtros ({count})",
+  "@filtersActiveCount": {
+    "description": "Cabeçalho do painel de filtros com filtros ativos (gravados ou da URL) — {count} valores escolhidos",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "sharePdf": "Compartilhar",
   "savePdf": "Baixar",
   "pdfShareSuccess": "PDF pronto para compartilhar",

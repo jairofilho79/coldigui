@@ -68,4 +68,16 @@ void main() {
     expect(CatalogFilterState.fromPersistedJson('x'), isNull);
     expect(CatalogFilterState.fromPersistedJson(null), isNull);
   });
+
+  test('activeCount soma os valores escolhidos de todos os filtros', () {
+    expect(CatalogFilterState.empty.activeCount, 0);
+    expect(
+      const CatalogFilterState(
+        tonalities: {'Dm', 'G'},
+        tags: {'PES'},
+        materialKindIds: {'k1'},
+      ).activeCount,
+      4,
+    );
+  });
 }

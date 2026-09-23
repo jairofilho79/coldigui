@@ -38,6 +38,13 @@
   "searchResultNew": "new",
   "filtersTitle": "Filters",
   "filtersTapToExpand": "Tap to see more",
+  "filtersActiveCount": "Filters ({count})",
+  "@filtersActiveCount": {
+    "description": "Filters panel header when filters are active (saved or from the URL) — {count} selected values",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "sharePdf": "Share",
   "savePdf": "Download",
   "pdfShareSuccess": "PDF ready to share",

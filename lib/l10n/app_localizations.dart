@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Toque para ver mais'**
   String get filtersTapToExpand;
 
+  /// Cabeçalho do painel de filtros com filtros ativos (gravados ou da URL) — {count} valores escolhidos
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtros ({count})'**
+  String filtersActiveCount(int count);
+
   /// No description provided for @sharePdf.
   ///
   /// In pt, this message translates to:
