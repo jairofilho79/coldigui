@@ -1,5 +1,6 @@
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
@@ -170,6 +171,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (goRouter == null) return;
 
     final uri = goRouter.routerDelegate.currentConfiguration.uri;
+    // Aba fora de cena (ramo do shell ainda montado): os filtros são
+    // partilhados com a /biblioteca e mexer neles lá não pode trazer o
+    // usuário para cá. Só a rota corrente espelha estado na URL.
+    if (uri.path != RoutePaths.home) return;
     final pesquisa = ref.read(homeSearchUrlSyncQueryProvider);
     final filters = ref.read(catalogFiltersProvider);
 

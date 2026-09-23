@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
@@ -154,6 +155,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (goRouter == null) return;
 
     final uri = goRouter.routerDelegate.currentConfiguration.uri;
+    // Aba fora de cena (ramo do shell ainda montado): os filtros são
+    // partilhados com a página inicial e mexer neles lá não pode trazer o
+    // usuário para cá. Só a rota corrente espelha estado na URL.
+    if (uri.path != RoutePaths.library) return;
     final filters = ref.read(catalogFiltersProvider);
     final view = ref.read(libraryViewSettingsProvider);
     final target = buildLibraryLocation(
