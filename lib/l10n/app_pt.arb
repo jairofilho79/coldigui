@@ -878,18 +878,6 @@
   "@liveReplacedElsewhere": {
     "description": "Banner do gestor quando outro dispositivo assumiu a sessão ao vivo"
   },
-  "liveColdigomOnlyTitle": "Só materiais do Coldigom",
-  "@liveColdigomOnlyTitle": {
-    "description": "Título do diálogo que impede de iniciar ao vivo uma lista com material do acervo PLPCG"
-  },
-  "liveColdigomOnlyBody": "Para transmitir ao vivo, todos os materiais da lista precisam ser do Coldigom. Troque os do PLPCG e tente de novo.",
-  "@liveColdigomOnlyBody": {
-    "description": "Corpo do diálogo «Só materiais do Coldigom»"
-  },
-  "liveColdigomOnlyAdd": "Ao vivo, só entram materiais do Coldigom",
-  "@liveColdigomOnlyAdd": {
-    "description": "Snackbar quando o gestor tenta pôr material do PLPCG na lista enquanto transmite"
-  },
   "liveOk": "OK",
   "@liveOk": {
     "description": "Ação genérica de confirmação do banner de sessão ao vivo"

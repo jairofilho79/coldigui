@@ -778,18 +778,6 @@
   "@liveReplacedElsewhere": {
     "description": "Host's banner when another device took over the live session"
   },
-  "liveColdigomOnlyTitle": "Coldigom materials only",
-  "@liveColdigomOnlyTitle": {
-    "description": "Title of the dialog that blocks going live with a list holding PLPCG materials"
-  },
-  "liveColdigomOnlyBody": "To broadcast live, every material in the list must come from Coldigom. Replace the PLPCG ones and try again.",
-  "@liveColdigomOnlyBody": {
-    "description": "Body of the “Coldigom materials only” dialog"
-  },
-  "liveColdigomOnlyAdd": "While live, only Coldigom materials can be added",
-  "@liveColdigomOnlyAdd": {
-    "description": "Snackbar when the leader tries to add a PLPCG material while broadcasting"
-  },
   "liveOk": "OK",
   "@liveOk": {
     "description": "Generic confirm action on the live session banner"

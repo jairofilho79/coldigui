@@ -2513,24 +2513,6 @@ abstract class AppLocalizations {
   /// **'Sessão assumida em outro dispositivo'**
   String get liveReplacedElsewhere;
 
-  /// Título do diálogo que impede de iniciar ao vivo uma lista com material do acervo PLPCG
-  ///
-  /// In pt, this message translates to:
-  /// **'Só materiais do Coldigom'**
-  String get liveColdigomOnlyTitle;
-
-  /// Corpo do diálogo «Só materiais do Coldigom»
-  ///
-  /// In pt, this message translates to:
-  /// **'Para transmitir ao vivo, todos os materiais da lista precisam ser do Coldigom. Troque os do PLPCG e tente de novo.'**
-  String get liveColdigomOnlyBody;
-
-  /// Snackbar quando o gestor tenta pôr material do PLPCG na lista enquanto transmite
-  ///
-  /// In pt, this message translates to:
-  /// **'Ao vivo, só entram materiais do Coldigom'**
-  String get liveColdigomOnlyAdd;
-
   /// Ação genérica de confirmação do banner de sessão ao vivo
   ///
   /// In pt, this message translates to:

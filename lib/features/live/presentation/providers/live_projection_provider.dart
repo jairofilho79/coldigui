@@ -35,21 +35,3 @@ final liveProjectionProvider =
     NotifierProvider<LiveProjectionNotifier, LiveProjection?>(
       LiveProjectionNotifier.new,
     );
-
-/// `true` enquanto este app transmite como gestor ([LiveSessionState.isLeading]).
-///
-/// Espelho escrito pelo `LiveSessionController` (via `listenSelf`) para quem
-/// o controller já observa — o `ActivePlaylistEditor` — e por isso não pode
-/// ler `liveSessionProvider` sem fechar um ciclo de dependência.
-class LiveLeadingNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void set(bool leading) {
-    if (state != leading) state = leading;
-  }
-}
-
-final liveLeadingProvider = NotifierProvider<LiveLeadingNotifier, bool>(
-  LiveLeadingNotifier.new,
-);

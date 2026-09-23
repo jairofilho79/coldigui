@@ -123,9 +123,6 @@ class LiveSessionController extends Notifier<LiveSessionState> {
       final chosen = _leaderFocusKey == null ? null : next[_leaderFocusKey];
       if (chosen != null) _appliedFocusMaterialId = chosen.id;
     });
-    listenSelf(
-      (_, next) => ref.read(liveLeadingProvider.notifier).set(next.isLeading),
-    );
     return const LiveSessionState();
   }
 

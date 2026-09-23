@@ -12,7 +12,6 @@ import 'package:coldigui/features/carousel/data/datasources/carousel_local_datas
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/live/presentation/providers/live_projection_provider.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -941,34 +940,5 @@ void main() {
     opening.complete(FakeIsar());
     expect(await pending, AddToActiveOutcome.added);
     expect((await repository.getAll()).single.entries.single.id, _pdfA);
-  });
-
-  test('transmitindo ao vivo, só entra material Coldigom', () async {
-    final c = await boot();
-    final coldigom = encodePdfId('assets/praises/p1/partitura.pdf');
-    c.read(liveLeadingProvider.notifier).set(true);
-
-    final editor = c.read(activePlaylistEditorProvider.notifier);
-    expect(
-      await editor.addToActive(_pdfA),
-      AddToActiveOutcome.liveColdigomOnly,
-    );
-    expect(c.read(activePlaylistIdProvider), isNull);
-
-    expect(await editor.addToActive(coldigom), AddToActiveOutcome.added);
-    await _flush();
-    expect(c.read(activeEntriesProvider).single.id, coldigom);
-
-    expect(
-      await editor.replaceByKey(coldigom, PlaylistEntry.classified(_pdfA)),
-      isFalse,
-    );
-    expect(c.read(activeEntriesProvider).single.id, coldigom);
-
-    c.read(liveLeadingProvider.notifier).set(false);
-    expect(
-      await editor.replaceByKey(coldigom, PlaylistEntry.classified(_pdfA)),
-      isTrue,
-    );
   });
 }

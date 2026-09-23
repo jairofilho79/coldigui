@@ -1468,17 +1468,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get liveReplacedElsewhere => 'Session taken over on another device';
 
   @override
-  String get liveColdigomOnlyTitle => 'Coldigom materials only';
-
-  @override
-  String get liveColdigomOnlyBody =>
-      'To broadcast live, every material in the list must come from Coldigom. Replace the PLPCG ones and try again.';
-
-  @override
-  String get liveColdigomOnlyAdd =>
-      'While live, only Coldigom materials can be added';
-
-  @override
   String get liveOk => 'OK';
 
   @override

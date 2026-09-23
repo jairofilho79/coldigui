@@ -101,6 +101,5 @@ Future<void> addMaterialToActivePlaylist({
     AddToActiveOutcome.alreadyPresent => l10n.carouselAlreadyAdded,
     AddToActiveOutcome.storageUnavailable => l10n.playlistStorageUnavailable,
     AddToActiveOutcome.following => l10n.liveFollowingCannotEdit,
-    AddToActiveOutcome.liveColdigomOnly => l10n.liveColdigomOnlyAdd,
   });
 }

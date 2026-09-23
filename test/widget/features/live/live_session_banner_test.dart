@@ -213,7 +213,7 @@ void main() {
     expect(stub.calls, ['resume:k7x2m9q']);
   });
 
-  testWidgets('Retomar com material PLPCG na lista ativa só avisa', (
+  testWidgets('Retomar com id legado na lista ativa retoma direto (sem gate)', (
     tester,
   ) async {
     await prefs.setString(
@@ -232,8 +232,9 @@ void main() {
     );
     await tester.tap(find.text('Retomar'));
     await tester.pumpAndSettle();
-    expect(find.text('Só materiais do Coldigom'), findsOneWidget);
-    expect(stub.calls, isEmpty);
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(stub.calls, ['resume:k7x2m9q']);
   });
 
   testWidgets('idle sem nada pendente não renderiza', (tester) async {
