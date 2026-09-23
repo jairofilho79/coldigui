@@ -37,6 +37,8 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
+const _resultsEmpty = 'Nenhum louvor encontrado com os filtros atuais';
+
 const _failed = ColdigomCatalogSyncState(
   lastResult: ColdigomCatalogSyncFailed('sem rede'),
 );
@@ -64,6 +66,8 @@ void main() {
 
       expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
       expect(find.byType(LouvorGroupCardSkeleton), findsNothing);
+      // Sem catálogo não há «nenhum resultado com os filtros».
+      expect(find.text(_resultsEmpty), findsNothing);
 
       final retry = find.widgetWithText(FilledButton, 'Tentar novamente');
       await tester.ensureVisible(retry);
@@ -105,6 +109,48 @@ void main() {
 
       expect(sync.syncCalls, 1);
       expect(hydrations, 2);
+    },
+  );
+
+  testWidgets('índice a carregar: skeleton, sem «Nenhum louvor encontrado»', (
+    tester,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sync = FakeColdigomCatalogSyncNotifier(
+      const ColdigomCatalogSyncState(isSyncing: true),
+    );
+
+    await tester.pumpWidget(
+      _app(prefs, [
+        ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+        connectivityStreamProvider.overrideWith(
+          (ref) => const Stream<bool>.empty(),
+        ),
+      ]),
+    );
+    await _settle(tester);
+
+    expect(find.byType(LouvorGroupCardSkeleton), findsWidgets);
+    expect(find.text(_resultsEmpty), findsNothing);
+  });
+
+  testWidgets(
+    'índice pronto sem resultados: «Nenhum louvor encontrado» aparece',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          // Sync bem-sucedido (noop) com o índice vazio → `ready`.
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty),
+          connectivityStreamProvider.overrideWith(
+            (ref) => const Stream<bool>.empty(),
+          ),
+        ]),
+      );
+      await _settle(tester);
+
+      expect(find.text(_resultsEmpty), findsOneWidget);
     },
   );
 
