@@ -36,7 +36,7 @@ class ImportSharedPlaylistFromUrl {
   ///
   /// Cada token do `p` vira a entrada que [loadPraiseEntryResolver] escolhe
   /// (favorito da conta, senão PDF principal → único áudio → primeiro
-  /// adicionável). Token desconhecido ou praise sem material adicionável é
+  /// adicionável → cifra → gestos). Token desconhecido ou praise sem material adicionável é
   /// saltado; repetições ficam. O material escolhido por quem enviou não
   /// viaja — o link é por louvor. Quem chama torna a lista ativa (D3).
   ///

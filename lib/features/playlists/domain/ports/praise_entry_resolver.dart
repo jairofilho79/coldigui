@@ -2,9 +2,9 @@ import '../entities/playlist_entry.dart';
 
 /// `shortId` de praise → a entrada que o import grava (spec fim-fonte-plpcg
 /// §4.3), com o material já escolhido: favorito da conta, senão PDF
-/// principal → único áudio → primeiro adicionável. `null` = token
-/// desconhecido no catálogo ou praise sem material adicionável — o import
-/// salta.
+/// principal → único áudio → primeiro adicionável → primeira cifra →
+/// primeiro documento de gestos. `null` = token desconhecido no catálogo ou
+/// praise sem material adicionável (ex.: só letra) — o import salta.
 typedef PraiseEntryResolver = PlaylistEntry? Function(String praiseShortId);
 
 /// Espera o catálogo local (com prazo) e os favoritos e devolve o

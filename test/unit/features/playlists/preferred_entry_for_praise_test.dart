@@ -8,6 +8,9 @@ void main() {
   final pdfId = praiseMaterialId('p1', 'partitura.pdf');
   final audioId = praiseMaterialId('p1', 'audio.mp3');
   final onlyAudioId = praiseMaterialId('p2', 'audio.mp3');
+  final chordId = praiseMaterialId('p3', 'cifra.chord');
+  final gestureOfChordId = praiseMaterialId('p3', 'gestos.gestures');
+  final gestureId = praiseMaterialId('p4', 'gestos.gestures');
   final index = praiseIndex([
     praiseGroup(
       praiseId: 'p1',
@@ -29,13 +32,17 @@ void main() {
     praiseGroup(
       praiseId: 'p3',
       shortId: 'fff',
-      chords: [
-        praiseChord(
-          praiseId: 'p3',
-          chordId: praiseMaterialId('p3', 'cifra.chord'),
-        ),
-      ],
+      chords: [praiseChord(praiseId: 'p3', chordId: chordId)],
+      gestures: [praiseGesture(praiseId: 'p3', gestureId: gestureOfChordId)],
+      withLyrics: true,
     ),
+    praiseGroup(
+      praiseId: 'p4',
+      shortId: '4d4',
+      gestures: [praiseGesture(praiseId: 'p4', gestureId: gestureId)],
+      withLyrics: true,
+    ),
+    praiseGroup(praiseId: 'p5', shortId: '5e5', withLyrics: true),
   ]);
 
   test('sem favoritos: PDF principal', () {
@@ -70,8 +77,22 @@ void main() {
     );
   });
 
-  test('praise sem nada adicionável (só cifra) → null', () {
-    expect(preferredEntryForPraise(index, 'fff'), isNull);
+  test('sem PDF nem áudio: a primeira cifra (antes dos gestos)', () {
+    expect(
+      preferredEntryForPraise(index, 'fff'),
+      PlaylistEntry(id: chordId, kind: MaterialKind.chord),
+    );
+  });
+
+  test('sem PDF, áudio nem cifra: o primeiro documento de gestos', () {
+    expect(
+      preferredEntryForPraise(index, '4d4'),
+      PlaylistEntry(id: gestureId, kind: MaterialKind.gesture),
+    );
+  });
+
+  test('praise só com letra → null', () {
+    expect(preferredEntryForPraise(index, '5e5'), isNull);
   });
 
   test('token desconhecido → null', () {
