@@ -202,7 +202,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     goReplacingUrl(context, goRouter, target);
   }
 
+  /// Re-hidrata (a leitura local pode ter sido o que falhou) e sincroniza.
   void _retryCatalog() {
+    ref.invalidate(coldigomCatalogHydrationProvider);
     unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
   }
 

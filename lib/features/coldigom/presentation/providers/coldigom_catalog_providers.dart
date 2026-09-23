@@ -379,8 +379,9 @@ enum CatalogIndexStatus {
   /// Índice pronto — com praises, ou vazio depois de um sync bem-sucedido.
   ready,
 
-  /// Índice vazio e o último sync falhou (sem rede, servidor fora):
-  /// `catalogLoadError` + «Tentar novamente» → `coldigomCatalogSyncProvider.sync()`.
+  /// Índice vazio e o último sync falhou (sem rede, servidor fora), ou a
+  /// hidratação falhou: `catalogLoadError` + «Tentar novamente» →
+  /// re-hidrata e `coldigomCatalogSyncProvider.sync()`.
   failed,
 }
 
@@ -390,6 +391,9 @@ final catalogIndexStatusProvider = Provider<CatalogIndexStatus>((ref) {
   final index = hydration.value;
   if (index != null && !index.isEmpty) return CatalogIndexStatus.ready;
   if (hydration.isLoading) return CatalogIndexStatus.loading;
+  // Ler o catálogo local falhou: nenhum sync «bem-sucedido» o faz aparecer
+  // sozinho — erro + «Tentar novamente» (que re-hidrata).
+  if (hydration.hasError) return CatalogIndexStatus.failed;
   final sync = ref.watch(coldigomCatalogSyncProvider);
   if (sync.isSyncing) return CatalogIndexStatus.loading;
   return switch (sync.lastResult) {

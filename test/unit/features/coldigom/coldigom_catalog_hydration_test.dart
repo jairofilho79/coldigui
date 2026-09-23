@@ -23,6 +23,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
 class _Online implements DeviceConnectivity {
   _Online(this.online);
   final bool online;
@@ -292,6 +294,31 @@ void main() {
     await c.pump();
 
     expect(c.exists(provider), isFalse);
+  });
+
+  test('hidratação com erro → catalogIndexStatusProvider failed', () async {
+    final c = ProviderContainer(
+      overrides: [
+        coldigomCatalogHydrationProvider.overrideWith(
+          (ref) async => throw StateError('Isar ilegível'),
+        ),
+        coldigomCatalogSyncProvider.overrideWith(
+          FakeColdigomCatalogSyncNotifier.new,
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    final status = c.listen(catalogIndexStatusProvider, (_, _) {});
+    expect(status.read(), CatalogIndexStatus.loading);
+
+    await expectLater(
+      c.read(coldigomCatalogHydrationProvider.future),
+      throwsStateError,
+    );
+
+    // O último sync foi bem-sucedido (noop), mas sem índice não há o que
+    // mostrar: erro + «Tentar novamente», não um catálogo «pronto» vazio.
+    expect(status.read(), CatalogIndexStatus.failed);
   });
 
   test('requestSyncIfStale respeita os 30 min e a rede', () async {

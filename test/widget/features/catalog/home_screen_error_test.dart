@@ -84,6 +84,43 @@ void main() {
   );
 
   testWidgets(
+    '«Tentar novamente» também refaz a hidratação (erro ao ler o catálogo)',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier();
+      var hydrations = 0;
+
+      await tester.pumpWidget(
+        _homeErrorTestApp(
+          prefs: prefs,
+          extraOverrides: [
+            coldigomCatalogHydrationProvider.overrideWith((ref) async {
+              hydrations++;
+              throw StateError('Isar ilegível');
+            }),
+            coldigomCatalogSyncProvider.overrideWith(() => sync),
+            connectivityStreamProvider.overrideWith(
+              (ref) => const Stream<bool>.empty(),
+            ),
+          ],
+        ),
+      );
+      await _settle(tester);
+
+      expect(find.text('Não foi possível carregar o catálogo'), findsOneWidget);
+      expect(hydrations, 1);
+
+      final retry = find.widgetWithText(FilledButton, 'Tentar novamente');
+      await tester.ensureVisible(retry);
+      await tester.tap(retry);
+      await _settle(tester);
+
+      expect(sync.syncCalls, 1);
+      expect(hydrations, 2);
+    },
+  );
+
+  testWidgets(
     'a rede volta (offline → online) com o catálogo vazio: sync() sozinho',
     (tester) async {
       final prefs = await SharedPreferences.getInstance();
