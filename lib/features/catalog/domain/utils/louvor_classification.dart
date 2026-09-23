@@ -1,9 +1,12 @@
 import '../entities/louvor.dart';
 
-/// Utilitários de classificação/arranjo para filtros UC-02 e UC-03.
+/// Classificação/arranjo do manifesto (`ColAdultos (Especial)`) → rótulos.
 ///
-/// Rótulos de classificação/arranjo do manifesto nas secções de material e no
-/// chip do carrossel.
+/// Serve à exibição — o nome das secções de material ([materialSectionLabel])
+/// e o chip do carrossel — e ao manifesto ([collectAvailableArranjos]). Os
+/// filtros do catálogo já não usam classificação nem arranjo: são tom, ritmo,
+/// categoria, tags e tipo de material, do índice Coldigom (spec fim-fonte
+/// §2.2).
 abstract final class LouvorClassification {
   /// Rótulo quando [classificacao] não contém parênteses (UC-03).
   static const String specialArrangementPadrao = 'Padrão';
@@ -32,7 +35,8 @@ abstract final class LouvorClassification {
     return displayLabel(classificacao);
   }
 
-  /// Classificações base únicas do catálogo (chips UC-02).
+  /// Classificações base únicas de [louvores] — alimenta
+  /// `LouvoresManifest.availableArranjos`.
   static Set<String> collectAvailableArranjos(Iterable<Louvor> louvores) {
     return louvores.map((l) => baseClassification(l.classificacao)).toSet();
   }
