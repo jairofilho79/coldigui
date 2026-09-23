@@ -18,11 +18,25 @@ import '../../domain/repositories/playlist_repository.dart';
 /// Nada serializa as escritas de playlists, então cada lista é relida logo
 /// antes da sua escrita e a troca é aplicada a essa cópia — nunca à foto de
 /// [PlaylistRepository.getAll], que uma edição do usuário ou um pull podem
-/// ter deixado velha.
+/// ter deixado velha. Resta a janela curta dentro do próprio `update` (ele lê
+/// e depois grava, com `await` no meio): fechá-la pediria uma transação Isar
+/// única, que o repositório não expõe.
+///
+/// Lista de **outra** conta (`ownerSub` diferente de [currentSub]; sem sessão
+/// conta como outra) troca os ids mas guarda o `syncStatus`: uma `synced`
+/// continua `synced` e sai no `purgeSyncedOwnedBy` da troca de conta — virar
+/// `pendingPush` deixá-la-ia à vista da conta seguinte. Sem dono ou da conta
+/// corrente seguem a regra de cima.
 class PlaylistLegacyIdStore implements LegacyIdStore {
-  const PlaylistLegacyIdStore(this._repository);
+  const PlaylistLegacyIdStore(
+    this._repository, {
+    required String? Function() currentSub,
+  }) : _currentSub = currentSub; // ignore: prefer_initializing_formals
 
   final PlaylistRepository _repository;
+
+  /// `sub` da sessão atual, ou `null` sem sessão.
+  final String? Function() _currentSub;
 
   @override
   String get name => 'playlists';
@@ -46,15 +60,17 @@ class PlaylistLegacyIdStore implements LegacyIdStore {
       final next = _rewritten(fresh.entries, resolution);
       if (next == null) continue;
 
+      final owner = fresh.ownerSub;
+      final foreign = owner != null && owner != _currentSub();
       await _repository.update(
         fresh.playlistId,
         entries: next,
         updatedAt: fresh.updatedAt,
-        // `update` marcaria `pendingPush` (só nas salvas); um conflito
+        // `update` marcaria `pendingPush` (só nas salvas). Um conflito
         // continua conflito — o banner conta-o e o push ignora-o até o
-        // usuário decidir.
-        syncStatus: fresh.syncStatus == PlaylistSyncStatus.conflict
-            ? PlaylistSyncStatus.conflict
+        // usuário decidir —, e a lista de outra conta guarda o seu estado.
+        syncStatus: foreign || fresh.syncStatus == PlaylistSyncStatus.conflict
+            ? fresh.syncStatus
             : null,
       );
       changed++;

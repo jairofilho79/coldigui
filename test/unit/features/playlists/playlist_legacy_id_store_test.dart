@@ -32,6 +32,7 @@ SavedPlaylist _playlist(
   List<PlaylistEntry> entries, {
   bool salva = true,
   PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
+  String? ownerSub,
 }) => SavedPlaylist(
   playlistId: id,
   nome: 'Culto $id',
@@ -40,6 +41,7 @@ SavedPlaylist _playlist(
   entries: entries,
   salva: salva,
   syncStatus: syncStatus,
+  ownerSub: ownerSub,
 );
 
 /// Repositório real com um gancho entre a leitura de todas as listas e as
@@ -64,12 +66,14 @@ void main() {
   late Isar isar;
   late _RacingRepository repository;
   late PlaylistLegacyIdStore store;
+  String? currentSub;
 
   setUp(() async {
+    currentSub = 'sub-1';
     tempDir = await Directory.systemTemp.createTemp('legacy_playlists_');
     isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
     repository = _RacingRepository(PlaylistLocalDatasource(isar));
-    store = PlaylistLegacyIdStore(repository);
+    store = PlaylistLegacyIdStore(repository, currentSub: () => currentSub);
   });
 
   tearDown(() async {
@@ -164,6 +168,47 @@ void main() {
     final after = (await repository.getById('d'))!;
     expect(after.updatedAt.isAtSameMomentAs(_ontem), isTrue);
     expect(after.syncStatus, PlaylistSyncStatus.synced);
+  });
+
+  group('dono da lista', () {
+    for (final (label, sub) in [
+      ('outra conta com sessão', 'sub-B'),
+      ('sem sessão', null),
+    ]) {
+      test('lista synced de outra conta ($label) troca os ids, fica synced e '
+          'sai na troca de conta', () async {
+        currentSub = sub;
+        await repository.upsert(
+          _playlist('a', [
+            PlaylistEntry(id: _legadoA, kind: MaterialKind.pdf),
+          ], ownerSub: 'sub-A'),
+        );
+
+        expect(await store.rewrite(_resolution()), 1);
+
+        final after = (await repository.getById('a'))!;
+        expect(after.entries.single.id, _coldigomA);
+        expect(after.syncStatus, PlaylistSyncStatus.synced);
+        expect(after.updatedAt.isAtSameMomentAs(_ontem), isTrue);
+
+        expect(await repository.purgeSyncedOwnedBy('sub-A'), 1);
+        expect(await repository.getById('a'), isNull);
+      });
+    }
+
+    test('lista da conta corrente sobe como qualquer edição', () async {
+      await repository.upsert(
+        _playlist('a', [
+          PlaylistEntry(id: _legadoA, kind: MaterialKind.pdf),
+        ], ownerSub: 'sub-1'),
+      );
+
+      expect(await store.rewrite(_resolution()), 1);
+
+      final after = (await repository.getById('a'))!;
+      expect(after.entries.single.id, _coldigomA);
+      expect(after.syncStatus, PlaylistSyncStatus.pendingPush);
+    });
   });
 
   group('corrida com outras escritas', () {
@@ -261,6 +306,54 @@ void main() {
         PlaylistSyncStatus.pendingPush,
       );
     }
+
+    test('mesma versão no servidor: a lista normalizada sobe com o updatedAt '
+        'original e volta synced', () async {
+      await seedAndRewrite();
+      final pushed = <RemotePlaylist>[];
+      final sync = SyncPlaylists(
+        repository,
+        (_) async => [
+          RemotePlaylist(
+            id: 'a',
+            nome: 'Culto a',
+            entries: [PlaylistEntry(id: _legadoA, kind: MaterialKind.pdf)],
+            salva: true,
+            favorita: false,
+            createdAt: _ontem,
+            updatedAt: _ontem,
+            version: 1,
+          ),
+        ],
+        ({required sessionToken, required playlist}) async {
+          pushed.add(playlist);
+          return RemotePlaylist(
+            id: playlist.id,
+            nome: playlist.nome,
+            entries: playlist.entries,
+            salva: true,
+            favorita: playlist.favorita,
+            createdAt: playlist.createdAt,
+            updatedAt: playlist.updatedAt,
+            version: playlist.version + 1,
+          );
+        },
+        ({required sessionToken, required playlistId}) async {},
+      );
+
+      final result = await sync(sessionToken: 'token', sub: 'sub-1');
+
+      expect(result.pulled, 0);
+      expect(result.pushed, 1);
+      expect(pushed.single.entries, [
+        PlaylistEntry(id: _coldigomA, kind: MaterialKind.pdf),
+      ]);
+      expect(pushed.single.updatedAt.isAtSameMomentAs(_ontem), isTrue);
+      final after = (await repository.getById('a'))!;
+      expect(after.entries.single.id, _coldigomA);
+      expect(after.version, 2);
+      expect(after.syncStatus, PlaylistSyncStatus.synced);
+    });
 
     test('versão remota mais nova ainda vence no pull', () async {
       await seedAndRewrite();
