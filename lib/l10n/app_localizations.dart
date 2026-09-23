@@ -1841,42 +1841,6 @@ abstract class AppLocalizations {
   /// **'{name}\n\n{url}'**
   String playlistShareLinkWithLeafletMessage(String name, String url);
 
-  /// No description provided for @playlistShareColdigomTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lista com materiais do Coldigom'**
-  String get playlistShareColdigomTitle;
-
-  /// No description provided for @playlistShareColdigomBodyLeaflet.
-  ///
-  /// In pt, this message translates to:
-  /// **'O link e o QR code só funcionam com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar com link, ou envie só o folheto.'**
-  String get playlistShareColdigomBodyLeaflet;
-
-  /// No description provided for @playlistShareColdigomBodyLink.
-  ///
-  /// In pt, this message translates to:
-  /// **'O link só funciona com hinos do PLPCG. Remova os cards do Coldigom da lista para compartilhar o link.'**
-  String get playlistShareColdigomBodyLink;
-
-  /// No description provided for @playlistShareColdigomCancel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cancelar'**
-  String get playlistShareColdigomCancel;
-
-  /// No description provided for @playlistShareColdigomLeafletOnly.
-  ///
-  /// In pt, this message translates to:
-  /// **'Só o folheto'**
-  String get playlistShareColdigomLeafletOnly;
-
-  /// No description provided for @playlistShareColdigomDismiss.
-  ///
-  /// In pt, this message translates to:
-  /// **'Entendi'**
-  String get playlistShareColdigomDismiss;
-
   /// No description provided for @playlistTabUnsaved.
   ///
   /// In pt, this message translates to:

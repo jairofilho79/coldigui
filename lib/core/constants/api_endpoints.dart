@@ -32,12 +32,6 @@ abstract final class ApiEndpoints {
   /// (`409` devolve o documento remoto mais novo).
   static const String materialKindPrefs = '/api/material-kind-prefs';
 
-  /// Links curtos de compartilhamento — Worker + D1 `short_links` (D7).
-  ///
-  /// `POST` + Bearer + `{ query }` → `{ code, url }` (`201` novo, `200`
-  /// reuso). Ver [ShareLinkShortenerRemote.shorten].
-  static const String links = '/api/links';
-
   /// Sala «ao vivo» do usuário — Worker + D1 `live_rooms` + DO `LiveRoom`.
   ///
   /// `POST` + Bearer → `{ code, url, ownerName }` (cria ou devolve).

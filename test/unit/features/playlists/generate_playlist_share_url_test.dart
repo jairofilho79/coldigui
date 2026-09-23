@@ -1,32 +1,13 @@
-import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
-import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/empty_playlist_share_exception.dart';
 import 'package:coldigui/features/playlists/domain/exceptions/playlist_not_found_exception.dart';
-import 'package:coldigui/features/playlists/domain/ports/share_link_shortener.dart';
+import 'package:coldigui/features/playlists/domain/exceptions/praise_short_id_unavailable_exception.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/generate_playlist_share_url.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeShortener implements ShareLinkShortener {
-  _FakeShortener.ok(this._url) : _error = null;
-  _FakeShortener.throwing(Object error) : _error = error, _url = null;
-
-  final String? _url;
-  final Object? _error;
-
-  var callCount = 0;
-  String? lastQuery;
-
-  @override
-  Future<String> shorten(String query) async {
-    callCount++;
-    lastQuery = query;
-    final error = _error;
-    if (error != null) throw error;
-    return _url!;
-  }
-}
+import '../../../helpers/praise_share_fixtures.dart';
 
 class _FakePlaylistRepository implements PlaylistRepository {
   _FakePlaylistRepository(this._playlists);
@@ -34,293 +15,201 @@ class _FakePlaylistRepository implements PlaylistRepository {
   final Map<String, SavedPlaylist> _playlists;
 
   @override
-  Future<String> create({
-    required String nome,
-    List<PlaylistEntry>? entries,
-    List<String> pdfIds = const [],
-    List<String> audioIds = const [],
-    String? playlistId,
-    DateTime? createdAt,
-    bool salva = true,
-    DateTime? savedAt,
-    DateTime? updatedAt,
-    int version = 1,
-    PlaylistSyncStatus syncStatus = PlaylistSyncStatus.synced,
-    String? ownerSub,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<void> delete(String playlistId) => throw UnimplementedError();
-
-  @override
-  Future<void> deleteAllUnsaved() => throw UnimplementedError();
-
-  @override
-  Future<void> hardDelete(String playlistId) => throw UnimplementedError();
-
-  @override
-  Future<List<SavedPlaylist>> getAll() => throw UnimplementedError();
-
-  @override
-  Future<List<SavedPlaylist>> getByTab(PlaylistTab tab) =>
-      throw UnimplementedError();
-
-  @override
   Future<SavedPlaylist?> getById(String playlistId) async =>
       _playlists[playlistId];
 
   @override
-  Future<List<SavedPlaylist>> getPendingPush({String? sub}) =>
-      throw UnimplementedError();
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
+}
 
-  @override
-  Future<List<SavedPlaylist>> getTombstones({String? sub}) =>
-      throw UnimplementedError();
+final _pdf = PlaylistEntry(
+  id: praiseMaterialId('p-a', 'partitura.pdf'),
+  kind: MaterialKind.pdf,
+);
+final _audio = PlaylistEntry(
+  id: praiseMaterialId('p-b', 'audio.mp3'),
+  kind: MaterialKind.audio,
+);
+final _chord = PlaylistEntry(
+  id: praiseMaterialId('p-c', 'cifra.chord'),
+  kind: MaterialKind.chord,
+);
+final _gesture = PlaylistEntry(
+  id: praiseMaterialId('p-d', 'gestos.gestures'),
+  kind: MaterialKind.gesture,
+);
+// YouTube não vive no espaço de paths — é Coldigom por construção.
+const _youtube = PlaylistEntry(id: 'yt-1', kind: MaterialKind.youtube);
+const _lyrics = PlaylistEntry(id: 'lyrics:p-e', kind: MaterialKind.lyrics);
 
-  @override
-  Future<void> adoptForSub(String sub) => throw UnimplementedError();
+// Id legado do acervo PLPCG (path fora de `assets/praises/`): o crosswalk
+// nunca o resolve, então fica de fora do link em vez de falhar o share.
+final _legacy = PlaylistEntry(
+  id: encodePdfId('Coro/001 - Louvor antigo.pdf'),
+  kind: MaterialKind.pdf,
+);
 
-  @override
-  Future<int> purgeSyncedOwnedBy(String previousSub) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> publish(
-    String playlistId, {
-    required PlaylistCategory category,
-    PlaylistReach reach = PlaylistReach.usual,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<void> upsert(SavedPlaylist playlist) => throw UnimplementedError();
-
-  @override
-  Future<void> update(
-    String playlistId, {
-    String? nome,
-    List<PlaylistEntry>? entries,
-    List<String>? pdfIds,
-    List<String>? audioIds,
-    bool? salva,
-    DateTime? savedAt,
-    DateTime? favoritedAt,
-    bool? favorita,
-    bool clearFavoritedAt = false,
-    DateTime? updatedAt,
-    int? version,
-    PlaylistSyncStatus? syncStatus,
-    DateTime? deletedAt,
-    bool clearDeletedAt = false,
-  }) => throw UnimplementedError();
+GeneratePlaylistShareUrl _useCase(
+  List<PlaylistEntry>? entries,
+  Map<String, String> shortIds, {
+  String nome = 'Culto de domingo',
+  String? origin,
+}) {
+  final repository = _FakePlaylistRepository({
+    if (entries != null)
+      'p1': SavedPlaylist(
+        playlistId: 'p1',
+        nome: nome,
+        entries: entries,
+        createdAt: DateTime(2026, 9, 23),
+      ),
+  });
+  String? lookup(String entryId) => shortIds[entryId];
+  return origin == null
+      ? GeneratePlaylistShareUrl(repository, praiseShortIdOf: lookup)
+      : GeneratePlaylistShareUrl(
+          repository,
+          praiseShortIdOf: lookup,
+          shareOrigin: origin,
+        );
 }
 
 void main() {
-  const origin = 'https://plpcg.com';
-
-  test('gera URL com pdfIds e nome da playlist', () async {
-    final useCase = GeneratePlaylistShareUrl(
-      _FakePlaylistRepository({
-        'p1': SavedPlaylist.fromLegacyLists(
-          playlistId: 'p1',
-          nome: 'Ensaio',
-          pdfIds: const ['a', 'b'],
-          createdAt: DateTime(2026, 1, 1),
-        ),
-      }),
-      shareOrigin: origin,
-    );
-
-    final link = await useCase(playlistId: 'p1');
-    expect(link.isShort, isFalse);
-    expect(link.url, contains('sharepdfs='));
-    expect(link.url, contains('sharename='));
+  test('vetor do contrato: PDF, áudio e cifra, origem v2 por padrão', () async {
+    final url = await _useCase(
+      [_pdf, _audio, _chord],
+      {_pdf.id: '1a2', _audio.id: '0c3', _chord.id: 'fff'},
+    )(playlistId: 'p1');
+    expect(url, 'https://v2.plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo');
   });
 
-  test('emite shareitems com a ordem intercalada da playlist', () async {
-    const entries = [
-      PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
-      PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
-      PlaylistEntry(id: 'cif-1', kind: MaterialKind.chord),
-    ];
-    final useCase = GeneratePlaylistShareUrl(
-      _FakePlaylistRepository({
-        'p1': SavedPlaylist(
-          playlistId: 'p1',
-          nome: 'Ensaio',
-          entries: entries,
-          createdAt: DateTime(2026, 1, 1),
-        ),
-      }),
-      shareOrigin: origin,
-    );
-
-    final link = await useCase(playlistId: 'p1');
-    final params = parsePlaylistShareParams(Uri.parse(link.url));
-    expect(params!.entries, entries);
+  test('gesto, YouTube e letra também servem', () async {
+    final url = await _useCase(
+      [_gesture, _youtube, _lyrics],
+      {_gesture.id: '0a1', _youtube.id: '0b2', _lyrics.id: '0c3'},
+    )(playlistId: 'p1');
+    expect(Uri.parse(url).queryParameters['p'], '0a1-0b2-0c3');
   });
 
-  test('lança PlaylistNotFoundException quando ausente', () async {
-    final useCase = GeneratePlaylistShareUrl(
-      _FakePlaylistRepository({}),
-      shareOrigin: origin,
-    );
+  test(
+    'dois materiais do mesmo praise viram o mesmo token duas vezes',
+    () async {
+      final url = await _useCase(
+        [_pdf, _audio],
+        {_pdf.id: '0a1', _audio.id: '0a1'},
+        nome: 'Ensaio',
+      )(playlistId: 'p1');
+      expect(url, 'https://v2.plpcg.com/?p=0a1-0a1&n=Ensaio');
+    },
+  );
 
-    expect(
-      () => useCase(playlistId: 'missing'),
-      throwsA(isA<PlaylistNotFoundException>()),
+  test('entrada repetida repete o token, na ordem da lista', () async {
+    final url = await _useCase(
+      [_pdf, _audio, _pdf],
+      {_pdf.id: '1a2', _audio.id: '0c3'},
+    )(playlistId: 'p1');
+    expect(Uri.parse(url).queryParameters['p'], '1a2-0c3-1a2');
+  });
+
+  test('maiúsculas e espaços do catálogo normalizam', () async {
+    final url = await _useCase([_pdf], {_pdf.id: ' 1A2 '})(playlistId: 'p1');
+    expect(Uri.parse(url).queryParameters['p'], '1a2');
+  });
+
+  test(
+    'praise sem shortId → PraiseShortIdUnavailableException com os ids',
+    () async {
+      await expectLater(
+        _useCase([_pdf, _audio, _chord], {_pdf.id: '1a2'})(playlistId: 'p1'),
+        throwsA(
+          isA<PraiseShortIdUnavailableException>().having(
+            (e) => e.entryIds,
+            'entryIds',
+            [_audio.id, _chord.id],
+          ),
+        ),
+      );
+    },
+  );
+
+  test('shortId fora do padrão conta como em falta', () async {
+    await expectLater(
+      _useCase([_pdf, _audio], {_pdf.id: '12', _audio.id: 'zzz'})(
+        playlistId: 'p1',
+      ),
+      throwsA(
+        isA<PraiseShortIdUnavailableException>().having(
+          (e) => e.entryIds,
+          'entryIds',
+          [_pdf.id, _audio.id],
+        ),
+      ),
     );
   });
 
-  test('lança EmptyPlaylistShareException quando pdfIds vazio', () async {
-    final useCase = GeneratePlaylistShareUrl(
-      _FakePlaylistRepository({
-        'p1': SavedPlaylist.fromLegacyLists(
-          playlistId: 'p1',
-          nome: 'Vazia',
-          pdfIds: const [],
-          createdAt: DateTime(2026, 1, 1),
-        ),
-      }),
-      shareOrigin: origin,
-    );
+  test('id legado fora do acervo Coldigom fica de fora do link', () async {
+    final url = await _useCase(
+      [_pdf, _legacy, _audio],
+      {_pdf.id: '1a2', _audio.id: '0c3'},
+    )(playlistId: 'p1');
+    expect(Uri.parse(url).queryParameters['p'], '1a2-0c3');
+  });
 
-    expect(
-      () => useCase(playlistId: 'p1'),
+  test('id que não decodifica (e não é YouTube) também fica de fora', () async {
+    final url = await _useCase(
+      [
+        const PlaylistEntry(id: 'nao-e-base64!', kind: MaterialKind.unknown),
+        _pdf,
+      ],
+      {_pdf.id: '1a2'},
+    )(playlistId: 'p1');
+    expect(Uri.parse(url).queryParameters['p'], '1a2');
+  });
+
+  test(
+    'id Coldigom sem shortId ainda falha, mesmo ao lado de um legado',
+    () async {
+      await expectLater(
+        _useCase([_legacy, _pdf], const {})(playlistId: 'p1'),
+        throwsA(
+          isA<PraiseShortIdUnavailableException>().having(
+            (e) => e.entryIds,
+            'entryIds',
+            [_pdf.id],
+          ),
+        ),
+      );
+    },
+  );
+
+  test('só legados → EmptyPlaylistShareException', () async {
+    await expectLater(
+      _useCase([_legacy], const {})(playlistId: 'p1'),
       throwsA(isA<EmptyPlaylistShareException>()),
     );
   });
 
-  group('link curto (D7)', () {
-    GeneratePlaylistShareUrl useCaseWith(ShareLinkShortener? shortener) =>
-        GeneratePlaylistShareUrl(
-          _FakePlaylistRepository({
-            'p1': SavedPlaylist.fromLegacyLists(
-              playlistId: 'p1',
-              nome: 'Ensaio',
-              pdfIds: const ['a', 'b'],
-              createdAt: DateTime(2026, 1, 1),
-            ),
-          }),
-          shareOrigin: origin,
-          shortener: shortener,
-        );
-
-    test('short: false não chama o shortener — devolve a URL longa', () async {
-      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
-      final useCase = useCaseWith(shortener);
-
-      final link = await useCase(playlistId: 'p1');
-
-      expect(shortener.callCount, 0);
-      expect(link.url, contains('sharepdfs='));
-    });
-
-    test('short: true com shortener ok devolve a URL curta', () async {
-      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc1234');
-      final useCase = useCaseWith(shortener);
-
-      final link = await useCase(playlistId: 'p1', short: true);
-
-      expect(link.url, 'https://plpcg.com/l/abc1234');
-      expect(shortener.callCount, 1);
-      expect(shortener.lastQuery, contains('sharepdfs='));
-      expect(shortener.lastQuery, isNot(contains('?')));
-    });
-
-    test('short: true com shortener que lança cai na URL longa', () async {
-      final shortener = _FakeShortener.throwing(StateError('boom'));
-      final useCase = useCaseWith(shortener);
-
-      final link = await useCase(playlistId: 'p1', short: true);
-
-      expect(link.url, contains('sharepdfs='));
-      expect(link.url, startsWith(origin));
-    });
-
-    test('short: true sem shortener configurado devolve a URL longa', () async {
-      final useCase = useCaseWith(null);
-
-      final link = await useCase(playlistId: 'p1', short: true);
-
-      expect(link.url, contains('sharepdfs='));
-    });
+  test('origem configurável, sem barra final', () async {
+    final url = await _useCase(
+      [_pdf],
+      {_pdf.id: '1a2'},
+      origin: 'https://staging.plpcg.test/',
+    )(playlistId: 'p1');
+    expect(url, startsWith('https://staging.plpcg.test/?p=1a2&n='));
   });
 
-  group('formato curto (D7)', () {
-    final repo = _FakePlaylistRepository({
-      'p1': SavedPlaylist(
-        playlistId: 'p1',
-        nome: 'Culto de domingo',
-        entries: const [
-          PlaylistEntry(id: 'pdf-b', kind: MaterialKind.pdf),
-          PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
-        ],
-        createdAt: DateTime(2026, 1, 1),
-      ),
-      'mista': SavedPlaylist(
-        playlistId: 'mista',
-        nome: 'Mista',
-        entries: const [
-          PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf),
-          PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
-        ],
-        createdAt: DateTime(2026, 1, 1),
-      ),
-    });
-    String? lookup(String pdfId) =>
-        const {'pdf-a': '0000', 'pdf-b': '1a2f'}[pdfId];
-
-    test('todas as entradas PDF com shortId → link curto (vetor do contrato)', () async {
-      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin, shortIdOf: lookup);
-      final link = await useCase(playlistId: 'p1');
-      expect(link.isShort, isTrue);
-      expect(link.url, 'https://plpcg.com/?s=1a2f-0000&n=Culto%20de%20domingo');
-    });
-
-    test('lista com áudio → formato longo', () async {
-      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin, shortIdOf: lookup);
-      final link = await useCase(playlistId: 'mista');
-      expect(link.isShort, isFalse);
-      expect(link.url, contains('shareitems='));
-    });
-
-    test('PDF sem shortId no catálogo → formato longo', () async {
-      final useCase = GeneratePlaylistShareUrl(
-        repo, shareOrigin: origin, shortIdOf: (id) => id == 'pdf-a' ? '0000' : null,
-      );
-      final link = await useCase(playlistId: 'p1');
-      expect(link.isShort, isFalse);
-    });
-
-    test(
-      'shortId inválido devolvido pelo lookup (#5) → formato longo',
-      () async {
-        final useCase = GeneratePlaylistShareUrl(
-          repo,
-          shareOrigin: origin,
-          shortIdOf: (id) => id == 'pdf-a' ? '0000' : 'ZZZZ',
-        );
-        final link = await useCase(playlistId: 'p1');
-        expect(link.isShort, isFalse);
-      },
+  test('lista ausente → PlaylistNotFoundException', () async {
+    await expectLater(
+      _useCase(null, const {})(playlistId: 'p1'),
+      throwsA(isA<PlaylistNotFoundException>()),
     );
+  });
 
-    test('sem lookup (shortIdOf null) → formato longo', () async {
-      final useCase = GeneratePlaylistShareUrl(repo, shareOrigin: origin);
-      expect((await useCase(playlistId: 'p1')).isShort, isFalse);
-    });
-
-    test('short: true com link curto NÃO chama o encurtador /l/', () async {
-      final shortener = _FakeShortener.ok('https://plpcg.com/l/abc');
-      final useCase = GeneratePlaylistShareUrl(
-        repo,
-        shareOrigin: origin,
-        shortIdOf: lookup,
-        shortener: shortener,
-      );
-      final link = await useCase(playlistId: 'p1', short: true);
-      expect(link.isShort, isTrue);
-      expect(shortener.callCount, 0);
-    });
+  test('lista vazia → EmptyPlaylistShareException', () async {
+    await expectLater(
+      _useCase(const [], const {})(playlistId: 'p1'),
+      throwsA(isA<EmptyPlaylistShareException>()),
+    );
   });
 }

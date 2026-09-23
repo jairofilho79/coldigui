@@ -24,8 +24,8 @@ class LeafletDocument {
   /// Data/hora de geração — exibida no cabeçalho do folheto.
   final DateTime generatedAt;
 
-  /// Link curto da lista para o QR do rodapé (spec short-id-share D10).
-  /// `null` = sem QR (link longo, ou folheto sem lista salva).
+  /// Link da lista para o QR do rodapé (spec fim-fonte-plpcg §4.5).
+  /// `null` = sem QR (lista fora do repositório, vazia ou só com legados).
   final String? shareUrl;
 
   /// Monta folheto a partir dos itens do carousel, preservando

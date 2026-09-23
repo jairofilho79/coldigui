@@ -1,101 +1,83 @@
-import '../../../../core/constants/app_config.dart';
+import '../../../../core/constants/share_config.dart';
 import '../../../../core/logging/app_logger.dart';
+import '../../../../core/utils/material_id_kind.dart';
+import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
-import '../entities/playlist_share_link.dart';
 import '../entities/saved_playlist.dart';
 import '../exceptions/empty_playlist_share_exception.dart';
 import '../exceptions/playlist_not_found_exception.dart';
-import '../ports/share_link_shortener.dart';
+import '../exceptions/praise_short_id_unavailable_exception.dart';
 import '../repositories/playlist_repository.dart';
 
 final _log = AppLogger.of('playlists');
 
-/// `pdfId → shortId` do catálogo; `null` quando o material não tem.
-typedef ShortIdLookup = String? Function(String pdfId);
+/// Id de uma entrada da lista → `shortId` do praise dela, pelo catálogo local
+/// (spec fim-fonte-plpcg §4.2) — nunca pelo path do id (materiais movidos).
+/// `null` = material fora do índice ou praise sem `shortId`.
+typedef PraiseShortIdLookup = String? Function(String entryId);
 
-/// UC-07 — Gerar URL de compartilhamento (Fase 4.4; link curto, D7).
+/// UC-07 — gerar o link de compartilhamento por praise (`?p=…&n=…`).
 class GeneratePlaylistShareUrl {
   const GeneratePlaylistShareUrl(
     this._repository, {
-    this.shareOrigin = AppConfig.apiBaseUrl,
-    this.shortener,
-    this.shortIdOf,
+    required this.praiseShortIdOf,
+    this.shareOrigin = ShareConfig.appOrigin,
   });
 
   final PlaylistRepository _repository;
+  final PraiseShortIdLookup praiseShortIdOf;
   final String shareOrigin;
 
-  /// Encurtador opcional (D7) — só é chamado quando [call] recebe
-  /// `short: true`. `null` (ou qualquer erro do encurtador) sempre cai na
-  /// URL longa.
-  final ShareLinkShortener? shortener;
-
-  /// Lookup de `shortId` (spec short-id-share D7). `null` = sem catálogo →
-  /// sempre formato longo.
-  final ShortIdLookup? shortIdOf;
-
-  /// Formato curto quando **todas** as entradas são PDF com `shortId`; senão
-  /// o longo (`shareitems` + legados), com a tentativa de `/l/` se `short`.
+  /// Um token por entrada, na ordem da lista. Repetidos ficam: duas entradas
+  /// do mesmo praise viram o mesmo token duas vezes. Qualquer kind serve
+  /// (PDF, áudio, cifra, gesto, letra, YouTube).
   ///
-  /// Lança [PlaylistNotFoundException] ou [EmptyPlaylistShareException].
-  Future<PlaylistShareLink> call({
-    required String playlistId,
-    bool short = false,
-  }) async {
+  /// Entrada com id fora do espaço Coldigom (legado órfão do acervo PLPCG,
+  /// que nenhum catálogo resolve) fica de fora do link em vez de falhar o
+  /// share — desvio deliberado do §4.2.
+  ///
+  /// Lança [PlaylistNotFoundException], [EmptyPlaylistShareException] (lista
+  /// vazia ou só com legados) ou [PraiseShortIdUnavailableException] (com os
+  /// ids Coldigom sem token) — o link nunca sai com louvores do catálogo a
+  /// menos.
+  Future<String> call({required String playlistId}) async {
     final playlist = await _repository.getById(playlistId);
-    if (playlist == null) {
-      throw const PlaylistNotFoundException();
-    }
-    if (playlist.entries.isEmpty) {
-      throw const EmptyPlaylistShareException();
-    }
+    if (playlist == null) throw const PlaylistNotFoundException();
+    if (playlist.entries.isEmpty) throw const EmptyPlaylistShareException();
 
-    final shortIds = _shortIdsFor(playlist.entries);
-    if (shortIds != null) {
-      return PlaylistShareLink(
-        url: buildShortPlaylistShareUrl(
-          origin: shareOrigin,
-          shortIds: shortIds,
-          shareName: playlist.nome,
-        ),
-        isShort: true,
-      );
-    }
-
-    final longUrl = buildPlaylistShareUrlFromEntries(
-      origin: shareOrigin,
-      entries: playlist.entries,
-      shareName: playlist.nome,
-    );
-
-    final shortenerInstance = shortener;
-    if (!short || shortenerInstance == null) {
-      return PlaylistShareLink(url: longUrl, isShort: false);
-    }
-
-    try {
-      final shortened = await shortenerInstance.shorten(
-        Uri.parse(longUrl).query,
-      );
-      return PlaylistShareLink(url: shortened, isShort: false);
-    } on Object catch (e, stackTrace) {
-      _log.warn('encurtador falhou — caindo na URL longa', e);
-      _log.debug('$stackTrace');
-      return PlaylistShareLink(url: longUrl, isShort: false);
-    }
-  }
-
-  /// `null` se alguma entrada não é PDF ou não tem `shortId` (D7).
-  List<String>? _shortIdsFor(List<PlaylistEntry> entries) {
-    final lookup = shortIdOf;
-    if (lookup == null) return null;
     final shortIds = <String>[];
-    for (final entry in entries) {
-      if (entry.kind != MaterialKind.pdf) return null;
-      final shortId = lookup(entry.id);
-      if (shortId == null || !isShortId(shortId)) return null;
+    final missing = <String>[];
+    var skipped = 0;
+    for (final entry in playlist.entries) {
+      if (!_inColdigomIdSpace(entry)) {
+        skipped++;
+        continue;
+      }
+      final shortId = praiseShortIdOf(entry.id)?.trim().toLowerCase();
+      if (shortId == null || !isPraiseShortId(shortId)) {
+        missing.add(entry.id);
+        continue;
+      }
       shortIds.add(shortId);
     }
-    return shortIds;
+    if (skipped > 0) {
+      _log.info('link da lista sem $skipped entrada(s) fora do Coldigom');
+    }
+    if (missing.isNotEmpty) throw PraiseShortIdUnavailableException(missing);
+    if (shortIds.isEmpty) throw const EmptyPlaylistShareException();
+
+    return buildPraiseShareUrl(
+      origin: shareOrigin,
+      praiseShortIds: shortIds,
+      shareName: playlist.nome,
+    );
   }
+
+  /// `false` só para id que não pode ser do Coldigom: nem path
+  /// `assets/praises/…` (PDF, cifra, gesto, áudio), nem `lyrics:<praiseId>`,
+  /// nem YouTube (id do Worker, Coldigom por construção).
+  static bool _inColdigomIdSpace(PlaylistEntry entry) =>
+      entry.kind == MaterialKind.youtube ||
+      materialIdKindOf(entry.id) == MaterialKind.lyrics ||
+      isColdigomPdfId(entry.id);
 }

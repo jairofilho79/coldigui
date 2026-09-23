@@ -254,8 +254,8 @@ class _EntryRow extends StatelessWidget {
   }
 }
 
-/// Rodapé com QR do link curto (spec short-id-share D10). Só existe quando
-/// [LeafletDocument.shareUrl] veio preenchido — link longo não vira QR.
+/// Rodapé com o QR do link da lista (`?p=…&n=…`, spec fim-fonte-plpcg §4.5).
+/// Só existe quando [LeafletDocument.shareUrl] veio preenchido.
 ///
 /// QR de 96 pt — legível em foto de tela e não domina o folheto.
 class _ShareQrBand extends StatelessWidget {

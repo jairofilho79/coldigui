@@ -1,13 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
-import '../../../../core/providers/dio_provider.dart';
-import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
-import '../../../catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../../catalog/presentation/providers/pdf_ids_by_short_id_provider.dart';
-import '../../domain/ports/share_link_shortener.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/ports/short_id_resolver.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/usecases/delete_all_unsaved_playlists.dart';
@@ -24,7 +21,6 @@ import '../../domain/usecases/toggle_playlist_favorite.dart';
 import '../../domain/usecases/unfavorite_playlist.dart';
 import '../../domain/usecases/update_playlist.dart';
 import '../datasources/playlist_local_datasource.dart';
-import '../datasources/share_link_shortener_remote.dart';
 import '../repositories/playlist_repository_impl.dart';
 
 /// DI — CRUD Isar [Playlist] via [isarProvider].
@@ -101,26 +97,19 @@ final migrateCarouselStoreProvider = Provider<MigrateCarouselStore>((ref) {
   );
 });
 
-/// D7 — encurtador de link de compartilhamento (`POST /api/links`).
-///
-/// `sessionToken` é resolvido a cada chamada de [ShareLinkShortener.shorten] (não
-/// na hora de montar o provider): a rota exige autenticação, e a instância
-/// sobrevive a logins/logouts sem precisar ser recriada.
-final shareLinkShortenerProvider = Provider<ShareLinkShortener>((ref) {
-  return ShareLinkShortenerRemote(
-    ref.watch(dioProvider),
-    sessionToken: () => ref.read(authStateProvider).value?.sessionToken,
-  );
-});
-
-/// UC-07 — gerar URL de compartilhamento (Fase 4.4; link curto, D7).
+/// UC-07 — gerar o link por praise (spec fim-fonte-plpcg §4.2): entrada →
+/// grupo pelo índice local (`groupForMaterialId`) → `shortId` do praise.
+/// Lido na hora do share: um índice que hidratou depois vale.
 final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
   ref,
 ) {
   return GeneratePlaylistShareUrl(
     ref.watch(playlistRepositoryProvider),
-    shortener: ref.watch(shareLinkShortenerProvider),
-    shortIdOf: (pdfId) => ref.read(louvoresByPdfIdProvider)[pdfId]?.shortId,
+    praiseShortIdOf: (entryId) => ref
+        .read(coldigomSearchIndexProvider)
+        .groupForMaterialId(entryId)
+        ?.coldigomMeta
+        ?.shortId,
   );
 });
 

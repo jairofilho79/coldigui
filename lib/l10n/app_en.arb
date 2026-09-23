@@ -597,12 +597,6 @@
       "url": { "type": "String" }
     }
   },
-  "playlistShareColdigomTitle": "List with Coldigom materials",
-  "playlistShareColdigomBodyLeaflet": "The link and QR code only work with PLPCG hymns. Remove the Coldigom cards from the list to share a link, or send just the leaflet.",
-  "playlistShareColdigomBodyLink": "The link only works with PLPCG hymns. Remove the Coldigom cards from the list to share the link.",
-  "playlistShareColdigomCancel": "Cancel",
-  "playlistShareColdigomLeafletOnly": "Leaflet only",
-  "playlistShareColdigomDismiss": "Got it",
   "playlistTabUnsaved": "Unsaved",
   "playlistTabSaved": "Saved",
   "playlistTabFavorites": "Favorites",

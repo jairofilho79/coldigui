@@ -1,21 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../leaflet/domain/exceptions/empty_leaflet_exception.dart';
 import '../../../leaflet/presentation/providers/leaflet_actions_provider.dart';
 import '../../../leaflet/presentation/utils/leaflet_capture.dart';
 import '../../../leaflet/presentation/utils/leaflet_debug_log.dart';
 import '../../../leaflet/presentation/widgets/leaflet_content_labels.dart';
 import '../../data/providers/playlist_providers.dart';
-import '../../domain/entities/playlist_share_link.dart';
 import '../../domain/entities/playlist_share_option.dart';
 import '../../domain/exceptions/empty_playlist_share_exception.dart';
 import '../../domain/exceptions/playlist_not_found_exception.dart';
+import '../../domain/exceptions/praise_short_id_unavailable_exception.dart';
 import '../providers/playlists_provider.dart';
 import '../utils/playlist_share_debug_log.dart';
-import '../widgets/coldigom_share_dialog.dart';
 
 /// Callback injetável para testes — espelha [captureLeafletPngBytes].
 typedef CaptureWidgetToPngFn = Future<List<int>> Function(
@@ -32,8 +34,10 @@ typedef ShareXFilesFn = Future<void> Function(
 
 /// Orquestra os 3 modos: link, folheto, folheto+link.
 ///
-/// Gate Coldigom: lista que não é PLPCG pura (`!link.isShort`) não gera
-/// link nem QR — só folheto, após confirmação em [showColdigomShareDialog].
+/// O link é sempre por praise (`?p=…&n=…`, spec fim-fonte-plpcg §4) e serve
+/// a qualquer lista, com qualquer material. Entrada cujo praise não tem
+/// `shortId` no catálogo local falha o share com o snackbar de erro e pede um
+/// sync do catálogo (§4.2).
 class PlaylistShareActionsNotifier extends Notifier<void> {
   @override
   void build() {}
@@ -44,9 +48,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Retorna `false` em falha — o próprio provider mostra o snackbar
   /// (mensagem específica para [EmptyLeafletException], genérica para as
   /// demais exceções) antes de retornar; quem chama **não deve** mostrar
-  /// outro snackbar em cima do retorno `false`. Também retorna `false`,
-  /// **sem** snackbar, quando o usuário cancela ou dispensa o
-  /// [showColdigomShareDialog] (lista fora do acervo PLPCG).
+  /// outro snackbar em cima do retorno `false`.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -65,7 +67,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       switch (option) {
         case PlaylistShareOption.link:
           return await _shareLinkOnly(
-            context,
             shareContext,
             shareTextFn,
             sharePositionOrigin,
@@ -103,7 +104,14 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       }
       return false;
     } on EmptyPlaylistShareException catch (error, stackTrace) {
-      playlistShareDebugLogError('playlist sem pdfIds', error, stackTrace);
+      playlistShareDebugLogError('playlist sem entradas', error, stackTrace);
+      if (context.mounted) {
+        showPlaylistShareErrorSnackbar(context, l10n);
+      }
+      return false;
+    } on PraiseShortIdUnavailableException catch (error, stackTrace) {
+      playlistShareDebugLogError('praise sem shortId', error, stackTrace);
+      _requestCatalogSync();
       if (context.mounted) {
         showPlaylistShareErrorSnackbar(context, l10n);
       }
@@ -118,20 +126,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   }
 
   Future<bool> _shareLinkOnly(
-    BuildContext context,
     PlaylistShareContext shareContext,
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
   ) async {
-    final link = await _generateUrl(shareContext.playlistId);
-    if (!link.isShort) {
-      if (context.mounted) {
-        await showColdigomShareDialog(context, offerLeafletOnly: false);
-      }
-      return false;
-    }
+    final url = await _generateUrl(shareContext.playlistId);
     await shareTextFn(
-      link.url,
+      url,
       subject: shareContext.nome,
       sharePositionOrigin: sharePositionOrigin,
     );
@@ -146,17 +147,17 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    // QR só com link curto (D10). Lista sem registro/sem material no
-    // repositório não impede o folheto: fica sem QR.
+    // O folheto sai com o QR do link (§4.5). Só fica sem QR quando não pode
+    // haver link: lista fora do repositório (ex.: web sem Isar), sem
+    // entradas ou só com ids legados fora do Coldigom. Praise sem `shortId`
+    // não cai aqui — falha o share (§4.2).
     String? qrUrl;
     try {
-      // Formato do QR (curto/longo) decidido localmente — ver comentário de
-      // `_generateUrl` sobre o `/l/` não ter mais chamador aqui.
-      final link = await _generateUrl(shareContext.playlistId);
-      if (link.isShort) qrUrl = link.url;
-    } on Object catch (error, stackTrace) {
+      qrUrl = await _generateUrl(shareContext.playlistId);
+    } on PlaylistNotFoundException catch (error, stackTrace) {
       playlistShareDebugLogError('link para QR', error, stackTrace);
-      qrUrl = null;
+    } on EmptyPlaylistShareException catch (error, stackTrace) {
+      playlistShareDebugLogError('link para QR', error, stackTrace);
     }
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
@@ -185,23 +186,8 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     Rect? sharePositionOrigin, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final link = await _generateUrl(shareContext.playlistId);
+    final url = await _generateUrl(shareContext.playlistId);
     if (!context.mounted) return false;
-    if (!link.isShort) {
-      final leafletOnly = await showColdigomShareDialog(
-        context,
-        offerLeafletOnly: true,
-      );
-      if (!leafletOnly || !context.mounted) return false;
-      return _shareLeafletOnly(
-        context,
-        shareContext,
-        l10n,
-        shareFilesFn,
-        sharePositionOrigin,
-        capture: capture,
-      );
-    }
     final overlay = Overlay.of(context);
 
     final xFile = await _captureLeafletXFile(
@@ -209,13 +195,13 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
       shareContext,
       l10n,
       capture: capture,
-      shareUrl: link.url,
+      shareUrl: url,
     );
     if (!context.mounted) return false;
 
     final message = l10n.playlistShareLinkWithLeafletMessage(
       shareContext.nome,
-      link.url,
+      url,
     );
     await shareFilesFn(
       [xFile],
@@ -226,13 +212,19 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     return true;
   }
 
-  Future<PlaylistShareLink> _generateUrl(String playlistId) {
-    // Formato curto é decidido localmente por `PlaylistShareLink.isShort`;
-    // o share não emite mais link longo, então o `/l/` não tem chamador
-    // aqui (débito: remover junto com o gate Coldigom).
-    return ref.read(generatePlaylistShareUrlProvider)(
-      playlistId: playlistId,
-      short: false,
+  Future<String> _generateUrl(String playlistId) =>
+      ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
+
+  /// Pedido quando um praise da lista não tem `shortId` no catálogo local
+  /// (§4.2). Não bloqueia o snackbar; falha vira log.
+  void _requestCatalogSync() {
+    final syncNotifier = ref.read(coldigomCatalogSyncProvider.notifier);
+    unawaited(
+      syncNotifier.sync().then<void>(
+        (_) {},
+        onError: (Object e) =>
+            debugPrint('[UC-07 playlist-share] sync do catálogo falhou: $e'),
+      ),
     );
   }
 

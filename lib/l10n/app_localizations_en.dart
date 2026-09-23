@@ -1062,26 +1062,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get playlistShareColdigomTitle => 'List with Coldigom materials';
-
-  @override
-  String get playlistShareColdigomBodyLeaflet =>
-      'The link and QR code only work with PLPCG hymns. Remove the Coldigom cards from the list to share a link, or send just the leaflet.';
-
-  @override
-  String get playlistShareColdigomBodyLink =>
-      'The link only works with PLPCG hymns. Remove the Coldigom cards from the list to share the link.';
-
-  @override
-  String get playlistShareColdigomCancel => 'Cancel';
-
-  @override
-  String get playlistShareColdigomLeafletOnly => 'Leaflet only';
-
-  @override
-  String get playlistShareColdigomDismiss => 'Got it';
-
-  @override
   String get playlistTabUnsaved => 'Unsaved';
 
   @override
