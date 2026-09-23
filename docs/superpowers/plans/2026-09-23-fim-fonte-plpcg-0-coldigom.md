@@ -1467,7 +1467,7 @@ Expected:
 - `praises_fts`, `praises_ai`, `praises_ad` e `praises_au` presentes; o `sql` do `praises_au` contém `AFTER UPDATE ON praises` e as duas linhas `INSERT INTO praises_fts…` do `schema.sql`; **nenhuma** linha `app_meta`.
 - `n` ≈ 2063 (medido a 23/09).
 - O integrity-check termina sem erro. **Se falhar, parar:** o FTS já estava corrompido antes desta migração, e isso é outro problema.
-- Anotar o ETag do catálogo (para o Step 7).
+- Anotar o ETag do catálogo (para o Step 8).
 
 Se qualquer expectativa falhar, parar e reportar ao dono antes de migrar.
 
@@ -1477,9 +1477,13 @@ Se qualquer expectativa falhar, parar e reportar ao dono antes de migrar.
 wrangler d1 time-travel info coldigom
 ```
 
-Anotar o `bookmark` impresso. Restauro, só se algo der errado nos Steps 4–5: `wrangler d1 time-travel restore coldigom --bookmark=<bookmark>` (desfaz também qualquer escrita posterior no D1).
+Anotar o `bookmark` impresso. Restauro, só se algo der errado nos Steps 5–6: `wrangler d1 time-travel restore coldigom --bookmark=<bookmark>` (desfaz também qualquer escrita posterior no D1).
 
-- [ ] **Step 4: Aplicar a migração 023**
+- [ ] **Step 4: Congelar escritas de praises**
+
+Antes de aplicar a migração: garantir que ninguém cria ou importa louvores pelo admin, e que nenhum script de ingest/import está rodando (`scripts/ingest.ts`, `scripts/import-youtube-playlist`, `validate-acervo/apply.py`). Manter a janela congelada até as checagens do Step 6 (Conferir o D1 migrado) passarem — um INSERT concorrente durante o backfill ou entre o backfill e o ajuste do contador pode furar a ordem `created_at, id` ou colidir com o `short_id` que o gatilho vai emitir a seguir.
+
+- [ ] **Step 5: Aplicar a migração 023**
 
 ```bash
 wrangler d1 execute coldigom --remote --file=migrations/023_praise_short_id.sql
@@ -1487,7 +1491,7 @@ wrangler d1 execute coldigom --remote --file=migrations/023_praise_short_id.sql
 
 Expected: sucesso, sem erro. **Não repetir** (o `ALTER TABLE` falha na segunda vez).
 
-- [ ] **Step 5: Conferir o D1 migrado**
+- [ ] **Step 6: Conferir o D1 migrado**
 
 ```bash
 wrangler d1 execute coldigom --remote --json --command "SELECT COUNT(*) AS n, COUNT(short_id) AS com_id, COUNT(DISTINCT short_id) AS distintos, MIN(short_id) AS primeiro FROM praises"
@@ -1500,7 +1504,16 @@ curl -s -o /dev/null -w '%{http_code}\n' https://coldigom-api.jairofilho79.worke
 
 Expected: `n = com_id = distintos`, `primeiro = 000`; `short_id_next = n`; seis gatilhos (`praises_ad`, `praises_ai`, `praises_au`, `praises_short_id_ai`, `praises_short_id_bi`, `praises_short_id_bu`); o louvor `c6bd51a8…` com um `short_id` hex de 3 dígitos; integrity-check sem erro; o Worker **antigo** ainda responde `200` no catálogo.
 
-- [ ] **Step 6: Deploy do Worker**
+**Fallback, se `com_id < n`** (alguma linha ficou sem `short_id` — ex.: escrita concorrente durante a migração, apesar do congelamento do Step 4): para cada praise com `short_id` nulo, na ordem `created_at, id`,
+
+```sql
+UPDATE praises SET short_id = (SELECT printf('%03x', value) FROM app_meta WHERE key='short_id_next') WHERE id = ?;
+UPDATE app_meta SET value = value + 1 WHERE key='short_id_next';
+```
+
+executado um praise de cada vez, na ordem certa. É permitido: `praises_short_id_bu` só bloqueia a troca quando `OLD.short_id IS NOT NULL`. Depois, repetir as checagens deste Step.
+
+- [ ] **Step 7: Deploy do Worker**
 
 O deploy da API é o workflow `deploy-api.yml`, disparado por push em `main` que toque `api/**`. Caminho normal: PR `develop` → `main` (o portão exige `main` ancestral do head — `develop` já inclui `main`), o dono mescla e o workflow corre build, testes com cobertura (Node 22) e `wrangler deploy`.
 
@@ -1519,7 +1532,7 @@ Antes de o dono mesclar, listar o que vai junto: `git log --oneline origin/main.
 
 Acompanhar o workflow até ao fim: `gh run list --workflow=deploy-api.yml --limit 1`, depois `gh run watch <id>`.
 
-- [ ] **Step 7: Verificação em produção**
+- [ ] **Step 8: Verificação em produção**
 
 ```bash
 B=https://coldigom-api.jairofilho79.workers.dev
@@ -1553,7 +1566,7 @@ python3 -c "import json; print(json.dumps({'pdfIds': ['x%d' % i for i in range(5
 
 Expected:
 - ETag do catálogo **diferente** do anotado no Step 2; o script imprime `≈2063 praises, todos com shortId único`.
-- Detalhe e lista imprimem um hex de 3 dígitos (o mesmo `short_id` do Step 5 para `c6bd51a8…`).
+- Detalhe e lista imprimem um hex de 3 dígitos (o mesmo `short_id` do Step 6 para `c6bd51a8…`).
 - Crosswalk: `HTTP/2 200`, `access-control-allow-origin: https://v2.plpcg.com`, `cache-control: no-store` e o corpo:
   ```json
   {"items":{"TG91dm9yZXMgQ29sZXTDom5lYSBDSUFzLzAwMSAtIE1ldSBEZXVzLCBtZXUgcGFpL0NpZnJhIEkucGRm":{"praiseId":"c6bd51a8-6a7a-435f-9ca4-4d2968377dbc","materialId":"882cb3f9-a10d-450a-a84d-34c19d63f46c","url":"https://coldigom-api.jairofilho79.workers.dev/assets/praises/c6bd51a8-6a7a-435f-9ca4-4d2968377dbc/882cb3f9-a10d-450a-a84d-34c19d63f46c.pdf"}}}
@@ -1561,7 +1574,7 @@ Expected:
   (medido a 23/09 pelo `/api/plpcg/manifest`; se o material tiver sido mexido desde então, conferir contra `curl -s "$B/api/plpcg/manifest" | python3 -c "import json,sys; print([e for e in json.load(sys.stdin) if e['pdfId'].startswith('TG91dm9yZXMgQ29sZXTDom5lYSBDSUFzLzAwMSAt')])"`).
 - Preflight `204`; lote de 501 → `400`.
 
-- [ ] **Step 8: Se algo falhar depois do deploy**
+- [ ] **Step 9: Se algo falhar depois do deploy**
 
 - Worker com erro e D1 bom: `wrangler rollback` (volta à versão anterior do Worker; o antigo convive com o D1 migrado).
 - D1 com problema (integrity-check a falhar, criação de louvor a dar 500): primeiro `wrangler rollback` do Worker (o novo lê a coluna e daria 500 sem ela), depois `wrangler d1 time-travel restore coldigom --bookmark=<bookmark do Step 3>`.
