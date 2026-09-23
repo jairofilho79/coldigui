@@ -588,6 +588,13 @@
     }
   },
   "playlistImported": "Lista importada",
+  "playlistImportedWithSkipped": "Lista importada — {count, plural, one{1 louvor ficou de fora} other{{count} louvores ficaram de fora}}",
+  "@playlistImportedWithSkipped": {
+    "description": "Snackbar do import de link quando louvores do link não entraram (fora do catálogo local ou sem material adicionável)",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImportAlreadySaved": "Lista já estava salva: {nome}",
   "@playlistImportAlreadySaved": {
     "description": "Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)",

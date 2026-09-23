@@ -60,6 +60,7 @@ void main() {
       );
 
       expect(result.alreadyExisted, isFalse);
+      expect(result.skippedCount, 0);
       final saved = await playlistRepository.getById(
         result.playlist.playlistId,
       );
@@ -69,11 +70,19 @@ void main() {
     },
   );
 
-  test('token desconhecido é saltado e o resto importa', () async {
-    final result = await useCase(params: _link('Culto', ['abc', 'fff']));
-    final saved = await playlistRepository.getById(result.playlist.playlistId);
-    expect(saved!.entries, const [_pdfB]);
-  });
+  test(
+    'token desconhecido é saltado, o resto importa e o salto conta',
+    () async {
+      final result = await useCase(
+        params: _link('Culto', ['abc', 'fff', 'abc']),
+      );
+      final saved = await playlistRepository.getById(
+        result.playlist.playlistId,
+      );
+      expect(saved!.entries, const [_pdfB]);
+      expect(result.skippedCount, 2);
+    },
+  );
 
   test('nenhum token resolvido → InvalidSharePlaylistException', () async {
     await expectLater(
@@ -165,6 +174,7 @@ void main() {
     final params = parsePlaylistShareParams(Uri.parse(url))!;
     final result = await realUseCase(params: params);
 
+    expect(result.skippedCount, 0);
     final saved = await playlistRepository.getById(result.playlist.playlistId);
     expect(saved!.nome, 'Quem é Deus?');
     expect(saved.entries, [
@@ -186,6 +196,7 @@ void main() {
         );
 
         expect(second.alreadyExisted, isTrue);
+        expect(second.skippedCount, 0);
         expect(second.playlist.playlistId, first.playlist.playlistId);
         expect(second.playlist.nome, 'Original');
         expect(await playlistRepository.getAll(), hasLength(1));

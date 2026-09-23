@@ -120,6 +120,10 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
             _showSnackbar(
               (l10n) => l10n.playlistImportAlreadySaved(result.nome ?? ''),
             );
+          } else if (result.skippedCount > 0) {
+            _showSnackbar(
+              (l10n) => l10n.playlistImportedWithSkipped(result.skippedCount),
+            );
           } else {
             _showSnackbar((l10n) => l10n.playlistImported);
           }

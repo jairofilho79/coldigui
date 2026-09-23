@@ -261,7 +261,10 @@ void main() {
 
   /// Listener com o `SyncDeepLinkState` de verdade — a URL passa pelo parser
   /// e pelo use case reais.
-  Future<GoRouter> pumpRealSync(WidgetTester tester) async {
+  Future<GoRouter> pumpRealSync(
+    WidgetTester tester, {
+    SyncDeepLinkState? sync,
+  }) async {
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: RoutePaths.home,
@@ -278,7 +281,7 @@ void main() {
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
           syncDeepLinkStateProvider.overrideWithValue(
-            SyncDeepLinkState(importUseCase),
+            sync ?? SyncDeepLinkState(importUseCase),
           ),
           playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
@@ -294,6 +297,31 @@ void main() {
     );
     await tester.pumpAndSettle();
     return router;
+  }
+
+  for (final (skipped, message) in [
+    (1, 'Lista importada — 1 louvor ficou de fora'),
+    (2, 'Lista importada — 2 louvores ficaram de fora'),
+  ]) {
+    testWidgets('import com $skipped louvor(es) de fora avisa a contagem', (
+      tester,
+    ) async {
+      await pumpRealSync(
+        tester,
+        sync: _StubSyncDeepLinkState(
+          SyncDeepLinkResult.success('playlist-id', skippedCount: skipped),
+          importUseCase,
+        ),
+      );
+      final state = tester.state<DeepLinkListenerState>(
+        find.byType(DeepLinkListener),
+      );
+      await state.handleUriForTest(Uri.parse('/?p=0a1-abc&n=Teste'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(message), findsOneWidget);
+      expect(find.text('Lista importada'), findsNothing);
+    });
   }
 
   testWidgets('?p= sem token válido avisa em vez de sumir (D.6)', (

@@ -13,6 +13,7 @@ import 'package:coldigui/features/playlists/presentation/providers/active_playli
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/praise_entry_resolver_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/shared_import_outcome.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -95,8 +96,9 @@ void main() {
         );
     await _flushAsync();
 
-    expect(imported, isNotNull);
-    expect(c.read(activePlaylistIdProvider), imported);
+    expect(imported.status, SharedImportStatus.imported);
+    expect(imported.skippedCount, 0);
+    expect(c.read(activePlaylistIdProvider), imported.playlistId);
     expect(c.read(activePlaylistProvider)?.items, ['pdf-a', 'aud-1', 'pdf-a']);
     expect((await repository.getById('p-anterior'))?.nome, 'Anterior');
     expect(c.read(carouselFocusedKeyProvider), isNull);
@@ -128,14 +130,70 @@ void main() {
           ),
         );
 
-    expect(imported, isNotNull);
-    expect(imported, isNot('p1'));
-    expect((await repository.getById(imported!))?.nome, 'Reimportada');
+    expect(imported.status, SharedImportStatus.imported);
+    expect(imported.playlistId, isNot('p1'));
+    expect(
+      (await repository.getById(imported.playlistId!))?.nome,
+      'Reimportada',
+    );
+  });
+
+  test('louvores que ficaram de fora vêm contados no desfecho', () async {
+    final c = container();
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    final imported = await c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            shareName: 'Com buracos',
+            praiseShortIds: ['0a1', 'abc', '0c3', 'fff'],
+          ),
+        );
+
+    expect(imported.status, SharedImportStatus.imported);
+    expect(imported.skippedCount, 2);
+  });
+
+  // M5: link antigo que chegue ao notifier dá o aviso de link antigo, não o
+  // genérico de link inválido.
+  test('link antigo devolve o desfecho legacy', () async {
+    final c = container();
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    final imported = await c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(params: const PlaylistShareParams.legacy());
+
+    expect(imported.status, SharedImportStatus.legacy);
+    expect(imported.playlistId, isNull);
+  });
+
+  test('nenhum token resolvido devolve o desfecho invalid', () async {
+    final c = container();
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    final imported = await c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            shareName: 'X',
+            praiseShortIds: ['abc'],
+          ),
+        );
+
+    expect(imported.status, SharedImportStatus.invalid);
   });
 
   // Fix round final (#3): o resolver espera o catálogo — se ele falhar, o
-  // import não derruba quem chamou; a tela trata o `null`.
-  test('resolver que falha devolve null sem lançar', () async {
+  // import não derruba quem chamou; a tela mostra link inválido.
+  test('resolver que falha devolve invalid sem lançar', () async {
     final c = container(
       loader: () async => throw StateError('catálogo indisponível'),
     );
@@ -152,6 +210,6 @@ void main() {
           ),
         );
 
-    expect(imported, isNull);
+    expect(imported.status, SharedImportStatus.invalid);
   });
 }

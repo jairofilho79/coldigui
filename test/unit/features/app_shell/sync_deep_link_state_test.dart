@@ -150,11 +150,18 @@ void main() {
     );
     expect(result.outcome, SyncDeepLinkOutcome.success);
     expect(result.playlistId, isNotEmpty);
+    expect(result.skippedCount, 0);
 
     final saved = isar.playlists.where().findAll().single;
     expect(saved.nome, 'Culto');
     expect(saved.items, ['pdf-a', 'aud-1', 'pdf-a']);
     expect(saved.itemKinds, ['pdf', 'audio', 'pdf']);
+  });
+
+  test('success leva a contagem de louvores que ficaram de fora', () async {
+    final result = await useCase(uri: Uri.parse('/?p=0a1-abc-0c3-fff&n=Culto'));
+    expect(result.outcome, SyncDeepLinkOutcome.success);
+    expect(result.skippedCount, 2);
   });
 
   test('aceita queryParams map', () async {

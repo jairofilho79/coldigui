@@ -573,6 +573,13 @@
     }
   },
   "playlistImported": "Playlist imported",
+  "playlistImportedWithSkipped": "Playlist imported — {count, plural, one{1 song was left out} other{{count} songs were left out}}",
+  "@playlistImportedWithSkipped": {
+    "description": "Snackbar after importing a link when some of its songs were not added (missing from the local catalogue or with nothing addable)",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistImportAlreadySaved": "Playlist was already saved: {nome}",
   "@playlistImportAlreadySaved": {
     "description": "Snackbar when importing a share link whose content is already a saved playlist (dedupe, D7)",

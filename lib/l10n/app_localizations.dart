@@ -1781,6 +1781,12 @@ abstract class AppLocalizations {
   /// **'Lista importada'**
   String get playlistImported;
 
+  /// Snackbar do import de link quando louvores do link não entraram (fora do catálogo local ou sem material adicionável)
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista importada — {count, plural, one{1 louvor ficou de fora} other{{count} louvores ficaram de fora}}'**
+  String playlistImportedWithSkipped(int count);
+
   /// Snackbar ao importar um link de share cujo conteúdo já é uma lista salva (dedupe, D7)
   ///
   /// In pt, this message translates to:

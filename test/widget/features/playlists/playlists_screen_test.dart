@@ -16,6 +16,7 @@ import 'package:coldigui/features/playlists/domain/usecases/sync_playlists.dart'
 import 'package:coldigui/features/playlists/presentation/pages/playlists_screen.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_sync_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/shared_import_outcome.dart';
 import 'package:coldigui/features/playlists/presentation/widgets/playlist_sync_error_banner.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
@@ -319,9 +320,13 @@ void main() {
 
   Future<FakePlaylistsNotifier> pasteInImportDialog(
     WidgetTester tester,
-    String text,
-  ) async {
-    final notifier = FakePlaylistsNotifier(const []);
+    String text, {
+    SharedImportOutcome importOutcome = const SharedImportOutcome.imported(
+      'imported-id',
+    ),
+  }) async {
+    final notifier = FakePlaylistsNotifier(const [])
+      ..importOutcome = importOutcome;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -358,6 +363,42 @@ void main() {
     expect(notifier.lastImport?.praiseShortIds, ['0a1', 'fff', '0a1']);
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  testWidgets('import com louvores de fora avisa a contagem', (tester) async {
+    await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1-abc-fff&n=Teste',
+      importOutcome: const SharedImportOutcome.imported(
+        'imported-id',
+        skippedCount: 1,
+      ),
+    );
+
+    expect(
+      find.text('Lista importada — 1 louvor ficou de fora'),
+      findsOneWidget,
+    );
+    expect(find.text('Lista importada'), findsNothing);
+  });
+
+  testWidgets('desfecho legacy do notifier dá o aviso de link antigo', (
+    tester,
+  ) async {
+    await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1&n=Teste',
+      importOutcome: SharedImportOutcome.legacy,
+    );
+
+    expect(
+      find.text(
+        'Este link é de uma versão antiga e já não abre. '
+        'Peça um link novo à pessoa.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Lista importada'), findsNothing);
   });
 
   // D6: importar cria uma lista nova e a torna ativa — a anterior continua

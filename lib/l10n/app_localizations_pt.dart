@@ -1030,6 +1030,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistImported => 'Lista importada';
 
   @override
+  String playlistImportedWithSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count louvores ficaram de fora',
+      one: '1 louvor ficou de fora',
+    );
+    return 'Lista importada — $_temp0';
+  }
+
+  @override
   String playlistImportAlreadySaved(String nome) {
     return 'Lista já estava salva: $nome';
   }

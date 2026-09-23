@@ -11,7 +11,11 @@ final _log = AppLogger.of('playlists');
 
 /// Resultado de [ImportSharedPlaylistFromUrl.call] (D7, spec C.2).
 class ImportResult {
-  const ImportResult({required this.playlist, required this.alreadyExisted});
+  const ImportResult({
+    required this.playlist,
+    required this.alreadyExisted,
+    this.skippedCount = 0,
+  });
 
   /// A lista salva — nova, ou a já existente reaproveitada.
   final SavedPlaylist playlist;
@@ -19,6 +23,11 @@ class ImportResult {
   /// `true` quando já havia uma lista salva com o mesmo conteúdo: nenhuma
   /// lista nova foi criada, [playlist] é a existente.
   final bool alreadyExisted;
+
+  /// Tokens do link que não viraram entrada — louvor fora do catálogo local
+  /// (ex.: mais novo que o dump de quem recebe) ou sem material adicionável
+  /// (ex.: só letra). A UI avisa quantos ficaram de fora.
+  final int skippedCount;
 }
 
 /// UC-07 — importar lista de um link por praise (spec fim-fonte-plpcg §4.3).
@@ -36,9 +45,10 @@ class ImportSharedPlaylistFromUrl {
   ///
   /// Cada token do `p` vira a entrada que [loadPraiseEntryResolver] escolhe
   /// (favorito da conta, senão PDF principal → único áudio → primeiro
-  /// adicionável → cifra → gestos). Token desconhecido ou praise sem material adicionável é
-  /// saltado; repetições ficam. O material escolhido por quem enviou não
-  /// viaja — o link é por louvor. Quem chama torna a lista ativa (D3).
+  /// adicionável → cifra → gestos). Token desconhecido ou praise sem material
+  /// adicionável é saltado e contado em [ImportResult.skippedCount];
+  /// repetições ficam. O material escolhido por quem enviou não viaja — o
+  /// link é por louvor. Quem chama torna a lista ativa (D3).
   ///
   /// **Dedupe por conteúdo (spec C.2):** antes de criar, procura entre as
   /// listas salvas e não apagadas uma com o mesmo [contentFingerprint]
@@ -82,7 +92,11 @@ class ImportSharedPlaylistFromUrl {
       if (!playlist.salva || playlist.deletedAt != null) continue;
       if (playlist.playlistId == excludePlaylistId) continue;
       if (contentFingerprint(playlist.entries) == fingerprint) {
-        return ImportResult(playlist: playlist, alreadyExisted: true);
+        return ImportResult(
+          playlist: playlist,
+          alreadyExisted: true,
+          skippedCount: skipped,
+        );
       }
     }
 
@@ -94,6 +108,10 @@ class ImportSharedPlaylistFromUrl {
       savedAt: now,
     );
     final created = await _playlistRepository.getById(playlistId);
-    return ImportResult(playlist: created!, alreadyExisted: false);
+    return ImportResult(
+      playlist: created!,
+      alreadyExisted: false,
+      skippedCount: skipped,
+    );
   }
 }

@@ -33,6 +33,7 @@ class SyncDeepLinkResult {
     this.reason,
     this.alreadyExisted = false,
     this.nome,
+    this.skippedCount = 0,
   });
 
   /// Desfecho do processamento da URI.
@@ -54,6 +55,11 @@ class SyncDeepLinkResult {
   /// snackbar «Lista já estava salva: {nome}»).
   final String? nome;
 
+  /// Louvores do link que ficaram de fora do import (fora do catálogo local
+  /// ou sem material adicionável) quando [outcome] é
+  /// [SyncDeepLinkOutcome.success]. A UI avisa quando é maior que zero.
+  final int skippedCount;
+
   static const skipped = SyncDeepLinkResult(
     outcome: SyncDeepLinkOutcome.skipped,
   );
@@ -66,11 +72,13 @@ class SyncDeepLinkResult {
     String playlistId, {
     bool alreadyExisted = false,
     String? nome,
+    int skippedCount = 0,
   }) => SyncDeepLinkResult(
     outcome: SyncDeepLinkOutcome.success,
     playlistId: playlistId,
     alreadyExisted: alreadyExisted,
     nome: nome,
+    skippedCount: skippedCount,
   );
 
   static SyncDeepLinkResult failed(Object reason) =>
@@ -103,6 +111,7 @@ class SyncDeepLinkState {
         result.playlist.playlistId,
         alreadyExisted: result.alreadyExisted,
         nome: result.playlist.nome,
+        skippedCount: result.skippedCount,
       );
     } on InvalidSharePlaylistException {
       return SyncDeepLinkResult.invalid;

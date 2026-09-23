@@ -8,6 +8,7 @@
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/shared_import_outcome.dart';
 
 class FakePlaylistsNotifier extends PlaylistsNotifier {
   FakePlaylistsNotifier([
@@ -15,7 +16,6 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
     this.deleteAllUnsavedThrows,
     this.addLouvorResult = true,
     this.addAudioResult = true,
-    this.importedPlaylistId = 'imported-id',
   ]);
 
   final List<PlaylistViewItem> initial;
@@ -29,8 +29,10 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   /// Resultado devolvido por [addAudioToActivePlaylist].
   final bool addAudioResult;
 
-  /// Id devolvido por [importSharedFromUrl] quando não há erro.
-  final String? importedPlaylistId;
+  /// Desfecho devolvido por [importSharedFromUrl].
+  SharedImportOutcome importOutcome = const SharedImportOutcome.imported(
+    'imported-id',
+  );
 
   final addedPdfIds = <String>[];
   final addedAudioIds = <String>[];
@@ -107,10 +109,10 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   }
 
   @override
-  Future<String?> importSharedFromUrl({
+  Future<SharedImportOutcome> importSharedFromUrl({
     required PlaylistShareParams params,
   }) async {
     lastImport = params;
-    return importedPlaylistId;
+    return importOutcome;
   }
 }

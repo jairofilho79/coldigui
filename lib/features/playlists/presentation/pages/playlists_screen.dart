@@ -19,6 +19,7 @@ import '../providers/playlist_sync_lifecycle.dart';
 import '../providers/playlist_sync_provider.dart';
 import '../providers/playlists_provider.dart';
 import '../providers/playlists_ui_provider.dart';
+import '../providers/shared_import_outcome.dart';
 import '../widgets/import_playlist_dialog.dart';
 import '../widgets/playlist_list_tile.dart';
 import '../widgets/playlist_sync_error_banner.dart';
@@ -155,9 +156,9 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
 
     // D6: a lista importada vira a ativa e a anterior continua salva — nada
     // a "substituir", logo nada a confirmar (paridade com o deep link).
-    final String? playlistId;
+    final SharedImportOutcome outcome;
     try {
-      playlistId = await ref
+      outcome = await ref
           .read(playlistsProvider.notifier)
           .importSharedFromUrl(params: result);
     } on StorageUnavailableException catch (e) {
@@ -169,13 +170,20 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     }
     if (!context.mounted) return;
 
-    if (playlistId == null) {
-      showAppSnackbar(context, l10n.playlistImportInvalidUrl);
-      return;
+    switch (outcome.status) {
+      case SharedImportStatus.invalid:
+        showAppSnackbar(context, l10n.playlistImportInvalidUrl);
+      case SharedImportStatus.legacy:
+        showAppSnackbar(context, l10n.playlistShareLegacyLinkUnsupported);
+      case SharedImportStatus.imported:
+        ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.saved);
+        showAppSnackbar(
+          context,
+          outcome.skippedCount > 0
+              ? l10n.playlistImportedWithSkipped(outcome.skippedCount)
+              : l10n.playlistImported,
+        );
     }
-
-    ref.read(playlistsUiProvider.notifier).selectTab(PlaylistTab.saved);
-    showAppSnackbar(context, l10n.playlistImported);
   }
 
   Future<void> _deleteAllUnsaved(BuildContext context) async {

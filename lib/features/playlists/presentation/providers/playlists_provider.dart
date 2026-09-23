@@ -16,6 +16,7 @@ import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
 import '../../domain/exceptions/invalid_share_playlist_exception.dart';
+import '../../domain/exceptions/legacy_share_link_exception.dart';
 import '../utils/playlist_open_debug_log.dart';
 import '../utils/playlist_share_debug_log.dart';
 import 'active_playlist_editor.dart';
@@ -24,6 +25,7 @@ import 'pending_delete.dart';
 import 'playlist_session_hydrate.dart';
 import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
+import 'shared_import_outcome.dart';
 
 /// Playlist enriquecida com labels do manifest para exibição na UI.
 class PlaylistViewItem {
@@ -480,7 +482,13 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return outcome == AddToActiveOutcome.added;
   }
 
-  Future<String?> importSharedFromUrl({
+  /// Importa o link colado e torna a lista importada a ativa (D6).
+  ///
+  /// Nunca lança, exceto [StorageUnavailableException]: link antigo vira
+  /// [SharedImportOutcome.legacy]; link sem nada importável ou qualquer
+  /// outra falha (ex.: o resolver, que espera o catálogo) vira
+  /// [SharedImportOutcome.invalid].
+  Future<SharedImportOutcome> importSharedFromUrl({
     required PlaylistShareParams params,
   }) async {
     try {
@@ -505,9 +513,14 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       await ref
           .read(activePlaylistEditorProvider.notifier)
           .activate(playlistId);
-      return playlistId;
+      return SharedImportOutcome.imported(
+        playlistId,
+        skippedCount: result.skippedCount,
+      );
     } on InvalidSharePlaylistException {
-      return null;
+      return SharedImportOutcome.invalid;
+    } on LegacyShareLinkException {
+      return SharedImportOutcome.legacy;
     } on StorageUnavailableException {
       rethrow;
     } on Object catch (error, stackTrace) {
@@ -515,7 +528,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
       // outra inesperada) vira o erro genérico de import em vez de derrubar
       // a tela.
       playlistShareDebugLogError('import', error, stackTrace);
-      return null;
+      return SharedImportOutcome.invalid;
     }
   }
 
