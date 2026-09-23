@@ -71,6 +71,15 @@ class ColdigomCatalogLocalDatasource {
 
   int count() => _isar?.coldigomPraiseCaches.count() ?? 0;
 
+  /// Alguma linha tem `shortId`? `false` num catálogo gravado por um app que
+  /// ainda não lia o campo — o sync então ignora o ETag e regrava tudo.
+  bool hasAnyShortId() {
+    final isar = _isar;
+    if (isar == null) return false;
+    return isar.coldigomPraiseCaches.where().shortIdIsNotNull().findFirst() !=
+        null;
+  }
+
   Isar _requireIsar(String operation) {
     final isar = _isar;
     if (isar == null) {

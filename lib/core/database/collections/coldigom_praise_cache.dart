@@ -41,8 +41,11 @@ class ColdigomPraiseCache {
   late String searchTokens;
 
   /// `shortId` do praise (hex `[0-9a-f]{3,8}`) — chave do link de lista por
-  /// louvor (spec fim-fonte §4). Nulo em linhas gravadas antes de o dump o
-  /// trazer: o ETag muda com o campo novo e o próximo sync regrava tudo.
+  /// louvor (spec fim-fonte §4). Nulo em linhas gravadas por um app que
+  /// ainda não lia o campo — mesmo que o dump já o trouxesse, e com o ETag
+  /// desse dump guardado. Por isso o ETag sozinho não regrava nada: o
+  /// `SyncColdigomCatalog` ignora o ETag enquanto nenhuma linha tiver
+  /// `shortId` e o dump inteiro substitui as linhas.
   /// Propriedade aditiva, sem migração (precedente: `LouvorCache.shortId`).
   String? shortId;
 }

@@ -33,6 +33,21 @@ ColdigomCatalogDto _catalog() => ColdigomCatalogDto.fromJson(
   ) as Map<String, dynamic>,
 );
 
+ColdigomPraiseCache _storedRow(String praiseId, {String? shortId}) =>
+    ColdigomPraiseCache()
+      ..praiseId = praiseId
+      ..number = ''
+      ..name = ''
+      ..author = ''
+      ..rhythm = ''
+      ..tonality = ''
+      ..category = ''
+      ..tags = const []
+      ..lyrics = ''
+      ..materialsJson = '[]'
+      ..searchTokens = ''
+      ..shortId = shortId;
+
 void main() {
   late Directory tempDir;
   late Isar isar;
@@ -90,20 +105,7 @@ void main() {
         count: 3,
         at: DateTime.utc(2026, 1, 1),
       );
-      await local.replaceAll([
-        ColdigomPraiseCache()
-          ..praiseId = 'antigo'
-          ..number = ''
-          ..name = ''
-          ..author = ''
-          ..rhythm = ''
-          ..tonality = ''
-          ..category = ''
-          ..tags = const []
-          ..lyrics = ''
-          ..materialsJson = '[]'
-          ..searchTokens = '',
-      ]);
+      await local.replaceAll([_storedRow('antigo', shortId: 'abc')]);
       final remote = _ScriptedRemote(
         (_) async => const ColdigomCatalogNotModified(),
       );
@@ -117,6 +119,54 @@ void main() {
       expect(metadata.readSyncedAt(), fixedNow);
     },
   );
+
+  test('linhas gravadas sem shortId + etag guardado → pede sem If-None-Match e '
+      'regrava com shortId', () async {
+    // Instalação antiga: o app anterior baixou o dump novo sem ler o
+    // `shortId` e guardou o ETag dele — um `If-None-Match` daria 304 para
+    // sempre e as linhas nunca ganhariam o campo.
+    await metadata.markReplaced(
+      etag: '"v1"',
+      count: 2,
+      at: DateTime.utc(2026, 1, 1),
+    );
+    await local.replaceAll([_storedRow('p-001'), _storedRow('p-002')]);
+    final remote = _ScriptedRemote(
+      (ifNoneMatch) async => ifNoneMatch == null
+          ? ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"')
+          : const ColdigomCatalogNotModified(),
+    );
+
+    final result = await usecase(remote).run();
+
+    expect(remote.ifNoneMatches, [null]);
+    expect(result, isA<ColdigomCatalogSyncReplaced>());
+    expect(local.findByPraiseIdSync('p-001')!.shortId, '000');
+    expect(local.findByPraiseIdSync('p-002')!.shortId, '0a1');
+    expect(local.hasAnyShortId(), isTrue);
+    expect(metadata.readSyncedAt(), fixedNow);
+  });
+
+  test('linhas com shortId + etag guardado → pede com If-None-Match', () async {
+    await metadata.markReplaced(
+      etag: '"v1"',
+      count: 2,
+      at: DateTime.utc(2026, 1, 1),
+    );
+    await local.replaceAll([
+      _storedRow('p-001', shortId: '000'),
+      _storedRow('p-003'),
+    ]);
+    final remote = _ScriptedRemote(
+      (_) async => const ColdigomCatalogNotModified(),
+    );
+
+    final result = await usecase(remote).run();
+
+    expect(result, isA<ColdigomCatalogSyncNoop>());
+    expect(remote.ifNoneMatches, ['"v1"']);
+    expect(local.count(), 2);
+  });
 
   test('falha de rede → failed com a causa, Isar e etag intactos', () async {
     await metadata.markReplaced(

@@ -65,6 +65,19 @@ void main() {
   });
 
   test(
+    'hasAnyShortId: falso sem linhas ou sem shortId; verdadeiro com um',
+    () async {
+      expect(datasource.hasAnyShortId(), isFalse);
+
+      await datasource.replaceAll([_row('p1'), _row('p2', number: '002')]);
+      expect(datasource.hasAnyShortId(), isFalse);
+
+      await datasource.replaceAll([_row('p1'), _row('p2')..shortId = '0a1']);
+      expect(datasource.hasAnyShortId(), isTrue);
+    },
+  );
+
+  test(
     'sem Isar: leituras vazias, escritas lançam StorageUnavailableException',
     () async {
       const degraded = ColdigomCatalogLocalDatasource.unavailable();
@@ -73,6 +86,7 @@ void main() {
       expect(degraded.findAllSync(), isEmpty);
       expect(degraded.findByPraiseIdSync('p1'), isNull);
       expect(degraded.count(), 0);
+      expect(degraded.hasAnyShortId(), isFalse);
       await expectLater(
         degraded.replaceAll([_row('p1')]),
         throwsA(isA<StorageUnavailableException>()),

@@ -49,7 +49,9 @@ final class ColdigomCatalogSyncInMemory extends ColdigomCatalogSyncResult {
 /// Sem Isar ([ColdigomCatalogLocalDatasource.isAvailable] `false`) o dump
 /// vem sempre inteiro (sem `If-None-Match`) e volta como
 /// [ColdigomCatalogSyncInMemory], sem gravar ETag — senão o próximo pedido
-/// com Isar receberia `304` para um banco vazio.
+/// com Isar receberia `304` para um banco vazio. Com Isar, um catálogo
+/// gravado sem nenhum `shortId` também pede sem `If-None-Match` (autocura
+/// das instalações anteriores ao campo).
 class SyncColdigomCatalog {
   SyncColdigomCatalog({
     required ColdigomRemoteDatasource remote,
@@ -70,8 +72,11 @@ class SyncColdigomCatalog {
     try {
       final persist = _local.isAvailable;
       // Sem catálogo gravado (ou sem banco) o ETag guardado não vale: pedir
-      // sem `If-None-Match` garante o corpo inteiro.
-      final etag = !persist || _local.count() == 0
+      // sem `If-None-Match` garante o corpo inteiro. Idem para um catálogo
+      // sem nenhum `shortId`: foi gravado por um app que não lia o campo e
+      // guardou o ETag do dump que já o trazia — com `If-None-Match` o
+      // servidor responderia 304 para sempre e as linhas nunca o ganhariam.
+      final etag = !persist || _local.count() == 0 || !_local.hasAnyShortId()
           ? null
           : _metadata.readEtag();
       final result = await _remote.fetchCatalog(ifNoneMatch: etag);
