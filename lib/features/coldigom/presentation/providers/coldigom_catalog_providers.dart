@@ -51,8 +51,8 @@ class ColdigomInMemoryCatalogNotifier
   }
 }
 
-/// Hidrata os caches Coldigom em memória a partir do Isar **uma vez** (O4) e
-/// devolve o índice de busca local.
+/// Hidrata os caches Coldigom em memória **uma vez** (O4), a partir do Isar
+/// ou das linhas em memória (C6), e devolve o índice de busca local.
 ///
 /// Corre depois de o Isar assentar e fora do caminho crítico: a página
 /// inicial e a /biblioteca mostram carregamento até o índice ter praises
@@ -329,8 +329,9 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     // o datasource `.unavailable()` e tratar um catálogo bom, só ainda não
     // aberto, como ausente. Espera o Isar assentar; sem ele, o dump vai para
     // a memória (C6).
-    await awaitIsarSettled(ref);
+    final isarStatus = await awaitIsarSettled(ref);
     if (!ref.mounted) return const ColdigomCatalogSyncFailed('descartado');
+    final inMemory = isarStatus != IsarStatus.available;
     state = state.copyWith(isSyncing: true);
     final result = await ref.read(syncColdigomCatalogProvider).run();
     if (!ref.mounted) return result;
@@ -343,6 +344,14 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
         lastSyncedAt: DateTime.now().toUtc(),
         count: result.count,
       );
+      return result;
+    }
+    if (inMemory) {
+      // Sem Isar não há prefs para reler (`metadata` nunca grava sem
+      // catálogo persistido): uma falha só troca `isSyncing`/`lastResult`,
+      // senão um «Atualizar» que falhou depois de um sync em memória bem-
+      // sucedido zeraria o `count`/`lastSyncedAt` no `/offline`.
+      state = state.copyWith(isSyncing: false, lastResult: result);
       return result;
     }
     final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
@@ -360,3 +369,46 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     return result;
   }
 }
+
+/// Onde está o índice do catálogo, para a página inicial e a /biblioteca
+/// (spec fim-fonte §2.1).
+enum CatalogIndexStatus {
+  /// Hidratando, ou índice vazio à espera de um sync (skeleton).
+  loading,
+
+  /// Índice pronto — com praises, ou vazio depois de um sync bem-sucedido.
+  ready,
+
+  /// Índice vazio e o último sync falhou (sem rede, servidor fora):
+  /// `catalogLoadError` + «Tentar novamente» → `coldigomCatalogSyncProvider.sync()`.
+  failed,
+}
+
+/// [CatalogIndexStatus] derivado da hidratação e do sync.
+final catalogIndexStatusProvider = Provider<CatalogIndexStatus>((ref) {
+  final hydration = ref.watch(coldigomCatalogHydrationProvider);
+  final index = hydration.value;
+  if (index != null && !index.isEmpty) return CatalogIndexStatus.ready;
+  if (hydration.isLoading) return CatalogIndexStatus.loading;
+  final sync = ref.watch(coldigomCatalogSyncProvider);
+  if (sync.isSyncing) return CatalogIndexStatus.loading;
+  return switch (sync.lastResult) {
+    null => CatalogIndexStatus.loading,
+    ColdigomCatalogSyncFailed() => CatalogIndexStatus.failed,
+    _ => CatalogIndexStatus.ready,
+  };
+});
+
+/// Linha do catálogo do praise [praiseId] — do Isar ou, sem Isar, das linhas
+/// em memória (C6). O leitor `/letra` lê a letra daqui.
+final coldigomCatalogRowProvider =
+    Provider.family<ColdigomPraiseCache?, String>((ref, praiseId) {
+      final fromIsar = ref
+          .watch(coldigomCatalogLocalDatasourceProvider)
+          .findByPraiseIdSync(praiseId);
+      if (fromIsar != null || praiseId.isEmpty) return fromIsar;
+      for (final row in ref.watch(coldigomInMemoryCatalogProvider)) {
+        if (row.praiseId == praiseId) return row;
+      }
+      return null;
+    });

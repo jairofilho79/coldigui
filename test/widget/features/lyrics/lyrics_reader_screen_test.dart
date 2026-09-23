@@ -3,6 +3,7 @@ import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/lyrics/domain/entities/lyrics_reader_font_size.dart';
 import 'package:coldigui/features/lyrics/presentation/pages/lyrics_reader_screen.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,16 @@ class _MemoryCatalog extends ColdigomCatalogLocalDatasource {
 
   @override
   ColdigomPraiseCache? findByPraiseIdSync(String praiseId) => rows[praiseId];
+}
+
+/// Catálogo em memória já semeado (C6: sem Isar).
+class _SeededMemoryCatalog extends ColdigomInMemoryCatalogNotifier {
+  _SeededMemoryCatalog(this._rows);
+
+  final List<ColdigomPraiseCache> _rows;
+
+  @override
+  List<ColdigomPraiseCache> build() => _rows;
 }
 
 ColdigomPraiseCache _row(String lyrics) => ColdigomPraiseCache()
@@ -98,5 +109,27 @@ void main() {
     await _pump(tester, lyrics: '', queryParams: {'praiseId': 'zz'});
 
     expect(find.text('Este louvor não tem letra guardada'), findsOneWidget);
+  });
+
+  testWidgets('sem Isar lê a letra das linhas em memória', (tester) async {
+    SharedPreferences.setMockInitialValues(const {});
+    final prefs = await SharedPreferences.getInstance();
+    await pumpApp(
+      tester,
+      const LyricsReaderScreen(queryParams: {'praiseId': 'p1'}),
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        coldigomCatalogLocalDatasourceProvider.overrideWithValue(
+          const ColdigomCatalogLocalDatasource.unavailable(),
+        ),
+        coldigomInMemoryCatalogProvider.overrideWith(
+          () => _SeededMemoryCatalog([_row('Letra só em memória')]),
+        ),
+      ],
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Letra só em memória'), findsOneWidget);
+    expect(find.text('Ainda há tempo'), findsOneWidget);
   });
 }

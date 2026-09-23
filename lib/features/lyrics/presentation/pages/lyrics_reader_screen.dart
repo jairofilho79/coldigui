@@ -6,14 +6,15 @@ import '../../../../core/theme/color_extensions.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../coldigom/data/providers/coldigom_catalog_data_providers.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
 import '../providers/lyrics_reader_font_size_provider.dart';
 
 /// Leitor de letra Coldigom (`/letra?praiseId=`) — O6.
 ///
-/// Lê o texto do Isar ([coldigomCatalogLocalDatasourceProvider]), nunca da
-/// rede: a letra vem inteira no dump do catálogo e está sempre offline.
+/// Lê o texto da linha do catálogo ([coldigomCatalogRowProvider]: Isar, ou
+/// as linhas em memória sem Isar), nunca da rede: a letra vem inteira no
+/// dump do catálogo e está sempre offline.
 /// Filho da branch Home como `/cifra`: o shell dá o cabeçalho e a barra do
 /// carousel; aqui só há a barra de A−/A+ e o texto selecionável.
 class LyricsReaderScreen extends ConsumerStatefulWidget {
@@ -40,9 +41,7 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final fontSize = ref.watch(lyricsReaderFontSizeProvider);
-    final row = ref
-        .watch(coldigomCatalogLocalDatasourceProvider)
-        .findByPraiseIdSync(_praiseId);
+    final row = ref.watch(coldigomCatalogRowProvider(_praiseId));
     final title = widget.queryParams[UrlSyncParams.titulo] ?? row?.name ?? '';
     final text = row?.lyrics.trim() ?? '';
 

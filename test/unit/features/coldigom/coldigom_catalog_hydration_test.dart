@@ -378,4 +378,57 @@ void main() {
       expect(c.read(coldigomYoutubeCacheProvider)['p-yt'], hasLength(1));
     },
   );
+
+  test(
+    'sem catálogo e sem rede: requestSyncIfStale deixa a UI em erro',
+    () async {
+      final remote = _ScriptedRemote(
+        () async => const ColdigomCatalogNotModified(),
+      );
+      final c = container(remote: remote, isarAvailable: false, online: false);
+
+      await c.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
+      await c.read(coldigomCatalogHydrationProvider.future);
+
+      expect(
+        c.read(coldigomCatalogSyncProvider).lastResult,
+        isA<ColdigomCatalogSyncFailed>(),
+      );
+      expect(c.read(catalogIndexStatusProvider), CatalogIndexStatus.failed);
+      expect(remote.calls, 0);
+    },
+  );
+
+  test('sem Isar: uma falha não zera count/lastSyncedAt de um sync em memória anterior', () async {
+    var callCount = 0;
+    final remote = _ScriptedRemote(() async {
+      callCount++;
+      if (callCount == 1) {
+        return ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"');
+      }
+      throw StateError('rede caiu');
+    });
+    final c = container(remote: remote, isarAvailable: false, online: false);
+    expect(
+      (await c.read(coldigomCatalogHydrationProvider.future)).isEmpty,
+      isTrue,
+    );
+
+    final notifier = c.read(coldigomCatalogSyncProvider.notifier);
+    final okResult = await notifier.sync();
+    expect(okResult, isA<ColdigomCatalogSyncInMemory>());
+    final afterOk = c.read(coldigomCatalogSyncProvider);
+    expect(afterOk.count, 3);
+    expect(afterOk.lastSyncedAt, isNotNull);
+
+    final failResult = await notifier.sync();
+    expect(failResult, isA<ColdigomCatalogSyncFailed>());
+    final afterFail = c.read(coldigomCatalogSyncProvider);
+    expect(afterFail.lastResult, isA<ColdigomCatalogSyncFailed>());
+    expect(afterFail.isSyncing, isFalse);
+    // Sem Isar não há prefs a reler: a falha não deve apagar o
+    // count/lastSyncedAt do sync em memória anterior.
+    expect(afterFail.count, afterOk.count);
+    expect(afterFail.lastSyncedAt, afterOk.lastSyncedAt);
+  });
 }

@@ -3,6 +3,8 @@ import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter
 import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import 'package:flutter_riverpod/misc.dart';
 
 /// Um praise do catálogo montado como a hidratação o monta (adapter +
 /// `coldigomMeta`) — para testes de filtros, /biblioteca e página inicial
@@ -76,4 +78,42 @@ ColdigomSearchIndex catalogIndexOf(List<LouvorGroup> groups) {
         group: group,
       ),
   ]);
+}
+
+/// Sync do catálogo sem rede nem Isar: estado fixo e `sync()` contado.
+class FakeColdigomCatalogSyncNotifier extends ColdigomCatalogSyncNotifier {
+  FakeColdigomCatalogSyncNotifier([
+    this.initial = const ColdigomCatalogSyncState(
+      lastResult: ColdigomCatalogSyncNoop(),
+    ),
+  ]);
+
+  final ColdigomCatalogSyncState initial;
+  var syncCalls = 0;
+
+  @override
+  ColdigomCatalogSyncState build() => initial;
+
+  @override
+  Future<ColdigomCatalogSyncResult> sync() async {
+    syncCalls++;
+    return const ColdigomCatalogSyncNoop();
+  }
+
+  @override
+  Future<void> requestSyncIfStale() async {}
+}
+
+/// Índice já hidratado com [index] e um sync falso — o que uma tela que lê
+/// o catálogo precisa para não tocar em Isar nem rede.
+List<Override> catalogIndexOverrides(
+  ColdigomSearchIndex index, {
+  FakeColdigomCatalogSyncNotifier? sync,
+}) {
+  return [
+    coldigomCatalogHydrationProvider.overrideWith((ref) async => index),
+    coldigomCatalogSyncProvider.overrideWith(
+      () => sync ?? FakeColdigomCatalogSyncNotifier(),
+    ),
+  ];
 }
