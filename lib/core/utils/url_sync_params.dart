@@ -36,13 +36,16 @@ abstract final class UrlSyncParams {
   /// sendo emitidos para apps antigos.
   static const String shareItems = 'shareitems';
 
-  /// Link curto de lista PLPCG (spec short-id-share §1): `shortId`s hex
-  /// separados por `-`. Presente ⇒ [shareItems]/[sharePdfs]/[shareAudios]/
-  /// [shareName] são ignorados.
+  /// Legado — link curto por material (`?s=`, spec short-id-share). Só é
+  /// reconhecido para avisar que o link é antigo (spec fim-fonte-plpcg §4.4).
   static const String shortItems = 's';
 
-  /// Nome da lista no link curto — obrigatório, marca a URL como share.
+  /// Nome da lista no link por praise (`?p=…&n=…`) — obrigatório.
   static const String shortName = 'n';
+
+  /// Link por praise (spec fim-fonte-plpcg §4.1): `shortId`s de **praise**
+  /// hex separados por `-`, na ordem da lista (repetidos permitidos).
+  static const String praiseItems = 'p';
 
   static const String titulo = 'titulo';
   static const String subtitulo = 'subtitulo';

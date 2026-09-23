@@ -4,6 +4,8 @@ import 'package:coldigui/core/utils/url_sync_params.dart';
 // `saved_playlist.dart` re-exporta `PlaylistEntry`/`MaterialKind`.
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 
+import '../../features/coldigom/domain/utils/praise_short_id.dart';
+
 /// Prefixo de uma letra por [MaterialKind] no param `shareitems` (spec A.5).
 ///
 /// Ids de material já são base64url (sem `,` nem `:`), então `prefixo:id`
@@ -72,16 +74,16 @@ bool isShortId(Object? value) =>
 /// Serializa `shortId`s para o param `s` — minúsculo, separados por `-`
 /// (não sofre URL-encode e nunca ocorre em hex). Ignora o que não é shortId.
 String encodeShortShareIds(List<String> shortIds) => [
-      for (final id in shortIds)
-        if (isShortId(id.toLowerCase())) id.toLowerCase(),
-    ].join('-');
+  for (final id in shortIds)
+    if (isShortId(id.toLowerCase())) id.toLowerCase(),
+].join('-');
 
 /// Lê o param `s`: normaliza maiúsculas, ignora token fora do padrão,
 /// preserva ordem e repetições (a lista pode repetir um louvor).
 List<String> decodeShortShareIds(String raw) => [
-      for (final part in raw.split('-'))
-        if (isShortId(part.trim().toLowerCase())) part.trim().toLowerCase(),
-    ];
+  for (final part in raw.split('-'))
+    if (isShortId(part.trim().toLowerCase())) part.trim().toLowerCase(),
+];
 
 /// Monta `/?s=…&n=…` (spec §1). Lança [ArgumentError] se [shortIds] vazio
 /// ou [shareName] em branco.
@@ -106,10 +108,69 @@ String buildShortPlaylistShareUrl({
   required List<String> shortIds,
   required String shareName,
 }) {
-  final normalizedOrigin =
-      origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
+  final normalizedOrigin = origin.endsWith('/')
+      ? origin.substring(0, origin.length - 1)
+      : origin;
   return '$normalizedOrigin'
       '${buildShortPlaylistShareLocation(shortIds: shortIds, shareName: shareName)}';
+}
+
+/// `shortId` de praise válido (spec fim-fonte-plpcg §4.1): **string** hex
+/// minúscula de 3 a 8 caracteres. Nunca é número — `"000"` é um id.
+///
+/// Delega em `normalizePraiseShortId` (plano 1, `praise_short_id.dart`) — uma
+/// fonte só para o padrão `[0-9a-f]{3,8}`.
+bool isPraiseShortId(Object? value) =>
+    value is String && normalizePraiseShortId(value) == value;
+
+/// Lê o param `p`: `trim`, maiúsculas viram minúsculas, token fora do padrão
+/// é ignorado; ordem e repetições ficam (a lista pode repetir um louvor).
+List<String> decodePraiseShareIds(String raw) => [
+  for (final part in raw.split('-')) ?normalizePraiseShortId(part),
+];
+
+/// Monta `/?p=…&n=…` (spec fim-fonte-plpcg §4.1).
+///
+/// Lança [ArgumentError] com [praiseShortIds] vazio, com um token que não é
+/// [isPraiseShortId] (quem gera valida antes — aqui seria bug) ou com
+/// [shareName] em branco.
+String buildPraiseShareLocation({
+  required List<String> praiseShortIds,
+  required String shareName,
+}) {
+  if (praiseShortIds.isEmpty) {
+    throw ArgumentError.value(
+      praiseShortIds,
+      'praiseShortIds',
+      'must not be empty',
+    );
+  }
+  final invalid = [
+    for (final id in praiseShortIds)
+      if (!isPraiseShortId(id)) id,
+  ];
+  if (invalid.isNotEmpty) {
+    throw ArgumentError.value(invalid, 'praiseShortIds', 'invalid shortId');
+  }
+  if (shareName.trim().isEmpty) {
+    throw ArgumentError.value(shareName, 'shareName', 'must not be empty');
+  }
+  return '${RoutePaths.home}'
+      '?${UrlSyncParams.praiseItems}=${praiseShortIds.join('-')}'
+      '&${UrlSyncParams.shortName}=${Uri.encodeComponent(shareName)}';
+}
+
+/// URL absoluta do link por praise ([origin] + [buildPraiseShareLocation]).
+String buildPraiseShareUrl({
+  required String origin,
+  required List<String> praiseShortIds,
+  required String shareName,
+}) {
+  final normalizedOrigin = origin.endsWith('/')
+      ? origin.substring(0, origin.length - 1)
+      : origin;
+  return '$normalizedOrigin'
+      '${buildPraiseShareLocation(praiseShortIds: praiseShortIds, shareName: shareName)}';
 }
 
 /// Params extraídos de URL de compartilhamento de playlist (UC-07, Fase 4.4).

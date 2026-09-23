@@ -4,7 +4,7 @@ import 'app_config.dart';
 ///
 /// Domínio e scheme derivados de [AppConfig.apiBaseUrl] quando disponível.
 abstract final class DeepLinkConfig {
-  /// URL scheme customizado para dev/testes (`plpcg:///?s=…&n=…` ou legado `?sharepdfs=…`).
+  /// URL scheme customizado para dev/testes (`plpcg:///?p=…&n=…`).
   static const String customScheme = 'plpcg';
 
   /// Host Universal Links — extraído de [AppConfig.apiBaseUrl].
