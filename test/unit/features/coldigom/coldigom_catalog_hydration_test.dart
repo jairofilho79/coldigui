@@ -5,6 +5,7 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/network/device_connectivity.dart';
 import 'package:coldigui/core/providers/device_connectivity_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_sync_metadata_store.dart';
@@ -133,6 +134,26 @@ void main() {
     expect(hits.single.groupId, 'p-001');
     expect(hits.single.lyrics, isNotNull);
     expect(hits.single.totalMaterials, 6);
+
+    // C4: shortId e ids de material de qualquer tipo apontam para o grupo.
+    expect(index.groupByShortId('000')?.groupId, 'p-001');
+    expect(index.groupByShortId('0A1')?.groupId, 'p-002');
+    for (final id in [
+      encodePdfId('assets/praises/p-001/m-pdf.pdf'),
+      encodePdfId('assets/praises/p-001/m-chord.chord'),
+      encodePdfId('assets/praises/p-001/m-gest.gestures'),
+      encodePdfId('assets/praises/p-001/m-mp3.mp3'),
+      'lyrics:p-001',
+      'yt-1',
+    ]) {
+      expect(index.groupForMaterialId(id)?.groupId, 'p-001', reason: id);
+    }
+    expect(
+      index
+          .groupForMaterialId(encodePdfId('assets/praises/p-002/m-odd.m4a'))
+          ?.groupId,
+      'p-002',
+    );
     expect(remote.calls, 0);
   });
 

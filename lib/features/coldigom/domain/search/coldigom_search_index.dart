@@ -1,6 +1,7 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/utils/louvor_numero_normalizer.dart';
+import '../utils/praise_short_id.dart';
 
 /// Um praise no índice: os campos de busca pré-computados e o grupo pronto
 /// para a Home — construído **uma vez por hidratação**, não por tecla.
@@ -67,14 +68,29 @@ final class ColdigomIndexedPraise {
 /// Mesmo ranking de `SearchLouvorByNumberOrText.callIndexed` (número exato →
 /// título exato → parcial), sobre praises em vez de `Louvor`: no Coldigom a
 /// unidade da Home é o grupo, e ele já sai montado daqui.
+///
+/// Também é **o** catálogo do app (spec fim-fonte §2.1): [groups] alimenta a
+/// /biblioteca e as opções de filtro, e os mapas de [groupByShortId] (link
+/// por louvor) e [groupForMaterialId] (entrada de playlist → louvor) são
+/// montados uma vez por hidratação.
 final class ColdigomSearchIndex {
-  const ColdigomSearchIndex._(this.entries, this.praiseIds, this.catalogIds);
+  const ColdigomSearchIndex._(
+    this.entries,
+    this.groups,
+    this.praiseIds,
+    this.catalogIds,
+    this._groupByShortId,
+    this._groupByMaterialId,
+  );
 
   /// Índice vazio — antes da hidratação e em modo degradado.
   static const empty = ColdigomSearchIndex._(
     <ColdigomIndexedPraise>[],
+    <LouvorGroup>[],
     <String>{},
     <String>{},
+    <String, LouvorGroup>{},
+    <String, LouvorGroup>{},
   );
 
   /// [catalogIds] é o Isar inteiro (inclui praises sem material endereçável,
@@ -90,14 +106,30 @@ final class ColdigomSearchIndex {
     final praiseIds = Set<String>.unmodifiable({
       for (final e in entries) e.praiseId,
     });
+    final byShortId = <String, LouvorGroup>{};
+    final byMaterialId = <String, LouvorGroup>{};
+    for (final entry in entries) {
+      final shortId = normalizePraiseShortId(entry.group.coldigomMeta?.shortId);
+      if (shortId != null) byShortId.putIfAbsent(shortId, () => entry.group);
+      for (final material in entry.group.materials) {
+        byMaterialId.putIfAbsent(material.id, () => entry.group);
+      }
+    }
     return ColdigomSearchIndex._(
       List<ColdigomIndexedPraise>.unmodifiable(entries),
+      List<LouvorGroup>.unmodifiable([for (final e in entries) e.group]),
       praiseIds,
       catalogIds == null ? praiseIds : Set<String>.unmodifiable(catalogIds),
+      Map<String, LouvorGroup>.unmodifiable(byShortId),
+      Map<String, LouvorGroup>.unmodifiable(byMaterialId),
     );
   }
 
   final List<ColdigomIndexedPraise> entries;
+
+  /// Um grupo por entry, na ordem das [entries] — o catálogo inteiro que a
+  /// /biblioteca filtra e ordena.
+  final List<LouvorGroup> groups;
 
   /// Ids no índice de busca (com material endereçável) — é contra isto que
   /// a busca textual local decide match; ver [ColdigomIndexedPraise.build].
@@ -109,7 +141,25 @@ final class ColdigomSearchIndex {
   /// só-YouTube) não deve continuar a levar o chip «novo» pra sempre.
   final Set<String> catalogIds;
 
+  final Map<String, LouvorGroup> _groupByShortId;
+  final Map<String, LouvorGroup> _groupByMaterialId;
+
   bool get isEmpty => entries.isEmpty;
+
+  /// Grupo do praise com [shortId] (link `?p=`, spec §4.3); a entrada é
+  /// normalizada (`0A1` → `0a1`). `null` para inválido ou desconhecido.
+  LouvorGroup? groupByShortId(String shortId) {
+    final normalized = normalizePraiseShortId(shortId);
+    return normalized == null ? null : _groupByShortId[normalized];
+  }
+
+  /// Grupo ao qual pertence a entrada de playlist [entryId] — qualquer id de
+  /// `LouvorGroup.materials` (pdfId, audioId, chordId, gestureId,
+  /// `lyrics:<praiseId>`, id do material YouTube). Usa o material do
+  /// catálogo, não o path do id: 64 materiais movidos têm o path na pasta
+  /// de outro praise (desvio 2 do spec de 18/09).
+  LouvorGroup? groupForMaterialId(String entryId) =>
+      _groupByMaterialId[entryId];
 
   /// Grupos que casam com [query], ranqueados; vazio para query em branco.
   List<LouvorGroup> search(String query) {

@@ -3,6 +3,8 @@ import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_ma
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
 ColdigomIndexedPraise _entry(
   String id,
   String numero,
@@ -114,5 +116,63 @@ void main() {
       _entry('b1', '200', 'A Ti, Senhor'),
     ]);
     expect(localIndex.search('atisenh').map((g) => g.groupId).toList(), ['b1']);
+  });
+
+  group('mapas O(1) (C4)', () {
+    final aleluia = catalogGroup(
+      praiseId: 'p1',
+      number: '001',
+      name: 'Aleluia',
+      shortId: '000',
+      pdfKinds: const {'k-grade': 'Grade'},
+      audioKinds: const {'k-play': 'Playback'},
+    );
+    final semShortId = catalogGroup(
+      praiseId: 'p2',
+      number: '002',
+      name: 'Sem shortId',
+    );
+    final mapped = catalogIndexOf([aleluia, semShortId]);
+
+    test('groups segue a ordem das entries; vazio no índice vazio', () {
+      expect(mapped.groups.map((g) => g.groupId), ['p1', 'p2']);
+      expect(ColdigomSearchIndex.empty.groups, isEmpty);
+    });
+
+    test(
+      'groupByShortId acha o praise, normaliza a entrada e ignora inválidos',
+      () {
+        expect(mapped.groupByShortId('000')?.groupId, 'p1');
+        expect(mapped.groupByShortId(' 000 ')?.groupId, 'p1');
+        expect(mapped.groupByShortId('fff'), isNull);
+        expect(mapped.groupByShortId('zz'), isNull);
+        expect(ColdigomSearchIndex.empty.groupByShortId('000'), isNull);
+      },
+    );
+
+    test('groupByShortId acha praise cujo shortId nos metadados é '
+        'mixed-case/com espaço (o build normaliza igual à busca)', () {
+      final mistoCase = catalogGroup(
+        praiseId: 'p5',
+        number: '005',
+        name: 'Grão de mostarda',
+        shortId: ' 0A1 ',
+      );
+      final withMistoCase = catalogIndexOf([aleluia, semShortId, mistoCase]);
+      expect(withMistoCase.groupByShortId('0a1')?.groupId, 'p5');
+      expect(withMistoCase.groupByShortId(' 0A1 ')?.groupId, 'p5');
+    });
+
+    test('groupForMaterialId cobre todo material do grupo', () {
+      expect(aleluia.materials, hasLength(2));
+      for (final material in aleluia.materials) {
+        expect(
+          mapped.groupForMaterialId(material.id)?.groupId,
+          'p1',
+          reason: material.id,
+        );
+      }
+      expect(mapped.groupForMaterialId('desconhecido'), isNull);
+    });
   });
 }
