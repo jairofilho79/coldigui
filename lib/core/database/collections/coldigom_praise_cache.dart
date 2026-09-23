@@ -39,4 +39,10 @@ class ColdigomPraiseCache {
   /// Tokens normalizados (nome + número + tags + autor) separados por
   /// espaço — insumo do `ColdigomSearchIndex`, calculado uma vez no sync.
   late String searchTokens;
+
+  /// `shortId` do praise (hex `[0-9a-f]{3,8}`) — chave do link de lista por
+  /// louvor (spec fim-fonte §4). Nulo em linhas gravadas antes de o dump o
+  /// trazer: o ETag muda com o campo novo e o próximo sync regrava tudo.
+  /// Propriedade aditiva, sem migração (precedente: `LouvorCache.shortId`).
+  String? shortId;
 }

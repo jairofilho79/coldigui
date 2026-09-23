@@ -9,6 +9,7 @@ class ColdigomPraiseMetadata {
     this.category = '',
     this.tagNames = const [],
     this.lyricsExcerpt,
+    this.shortId,
   });
 
   final String name;
@@ -21,6 +22,11 @@ class ColdigomPraiseMetadata {
   /// Trecho da letra ao redor do match da busca — `null` fora de uma busca
   /// que bateu na letra.
   final String? lyricsExcerpt;
+
+  /// `shortId` do praise — chave do link por louvor (`?p=`, plano 2) e do
+  /// mapa `ColdigomSearchIndex.groupByShortId`. `null` quando o coldigom
+  /// ainda não o expõe para este praise.
+  final String? shortId;
 
   bool get hasAnyField =>
       tonality.trim().isNotEmpty ||

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/utils/praise_short_id.dart';
+
 /// Material de um louvor (PDF, áudio, YouTube, etc.).
 class MaterialDto {
   const MaterialDto({
@@ -52,6 +54,7 @@ class PraiseSummaryDto {
     this.author = '',
     this.tagIds = const [],
     this.tagNames = const [],
+    this.shortId,
   });
 
   final String id;
@@ -64,6 +67,9 @@ class PraiseSummaryDto {
   final List<String> tagIds;
   final List<String> tagNames;
 
+  /// `short_id` do praise ([normalizePraiseShortId]); `null` se ausente.
+  final String? shortId;
+
   factory PraiseSummaryDto.fromJson(Map<String, dynamic> json) {
     return PraiseSummaryDto(
       id: json['id'] as String,
@@ -75,6 +81,7 @@ class PraiseSummaryDto {
       author: json['author'] as String? ?? '',
       tagIds: splitColdigomCsv(json['tag_ids']),
       tagNames: splitColdigomCsv(json['tag_names']),
+      shortId: normalizePraiseShortId(json['short_id']),
     );
   }
 }
@@ -102,6 +109,7 @@ class PraiseDetailDto {
     this.author = '',
     this.tagNames = const [],
     this.lyricsExcerpt,
+    this.shortId,
   });
 
   final String id;
@@ -118,6 +126,9 @@ class PraiseDetailDto {
   /// busca bateu na letra; `null` no browse comum ou match só no título.
   final String? lyricsExcerpt;
 
+  /// `short_id` do praise ([normalizePraiseShortId]); `null` se ausente.
+  final String? shortId;
+
   factory PraiseDetailDto.fromJson(Map<String, dynamic> json) {
     final materialsJson = json['materials'] as List<dynamic>? ?? const [];
     return PraiseDetailDto(
@@ -130,6 +141,7 @@ class PraiseDetailDto {
       author: json['author'] as String? ?? '',
       tagNames: splitColdigomCsv(json['tag_names']),
       lyricsExcerpt: json['lyrics_excerpt'] as String?,
+      shortId: normalizePraiseShortId(json['short_id']),
       materials: _parseMaterials(materialsJson),
     );
   }

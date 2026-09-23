@@ -98,6 +98,7 @@ abstract final class ColdigomPraiseCacheMapper {
             url: m.url,
           ),
       ],
+      shortId: praise.shortId,
     );
   }
 
@@ -133,6 +134,7 @@ abstract final class ColdigomPraiseCacheMapper {
               url: m.url,
             ),
       ],
+      shortId: praise.shortId,
     );
   }
 
@@ -179,6 +181,7 @@ abstract final class ColdigomPraiseCacheMapper {
       tags: meta?.tagNames ?? const [],
       lyrics: '',
       materials: materials,
+      shortId: meta?.shortId,
     );
   }
 
@@ -221,6 +224,7 @@ abstract final class ColdigomPraiseCacheMapper {
     required List<String> tags,
     required String lyrics,
     required List<ColdigomCatalogMaterialEntry> materials,
+    String? shortId,
   }) {
     return ColdigomPraiseCache()
       ..praiseId = praiseId
@@ -233,6 +237,7 @@ abstract final class ColdigomPraiseCacheMapper {
       ..tags = List<String>.from(tags)
       ..lyrics = lyrics
       ..materialsJson = jsonEncode([for (final m in materials) m.toJson()])
+      ..shortId = shortId
       ..searchTokens = buildSearchTokens(
         name: name,
         number: number,
@@ -324,6 +329,7 @@ abstract final class ColdigomPraiseCacheMapper {
       author: row.author,
       tagNames: List<String>.from(row.tags),
       materials: materials,
+      shortId: row.shortId,
     );
   }
 }

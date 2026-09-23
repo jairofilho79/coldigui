@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/utils/praise_short_id.dart';
+
 /// Extensão do objeto no R2 por `type` do Worker — a outra metade da regra
 /// O2: o dump só manda `{id, kind, type}` e o app reconstrói o `r2_key`.
 ///
@@ -89,6 +91,7 @@ class ColdigomCatalogPraiseDto {
     required this.tags,
     required this.lyrics,
     required this.materials,
+    this.shortId,
   });
 
   final String id;
@@ -104,10 +107,15 @@ class ColdigomCatalogPraiseDto {
   final String lyrics;
   final List<ColdigomCatalogMaterialDto> materials;
 
+  /// `shortId` do praise ([normalizePraiseShortId]); `null` quando o dump
+  /// não o traz (praise sem `short_id` no coldigom) ou é inválido.
+  final String? shortId;
+
   factory ColdigomCatalogPraiseDto.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
     return ColdigomCatalogPraiseDto(
       id: id,
+      shortId: normalizePraiseShortId(json['shortId']),
       number: json['number'] as String? ?? '',
       name: json['name'] as String? ?? '',
       author: json['author'] as String? ?? '',

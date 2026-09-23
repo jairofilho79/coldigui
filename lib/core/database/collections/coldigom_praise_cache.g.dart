@@ -32,6 +32,7 @@ final ColdigomPraiseCacheSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'lyrics', type: IsarType.string),
       IsarPropertySchema(name: 'materialsJson', type: IsarType.string),
       IsarPropertySchema(name: 'searchTokens', type: IsarType.string),
+      IsarPropertySchema(name: 'shortId', type: IsarType.string),
     ],
     indexes: [
       IsarIndexSchema(
@@ -73,6 +74,14 @@ int serializeColdigomPraiseCache(
   IsarCore.writeString(writer, 9, object.lyrics);
   IsarCore.writeString(writer, 10, object.materialsJson);
   IsarCore.writeString(writer, 11, object.searchTokens);
+  {
+    final value = object.shortId;
+    if (value == null) {
+      IsarCore.writeNull(writer, 12);
+    } else {
+      IsarCore.writeString(writer, 12, value);
+    }
+  }
   return object.id;
 }
 
@@ -106,6 +115,7 @@ ColdigomPraiseCache deserializeColdigomPraiseCache(IsarReader reader) {
   object.lyrics = IsarCore.readString(reader, 9) ?? '';
   object.materialsJson = IsarCore.readString(reader, 10) ?? '';
   object.searchTokens = IsarCore.readString(reader, 11) ?? '';
+  object.shortId = IsarCore.readString(reader, 12);
   return object;
 }
 
@@ -151,6 +161,8 @@ dynamic deserializeColdigomPraiseCacheProp(IsarReader reader, int property) {
       return IsarCore.readString(reader, 10) ?? '';
     case 11:
       return IsarCore.readString(reader, 11) ?? '';
+    case 12:
+      return IsarCore.readString(reader, 12);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -169,6 +181,7 @@ sealed class _ColdigomPraiseCacheUpdate {
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
+    String? shortId,
   });
 }
 
@@ -190,6 +203,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
+    Object? shortId = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -204,6 +218,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
             if (lyrics != ignore) 9: lyrics as String?,
             if (materialsJson != ignore) 10: materialsJson as String?,
             if (searchTokens != ignore) 11: searchTokens as String?,
+            if (shortId != ignore) 12: shortId as String?,
           },
         ) >
         0;
@@ -223,6 +238,7 @@ sealed class _ColdigomPraiseCacheUpdateAll {
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
+    String? shortId,
   });
 }
 
@@ -245,6 +261,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
+    Object? shortId = ignore,
   }) {
     return collection.updateProperties(id, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -257,6 +274,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
       if (lyrics != ignore) 9: lyrics as String?,
       if (materialsJson != ignore) 10: materialsJson as String?,
       if (searchTokens != ignore) 11: searchTokens as String?,
+      if (shortId != ignore) 12: shortId as String?,
     });
   }
 }
@@ -281,6 +299,7 @@ sealed class _ColdigomPraiseCacheQueryUpdate {
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
+    String? shortId,
   });
 }
 
@@ -303,6 +322,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
+    Object? shortId = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -315,6 +335,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
       if (lyrics != ignore) 9: lyrics as String?,
       if (materialsJson != ignore) 10: materialsJson as String?,
       if (searchTokens != ignore) 11: searchTokens as String?,
+      if (shortId != ignore) 12: shortId as String?,
     });
   }
 }
@@ -347,6 +368,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
+    Object? shortId = ignore,
   }) {
     final q = query.build();
     try {
@@ -361,6 +383,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
         if (lyrics != ignore) 9: lyrics as String?,
         if (materialsJson != ignore) 10: materialsJson as String?,
         if (searchTokens != ignore) 11: searchTokens as String?,
+        if (shortId != ignore) 12: shortId as String?,
       });
     } finally {
       q.close();
@@ -2012,6 +2035,165 @@ extension ColdigomPraiseCacheQueryFilter
       );
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 12, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 12,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 12,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 12, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  shortIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 12, value: ''),
+      );
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryObject
@@ -2177,6 +2359,20 @@ extension ColdigomPraiseCacheQuerySortBy
       return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByShortId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByShortIdDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQuerySortThenBy
@@ -2334,6 +2530,20 @@ extension ColdigomPraiseCacheQuerySortThenBy
       return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByShortId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByShortIdDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryWhereDistinct
@@ -2414,6 +2624,13 @@ extension ColdigomPraiseCacheQueryWhereDistinct
       return query.addDistinctBy(11, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
+  distinctByShortId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(12, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty1
@@ -2490,6 +2707,12 @@ extension ColdigomPraiseCacheQueryProperty1
   searchTokensProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty> shortIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }
@@ -2578,6 +2801,13 @@ extension ColdigomPraiseCacheQueryProperty2<R>
       return query.addProperty(11);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, (R, String?), QAfterProperty>
+  shortIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty3<R1, R2>
@@ -2662,6 +2892,13 @@ extension ColdigomPraiseCacheQueryProperty3<R1, R2>
   searchTokensProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, (R1, R2, String?), QOperations>
+  shortIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }

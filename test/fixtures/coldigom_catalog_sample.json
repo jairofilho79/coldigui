@@ -9,6 +9,7 @@
   "praises": [
     {
       "id": "p-001",
+      "shortId": "000",
       "number": "001",
       "name": "Ainda há tempo",
       "author": "",
@@ -27,6 +28,7 @@
     },
     {
       "id": "p-002",
+      "shortId": "0a1",
       "number": "002",
       "name": "São João",
       "author": "Autor Dois",
