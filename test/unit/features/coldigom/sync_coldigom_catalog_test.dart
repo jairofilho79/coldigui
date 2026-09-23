@@ -185,8 +185,13 @@ void main() {
   );
 
   test(
-    'sem Isar → failed com StorageUnavailableException, sem gravar etag',
+    'sem Isar → dump em memória: nada gravado, pedido sem If-None-Match',
     () async {
+      await metadata.markReplaced(
+        etag: '"v0"',
+        count: 3,
+        at: DateTime.utc(2026, 1, 1),
+      );
       final remote = _ScriptedRemote(
         (_) async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
       );
@@ -199,8 +204,40 @@ void main() {
 
       final result = await degraded.run();
 
-      expect(result, isA<ColdigomCatalogSyncFailed>());
-      expect(metadata.readEtag(), isNull);
+      expect(result, isA<ColdigomCatalogSyncInMemory>());
+      final inMemory = result as ColdigomCatalogSyncInMemory;
+      expect(inMemory.count, 3);
+      expect(inMemory.rows.map((r) => r.praiseId), ['p-001', 'p-002', 'p-003']);
+      expect(inMemory.rows.first.shortId, '000');
+      // O ETag guardado é de um Isar que não está aqui: pede o corpo inteiro.
+      expect(remote.ifNoneMatches, [null]);
+      // Nada de metadados: o próximo arranque sem Isar baixa de novo.
+      expect(metadata.readEtag(), '"v0"');
+      expect(metadata.readSyncedAt(), DateTime.utc(2026, 1, 1));
     },
   );
+
+  test('sem Isar e dump vazio → failed (nunca um catálogo vazio)', () async {
+    final remote = _ScriptedRemote(
+      (_) async => const ColdigomCatalogFresh(
+        catalog: ColdigomCatalogDto(
+          generatedAt: '',
+          kindNames: {},
+          praises: [],
+        ),
+        etag: '"v2"',
+      ),
+    );
+    final degraded = SyncColdigomCatalog(
+      remote: remote,
+      local: const ColdigomCatalogLocalDatasource.unavailable(),
+      metadata: metadata,
+      now: () => fixedNow,
+    );
+
+    final result = await degraded.run();
+
+    expect(result, isA<ColdigomCatalogSyncFailed>());
+    expect((result as ColdigomCatalogSyncFailed).cause, 'dump vazio');
+  });
 }

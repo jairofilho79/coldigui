@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/database/storage_unavailable_exception.dart';
+import '../../../../core/database/collections/coldigom_praise_cache.dart';
 import '../../data/datasources/coldigom_catalog_local_datasource.dart';
 import '../../data/datasources/coldigom_catalog_sync_metadata_store.dart';
 import '../../data/datasources/coldigom_remote_datasource.dart';
@@ -30,13 +30,26 @@ final class ColdigomCatalogSyncFailed extends ColdigomCatalogSyncResult {
   final Object cause;
 }
 
+/// Sem Isar (C6, spec fim-fonte §2.1): o dump foi baixado e convertido, mas
+/// **não** gravado — nem linhas nem ETag. Quem hidrata lê estas [rows].
+final class ColdigomCatalogSyncInMemory extends ColdigomCatalogSyncResult {
+  const ColdigomCatalogSyncInMemory(this.rows);
+
+  final List<ColdigomPraiseCache> rows;
+
+  int get count => rows.length;
+}
+
 /// Sincroniza o catálogo Coldigom local por ETag (O3/O5).
 ///
 /// Best-effort por contrato: nunca lança. `ColdigomCatalogSyncFailed.cause`
 /// existe para a tela `/offline` explicar «não foi possível atualizar»; para
-/// o boot e o foreground a falha é só um `debugPrint`. Sem Isar a escrita
-/// lança [StorageUnavailableException] e o ETag **não** é gravado — senão o
-/// próximo pedido receberia `304` para um banco vazio.
+/// o boot e o foreground a falha é só um `debugPrint`.
+///
+/// Sem Isar ([ColdigomCatalogLocalDatasource.isAvailable] `false`) o dump
+/// vem sempre inteiro (sem `If-None-Match`) e volta como
+/// [ColdigomCatalogSyncInMemory], sem gravar ETag — senão o próximo pedido
+/// com Isar receberia `304` para um banco vazio.
 class SyncColdigomCatalog {
   SyncColdigomCatalog({
     required ColdigomRemoteDatasource remote,
@@ -55,12 +68,19 @@ class SyncColdigomCatalog {
 
   Future<ColdigomCatalogSyncResult> run() async {
     try {
-      // Sem catálogo gravado o ETag guardado não vale: pedir sem
-      // `If-None-Match` garante o corpo inteiro.
-      final etag = _local.count() == 0 ? null : _metadata.readEtag();
+      final persist = _local.isAvailable;
+      // Sem catálogo gravado (ou sem banco) o ETag guardado não vale: pedir
+      // sem `If-None-Match` garante o corpo inteiro.
+      final etag = !persist || _local.count() == 0
+          ? null
+          : _metadata.readEtag();
       final result = await _remote.fetchCatalog(ifNoneMatch: etag);
       switch (result) {
         case ColdigomCatalogNotModified():
+          // Defensivo: sem ETag o servidor não tem como responder 304.
+          if (!persist) {
+            return const ColdigomCatalogSyncFailed('304 sem catálogo local');
+          }
           await _metadata.markValidated(_now());
           return const ColdigomCatalogSyncNoop();
         case ColdigomCatalogFresh(:final catalog, etag: final freshEtag):
@@ -76,6 +96,7 @@ class SyncColdigomCatalog {
           if (rows.isEmpty) {
             return const ColdigomCatalogSyncFailed('dump vazio');
           }
+          if (!persist) return ColdigomCatalogSyncInMemory(rows);
           await _local.replaceAll(rows);
           await _metadata.markReplaced(
             etag: freshEtag,

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/offline_config.dart';
+import '../../../../core/database/collections/coldigom_praise_cache.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/device_connectivity_provider.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
@@ -26,19 +27,45 @@ export '../../domain/usecases/sync_coldigom_catalog.dart'
         ColdigomCatalogSyncResult,
         ColdigomCatalogSyncReplaced,
         ColdigomCatalogSyncNoop,
-        ColdigomCatalogSyncFailed;
+        ColdigomCatalogSyncFailed,
+        ColdigomCatalogSyncInMemory;
+
+/// Catálogo baixado **sem Isar** (C6, spec fim-fonte §2.1): as linhas do
+/// dump, só em memória — o contrato que o manifesto tinha. Vazio enquanto o
+/// Isar existe (aí o catálogo vive no banco) e até o primeiro sync em
+/// memória terminar.
+final coldigomInMemoryCatalogProvider =
+    NotifierProvider<
+      ColdigomInMemoryCatalogNotifier,
+      List<ColdigomPraiseCache>
+    >(ColdigomInMemoryCatalogNotifier.new);
+
+class ColdigomInMemoryCatalogNotifier
+    extends Notifier<List<ColdigomPraiseCache>> {
+  @override
+  List<ColdigomPraiseCache> build() => const [];
+
+  /// Troca o catálogo inteiro — desfecho [ColdigomCatalogSyncInMemory].
+  void replace(List<ColdigomPraiseCache> rows) {
+    state = List<ColdigomPraiseCache>.unmodifiable(rows);
+  }
+}
 
 /// Hidrata os caches Coldigom em memória a partir do Isar **uma vez** (O4) e
 /// devolve o índice de busca local.
 ///
-/// Corre depois de o Isar abrir e fora do caminho crítico: a Home não espera
-/// por isto (o PLPCG aparece primeiro, como hoje). A conversão é fatiada em
+/// Corre depois de o Isar assentar e fora do caminho crítico: a página
+/// inicial e a /biblioteca mostram carregamento até o índice ter praises
+/// (`catalogIndexStatusProvider`). A conversão é fatiada em
 /// [OfflineConfig.coldigomHydrationChunkSize] praises com `await
 /// Future.delayed(Duration.zero)` entre fatias — na web tudo corre na thread
-/// de UI, e 1690 praises de uma vez atrasariam o primeiro frame.
+/// de UI, e 2063 praises de uma vez atrasariam o primeiro frame.
 ///
-/// Sem Isar (modo degradado) devolve [ColdigomSearchIndex.empty]. Um sync
-/// que substituiu o catálogo invalida este provider ([ColdigomCatalogSyncNotifier]).
+/// Com Isar, lê o banco. Sem Isar (modo degradado), lê as linhas que o sync
+/// baixou para [coldigomInMemoryCatalogProvider] (C6). Um sync que
+/// substituiu o catálogo no Isar invalida este provider
+/// ([ColdigomCatalogSyncNotifier]); o sync em memória troca as linhas
+/// observadas.
 ///
 /// Os caches por tipo (`coldigomLouvoresCacheProvider` e irmãos) só
 /// **fundem**: um praise removido no servidor some do Isar e do índice novo
@@ -48,10 +75,15 @@ export '../../domain/usecases/sync_coldigom_catalog.dart'
 final coldigomCatalogHydrationProvider = FutureProvider<ColdigomSearchIndex>((
   ref,
 ) async {
-  if (await awaitIsarSettled(ref) != IsarStatus.available) {
-    return ColdigomSearchIndex.empty;
+  // Observado antes de qualquer `await`: sem Isar as linhas vêm do sync em
+  // memória, e trocá-las re-hidrata sozinho.
+  final memoryRows = ref.watch(coldigomInMemoryCatalogProvider);
+  final List<ColdigomPraiseCache> rows;
+  if (await awaitIsarSettled(ref) == IsarStatus.available) {
+    rows = ref.read(coldigomCatalogLocalDatasourceProvider).findAllSync();
+  } else {
+    rows = memoryRows;
   }
-  final rows = ref.read(coldigomCatalogLocalDatasourceProvider).findAllSync();
   if (rows.isEmpty) return ColdigomSearchIndex.empty;
 
   final stopwatch = Stopwatch()..start();
@@ -203,8 +235,8 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
   @override
   ColdigomCatalogSyncState build() {
     final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
-    // Boot: em paralelo ao PLPCG, sem bloquear ninguém — e sem repetir o
-    // pedido se o último sync foi há pouco (o app pode reabrir muitas vezes).
+    // Boot: sem bloquear ninguém — e sem repetir o pedido se o último sync
+    // foi há pouco (o app pode reabrir muitas vezes).
     unawaited(Future<void>.microtask(requestSyncIfStale));
     return ColdigomCatalogSyncState(
       lastSyncedAt: metadata.readSyncedAt(),
@@ -239,63 +271,80 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
   }
 
   /// Sync só quando o último foi há ≥ [OfflineConfig.coldigomCatalogSyncMinInterval]
-  /// (ou nunca) **e** há rede. Sem rede fica o que está.
+  /// (ou nunca, ou não há catálogo) **e** há rede.
+  ///
+  /// Espera o Isar assentar: é ele que decide entre o catálogo gravado (ETag
+  /// e `syncedAt` nas prefs) e o catálogo só em memória (C6), que não
+  /// sobrevive ao reinício e por isso ignora o `syncedAt` das prefs. Sem
+  /// catálogo e sem rede grava a falha: é o que faz a página inicial e a
+  /// /biblioteca trocarem o carregamento por erro + «tentar de novo».
   Future<void> requestSyncIfStale() async {
-    final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
-    final syncedAt = metadata.readSyncedAt();
-    // `metadata.readCount()` (SharedPreferences) em vez de
-    // `coldigomCatalogLocalDatasourceProvider.count()` (Isar): fica
-    // disponível de imediato, mesmo com o Isar ainda `opening` no boot — ler
-    // o Isar aqui synchronously degradaria para `0` nesse instante e faria
-    // este *gate* de "já sincronizei há pouco" pedir sync à toa a cada
-    // abertura do app. `_run()` (chamado por [sync] logo abaixo) já espera o
-    // Isar assentar antes de tocar rede/storage, então esse `hasCatalog`
-    // só decide *se vale a pena tentar*, não é usado para montar o pedido —
-    // a janela cega de um Isar zerado por fora (sem passar por
-    // `markReplaced`) só atrasaria um sync que aconteceria de qualquer jeito
-    // no próximo boot/foreground.
-    final hasCatalog = metadata.readCount() > 0;
-    if (hasCatalog &&
-        syncedAt != null &&
-        DateTime.now().toUtc().difference(syncedAt) <
-            OfflineConfig.coldigomCatalogSyncMinInterval) {
-      return;
-    }
+    final status = await awaitIsarSettled(ref);
+    // Este pedido pode nascer como microtask de `build()`: se o container já
+    // foi descartado nesse meio-tempo (fim de um teste, navegação que
+    // desmonta o shell), `ref` não serve mais.
+    if (!ref.mounted) return;
+    final inMemory = status != IsarStatus.available;
+    if (_hasFreshCatalog(inMemory: inMemory)) return;
     final hasConnection = await ref
         .read(deviceConnectivityProvider)
         .hasConnection();
-    // Este pedido pode nascer como microtask de `build()`: se o container já
-    // foi descartado nesse meio-tempo (fim de um teste, navegação que
-    // desmonta o shell), `ref` não serve mais — mesma guarda do sync de
-    // favoritos (`MaterialKindPrefsSyncNotifier`).
-    if (!ref.mounted || !hasConnection) return;
+    if (!ref.mounted) return;
+    if (!hasConnection) {
+      // Um sync concorrente pode ter enchido o catálogo durante os awaits.
+      if (_inFlight == null && !_hasCatalog(inMemory: inMemory)) {
+        state = state.copyWith(
+          lastResult: const ColdigomCatalogSyncFailed('sem rede'),
+        );
+      }
+      return;
+    }
     await sync();
+  }
+
+  /// Há catálogo local? Com Isar conta as linhas (já assentado: a leitura
+  /// síncrona é segura); uma leitura que falhe conta como «não há».
+  bool _hasCatalog({required bool inMemory}) {
+    if (inMemory) return ref.read(coldigomInMemoryCatalogProvider).isNotEmpty;
+    try {
+      return ref.read(coldigomCatalogLocalDatasourceProvider).count() > 0;
+    } on Object {
+      return false;
+    }
+  }
+
+  bool _hasFreshCatalog({required bool inMemory}) {
+    if (!_hasCatalog(inMemory: inMemory)) return false;
+    final syncedAt = inMemory
+        ? state.lastSyncedAt
+        : ref.read(coldigomCatalogSyncMetadataStoreProvider).readSyncedAt();
+    return syncedAt != null &&
+        DateTime.now().toUtc().difference(syncedAt) <
+            OfflineConfig.coldigomCatalogSyncMinInterval;
   }
 
   Future<ColdigomCatalogSyncResult> _run() async {
     // O shell monta (e o boot agenda `requestSyncIfStale`) enquanto o Isar
-    // ainda pode estar abrindo — mesmo cenário D.2 do sync de playlists.
-    // Sincronizar antes disso faria `SyncColdigomCatalog.run()` ler
-    // `coldigomCatalogLocalDatasourceProvider` como `.unavailable()`: o
-    // `count()==0` derruba o ETag guardado (pede o dump inteiro à toa) e o
-    // `replaceAll` final lança `StorageUnavailableException` — mesmo com um
-    // catálogo bom já em disco, só ainda não aberto. Espera o Isar assentar
-    // primeiro; sem ele, nem vale a pena bater na rede.
-    if (await awaitIsarSettled(ref) != IsarStatus.available) {
-      const result = ColdigomCatalogSyncFailed('Isar indisponível');
-      // Sem isto o `/offline` nunca saberia que este sync falhou:
-      // `lastResult` ficava com o valor da tentativa anterior (ou `null`)
-      // e, se um pedido concorrente tivesse deixado `isSyncing: true`,
-      // ficaria preso nesse estado.
-      if (ref.mounted) {
-        state = state.copyWith(lastResult: result, isSyncing: false);
-      }
-      return result;
-    }
+    // ainda pode estar abrindo. Sincronizar antes disso faria o use case ver
+    // o datasource `.unavailable()` e tratar um catálogo bom, só ainda não
+    // aberto, como ausente. Espera o Isar assentar; sem ele, o dump vai para
+    // a memória (C6).
+    await awaitIsarSettled(ref);
     if (!ref.mounted) return const ColdigomCatalogSyncFailed('descartado');
     state = state.copyWith(isSyncing: true);
     final result = await ref.read(syncColdigomCatalogProvider).run();
     if (!ref.mounted) return result;
+    if (result is ColdigomCatalogSyncInMemory) {
+      // Nada gravado: o índice re-hidrata porque observa estas linhas.
+      ref.read(coldigomInMemoryCatalogProvider.notifier).replace(result.rows);
+      state = state.copyWith(
+        isSyncing: false,
+        lastResult: result,
+        lastSyncedAt: DateTime.now().toUtc(),
+        count: result.count,
+      );
+      return result;
+    }
     final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
     state = state.copyWith(
       isSyncing: false,
@@ -305,7 +354,7 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     );
     if (result is ColdigomCatalogSyncReplaced) {
       // O Isar mudou por baixo dos caches: re-hidrata (o índice novo troca
-      // a lista local na Home sem tocar em quem já leu `groupById`).
+      // a lista local sem tocar em quem já leu `groupById`).
       ref.invalidate(coldigomCatalogHydrationProvider);
     }
     return result;

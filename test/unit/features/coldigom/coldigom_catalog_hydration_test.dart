@@ -157,27 +157,85 @@ void main() {
     expect(remote.calls, 0);
   });
 
-  test('sem Isar: índice vazio e sync falha sem gravar', () async {
-    final remote = _ScriptedRemote(
-      () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
-    );
-    final c = container(remote: remote, isarAvailable: false);
+  test(
+    'sem Isar: o sync baixa o dump para a memória e o índice hidrata dele',
+    () async {
+      final remote = _ScriptedRemote(
+        () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
+      );
+      // Offline: o `requestSyncIfStale` do boot não corre em paralelo com o
+      // `sync()` explícito deste teste.
+      final c = container(remote: remote, isarAvailable: false, online: false);
 
-    final index = await c.read(coldigomCatalogHydrationProvider.future);
-    final result = await c.read(coldigomCatalogSyncProvider.notifier).sync();
+      expect(
+        (await c.read(coldigomCatalogHydrationProvider.future)).isEmpty,
+        isTrue,
+      );
+      final result = await c.read(coldigomCatalogSyncProvider.notifier).sync();
 
-    expect(index.isEmpty, isTrue);
-    expect(result, isA<ColdigomCatalogSyncFailed>());
-    // O early return por Isar indisponível também precisa refletir no
-    // estado do provider — não só no retorno de `sync()` — senão o
-    // `/offline` nunca saberia que o sync falhou.
-    expect(
-      c.read(coldigomCatalogSyncProvider).lastResult,
-      isA<ColdigomCatalogSyncFailed>(),
-    );
-    expect(c.read(coldigomCatalogSyncProvider).isSyncing, isFalse);
-    expect(remote.calls, 0);
-  });
+      expect(result, isA<ColdigomCatalogSyncInMemory>());
+      final index = await c.read(coldigomCatalogHydrationProvider.future);
+      expect(index.praiseIds, {'p-001', 'p-002'});
+      expect(index.catalogIds, {'p-001', 'p-002', 'p-003'});
+      expect(index.groupByShortId('000')?.groupId, 'p-001');
+      expect(c.read(coldigomLouvoresCacheProvider), hasLength(1));
+      expect(c.read(coldigomInMemoryCatalogProvider), hasLength(3));
+      final state = c.read(coldigomCatalogSyncProvider);
+      expect(state.lastResult, isA<ColdigomCatalogSyncInMemory>());
+      expect(state.isSyncing, isFalse);
+      expect(state.count, 3);
+      expect(state.lastSyncedAt, isNotNull);
+      expect(ColdigomCatalogSyncMetadataStore(prefs).readEtag(), isNull);
+      expect(remote.calls, 1);
+    },
+  );
+
+  test(
+    'sem Isar: requestSyncIfStale ignora o syncedAt das prefs e baixa o dump',
+    () async {
+      // Prefs de uma sessão anterior com Isar: «sincronizado agora mesmo».
+      await ColdigomCatalogSyncMetadataStore(prefs)
+          .markReplaced(etag: '"v1"', count: 3, at: DateTime.now().toUtc());
+      final remote = _ScriptedRemote(
+        () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
+      );
+      final c = container(remote: remote, isarAvailable: false);
+
+      // Montar o notifier agenda o `requestSyncIfStale` do boot (um só
+      // caminho, sem corrida com uma chamada explícita).
+      c.read(coldigomCatalogSyncProvider);
+      await pumpEventQueue();
+
+      expect(remote.calls, 1);
+      expect(remote.lastIfNoneMatch, isNull);
+      expect(c.read(coldigomInMemoryCatalogProvider), hasLength(3));
+
+      // O catálogo em memória acabou de chegar: pedir de novo não rebaixa.
+      await c.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
+      expect(remote.calls, 1);
+    },
+  );
+
+  test(
+    'Isar vazio com prefs dizendo que há catálogo: sincroniza mesmo assim',
+    () async {
+      // Ex.: a web apagou o IndexedDB mas manteve o localStorage.
+      await ColdigomCatalogSyncMetadataStore(prefs)
+          .markReplaced(etag: '"v1"', count: 3, at: DateTime.now().toUtc());
+      final remote = _ScriptedRemote(
+        () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v2"'),
+      );
+      final c = container(remote: remote);
+
+      c.read(coldigomCatalogSyncProvider);
+      await pumpEventQueue();
+
+      expect(remote.calls, 1);
+      // Sem linhas no Isar o ETag guardado não vale (regra do use case).
+      expect(remote.lastIfNoneMatch, isNull);
+      expect(ColdigomCatalogLocalDatasource(isar).count(), 3);
+    },
+  );
 
   test('sync com dump novo re-hidrata; in-flight é deduplicado', () async {
     final remote = _ScriptedRemote(
@@ -211,6 +269,10 @@ void main() {
     // Recente → nada.
     final fresh = container(remote: remote, online: true);
     await fresh.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
+    // O pedido do boot (microtask de `build()`) também espera o Isar
+    // assentar: deixá-lo terminar aqui, senão leria as prefs já envelhecidas
+    // abaixo e este container (online) sincronizaria.
+    await pumpEventQueue();
     expect(remote.calls, 0);
 
     // Velho mas offline → nada.
