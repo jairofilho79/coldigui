@@ -28,7 +28,9 @@ import '../../../support/fakes/fake_auth_notifier.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
 
 final _legadoA = encodePdfId('ColAdultos/001.pdf');
+final _legadoB = encodePdfId('ColAdultos/002.pdf');
 final _coldigomA = encodePdfId('assets/praises/p1/m1.pdf');
+final _coldigomB = encodePdfId('assets/praises/p2/m2.pdf');
 
 class _Resolver {
   _Resolver(this.answer, {this.gate});
@@ -192,6 +194,72 @@ void main() {
     await Future.wait([first, second]);
 
     expect(resolver.calls, hasLength(1));
+  });
+
+  test(
+    'id legado que chega durante a rodada entra na rodada seguinte',
+    () async {
+      // O cenário do boot: o hydrate está à espera do crosswalk e o pull da
+      // sync grava um legado novo (cliente antigo) e pede outra rodada.
+      await boot({
+        StorageKeys.recentlyOpened: jsonEncode([_legadoA]),
+      });
+      final gate = Completer<void>();
+      final resolver = _Resolver({
+        _legadoA: _coldigomA,
+        _legadoB: _coldigomB,
+      }, gate: gate);
+      final c = container(resolver);
+      final notifier = c.read(legacyMaterialIdsNormalizerProvider.notifier);
+
+      final first = notifier.run();
+      await pumpEventQueue();
+      expect(resolver.calls, [
+        {_legadoA},
+      ], reason: 'a primeira rodada já recolheu e espera o crosswalk');
+      await prefs.setString(kCarouselFocusedPdfIdPrefsKey, '$_legadoB#1');
+      final second = notifier.run();
+      gate.complete();
+
+      final outcome = await second;
+      await first;
+
+      expect(resolver.calls, [
+        {_legadoA},
+        {_legadoB},
+      ]);
+      expect(outcome.rewritten, 1);
+      expect(prefs.getString(kCarouselFocusedPdfIdPrefsKey), '$_coldigomB#1');
+      expect(jsonDecode(prefs.getString(StorageKeys.recentlyOpened)!), [
+        _coldigomA,
+      ]);
+    },
+  );
+
+  test('pedidos durante a rodada viram uma só rodada a mais', () async {
+    await boot({
+      StorageKeys.recentlyOpened: jsonEncode([_legadoA]),
+    });
+    final gate = Completer<void>();
+    final resolver = _Resolver({
+      _legadoA: _coldigomA,
+      _legadoB: _coldigomB,
+    }, gate: gate);
+    final c = container(resolver);
+    final notifier = c.read(legacyMaterialIdsNormalizerProvider.notifier);
+
+    final first = notifier.run();
+    await pumpEventQueue();
+    // Um legado novo e três pedidos: uma rodada a mais, não três.
+    await prefs.setString(
+      StorageKeys.recentlyOpened,
+      jsonEncode([_legadoA, _legadoB]),
+    );
+    final followUps = [notifier.run(), notifier.run(), notifier.run()];
+    gate.complete();
+    await Future.wait([first, ...followUps]);
+
+    expect(resolver.calls, hasLength(2));
   });
 
   test('falha inesperada vira pendente e não lança', () async {

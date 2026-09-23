@@ -55,7 +55,11 @@ class LegacyMaterialIdsNormalizer
   /// até o próximo gatilho).
   static Duration reconnectDebounce = const Duration(seconds: 2);
 
+  /// Rodada em curso, ou `null`.
   Future<LegacyIdNormalizationOutcome>? _inFlight;
+
+  /// Rodada a mais pedida durante a em curso — no máximo uma à espera.
+  Completer<LegacyIdNormalizationOutcome>? _followUp;
   Timer? _reconnectTimer;
 
   @override
@@ -81,13 +85,37 @@ class LegacyMaterialIdsNormalizer
     return null;
   }
 
-  /// Uma rodada; um pedido durante outra recebe o mesmo future. Nunca lança.
+  /// Pede uma rodada. Nunca lança; nunca há duas rodadas em paralelo.
+  ///
+  /// Com uma rodada em curso, o pedido não se junta a ela: a rodada já
+  /// recolheu os ids e só reescreve os que perguntou ao crosswalk, e um id
+  /// legado gravado entretanto (o pull do boot, com o hydrate à espera do
+  /// crosswalk) ficaria para o próximo gatilho. Em vez disso marca **uma**
+  /// rodada a mais, que começa quando a atual acaba; os pedidos seguintes
+  /// partilham-na. Sem legados restantes ela não vai à rede nem escreve.
   Future<LegacyIdNormalizationOutcome> run() {
-    final inFlight = _inFlight;
-    if (inFlight != null) return inFlight;
-    final future = _run().whenComplete(() => _inFlight = null);
-    _inFlight = future;
-    return future;
+    if (_inFlight == null) return _startRound();
+    return (_followUp ??= Completer<LegacyIdNormalizationOutcome>()).future;
+  }
+
+  Future<LegacyIdNormalizationOutcome> _startRound() {
+    final round = _run();
+    _inFlight = round;
+    // `_run` nunca lança.
+    unawaited(
+      round.then((_) {
+        _inFlight = null;
+        final followUp = _followUp;
+        if (followUp == null) return;
+        _followUp = null;
+        followUp.complete(
+          ref.mounted
+              ? _startRound()
+              : const LegacyIdNormalizationOutcome(pending: true),
+        );
+      }),
+    );
+    return round;
   }
 
   Future<LegacyIdNormalizationOutcome> _run() async {
