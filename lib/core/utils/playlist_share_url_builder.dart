@@ -74,6 +74,23 @@ const Set<String> legacyPlaylistShareParams = {
   UrlSyncParams.shareName,
 };
 
+/// Params antigos que, sozinhos, marcam um link antigo. `s` só conta junto
+/// com `n` (como no parser antigo) e `sharename` nunca conta sozinho — um
+/// `?s=20` avulso não é link de lista.
+const Set<String> _standaloneLegacyParams = {
+  UrlSyncParams.shareItems,
+  UrlSyncParams.sharePdfs,
+  UrlSyncParams.shareAudios,
+};
+
+bool _isLegacyShareQuery(Map<String, String> query) =>
+    query.keys.any(_standaloneLegacyParams.contains) ||
+    (query.containsKey(UrlSyncParams.shortItems) &&
+        query.containsKey(UrlSyncParams.shortName));
+
+/// Link curto antigo `/l/<código>` (§4.4) — também só avisa.
+bool _isLegacyShortLinkPath(Uri uri) => uri.path.startsWith('/l/');
+
 /// Params de um link de lista (UC-07).
 class PlaylistShareParams {
   /// Link por praise (`?p=…&n=…`). [praiseShortIds] já validados e minúsculos.
@@ -118,9 +135,10 @@ Uri stripPlaylistShareParams(Uri uri) {
 ///
 /// - `p` presente → link por praise, mesmo sem token válido ou sem `n` (aí é
 ///   inválido e o import avisa — D.6 de 2026-09-13).
-/// - sem `p`, com algum param antigo → [PlaylistShareParams.legacy].
+/// - sem `p`, com path `/l/<código>`, `s` + `n` ou `shareitems`/`sharepdfs`/
+///   `shareaudios` → [PlaylistShareParams.legacy].
 /// - senão `null`: não é link de lista (todo link comum do app passa aqui;
-///   `n` sozinho também não é).
+///   `n`, `s` ou `sharename` sozinhos também não são).
 ///
 /// Lê a query por [safeQueryParameters] — `%` malformado não lança.
 PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
@@ -132,19 +150,28 @@ PlaylistShareParams? parsePlaylistShareParams(Uri uri) {
       praiseShortIds: decodePraiseShareIds(praiseRaw),
     );
   }
-  if (query.keys.any(legacyPlaylistShareParams.contains)) {
+  if (_isLegacyShortLinkPath(uri) || _isLegacyShareQuery(query)) {
     return const PlaylistShareParams.legacy();
   }
   return null;
 }
 
+/// Primeiro link (`http(s)://…` ou `plpcg:…`) dentro de um texto colado.
+final RegExp _linkInText = RegExp(
+  r'(?:https?://|plpcg:)\S+',
+  caseSensitive: false,
+);
+
 /// Aceita URL completa, query crua ou texto colado com o link no meio
 /// («Importar lista», UC-07).
 ///
-/// Tenta três leituras (URL, query crua, trecho depois do `?`); a primeira
-/// com material vence. Sem material em nenhuma, devolve o melhor recurso —
-/// link antigo antes de um `p` sem token válido, porque a mensagem de link
-/// antigo diz mais ao usuário — ou `null` se nada parece link de lista.
+/// Lê primeiro o primeiro link (`http(s)://…` ou `plpcg:…`) achado no texto —
+/// a legenda do folheto é «{nome}\n\n{url}» e o nome pode ter `?`. Depois,
+/// como recurso, as leituras do texto inteiro (URL, query crua, trecho depois
+/// do primeiro `?`); a primeira com material vence. Sem material em nenhuma,
+/// devolve o melhor recurso — link antigo antes de um `p` sem token válido,
+/// porque a mensagem de link antigo diz mais ao usuário — ou `null` se nada
+/// parece link de lista.
 PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return null;
@@ -158,6 +185,13 @@ PlaylistShareParams? extractShareParamsFromUserInput(String raw) {
       fallback = params;
     }
     return null;
+  }
+
+  final link = _linkInText.firstMatch(trimmed)?.group(0);
+  final linkUri = link == null ? null : Uri.tryParse(link);
+  if (linkUri != null) {
+    final fromLink = consider(parsePlaylistShareParams(linkUri));
+    if (fromLink != null) return fromLink;
   }
 
   final uri = Uri.tryParse(trimmed);

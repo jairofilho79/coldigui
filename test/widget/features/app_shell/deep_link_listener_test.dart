@@ -311,7 +311,7 @@ void main() {
 
   // Review Focus 5: inclui o esquema custom antigo, que o app nativo recebe.
   for (final legacy in [
-    '/?sharename=Ensaio',
+    'https://plpcg.com/l/abc123',
     '/?sharepdfs=a&sharename=Teste',
     '/?s=1a2f-0000&n=Culto',
     'plpcg:///?s=1a2f&n=Culto',

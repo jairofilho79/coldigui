@@ -154,12 +154,33 @@ void main() {
         'sharepdfs=a',
         'shareitems=p%3Aa',
         'shareaudios=a',
-        'sharename=Ensaio',
+        'sharepdfs=a&sharename=Ensaio',
       ]) {
         final params = parsePlaylistShareParams(Uri.parse('/?$query'));
         expect(params?.isLegacy, isTrue, reason: query);
         expect(params?.hasMaterial, isFalse, reason: query);
       }
+    });
+
+    test('s só conta com n; sharename sozinho não é link de lista', () {
+      expect(parsePlaylistShareParams(Uri.parse('/?s=20')), isNull);
+      expect(parsePlaylistShareParams(Uri.parse('/?sharename=Ensaio')), isNull);
+      expect(
+        parsePlaylistShareParams(Uri.parse('/?s=20&sharename=Ensaio')),
+        isNull,
+      );
+    });
+
+    test('link curto antigo /l/<código> é link antigo', () {
+      for (final url in [
+        'https://plpcg.com/l/abc123',
+        'https://v2.plpcg.com/l/abc123?x=1',
+        '/l/abc123',
+      ]) {
+        final params = parsePlaylistShareParams(Uri.parse(url));
+        expect(params?.isLegacy, isTrue, reason: url);
+      }
+      expect(parsePlaylistShareParams(Uri.parse('/lista/abc')), isNull);
     });
 
     test('esquema plpcg:/// antigo também é link antigo', () {
@@ -260,6 +281,43 @@ void main() {
       expect(params, isNotNull);
       expect(params!.isLegacy, isFalse);
       expect(params.hasMaterial, isFalse);
+    });
+
+    test('legenda do folheto com «?» no nome: lê o link, não o nome', () {
+      const nome = 'Quem é Deus?';
+      final url = buildPraiseShareUrl(
+        origin: 'https://v2.plpcg.com',
+        praiseShortIds: const ['0a1', 'fff'],
+        shareName: nome,
+      );
+      final params = extractShareParamsFromUserInput('$nome\n\n$url');
+      expect(params?.praiseShortIds, ['0a1', 'fff']);
+      expect(params?.shareName, nome);
+    });
+
+    test('legenda com «?» no nome e link antigo → link antigo', () {
+      expect(
+        extractShareParamsFromUserInput(
+          'Quem é Deus?\n\nhttps://plpcg.com/?s=1a2f&n=Quem%20%C3%A9%20Deus%3F',
+        )?.isLegacy,
+        isTrue,
+      );
+    });
+
+    test('link curto antigo /l/<código> colado → link antigo', () {
+      expect(
+        extractShareParamsFromUserInput('https://plpcg.com/l/abc123')?.isLegacy,
+        isTrue,
+      );
+      expect(
+        extractShareParamsFromUserInput('Culto\n\nhttps://plpcg.com/l/abc123')
+            ?.isLegacy,
+        isTrue,
+      );
+    });
+
+    test('s sem n colado não é link de lista', () {
+      expect(extractShareParamsFromUserInput('?s=20'), isNull);
     });
 
     test('input que não é link de lista → null', () {

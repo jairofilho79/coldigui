@@ -47,6 +47,12 @@ void main() {
       expect(resolveWebInitialDeepLinkUri(null, browserUri: browser), browser);
     });
 
+    test('prefere a URL do browser com link curto antigo /l/<código>', () {
+      final browser = Uri.parse('https://v2.plpcg.com/l/abc123');
+
+      expect(resolveWebInitialDeepLinkUri(null, browserUri: browser), browser);
+    });
+
     test(
       'recupera p/n quando um campo irrelevante da query base tem % malformado',
       () {
