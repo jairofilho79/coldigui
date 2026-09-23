@@ -63,6 +63,38 @@ class ReaderPreferencesDatasource {
     );
   }
 
+  /// Ids com última página guardada, do mais antigo ao mais recente.
+  List<String> lastPageIds() => [
+    for (final entry in _readLastPages()) entry.id,
+  ];
+
+  /// Reescreve os ids do LRU (normalização de ids legados, spec 2026-09-23
+  /// §6.2): [rewrite] devolve o id novo, o mesmo, ou `null` (a entrada sai).
+  /// Duas entradas que acabam no mesmo id: fica a mais recente. Devolve
+  /// `true` se gravou alguma coisa.
+  Future<bool> rewriteLastPageIds(String? Function(String id) rewrite) async {
+    final entries = _readLastPages();
+    final seen = <String>{};
+    final keptNewestFirst = <_LastPageEntry>[];
+    // Do mais recente (fim) para o mais antigo: o primeiro a ocupar um id vence.
+    for (final entry in entries.reversed) {
+      final id = rewrite(entry.id);
+      if (id == null || !seen.add(id)) continue;
+      keptNewestFirst.add(_LastPageEntry(id: id, page: entry.page));
+    }
+    final next = keptNewestFirst.reversed.toList(growable: false);
+    var changed = next.length != entries.length;
+    for (var i = 0; !changed && i < next.length; i++) {
+      changed = next[i].id != entries[i].id;
+    }
+    if (!changed) return false;
+    await _prefs.setString(
+      StorageKeys.pdfLastPages,
+      jsonEncode(next.map((entry) => entry.toJson()).toList()),
+    );
+    return true;
+  }
+
   List<_LastPageEntry> _readLastPages() {
     final raw = _prefs.getString(StorageKeys.pdfLastPages);
     if (raw == null || raw.isEmpty) return [];
