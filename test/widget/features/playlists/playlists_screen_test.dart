@@ -39,7 +39,8 @@ class _LoggedInAuth extends AuthNotifier {
 /// Fake de [LiveRoomRemoteDatasource] para o FAB «Abrir Sala» — nunca toca
 /// em Dio de verdade, devolve [info] fixo e conta chamadas.
 class _FakeLiveRoomRemoteDatasource extends LiveRoomRemoteDatasource {
-  _FakeLiveRoomRemoteDatasource(this.info) : super(Dio(), sessionToken: () => null);
+  _FakeLiveRoomRemoteDatasource(this.info)
+    : super(Dio(), sessionToken: () => null);
   final LiveRoomInfo info;
   int ensureCalls = 0;
 
@@ -316,88 +317,9 @@ void main() {
     expect(fakeDatasource.ensureCalls, 1);
   });
 
-  testWidgets('importar via FAB dispara importSharedFromUrl', (tester) async {
-    final notifier = FakePlaylistsNotifier(const []);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          authStateProvider.overrideWith(_LoggedOutAuth.new),
-          playlistsProvider.overrideWith(() => notifier),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const PlaylistsScreen(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Importar lista'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byType(TextField),
-      'shareitems=p:x,a:aud-1,p:y&sharename=Teste&sharepdfs=x,y'
-      '&shareaudios=aud-1',
-    );
-    await tester.tap(find.text('Importar'));
-    await tester.pumpAndSettle();
-
-    // O `shareitems` colado tem que atravessar diálogo → tela → notifier: é ele
-    // que carrega a ordem intercalada que `sharepdfs`/`shareaudios` perdem.
-    expect(notifier.lastImport?.shareItems, 'p:x,a:aud-1,p:y');
-    expect(notifier.lastImport?.sharePdfs, 'x,y');
-    expect(notifier.lastImport?.shareAudios, 'aud-1');
-    expect(notifier.lastImport?.shareName, 'Teste');
-    expect(notifier.lastImport!.entries, const [
-      PlaylistEntry(id: 'x', kind: MaterialKind.pdf),
-      PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
-      PlaylistEntry(id: 'y', kind: MaterialKind.pdf),
-    ]);
-    expect(find.text('Lista importada'), findsOneWidget);
-  });
-
-  // D6: importar cria uma lista nova e a torna ativa — a anterior continua
-  // salva, então não há "substituição" a confirmar (paridade com o deep link).
-  testWidgets('importar por URL não pede confirmação', (tester) async {
-    final notifier = FakePlaylistsNotifier(const []);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          authStateProvider.overrideWith(_LoggedOutAuth.new),
-          playlistsProvider.overrideWith(() => notifier),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const PlaylistsScreen(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Importar lista'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextField),
-      'sharepdfs=x&sharename=Teste',
-    );
-    await tester.tap(find.text('Importar'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Substituir seleção?'), findsNothing);
-    expect(find.text('Confirmar'), findsNothing);
-    expect(notifier.lastImport?.shareName, 'Teste');
-    expect(find.text('Lista importada'), findsOneWidget);
-  });
-
-  testWidgets('importar URL legada (sem shareitems) segue funcionando', (
-    tester,
+  Future<FakePlaylistsNotifier> pasteInImportDialog(
+    WidgetTester tester,
+    String text,
   ) async {
     final notifier = FakePlaylistsNotifier(const []);
     await tester.pumpWidget(
@@ -419,19 +341,57 @@ void main() {
 
     await tester.tap(find.text('Importar lista'));
     await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byType(TextField),
-      'sharepdfs=x&sharename=Teste',
-    );
+    await tester.enterText(find.byType(TextField), text);
     await tester.tap(find.text('Importar'));
     await tester.pumpAndSettle();
+    return notifier;
+  }
 
-    expect(notifier.lastImport?.sharePdfs, 'x');
-    expect(notifier.lastImport?.shareItems, isNull);
+  testWidgets('importar via FAB leva os tokens do link ao notifier', (
+    tester,
+  ) async {
+    final notifier = await pasteInImportDialog(
+      tester,
+      'https://v2.plpcg.com/?p=0a1-fff-0a1&n=Teste',
+    );
+
+    expect(notifier.lastImport?.praiseShortIds, ['0a1', 'fff', '0a1']);
     expect(notifier.lastImport?.shareName, 'Teste');
     expect(find.text('Lista importada'), findsOneWidget);
   });
+
+  // D6: importar cria uma lista nova e a torna ativa — a anterior continua
+  // salva, então não há "substituição" a confirmar (paridade com o deep link).
+  testWidgets('importar por URL não pede confirmação', (tester) async {
+    final notifier = await pasteInImportDialog(tester, 'p=0a1&n=Teste');
+
+    expect(find.text('Substituir seleção?'), findsNothing);
+    expect(find.text('Confirmar'), findsNothing);
+    expect(notifier.lastImport?.shareName, 'Teste');
+    expect(find.text('Lista importada'), findsOneWidget);
+  });
+
+  // Review Focus 4: o PWA do iOS nunca abre o link no app — o caminho é colar.
+  for (final legacy in [
+    'sharepdfs=x&sharename=Teste',
+    'https://plpcg.com/?s=1a2f-0000&n=Culto',
+  ]) {
+    testWidgets('link antigo colado avisa e não importa ($legacy)', (
+      tester,
+    ) async {
+      final notifier = await pasteInImportDialog(tester, legacy);
+
+      expect(notifier.lastImport, isNull);
+      expect(
+        find.text(
+          'Este link é de uma versão antiga e já não abre. '
+          'Peça um link novo à pessoa.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Lista importada'), findsNothing);
+    });
+  }
 
   Widget buildWithSync(
     PlaylistSyncNotifier syncNotifier, {

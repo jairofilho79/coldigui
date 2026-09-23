@@ -7,9 +7,12 @@ import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
+import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/ports/praise_entry_resolver.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
+import 'package:coldigui/features/playlists/presentation/providers/praise_entry_resolver_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
@@ -22,6 +25,12 @@ Future<void> _flushAsync() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
 }
+
+const _pdfA = PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf);
+const _catalog = {
+  '0a1': _pdfA,
+  '0c3': PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio),
+};
 
 /// D6 — importar por URL torna a importada a lista ativa pelo mesmo caminho
 /// do «Editar por aqui»: a lista que era ativa continua salva.
@@ -48,12 +57,17 @@ void main() {
     }
   });
 
-  ProviderContainer container() {
+  ProviderContainer container({PraiseEntryResolverLoader? loader}) {
     return ProviderContainer(
       overrides: [
         ...standardTestOverrides(prefs: prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
         louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+        praiseEntryResolverLoaderProvider.overrideWithValue(
+          loader ??
+              () async =>
+                  (shortId) => _catalog[shortId],
+        ),
       ],
     );
   }
@@ -75,8 +89,8 @@ void main() {
         .read(playlistsProvider.notifier)
         .importSharedFromUrl(
           params: const PlaylistShareParams(
-            shareItems: 'p:pdf-a,a:aud-1,p:pdf-a',
             shareName: 'Importada',
+            praiseShortIds: ['0a1', '0c3', '0a1'],
           ),
         );
     await _flushAsync();
@@ -84,20 +98,17 @@ void main() {
     expect(imported, isNotNull);
     expect(c.read(activePlaylistIdProvider), imported);
     expect(c.read(activePlaylistProvider)?.items, ['pdf-a', 'aud-1', 'pdf-a']);
-    // A anterior continua existindo — nada foi "substituído".
     expect((await repository.getById('p-anterior'))?.nome, 'Anterior');
-    // Foco da face de partituras zerado, como em qualquer ativação.
     expect(c.read(carouselFocusedKeyProvider), isNull);
   });
 
   // Fix round 2 (Minor): a dedupe por conteúdo (spec C.2) não pode reaproveitar
-  // uma lista que está na graça de uma exclusão adiada (C11) — o repositório
-  // ainda não sabe que ela foi apagada (commit só roda depois).
+  // uma lista na graça de uma exclusão adiada (C11).
   test('importar com o mesmo conteúdo de uma lista pendente de exclusão cria '
       'nova, não reaproveita a pendente', () async {
     await repository.create(
       nome: 'Vai sair (exclusão adiada, ainda não comitou)',
-      pdfIds: const ['pdf-a'],
+      entries: const [_pdfA],
       playlistId: 'p1',
       salva: true,
     );
@@ -112,47 +123,35 @@ void main() {
         .read(playlistsProvider.notifier)
         .importSharedFromUrl(
           params: const PlaylistShareParams(
-            sharePdfs: 'pdf-a',
             shareName: 'Reimportada',
+            praiseShortIds: ['0a1'],
           ),
         );
 
     expect(imported, isNotNull);
     expect(imported, isNot('p1'));
-    final importedPlaylist = await repository.getById(imported!);
-    expect(importedPlaylist?.nome, 'Reimportada');
+    expect((await repository.getById(imported!))?.nome, 'Reimportada');
   });
 
-  // Fix round final (#3, Important): o resolver de shortId espera o catálogo
-  // — se ele falhar (manifest indisponível), o import não pode derrubar quem
-  // chamou. A tela é quem trata o retorno `null`.
-  test(
-    'catálogo indisponível ao resolver shortId retorna null sem lançar',
-    () async {
-      final c = ProviderContainer(
-        overrides: [
-          ...standardTestOverrides(prefs: prefs),
-          playlistRepositoryProvider.overrideWithValue(repository),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-          shortIdResolverProvider.overrideWithValue(
-            () async => throw StateError('catálogo indisponível'),
+  // Fix round final (#3): o resolver espera o catálogo — se ele falhar, o
+  // import não derruba quem chamou; a tela trata o `null`.
+  test('resolver que falha devolve null sem lançar', () async {
+    final c = container(
+      loader: () async => throw StateError('catálogo indisponível'),
+    );
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    final imported = await c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            shareName: 'X',
+            praiseShortIds: ['0a1'],
           ),
-        ],
-      );
-      addTearDown(c.dispose);
-      c.read(playlistsProvider);
-      await _flushAsync();
+        );
 
-      final imported = await c
-          .read(playlistsProvider.notifier)
-          .importSharedFromUrl(
-            params: const PlaylistShareParams(
-              shareName: 'X',
-              shortIds: ['0000'],
-            ),
-          );
-
-      expect(imported, isNull);
-    },
-  );
+    expect(imported, isNull);
+  });
 }

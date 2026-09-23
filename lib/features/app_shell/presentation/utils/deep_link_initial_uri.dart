@@ -6,7 +6,8 @@ import '../../../live/domain/live_room_link.dart';
 
 /// Resolve URI inicial de deep link na web.
 ///
-/// Navegação direta com `/?sharepdfs=&sharename=` não usa esquema `plpcg://`;
+/// Navegação direta com `/?p=…&n=…` (ou um link antigo, para o aviso) não usa
+/// esquema `plpcg://`;
 /// [Uri.base] carrega os query params da URL do browser. Preferimos essa URI
 /// quando contém params de share, mesmo que [AppLinks.getInitialLink] exista.
 /// O mesmo vale para `?live=<code>` — o 302 do Worker para `/ao-vivo/<code>`

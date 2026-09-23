@@ -8,6 +8,7 @@ import '../entities/playlist_entry.dart';
 typedef PraiseEntryResolver = PlaylistEntry? Function(String praiseShortId);
 
 /// Espera o catálogo local (com prazo) e os favoritos e devolve o
-/// [PraiseEntryResolver]. Com o prazo esgotado, o resolver devolve `null`
-/// para tudo, e o import vira «link inválido» (§8).
+/// [PraiseEntryResolver]. Com o prazo esgotado — ou com a sync do catálogo
+/// falhada sem nada local —, o resolver devolve `null` para tudo, e o import
+/// vira «link inválido» (§8).
 typedef PraiseEntryResolverLoader = Future<PraiseEntryResolver> Function();

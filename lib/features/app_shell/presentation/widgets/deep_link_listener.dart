@@ -127,6 +127,10 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
           _markProcessed(fingerprint);
           _navigateAfterImport(sanitizedUri);
           _showSnackbar((l10n) => l10n.playlistImportInvalidUrl);
+        case SyncDeepLinkOutcome.legacy:
+          _markProcessed(fingerprint);
+          _navigateAfterImport(sanitizedUri);
+          _showSnackbar((l10n) => l10n.playlistShareLegacyLinkUnsupported);
         case SyncDeepLinkOutcome.failed:
           _markProcessed(fingerprint);
           _reportFailure(result.reason);

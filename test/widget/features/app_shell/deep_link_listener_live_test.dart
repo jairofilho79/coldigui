@@ -46,7 +46,8 @@ void main() {
     );
     importUseCase = ImportSharedPlaylistFromUrl(
       playlistRepository,
-      resolveShortIds: () async => const {},
+      loadPraiseEntryResolver: () async =>
+          (_) => null,
     );
   });
 
@@ -136,7 +137,7 @@ void main() {
   });
 
   testWidgets(
-    'URL de share (?s=&n=) continua no fluxo de import, não navega para /ao-vivo',
+    'URL de share (?p=&n=) continua no fluxo de import, não navega para /ao-vivo',
     (tester) async {
       final router = buildRouter();
       final counting = _CountingSyncDeepLinkState(importUseCase);
@@ -146,7 +147,9 @@ void main() {
         syncState: counting,
       );
 
-      await state.handleUriForTest(Uri.parse('https://plpcg.com/?s=abc&n=x'));
+      await state.handleUriForTest(
+        Uri.parse('https://v2.plpcg.com/?p=0a1&n=x'),
+      );
       await tester.pumpAndSettle();
 
       expect(counting.callCount, 1);

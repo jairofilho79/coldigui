@@ -7,6 +7,7 @@ import 'package:coldigui/features/playlists/data/datasources/playlist_local_data
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_tab.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
+import 'package:coldigui/features/playlists/domain/ports/praise_entry_resolver.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,6 +101,13 @@ class _ThrowingPlaylistRepository implements PlaylistRepository {
   Future<void> upsert(SavedPlaylist playlist) => throw UnimplementedError();
 }
 
+const _pdfA = PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf);
+const _audio1 = PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio);
+
+PraiseEntryResolverLoader _catalog(Map<String, PlaylistEntry> entries) =>
+    () async =>
+        (shortId) => entries[shortId];
+
 void main() {
   late Directory tempDir;
   late Isar isar;
@@ -109,13 +117,11 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('sync_deep_link_');
     isar = Isar.open(schemas: [PlaylistSchema], directory: tempDir.path);
-    playlistRepository = PlaylistRepositoryImpl(
-      PlaylistLocalDatasource(isar),
-    );
+    playlistRepository = PlaylistRepositoryImpl(PlaylistLocalDatasource(isar));
     useCase = SyncDeepLinkState(
       ImportSharedPlaylistFromUrl(
         playlistRepository,
-        resolveShortIds: () async => const {},
+        loadPraiseEntryResolver: _catalog({'0a1': _pdfA, '0c3': _audio1}),
       ),
     );
   });
@@ -127,145 +133,110 @@ void main() {
     }
   });
 
-  test('retorna skipped quando URI sem params de share', () async {
-    final result = await useCase(uri: Uri.parse('/'));
-    expect(result.outcome, SyncDeepLinkOutcome.skipped);
-    expect(result.playlistId, isNull);
+  test('skipped quando a URI não tem link de lista', () async {
+    expect(
+      (await useCase(uri: Uri.parse('/'))).outcome,
+      SyncDeepLinkOutcome.skipped,
+    );
+    expect(
+      (await useCase(uri: Uri.parse('/?n=Culto'))).outcome,
+      SyncDeepLinkOutcome.skipped,
+    );
   });
 
-  test('retorna success e playlistId quando import ok', () async {
+  test('success com ?p=&n=, na ordem e com repetição', () async {
     final result = await useCase(
-      uri: Uri.parse('/?sharepdfs=a,b&sharename=Ensaio'),
+      uri: Uri.parse('https://v2.plpcg.com/?p=0a1-0c3-0a1&n=Culto'),
     );
     expect(result.outcome, SyncDeepLinkOutcome.success);
     expect(result.playlistId, isNotEmpty);
-
-    final playlists = isar.playlists.where().findAll();
-    expect(playlists.single.nome, 'Ensaio');
-  });
-
-  test('aceita queryParams map', () async {
-    final result = await useCase(
-      queryParams: const {'sharepdfs': 'x', 'sharename': 'Lista'},
-    );
-    expect(result.outcome, SyncDeepLinkOutcome.success);
-    expect(result.playlistId, isNotEmpty);
-  });
-
-  test('retorna invalid quando o nome é só espaço', () async {
-    final result = await useCase(
-      uri: Uri.parse('/?sharepdfs=a&sharename=%20%20'),
-    );
-    expect(result.outcome, SyncDeepLinkOutcome.invalid);
-  });
-
-  test('retorna invalid quando nenhuma lista tem entrada', () async {
-    // `sharepdfs= , ` não rende nenhuma entrada, mas o `sharename` está lá:
-    // é um share inválido, não "não é share". `parsePlaylistShareParams`
-    // devolve params com `entries` vazio e o import lança
-    // `InvalidSharePlaylistException` — o usuário vê o aviso (spec D.6).
-    final result = await useCase(
-      uri: Uri.parse('/?sharepdfs= , &sharename=Nome'),
-    );
-    expect(result.outcome, SyncDeepLinkOutcome.invalid);
-  });
-
-  test('retorna skipped quando a URI não tem sharename', () async {
-    final result = await useCase(uri: Uri.parse('/?sharepdfs=a%2Cb'));
-    expect(result.outcome, SyncDeepLinkOutcome.skipped);
-  });
-
-  test('importa preservando a ordem de shareitems (v2)', () async {
-    final result = await useCase(
-      uri: Uri.parse(
-        '/?shareitems=p%3Apdf-a%2Ca%3Aaud-1%2Cp%3Apdf-b&sharename=Ensaio',
-      ),
-    );
-    expect(result.outcome, SyncDeepLinkOutcome.success);
 
     final saved = isar.playlists.where().findAll().single;
-    expect(saved.items, ['pdf-a', 'aud-1', 'pdf-b']);
+    expect(saved.nome, 'Culto');
+    expect(saved.items, ['pdf-a', 'aud-1', 'pdf-a']);
     expect(saved.itemKinds, ['pdf', 'audio', 'pdf']);
   });
 
+  test('aceita queryParams map', () async {
+    final result = await useCase(queryParams: const {'p': '0a1', 'n': 'Lista'});
+    expect(result.outcome, SyncDeepLinkOutcome.success);
+  });
+
+  test('invalid quando o nome é só espaço', () async {
+    final result = await useCase(uri: Uri.parse('/?p=0a1&n=%20%20'));
+    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+  });
+
+  test('invalid quando p não tem token válido', () async {
+    final result = await useCase(uri: Uri.parse('/?p=zz&n=Nome'));
+    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+  });
+
+  test('invalid quando nenhum token é conhecido', () async {
+    final result = await useCase(uri: Uri.parse('/?p=abc&n=Nome'));
+    expect(result.outcome, SyncDeepLinkOutcome.invalid);
+  });
+
+  test('legacy para cada formato antigo, sem gravar nada', () async {
+    for (final uri in [
+      '/?s=1a2f-0000&n=Culto',
+      '/?sharepdfs=a&sharename=Ensaio',
+      '/?shareitems=p%3Aa&sharename=Ensaio',
+      'plpcg:///?s=1a2f&n=Culto',
+    ]) {
+      final result = await useCase(uri: Uri.parse(uri));
+      expect(result.outcome, SyncDeepLinkOutcome.legacy, reason: uri);
+    }
+    expect(isar.playlists.where().findAll(), isEmpty);
+  });
+
   test(
-    'retorna failed com o StorageUnavailableException quando o repositório lança',
+    'failed com o StorageUnavailableException quando o repositório lança',
     () async {
-      final failing = _ThrowingPlaylistRepository(
-        const StorageUnavailableException('playlists.insert'),
-      );
       final failingUseCase = SyncDeepLinkState(
         ImportSharedPlaylistFromUrl(
-          failing,
-          resolveShortIds: () async => const {},
+          _ThrowingPlaylistRepository(
+            const StorageUnavailableException('playlists.insert'),
+          ),
+          loadPraiseEntryResolver: _catalog({'0a1': _pdfA}),
         ),
       );
-
-      final result = await failingUseCase(
-        uri: Uri.parse('/?sharepdfs=a&sharename=Ensaio'),
-      );
-
+      final result = await failingUseCase(uri: Uri.parse('/?p=0a1&n=Ensaio'));
       expect(result.outcome, SyncDeepLinkOutcome.failed);
       expect(result.reason, isA<StorageUnavailableException>());
     },
   );
 
   test(
-    'retorna alreadyExisted e o nome da lista existente quando o import dedupa',
+    'alreadyExisted e o nome da lista existente quando o import dedupa',
     () async {
-      final first = await useCase(
-        uri: Uri.parse('/?sharepdfs=a,b&sharename=Original'),
-      );
-      expect(first.outcome, SyncDeepLinkOutcome.success);
+      final first = await useCase(uri: Uri.parse('/?p=0a1-0c3&n=Original'));
       expect(first.alreadyExisted, isFalse);
 
       final second = await useCase(
-        uri: Uri.parse('/?sharepdfs=a,b&sharename=Outro%20nome'),
+        uri: Uri.parse('/?p=0a1-0c3&n=Outro%20nome'),
       );
 
       expect(second.outcome, SyncDeepLinkOutcome.success);
       expect(second.alreadyExisted, isTrue);
       expect(second.playlistId, first.playlistId);
       expect(second.nome, 'Original');
-
-      final playlists = isar.playlists.where().findAll();
-      expect(playlists, hasLength(1));
+      expect(isar.playlists.where().findAll(), hasLength(1));
     },
   );
 
   test(
-    'retorna failed sem lançar quando o import falha com exceção genérica',
+    'failed sem lançar quando o import falha com exceção genérica',
     () async {
-      final failing = _ThrowingPlaylistRepository(StateError('boom'));
       final failingUseCase = SyncDeepLinkState(
         ImportSharedPlaylistFromUrl(
-          failing,
-          resolveShortIds: () async => const {},
+          _ThrowingPlaylistRepository(StateError('boom')),
+          loadPraiseEntryResolver: _catalog({'0a1': _pdfA}),
         ),
       );
-
-      final result = await failingUseCase(
-        uri: Uri.parse('/?sharepdfs=a&sharename=Ensaio'),
-      );
-
+      final result = await failingUseCase(uri: Uri.parse('/?p=0a1&n=Ensaio'));
       expect(result.outcome, SyncDeepLinkOutcome.failed);
       expect(result.reason, isA<StateError>());
     },
   );
-
-  test('importa link curto ?s=&n= resolvendo pelo catálogo', () async {
-    final shortUseCase = SyncDeepLinkState(
-      ImportSharedPlaylistFromUrl(
-        playlistRepository,
-        resolveShortIds: () async => {'0000': 'pdf-a', '1a2f': 'pdf-b'},
-      ),
-    );
-    final result = await shortUseCase(
-      uri: Uri.parse('https://plpcg.com/?s=1a2f-0000&n=Culto'),
-    );
-    expect(result.outcome, SyncDeepLinkOutcome.success);
-    final saved = await playlistRepository.getById(result.playlistId!);
-    expect(saved?.pdfIds, ['pdf-b', 'pdf-a']);
-    expect(saved?.nome, 'Culto');
-  });
 }

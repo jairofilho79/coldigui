@@ -114,4 +114,157 @@ void main() {
       );
     });
   });
+
+  group('parsePlaylistShareParams', () {
+    test('p + n → tokens normalizados, na ordem, e nome decodificado', () {
+      final params = parsePlaylistShareParams(
+        Uri.parse(
+          'https://v2.plpcg.com/?p=0A1-fff--zz-0a1&n=Culto%20de%20domingo',
+        ),
+      )!;
+      expect(params.isLegacy, isFalse);
+      expect(params.praiseShortIds, ['0a1', 'fff', '0a1']);
+      expect(params.shareName, 'Culto de domingo');
+      expect(params.hasMaterial, isTrue);
+    });
+
+    test('p sem token válido é link sem material (aviso, D.6)', () {
+      final params = parsePlaylistShareParams(Uri.parse('/?p=zz-12&n=X'))!;
+      expect(params.isLegacy, isFalse);
+      expect(params.hasMaterial, isFalse);
+    });
+
+    test('p sem n é link com nome vazio', () {
+      final params = parsePlaylistShareParams(Uri.parse('/?p=0a1'))!;
+      expect(params.shareName, '');
+      expect(params.praiseShortIds, ['0a1']);
+    });
+
+    test('p vence params antigos na mesma URL', () {
+      final params = parsePlaylistShareParams(
+        Uri.parse('/?p=0a1&n=X&s=1a2f&sharename=Y'),
+      )!;
+      expect(params.isLegacy, isFalse);
+      expect(params.praiseShortIds, ['0a1']);
+    });
+
+    test('cada param antigo, sem p, é link antigo', () {
+      for (final query in [
+        's=1a2f-0000&n=Culto',
+        'sharepdfs=a',
+        'shareitems=p%3Aa',
+        'shareaudios=a',
+        'sharename=Ensaio',
+      ]) {
+        final params = parsePlaylistShareParams(Uri.parse('/?$query'));
+        expect(params?.isLegacy, isTrue, reason: query);
+        expect(params?.hasMaterial, isFalse, reason: query);
+      }
+    });
+
+    test('esquema plpcg:/// antigo também é link antigo', () {
+      expect(
+        parsePlaylistShareParams(Uri.parse('plpcg:///?s=1a2f&n=Culto'))
+            ?.isLegacy,
+        isTrue,
+      );
+    });
+
+    test('n sozinho ou URL comum não é link de lista', () {
+      expect(parsePlaylistShareParams(Uri.parse('/?n=Culto')), isNull);
+      expect(parsePlaylistShareParams(Uri.parse('/?pesquisa=aleluia')), isNull);
+      expect(parsePlaylistShareParams(Uri.parse('/')), isNull);
+    });
+
+    test('não lança com "%" malformado noutro param', () {
+      final params = parsePlaylistShareParams(
+        Uri.parse('/?p=0a1&n=X&junk=%E0%A4%A'),
+      );
+      expect(params?.praiseShortIds, ['0a1']);
+    });
+  });
+
+  group('stripPlaylistShareParams', () {
+    test('remove p, n e todos os antigos; preserva o resto', () {
+      final stripped = stripPlaylistShareParams(
+        Uri.parse(
+          '/?pesquisa=x&p=0a1&n=Y&s=1&sharepdfs=a&shareitems=b'
+          '&shareaudios=c&sharename=d',
+        ),
+      );
+      expect(stripped.queryParameters, {'pesquisa': 'x'});
+    });
+
+    test('URL só com share fica sem query', () {
+      expect(
+        stripPlaylistShareParams(Uri.parse('/?p=0a1&n=Y')).queryParameters,
+        isEmpty,
+      );
+    });
+
+    test('não lança com "%" malformado', () {
+      expect(
+        stripPlaylistShareParams(Uri.parse('/?p=0a1&junk=%E0%A4%A'))
+            .queryParameters,
+        isEmpty,
+      );
+    });
+  });
+
+  group('extractShareParamsFromUserInput', () {
+    test('aceita URL completa', () {
+      expect(
+        extractShareParamsFromUserInput(
+          'https://v2.plpcg.com/?p=0a1-fff&n=Ensaio',
+        )?.praiseShortIds,
+        ['0a1', 'fff'],
+      );
+    });
+
+    test('aceita query crua, com ou sem "?"', () {
+      expect(
+        extractShareParamsFromUserInput('p=0a1&n=Ensaio')?.praiseShortIds,
+        ['0a1'],
+      );
+      expect(
+        extractShareParamsFromUserInput('?p=0a1&n=Ensaio')?.praiseShortIds,
+        ['0a1'],
+      );
+    });
+
+    test('aceita texto com prefixo antes do "?"', () {
+      final params = extractShareParamsFromUserInput(
+        'abre isto: v2.plpcg.com/?p=0a1&n=Ensaio',
+      );
+      expect(params?.praiseShortIds, ['0a1']);
+      expect(params?.shareName, 'Ensaio');
+    });
+
+    test('link antigo colado devolve params antigos', () {
+      expect(
+        extractShareParamsFromUserInput(
+          'https://plpcg.com/?s=1a2f-0000&n=Culto',
+        )?.isLegacy,
+        isTrue,
+      );
+      expect(
+        extractShareParamsFromUserInput('sharepdfs=a&sharename=X')?.isLegacy,
+        isTrue,
+      );
+    });
+
+    test('p sem token válido devolve params sem material (aviso)', () {
+      final params = extractShareParamsFromUserInput(
+        'https://v2.plpcg.com/?p=zz&n=X',
+      );
+      expect(params, isNotNull);
+      expect(params!.isLegacy, isFalse);
+      expect(params.hasMaterial, isFalse);
+    });
+
+    test('input que não é link de lista → null', () {
+      expect(extractShareParamsFromUserInput('https://example.com'), isNull);
+      expect(extractShareParamsFromUserInput('   '), isNull);
+    });
+  });
 }

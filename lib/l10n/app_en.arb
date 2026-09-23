@@ -582,8 +582,12 @@
       }
     }
   },
-  "playlistImportInvalidUrl": "Invalid link. Use a URL with sharepdfs and sharename.",
+  "playlistImportInvalidUrl": "Invalid link.",
   "deepLinkImportFailed": "Could not import the shared playlist.",
+  "playlistShareLegacyLinkUnsupported": "This link is from an older version and no longer opens. Ask the person for a new link.",
+  "@playlistShareLegacyLinkUnsupported": {
+    "description": "Snackbar when opening or pasting an old list link (?s=, sharepdfs, shareitems…)"
+  },
   "playlistShareError": "Could not share the playlist.",
   "playlistShareSheetTitle": "Share",
   "playlistShareOptionLink": "Link only",

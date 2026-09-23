@@ -2,10 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/isar_provider.dart';
 import '../../../carousel/data/providers/carousel_providers.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
-import '../../../catalog/presentation/providers/pdf_ids_by_short_id_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
-import '../../domain/ports/short_id_resolver.dart';
 import '../../domain/repositories/playlist_repository.dart';
 import '../../domain/usecases/delete_all_unsaved_playlists.dart';
 import '../../domain/usecases/delete_playlist.dart';
@@ -20,6 +17,7 @@ import '../../domain/usecases/save_playlist.dart';
 import '../../domain/usecases/toggle_playlist_favorite.dart';
 import '../../domain/usecases/unfavorite_playlist.dart';
 import '../../domain/usecases/update_playlist.dart';
+import '../../presentation/providers/praise_entry_resolver_provider.dart';
 import '../datasources/playlist_local_datasource.dart';
 import '../repositories/playlist_repository_impl.dart';
 
@@ -113,19 +111,14 @@ final generatePlaylistShareUrlProvider = Provider<GeneratePlaylistShareUrl>((
   );
 });
 
-/// `shortId → pdfId` esperando o manifest (spec short-id-share D8).
-final shortIdResolverProvider = Provider<ShortIdResolver>((ref) {
-  return () async {
-    await ref.read(louvoresManifestProvider.future);
-    return ref.read(pdfIdsByShortIdProvider);
-  };
-});
-
-/// UC-07 — importar playlist compartilhada (Fase 4.4).
+/// UC-07 — importar lista de um link por praise (spec fim-fonte-plpcg §4.3).
+///
+/// O loader é **lido**, nunca observado: observá-lo deixaria as escutas dele
+/// à mercê da pausa do Riverpod enquanto o import espera o catálogo.
 final importSharedPlaylistFromUrlProvider =
     Provider<ImportSharedPlaylistFromUrl>((ref) {
       return ImportSharedPlaylistFromUrl(
         ref.watch(playlistRepositoryProvider),
-        resolveShortIds: ref.watch(shortIdResolverProvider),
+        loadPraiseEntryResolver: ref.read(praiseEntryResolverLoaderProvider),
       );
     });

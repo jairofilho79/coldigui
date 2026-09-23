@@ -597,8 +597,12 @@
       }
     }
   },
-  "playlistImportInvalidUrl": "Link inválido. Use uma URL com sharepdfs e sharename.",
+  "playlistImportInvalidUrl": "Link inválido.",
   "deepLinkImportFailed": "Não foi possível importar a lista compartilhada.",
+  "playlistShareLegacyLinkUnsupported": "Este link é de uma versão antiga e já não abre. Peça um link novo à pessoa.",
+  "@playlistShareLegacyLinkUnsupported": {
+    "description": "Snackbar ao abrir ou colar um link de lista antigo (?s=, sharepdfs, shareitems…) — spec fim-fonte-plpcg §4.4"
+  },
   "playlistShareError": "Não foi possível compartilhar a lista.",
   "playlistShareSheetTitle": "Compartilhar",
   "playlistShareOptionLink": "Só o link",

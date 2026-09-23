@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/routing/app_router.dart';
@@ -89,7 +91,8 @@ void main() {
     );
     importUseCase = ImportSharedPlaylistFromUrl(
       playlistRepository,
-      resolveShortIds: () async => const {},
+      loadPraiseEntryResolver: () async =>
+          (_) => null,
     );
   });
 
@@ -142,7 +145,7 @@ void main() {
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+    await state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
     await tester.pumpAndSettle();
 
     expect(find.text('Home Screen'), findsOneWidget);
@@ -201,7 +204,7 @@ void main() {
       final state = tester.state<DeepLinkListenerState>(
         find.byType(DeepLinkListener),
       );
-      await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+      await state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
       await tester.pumpAndSettle();
 
       expect(find.text('Home Screen'), findsOneWidget);
@@ -250,15 +253,15 @@ void main() {
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    await state.handleUriForTest(Uri.parse('/?sharepdfs=x&sharename=Teste'));
+    await state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Link inválido'), findsOneWidget);
   });
 
-  testWidgets('deep link só com sharename avisa em vez de sumir (D.6)', (
-    tester,
-  ) async {
+  /// Listener com o `SyncDeepLinkState` de verdade — a URL passa pelo parser
+  /// e pelo use case reais.
+  Future<GoRouter> pumpRealSync(WidgetTester tester) async {
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: RoutePaths.home,
@@ -269,14 +272,11 @@ void main() {
         ),
       ],
     );
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
-          // Sem stub: a URL passa pelo parser e pelo use case de verdade — é
-          // exatamente ali que o caso era engolido.
           syncDeepLinkStateProvider.overrideWithValue(
             SyncDeepLinkState(importUseCase),
           ),
@@ -293,15 +293,48 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    return router;
+  }
 
+  testWidgets('?p= sem token válido avisa em vez de sumir (D.6)', (
+    tester,
+  ) async {
+    await pumpRealSync(tester);
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    await state.handleUriForTest(Uri.parse('/?sharename=Ensaio'));
+    await state.handleUriForTest(Uri.parse('/?p=zz&n=Ensaio'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Link inválido'), findsOneWidget);
   });
+
+  // Review Focus 5: inclui o esquema custom antigo, que o app nativo recebe.
+  for (final legacy in [
+    '/?sharename=Ensaio',
+    '/?sharepdfs=a&sharename=Teste',
+    '/?s=1a2f-0000&n=Culto',
+    'plpcg:///?s=1a2f&n=Culto',
+  ]) {
+    testWidgets('link antigo $legacy avisa e limpa a URL', (tester) async {
+      final router = await pumpRealSync(tester);
+      final state = tester.state<DeepLinkListenerState>(
+        find.byType(DeepLinkListener),
+      );
+      await state.handleUriForTest(Uri.parse(legacy));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Este link é de uma versão antiga e já não abre. '
+          'Peça um link novo à pessoa.',
+        ),
+        findsOneWidget,
+      );
+      expect(router.state.uri.path, RoutePaths.home);
+      expect(router.state.uri.queryParameters, isEmpty);
+    });
+  }
 
   testWidgets(
     'sincronização lançando PlaylistNotFoundException exibe snackbar sem propagar exceção',
@@ -345,7 +378,7 @@ void main() {
       final state = tester.state<DeepLinkListenerState>(
         find.byType(DeepLinkListener),
       );
-      await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+      await state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -398,7 +431,7 @@ void main() {
       final state = tester.state<DeepLinkListenerState>(
         find.byType(DeepLinkListener),
       );
-      await state.handleUriForTest(Uri.parse('/?sharepdfs=a&sharename=Teste'));
+      await state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -451,7 +484,7 @@ void main() {
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    final uri = Uri.parse('/?sharepdfs=a&sharename=Teste');
+    final uri = Uri.parse('/?p=0a1&n=Teste');
 
     await state.handleUriForTest(uri);
     await tester.pumpAndSettle();
@@ -509,7 +542,7 @@ void main() {
     final state = tester.state<DeepLinkListenerState>(
       find.byType(DeepLinkListener),
     );
-    final uri = Uri.parse('/?sharepdfs=a&sharename=Teste');
+    final uri = Uri.parse('/?p=0a1&n=Teste');
 
     await state.handleUriForTest(uri);
     await tester.pumpAndSettle();

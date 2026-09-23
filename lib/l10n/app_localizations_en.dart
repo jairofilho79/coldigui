@@ -1030,11 +1030,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get playlistImportInvalidUrl =>
-      'Invalid link. Use a URL with sharepdfs and sharename.';
+  String get playlistImportInvalidUrl => 'Invalid link.';
 
   @override
   String get deepLinkImportFailed => 'Could not import the shared playlist.';
+
+  @override
+  String get playlistShareLegacyLinkUnsupported =>
+      'This link is from an older version and no longer opens. Ask the person for a new link.';
 
   @override
   String get playlistShareError => 'Could not share the playlist.';

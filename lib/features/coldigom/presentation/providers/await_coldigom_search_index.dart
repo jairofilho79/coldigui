@@ -32,7 +32,9 @@ const sharedPlaylistCatalogTimeout = Duration(seconds: 20);
 /// uma nova tentativa.
 ///
 /// [ref] tem de ser de um provider que não reconstrói durante a espera (ex.:
-/// um `Provider` sem `watch`); as escutas são fechadas no fim.
+/// um `Provider` sem `watch`) e que ninguém observa (só `read`) — o Riverpod
+/// pausa as escutas de um provider observado por quem ficou sem ouvintes, e o
+/// import pararia; as escutas são fechadas no fim.
 Future<ColdigomSearchIndex> awaitColdigomSearchIndex(
   Ref ref, {
   Duration timeout = sharedPlaylistCatalogTimeout,

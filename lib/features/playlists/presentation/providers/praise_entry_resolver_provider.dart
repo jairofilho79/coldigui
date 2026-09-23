@@ -13,7 +13,9 @@ final _log = AppLogger.of('playlists');
 /// favoritos ([awaitFavoriteMaterialKindRank]) em paralelo, e resolve cada
 /// token por [preferredEntryForPraise]. Token sem entrada vira log.
 ///
-/// Sem `watch` de propósito: o `ref` fica estável durante a espera.
+/// Sem `watch` de propósito: o `ref` fica estável durante a espera. Pela
+/// mesma razão, quem usa só faz `read` deste provider — nunca `watch`/`listen`
+/// (ver [awaitColdigomSearchIndex]).
 final praiseEntryResolverLoaderProvider = Provider<PraiseEntryResolverLoader>((
   ref,
 ) {
@@ -25,7 +27,11 @@ final praiseEntryResolverLoaderProvider = Provider<PraiseEntryResolverLoader>((
     return (praiseShortId) {
       final entry = preferredEntryForPraise(index, praiseShortId, rank: rank);
       if (entry == null) {
-        _log.warn('praise $praiseShortId sem entrada no catálogo — ignorado');
+        _log.warn(
+          index.groupByShortId(praiseShortId) == null
+              ? 'praise $praiseShortId fora do catálogo — ignorado'
+              : 'praise $praiseShortId sem material adicionável — ignorado',
+        );
       }
       return entry;
     };

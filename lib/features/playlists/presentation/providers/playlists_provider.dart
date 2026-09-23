@@ -511,10 +511,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     } on StorageUnavailableException {
       rethrow;
     } on Object catch (error, stackTrace) {
-      // Catálogo indisponível (short-id resolver depende do manifest, por
-      // exemplo) ou qualquer outra falha inesperada: sem isso, um deep link
-      // curto sem catálogo derrubava a tela em vez de mostrar o erro genérico
-      // de import.
+      // O resolver por praise espera o catálogo; qualquer falha dele (ou
+      // outra inesperada) vira o erro genérico de import em vez de derrubar
+      // a tela.
       playlistShareDebugLogError('import', error, stackTrace);
       return null;
     }

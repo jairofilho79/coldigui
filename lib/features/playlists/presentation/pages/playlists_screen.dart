@@ -147,6 +147,12 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
     final result = await showImportPlaylistDialog(context);
     if (result == null || !context.mounted) return;
 
+    // Link de versão antiga (spec fim-fonte-plpcg §4.4): nada a importar.
+    if (result.isLegacy) {
+      showAppSnackbar(context, l10n.playlistShareLegacyLinkUnsupported);
+      return;
+    }
+
     // D6: a lista importada vira a ativa e a anterior continua salva — nada
     // a "substituir", logo nada a confirmar (paridade com o deep link).
     final String? playlistId;

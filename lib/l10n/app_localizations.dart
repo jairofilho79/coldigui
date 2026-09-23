@@ -1790,7 +1790,7 @@ abstract class AppLocalizations {
   /// No description provided for @playlistImportInvalidUrl.
   ///
   /// In pt, this message translates to:
-  /// **'Link inválido. Use uma URL com sharepdfs e sharename.'**
+  /// **'Link inválido.'**
   String get playlistImportInvalidUrl;
 
   /// No description provided for @deepLinkImportFailed.
@@ -1798,6 +1798,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível importar a lista compartilhada.'**
   String get deepLinkImportFailed;
+
+  /// Snackbar ao abrir ou colar um link de lista antigo (?s=, sharepdfs, shareitems…) — spec fim-fonte-plpcg §4.4
+  ///
+  /// In pt, this message translates to:
+  /// **'Este link é de uma versão antiga e já não abre. Peça um link novo à pessoa.'**
+  String get playlistShareLegacyLinkUnsupported;
 
   /// No description provided for @playlistShareError.
   ///

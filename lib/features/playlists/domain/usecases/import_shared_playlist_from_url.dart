@@ -2,7 +2,8 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../../core/utils/playlist_share_url_builder.dart';
 import '../entities/saved_playlist.dart';
 import '../exceptions/invalid_share_playlist_exception.dart';
-import '../ports/short_id_resolver.dart';
+import '../exceptions/legacy_share_link_exception.dart';
+import '../ports/praise_entry_resolver.dart';
 import '../repositories/playlist_repository.dart';
 import '../utils/content_fingerprint.dart';
 
@@ -20,56 +21,59 @@ class ImportResult {
   final bool alreadyExisted;
 }
 
-/// UC-07 — Importar playlist compartilhada (Fase 4.4).
+/// UC-07 — importar lista de um link por praise (spec fim-fonte-plpcg §4.3).
 class ImportSharedPlaylistFromUrl {
   const ImportSharedPlaylistFromUrl(
     this._playlistRepository, {
-    required this.resolveShortIds,
+    required this.loadPraiseEntryResolver,
   });
 
   final PlaylistRepository _playlistRepository;
-  final ShortIdResolver resolveShortIds;
+  final PraiseEntryResolverLoader loadPraiseEntryResolver;
 
-  /// Persiste a nova playlist (ou reaproveita uma existente) e devolve o
+  /// Persiste a nova lista (ou reaproveita uma existente) e devolve o
   /// [ImportResult].
   ///
-  /// [PlaylistShareParams.entries] (v2, spec A.5) preserva a ordem
-  /// intercalada e o tipo de cada material; quando ausente ou inválido,
-  /// [PlaylistShareParams.sharePdfs]/[PlaylistShareParams.shareAudios] valem
-  /// como antes. No formato curto (`params.isShortFormat`, spec
-  /// short-id-share D8), as entradas vêm de [ShortIdResolver] em vez de
-  /// [PlaylistShareParams.entries]. Quem chama torna a lista ativa (D3) — não
-  /// existe mais carousel a carregar.
+  /// Cada token do `p` vira a entrada que [loadPraiseEntryResolver] escolhe
+  /// (favorito da conta, senão PDF principal → único áudio → primeiro
+  /// adicionável). Token desconhecido ou praise sem material adicionável é
+  /// saltado; repetições ficam. O material escolhido por quem enviou não
+  /// viaja — o link é por louvor. Quem chama torna a lista ativa (D3).
   ///
   /// **Dedupe por conteúdo (spec C.2):** antes de criar, procura entre as
-  /// listas salvas e não apagadas ([PlaylistRepository.getAll] filtrando
-  /// `salva && deletedAt == null`) uma com o mesmo [contentFingerprint]
+  /// listas salvas e não apagadas uma com o mesmo [contentFingerprint]
   /// (`kind:id` por entrada, na ordem — o nome do link não entra na conta).
-  /// Se existir, não cria: devolve a lista existente com
-  /// `alreadyExisted: true`.
+  /// Se existir, não cria: devolve a existente com `alreadyExisted: true`.
   ///
-  /// [excludePlaylistId] (fix round 2, Minor) tira uma lista específica da
-  /// dedupe — a que está na graça de uma exclusão adiada (C11): o repositório
-  /// ainda não sabe que ela foi apagada (`deletedAt` só é gravado no
-  /// `commit`, que pode nunca rodar se o usuário desfizer), então o filtro de
-  /// tombstone abaixo não a pega sozinho.
+  /// [excludePlaylistId] tira da dedupe a lista na graça de uma exclusão
+  /// adiada (C11), que o repositório ainda não sabe apagada.
   ///
-  /// Lança [InvalidSharePlaylistException] se params inválidos.
+  /// Lança [LegacyShareLinkException] para link antigo (§4.4) e
+  /// [InvalidSharePlaylistException] sem token, com nome em branco ou sem
+  /// nenhum token resolvido — inclusive quando o catálogo não chegou no prazo
+  /// (§8).
   Future<ImportResult> call({
     required PlaylistShareParams params,
     String? excludePlaylistId,
   }) async {
-    // Sem material nenhum, nem vale acordar o resolver (que aguarda o
-    // catálogo) — `shortIds: []` seria um `await` desperdiçado.
-    if (!params.hasMaterial) {
+    if (params.isLegacy) throw const LegacyShareLinkException();
+    final nome = params.shareName.trim();
+    // Sem token ou sem nome nem vale acordar o resolver, que espera o catálogo.
+    if (!params.hasMaterial || nome.isEmpty) {
       throw const InvalidSharePlaylistException();
     }
-    final entries = params.isShortFormat
-        ? await _entriesFromShortIds(params.shortIds!)
-        : params.entries;
-    final nome = params.shareName.trim();
-    if (entries.isEmpty || nome.isEmpty) {
-      throw const InvalidSharePlaylistException();
+
+    final resolve = await loadPraiseEntryResolver();
+    final entries = <PlaylistEntry>[
+      for (final shortId in params.praiseShortIds) ?resolve(shortId),
+    ];
+    if (entries.isEmpty) throw const InvalidSharePlaylistException();
+    final skipped = params.praiseShortIds.length - entries.length;
+    if (skipped > 0) {
+      _log.warn(
+        'import: $skipped de ${params.praiseShortIds.length} louvores do '
+        'link sem entrada — saltados',
+      );
     }
 
     final fingerprint = contentFingerprint(entries);
@@ -91,27 +95,5 @@ class ImportSharedPlaylistFromUrl {
     );
     final created = await _playlistRepository.getById(playlistId);
     return ImportResult(playlist: created!, alreadyExisted: false);
-  }
-
-  /// `shortId → pdfId` pelo catálogo (D8): desconhecido é ignorado com aviso;
-  /// repetições são preservadas (a lista pode repetir um louvor). Espera o
-  /// manifest — [ShortIdResolver] só resolve depois de ele existir.
-  Future<List<PlaylistEntry>> _entriesFromShortIds(
-    List<String> shortIds,
-  ) async {
-    final pdfIdByShortId = await resolveShortIds();
-    final entries = <PlaylistEntry>[];
-    for (final shortId in shortIds) {
-      final pdfId = pdfIdByShortId[shortId];
-      if (pdfId == null) {
-        _log.warn('shortId desconhecido no catálogo — ignorado: $shortId');
-        continue;
-      }
-      // O resolver só devolve PDFs PLPCG (D8) — sem ambiguidade de tipo como
-      // em `PlaylistEntry.classified`, que reclassificaria pela extensão do
-      // path decodificado.
-      entries.add(PlaylistEntry(id: pdfId, kind: MaterialKind.pdf));
-    }
-    return entries;
   }
 }

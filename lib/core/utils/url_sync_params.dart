@@ -12,8 +12,13 @@ abstract final class UrlSyncParams {
   static const String category = 'category';
   static const String tags = 'tags';
   static const String materialKinds = 'materialKinds';
+
+  /// Legado — link longo antigo; só reconhecido (spec fim-fonte-plpcg §4.4).
   static const String sharePdfs = 'sharepdfs';
+
+  /// Legado — link longo antigo; só reconhecido (spec fim-fonte-plpcg §4.4).
   static const String shareName = 'sharename';
+
   static const String file = 'file';
 
   /// Identificador do louvor na rota `/leitor` — habilita carousel in-reader (4.7).
@@ -25,15 +30,10 @@ abstract final class UrlSyncParams {
   /// Identificador do praise Coldigom na rota `/letra`.
   static const String praiseId = 'praiseId';
 
-  /// CSV de audioIds no share de playlist (`shareaudios`).
+  /// Legado — CSV de audioIds do link longo antigo; só reconhecido.
   static const String shareAudios = 'shareaudios';
 
-  /// Ordem única tipada do share de playlist v2 (`shareitems`, spec A.5).
-  ///
-  /// CSV de `prefixo:id` (`p` pdf, `c` cifra, `a` áudio, `y` youtube,
-  /// `g` gesto, `u` desconhecido). Preserva a ordem intercalada e o tipo, que
-  /// [sharePdfs]/[shareAudios] sozinhos perdem; os dois legados continuam
-  /// sendo emitidos para apps antigos.
+  /// Legado — ordem tipada do link longo antigo (`shareitems`); só reconhecido.
   static const String shareItems = 'shareitems';
 
   /// Legado — link curto por material (`?s=`, spec short-id-share). Só é
