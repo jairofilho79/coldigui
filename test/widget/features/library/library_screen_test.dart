@@ -1,12 +1,12 @@
+import 'dart:async';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
-import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
-import 'package:coldigui/features/library/presentation/providers/library_group_worker.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,40 +14,31 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Louvor _louvor({
-  required String nome,
-  required String numero,
-  String classificacao = 'ColAdultos',
-}) => Louvor.fromManifest(
-  nome: nome,
-  numero: numero,
-  categoria: 'Partitura',
-  classificacao: classificacao,
-  pdf: '$numero.pdf',
-  pdfId: 'id-$numero',
-);
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+
+List<LouvorGroup> _groups(int count) => [
+  for (var i = 1; i <= count; i++)
+    catalogGroup(
+      praiseId: 'p$i',
+      number: '$i'.padLeft(3, '0'),
+      name: 'Louvor $i',
+    ),
+];
 
 Widget _libraryTestApp({
   required SharedPreferences prefs,
-  required List<Louvor> catalog,
-  List<Override> extraOverrides = const [],
-  Widget? home,
+  required List<Override> catalogOverrides,
 }) {
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      louvoresManifestOverride(LouvoresManifest.fromLouvores(catalog)),
-      libraryGroupPipelineExecutorProvider.overrideWith(
-        (ref) =>
-            (input) async => runLibraryGroupPipeline(input),
-      ),
-      ...extraOverrides,
+      ...catalogOverrides,
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('pt'),
-      home: home ?? const Scaffold(body: LibraryScreen()),
+      home: const Scaffold(body: LibraryScreen()),
     ),
   );
 }
@@ -57,56 +48,40 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Future<void> pumpLibrary(WidgetTester tester, Widget app) async {
+  Future<void> pumpLibrary(
+    WidgetTester tester,
+    List<LouvorGroup> groups,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(app);
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      _libraryTestApp(
+        prefs: prefs,
+        catalogOverrides: catalogIndexOverrides(catalogIndexOf(groups)),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('LibraryScreen exibe LouvorCards e chips de filtro', (
+  testWidgets('lista os louvores do índice local, sem seletor de fonte', (
     tester,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) => _louvor(
-        nome: 'Louvor ${i + 1}',
-        numero: '${i + 1}'.padLeft(3, '0'),
-        classificacao: i.isEven ? 'ColAdultos' : 'ColAdultos (Especial)',
-      ),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
-
-    await tester.tap(find.text('Filtros'));
-    await tester.pumpAndSettle();
+    await pumpLibrary(tester, _groups(15));
 
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
-    expect(find.text('Partitura'), findsWidgets);
-    expect(find.text('Arranjo especial'), findsOneWidget);
-    expect(find.text('Padrão'), findsOneWidget);
-    expect(find.text('Especial'), findsOneWidget);
+    // O seletor «Fonte: PLPCG | Coldigom» não existe mais.
+    expect(find.text('Fonte'), findsNothing);
   });
 
-  testWidgets('LibraryScreen exibe resumo dentro do card Visualização', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) =>
-          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
+  testWidgets('resumo dentro do card Visualização', (tester) async {
+    await pumpLibrary(tester, _groups(15));
 
     final summary = find.textContaining('Mostrando 1');
     expect(summary, findsOneWidget);
     expect(find.text('10 por página'), findsOneWidget);
-
     expect(
       find.descendant(
         of: find.ancestor(
@@ -119,66 +94,48 @@ void main() {
     );
   });
 
-  testWidgets('LibraryScreen troca página e ordenação', (tester) async {
-    final prefs = await SharedPreferences.getInstance();
-    final catalog = List.generate(
-      15,
-      (i) =>
-          _louvor(nome: 'Louvor ${i + 1}', numero: '${i + 1}'.padLeft(3, '0')),
-    );
-
-    await pumpLibrary(tester, _libraryTestApp(prefs: prefs, catalog: catalog));
+  testWidgets('troca página e ordenação', (tester) async {
+    await pumpLibrary(tester, _groups(15));
 
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
     expect(find.text('#011 — Louvor 11'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
-
     expect(find.text('#011 — Louvor 11'), findsOneWidget);
     expect(find.text('#001 — Louvor 1'), findsNothing);
 
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
-
     expect(find.text('#001 — Louvor 1'), findsOneWidget);
 
     await tester.tap(find.text('Nome'));
     await tester.pumpAndSettle();
-
-    final louvor1Finder = find.text('#001 — Louvor 1');
-    final louvor10Finder = find.text('#010 — Louvor 10');
     expect(
-      tester.getTopLeft(louvor1Finder).dy,
-      lessThan(tester.getTopLeft(louvor10Finder).dy),
+      tester.getTopLeft(find.text('#001 — Louvor 1')).dy,
+      lessThan(tester.getTopLeft(find.text('#010 — Louvor 10')).dy),
     );
   });
 
-  testWidgets('LibraryScreen exibe skeleton enquanto manifest carrega', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
+  testWidgets('skeleton enquanto o índice hidrata', (tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final prefs = await SharedPreferences.getInstance();
+    final pending = Completer<ColdigomSearchIndex>();
 
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestLoadingOverride(),
-          libraryGroupPipelineExecutorProvider.overrideWith(
-            (ref) =>
-                (input) async => runLibraryGroupPipeline(input),
+      _libraryTestApp(
+        prefs: prefs,
+        catalogOverrides: [
+          coldigomCatalogHydrationProvider.overrideWith(
+            (ref) => pending.future,
+          ),
+          coldigomCatalogSyncProvider.overrideWith(
+            FakeColdigomCatalogSyncNotifier.new,
           ),
         ],
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('pt'),
-          home: const Scaffold(body: LibraryScreen()),
-        ),
       ),
     );
     await tester.pump();

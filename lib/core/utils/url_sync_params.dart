@@ -3,15 +3,12 @@ abstract final class UrlSyncParams {
   static const String pesquisa = 'pesquisa';
   static const String materiais = 'materiais';
   static const String arranjo = 'arranjo';
-  static const String arranjoEspecial = 'arranjoEspecial';
   static const String ordenar = 'ordenar';
   static const String itensPorPagina = 'itensPorPagina';
   static const String pagina = 'pagina';
 
-  /// Biblioteca: `plpcg` (omitido) | `coldigom`.
-  static const String fonte = 'fonte';
-
-  /// Filtros Coldigom (CSV) — espelham query params da API.
+  /// Filtros do catálogo (CSV), nas rotas `/` e `/biblioteca` (spec fim-fonte
+  /// §2.5). [tags] leva **nomes** de tag; [materialKinds], ids de kind.
   static const String tonality = 'tonality';
   static const String rhythm = 'rhythm';
   static const String category = 'category';

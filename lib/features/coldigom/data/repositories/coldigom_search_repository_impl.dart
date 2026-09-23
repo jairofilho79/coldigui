@@ -16,7 +16,7 @@ import '../coldigom_cache_writer.dart';
 import '../datasources/coldigom_remote_datasource.dart';
 import '../models/praise_dto.dart';
 
-/// Orquestra busca/browse coldigom via endpoint PLPCG (1 request com materials).
+/// Orquestra a busca coldigom via endpoint PLPCG (1 request com materials).
 ///
 /// Antes de devolver, funde o que veio nos caches Coldigom pelo [cache] — é
 /// aqui, e não na presentation, que os caches são escritos (C.3). Sem [cache]
@@ -113,70 +113,6 @@ class ColdigomSearchRepositoryImpl implements ColdigomSearchRepository {
       }
       rethrow;
     }
-  }
-
-  @override
-  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
-    final safePage = query.page < 1 ? 1 : query.page;
-    final safeLimit = query.limit < 1 ? 10 : query.limit;
-    final hasQuery = query.q != null && query.q!.trim().isNotEmpty;
-
-    final pageDto = await _remote.listPlpcgPraises(
-      ColdigomPraisesQuery(
-        q: query.q,
-        tonalities: query.tonalities,
-        rhythms: query.rhythms,
-        categories: query.categories,
-        tagIds: query.tagIds,
-        materialKindIds: query.materialKindIds,
-        page: safePage,
-        limit: safeLimit,
-        sort: query.apiSort,
-      ),
-    );
-
-    final totalPages = pageDto.pagination.totalPages < 1
-        ? 1
-        : pageDto.pagination.totalPages;
-
-    if (pageDto.data.isEmpty) {
-      return ColdigomBrowseResult(
-        groups: const [],
-        louvores: const [],
-        page: pageDto.pagination.page,
-        limit: pageDto.pagination.limit,
-        totalItems: pageDto.pagination.total,
-        totalPages: totalPages,
-      );
-    }
-
-    final fetched = _mapDetails(pageDto.data);
-    final groups = LouvorGroup.fromLouvores(
-      fetched.louvores,
-      audioTracks: fetched.audioTracks,
-      youtubeMaterials: fetched.youtubeMaterials,
-      chordMaterials: fetched.chordMaterials,
-      gestureMaterials: fetched.gestureMaterials,
-      coldigomMetaByGroupId: fetched.metaByGroupId,
-      // Com q a API já ranqueia; sem q ordenamos por número localmente.
-      sortByNumber: !hasQuery,
-    );
-
-    final result = ColdigomBrowseResult(
-      groups: groups,
-      louvores: fetched.louvores,
-      audioTracks: fetched.audioTracks,
-      youtubeMaterials: fetched.youtubeMaterials,
-      chordMaterials: fetched.chordMaterials,
-      gestureMaterials: fetched.gestureMaterials,
-      praiseMetaByGroupId: fetched.metaByGroupId,
-      page: pageDto.pagination.page,
-      limit: pageDto.pagination.limit,
-      totalItems: pageDto.pagination.total,
-      totalPages: totalPages,
-    );
-    cache?.mergeBrowseResult(result);
-    return result;
   }
 
   static ({

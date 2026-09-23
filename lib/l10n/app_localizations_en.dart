@@ -152,12 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get specialArrangementPadrao => 'Default';
-
-  @override
-  String get filtersSpecialArrangementTitle => 'Special arrangement';
-
-  @override
   String get catalogStaleBanner =>
       'Catalog last updated over 7 days ago. Connect to refresh.';
 
@@ -186,15 +180,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryResultsEmpty => 'No hymns match the current filters';
 
   @override
-  String get libraryCatalogModeLabel => 'Source';
-
-  @override
-  String get libraryCatalogModePlpcg => 'PLPCG';
-
-  @override
-  String get libraryCatalogModeColdigom => 'Coldigom';
-
-  @override
   String get coldigomFilterTonality => 'Key';
 
   @override
@@ -208,9 +193,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coldigomFilterMaterials => 'Materials';
-
-  @override
-  String get coldigomLoadError => 'Could not load the Coldigom catalog';
 
   @override
   String get offlineTitle => 'Offline';

@@ -36,18 +36,6 @@ class ColdigomCacheWriter {
     );
   }
 
-  /// Funde tudo o que veio de um browse da Biblioteca.
-  void mergeBrowseResult(ColdigomBrowseResult result) {
-    _merge(
-      louvores: result.louvores,
-      audioTracks: result.audioTracks,
-      chordMaterials: result.chordMaterials,
-      gestureMaterials: result.gestureMaterials,
-      youtubeMaterials: result.youtubeMaterials,
-      metaByGroupId: result.praiseMetaByGroupId,
-    );
-  }
-
   /// Funde só cifras — o sheet e o desvio de `/cifra` já têm o objeto pronto.
   void mergeChords(Iterable<ChordMaterial> chords) {
     _ref.read(coldigomChordMaterialsCacheProvider.notifier).mergeChords(chords);

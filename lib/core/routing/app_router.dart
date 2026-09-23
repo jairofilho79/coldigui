@@ -192,10 +192,6 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
           builder: (context, state) {
             final params = safeQueryParameters(state.uri);
             return LibraryScreen(
-              initialFonte: params[UrlSyncParams.fonte],
-              initialMateriais: params[UrlSyncParams.materiais],
-              initialArranjo: params[UrlSyncParams.arranjo],
-              initialArranjoEspecial: params[UrlSyncParams.arranjoEspecial],
               initialTonality: params[UrlSyncParams.tonality],
               initialRhythm: params[UrlSyncParams.rhythm],
               initialCategory: params[UrlSyncParams.category],

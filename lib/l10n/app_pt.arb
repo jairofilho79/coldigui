@@ -92,8 +92,6 @@
       }
     }
   },
-  "specialArrangementPadrao": "Padrão",
-  "filtersSpecialArrangementTitle": "Arranjo especial",
   "catalogStaleBanner": "Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.",
   "catalogLoadError": "Não foi possível carregar o catálogo",
   "retry": "Tentar novamente",
@@ -115,15 +113,11 @@
     }
   },
   "libraryResultsEmpty": "Nenhum louvor encontrado com os filtros atuais",
-  "libraryCatalogModeLabel": "Fonte",
-  "libraryCatalogModePlpcg": "PLPCG",
-  "libraryCatalogModeColdigom": "Coldigom",
   "coldigomFilterTonality": "Tom",
   "coldigomFilterRhythm": "Ritmo",
   "coldigomFilterCategory": "Categoria",
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materiais",
-  "coldigomLoadError": "Não foi possível carregar o catálogo Coldigom",
   "offlineTitle": "Offline",
   "offlineSelectCategories": "Selecione as categorias",
   "offlineDownloadSelected": "Baixar selecionados",

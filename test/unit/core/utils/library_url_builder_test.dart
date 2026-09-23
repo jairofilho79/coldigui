@@ -7,19 +7,23 @@ void main() {
     expect(buildLibraryLocation(), RoutePaths.library);
   });
 
-  test('buildLibraryLocation combina filtros e paginação', () {
+  test('buildLibraryLocation combina filtros do catálogo e vista', () {
     final location = buildLibraryLocation(
-      materiais: 'Partitura',
-      arranjo: 'ColAdultos',
-      arranjoEspecial: 'Especial',
+      tonality: 'Dm,G',
+      rhythm: 'Fox',
+      category: 'Clamor',
+      tags: 'PES',
+      materialKinds: 'k1',
       ordenar: 'nome',
       itensPorPagina: '25',
       pagina: '2',
     );
 
-    expect(location, contains('materiais=Partitura'));
-    expect(location, contains('arranjo=ColAdultos'));
-    expect(location, contains('arranjoEspecial=Especial'));
+    expect(location, contains('tonality=${Uri.encodeComponent('Dm,G')}'));
+    expect(location, contains('rhythm=Fox'));
+    expect(location, contains('category=Clamor'));
+    expect(location, contains('tags=PES'));
+    expect(location, contains('materialKinds=k1'));
     expect(location, contains('ordenar=nome'));
     expect(location, contains('itensPorPagina=25'));
     expect(location, contains('pagina=2'));
@@ -36,56 +40,24 @@ void main() {
   });
 
   test('buildLibraryLocation codifica valores especiais', () {
-    final location = buildLibraryLocation(arranjoEspecial: 'são especial');
-    expect(location, contains(Uri.encodeComponent('são especial')));
+    final location = buildLibraryLocation(tags: 'PES · 9.2026');
+    expect(location, contains(Uri.encodeComponent('PES · 9.2026')));
   });
 
-  test('buildLibraryLocationFromUri normaliza uri', () {
-    final uri = Uri.parse(
-      '/biblioteca?ordenar=nome&pagina=2&materiais=Partitura',
-    );
+  test(
+    'link antigo: fonte/materiais/arranjo/arranjoEspecial são ignorados',
+    () {
+      final uri = Uri.parse(
+        '/biblioteca?fonte=coldigom&materiais=Partitura&arranjo=ColAdultos'
+        '&arranjoEspecial=Especial&tonality=Dm&pagina=3',
+      );
 
-    expect(
-      buildLibraryLocationFromUri(uri),
-      buildLibraryLocation(
-        materiais: 'Partitura',
-        ordenar: 'nome',
-        pagina: '2',
-      ),
-    );
-  });
+      final location = buildLibraryLocationFromUri(uri);
 
-  test('buildLibraryLocation inclui fonte coldigom e filtros', () {
-    final location = buildLibraryLocation(
-      fonte: 'coldigom',
-      tonality: 'Dm,G',
-      rhythm: 'Fox',
-      tags: 'tag-1',
-      materialKinds: 'kind-1',
-      pagina: '2',
-    );
-
-    expect(location, contains('fonte=coldigom'));
-    expect(location, contains('tonality='));
-    expect(location, contains('rhythm=Fox'));
-    expect(location, contains('tags=tag-1'));
-    expect(location, contains('materialKinds=kind-1'));
-    expect(location, contains('pagina=2'));
-    expect(location, isNot(contains('materiais=')));
-  });
-
-  test('buildLibraryLocationFromUri preserva params coldigom', () {
-    final uri = Uri.parse(
-      '/biblioteca?fonte=coldigom&tonality=Dm&rhythm=Fox&pagina=3',
-    );
-    expect(
-      buildLibraryLocationFromUri(uri),
-      buildLibraryLocation(
-        fonte: 'coldigom',
-        tonality: 'Dm',
-        rhythm: 'Fox',
-        pagina: '3',
-      ),
-    );
-  });
+      expect(location, buildLibraryLocation(tonality: 'Dm', pagina: '3'));
+      expect(location, isNot(contains('fonte')));
+      expect(location, isNot(contains('materiais')));
+      expect(location, isNot(contains('arranjo')));
+    },
+  );
 }

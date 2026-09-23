@@ -1,15 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/usecases/browse_library.dart';
 import '../../domain/usecases/paginate_louvores.dart';
 import '../../domain/usecases/paginate_louvor_groups.dart';
 import '../../domain/usecases/sort_louvores.dart';
 import '../../domain/usecases/sort_louvor_groups.dart';
-
-/// Use case UC-03 — navegar biblioteca filtrada (sem busca obrigatória).
-final browseLibraryProvider = Provider<BrowseLibrary>((ref) {
-  return const BrowseLibrary();
-});
 
 /// Use case UC-03 — ordenar louvores por número ou nome.
 final sortLouvoresProvider = Provider<SortLouvores>((ref) {

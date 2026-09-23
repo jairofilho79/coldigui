@@ -54,18 +54,6 @@ class _EmptyColdigomRepo implements ColdigomSearchRepository {
       hasNextPage: false,
     );
   }
-
-  @override
-  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
-    return const ColdigomBrowseResult(
-      groups: [],
-      louvores: [],
-      page: 1,
-      limit: 10,
-      totalItems: 0,
-      totalPages: 0,
-    );
-  }
 }
 
 Future<void> _pumpHome(

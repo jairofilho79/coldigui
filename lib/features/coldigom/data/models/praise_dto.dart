@@ -240,63 +240,6 @@ class PraiseDetailResponseDto {
   }
 }
 
-/// Facet de tag em `/api/praises/filters`.
-class ColdigomTagFacetDto {
-  const ColdigomTagFacetDto({
-    required this.id,
-    required this.name,
-    this.count = 0,
-  });
-
-  final String id;
-  final String name;
-  final int count;
-
-  factory ColdigomTagFacetDto.fromJson(Map<String, dynamic> json) {
-    return ColdigomTagFacetDto(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      count: (json['count'] as num?)?.toInt() ?? 0,
-    );
-  }
-}
-
-/// Opções de filtro de `GET /api/praises/filters`.
-class ColdigomFilterOptionsDto {
-  const ColdigomFilterOptionsDto({
-    required this.rhythms,
-    required this.tonalities,
-    required this.categories,
-    required this.tags,
-  });
-
-  final List<String> rhythms;
-  final List<String> tonalities;
-  final List<String> categories;
-  final List<ColdigomTagFacetDto> tags;
-
-  factory ColdigomFilterOptionsDto.fromJson(Map<String, dynamic> json) {
-    final tagsJson = json['tags'] as List<dynamic>? ?? const [];
-    return ColdigomFilterOptionsDto(
-      rhythms: _stringList(json['rhythms']),
-      tonalities: _stringList(json['tonalities']),
-      categories: _stringList(json['categories']),
-      tags: [
-        for (final item in tagsJson)
-          ColdigomTagFacetDto.fromJson(item as Map<String, dynamic>),
-      ],
-    );
-  }
-
-  static List<String> _stringList(Object? raw) {
-    if (raw is! List) return const [];
-    return [
-      for (final item in raw)
-        if (item is String && item.isNotEmpty) item,
-    ];
-  }
-}
-
 /// Kind de material (`GET /api/materials/kinds`).
 class ColdigomMaterialKindDto {
   const ColdigomMaterialKindDto({required this.id, required this.name});

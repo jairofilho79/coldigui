@@ -80,18 +80,6 @@ class _FakeColdigomRepo implements ColdigomSearchRepository {
       hasNextPage: false,
     );
   }
-
-  @override
-  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
-    return const ColdigomBrowseResult(
-      groups: [],
-      louvores: [],
-      page: 1,
-      limit: 10,
-      totalItems: 0,
-      totalPages: 0,
-    );
-  }
 }
 
 /// Repositório coldigom que falha até o teste liberar — cobre a linha de
@@ -113,18 +101,6 @@ class _ScriptedColdigomRepo implements ColdigomSearchRepository {
       louvores: const [],
       page: page,
       hasNextPage: false,
-    );
-  }
-
-  @override
-  Future<ColdigomBrowseResult> browse(ColdigomBrowseQuery query) async {
-    return const ColdigomBrowseResult(
-      groups: [],
-      louvores: [],
-      page: 1,
-      limit: 10,
-      totalItems: 0,
-      totalPages: 0,
     );
   }
 }

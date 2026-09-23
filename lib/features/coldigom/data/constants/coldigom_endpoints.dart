@@ -14,7 +14,6 @@ abstract final class ColdigomEndpoints {
 
   /// Hex SHA-256 de [plpcgManifest]; `If-None-Match` → 204.
   static const plpcgManifestChecksum = '/api/plpcg/manifest/checksum';
-  static const filterOptions = '/api/praises/filters';
   static const materialKinds = '/api/materials/kinds';
   static const tags = '/api/tags';
 

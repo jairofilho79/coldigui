@@ -79,21 +79,6 @@ void main() {
     expect(params['materialKinds'], 'k1');
   });
 
-  test('ColdigomFilterOptionsDto parseia facets', () {
-    final options = ColdigomFilterOptionsDto.fromJson({
-      'rhythms': ['Fox'],
-      'tonalities': ['Dm'],
-      'categories': ['Clamor'],
-      'tags': [
-        {'id': 't1', 'name': 'PES', 'count': 10},
-      ],
-    });
-
-    expect(options.rhythms, ['Fox']);
-    expect(options.tags.single.name, 'PES');
-    expect(options.tags.single.count, 10);
-  });
-
   test('PlpcgPraisesPageDto parseia materials slim sem lyrics', () {
     final page = PlpcgPraisesPageDto.fromJson({
       'data': [

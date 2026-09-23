@@ -47,7 +47,7 @@ class _FakeColdigomRemote extends ColdigomRemoteDatasource {
   @override
   Future<PraiseDetailDto> fetchDetail(String praiseId) async {
     fetchDetailCalls++;
-    throw StateError('fetchDetail não deve ser chamado no search/browse');
+    throw StateError('fetchDetail não deve ser chamado no search');
   }
 }
 
@@ -161,44 +161,6 @@ void main() {
       expect(result.groups, hasLength(20));
       expect(remote.fetchDetailCalls, 0);
     });
-
-    test('browse com q vazio usa total da API', () async {
-      const praiseId = 'p1';
-      final remote = _FakeColdigomRemote([
-        const PraiseDetailDto(
-          id: praiseId,
-          name: 'Hino',
-          number: '010',
-          rhythm: 'Fox',
-          materials: [
-            MaterialDto(
-              id: 'm1',
-              type: 'pdf',
-              r2Key: 'assets/praises/p1/m1.pdf',
-              materialKindName: 'Partitura',
-            ),
-          ],
-        ),
-      ]);
-      final repo = ColdigomSearchRepositoryImpl(remote);
-
-      final result = await repo.browse(
-        const ColdigomBrowseQuery(
-          tonalities: {'Dm'},
-          page: 1,
-          limit: 10,
-          sortBy: 'nome',
-        ),
-      );
-
-      expect(remote.lastQuery?.q, isNull);
-      expect(remote.lastQuery?.tonalities, {'Dm'});
-      expect(remote.lastQuery?.sort, 'name');
-      expect(result.groups, hasLength(1));
-      expect(result.totalItems, 1);
-      expect(result.louvores, hasLength(1));
-      expect(remote.fetchDetailCalls, 0);
-    });
   });
 
   group('ColdigomSearchRepositoryImpl — cancelamento', () {
@@ -265,23 +227,6 @@ void main() {
       expect(container.read(coldigomChordMaterialsCacheProvider), isNotEmpty);
       expect(container.read(coldigomPraiseMetaCacheProvider)['p1'], isNotNull);
       expect(container.read(coldigomYoutubeCacheProvider)['p1'], hasLength(1));
-    });
-
-    test('browse grava os mesmos caches', () async {
-      final remote = _FakeColdigomRemote([_fullDetail('p2')]);
-      final container = containerWith(remote);
-      final repo = ColdigomSearchRepositoryImpl(
-        remote,
-        cache: container.read(coldigomCacheWriterProvider),
-      );
-
-      await repo.browse(const ColdigomBrowseQuery(page: 1, limit: 10));
-
-      expect(container.read(coldigomLouvoresCacheProvider), isNotEmpty);
-      expect(container.read(coldigomAudioTracksCacheProvider), isNotEmpty);
-      expect(container.read(coldigomChordMaterialsCacheProvider), isNotEmpty);
-      expect(container.read(coldigomPraiseMetaCacheProvider)['p2'], isNotNull);
-      expect(container.read(coldigomYoutubeCacheProvider)['p2'], hasLength(1));
     });
 
     test('o provider do repositório já vem com o writer ligado', () async {

@@ -80,7 +80,7 @@ final class ColdigomCatalogFresh extends ColdigomCatalogFetchResult {
   final String? etag;
 }
 
-/// Cliente HTTP da API coldigom (busca, browse, facets e detalhe).
+/// Cliente HTTP da API coldigom (busca, catálogo, detalhe e kinds).
 class ColdigomRemoteDatasource {
   const ColdigomRemoteDatasource(this._dio);
 
@@ -205,23 +205,6 @@ class ColdigomRemoteDatasource {
     }
 
     return PraiseDetailResponseDto.fromJson(data).data;
-  }
-
-  /// Facets de ritmo/tom/categoria/tags (`GET /api/praises/filters`).
-  Future<ColdigomFilterOptionsDto> fetchFilterOptions() async {
-    final response = await _dio.get<Map<String, dynamic>>(
-      ColdigomEndpoints.filterOptions,
-    );
-    final data = response.data;
-    if (data == null) {
-      return const ColdigomFilterOptionsDto(
-        rhythms: [],
-        tonalities: [],
-        categories: [],
-        tags: [],
-      );
-    }
-    return ColdigomFilterOptionsDto.fromJson(data);
   }
 
   /// Kinds de material (`GET /api/materials/kinds`).

@@ -152,12 +152,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get specialArrangementPadrao => 'Padrão';
-
-  @override
-  String get filtersSpecialArrangementTitle => 'Arranjo especial';
-
-  @override
   String get catalogStaleBanner =>
       'Catálogo atualizado há mais de 7 dias. Conecte-se para atualizar.';
 
@@ -187,15 +181,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhum louvor encontrado com os filtros atuais';
 
   @override
-  String get libraryCatalogModeLabel => 'Fonte';
-
-  @override
-  String get libraryCatalogModePlpcg => 'PLPCG';
-
-  @override
-  String get libraryCatalogModeColdigom => 'Coldigom';
-
-  @override
   String get coldigomFilterTonality => 'Tom';
 
   @override
@@ -209,10 +194,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get coldigomFilterMaterials => 'Materiais';
-
-  @override
-  String get coldigomLoadError =>
-      'Não foi possível carregar o catálogo Coldigom';
 
   @override
   String get offlineTitle => 'Offline';

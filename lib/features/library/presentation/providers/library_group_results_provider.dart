@@ -1,148 +1,34 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../catalog/domain/entities/louvor_group.dart';
-import '../../../catalog/domain/entities/louvores_manifest.dart';
-import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/library_providers.dart';
-import '../../domain/entities/library_catalog_mode.dart';
 import '../../domain/entities/paginated_louvor_groups.dart';
-import 'library_catalog_mode_provider.dart';
-import 'library_coldigom_browse_provider.dart';
-import 'library_group_worker.dart';
-import 'library_last_good_results_provider.dart';
-import 'library_special_arrangement_provider.dart';
 import 'library_view_settings_provider.dart';
 
-/// Grupos ordenados após Browse → Group → Sort — atualizado pelo pipeline assíncrono.
-final libraryGroupSortedResultsDataProvider = StateProvider<List<LouvorGroup>>(
-  (ref) => const [],
-);
+/// Grupos da /biblioteca já ordenados: índice local do catálogo → ordenar
+/// (`numero`/`nome`, a regra de [SortLouvorGroups]) — spec fim-fonte §2.3.
+///
+/// Síncrono, sem `compute`: são ~2063 grupos já montados na hidratação e
+/// ordená-los custa poucos milissegundos; na web o `compute` corre na mesma
+/// thread e, no nativo, copiar os grupos para o isolate custaria mais do que
+/// o trabalho (plano, Desvio 1). Separado da paginação: trocar de página não
+/// reordena.
+final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
+  final groups = ref.watch(coldigomSearchIndexProvider).groups;
+  final sortBy = ref.watch(
+    libraryViewSettingsProvider.select((view) => view.sortBy),
+  );
+  return ref.watch(sortLouvorGroupsProvider)(groups, sortBy: sortBy);
+});
 
-/// Executa o pipeline fora do main thread. Sobrescrever em testes se necessário.
-final libraryGroupPipelineExecutorProvider =
-    Provider<LibraryGroupPipelineExecutor>((ref) {
-      return (input) => compute(runLibraryGroupPipeline, input);
-    });
-
-/// Dispara Browse → Group → Sort fora do main thread.
-final libraryGroupPipelineDriverProvider =
-    NotifierProvider<LibraryGroupPipelineDriver, int>(
-      LibraryGroupPipelineDriver.new,
-    );
-
-/// Pipeline PLPCG: manifest → Browse → Group → Sort → Paginate.
-final libraryPlpcgGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
-  ref.watch(libraryGroupPipelineDriverProvider);
-  final sortedGroups = ref.watch(libraryGroupSortedResultsDataProvider);
-  final viewSettings = ref.watch(libraryViewSettingsProvider);
-  final manifestAsync = ref.watch(louvoresManifestProvider);
-  final paginate = ref.watch(paginateLouvorGroupsProvider);
-
-  if (manifestAsync.hasError) {
-    return PaginatedLouvorGroups.empty;
-  }
-
-  return paginate(
-    sortedGroups,
-    page: viewSettings.page,
-    itemsPerPage: viewSettings.itemsPerPage,
+/// Página corrente da /biblioteca — [libraryFilteredGroupsProvider] paginado.
+final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
+  final groups = ref.watch(libraryFilteredGroupsProvider);
+  final view = ref.watch(libraryViewSettingsProvider);
+  return ref.watch(paginateLouvorGroupsProvider)(
+    groups,
+    page: view.page,
+    itemsPerPage: view.itemsPerPage,
   );
 });
-
-/// Resultados da biblioteca conforme [libraryCatalogModeProvider].
-///
-/// Coldigom: usa o valor do browse remoto e, quando ele não serve, a última
-/// página boa de [libraryLastGoodResultsProvider] — o banner de erro continua
-/// aparecendo, mas o paginador não some junto (erro na página ≥ 2).
-///
-/// **Em erro o valor do browse não serve, mesmo quando existe.** O Riverpod
-/// carrega o valor anterior junto do `AsyncError`, e esse valor pode ser de
-/// outra consulta: trocar de filtro e ver a primeira busca do filtro novo
-/// falhar mostraria os totais do filtro **anterior**. Em erro quem responde é
-/// o `lastGood`, que se zera quando a consulta muda.
-final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
-  final mode = ref.watch(libraryCatalogModeProvider);
-  if (mode == LibraryCatalogMode.coldigom) {
-    final browse = ref.watch(libraryColdigomBrowseProvider);
-    final lastGood = ref.watch(libraryLastGoodResultsProvider);
-    if (browse.hasError) return lastGood;
-    return browse.value ?? lastGood;
-  }
-  return ref.watch(libraryPlpcgGroupResultsProvider);
-});
-
-/// Executa o pipeline da Biblioteca fora do main thread; descarta resultados obsoletos.
-class LibraryGroupPipelineDriver extends Notifier<int> {
-  int _generation = 0;
-
-  @override
-  int build() {
-    ref.listen<CatalogFilterState>(
-      catalogFiltersProvider,
-      (_, _) => _schedulePipeline(),
-    );
-    ref.listen<LibrarySpecialArrangementState>(
-      librarySpecialArrangementProvider,
-      (_, _) => _schedulePipeline(),
-    );
-    ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
-      previous,
-      next,
-    ) {
-      if (previous?.sortBy != next.sortBy) {
-        _schedulePipeline();
-      }
-    });
-    ref.listen<AsyncValue<LouvoresManifest>>(
-      louvoresManifestProvider,
-      (_, _) => _schedulePipeline(),
-      fireImmediately: true,
-    );
-
-    return 0;
-  }
-
-  void _schedulePipeline() {
-    Future.microtask(() => unawaited(_runPipeline()));
-  }
-
-  Future<void> _runPipeline() async {
-    final manifestAsync = ref.read(louvoresManifestProvider);
-
-    if (manifestAsync.hasError) {
-      _generation++;
-      ref.read(libraryGroupSortedResultsDataProvider.notifier).state = const [];
-      return;
-    }
-
-    final catalog = manifestAsync.value?.louvores;
-    if (catalog == null) {
-      return;
-    }
-
-    final filters = ref.read(catalogFiltersProvider);
-    final special = ref.read(librarySpecialArrangementProvider);
-    final sortBy = ref.read(libraryViewSettingsProvider).sortBy;
-    final generation = ++_generation;
-
-    final input = LibraryGroupPipelineInput(
-      catalog: List.of(catalog),
-      selectedMaterials: filters.selectedMaterials,
-      selectedArranjos: filters.selectedArranjos,
-      selectedSpecialArrangements: special.selectedSpecialArrangements,
-      sortBy: sortBy,
-    );
-
-    final execute = ref.read(libraryGroupPipelineExecutorProvider);
-    final groups = await execute(input);
-
-    if (generation != _generation) return;
-
-    ref.read(libraryGroupSortedResultsDataProvider.notifier).state = groups;
-  }
-}

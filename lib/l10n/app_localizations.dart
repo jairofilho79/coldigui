@@ -338,18 +338,6 @@ abstract class AppLocalizations {
   /// **'Página {page}'**
   String pageCurrent(int page);
 
-  /// No description provided for @specialArrangementPadrao.
-  ///
-  /// In pt, this message translates to:
-  /// **'Padrão'**
-  String get specialArrangementPadrao;
-
-  /// No description provided for @filtersSpecialArrangementTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Arranjo especial'**
-  String get filtersSpecialArrangementTitle;
-
   /// No description provided for @catalogStaleBanner.
   ///
   /// In pt, this message translates to:
@@ -398,24 +386,6 @@ abstract class AppLocalizations {
   /// **'Nenhum louvor encontrado com os filtros atuais'**
   String get libraryResultsEmpty;
 
-  /// No description provided for @libraryCatalogModeLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fonte'**
-  String get libraryCatalogModeLabel;
-
-  /// No description provided for @libraryCatalogModePlpcg.
-  ///
-  /// In pt, this message translates to:
-  /// **'PLPCG'**
-  String get libraryCatalogModePlpcg;
-
-  /// No description provided for @libraryCatalogModeColdigom.
-  ///
-  /// In pt, this message translates to:
-  /// **'Coldigom'**
-  String get libraryCatalogModeColdigom;
-
   /// No description provided for @coldigomFilterTonality.
   ///
   /// In pt, this message translates to:
@@ -445,12 +415,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Materiais'**
   String get coldigomFilterMaterials;
-
-  /// No description provided for @coldigomLoadError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível carregar o catálogo Coldigom'**
-  String get coldigomLoadError;
 
   /// No description provided for @offlineTitle.
   ///

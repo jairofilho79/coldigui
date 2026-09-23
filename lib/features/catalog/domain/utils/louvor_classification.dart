@@ -2,9 +2,8 @@ import '../entities/louvor.dart';
 
 /// Utilitários de classificação/arranjo para filtros UC-02 e UC-03.
 ///
-/// Contrato URL: param [UrlSyncParams.arranjo] (CSV de classificações base);
-/// [UrlSyncParams.arranjoEspecial] (CSV de arranjos especiais).
-/// Valor omitido quando nenhum filtro está selecionado.
+/// Rótulos de classificação/arranjo do manifesto nas secções de material e no
+/// chip do carrossel.
 abstract final class LouvorClassification {
   /// Rótulo quando [classificacao] não contém parênteses (UC-03).
   static const String specialArrangementPadrao = 'Padrão';
@@ -77,21 +76,5 @@ abstract final class LouvorClassification {
 
     final special = trimmed.substring(openIndex + 1, closeIndex).trim();
     return special.isEmpty ? specialArrangementPadrao : special;
-  }
-
-  /// Parse CSV da URL `arranjoEspecial=`; vazio → sem filtro (todos).
-  static Set<String> parseSpecialArrangementsFromUrl(String? csv) {
-    if (csv == null || csv.trim().isEmpty) return {};
-    return csv
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-  }
-
-  /// Serializa arranjos especiais selecionados; vazio → omitir param.
-  static String? serializeSpecialArrangementsForUrl(Set<String> selected) {
-    if (selected.isEmpty) return null;
-    return selected.join(',');
   }
 }
