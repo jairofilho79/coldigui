@@ -94,3 +94,30 @@ class MaterialKindPrefsNotifier extends AsyncNotifier<MaterialKindPrefs> {
 final favoriteMaterialKindRankProvider = Provider<Map<String, int>>((ref) {
   return ref.watch(materialKindPrefsProvider).value?.rank ?? const {};
 });
+
+/// Prazo para os favoritos no import de um link por praise (spec
+/// fim-fonte-plpcg §4.3).
+const favoriteRankImportTimeout = Duration(seconds: 5);
+
+/// `kindId → posição` **esperando** os favoritos carregarem — para quem lê
+/// uma vez só, fora de um `build` (o import de um link por praise).
+///
+/// [favoriteMaterialKindRankProvider] é vazio enquanto a sessão restaura; num
+/// deep link de arranque a frio o import leria «sem favoritos» e gravaria o
+/// PDF principal mesmo para quem os tem. Deslogado: [MaterialKindPrefs.empty]
+/// → `{}`. Erro ou prazo esgotado: `{}` — o import segue com o fallback fixo
+/// de `preferredMaterialForGroup`.
+Future<Map<String, int>> awaitFavoriteMaterialKindRank(
+  Ref ref, {
+  Duration timeout = favoriteRankImportTimeout,
+}) async {
+  try {
+    final prefs = await ref
+        .read(materialKindPrefsProvider.future)
+        .timeout(timeout);
+    return prefs.rank;
+  } on Object catch (e) {
+    debugPrint('[material-kind-prefs] favoritos indisponíveis no import: $e');
+    return const {};
+  }
+}

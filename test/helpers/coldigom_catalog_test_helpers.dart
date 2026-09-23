@@ -81,14 +81,20 @@ ColdigomSearchIndex catalogIndexOf(List<LouvorGroup> groups) {
 }
 
 /// Sync do catálogo sem rede nem Isar: estado fixo e `sync()` contado.
+///
+/// [syncResult]: desfecho de `sync()`. `null` (padrão) devolve
+/// [ColdigomCatalogSyncNoop] sem mexer no estado; com valor, `sync()` o
+/// grava em `lastResult` — como o notifier real — e o devolve.
 class FakeColdigomCatalogSyncNotifier extends ColdigomCatalogSyncNotifier {
   FakeColdigomCatalogSyncNotifier([
     this.initial = const ColdigomCatalogSyncState(
       lastResult: ColdigomCatalogSyncNoop(),
     ),
+    this.syncResult,
   ]);
 
   final ColdigomCatalogSyncState initial;
+  final ColdigomCatalogSyncResult? syncResult;
   var syncCalls = 0;
 
   @override
@@ -97,7 +103,10 @@ class FakeColdigomCatalogSyncNotifier extends ColdigomCatalogSyncNotifier {
   @override
   Future<ColdigomCatalogSyncResult> sync() async {
     syncCalls++;
-    return const ColdigomCatalogSyncNoop();
+    final result = syncResult;
+    if (result == null) return const ColdigomCatalogSyncNoop();
+    state = state.copyWith(lastResult: result);
+    return result;
   }
 
   @override
