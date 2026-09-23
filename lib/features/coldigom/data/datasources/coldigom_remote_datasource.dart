@@ -1,5 +1,8 @@
+import 'dart:math' show min;
+
 import 'package:dio/dio.dart';
 
+import '../../../../core/utils/pdf_id_codec.dart';
 import '../constants/coldigom_endpoints.dart';
 import '../models/coldigom_catalog_dto.dart';
 import '../models/praise_dto.dart';
@@ -174,6 +177,55 @@ class ColdigomRemoteDatasource {
       catalog: ColdigomCatalogDto.fromJson(data),
       etag: response.headers.value('etag'),
     );
+  }
+
+  /// Tamanho máximo de um pedido ao crosswalk (o servidor devolve 400 acima).
+  static const int crosswalkBatchSize = 500;
+
+  /// Id coldigom de cada id legado de [legacyPdfIds] (contrato C9).
+  ///
+  /// `POST /api/plpcg/crosswalk` em lotes de [crosswalkBatchSize]. O id
+  /// coldigom sai da `url` real do material ([coldigomPdfIdFromAssetUrl]) —
+  /// é ela que acerta os materiais movidos. Desconhecidos (e URLs fora de
+  /// `assets/praises/`) ficam de fora do mapa.
+  ///
+  /// Um erro HTTP em qualquer lote propaga como [DioException]: quem chama
+  /// trata a rodada inteira como pendente, nunca um resultado parcial. Um
+  /// `200` cujo corpo não traz um `items` mapa válido (ausente, `null` ou de
+  /// outro tipo) também lança — nunca é tratado como "todos desconhecidos":
+  /// quem chama apaga linhas do índice offline e prefs para ids
+  /// desconhecidos, e um corpo malformado não pode disparar isso.
+  Future<Map<String, String>> resolveLegacyPdfIds(
+    Iterable<String> legacyPdfIds,
+  ) async {
+    final ids = legacyPdfIds.toSet().toList(growable: false);
+    final resolved = <String, String>{};
+    for (var start = 0; start < ids.length; start += crosswalkBatchSize) {
+      final batch = ids.sublist(
+        start,
+        min(start + crosswalkBatchSize, ids.length),
+      );
+      final asked = batch.toSet();
+      final response = await _dio.post<Map<String, dynamic>>(
+        ColdigomEndpoints.plpcgCrosswalk,
+        data: {'pdfIds': batch},
+      );
+      final items = response.data?['items'];
+      if (items is! Map) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'Resposta do crosswalk sem `items` mapa válido',
+        );
+      }
+      for (final MapEntry(:key, :value) in items.entries) {
+        if (key is! String || !asked.contains(key) || value is! Map) continue;
+        final url = value['url'];
+        if (url is! String) continue;
+        final coldigomId = coldigomPdfIdFromAssetUrl(url);
+        if (coldigomId != null) resolved[key] = coldigomId;
+      }
+    }
+    return resolved;
   }
 
   /// Busca louvores por texto (`GET /api/praises?q=`).

@@ -14,6 +14,11 @@ abstract final class ColdigomEndpoints {
 
   /// Hex SHA-256 de [plpcgManifest]; `If-None-Match` → 204.
   static const plpcgManifestChecksum = '/api/plpcg/manifest/checksum';
+
+  /// Crosswalk legado → coldigom (spec 2026-09-23 §7.2): `POST` com
+  /// `{"pdfIds": [...]}` (1..500) → `{"items": {pdfId: {praiseId,
+  /// materialId, url}}}`; desconhecidos omitidos.
+  static const plpcgCrosswalk = '/api/plpcg/crosswalk';
   static const materialKinds = '/api/materials/kinds';
   static const tags = '/api/tags';
 
