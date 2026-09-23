@@ -32,8 +32,8 @@ class GeneratePlaylistShareUrl {
   /// do mesmo praise viram o mesmo token duas vezes. Qualquer kind serve
   /// (PDF, áudio, cifra, gesto, letra, YouTube).
   ///
-  /// Entrada com id fora do espaço Coldigom (legado órfão do acervo PLPCG,
-  /// que nenhum catálogo resolve) fica de fora do link em vez de falhar o
+  /// Entrada que o índice não resolve e cujo id está fora do espaço Coldigom
+  /// (legado órfão do acervo PLPCG) fica de fora do link em vez de falhar o
   /// share — desvio deliberado do §4.2.
   ///
   /// Lança [PlaylistNotFoundException], [EmptyPlaylistShareException] (lista
@@ -49,16 +49,17 @@ class GeneratePlaylistShareUrl {
     final missing = <String>[];
     var skipped = 0;
     for (final entry in playlist.entries) {
-      if (!_inColdigomIdSpace(entry)) {
-        skipped++;
-        continue;
-      }
+      // O índice primeiro: um YouTube gravado como `unknown` (listas
+      // legadas, `addToActive` sem kind) não decodifica, mas o catálogo o
+      // conhece. O índice só tem ids Coldigom — legado nunca resolve aqui.
       final shortId = praiseShortIdOf(entry.id)?.trim().toLowerCase();
-      if (shortId == null || !isPraiseShortId(shortId)) {
+      if (shortId != null && isPraiseShortId(shortId)) {
+        shortIds.add(shortId);
+      } else if (!_inColdigomIdSpace(entry)) {
+        skipped++;
+      } else {
         missing.add(entry.id);
-        continue;
       }
-      shortIds.add(shortId);
     }
     if (skipped > 0) {
       _log.info('link da lista sem $skipped entrada(s) fora do Coldigom');

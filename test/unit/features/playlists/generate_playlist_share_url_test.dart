@@ -156,6 +156,21 @@ void main() {
     expect(Uri.parse(url).queryParameters['p'], '1a2-0c3');
   });
 
+  test(
+    'YouTube gravado como unknown (lista legada) usa o token do índice',
+    () async {
+      const youtubeUnknown = PlaylistEntry(
+        id: 'yt-1',
+        kind: MaterialKind.unknown,
+      );
+      final url = await _useCase(
+        [youtubeUnknown, _pdf],
+        {youtubeUnknown.id: '0b2', _pdf.id: '1a2'},
+      )(playlistId: 'p1');
+      expect(Uri.parse(url).queryParameters['p'], '0b2-1a2');
+    },
+  );
+
   test('id que não decodifica (e não é YouTube) também fica de fora', () async {
     final url = await _useCase(
       [
