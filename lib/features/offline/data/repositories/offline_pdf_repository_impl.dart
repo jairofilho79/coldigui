@@ -172,6 +172,11 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
     final toIndex = await _local.findByPdfId(toPdfId);
     if (toIndex != null) {
+      // A linha que fica herda a persistência da que sai: um PDF «baixado»
+      // não pode virar candidato à eviction LRU por causa da troca de id.
+      if (fromIndex.isPersistent && !toIndex.isPersistent) {
+        await _local.markPersistent({toPdfId});
+      }
       await _local.deleteByPdfId(fromPdfId);
       _pendingTouchAt.remove(fromPdfId);
       return;

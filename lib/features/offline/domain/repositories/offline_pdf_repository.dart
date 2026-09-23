@@ -53,7 +53,9 @@ abstract class OfflinePdfRepository {
 
   /// Reindexa [fromPdfId] como [toPdfId] sem mover o arquivo no disco.
   ///
-  /// Idempotente se [fromPdfId] ausente ou [toPdfId] já indexado.
+  /// Idempotente se [fromPdfId] ausente. Se [toPdfId] já está indexado, a
+  /// linha de [fromPdfId] sai e a de [toPdfId] fica — persistente se qualquer
+  /// das duas era.
   Future<void> remapPdfId({required String fromPdfId, required String toPdfId});
 
   /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
