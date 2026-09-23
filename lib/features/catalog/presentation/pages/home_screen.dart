@@ -222,16 +222,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen<int>(searchFocusRequestProvider, (_, _) => _focusSearchField());
 
-    // Reconexão (C.8): volta a rede com o catálogo vazio ou a página remota
-    // em erro → tenta de novo sozinho, sem esperar o usuário tocar em
-    // «Tentar novamente» (spec §2.1). O sync do catálogo só na transição
-    // offline → online, como na /biblioteca: o primeiro `true` do stream
-    // (vindo de loading) ou um `true` repetido não contam — o boot já
-    // sincroniza e o índice pode só não ter hidratado ainda.
+    // Reconexão (C.8): volta a rede com o catálogo em erro ou a página
+    // remota em erro → tenta de novo sozinho, sem esperar o usuário tocar em
+    // «Tentar novamente» (spec §2.1). Qualquer `true` conta — na web o
+    // connectivity_plus não emite valor inicial, e depois de um arranque
+    // offline o primeiro `true` chega direto de loading. O gatilho é o
+    // estado `failed`: no boot ele ainda é `loading`, então o primeiro
+    // `true` nativo não sincroniza em dobro (e `sync()` deduplica).
     ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
       if (next.value != true) return;
-      final wasOffline = previous?.value == false;
-      if (wasOffline && ref.read(coldigomSearchIndexProvider).isEmpty) {
+      if (ref.read(catalogIndexStatusProvider) == CatalogIndexStatus.failed) {
         _retryCatalog();
       }
       if (ref.read(homeSearchStateProvider).remoteFailed) {

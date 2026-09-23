@@ -109,8 +109,12 @@ void main() {
   );
 
   testWidgets(
-    'o primeiro «online» do stream (sem queda antes) não sincroniza',
+    'arranque offline: o primeiro «online» (vindo de loading) com o sync '
+    'falhado sincroniza',
     (tester) async {
+      // Web: o connectivity_plus não emite valor inicial, só os eventos
+      // online/offline do browser — depois de um arranque sem rede o
+      // primeiro `true` chega direto de loading.
       final prefs = await SharedPreferences.getInstance();
       final sync = FakeColdigomCatalogSyncNotifier(_failed);
       final connectivity = StreamController<bool>();
@@ -123,47 +127,72 @@ void main() {
         ]),
       );
       await _settle(tester);
-
-      // loading → online: o boot já pede o sync; não é uma reconexão.
-      connectivity.add(true);
-      await _settle(tester);
       expect(sync.syncCalls, 0);
 
-      // online → online (evento repetido): também não.
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 1);
+    },
+  );
+
+  testWidgets(
+    'o primeiro «online» (vindo de loading) com o índice ainda a carregar '
+    'não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      // Sem resultado de sync ainda: o boot está a sincronizar.
+      final sync = FakeColdigomCatalogSyncNotifier(
+        const ColdigomCatalogSyncState(),
+      );
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+
       connectivity.add(true);
       await _settle(tester);
       expect(sync.syncCalls, 0);
     },
   );
 
-  testWidgets('índice pronto: sem erro, e a volta da rede não sincroniza', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final sync = FakeColdigomCatalogSyncNotifier(_failed);
-    final connectivity = StreamController<bool>();
-    addTearDown(connectivity.close);
+  testWidgets(
+    'índice pronto: sem erro, e a volta da rede (ou «online» repetido) não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
 
-    await tester.pumpWidget(
-      _app(prefs, [
-        ...catalogIndexOverrides(
-          catalogIndexOf([
-            catalogGroup(praiseId: 'p1', number: '001', name: 'Aleluia'),
-          ]),
-          sync: sync,
-        ),
-        connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
-      ]),
-    );
-    await _settle(tester);
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(
+            catalogIndexOf([
+              catalogGroup(praiseId: 'p1', number: '001', name: 'Aleluia'),
+            ]),
+            sync: sync,
+          ),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
 
-    connectivity.add(false);
-    await _settle(tester);
-    connectivity.add(true);
-    await _settle(tester);
+      connectivity.add(false);
+      await _settle(tester);
+      connectivity.add(true);
+      await _settle(tester);
+      // online → online (evento repetido) com o índice pronto: também não.
+      connectivity.add(true);
+      await _settle(tester);
 
-    expect(find.text('Não foi possível carregar o catálogo'), findsNothing);
-    expect(find.text('#001 — Aleluia'), findsOneWidget);
-    expect(sync.syncCalls, 0);
-  });
+      expect(find.text('Não foi possível carregar o catálogo'), findsNothing);
+      expect(find.text('#001 — Aleluia'), findsOneWidget);
+      expect(sync.syncCalls, 0);
+    },
+  );
 }

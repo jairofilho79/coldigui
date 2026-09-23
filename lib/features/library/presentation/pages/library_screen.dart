@@ -207,14 +207,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
-    // Reconexão (C.8): a rede volta (offline → online) com o catálogo vazio
-    // → tenta de novo sozinho (spec §2.1). Só na transição: o primeiro
-    // `true` do stream (vindo de loading) ou um `true` repetido não contam —
-    // o boot já sincroniza e o índice pode só não ter hidratado ainda.
+    // Reconexão (C.8): a rede volta com o catálogo em erro → tenta de novo
+    // sozinho (spec §2.1). Qualquer `true` conta — na web o
+    // connectivity_plus não emite valor inicial, e depois de um arranque
+    // offline o primeiro `true` chega direto de loading. O gatilho é o
+    // estado `failed`: no boot ele ainda é `loading`, então o primeiro
+    // `true` nativo não sincroniza em dobro (e `sync()` deduplica).
     ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
-      final wasOffline = previous?.value == false;
-      if (!wasOffline || next.value != true) return;
-      if (ref.read(coldigomSearchIndexProvider).isEmpty) _retryCatalog();
+      if (next.value != true) return;
+      if (ref.read(catalogIndexStatusProvider) == CatalogIndexStatus.failed) {
+        _retryCatalog();
+      }
     });
 
     final horizontalPadding = MediaQuery.sizeOf(context).width > 600
