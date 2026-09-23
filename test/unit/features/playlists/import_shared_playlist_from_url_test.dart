@@ -10,8 +10,11 @@ import 'package:coldigui/features/playlists/domain/exceptions/invalid_share_play
 import 'package:coldigui/features/playlists/domain/exceptions/legacy_share_link_exception.dart';
 import 'package:coldigui/features/playlists/domain/ports/praise_entry_resolver.dart';
 import 'package:coldigui/features/playlists/domain/usecases/import_shared_playlist_from_url.dart';
+import 'package:coldigui/features/playlists/presentation/utils/preferred_entry_for_praise.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
+
+import '../../../helpers/praise_share_fixtures.dart';
 
 const _pdfA = PlaylistEntry(id: 'pdf-a', kind: MaterialKind.pdf);
 const _audio1 = PlaylistEntry(id: 'aud-1', kind: MaterialKind.audio);
@@ -131,6 +134,45 @@ void main() {
       );
     },
   );
+
+  test('round-trip: buildPraiseShareUrl → parsePlaylistShareParams → import '
+      'sobre um índice real (repetição preservada, na ordem)', () async {
+    final pdfId = praiseMaterialId('p1', 'partitura.pdf');
+    final gestureId = praiseMaterialId('p2', 'gestos.gestures');
+    final index = praiseIndex([
+      praiseGroup(
+        praiseId: 'p1',
+        shortId: '0a1',
+        pdfs: [praisePdf(praiseId: 'p1', pdfId: pdfId)],
+      ),
+      praiseGroup(
+        praiseId: 'p2',
+        shortId: '4d4',
+        gestures: [praiseGesture(praiseId: 'p2', gestureId: gestureId)],
+      ),
+    ]);
+    final realUseCase = ImportSharedPlaylistFromUrl(
+      playlistRepository,
+      loadPraiseEntryResolver: () async =>
+          (shortId) => preferredEntryForPraise(index, shortId),
+    );
+
+    final url = buildPraiseShareUrl(
+      origin: 'https://v2.plpcg.com',
+      praiseShortIds: const ['0a1', '4d4', '0a1'],
+      shareName: 'Quem é Deus?',
+    );
+    final params = parsePlaylistShareParams(Uri.parse(url))!;
+    final result = await realUseCase(params: params);
+
+    final saved = await playlistRepository.getById(result.playlist.playlistId);
+    expect(saved!.nome, 'Quem é Deus?');
+    expect(saved.entries, [
+      PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
+      PlaylistEntry(id: gestureId, kind: MaterialKind.gesture),
+      PlaylistEntry(id: pdfId, kind: MaterialKind.pdf),
+    ]);
+  });
 
   group('dedupe por conteúdo (spec C.2)', () {
     test(
