@@ -401,8 +401,14 @@ final catalogIndexStatusProvider = Provider<CatalogIndexStatus>((ref) {
 
 /// Linha do catálogo do praise [praiseId] — do Isar ou, sem Isar, das linhas
 /// em memória (C6). O leitor `/letra` lê a letra daqui.
-final coldigomCatalogRowProvider =
-    Provider.family<ColdigomPraiseCache?, String>((ref, praiseId) {
+///
+/// `autoDispose`: cada praise aberto não fica em cache a sessão inteira. E
+/// observa o índice porque o Isar muda por baixo (sync que substitui o
+/// catálogo → re-hidratação): sem isso a letra ficaria velha, ou «sem
+/// letra» para um praise que o sync acabou de trazer.
+final coldigomCatalogRowProvider = Provider.autoDispose
+    .family<ColdigomPraiseCache?, String>((ref, praiseId) {
+      ref.watch(coldigomSearchIndexProvider);
       final fromIsar = ref
           .watch(coldigomCatalogLocalDatasourceProvider)
           .findByPraiseIdSync(praiseId);

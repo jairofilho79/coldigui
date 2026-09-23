@@ -258,6 +258,42 @@ void main() {
     expect(c.read(coldigomCatalogSyncProvider).lastSyncedAt, isNotNull);
   });
 
+  test(
+    'coldigomCatalogRowProvider: linha ausente → sync grava → a linha aparece',
+    () async {
+      final remote = _ScriptedRemote(
+        () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"'),
+      );
+      final c = container(remote: remote, online: false);
+      await c.read(coldigomCatalogHydrationProvider.future);
+      final row = c.listen(coldigomCatalogRowProvider('p-001'), (_, _) {});
+      expect(row.read(), isNull);
+
+      await c.read(coldigomCatalogSyncProvider.notifier).sync();
+      await c.read(coldigomCatalogHydrationProvider.future);
+
+      expect(row.read()?.praiseId, 'p-001');
+      expect(row.read()?.lyrics, contains('Ainda há tempo'));
+    },
+  );
+
+  test('coldigomCatalogRowProvider é descartado sem ouvintes', () async {
+    await seed();
+    final remote = _ScriptedRemote(
+      () async => const ColdigomCatalogNotModified(),
+    );
+    final c = container(remote: remote, online: false);
+    await c.read(coldigomCatalogHydrationProvider.future);
+    final provider = coldigomCatalogRowProvider('p-001');
+    final row = c.listen(provider, (_, _) {});
+    expect(row.read()?.praiseId, 'p-001');
+
+    row.close();
+    await c.pump();
+
+    expect(c.exists(provider), isFalse);
+  });
+
   test('requestSyncIfStale respeita os 30 min e a rede', () async {
     final remote = _ScriptedRemote(
       () async => const ColdigomCatalogNotModified(),
