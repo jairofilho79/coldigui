@@ -1,4 +1,4 @@
-import '../utils/coldigom_pdf_id_from_manifest_pdf.dart';
+import '../../../../core/utils/pdf_id_codec.dart';
 import 'louvor.dart';
 
 /// Índices do manifest que ligam o espaço de ids legado ao Coldigom.
@@ -53,7 +53,7 @@ final class ManifestMaterialAliases {
       if (materialId != null) {
         byMaterialId.putIfAbsent(materialId, () => louvor);
       }
-      final coldigomPdfId = coldigomPdfIdFromManifestPdf(louvor.pdf);
+      final coldigomPdfId = coldigomPdfIdFromAssetUrl(louvor.pdf);
       if (coldigomPdfId != null) {
         legacyByColdigom.putIfAbsent(coldigomPdfId, () => louvor.pdfId);
       }

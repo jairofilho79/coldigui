@@ -2,7 +2,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/entities/manifest_material_aliases.dart';
-import 'package:coldigui/features/catalog/domain/utils/coldigom_pdf_id_from_manifest_pdf.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/manifest_material_aliases_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,23 +26,6 @@ Louvor _louvor(
 );
 
 void main() {
-  group('coldigomPdfIdFromManifestPdf', () {
-    test('extrai o r2Key da URL absoluta e codifica como o adapter', () {
-      expect(
-        coldigomPdfIdFromManifestPdf(
-          'https://coldigom.test/assets/praises/outro-praise/m1.pdf',
-        ),
-        encodePdfId('assets/praises/outro-praise/m1.pdf'),
-      );
-    });
-
-    test('null sem /assets/praises/ (nome de ficheiro ou URL estranha)', () {
-      expect(coldigomPdfIdFromManifestPdf('001.pdf'), isNull);
-      expect(coldigomPdfIdFromManifestPdf('https://x/assets/PES/a.pdf'), isNull);
-      expect(coldigomPdfIdFromManifestPdf(''), isNull);
-    });
-  });
-
   group('ManifestMaterialAliases.fromLouvores', () {
     test('indexa praiseIds, materialId e alias coldigom → legado', () {
       final a = _louvor(
@@ -67,13 +49,10 @@ void main() {
       expect(aliases.praiseIds, {'p1', 'p2'});
       expect(aliases.byMaterialId['m1'], same(a));
       expect(aliases.byMaterialId['m2'], same(b));
-      expect(
-        aliases.legacyPdfIdByColdigomPdfId,
-        {
-          encodePdfId('assets/praises/p1/m1.pdf'): 'legado-a',
-          encodePdfId('assets/praises/p9/m2.pdf'): 'legado-b',
-        },
-      );
+      expect(aliases.legacyPdfIdByColdigomPdfId, {
+        encodePdfId('assets/praises/p1/m1.pdf'): 'legado-a',
+        encodePdfId('assets/praises/p9/m2.pdf'): 'legado-b',
+      });
     });
 
     test('materialId repetido fica com a primeira ocorrência (F4)', () {
@@ -94,7 +73,9 @@ void main() {
 
       expect(aliases.byMaterialId['m1'], same(primeiro));
       expect(
-        aliases.legacyPdfIdByColdigomPdfId[encodePdfId('assets/praises/p1/m1.pdf')],
+        aliases.legacyPdfIdByColdigomPdfId[encodePdfId(
+          'assets/praises/p1/m1.pdf',
+        )],
         'legado-1',
       );
     });
@@ -128,7 +109,10 @@ void main() {
 
       final first = container.read(manifestMaterialAliasesProvider);
       expect(first.praiseIds, {'p1'});
-      expect(identical(first, container.read(manifestMaterialAliasesProvider)), isTrue);
+      expect(
+        identical(first, container.read(manifestMaterialAliasesProvider)),
+        isTrue,
+      );
     });
 
     test('empty enquanto o manifest não carregou', () {
