@@ -1,9 +1,7 @@
-import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/usecases/search_louvor_by_number_or_text.dart';
-import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Louvor _louvor({
@@ -21,17 +19,7 @@ Louvor _louvor({
   pdfId: pdfId,
 );
 
-CatalogQuery _query(
-  String text, {
-  Set<String>? materiais,
-  Set<String> arranjos = const {},
-}) => CatalogQuery(
-  text: text,
-  filters: CatalogFilterState(
-    selectedMaterials: materiais ?? CatalogMaterials.defaultSelected,
-    selectedArranjos: arranjos,
-  ),
-);
+CatalogQuery _query(String text) => CatalogQuery(text: text);
 
 void main() {
   group('PlpcgSearchIndex', () {
@@ -93,27 +81,6 @@ void main() {
 
       expect(result, hasLength(1));
       expect(result.first.nome, 'Aleluia');
-    });
-
-    test('aplica o filtro de material da query', () {
-      final catalog = [
-        _louvor(nome: 'Aleluia', numero: '001', pdfId: 'partitura'),
-        _louvor(
-          nome: 'Aleluia',
-          numero: '001',
-          pdfId: 'cifra',
-          categoria: CatalogMaterials.cifraNivelI,
-        ),
-      ];
-      final index = PlpcgSearchIndex.build(catalog);
-
-      final soCifra = runPlpcgSearchPipeline(
-        index,
-        _query('aleluia', materiais: {CatalogMaterials.cifra}),
-      );
-
-      expect(soCifra, hasLength(1));
-      expect(soCifra.first.totalMaterials, 1);
     });
 
     test('query vazia devolve vazio sem varrer o índice', () {

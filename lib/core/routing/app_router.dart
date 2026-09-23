@@ -134,8 +134,11 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
             final params = safeQueryParameters(state.uri);
             return HomeScreen(
               initialSearchQuery: params[UrlSyncParams.pesquisa] ?? '',
-              initialMateriais: params[UrlSyncParams.materiais],
-              initialArranjo: params[UrlSyncParams.arranjo],
+              initialTonality: params[UrlSyncParams.tonality],
+              initialRhythm: params[UrlSyncParams.rhythm],
+              initialCategory: params[UrlSyncParams.category],
+              initialTags: params[UrlSyncParams.tags],
+              initialMaterialKinds: params[UrlSyncParams.materialKinds],
             );
           },
           routes: [

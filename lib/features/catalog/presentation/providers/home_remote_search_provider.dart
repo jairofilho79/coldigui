@@ -18,9 +18,9 @@ const homeRemoteSearchMemoDuration = Duration(minutes: 10);
 
 /// Identidade de uma busca remota: **só** texto e página.
 ///
-/// Os filtros UC-02 ficam de fora de propósito — a API Coldigom não os aceita,
-/// eles são aplicados em memória sobre o resultado local. É por isso que mexer
-/// num chip de material não re-busca nada na rede.
+/// Os filtros do catálogo ficam de fora de propósito — são aplicados em
+/// memória (`matchesCatalogFilters`) sobre a lista local e os «novos» do
+/// remoto. É por isso que mexer num chip de filtro não re-busca nada na rede.
 final class HomeRemoteSearchKey {
   const HomeRemoteSearchKey({required this.query, required this.page});
 

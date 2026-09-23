@@ -5,7 +5,6 @@ import 'package:coldigui/features/catalog/data/providers/catalog_source_provider
 import 'package:coldigui/features/catalog/data/providers/plpcg_catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/data/sources/composite_catalog_source.dart';
 import 'package:coldigui/features/catalog/data/sources/plpcg_catalog_source.dart';
-import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -18,7 +17,6 @@ import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
-import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/manifest_material_aliases_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -209,15 +207,8 @@ ColdigomCatalogSource _coldigomSource({
   searchRepository: searchRepository,
 );
 
-CatalogQuery _query(String text, {Set<String>? materiais, int page = 1}) =>
-    CatalogQuery(
-      text: text,
-      page: page,
-      filters: CatalogFilterState(
-        selectedMaterials: materiais ?? CatalogMaterials.defaultSelected,
-        selectedArranjos: const {},
-      ),
-    );
+CatalogQuery _query(String text, {int page = 1}) =>
+    CatalogQuery(text: text, page: page);
 
 /// Repositório de busca fake — registra a chamada e devolve um resultado fixo.
 class _RecordingSearchRepository implements ColdigomSearchRepository {
@@ -603,19 +594,6 @@ void main() {
 
       expect(groups, hasLength(1));
       expect(groups.first.totalMaterials, 2);
-    });
-
-    test('PlpcgCatalogSource.searchLocal filtra por materiais', () {
-      final groups = _plpcgSource().searchLocal(
-        _query('Grande Deus', materiais: {CatalogMaterials.cifra}),
-      );
-
-      expect(groups, hasLength(1));
-      expect(groups.first.totalMaterials, 1);
-      expect(
-        groups.first.sections.single.materials.single.louvor.pdfId,
-        _plpcgCifraId,
-      );
     });
 
     test('PlpcgCatalogSource.search não toca rede: página vazia', () async {

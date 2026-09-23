@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/routing/route_paths.dart';
+import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
@@ -12,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
@@ -145,4 +148,132 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 600));
   });
+
+  testWidgets('o painel de filtros usa o índice e filtra a lista', (
+    tester,
+  ) async {
+    await pumpLibrary(tester, [
+      catalogGroup(
+        praiseId: 'p1',
+        number: '001',
+        name: 'Louvor 1',
+        tonality: 'Dm',
+      ),
+      catalogGroup(
+        praiseId: 'p2',
+        number: '002',
+        name: 'Louvor 2',
+        tonality: 'G',
+      ),
+    ]);
+
+    await tester.tap(find.text('Filtros'));
+    await tester.pumpAndSettle();
+    final dm = find.widgetWithText(FilterChip, 'Dm');
+    await tester.ensureVisible(dm);
+    await tester.tap(dm);
+    await tester.pumpAndSettle();
+
+    expect(find.text('#001 — Louvor 1'), findsOneWidget);
+    expect(find.text('#002 — Louvor 2'), findsNothing);
+  });
+
+  testWidgets(
+    'sync da URL leva os filtros e tira os params mortos (fonte, materiais, '
+    'arranjo, arranjoEspecial)',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final prefs = await SharedPreferences.getInstance();
+      final router = GoRouter(
+        initialLocation:
+            '${RoutePaths.library}?fonte=coldigom&materiais=Partitura'
+            '&arranjo=ColAdultos&arranjoEspecial=Especial&tags=PES',
+        routes: [
+          GoRoute(
+            path: RoutePaths.library,
+            builder: (context, state) {
+              final params = state.uri.queryParameters;
+              return Scaffold(
+                body: LibraryScreen(
+                  initialTonality: params[UrlSyncParams.tonality],
+                  initialRhythm: params[UrlSyncParams.rhythm],
+                  initialCategory: params[UrlSyncParams.category],
+                  initialTags: params[UrlSyncParams.tags],
+                  initialMaterialKinds: params[UrlSyncParams.materialKinds],
+                  initialOrdenar: params[UrlSyncParams.ordenar],
+                  initialItensPorPagina: params[UrlSyncParams.itensPorPagina],
+                  initialPagina: params[UrlSyncParams.pagina],
+                ),
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            ...catalogIndexOverrides(
+              catalogIndexOf([
+                for (var i = 1; i <= 15; i++)
+                  catalogGroup(
+                    praiseId: 'p$i',
+                    number: '$i'.padLeft(3, '0'),
+                    name: 'Louvor $i',
+                    tonality: 'Dm',
+                    tags: const ['PES'],
+                  ),
+                catalogGroup(
+                  praiseId: 'p99',
+                  number: '099',
+                  name: 'Fora',
+                  tonality: 'G',
+                  tags: const ['CIAs'],
+                ),
+              ]),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Map<String, String> query() =>
+          router.routerDelegate.currentConfiguration.uri.queryParameters;
+
+      // A URL hidratou o filtro de tags: o painel abre e a lista já filtra.
+      expect(find.text('#099 — Fora'), findsNothing);
+
+      final dm = find.widgetWithText(FilterChip, 'Dm');
+      await tester.ensureVisible(dm);
+      await tester.tap(dm);
+      await tester.pumpAndSettle();
+
+      expect(query()[UrlSyncParams.tags], 'PES');
+      expect(query()[UrlSyncParams.tonality], 'Dm');
+      for (final dead in ['fonte', 'materiais', 'arranjo', 'arranjoEspecial']) {
+        expect(query(), isNot(contains(dead)), reason: dead);
+      }
+
+      // Mudar a vista (página) mantém os filtros na URL.
+      final next = find.byIcon(Icons.chevron_right);
+      await tester.ensureVisible(next);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+
+      expect(query()[UrlSyncParams.pagina], '2');
+      expect(query()[UrlSyncParams.tags], 'PES');
+      expect(query()[UrlSyncParams.tonality], 'Dm');
+    },
+  );
 }

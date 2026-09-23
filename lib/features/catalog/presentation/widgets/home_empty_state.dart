@@ -27,8 +27,8 @@ const _recentCardWidth = 220.0;
 ///   lista ativa que a onda 4 pôs aqui saiu na 4.2: a barra do carousel já
 ///   mostra a lista, o louvor em foco e o botão de abrir — product owner);
 /// - consulta sem resultado: "nenhum louvor" + dicas + limpar filtros (se
-///   houver filtro fora do padrão) + aviso Coldigom (se a busca remota falhou
-///   e o dispositivo está offline).
+///   houver algum ativo) + aviso Coldigom (se a busca remota falhou e o
+///   dispositivo está offline).
 class HomeEmptyState extends ConsumerWidget {
   const HomeEmptyState({required this.state, super.key});
 
@@ -201,9 +201,7 @@ class _NoResultsContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final filters = ref.watch(catalogFiltersProvider);
-    final hasActiveFilter =
-        filters.materiaisUrlValue != null || filters.arranjoUrlValue != null;
+    final hasActiveFilter = !ref.watch(catalogFiltersProvider).isEmpty;
     // §5.5: com catálogo Coldigom local a busca já respondeu do índice — o
     // aviso só faz sentido quando não há catálogo nenhum no aparelho.
     // `state.offline` já é o sinal de "o remoto nem foi chamado" (não dá
@@ -244,7 +242,7 @@ class _NoResultsContent extends ConsumerWidget {
                 color: AppColors.textLight.withValues(alpha: 0.7),
               ),
             ),
-            onPressed: () => ref.read(catalogFiltersProvider.notifier).reset(),
+            onPressed: () => ref.read(catalogFiltersProvider.notifier).clear(),
             child: Text(l10n.homeClearFilters),
           ),
         ],

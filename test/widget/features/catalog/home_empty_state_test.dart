@@ -303,9 +303,7 @@ void main() {
       expect(find.text('Limpar filtros'), findsNothing);
     });
 
-    testWidgets('filtro fora do padrão mostra "Limpar filtros" e chama reset', (
-      tester,
-    ) async {
+    testWidgets('filtro ativo mostra "Limpar filtros" e limpa', (tester) async {
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
@@ -314,9 +312,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      container
-          .read(catalogFiltersProvider.notifier)
-          .toggleArranjo('ColAdultos');
+      container.read(catalogFiltersProvider.notifier).toggleTag('PES');
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -337,9 +333,7 @@ void main() {
       await tester.tap(find.text('Limpar filtros'));
       await tester.pumpAndSettle();
 
-      final filters = container.read(catalogFiltersProvider);
-      expect(filters.materiaisUrlValue, isNull);
-      expect(filters.arranjoUrlValue, isNull);
+      expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
     });
 
     testWidgets('remoto falho e offline mostra o aviso Coldigom', (
@@ -496,9 +490,7 @@ void main() {
           ],
         );
         addTearDown(container.dispose);
-        container
-            .read(catalogFiltersProvider.notifier)
-            .toggleArranjo('ColAdultos');
+        container.read(catalogFiltersProvider.notifier).toggleTag('PES');
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
@@ -554,5 +546,5 @@ void main() {
 
 class _DefaultFiltersNotifier extends CatalogFiltersNotifier {
   @override
-  CatalogFilterState build() => CatalogFilterState.defaults();
+  CatalogFilterState build() => CatalogFilterState.empty;
 }

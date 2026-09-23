@@ -47,22 +47,6 @@ abstract final class LouvorClassification {
     return trimmed.substring(0, parenIndex).trim();
   }
 
-  /// Parse CSV da URL `arranjo=`; vazio → sem filtro (todos).
-  static Set<String> parseArranjosFromUrl(String? csv) {
-    if (csv == null || csv.trim().isEmpty) return {};
-    return csv
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-  }
-
-  /// Serializa arranjos selecionados; vazio → omitir param.
-  static String? serializeArranjosForUrl(Set<String> selected) {
-    if (selected.isEmpty) return null;
-    return selected.join(',');
-  }
-
   /// Extrai arranjo especial — texto entre `(` e `)`.
   ///
   /// Ex.: `ColAdultos (Especial)` → `Especial`. Sem parênteses → [specialArrangementPadrao].

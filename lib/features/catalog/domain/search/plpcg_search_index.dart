@@ -1,7 +1,6 @@
 import '../entities/catalog_query.dart';
 import '../entities/louvor.dart';
 import '../entities/louvor_group.dart';
-import '../usecases/filter_by_material_and_arranjo.dart';
 import '../usecases/group_louvores_by_material.dart';
 import '../usecases/search_louvor_by_number_or_text.dart';
 import '../utils/louvor_numero_normalizer.dart';
@@ -41,7 +40,8 @@ final class PlpcgSearchIndex {
   final List<String> numeroNorm;
 }
 
-/// Pipeline local da Home — UC-01 → UC-02 → agrupamento, **síncrono**.
+/// Pipeline de busca do manifesto — UC-01 → agrupamento (sai no plano 3).
+/// **Síncrono**.
 ///
 /// Substitui `runHomeSearchPipeline` sobre `compute` (no-op na web) por uma
 /// varredura direta do índice: sem cópia do catálogo e sem normalizar número
@@ -53,14 +53,8 @@ List<LouvorGroup> runPlpcgSearchPipeline(
   if (query.isEmpty || index.louvores.isEmpty) return const [];
 
   const search = SearchLouvorByNumberOrText();
-  const filter = FilterByMaterialAndArranjo();
   const group = GroupLouvoresByMaterial();
 
   final searched = search.callIndexed(index, query.text);
-  final filtered = filter(
-    searched,
-    selectedMaterials: query.filters.selectedMaterials,
-    selectedArranjos: query.filters.selectedArranjos,
-  );
-  return group(filtered, sortByNumber: false);
+  return group(searched, sortByNumber: false);
 }

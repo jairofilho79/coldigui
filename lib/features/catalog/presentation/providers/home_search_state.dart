@@ -46,7 +46,8 @@ final class HomeSearchState {
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
   final String query;
 
-  /// Resultados locais: PLPCG (com filtros UC-02) e depois Coldigom.
+  /// Resultados locais: PLPCG e depois Coldigom, já com os filtros do
+  /// catálogo (`matchesCatalogFilters`).
   final List<LouvorGroup> localGroups;
 
   /// Página 1 remota (Coldigom): `loading` | `data` | `error`. Ignorada

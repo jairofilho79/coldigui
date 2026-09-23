@@ -9,6 +9,7 @@ import '../../data/providers/plpcg_catalog_source_provider.dart';
 import '../../data/sources/composite_catalog_source.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
+import '../../domain/usecases/matches_catalog_filters.dart';
 import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
@@ -21,7 +22,7 @@ import 'manifest_material_aliases_provider.dart';
 /// ```
 /// homeSearchQueryProvider (texto cru)
 ///   → homeSearchDebouncedQueryProvider (300 ms)
-///       ├→ homeLocalSearchProvider   (PLPCG + filtros, depois Coldigom local fora do manifest)
+///       ├→ homeLocalSearchProvider   (PLPCG, depois Coldigom local fora do manifest; filtros)
 ///       └→ homeRemoteSearchProvider((query, 1))  (Coldigom, valida; só com rede)
 ///             → homeSearchStateProvider → HomeSearchResultsSliver
 /// ```
@@ -43,20 +44,25 @@ final homeSearchDebouncedQueryProvider =
 ///
 /// Observa manifest (via [plpcgCatalogSourceProvider]), o índice Coldigom
 /// hidratado (via [coldigomCatalogSourceProvider]), query e filtros: um
-/// refresh de manifest, um sync do catálogo Coldigom ou um chip de material
-/// re-derivam só esta lista, sem tocar a rede. Os filtros UC-02 valem só
-/// para o PLPCG.
+/// refresh de manifest, um sync do catálogo Coldigom ou um chip de filtro
+/// re-derivam só esta lista, sem tocar a rede. Os filtros do catálogo valem
+/// para toda a lista (`matchesCatalogFilters`).
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
   final plpcg = ref.watch(plpcgCatalogSourceProvider);
   final coldigom = ref.watch(coldigomCatalogSourceProvider);
-  final catalogQuery = CatalogQuery(text: query, filters: filters);
-  return mergeLocalSearchResults(
+  final catalogQuery = CatalogQuery(text: query);
+  final merged = mergeLocalSearchResults(
     plpcg: plpcg.searchLocal(catalogQuery),
     coldigom: coldigom.searchLocal(catalogQuery),
     manifestPraiseIds: ref.watch(manifestMaterialAliasesProvider).praiseIds,
   );
+  if (filters.isEmpty) return merged;
+  return [
+    for (final group in merged)
+      if (matchesCatalogFilters(group, filters)) group,
+  ];
 });
 
 /// Estado único da busca da Home — o que os widgets observam.
@@ -67,6 +73,7 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
+  final filters = ref.watch(catalogFiltersProvider);
   // Observado incondicionalmente (mesmo com query vazia): assim o provider
   // já está de pé — e resolvido — quando a primeira query chega, em vez de
   // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
@@ -101,9 +108,11 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     homeRemoteSearchProvider(HomeRemoteSearchKey(query: query, page: 1)),
   );
   final localIds = {for (final g in localGroups) g.groupId};
+  // Os «novos» passam pelo mesmo predicado da lista local (spec §2.4), no
+  // cliente — os nomes de tag não viram ids do servidor.
   final newGroups = [
     for (final g in remote.value?.groups ?? const <LouvorGroup>[])
-      if (!localIds.contains(g.groupId)) g,
+      if (!localIds.contains(g.groupId) && matchesCatalogFilters(g, filters)) g,
   ];
 
   // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`

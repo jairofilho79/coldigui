@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../coldigom/data/providers/coldigom_dio_provider.dart';
 import '../../domain/repositories/catalog_repository.dart';
-import '../../domain/usecases/filter_by_material_and_arranjo.dart';
 import '../../domain/usecases/group_louvores_by_material.dart';
 import '../../domain/usecases/load_louvores_manifest.dart';
 import '../../domain/usecases/poll_manifest_checksum.dart';
@@ -59,14 +58,7 @@ final pollManifestChecksumProvider = Provider<PollManifestChecksum>((ref) {
   );
 });
 
-/// Use case UC-02 — filtrar por material e arranjo.
-final filterByMaterialAndArranjoProvider = Provider<FilterByMaterialAndArranjo>(
-  (ref) {
-    return const FilterByMaterialAndArranjo();
-  },
-);
-
-/// Agrupa louvores filtrados por `groupId` (LOUVOR_GROUPING.md).
+/// Agrupa louvores por `groupId` (LOUVOR_GROUPING.md).
 final groupLouvoresByMaterialProvider = Provider<GroupLouvoresByMaterial>((
   ref,
 ) {

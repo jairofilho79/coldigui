@@ -20,9 +20,10 @@ import 'package:go_router/go_router.dart';
 
 /// UC-01, UC-02 — Home / Pesquisador.
 ///
-/// Busca com debounce 300ms, filtros material/arranjo em tempo real,
-/// resultados como [LouvorGroupCard] (chips agrupados) e sync URL
-/// (`pesquisa=`, `materiais=`, `arranjo=`).
+/// Busca com debounce 300ms, filtros do catálogo (tom, ritmo, categoria,
+/// tags, tipo de material — os mesmos da /biblioteca), resultados como
+/// [LouvorGroupCard] e sync URL (`pesquisa=` + params de filtro, spec
+/// fim-fonte §2.5).
 ///
 /// **Ciclo de vida Riverpod:** hidratação de URL e `goRouter.go` são adiados com
 /// `addPostFrameCallback` em [didUpdateWidget] e [_syncUrlFromState]
@@ -32,18 +33,30 @@ class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({
     super.key,
     this.initialSearchQuery = '',
-    this.initialMateriais,
-    this.initialArranjo,
+    this.initialTonality,
+    this.initialRhythm,
+    this.initialCategory,
+    this.initialTags,
+    this.initialMaterialKinds,
   });
 
   /// Query inicial vinda de `?pesquisa=` na URL.
   final String initialSearchQuery;
 
-  /// CSV inicial de `?materiais=` (omitido quando todos selecionados).
-  final String? initialMateriais;
+  /// CSVs iniciais dos filtros do catálogo (`?tonality=`, `?rhythm=`,
+  /// `?category=`, `?tags=` por nome, `?materialKinds=` por id de kind).
+  final String? initialTonality;
+  final String? initialRhythm;
+  final String? initialCategory;
+  final String? initialTags;
+  final String? initialMaterialKinds;
 
-  /// CSV inicial de `?arranjo=` (omitido quando vazio = todos).
-  final String? initialArranjo;
+  bool get _hasInitialFilters =>
+      initialTonality != null ||
+      initialRhythm != null ||
+      initialCategory != null ||
+      initialTags != null ||
+      initialMaterialKinds != null;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -86,18 +99,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _searchFocusNode.requestFocus();
   }
 
+  void _hydrateFilters() {
+    ref
+        .read(catalogFiltersProvider.notifier)
+        .hydrateFromUrl(
+          tonality: widget.initialTonality,
+          rhythm: widget.initialRhythm,
+          category: widget.initialCategory,
+          tags: widget.initialTags,
+          materialKinds: widget.initialMaterialKinds,
+        );
+  }
+
   void _hydrateFromUrl() {
     if (_initialized) return;
     _initialized = true;
     ref
         .read(homeSearchDebouncedQueryProvider.notifier)
         .setImmediate(widget.initialSearchQuery);
-    ref
-        .read(catalogFiltersProvider.notifier)
-        .hydrateFromUrl(
-          materiais: widget.initialMateriais,
-          arranjo: widget.initialArranjo,
-        );
+    _hydrateFilters();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _urlSyncEnabled = true;
     });
@@ -109,8 +129,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final searchChanged =
         oldWidget.initialSearchQuery != widget.initialSearchQuery;
     final filtersChanged =
-        oldWidget.initialMateriais != widget.initialMateriais ||
-        oldWidget.initialArranjo != widget.initialArranjo;
+        oldWidget.initialTonality != widget.initialTonality ||
+        oldWidget.initialRhythm != widget.initialRhythm ||
+        oldWidget.initialCategory != widget.initialCategory ||
+        oldWidget.initialTags != widget.initialTags ||
+        oldWidget.initialMaterialKinds != widget.initialMaterialKinds;
     if (!searchChanged && !filtersChanged) return;
 
     // Riverpod proíbe modificar providers durante o ciclo de build/update.
@@ -130,12 +153,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
       }
       if (filtersChanged) {
-        ref
-            .read(catalogFiltersProvider.notifier)
-            .hydrateFromUrl(
-              materiais: widget.initialMateriais,
-              arranjo: widget.initialArranjo,
-            );
+        _hydrateFilters();
       }
     });
   }
@@ -157,8 +175,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final target = buildHomeLocation(
       pesquisa: pesquisa,
-      materiais: filters.materiaisUrlValue,
-      arranjo: filters.arranjoUrlValue,
+      tonality: filters.tonalityUrlValue,
+      rhythm: filters.rhythmUrlValue,
+      category: filters.categoryUrlValue,
+      tags: filters.tagsUrlValue,
+      materialKinds: filters.materialKindsUrlValue,
     );
 
     if (buildHomeLocationFromUri(uri) == target) return;
@@ -217,9 +238,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: FiltersPanel(
-                    initiallyExpanded:
-                        widget.initialMateriais != null ||
-                        widget.initialArranjo != null,
+                    initiallyExpanded: widget._hasInitialFilters,
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),

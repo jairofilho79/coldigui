@@ -205,7 +205,8 @@ class ColdigomCatalogSource implements CatalogSource {
       findGroupForMaterial(materialId);
 
   /// Resultados locais do índice hidratado — vazio antes da hidratação.
-  /// Os filtros UC-02 não se aplicam ao Coldigom (O16).
+  /// Os filtros do catálogo não passam por aqui: quem filtra é
+  /// `matchesCatalogFilters`, sobre o resultado.
   @override
   List<LouvorGroup> searchLocal(CatalogQuery query) => index.search(query.text);
 

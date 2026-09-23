@@ -1,8 +1,6 @@
 /// Query params sincronizados com estado (§2.5 MAPEAMENTO).
 abstract final class UrlSyncParams {
   static const String pesquisa = 'pesquisa';
-  static const String materiais = 'materiais';
-  static const String arranjo = 'arranjo';
   static const String ordenar = 'ordenar';
   static const String itensPorPagina = 'itensPorPagina';
   static const String pagina = 'pagina';

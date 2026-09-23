@@ -1,39 +1,23 @@
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/category_filters.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/classification_filters.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/catalog_filter_sections.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Painel de filtros colapsável com container dourado (§5.2).
 ///
-/// Usado na Home e na Biblioteca. Estado colapsado exibe
-/// [AppLocalizations.filtersTapToExpand]; expandido renderiza
-/// [CategoryFilters] e [ClassificationFilters] (lógica UC-02 inalterada).
-///
-/// Na Biblioteca, passe [SpecialArrangementFilters] em
-/// [additionalExpandedSections] (UC-03).
+/// Usado na página inicial e na /biblioteca, com o mesmo conteúdo
+/// ([CatalogFilterSections]). Colapsado mostra
+/// [AppLocalizations.filtersTapToExpand].
 ///
 /// Cabeçalho compacto: [GoldenTaggedContainer.compactContentPaddingFor] e
 /// altura intrínseca alinham texto e chevron.
 class FiltersPanel extends StatefulWidget {
-  const FiltersPanel({
-    super.key,
-    this.initiallyExpanded = false,
-    this.showPlpcgSections = true,
-    this.additionalExpandedSections = const [],
-  });
+  const FiltersPanel({super.key, this.initiallyExpanded = false});
 
-  /// Expande ao montar quando a URL traz `materiais=` ou `arranjo=`.
+  /// Expande ao montar quando a URL traz algum filtro.
   final bool initiallyExpanded;
-
-  /// Quando `false`, omite [CategoryFilters]/[ClassificationFilters]
-  /// (modo Coldigom usa só [additionalExpandedSections]).
-  final bool showPlpcgSections;
-
-  /// Seções extras após [ClassificationFilters] (ex.: arranjo especial na biblioteca).
-  final List<Widget> additionalExpandedSections;
 
   @override
   State<FiltersPanel> createState() => _FiltersPanelState();
@@ -93,29 +77,10 @@ class _FiltersPanelState extends State<FiltersPanel> {
             ),
             if (_expanded) ...[
               const SizedBox(height: 12),
-              if (widget.showPlpcgSections) ...[
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: CategoryFilters(),
-                ),
-                const SizedBox(height: 8),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: ClassificationFilters(),
-                ),
-              ],
-              for (
-                var i = 0;
-                i < widget.additionalExpandedSections.length;
-                i++
-              ) ...[
-                if (widget.showPlpcgSections || i > 0)
-                  const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: widget.additionalExpandedSections[i],
-                ),
-              ],
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: CatalogFilterSections(),
+              ),
             ],
           ],
         ),

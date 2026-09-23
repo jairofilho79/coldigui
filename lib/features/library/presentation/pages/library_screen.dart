@@ -5,6 +5,8 @@ import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
@@ -16,8 +18,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// UC-03 — /biblioteca: o catálogo local inteiro, ordenado e paginado
-/// (spec fim-fonte §2.3). Um caminho só: sem seletor de fonte, sem browse
+/// UC-03 — /biblioteca: o catálogo local inteiro, filtrado (os mesmos filtros
+/// da página inicial, [catalogFiltersProvider]), ordenado e paginado (spec
+/// fim-fonte §2.3). Um caminho só: sem seletor de fonte, sem browse
 /// remoto. Enquanto o índice está vazio mostra carregamento; índice vazio
 /// com o sync falhado mostra `catalogLoadError` + «Tentar novamente».
 /// Sync URL via [buildLibraryLocation].
@@ -42,6 +45,13 @@ class LibraryScreen extends ConsumerStatefulWidget {
   final String? initialOrdenar;
   final String? initialItensPorPagina;
   final String? initialPagina;
+
+  bool get _hasInitialFilters =>
+      initialTonality != null ||
+      initialRhythm != null ||
+      initialCategory != null ||
+      initialTags != null ||
+      initialMaterialKinds != null;
 
   static const double _maxContentWidth = 896;
 
@@ -74,6 +84,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _hydrateFromUrl() {
     if (_initialized) return;
     _initialized = true;
+    // Filtros antes da vista: os toggles voltam à página 1, a hidratação não;
+    // a vista vem depois e manda na página.
+    _hydrateFilters();
     _hydrateView();
     // C13: default de itens/página pela largura — só quando não há valor
     // gravado nem `itensPorPagina` na URL (no-op nos demais casos).
@@ -83,6 +96,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _urlSyncEnabled = true;
     });
+  }
+
+  void _hydrateFilters() {
+    ref
+        .read(catalogFiltersProvider.notifier)
+        .hydrateFromUrl(
+          tonality: widget.initialTonality,
+          rhythm: widget.initialRhythm,
+          category: widget.initialCategory,
+          tags: widget.initialTags,
+          materialKinds: widget.initialMaterialKinds,
+        );
   }
 
   void _hydrateView() {
@@ -98,14 +123,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void didUpdateWidget(LibraryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final filtersChanged =
+        oldWidget.initialTonality != widget.initialTonality ||
+        oldWidget.initialRhythm != widget.initialRhythm ||
+        oldWidget.initialCategory != widget.initialCategory ||
+        oldWidget.initialTags != widget.initialTags ||
+        oldWidget.initialMaterialKinds != widget.initialMaterialKinds;
     final viewChanged =
         oldWidget.initialOrdenar != widget.initialOrdenar ||
         oldWidget.initialItensPorPagina != widget.initialItensPorPagina ||
         oldWidget.initialPagina != widget.initialPagina;
-    if (!viewChanged) return;
+    if (!filtersChanged && !viewChanged) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _hydrateView();
+      if (!mounted) return;
+      if (filtersChanged) _hydrateFilters();
+      if (viewChanged) _hydrateView();
     });
   }
 
@@ -121,15 +154,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (goRouter == null) return;
 
     final uri = goRouter.routerDelegate.currentConfiguration.uri;
+    final filters = ref.read(catalogFiltersProvider);
     final view = ref.read(libraryViewSettingsProvider);
     final target = buildLibraryLocation(
+      tonality: filters.tonalityUrlValue,
+      rhythm: filters.rhythmUrlValue,
+      category: filters.categoryUrlValue,
+      tags: filters.tagsUrlValue,
+      materialKinds: filters.materialKindsUrlValue,
       ordenar: view.ordenarUrlValue ?? view.sortBy,
       itensPorPagina: view.itensPorPaginaUrlValue ?? '${view.itemsPerPage}',
       pagina: view.paginaUrlValue ?? '${view.page}',
     );
 
     if (buildLibraryLocationFromUri(uri) == target) return;
-    // Ordenação e página espelham estado — replaceState (P4).
+    // Filtros, ordenação e página espelham estado — replaceState (P4).
     goReplacingUrl(context, goRouter, target);
   }
 
@@ -142,6 +181,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final l10n = AppLocalizations.of(context)!;
     final status = ref.watch(catalogIndexStatusProvider);
     final results = ref.watch(libraryGroupResultsProvider);
+
+    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
+      if (!_urlSyncEnabled) return;
+      _syncUrlFromState();
+    });
 
     ref.listen<LibraryViewSettings>(libraryViewSettingsProvider, (
       previous,
@@ -158,10 +202,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       _syncUrlFromState();
     });
 
-    // Reconexão (C.8): volta a rede com o catálogo vazio → tenta de novo
-    // sozinho (spec §2.1).
-    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (_, next) {
-      if (next.value != true) return;
+    // Reconexão (C.8): a rede volta (offline → online) com o catálogo vazio
+    // → tenta de novo sozinho (spec §2.1). Só na transição: o primeiro
+    // `true` do stream (vindo de loading) ou um `true` repetido não contam —
+    // o boot já sincroniza e o índice pode só não ter hidratado ainda.
+    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
+      final wasOffline = previous?.value == false;
+      if (!wasOffline || next.value != true) return;
       if (ref.read(coldigomSearchIndexProvider).isEmpty) _retryCatalog();
     });
 
@@ -187,6 +234,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      FiltersPanel(
+                        initiallyExpanded: widget._hasInitialFilters,
+                      ),
+                      const SizedBox(height: 12),
                       const LibraryViewControls(),
                       if (status == CatalogIndexStatus.failed) ...[
                         const SizedBox(height: 16),

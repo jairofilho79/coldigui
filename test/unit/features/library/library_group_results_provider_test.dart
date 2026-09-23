@@ -1,5 +1,6 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/library/presentation/providers/library_group_results_provider.dart';
 import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
@@ -90,5 +91,49 @@ void main() {
       'biblioteca: 2063 grupos em ${stopwatch.elapsedMilliseconds} ms',
     );
     expect(stopwatch.elapsedMilliseconds, lessThan(250));
+  });
+
+  test('filtros do catálogo: E entre filtros, OU dentro', () {
+    final c = containerWith([
+      catalogGroup(
+        praiseId: 'p1',
+        number: '001',
+        name: 'A',
+        tonality: 'Dm',
+        tags: const ['CIAs'],
+      ),
+      catalogGroup(
+        praiseId: 'p2',
+        number: '002',
+        name: 'B',
+        tonality: 'G',
+        tags: const ['CIAs'],
+      ),
+      catalogGroup(
+        praiseId: 'p3',
+        number: '003',
+        name: 'C',
+        tonality: 'Dm',
+        tags: const ['PES'],
+      ),
+    ]);
+    final filters = c.read(catalogFiltersProvider.notifier)..toggleTag('CIAs');
+    expect(ids(c), ['p1', 'p2']);
+
+    filters.toggleTonality('Dm');
+    expect(ids(c), ['p1']);
+
+    filters.toggleTonality('G');
+    expect(ids(c), ['p1', 'p2']);
+  });
+
+  test('mexer num filtro volta à página 1', () {
+    final c = containerWith(numbered(25));
+    c.read(libraryViewSettingsProvider.notifier).setPage(3);
+
+    c.read(catalogFiltersProvider.notifier).toggleMaterialKind('k-partitura');
+
+    expect(c.read(libraryGroupResultsProvider).page, 1);
+    expect(c.read(libraryGroupResultsProvider).totalItems, 25);
   });
 }

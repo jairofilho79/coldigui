@@ -350,7 +350,7 @@ void main() {
     expect(source.searchCalls, 1);
     expect(container.read(homeSearchStateProvider).localGroups, isNotEmpty);
 
-    container.read(catalogFiltersProvider.notifier).toggleMaterial('Partitura');
+    container.read(catalogFiltersProvider.notifier).toggleTonality('Sem tom');
     await pumpEventQueue();
 
     expect(container.read(homeSearchStateProvider).localGroups, isEmpty);
@@ -548,6 +548,40 @@ void main() {
     expect(source.searchCalls, 0);
   });
 
+  test(
+    'os «novos» do remoto passam pelo mesmo filtro da lista local',
+    () async {
+      final emDm = LouvorGroup(
+        groupId: 'cold-dm',
+        numero: '901',
+        nome: 'Em Dm',
+        sections: const [],
+        coldigomMeta: const ColdigomPraiseMetadata(
+          name: 'Em Dm',
+          tonality: 'Dm',
+        ),
+      );
+      final source = _RecordingCatalogSource(
+        (query) async => CatalogSearchPage(
+          groups: [_coldigomGroup('cold-2'), emDm],
+          page: query.page,
+        ),
+      );
+      final container = createContainer(source);
+      keepStateAlive(container);
+      await pumpEventQueue();
+
+      container.read(catalogFiltersProvider.notifier).toggleTonality('Dm');
+      container
+          .read(homeSearchDebouncedQueryProvider.notifier)
+          .setImmediate('aleluia');
+      await pumpEventQueue();
+
+      final state = container.read(homeSearchStateProvider);
+      expect(state.newGroups.map((g) => g.groupId), ['cold-dm']);
+    },
+  );
+
   test('mudar o filtro não re-busca a remota', () async {
     final source = _RecordingCatalogSource.ok();
     final container = createContainer(source);
@@ -560,7 +594,7 @@ void main() {
     await pumpEventQueue();
     expect(source.searchCalls, 1);
 
-    container.read(catalogFiltersProvider.notifier).toggleMaterial('Partitura');
+    container.read(catalogFiltersProvider.notifier).toggleTonality('Sem tom');
     await pumpEventQueue();
 
     expect(source.searchCalls, 1);

@@ -1,7 +1,9 @@
+import 'dart:convert';
+
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/library/presentation/providers/library_view_settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,10 +11,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   late SharedPreferences prefs;
 
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+  Future<void> setUpPrefs([Map<String, Object> values = const {}]) async {
+    SharedPreferences.setMockInitialValues(values);
     prefs = await SharedPreferences.getInstance();
-  });
+  }
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
@@ -22,107 +24,128 @@ void main() {
     return container;
   }
 
-  test('estado inicial sem prefs é o default (todos materiais)', () {
-    final container = createContainer();
-
+  test('sem pref: nenhum filtro', () async {
+    await setUpPrefs();
     expect(
-      container.read(catalogFiltersProvider).selectedMaterials,
-      CatalogMaterials.defaultSelected.toSet(),
-    );
-    expect(container.read(catalogFiltersProvider).selectedArranjos, isEmpty);
-  });
-
-  test('toggleMaterial grava JSON em StorageKeys.catalogFilters', () {
-    final container = createContainer();
-
-    // O default já seleciona todos os materiais — alternar um remove-o.
-    container
-        .read(catalogFiltersProvider.notifier)
-        .toggleMaterial(CatalogMaterials.partitura);
-
-    final raw = prefs.getString(StorageKeys.catalogFilters);
-    expect(raw, isNotNull);
-    expect(raw, isNot(contains(CatalogMaterials.partitura)));
-    expect(raw, contains(CatalogMaterials.gestosEmGravura));
-    expect(
-      container.read(catalogFiltersProvider).selectedMaterials,
-      isNot(contains(CatalogMaterials.partitura)),
+      createContainer().read(catalogFiltersProvider),
+      CatalogFilterState.empty,
     );
   });
 
-  test('novo container com o mesmo prefs relê o estado persistido', () {
+  test('toggles gravam o formato v2 e um container novo relê', () async {
+    await setUpPrefs();
     final first = createContainer();
-    first
-        .read(catalogFiltersProvider.notifier)
-        .toggleMaterial(CatalogMaterials.partitura);
-    final persisted = first.read(catalogFiltersProvider).selectedMaterials;
+    first.read(catalogFiltersProvider.notifier)
+      ..toggleTonality('Dm')
+      ..toggleRhythm('Fox')
+      ..toggleCategory('Clamor')
+      ..toggleTag('PES')
+      ..toggleMaterialKind('k1');
 
-    final second = createContainer();
-
-    expect(second.read(catalogFiltersProvider).selectedMaterials, persisted);
+    final raw = jsonDecode(
+      prefs.getString(StorageKeys.catalogFilters)!,
+    ) as Map<String, dynamic>;
+    expect(raw['v'], 2);
+    expect(raw['tags'], ['PES']);
+    expect(
+      createContainer().read(catalogFiltersProvider),
+      const CatalogFilterState(
+        tonalities: {'Dm'},
+        rhythms: {'Fox'},
+        categories: {'Clamor'},
+        tags: {'PES'},
+        materialKindIds: {'k1'},
+      ),
+    );
   });
 
-  test('toggleArranjo também persiste', () {
-    final first = createContainer();
-    first.read(catalogFiltersProvider.notifier).toggleArranjo('ColAdultos');
-
-    final second = createContainer();
-
-    expect(second.read(catalogFiltersProvider).selectedArranjos, {
-      'ColAdultos',
-    });
-  });
-
-  test('hydrateFromUrl com filtro vence o gravado', () {
+  test('tocar duas vezes desmarca', () async {
+    await setUpPrefs();
     final container = createContainer();
-    container
-        .read(catalogFiltersProvider.notifier)
-        .toggleMaterial(CatalogMaterials.partitura);
+    container.read(catalogFiltersProvider.notifier)
+      ..toggleTag('PES')
+      ..toggleTag('PES');
 
-    container
-        .read(catalogFiltersProvider.notifier)
-        .hydrateFromUrl(materiais: CatalogMaterials.cifra);
-
-    expect(container.read(catalogFiltersProvider).selectedMaterials, {
-      CatalogMaterials.cifra,
-    });
+    expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
   });
 
-  test('hydrateFromUrl sem parâmetros preserva o estado gravado', () {
-    final first = createContainer();
-    first
-        .read(catalogFiltersProvider.notifier)
-        .toggleMaterial(CatalogMaterials.partitura);
-    final persisted = first.read(catalogFiltersProvider).selectedMaterials;
+  test(
+    'pref no formato antigo {materials, arranjos} é descartada e apagada',
+    () async {
+      await setUpPrefs({
+        StorageKeys.catalogFilters: jsonEncode({
+          'materials': ['Partitura'],
+          'arranjos': ['ColAdultos'],
+        }),
+      });
 
-    final second = createContainer();
-    // Tanto HomeScreen quanto LibraryScreen chamam hydrateFromUrl no
-    // primeiro build, mesmo sem query params (materiais/arranjo nulos) —
-    // isso não pode apagar o que foi lido de SharedPreferences no build().
-    second.read(catalogFiltersProvider.notifier).hydrateFromUrl();
+      final container = createContainer();
 
-    expect(second.read(catalogFiltersProvider).selectedMaterials, persisted);
+      expect(container.read(catalogFiltersProvider), CatalogFilterState.empty);
+      await pumpEventQueue();
+      expect(prefs.getString(StorageKeys.catalogFilters), isNull);
+    },
+  );
+
+  test('pref ilegível também é descartada', () async {
+    await setUpPrefs({StorageKeys.catalogFilters: 'não é json'});
+
+    expect(
+      createContainer().read(catalogFiltersProvider),
+      CatalogFilterState.empty,
+    );
   });
 
-  test('reset() apaga a chave persistida e volta ao default', () {
+  test(
+    'hydrateFromUrl com params substitui os cinco; sem params mantém o gravado',
+    () async {
+      await setUpPrefs();
+      final container = createContainer();
+      final notifier = container.read(catalogFiltersProvider.notifier)
+        ..toggleTonality('Dm');
+
+      notifier.hydrateFromUrl();
+      expect(container.read(catalogFiltersProvider).tonalities, {'Dm'});
+
+      notifier.hydrateFromUrl(tags: 'PES,CIAs', materialKinds: 'k1');
+      expect(
+        container.read(catalogFiltersProvider),
+        const CatalogFilterState(
+          tags: {'PES', 'CIAs'},
+          materialKindIds: {'k1'},
+        ),
+      );
+    },
+  );
+
+  test(
+    'mexer num filtro volta a /biblioteca à página 1; hidratar da URL não',
+    () async {
+      await setUpPrefs();
+      final container = createContainer();
+      container.read(libraryViewSettingsProvider.notifier).setPage(3);
+
+      container
+          .read(catalogFiltersProvider.notifier)
+          .hydrateFromUrl(tags: 'PES');
+      expect(container.read(libraryViewSettingsProvider).page, 3);
+
+      container.read(catalogFiltersProvider.notifier).toggleTag('CIAs');
+      expect(container.read(libraryViewSettingsProvider).page, 1);
+    },
+  );
+
+  test('clear esvazia, apaga a pref e volta à página 1', () async {
+    await setUpPrefs();
     final container = createContainer();
-    container
-        .read(catalogFiltersProvider.notifier)
-        .toggleMaterial(CatalogMaterials.partitura);
-    expect(prefs.getString(StorageKeys.catalogFilters), isNotNull);
+    container.read(catalogFiltersProvider.notifier).toggleTag('PES');
+    container.read(libraryViewSettingsProvider.notifier).setPage(2);
 
-    container.read(catalogFiltersProvider.notifier).reset();
+    container.read(catalogFiltersProvider.notifier).clear();
 
+    expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
+    expect(container.read(libraryViewSettingsProvider).page, 1);
+    await pumpEventQueue();
     expect(prefs.getString(StorageKeys.catalogFilters), isNull);
-    expect(
-      container.read(catalogFiltersProvider).selectedMaterials,
-      CatalogMaterials.defaultSelected.toSet(),
-    );
-
-    final reread = createContainer();
-    expect(
-      reread.read(catalogFiltersProvider).selectedMaterials,
-      CatalogMaterials.defaultSelected.toSet(),
-    );
   });
 }

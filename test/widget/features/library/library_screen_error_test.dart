@@ -74,28 +74,67 @@ void main() {
     },
   );
 
-  testWidgets('a rede volta com o índice vazio: sync() sozinho', (
-    tester,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final sync = FakeColdigomCatalogSyncNotifier(_failed);
-    final connectivity = StreamController<bool>();
-    addTearDown(connectivity.close);
+  testWidgets(
+    'a rede volta (offline → online) com o índice vazio: sync() sozinho',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
 
-    await tester.pumpWidget(
-      _app(prefs, [
-        ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
-        connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
-      ]),
-    );
-    await _settle(tester);
-    expect(sync.syncCalls, 0);
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
 
-    connectivity.add(true);
-    await _settle(tester);
+      connectivity.add(false);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
 
-    expect(sync.syncCalls, 1);
-  });
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 1);
+
+      // Outra queda e volta: outra tentativa.
+      connectivity.add(false);
+      await _settle(tester);
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 2);
+    },
+  );
+
+  testWidgets(
+    'o primeiro «online» do stream (sem queda antes) não sincroniza',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final sync = FakeColdigomCatalogSyncNotifier(_failed);
+      final connectivity = StreamController<bool>();
+      addTearDown(connectivity.close);
+
+      await tester.pumpWidget(
+        _app(prefs, [
+          ...catalogIndexOverrides(ColdigomSearchIndex.empty, sync: sync),
+          connectivityStreamProvider.overrideWith((ref) => connectivity.stream),
+        ]),
+      );
+      await _settle(tester);
+
+      // loading → online: o boot já pede o sync; não é uma reconexão.
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+
+      // online → online (evento repetido): também não.
+      connectivity.add(true);
+      await _settle(tester);
+      expect(sync.syncCalls, 0);
+    },
+  );
 
   testWidgets('índice pronto: sem erro, e a volta da rede não sincroniza', (
     tester,
@@ -118,6 +157,8 @@ void main() {
     );
     await _settle(tester);
 
+    connectivity.add(false);
+    await _settle(tester);
     connectivity.add(true);
     await _settle(tester);
 
