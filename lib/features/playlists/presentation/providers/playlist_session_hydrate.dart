@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../catalog/presentation/providers/legacy_material_ids_normalizer_provider.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../../../coldigom/domain/utils/coldigom_praise_id.dart';
 import '../../data/providers/playlist_providers.dart';
@@ -50,9 +53,13 @@ int restoreQueueStartIndex(List<AudioTrack> tracks, String? focusedAudioId) {
 ///
 /// Com storage, começa pela migração única do carousel Isar (D3): a coleção
 /// antiga vira a lista ativa quando não havia nenhuma, e é esvaziada em seguida.
+/// Depois da migração, pede a normalização dos ids legados (em segundo plano)
+/// — sem Isar também, só para as prefs.
 Future<bool> hydratePlaylistSession(Ref ref) async {
   if (await awaitIsarSettled(ref) != IsarStatus.available) {
     debugPrint('[playlists] hidratação adiada: storage indisponível');
+    // Sem Isar ainda dá para normalizar as prefs (spec fim-fonte-plpcg §6.2).
+    _requestLegacyIdNormalization(ref);
     return false;
   }
 
@@ -64,6 +71,8 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
     ref.read(activePlaylistIdProvider.notifier).set(createdByMigration);
     await ref.read(playlistsProvider.notifier).reload();
   }
+  // A migração do carousel já correu: os ids dela já estão na lista.
+  _requestLegacyIdNormalization(ref);
 
   final activeId = ref.read(activePlaylistIdProvider);
   var pdfIds = const <String>[];
@@ -99,4 +108,10 @@ Future<bool> hydratePlaylistSession(Ref ref) async {
         startIndex: restoreQueueStartIndex(tracks, focusedAudioId),
       );
   return true;
+}
+
+/// Normalização dos ids legados (spec 2026-09-23 §6.2) em segundo plano —
+/// nunca atrasa a restauração da sessão; `run()` nunca lança.
+void _requestLegacyIdNormalization(Ref ref) {
+  unawaited(ref.read(legacyMaterialIdsNormalizerProvider.notifier).run());
 }

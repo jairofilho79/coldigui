@@ -24,6 +24,7 @@ import 'package:go_router/go_router.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
@@ -99,6 +100,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          noOpLegacyMaterialIdsNormalizerOverride(),
           isarStatusProvider.overrideWithValue(IsarStatus.available),
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistRepositoryProvider.overrideWithValue(repository),

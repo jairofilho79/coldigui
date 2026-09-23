@@ -20,6 +20,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
+
 class _FakePlaylistRepo extends Fake implements PlaylistRepository {
   _FakePlaylistRepo(this.playlist);
 
@@ -105,6 +107,7 @@ void main() {
         carouselLocalDatasourceProvider.overrideWithValue(
           const CarouselLocalDatasource.unavailable(),
         ),
+        noOpLegacyMaterialIdsNormalizerOverride(),
       ],
     );
     addTearDown(container.dispose);
@@ -120,6 +123,36 @@ void main() {
     expect(session.queue.map((t) => t.audioId), [_audioIdA, _audioIdB]);
     expect(session.currentIndex, 1);
     expect(session.playing, isFalse);
+  });
+
+  group('pede a normalização dos ids legados (spec fim-fonte-plpcg §6.2)', () {
+    Future<int> runsAfterHydrate(IsarStatus status) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final normalizer = CountingLegacyMaterialIdsNormalizer();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          isarStatusProvider.overrideWithValue(status),
+          playlistRepositoryProvider.overrideWithValue(_FakePlaylistRepo(null)),
+          carouselLocalDatasourceProvider.overrideWithValue(
+            const CarouselLocalDatasource.unavailable(),
+          ),
+          noOpLegacyMaterialIdsNormalizerOverride(normalizer),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(_hydrateRunnerProvider.notifier).run();
+      return normalizer.runs;
+    }
+
+    test('com Isar, depois da migração do carousel', () async {
+      expect(await runsAfterHydrate(IsarStatus.available), 1);
+    });
+
+    test('sem Isar também (só as prefs)', () async {
+      expect(await runsAfterHydrate(IsarStatus.unavailable), 1);
+    });
   });
 
   group('sem storage a hidratação não apaga estado persistido', () {
@@ -145,6 +178,7 @@ void main() {
           carouselLocalDatasourceProvider.overrideWithValue(
             CarouselLocalDatasource.unavailable(),
           ),
+          noOpLegacyMaterialIdsNormalizerOverride(),
         ],
       );
       addTearDown(container.dispose);

@@ -15,6 +15,8 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/legacy_ids_normalizer_test_helpers.dart';
+
 /// Abridor de Isar que nunca abre de verdade: falha na hora em vez de
 /// esperar o timeout real de 15 s ([isarOpenTimeout]) — para quando algum
 /// provider lê `isarInitializerProvider`/`isarOpenerProvider` direto, sem
@@ -23,7 +25,8 @@ Future<Isar> _unavailableIsarOpener() => Future<Isar>.error(
   StateError('Isar indisponível em teste (standardTestOverrides)'),
 );
 
-/// Overrides padrão para testes que não precisam de Isar/prefs reais.
+/// Overrides padrão para testes que não precisam de Isar/prefs reais (nem da
+/// normalização dos ids legados — ver [noOpLegacyMaterialIdsNormalizerOverride]).
 ///
 /// [prefs] deve vir de `SharedPreferences.setMockInitialValues({})` seguido
 /// de `await SharedPreferences.getInstance()` — quando omitido, o override
@@ -41,5 +44,8 @@ List<Override> standardTestOverrides({
       const CarouselLocalDatasource.unavailable(),
     ),
     platformCapabilitiesProvider.overrideWithValue(capabilities),
+    // Hidratar a sessão de playlists pede a normalização dos ids legados:
+    // aqui ela não monta stores nem pergunta ao crosswalk.
+    noOpLegacyMaterialIdsNormalizerOverride(),
   ];
 }

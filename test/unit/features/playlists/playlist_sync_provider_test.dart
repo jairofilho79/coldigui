@@ -20,6 +20,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
+import '../../../support/fakes/fake_playlists_notifier.dart';
+
 const _subKey = 'playlist_sync.last_synced_sub';
 
 class _LoggedInAuth extends AuthNotifier {
@@ -215,6 +218,7 @@ void main() {
     Stream<bool>? connectivity,
     Future<Isar>? isarReady,
     PlaylistsNotifier Function()? playlists,
+    CountingLegacyMaterialIdsNormalizer? normalizer,
   }) {
     return ProviderContainer(
       overrides: [
@@ -233,6 +237,9 @@ void main() {
         if (connectivity != null)
           connectivityStreamProvider.overrideWith((ref) => connectivity),
         if (playlists != null) playlistsProvider.overrideWith(playlists),
+        // Um pull com linhas pede a normalização dos ids legados: aqui ela só
+        // conta (nada de stores de verdade nem crosswalk).
+        noOpLegacyMaterialIdsNormalizerOverride(normalizer),
       ],
     );
   }
@@ -751,5 +758,33 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 40));
 
     expect(sync.calls, before + 1);
+  });
+
+  group('normalização depois do pull (spec fim-fonte-plpcg §6.2)', () {
+    /// Boot com o `sub` já persistido: o listener de auth faz **uma** `sync()`
+    /// (sem adoção) — é essa rodada que se observa.
+    Future<int> runsAfterSync(PlaylistSyncResult result) async {
+      await prefs.setString(_subKey, 'sub-1');
+      final normalizer = CountingLegacyMaterialIdsNormalizer();
+      final container = buildContainer(
+        repository: _CountingRepository(),
+        sync: _ScriptedSync(result: result),
+        playlists: FakePlaylistsNotifier.new,
+        normalizer: normalizer,
+      );
+      addTearDown(container.dispose);
+      container.read(playlistSyncProvider);
+      await container.read(authStateProvider.future);
+      await settle();
+      return normalizer.runs;
+    }
+
+    test('pull com linhas novas pede a normalização', () async {
+      expect(await runsAfterSync(const PlaylistSyncResult(pulled: 2)), 1);
+    });
+
+    test('sem pull não pede', () async {
+      expect(await runsAfterSync(const PlaylistSyncResult(pushed: 1)), 0);
+    });
   });
 }

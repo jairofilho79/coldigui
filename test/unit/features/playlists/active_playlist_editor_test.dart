@@ -1,3 +1,4 @@
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_isar.dart';
 
@@ -122,6 +123,7 @@ void main() {
     sync = _RecordingSyncNotifier();
     final container = ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarStatusProvider.overrideWithValue(IsarStatus.available),
         playlistRepositoryProvider.overrideWithValue(repository),
@@ -460,6 +462,7 @@ void main() {
     prefs = await SharedPreferences.getInstance();
     final c = ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
         playlistRepositoryProvider.overrideWithValue(
@@ -914,6 +917,7 @@ void main() {
     final opening = Completer<Isar>();
     final c = ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarOpenerProvider.overrideWithValue(() => opening.future),
         carouselLocalDatasourceProvider.overrideWithValue(

@@ -4,6 +4,7 @@
 // sessão não pode rodar contra o datasource degradado — ele responde `[]`/`null`
 // sem distinguir "não existe" de "o banco ainda não abriu", e `hydratePlaylistSession`
 // grava essa conclusão nas SharedPreferences (apagando o id da playlist ativa).
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_isar.dart';
 import 'dart:async';
@@ -74,6 +75,7 @@ void main() {
 
     container = ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarOpenerProvider.overrideWithValue(() => opening.future),
         playlistRepositoryProvider.overrideWithValue(repository),
@@ -126,6 +128,7 @@ void main() {
 
     container = ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarOpenerProvider.overrideWithValue(
           () async => throw StateError('sem OPFS'),

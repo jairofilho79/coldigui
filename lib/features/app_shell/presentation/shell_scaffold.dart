@@ -15,6 +15,7 @@ import '../../audio_player/presentation/providers/audio_player_session_provider.
 import '../../audio_player/presentation/widgets/mini_player_bar.dart';
 import '../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../auth/presentation/providers/auth_state_provider.dart';
+import '../../catalog/presentation/providers/legacy_material_ids_normalizer_provider.dart';
 import '../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../live/presentation/widgets/live_lifecycle_listener.dart';
 import '../../live/presentation/widgets/live_session_banner.dart';
@@ -160,6 +161,9 @@ class ShellScaffold extends ConsumerWidget {
     // própria via `coldigomSearchIndexProvider`/`coldigomCatalogSyncProvider`).
     ref.listen(coldigomCatalogHydrationProvider, (_, _) {});
     ref.listen(coldigomCatalogSyncProvider, (_, _) {});
+    // Vivo para escutar a volta da rede (offline → online) e normalizar os
+    // ids legados que ficaram pendentes (spec fim-fonte-plpcg §6.2).
+    ref.listen(legacyMaterialIdsNormalizerProvider, (_, _) {});
     final path = GoRouterState.of(context).uri.path;
     final isImmersive = _isImmersiveMediaRoute(path);
     final isFullscreen = ref.watch(readerFullscreenProvider);

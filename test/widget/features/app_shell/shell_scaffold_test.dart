@@ -1,3 +1,4 @@
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../support/fakes/fake_active_editor.dart';
 import 'dart:io';
 import 'package:coldigui/core/database/collections/playlist.dart';
@@ -144,6 +145,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          noOpLegacyMaterialIdsNormalizerOverride(),
           sharedPreferencesProvider.overrideWithValue(
             await SharedPreferences.getInstance(),
           ),

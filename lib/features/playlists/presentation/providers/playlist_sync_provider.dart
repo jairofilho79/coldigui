@@ -9,6 +9,7 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../../catalog/presentation/providers/legacy_material_ids_normalizer_provider.dart';
 import '../../data/datasources/playlist_remote_datasource.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/usecases/sync_playlists.dart';
@@ -251,6 +252,11 @@ class PlaylistSyncNotifier extends Notifier<PlaylistSyncState> {
       // editor, que lê essa view, gravaria por cima a lista velha.
       if (result.movedRows && ref.mounted) {
         await ref.read(playlistsProvider.notifier).reload();
+      }
+      // Um pull pode trazer ids legados que um cliente antigo empurrou depois
+      // da migração do D1: normaliza de novo (spec fim-fonte-plpcg §6.2).
+      if (result.pulled > 0 && ref.mounted) {
+        unawaited(ref.read(legacyMaterialIdsNormalizerProvider.notifier).run());
       }
       // Uma lista apagada em outro aparelho pode ser justamente a ativa: o
       // carousel ficaria espelhando um id que não existe mais (spec A.2).

@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Future<void> _flushAsync() async {
@@ -45,6 +46,7 @@ void main() {
   ProviderContainer container() {
     return ProviderContainer(
       overrides: [
+        noOpLegacyMaterialIdsNormalizerOverride(),
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
         playlistRepositoryProvider.overrideWithValue(repository),
