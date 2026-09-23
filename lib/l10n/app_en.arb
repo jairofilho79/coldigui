@@ -596,6 +596,13 @@
     "description": "Snackbar when opening or pasting an old list link (?s=, sharepdfs, shareitems…)"
   },
   "playlistShareError": "Could not share the playlist.",
+  "playlistShareSkippedEntries": "{count, plural, one{1 list item was left out of the link} other{{count} list items were left out of the link}}",
+  "@playlistShareSkippedEntries": {
+    "description": "Snackbar after sharing the link when legacy entries (outside the Coldigom catalogue) were left out of it",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistShareSheetTitle": "Share",
   "playlistShareOptionLink": "Link only",
   "playlistShareOptionLinkSubtitle": "Recipients can import the playlist in PLPCG",

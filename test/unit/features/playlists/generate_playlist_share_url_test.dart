@@ -156,6 +156,22 @@ void main() {
     expect(Uri.parse(url).queryParameters['p'], '1a2-0c3');
   });
 
+  test('generate conta os legados que ficaram de fora do link', () async {
+    final link = await _useCase(
+      [_pdf, _legacy, _audio, _legacy],
+      {_pdf.id: '1a2', _audio.id: '0c3'},
+    ).generate(playlistId: 'p1');
+    expect(Uri.parse(link.url).queryParameters['p'], '1a2-0c3');
+    expect(link.skippedCount, 2);
+  });
+
+  test('generate sem legados: skippedCount 0 e a mesma URL do call', () async {
+    final useCase = _useCase([_pdf], {_pdf.id: '1a2'});
+    final link = await useCase.generate(playlistId: 'p1');
+    expect(link.skippedCount, 0);
+    expect(link.url, await useCase(playlistId: 'p1'));
+  });
+
   test(
     'YouTube gravado como unknown (lista legada) usa o token do índice',
     () async {

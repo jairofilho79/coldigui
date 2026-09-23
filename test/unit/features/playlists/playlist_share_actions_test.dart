@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/leaflet/domain/entities/leaflet_document.dart';
 import 'package:coldigui/features/leaflet/presentation/widgets/leaflet_content.dart';
@@ -40,6 +41,11 @@ final _audio = PlaylistEntry(
 final _chord = PlaylistEntry(
   id: praiseMaterialId('p-c', 'cifra.chord'),
   kind: MaterialKind.chord,
+);
+// Id legado do acervo PLPCG: fica de fora do link sem falhar o share.
+final _legacy = PlaylistEntry(
+  id: encodePdfId('Coro/001 - Louvor antigo.pdf'),
+  kind: MaterialKind.pdf,
 );
 final _shortIds = {_pdf.id: '1a2', _audio.id: '0c3', _chord.id: 'fff'};
 const _url = 'https://v2.plpcg.com/?p=1a2-0c3-fff&n=Ensaio';
@@ -127,6 +133,55 @@ void main() {
     expect(ok, isTrue);
     expect(sharedText, _url);
     expect(sync.syncCalls, 0);
+    await tester.pump();
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('Só o link com legados partilha e avisa quantos ficaram fora', (
+    tester,
+  ) async {
+    final entries = [_legacy, _pdf, _legacy];
+    final (context, _) = await _pump(tester, playlist: _ensaio(entries));
+    final notifier = ProviderScope.containerOf(context)
+        .read(playlistShareActionsProvider.notifier);
+    String? sharedText;
+
+    final ok = await notifier.share(
+      context,
+      _shareContext(entries),
+      PlaylistShareOption.link,
+      sharePositionOrigin: null,
+      share: (text, {subject, sharePositionOrigin}) async {
+        sharedText = text;
+      },
+    );
+    await tester.pump();
+
+    expect(ok, isTrue);
+    expect(sharedText, 'https://v2.plpcg.com/?p=1a2&n=Ensaio');
+    expect(find.text('2 itens da lista ficaram fora do link'), findsOneWidget);
+  });
+
+  testWidgets('Folheto + link com um legado avisa no singular', (tester) async {
+    final entries = [_pdf, _legacy];
+    final (context, _) = await _pump(tester, playlist: _ensaio(entries));
+    final notifier = ProviderScope.containerOf(context)
+        .read(playlistShareActionsProvider.notifier);
+    LeafletDocument? doc;
+
+    final ok = await notifier.share(
+      context,
+      _shareContext(entries),
+      PlaylistShareOption.linkWithLeaflet,
+      sharePositionOrigin: null,
+      shareXFiles: (files, {subject, text, sharePositionOrigin}) async {},
+      capture: _captureInto(tester, (d) => doc = d),
+    );
+    await tester.pump();
+
+    expect(ok, isTrue);
+    expect(doc?.shareUrl, 'https://v2.plpcg.com/?p=1a2&n=Ensaio');
+    expect(find.text('1 item da lista ficou fora do link'), findsOneWidget);
   });
 
   testWidgets('Folheto de lista com áudio e cifra leva link e QR', (

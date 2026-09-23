@@ -1060,6 +1060,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get playlistShareError => 'Não foi possível compartilhar a lista.';
 
   @override
+  String playlistShareSkippedEntries(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count itens da lista ficaram fora do link',
+      one: '1 item da lista ficou fora do link',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get playlistShareSheetTitle => 'Compartilhar';
 
   @override

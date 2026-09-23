@@ -611,6 +611,13 @@
     "description": "Snackbar ao abrir ou colar um link de lista antigo (?s=, sharepdfs, shareitems…) — spec fim-fonte-plpcg §4.4"
   },
   "playlistShareError": "Não foi possível compartilhar a lista.",
+  "playlistShareSkippedEntries": "{count, plural, one{1 item da lista ficou fora do link} other{{count} itens da lista ficaram fora do link}}",
+  "@playlistShareSkippedEntries": {
+    "description": "Snackbar depois de partilhar o link quando entradas legadas (fora do acervo Coldigom) ficaram fora dele",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "playlistShareSheetTitle": "Compartilhar",
   "playlistShareOptionLink": "Só o link",
   "playlistShareOptionLinkSubtitle": "Quem receber importa a lista no PLPCG",

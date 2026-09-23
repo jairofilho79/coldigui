@@ -1817,6 +1817,12 @@ abstract class AppLocalizations {
   /// **'Não foi possível compartilhar a lista.'**
   String get playlistShareError;
 
+  /// Snackbar depois de partilhar o link quando entradas legadas (fora do acervo Coldigom) ficaram fora dele
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, one{1 item da lista ficou fora do link} other{{count} itens da lista ficaram fora do link}}'**
+  String playlistShareSkippedEntries(int count);
+
   /// No description provided for @playlistShareSheetTitle.
   ///
   /// In pt, this message translates to:

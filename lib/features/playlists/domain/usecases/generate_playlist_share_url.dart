@@ -16,7 +16,22 @@ final _log = AppLogger.of('playlists');
 /// `null` = material fora do índice ou praise sem `shortId`.
 typedef PraiseShortIdLookup = String? Function(String entryId);
 
+/// Link por praise gerado por [GeneratePlaylistShareUrl.generate].
+class PlaylistShareLink {
+  const PlaylistShareLink({required this.url, required this.skippedCount});
+
+  /// URL absoluta `…/?p=…&n=…`.
+  final String url;
+
+  /// Entradas legadas órfãs (fora do espaço Coldigom) que ficaram fora do
+  /// link — o share segue e a UI avisa quantas.
+  final int skippedCount;
+}
+
 /// UC-07 — gerar o link de compartilhamento por praise (`?p=…&n=…`).
+///
+/// [call] devolve só a URL; [generate] devolve também quantas entradas
+/// ficaram de fora ([PlaylistShareLink]) para quem avisa o usuário.
 class GeneratePlaylistShareUrl {
   const GeneratePlaylistShareUrl(
     this._repository, {
@@ -40,7 +55,12 @@ class GeneratePlaylistShareUrl {
   /// vazia ou só com legados) ou [PraiseShortIdUnavailableException] (com os
   /// ids Coldigom sem token) — o link nunca sai com louvores do catálogo a
   /// menos.
-  Future<String> call({required String playlistId}) async {
+  Future<String> call({required String playlistId}) async =>
+      (await generate(playlistId: playlistId)).url;
+
+  /// Como [call], mas devolve também o número de entradas legadas que
+  /// ficaram de fora do link ([PlaylistShareLink.skippedCount]).
+  Future<PlaylistShareLink> generate({required String playlistId}) async {
     final playlist = await _repository.getById(playlistId);
     if (playlist == null) throw const PlaylistNotFoundException();
     if (playlist.entries.isEmpty) throw const EmptyPlaylistShareException();
@@ -67,10 +87,13 @@ class GeneratePlaylistShareUrl {
     if (missing.isNotEmpty) throw PraiseShortIdUnavailableException(missing);
     if (shortIds.isEmpty) throw const EmptyPlaylistShareException();
 
-    return buildPraiseShareUrl(
-      origin: shareOrigin,
-      praiseShortIds: shortIds,
-      shareName: playlist.nome,
+    return PlaylistShareLink(
+      url: buildPraiseShareUrl(
+        origin: shareOrigin,
+        praiseShortIds: shortIds,
+        shareName: playlist.nome,
+      ),
+      skippedCount: skipped,
     );
   }
 

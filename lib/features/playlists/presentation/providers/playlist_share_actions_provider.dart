@@ -48,7 +48,8 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
   /// Retorna `false` em falha — o próprio provider mostra o snackbar
   /// (mensagem específica para [EmptyLeafletException], genérica para as
   /// demais exceções) antes de retornar; quem chama **não deve** mostrar
-  /// outro snackbar em cima do retorno `false`.
+  /// outro snackbar em cima do retorno `false`. Em sucesso com entradas
+  /// legadas fora do link, mostra `playlistShareSkippedEntries`.
   Future<bool> share(
     BuildContext context,
     PlaylistShareContext shareContext,
@@ -63,33 +64,54 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     final shareTextFn = share ?? _defaultShare;
     final shareFilesFn = shareXFiles ?? _defaultShareXFiles;
 
+    // Entradas legadas que o link gerado deixou de fora — o share segue e,
+    // no fim, um snackbar avisa quantas.
+    var skipped = 0;
+    Future<String> generateUrl() async {
+      final link = await ref
+          .read(generatePlaylistShareUrlProvider)
+          .generate(playlistId: shareContext.playlistId);
+      skipped = link.skippedCount;
+      return link.url;
+    }
+
     try {
+      final bool shared;
       switch (option) {
         case PlaylistShareOption.link:
-          return await _shareLinkOnly(
+          shared = await _shareLinkOnly(
             shareContext,
             shareTextFn,
             sharePositionOrigin,
+            generateUrl,
           );
         case PlaylistShareOption.leaflet:
-          return await _shareLeafletOnly(
+          shared = await _shareLeafletOnly(
             context,
             shareContext,
             l10n,
             shareFilesFn,
             sharePositionOrigin,
+            generateUrl,
             capture: capture,
           );
         case PlaylistShareOption.linkWithLeaflet:
-          return await _shareLinkWithLeaflet(
+          shared = await _shareLinkWithLeaflet(
             context,
             shareContext,
             l10n,
             shareFilesFn,
             sharePositionOrigin,
+            generateUrl,
             capture: capture,
           );
       }
+      if (shared && skipped > 0 && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.playlistShareSkippedEntries(skipped))),
+        );
+      }
+      return shared;
     } on EmptyLeafletException catch (error, stackTrace) {
       playlistShareDebugLogError('seleção vazia', error, stackTrace);
       if (context.mounted) {
@@ -129,8 +151,9 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     ShareFn shareTextFn,
     Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl,
   ) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final url = await generateUrl();
     await shareTextFn(
       url,
       subject: shareContext.nome,
@@ -144,7 +167,8 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n,
     ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin, {
+    Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl, {
     CaptureWidgetToPngFn? capture,
   }) async {
     // O folheto sai com o QR do link (§4.5). Só fica sem QR quando não pode
@@ -153,7 +177,7 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     // não cai aqui — falha o share (§4.2).
     String? qrUrl;
     try {
-      qrUrl = await _generateUrl(shareContext.playlistId);
+      qrUrl = await generateUrl();
     } on PlaylistNotFoundException catch (error, stackTrace) {
       playlistShareDebugLogError('link para QR', error, stackTrace);
     } on EmptyPlaylistShareException catch (error, stackTrace) {
@@ -183,10 +207,11 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     PlaylistShareContext shareContext,
     AppLocalizations l10n,
     ShareXFilesFn shareFilesFn,
-    Rect? sharePositionOrigin, {
+    Rect? sharePositionOrigin,
+    Future<String> Function() generateUrl, {
     CaptureWidgetToPngFn? capture,
   }) async {
-    final url = await _generateUrl(shareContext.playlistId);
+    final url = await generateUrl();
     if (!context.mounted) return false;
     final overlay = Overlay.of(context);
 
@@ -211,9 +236,6 @@ class PlaylistShareActionsNotifier extends Notifier<void> {
     );
     return true;
   }
-
-  Future<String> _generateUrl(String playlistId) =>
-      ref.read(generatePlaylistShareUrlProvider)(playlistId: playlistId);
 
   /// Pedido quando um praise da lista não tem `shortId` no catálogo local
   /// (§4.2). Não bloqueia o snackbar; falha vira log.
