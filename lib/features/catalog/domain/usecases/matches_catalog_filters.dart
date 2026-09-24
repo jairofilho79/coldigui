@@ -17,10 +17,16 @@ import '../utils/material_kind_selection.dart';
 ///   ([effectiveMaterialKindIds]).
 /// - Entre filtros, E; filtro vazio não restringe. Um grupo sem
 ///   `coldigomMeta` só passa sem filtros de tom/ritmo/categoria/tags.
+///
+/// [effectiveKindIds] é o [effectiveMaterialKindIds] já resolvido — quem
+/// varre muitos grupos na mesma passada (providers) computa uma vez e passa
+/// aqui, em vez de refazer a conta a cada grupo. Sem ele, calcula na hora
+/// (chamadas avulsas, como os testes).
 bool matchesCatalogFilters(
   LouvorGroup group,
   CatalogFilterState filters, {
   MaterialKindTaxonomy? kindTaxonomy,
+  Set<String>? effectiveKindIds,
 }) {
   if (filters.isEmpty) return true;
   final meta = group.coldigomMeta;
@@ -44,10 +50,11 @@ bool matchesCatalogFilters(
   if (filters.materialKindIds.isNotEmpty &&
       !_hasSelectedKind(
         group,
-        effectiveMaterialKindIds(
-          filters.materialKindIds,
-          kindTaxonomy ?? MaterialKindTaxonomy.empty,
-        ),
+        effectiveKindIds ??
+            effectiveMaterialKindIds(
+              filters.materialKindIds,
+              kindTaxonomy ?? MaterialKindTaxonomy.empty,
+            ),
       )) {
     return false;
   }

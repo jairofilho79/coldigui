@@ -7,6 +7,7 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/usecases/matches_catalog_filters.dart';
+import '../../domain/utils/material_kind_selection.dart';
 import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
@@ -46,9 +47,17 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   final results = ref.watch(coldigomSearchIndexProvider).search(query);
   if (filters.isEmpty) return results;
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
   return [
     for (final group in results)
-      if (matchesCatalogFilters(group, filters, kindTaxonomy: kindTaxonomy))
+      if (matchesCatalogFilters(
+        group,
+        filters,
+        effectiveKindIds: effectiveKindIds,
+      ))
         group,
   ];
 });
@@ -99,10 +108,14 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final localIds = {for (final g in localGroups) g.groupId};
   // Os «novos» passam pelo mesmo predicado da lista local (spec §2.4), no
   // cliente — os nomes de tag não viram ids do servidor.
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
   final newGroups = [
     for (final g in remote.value?.groups ?? const <LouvorGroup>[])
       if (!localIds.contains(g.groupId) &&
-          matchesCatalogFilters(g, filters, kindTaxonomy: kindTaxonomy))
+          matchesCatalogFilters(g, filters, effectiveKindIds: effectiveKindIds))
         g,
   ];
 
