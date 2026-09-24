@@ -63,11 +63,9 @@ final class ColdigomIndexedPraise {
   final LouvorGroup group;
 }
 
-/// Índice de busca do acervo Coldigom — espelho de `PlpcgSearchIndex`.
-///
-/// Mesmo ranking de `SearchLouvorByNumberOrText.callIndexed` (número exato →
-/// título exato → parcial), sobre praises em vez de `Louvor`: no Coldigom a
-/// unidade da Home é o grupo, e ele já sai montado daqui.
+/// Índice de busca do catálogo coldigom — ranking número exato → título
+/// exato → parcial (UC-01), sobre praises; a unidade da Home é o grupo, que
+/// já sai montado daqui.
 ///
 /// Também é **o** catálogo do app (spec fim-fonte §2.1): [groups] alimenta a
 /// /biblioteca e as opções de filtro, e os mapas de [groupByShortId] (link
@@ -172,8 +170,8 @@ final class ColdigomSearchIndex {
         (numeroQuery.isNotEmpty && entry.numeroNorm == numeroQuery);
 
     final queryTokens = LouvorSearchTokens.tokenize(trimmed);
-    // Sem tokens de título (query só com stop words/pontuação) — igual a
-    // `SearchLouvorByNumberOrText._rankByTitle`: só sobra o número exato.
+    // Sem tokens de título (query só com stop words/pontuação): só sobra o
+    // número exato.
     if (queryTokens.isEmpty) {
       return [
         for (final entry in entries)

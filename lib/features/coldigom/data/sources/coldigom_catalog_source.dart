@@ -14,8 +14,7 @@ import '../../domain/repositories/coldigom_search_repository.dart';
 import '../../domain/search/coldigom_search_index.dart';
 import '../../domain/utils/coldigom_praise_id.dart';
 
-/// Tudo o que os caches Coldigom têm de um praise, por tipo — o insumo que
-/// o `CompositeCatalogSource` funde com os PDFs do manifest (spec §5.1).
+/// Tudo o que os caches Coldigom têm de um praise, por tipo.
 final class ColdigomGroupParts {
   const ColdigomGroupParts({
     required this.pdfs,

@@ -71,9 +71,8 @@ void main() {
 
   test('título exato antes do parcial; ordem estável entre iguais', () {
     // p2 ("Tempo de louvar") fica de fora: o match parcial exige TODOS os
-    // tokens da query como prefixo de algum token do praise (E lógico, igual
-    // a `SearchLouvorByNumberOrText`/`matchesText`) — "ainda" e "ha" não
-    // prefixam nenhum token de p2.
+    // tokens da query como prefixo de algum token do praise (E lógico, como
+    // em `matchesText`) — "ainda" e "ha" não prefixam nenhum token de p2.
     expect(ids('ainda há tempo'), ['p1', 'p4']);
     expect(ids('Ainda ha tempo'), ['p1', 'p4']);
   });

@@ -5,9 +5,7 @@ import 'package:coldigui/features/catalog/data/providers/catalog_source_provider
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/usecases/resolve_catalog_material.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:flutter/widgets.dart';
@@ -21,24 +19,6 @@ final _gestureId = encodePdfId('ColAdultos/001.gestures');
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
 final _audioId = encodePdfId('assets/praises/p1/m1.mp3');
 final _coldigomPdfId = encodePdfId('assets/praises/p1/m1.pdf');
-
-final _plpcgPartitura = Louvor.fromManifest(
-  nome: 'Grande Deus',
-  numero: '001',
-  categoria: 'Partitura',
-  classificacao: 'ColAdultos',
-  pdf: '001.pdf',
-  pdfId: _plpcgPdfId,
-);
-
-final _gesto = Louvor.fromManifest(
-  nome: 'Grande Deus',
-  numero: '001',
-  categoria: 'Gestos',
-  classificacao: 'ColAdultos',
-  pdf: '001.gestures',
-  pdfId: _gestureId,
-);
 
 final _coldigomPdf = Louvor.fromManifest(
   nome: 'Comigo habita',
@@ -71,13 +51,6 @@ final _track = AudioTrack(
   classificacao: 'Country',
 );
 
-class _FakeManifestNotifier extends LouvoresManifestNotifier {
-  @override
-  Future<LouvoresManifest> build() async {
-    return LouvoresManifest.fromLouvores([_plpcgPartitura, _gesto]);
-  }
-}
-
 class _FakeLouvoresCache extends ColdigomLouvoresCacheNotifier {
   @override
   Map<String, Louvor> build() => {_coldigomPdfId: _coldigomPdf};
@@ -97,14 +70,12 @@ Future<ProviderContainer> _container() async {
   final container = ProviderContainer(
     overrides: [
       ...standardTestOverrides(),
-      louvoresManifestProvider.overrideWith(_FakeManifestNotifier.new),
       coldigomLouvoresCacheProvider.overrideWith(_FakeLouvoresCache.new),
       coldigomChordMaterialsCacheProvider.overrideWith(_FakeChordCache.new),
       coldigomAudioTracksCacheProvider.overrideWith(_FakeAudioCache.new),
     ],
   );
   addTearDown(container.dispose);
-  await container.read(louvoresManifestProvider.future);
   return container;
 }
 
@@ -129,9 +100,7 @@ Future<WidgetRef> _widgetRef(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('id legado não resolve (o manifesto já não é fonte)', (
-    tester,
-  ) async {
+  testWidgets('id legado não resolve', (tester) async {
     final ref = await _widgetRef(tester);
 
     expect(await resolveCatalogMaterialFromWidget(ref, _plpcgPdfId), isNull);

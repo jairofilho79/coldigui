@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -17,7 +16,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/test_overrides.dart';
 
 /// Conta as chamadas de sync sem encostar em rede nem em auth.
@@ -70,7 +68,6 @@ void main() {
         ...standardTestOverrides(prefs: prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
         playlistSyncProvider.overrideWith(() => sync),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(container.dispose);

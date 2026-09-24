@@ -1,5 +1,4 @@
 import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_isar.dart';
 
 import 'dart:async';
@@ -12,7 +11,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -128,7 +126,6 @@ void main() {
         isarStatusProvider.overrideWithValue(IsarStatus.available),
         playlistRepositoryProvider.overrideWithValue(repository),
         playlistSyncProvider.overrideWith(() => sync),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(container.dispose);
@@ -468,7 +465,6 @@ void main() {
         playlistRepositoryProvider.overrideWithValue(
           PlaylistRepositoryImpl(const PlaylistLocalDatasource.unavailable()),
         ),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(c.dispose);
@@ -925,7 +921,6 @@ void main() {
         ),
         playlistRepositoryProvider.overrideWithValue(repository),
         playlistSyncProvider.overrideWith(() => sync),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(c.dispose);

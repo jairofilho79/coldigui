@@ -353,9 +353,8 @@ class PlaylistTileActions {
       );
       if (!context.mounted) return;
 
-      // A rota leva o id da entrada (não `louvor.pdfId`): com cache Coldigom
-      // frio o alias devolve o louvor do manifest, e um id legado na rota
-      // deixaria o carrossel sem chip e a Lista ao Vivo com o item errado.
+      // A rota leva o id da entrada, o mesmo do chip do carrossel e da Lista
+      // ao Vivo.
       final location = ref
           .read(openPdfInReaderProvider)
           .call(

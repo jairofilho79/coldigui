@@ -3,14 +3,10 @@ import 'louvor_data_source.dart';
 import '../utils/louvor_group_id.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
-/// Entidade de domínio — um PDF do catálogo (manifest servido pelo coldigom
-/// ou material Coldigom nativo). [praiseId] agrupa materiais do mesmo louvor
-/// (ver [LouvorGroup]).
-///
-/// Campos espelham o JSON de `louvores-manifest.json`.
-/// [searchTitleNorm], [searchContentTokens] e [searchCompactContent] são
-/// pré-computados na criação via [Louvor.fromManifest] para busca UC-01.
-/// [groupId] agrupa materiais do mesmo louvor (ver [LouvorGroup]).
+/// Entidade de domínio — um PDF do catálogo coldigom. [praiseId] agrupa
+/// materiais do mesmo louvor (ver [LouvorGroup]). [searchTitleNorm],
+/// [searchContentTokens] e [searchCompactContent] são pré-computados em
+/// [Louvor.fromManifest] para a busca UC-01.
 class Louvor {
   const Louvor({
     required this.nome,
@@ -25,7 +21,6 @@ class Louvor {
     required this.searchCompactContent,
     this.source = LouvorDataSource.plpcg,
     this.materialKindId,
-    this.shortId,
     this.praiseId,
     this.materialId,
   });
@@ -66,15 +61,7 @@ class Louvor {
   /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
   final String? materialKindId;
 
-  /// Id curto de share (spec short-id-share D1): hex minúsculo como string,
-  /// atribuído pelo admin, imutável. `null` para Coldigom e para material
-  /// ainda sem atribuição — aí o link de share cai no formato longo.
-  final String? shortId;
-
-  /// Id do praise no coldigom — identidade do louvor lógico nos dois acervos.
-  ///
-  /// Manifest: vem do `/api/plpcg/manifest`; `null` no cache Isar anterior ao
-  /// primeiro sync pós-migração e em fixtures antigas. Coldigom: `praise.id`.
+  /// Id do praise no coldigom — identidade do louvor lógico.
   final String? praiseId;
 
   /// Id do material no coldigom (nome do ficheiro sem extensão em
@@ -100,7 +87,6 @@ class Louvor {
     String groupId = '',
     LouvorDataSource source = LouvorDataSource.plpcg,
     String? materialKindId,
-    String? shortId,
     String? praiseId,
     String? materialId,
   }) {
@@ -127,7 +113,6 @@ class Louvor {
       searchCompactContent: searchCompactContent,
       source: source,
       materialKindId: materialKindId,
-      shortId: shortId,
       praiseId: praiseId,
       materialId: materialId,
     );

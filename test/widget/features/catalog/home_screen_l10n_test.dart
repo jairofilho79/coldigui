@@ -2,13 +2,11 @@ import 'dart:async';
 
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +27,6 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           ...catalogIndexOverrides(
             catalogIndexOf([catalogGroup(praiseId: 'p1', name: 'Aleluia')]),
           ),
@@ -57,7 +54,6 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           coldigomCatalogHydrationProvider.overrideWith(
             (ref) => Completer<ColdigomSearchIndex>().future,
           ),

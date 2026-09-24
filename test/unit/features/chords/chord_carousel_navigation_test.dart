@@ -1,9 +1,7 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -21,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Repositório PDF nunca chamado — [_FixedResolvePdfForReader] ignora os
 /// campos herdados e retorna [_source] direto em [call].
@@ -146,7 +143,6 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
-            louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
             coldigomLouvoresOverride([louvor]),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
               (Louvor _) async {},
@@ -157,7 +153,6 @@ void main() {
           ],
         );
         addTearDown(container.dispose);
-        await container.read(louvoresManifestProvider.future);
 
         final location = await container
             .read(readerCarouselActionsProvider.notifier)
@@ -189,8 +184,6 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          // Manifest PLPCG vazio: o id só existe no cache Coldigom.
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
             (Louvor _) async {},
           ),
@@ -200,7 +193,6 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      await container.read(louvoresManifestProvider.future);
       container.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
         louvor,
       ]);

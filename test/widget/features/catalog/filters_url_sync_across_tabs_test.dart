@@ -2,7 +2,6 @@ import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
@@ -14,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Página inicial e /biblioteca vivem em ramos distintos de um
 /// `StatefulShellRoute.indexedStack` (como no app): o ramo visitado fica
@@ -90,7 +88,6 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           ...catalogIndexOverrides(
             catalogIndexOf([
               catalogGroup(

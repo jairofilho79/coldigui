@@ -106,9 +106,7 @@ void warmupColdigomInBackground(
   );
 }
 
-/// Busca sob demanda os materiais do praise ao abrir o leitor — também para
-/// PDFs do manifest (`praiseId`): é assim que o sheet de um louvor legado
-/// ganha áudio/cifra/letra (spec §5.5).
+/// Busca sob demanda os materiais do praise ao abrir o leitor (áudio/cifra/letra no sheet).
 ///
 /// Best-effort: nunca lança para o chamador, mesmo com falha/timeout de
 /// rede (A3) — apenas registra via [debugPrint] e retorna.
@@ -119,8 +117,7 @@ final ensureColdigomPraiseMaterialsCachedProvider =
             louvor.praiseId ?? coldigomPraiseIdFromPdfId(louvor.pdfId);
         if (praiseId == null) return;
 
-        // Só materiais Coldigom nativos entram no cache Coldigom; um louvor
-        // do manifest já vive na fonte PLPCG e o composite funde os dois.
+        // Só materiais Coldigom nativos entram no cache Coldigom.
         if (louvor.source == LouvorDataSource.coldigom) {
           ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
             louvor,

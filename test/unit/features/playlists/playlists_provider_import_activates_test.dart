@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -19,7 +18,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/test_overrides.dart';
 
 Future<void> _flushAsync() async {
@@ -63,7 +61,6 @@ void main() {
       overrides: [
         ...standardTestOverrides(prefs: prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         praiseEntryResolverLoaderProvider.overrideWithValue(
           loader ??
               () async =>

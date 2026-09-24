@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/utils/find_louvor_by_pdf_id.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
@@ -138,7 +137,7 @@ Louvor _louvor(String relPath, {String nome = 'Louvor'}) {
 }
 
 PrefetchLouvorResolver _resolverFor(List<Louvor> catalog) {
-  return (pdfId) => findLouvorByPdfId(catalog, pdfId);
+  return (pdfId) => catalog.where((l) => l.pdfId == pdfId).firstOrNull;
 }
 
 void main() {

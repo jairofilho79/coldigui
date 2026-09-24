@@ -8,7 +8,7 @@ import 'core/platform/web_storage_persistence_provider.dart';
 /// Monta [ColdiguiApp] imediatamente, sem esperar [isarInitializerProvider] (A8).
 ///
 /// A abertura do Isar (WASM + OPFS na web, até `isarOpenTimeout`) deixou de
-/// serializar o boot: o router sobe já e o download do manifest começa junto
+/// serializar o boot: o router sobe já e a carga do catálogo começa junto
 /// com a abertura em vez de depois dela. As telas que realmente precisam do
 /// banco local ficam atrás de `StorageRequiredGate`, que mostra spinner
 /// enquanto o status é [IsarStatus.opening] e o aviso de indisponível quando a

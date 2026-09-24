@@ -231,8 +231,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       );
       if (!mounted) return;
 
-      // Mantém o id que a rota já carregava: `louvor` pode ter vindo pelo
-      // alias (id legado) e trocar o id aqui desalinharia carrossel e Live.
+      // Mantém o id que a rota já carregava, o mesmo do carrossel e da Live.
       final location = ref
           .read(openPdfInReaderProvider)
           .call(

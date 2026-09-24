@@ -7,7 +7,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -24,7 +23,6 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/test_overrides.dart';
 
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
@@ -86,12 +84,6 @@ void main() {
       overrides: [
         ...standardTestOverrides(prefs: prefs),
         playlistRepositoryProvider.overrideWithValue(repository),
-        louvoresManifestOverride(
-          LouvoresManifest.fromLouvores([
-            _louvor(_pdfA, '001', 'Santo'),
-            _louvor(_pdfB, '002', 'Aleluia'),
-          ]),
-        ),
         coldigomLouvoresOverride([
           _louvor(_pdfA, '001', 'Santo'),
           _louvor(_pdfB, '002', 'Aleluia'),
@@ -104,8 +96,27 @@ void main() {
     return container;
   }
 
+  test('carouselItemsProvider devolve todas as entradas na ordem, com index global', () async {
+    final c = await boot(
+      entries: [
+        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
+        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
+        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
+      ],
+    );
+
+    final items = c.read(carouselItemsProvider);
+
+    expect(items.map((i) => i.materialId), [_pdfA, _audioA, _pdfB]);
+    expect(items.map((i) => i.index), [0, 1, 2]);
+    expect(items.map((i) => i.key), [_pdfA, _audioA, _pdfB]);
+    expect(items.first.numero, '001');
+    expect(items.first.nome, 'Santo');
+    expect(items.last.label, '002 — Aleluia');
+  });
+
   test(
-    'carouselItemsProvider devolve todas as entradas na ordem, com index global',
+    'readableCarouselItemsProvider filtra áudio e preserva o index',
     () async {
       final c = await boot(
         entries: [
@@ -115,31 +126,12 @@ void main() {
         ],
       );
 
-      final items = c.read(carouselItemsProvider);
+      final items = c.read(readableCarouselItemsProvider);
 
-      expect(items.map((i) => i.materialId), [_pdfA, _audioA, _pdfB]);
-      expect(items.map((i) => i.index), [0, 1, 2]);
-      expect(items.map((i) => i.key), [_pdfA, _audioA, _pdfB]);
-      expect(items.first.numero, '001');
-      expect(items.first.nome, 'Santo');
-      expect(items.last.label, '002 — Aleluia');
+      expect(items.map((i) => i.materialId), [_pdfA, _pdfB]);
+      expect(items.map((i) => i.index), [0, 2]);
     },
   );
-
-  test('readableCarouselItemsProvider filtra áudio e preserva o index', () async {
-    final c = await boot(
-      entries: [
-        PlaylistEntry(id: _pdfA, kind: MaterialKind.pdf),
-        PlaylistEntry(id: _audioA, kind: MaterialKind.audio),
-        PlaylistEntry(id: _pdfB, kind: MaterialKind.pdf),
-      ],
-    );
-
-    final items = c.read(readableCarouselItemsProvider);
-
-    expect(items.map((i) => i.materialId), [_pdfA, _pdfB]);
-    expect(items.map((i) => i.index), [0, 2]);
-  });
 
   test('entrada de áudio é enriquecida pela faixa do cache Coldigom', () async {
     final c = await boot(

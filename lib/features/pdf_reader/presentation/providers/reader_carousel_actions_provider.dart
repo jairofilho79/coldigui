@@ -52,8 +52,8 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
     final gestureRoute = gestureRouteFor(targetPdfId, lookup.gesturesById);
     if (gestureRoute.isGesture) return gestureRoute.location;
 
-    // O lookup responde manifest PLPCG e cache Coldigom na mesma consulta, em
-    // O(1) — nada de varrer o catálogo a cada troca de louvor (A4).
+    // O lookup lê o catálogo coldigom em memória em O(1) — nada de varrer o
+    // catálogo a cada troca de louvor (A4).
     final louvor = lookup.louvor(targetPdfId);
     if (louvor == null) return null;
 
@@ -63,12 +63,8 @@ class ReaderCarouselActionsNotifier extends Notifier<void> {
       louvor,
     );
 
-    // `louvor.pdfId` é a chave de armazenamento (índice offline). A **rota**
-    // leva o id pedido: com cache Coldigom frio, o alias devolve o louvor do
-    // manifest (id legado L ≠ X) e, se L fosse para a rota, o carrossel não
-    // acharia o chip da entrada X e a Lista ao Vivo seguiria um id que a lista
-    // não tem. Depois do warmup o mesmo toque passaria X — ids trocando dentro
-    // da sessão. O leitor resolve o id da rota pelo mesmo lookup com alias.
+    // `louvor.pdfId` é a chave de armazenamento (índice offline); a **rota**
+    // leva o id pedido, o mesmo do chip do carrossel e da Lista ao Vivo.
     final remotePath = LouvorPdfPath.fromLouvor(louvor);
     final source = await ref.read(resolvePdfForReaderProvider)(
       pdfId: louvor.pdfId,

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/catalog_filter_sections.dart';
 import 'package:coldigui/features/library/presentation/pages/library_screen.dart';
@@ -14,7 +13,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Filtros gravados (C13) restringem a busca da página inicial mesmo sem
 /// nada na URL — o painel não pode escondê-los colapsado e mudo.
@@ -28,7 +26,6 @@ Future<void> _pump(WidgetTester tester, Widget screen) async {
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         ...catalogIndexOverrides(
           catalogIndexOf([
             catalogGroup(

@@ -8,7 +8,6 @@ abstract final class OfflineConfig {
   /// Subdiretório de PDFs offline em documents — **não** usar cache/temp.
   static const String pdfStorageSubdir = 'plpcg_pdfs';
   static const String pdfCacheName = 'plpc-pdfs';
-  static const Duration manifestCacheTtl = Duration(minutes: 5);
   static const Duration validationCacheTtl = Duration(hours: 24);
   static const Duration statsCacheTtl = Duration(minutes: 5);
   static const Duration swRegistrationTimeout = Duration(seconds: 5);
@@ -49,9 +48,6 @@ abstract final class OfflineConfig {
   /// Debounce antes de reconcile global ao retornar ao foreground (Fase 3.6).
   static const Duration reconcileForegroundDebounce = Duration(seconds: 3);
 
-  /// Intervalo mínimo entre polls de checksum do manifest ao foreground (UC-12).
-  static const Duration catalogChecksumPollMinInterval = Duration(minutes: 30);
-
   /// Intervalo mínimo entre reconciles globais (backlog #12).
   static const Duration reconcileMinInterval = Duration(minutes: 30);
 
@@ -59,7 +55,7 @@ abstract final class OfflineConfig {
   static const int offlineStorageVersion = 5;
 
   /// Intervalo mínimo entre syncs do catálogo Coldigom ao voltar ao
-  /// foreground (O5) — o mesmo dos 30 min do checksum PLPCG.
+  /// foreground (O5).
   static const Duration coldigomCatalogSyncMinInterval = Duration(minutes: 30);
 
   /// Praises convertidos por fatia na hidratação do catálogo Coldigom; entre

@@ -6,7 +6,6 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_state.dart';
@@ -24,8 +23,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Louvor _louvor(
   String pdfId, {
@@ -84,7 +81,6 @@ Future<void> _pump(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         ...overrides,
       ],
       child: MaterialApp(
@@ -112,7 +108,6 @@ Future<void> _pumpOnWine(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         ...overrides,
       ],
       child: MaterialApp(
@@ -306,10 +301,7 @@ void main() {
     testWidgets('filtro ativo mostra "Limpar filtros" e limpa', (tester) async {
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
-        ],
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       addTearDown(container.dispose);
       container.read(catalogFiltersProvider.notifier).toggleTag('PES');
@@ -484,7 +476,6 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               sharedPreferencesProvider.overrideWithValue(prefs),
-              louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
               // Sem isto, `_NoResultsContent` tentaria hidratar o índice
               // Coldigom via Isar de verdade (não há aqui) e o teste travaria
               // num timer pendente — mesmo cuidado do caso "mostra o aviso".

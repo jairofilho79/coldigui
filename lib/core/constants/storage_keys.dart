@@ -9,15 +9,6 @@ abstract final class StorageKeys {
   /// Timestamp (epoch ms) do último reconcile global UC-10 (backlog #12).
   static const String lastReconcileAt = 'lastReconcileAt';
 
-  /// Timestamp ISO-8601 do último sync remoto do catálogo (UC-12).
-  static const String catalogLastSyncAt = 'catalogLastSyncAt';
-
-  /// Último checksum SHA-256 conhecido do manifest (UC-12 poll).
-  static const String manifestChecksum = 'manifestChecksum';
-
-  /// Timestamp (epoch ms) do último poll de checksum UC-12 (backlog #15).
-  static const String lastChecksumPollAt = 'lastChecksumPollAt';
-
   /// Corpo da letra no leitor de cifras, em px.
   static const String chordReaderFontSize = 'chordReaderFontSize';
 

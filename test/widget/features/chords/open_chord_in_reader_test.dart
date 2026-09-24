@@ -8,7 +8,6 @@ import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/chords/presentation/utils/open_chord_in_reader.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -25,7 +24,6 @@ import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 final _chordId = encodePdfId('assets/praises/p1/m1.chord');
 final _pdfA = encodePdfId('ColAdultos/001.pdf');
@@ -107,7 +105,6 @@ void main() {
           carouselLocalDatasourceProvider.overrideWithValue(
             const CarouselLocalDatasource.unavailable(),
           ),
-          louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),

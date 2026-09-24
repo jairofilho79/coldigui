@@ -8,7 +8,7 @@ part 'coldigom_praise_cache.g.dart';
 /// Uma linha por praise; os materiais vão serializados em JSON na própria
 /// linha ([materialsJson]) porque são lidos sempre em bloco (hidratação no
 /// boot, enumeração do download) e nunca um a um. Substituição total por
-/// sync numa transação, como [LouvorCache].
+/// sync numa transação.
 @Collection()
 class ColdigomPraiseCache {
   int id = 0;
@@ -46,6 +46,6 @@ class ColdigomPraiseCache {
   /// desse dump guardado. Por isso o ETag sozinho não regrava nada: o
   /// `SyncColdigomCatalog` ignora o ETag enquanto nenhuma linha tiver
   /// `shortId` e o dump inteiro substitui as linhas.
-  /// Propriedade aditiva, sem migração (precedente: `LouvorCache.shortId`).
+  /// Propriedade aditiva, sem migração.
   String? shortId;
 }

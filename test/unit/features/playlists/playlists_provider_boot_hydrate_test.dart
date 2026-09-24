@@ -5,14 +5,14 @@
 // sem distinguir "não existe" de "o banco ainda não abriu", e `hydratePlaylistSession`
 // grava essa conclusão nas SharedPreferences (apagando o id da playlist ativa).
 import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_isar.dart';
+
 import 'dart:async';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
@@ -64,9 +64,7 @@ Future<void> _flushAsync() async {
 
 void main() {
   test('boot durante a abertura do Isar não apaga a playlist ativa', () async {
-    SharedPreferences.setMockInitialValues({
-      kActivePlaylistIdPrefsKey: 'pl-1',
-    });
+    SharedPreferences.setMockInitialValues({kActivePlaylistIdPrefsKey: 'pl-1'});
     final prefs = await SharedPreferences.getInstance();
 
     final opening = Completer<Isar>();
@@ -82,7 +80,6 @@ void main() {
         carouselLocalDatasourceProvider.overrideWithValue(
           CarouselLocalDatasource.unavailable(),
         ),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(container.dispose);
@@ -118,9 +115,7 @@ void main() {
   });
 
   test('Isar que nunca abre não hidrata nem toca nas prefs', () async {
-    SharedPreferences.setMockInitialValues({
-      kActivePlaylistIdPrefsKey: 'pl-1',
-    });
+    SharedPreferences.setMockInitialValues({kActivePlaylistIdPrefsKey: 'pl-1'});
     final prefs = await SharedPreferences.getInstance();
 
     late ProviderContainer container;
@@ -137,7 +132,6 @@ void main() {
         carouselLocalDatasourceProvider.overrideWithValue(
           CarouselLocalDatasource.unavailable(),
         ),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
     addTearDown(container.dispose);

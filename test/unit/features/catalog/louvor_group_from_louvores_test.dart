@@ -1,5 +1,5 @@
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/usecases/group_louvores_by_material.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -48,8 +48,8 @@ void main() {
     });
   });
 
-  group('GroupLouvoresByMaterial', () {
-    const group = GroupLouvoresByMaterial();
+  group('LouvorGroup.fromLouvores', () {
+    const group = LouvorGroup.fromLouvores;
 
     test('agrupa materiais do mesmo louvor em seções por classificação', () {
       final louvores = [

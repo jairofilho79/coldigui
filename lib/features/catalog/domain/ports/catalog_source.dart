@@ -3,11 +3,11 @@ import '../entities/catalog_query.dart';
 import '../entities/louvor_group.dart';
 import 'search_cancellation.dart';
 
-/// Porta de leitura do catálogo por id — um vocabulário só para os dois acervos.
+/// Porta de leitura do catálogo por id.
 ///
-/// PLPCG (manifest) e Coldigom (caches por tipo) respondem às mesmas três
-/// perguntas; quem chama (o desvio da playlist, o resolver de material, o botão
-/// de trocar material) deixa de escolher a fonte e de conhecer os caches.
+/// O catálogo coldigom (caches por tipo) responde a três perguntas; quem chama
+/// (o desvio da playlist, o resolver de material, o botão de trocar material)
+/// não conhece os caches.
 ///
 /// Os métodos são assíncronos porque uma implementação futura pode precisar de
 /// rede (buscar o praise que ainda não está em cache); as implementações atuais

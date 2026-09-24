@@ -1,20 +1,5 @@
 import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
-import '../../data/sources/plpcg_catalog_source.dart';
-import '../entities/louvor.dart';
 import '../entities/louvor_group.dart';
-
-/// Grupo lógico PLPCG do louvor com [pdfId], ou `null` se órfão ou único.
-///
-/// A variante que também olhava o cache Coldigom virou
-/// `CompositeCatalogSource.groupForMaterial`: o despacho entre os dois acervos
-/// vive na porta, não aqui.
-LouvorGroup? findLouvorGroupByPdfId(List<Louvor>? catalog, String pdfId) {
-  final group = PlpcgCatalogSource(
-    catalog: catalog,
-  ).findGroupForMaterial(pdfId);
-  if (group == null || group.totalMaterials <= 1) return null;
-  return group;
-}
 
 /// Grupo para o botão layers da barra: inclui áudios/cifras do cache e aceita
 /// 1 PDF se [LouvorGroup.totalMaterials] > 1.
@@ -34,8 +19,7 @@ LouvorGroup? findSwapMaterialGroup({
   final playingTrack = (audioId == null || audioId.isEmpty)
       ? null
       : source.audioTracks[audioId];
-  final playingGroupId =
-      (playingTrack == null || playingTrack.groupId.isEmpty)
+  final playingGroupId = (playingTrack == null || playingTrack.groupId.isEmpty)
       ? null
       : playingTrack.groupId;
 

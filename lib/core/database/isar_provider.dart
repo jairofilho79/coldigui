@@ -133,7 +133,7 @@ Future<IsarStatus> awaitIsarSettled(Ref ref) async {
 
 /// Provider de instância Isar Plus (ADR-001).
 ///
-/// Schemas: [LouvorCache], [CarouselEntry], [Playlist], [OfflinePdfIndex].
+/// Schemas: [kAppIsarSchemas] (catálogo coldigom, playlists, índices offline, caches de cifra/gestos).
 /// Resolve via [isarInitializerProvider] em produção; sobrescrever em testes com
 /// [isarProvider.overrideWithValue].
 final isarProvider = Provider<Isar>((ref) {

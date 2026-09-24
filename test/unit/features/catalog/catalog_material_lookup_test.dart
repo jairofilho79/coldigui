@@ -3,10 +3,8 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
@@ -14,23 +12,12 @@ import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metad
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
-
 final _plpcgPdfId = encodePdfId('ColAdultos/001.pdf');
 final _coldigomPdfId = encodePdfId('assets/praises/p1/m1.pdf');
 final _coldigomChordId = encodePdfId('assets/praises/p1/m1.chord');
 final _coldigomGestureId = encodePdfId('assets/praises/p1/m1.gestures');
 final _coldigomAudioId = encodePdfId('assets/praises/p1/m1.mp3');
 final _outroAudioId = encodePdfId('assets/praises/p2/m1.mp3');
-
-final _plpcgLouvor = Louvor.fromManifest(
-  nome: 'Grande Deus',
-  numero: '001',
-  categoria: 'Partitura',
-  classificacao: 'ColAdultos',
-  pdf: '001.pdf',
-  pdfId: _plpcgPdfId,
-);
 
 final _coldigomLouvor = Louvor.fromManifest(
   nome: 'Comigo habita',
@@ -87,13 +74,8 @@ final _youtube = YoutubeMaterial(
 const _meta = ColdigomPraiseMetadata(name: 'Comigo habita');
 
 Future<ProviderContainer> _container() async {
-  final container = ProviderContainer(
-    overrides: [
-      louvoresManifestOverride(LouvoresManifest.fromLouvores([_plpcgLouvor])),
-    ],
-  );
+  final container = ProviderContainer();
   addTearDown(container.dispose);
-  await container.read(louvoresManifestProvider.future);
 
   container.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
     _coldigomLouvor,
@@ -116,21 +98,14 @@ Future<ProviderContainer> _container() async {
 
 void main() {
   group('CatalogMaterialLookup', () {
-    test(
-      'louvor lê o catálogo coldigom; id legado do manifesto não resolve',
-      () async {
-        final container = await _container();
-        final lookup = container.read(catalogMaterialLookupProvider);
+    test('louvor lê o catálogo coldigom; id legado não resolve', () async {
+      final container = await _container();
+      final lookup = container.read(catalogMaterialLookupProvider);
 
-        expect(lookup.louvor(_coldigomPdfId), same(_coldigomLouvor));
-        expect(
-          lookup.louvor(_plpcgPdfId),
-          isNull,
-          reason: 'o manifesto carregado já não alimenta o lookup',
-        );
-        expect(lookup.louvor('id-inexistente'), isNull);
-      },
-    );
+      expect(lookup.louvor(_coldigomPdfId), same(_coldigomLouvor));
+      expect(lookup.louvor(_plpcgPdfId), isNull);
+      expect(lookup.louvor('id-inexistente'), isNull);
+    });
 
     test('audioTrack, chord, praiseMeta e youtube leem os caches', () async {
       final container = await _container();

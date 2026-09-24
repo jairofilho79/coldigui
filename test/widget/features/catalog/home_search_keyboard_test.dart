@@ -1,4 +1,3 @@
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
 
 import 'package:coldigui/core/database/isar_provider.dart';
@@ -6,7 +5,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
@@ -67,7 +65,6 @@ Future<void> _pumpHome(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarAvailableProvider.overrideWithValue(true),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
         catalogIndexStatusProvider.overrideWithValue(CatalogIndexStatus.ready),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         coldigomSearchRepositoryProvider.overrideWithValue(

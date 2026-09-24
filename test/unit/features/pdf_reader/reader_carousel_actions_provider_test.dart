@@ -7,8 +7,6 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
@@ -26,7 +24,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Repositório PDF nunca chamado — [_FixedResolvePdfForReader] ignora os
 /// campos herdados e retorna [_source] direto em [call].
@@ -94,7 +91,6 @@ void main() {
         final neverCompletes = Completer<void>();
         final container = ProviderContainer(
           overrides: [
-            louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
             coldigomLouvoresOverride([louvor]),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
               // O timeout mora dentro do provider real; a versão de teste o
@@ -109,8 +105,6 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // Popula o manifest antes de medir o tempo da troca.
-        unawaited(container.read(louvoresManifestProvider.future));
         async.elapse(Duration.zero);
 
         String? location;
@@ -147,7 +141,6 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
           coldigomLouvoresOverride([louvor]),
           ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
             (Louvor _) async => throw StateError('coldigom indisponível'),
@@ -158,7 +151,6 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      await container.read(louvoresManifestProvider.future);
 
       final location = await container
           .read(readerCarouselActionsProvider.notifier)
@@ -204,9 +196,6 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           carouselItemsProvider.overrideWithValue(items),
-          louvoresManifestOverride(
-            LouvoresManifest.fromLouvores([louvor, other]),
-          ),
           coldigomLouvoresOverride([louvor, other]),
           ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
             (Louvor _) async {},
@@ -217,7 +206,6 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      await container.read(louvoresManifestProvider.future);
       return container;
     }
 

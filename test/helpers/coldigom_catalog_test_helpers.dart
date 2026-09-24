@@ -130,8 +130,7 @@ List<Override> catalogIndexOverrides(
 }
 
 /// `coldigomLouvoresCacheProvider` já com [louvores] — o catálogo em memória
-/// que o lookup e a fonte leem. Substitui o `louvoresManifestOverride` nos
-/// testes que precisavam de PDFs conhecidos (spec fim-fonte-plpcg §6.4).
+/// que o lookup e a fonte leem, para testes que precisam de PDFs conhecidos.
 Override coldigomLouvoresOverride(List<Louvor> louvores) {
   return coldigomLouvoresCacheProvider.overrideWith(
     () => _SeededLouvoresCache(louvores),

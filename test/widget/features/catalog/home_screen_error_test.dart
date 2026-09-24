@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
@@ -14,7 +13,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Widget _homeErrorTestApp({
   required SharedPreferences prefs,
@@ -23,10 +21,6 @@ Widget _homeErrorTestApp({
   return ProviderScope(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
-      // O estado vazio ainda resolve os «recentes» pelo lookup de materiais,
-      // que lê o manifesto até o plano 3 o reapontar — sem isto ele abriria
-      // o Isar e a rede de verdade.
-      louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ...extraOverrides,
     ],
     child: MaterialApp(

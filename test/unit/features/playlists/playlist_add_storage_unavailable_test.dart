@@ -9,7 +9,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/data/datasources/carousel_local_datasource.dart';
 import 'package:coldigui/features/carousel/data/providers/carousel_providers.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/data/repositories/playlist_repository_impl.dart';
@@ -20,7 +19,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 Future<void> _flushAsync() async {
   await Future<void>.delayed(Duration.zero);
@@ -53,7 +51,6 @@ void main() {
         carouselLocalDatasourceProvider.overrideWithValue(
           const CarouselLocalDatasource.unavailable(),
         ),
-        louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
       ],
     );
   }

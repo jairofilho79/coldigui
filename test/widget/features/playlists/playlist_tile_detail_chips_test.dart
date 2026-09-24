@@ -4,7 +4,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
     show fallbackCarouselNome;
 import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/chip_buttons.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -16,7 +15,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
 import '../../../support/test_overrides.dart';
 
@@ -65,15 +63,7 @@ void main() {
     // build da árvore — o cache precisa estar quente **antes** do primeiro
     // frame.
     final container = ProviderContainer(
-      overrides: [
-        ...standardTestOverrides(prefs: prefs),
-        // Sem isto, o lookup do manifest tenta a rede de verdade (falha) e o
-        // retry automático do Riverpod deixa um Timer pendente no fim do
-        // teste — mesmo remendo dos demais testes de catálogo.
-        louvoresManifestOverride(
-          const LouvoresManifest(louvores: [], availableArranjos: {}),
-        ),
-      ],
+      overrides: [...standardTestOverrides(prefs: prefs)],
     );
     addTearDown(container.dispose);
     // Louvor em cache: sem ele o chip de partitura cai no fallback por
@@ -168,9 +158,6 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           ...standardTestOverrides(prefs: prefs),
-          louvoresManifestOverride(
-            const LouvoresManifest(louvores: [], availableArranjos: {}),
-          ),
           // A lista **não** é a ativa (`playlistId` não bate com nenhum
           // ativo) — é o caso do achado do re-review: uma playlist salva
           // não-ativa, cujo cache de áudio só aquece se alguém visitá-la, tem

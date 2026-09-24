@@ -32,8 +32,8 @@ final prefetchAdjacentCarouselPdfsProvider =
       );
     });
 
-/// Resolve o louvor de um vizinho no prefetch — manifest, cache Coldigom e
-/// alias legado, pelo mesmo lookup que o leitor usa (não só o manifest).
+/// Resolve o louvor de um vizinho no prefetch pelo mesmo lookup que o leitor
+/// usa (catálogo coldigom em memória).
 final prefetchLouvorResolverProvider = Provider<PrefetchLouvorResolver>((ref) {
   return ref.watch(catalogMaterialLookupProvider).louvor;
 });

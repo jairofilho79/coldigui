@@ -6,9 +6,7 @@ import 'coldigom_providers.dart';
 
 /// Fonte Coldigom sobre os sete caches em memória.
 ///
-/// Recompõe a cada merge — é o preço de ler cache como valor —, mas o custo
-/// fica contido aqui: a fonte PLPCG (e seu índice) vive em
-/// `plpcgCatalogSourceProvider` e não é arrastada junto.
+/// Recompõe a cada merge — é o preço de ler cache como valor.
 final coldigomCatalogSourceProvider = Provider<ColdigomCatalogSource>((ref) {
   return ColdigomCatalogSource(
     louvores: ref.watch(coldigomLouvoresCacheProvider),

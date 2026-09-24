@@ -7,7 +7,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/presentation/pages/home_screen.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_bar.dart';
@@ -15,7 +14,6 @@ import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dar
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
 
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
@@ -114,10 +112,8 @@ List<Override> _homeSearchTestOverrides({
 }) {
   return [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    // Manifesto vazio só para o lookup dos «recentes» do estado vazio (até
-    // o plano 3); o catálogo destes testes vem do índice, e a busca remota
-    // fica vazia por omissão (a validação remota tem cobertura própria).
-    louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
+    // O catálogo destes testes vem do índice, e a busca remota fica vazia por
+    // omissão (a validação remota tem cobertura própria).
     ...catalogIndexOverrides(
       catalogIndexOf([
         for (final louvor in catalog)

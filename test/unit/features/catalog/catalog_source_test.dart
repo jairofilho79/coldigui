@@ -2,52 +2,22 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
-import 'package:coldigui/features/catalog/data/sources/composite_catalog_source.dart';
-import 'package:coldigui/features/catalog/data/sources/plpcg_catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/manifest_material_aliases.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
-import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
-import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_repository.dart';
-import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-final _plpcgGroupId = LouvorGroupId.compute(numero: '001', nome: 'Grande Deus');
-
 final _plpcgPdfId = encodePdfId('ColAdultos/001.pdf');
-final _plpcgCifraId = encodePdfId('ColAdultos/001-cifra.pdf');
-
-final _plpcgPartitura = Louvor.fromManifest(
-  nome: 'Grande Deus',
-  numero: '001',
-  categoria: 'Partitura',
-  classificacao: 'ColAdultos',
-  pdf: '001.pdf',
-  pdfId: _plpcgPdfId,
-  groupId: _plpcgGroupId,
-);
-
-final _plpcgCifra = Louvor.fromManifest(
-  nome: 'Grande Deus',
-  numero: '001',
-  categoria: 'Cifra nível I',
-  classificacao: 'ColAdultos',
-  pdf: '001-cifra.pdf',
-  pdfId: _plpcgCifraId,
-  groupId: _plpcgGroupId,
-);
-
 final _coldigomPdfId = encodePdfId('assets/praises/p1/m1.pdf');
 final _coldigomChordId = encodePdfId('assets/praises/p1/m1.chord');
 final _coldigomAudioId = encodePdfId('assets/praises/p1/m1.mp3');
@@ -92,102 +62,6 @@ final _coldigomYoutube = YoutubeMaterial(
   groupId: 'p1',
   categoria: 'Vídeo',
   classificacao: 'Country',
-);
-
-/// Praise `pf` presente no manifest (2 PDFs legados) e com extras Coldigom
-/// em cache: um PDF coberto (mesmo ficheiro de `_fusedPartitura`), um PDF
-/// só-coldigom e uma faixa.
-const _fusedPraiseId = 'pf';
-final _fusedPartituraColdigomId = encodePdfId('assets/praises/pf/mp.pdf');
-final _fusedExtraPdfId = encodePdfId('assets/praises/pf/mx.pdf');
-final _fusedAudioId = encodePdfId('assets/praises/pf/a.mp3');
-
-final _fusedPartitura = Louvor.fromManifest(
-  nome: 'Firme nas promessas',
-  numero: '010',
-  categoria: 'Partitura',
-  classificacao: 'ColAdultos',
-  pdf: 'https://coldigom.test/assets/praises/pf/mp.pdf',
-  pdfId: encodePdfId('ColAdultos/010.pdf'),
-  groupId: '010:firme-nas-promessas',
-  shortId: '0010',
-  praiseId: _fusedPraiseId,
-  materialId: 'mp',
-);
-
-final _fusedCifra = Louvor.fromManifest(
-  nome: 'Firme nas promessas',
-  numero: '010',
-  categoria: 'Cifra nível I',
-  classificacao: 'ColAdultos',
-  pdf: 'https://coldigom.test/assets/praises/pf/mc.pdf',
-  pdfId: encodePdfId('ColAdultos/010-cifra.pdf'),
-  groupId: '010:firme-nas-promessas',
-  praiseId: _fusedPraiseId,
-  materialId: 'mc',
-);
-
-Louvor _coldigomLouvor(String pdfId, String pdf, String categoria) =>
-    Louvor.fromManifest(
-      nome: 'Firme nas promessas',
-      numero: '010',
-      categoria: categoria,
-      classificacao: 'Balada',
-      pdf: pdf,
-      pdfId: pdfId,
-      groupId: _fusedPraiseId,
-      source: LouvorDataSource.coldigom,
-      praiseId: _fusedPraiseId,
-    );
-
-final _fusedCoveredPdf = _coldigomLouvor(
-  _fusedPartituraColdigomId,
-  'mp.pdf',
-  'Partitura',
-);
-final _fusedExtraPdf = _coldigomLouvor(_fusedExtraPdfId, 'mx.pdf', 'Gestos');
-
-final _fusedTrack = AudioTrack(
-  audioId: _fusedAudioId,
-  r2Key: 'assets/praises/pf/a.mp3',
-  nome: 'Firme nas promessas',
-  numero: '010',
-  groupId: _fusedPraiseId,
-  categoria: 'Áudio',
-  classificacao: 'Balada',
-  source: LouvorDataSource.coldigom,
-);
-
-final _fusedManifest = [
-  _plpcgPartitura,
-  _plpcgCifra,
-  _fusedPartitura,
-  _fusedCifra,
-];
-
-CompositeCatalogSource _fusedComposite({
-  ColdigomSearchRepository? searchRepository,
-}) => CompositeCatalogSource(
-  plpcg: PlpcgCatalogSource(
-    catalog: _fusedManifest,
-    index: PlpcgSearchIndex.build(_fusedManifest),
-  ),
-  coldigom: ColdigomCatalogSource(
-    louvores: {
-      _coldigomPdfId: _coldigomPdf,
-      _fusedPartituraColdigomId: _fusedCoveredPdf,
-      _fusedExtraPdfId: _fusedExtraPdf,
-    },
-    chords: {_coldigomChordId: _coldigomChord},
-    audioTracks: {_coldigomAudioId: _coldigomTrack, _fusedAudioId: _fusedTrack},
-    searchRepository: searchRepository,
-  ),
-  aliases: ManifestMaterialAliases.fromLouvores(_fusedManifest),
-);
-
-PlpcgCatalogSource _plpcgSource() => PlpcgCatalogSource(
-  catalog: [_plpcgPartitura, _plpcgCifra],
-  index: PlpcgSearchIndex.build([_plpcgPartitura, _plpcgCifra]),
 );
 
 ColdigomCatalogSource _coldigomSource({
@@ -239,49 +113,6 @@ ColdigomSearchResult _searchResult({bool hasNextPage = false, int page = 1}) {
 }
 
 void main() {
-  group('PlpcgCatalogSource', () {
-    test('materialById devolve PdfMaterial do manifest', () async {
-      final material = await _plpcgSource().materialById(_plpcgPdfId);
-
-      expect(material, isA<PdfMaterial>());
-      expect(material!.id, _plpcgPdfId);
-    });
-
-    test('materialById devolve null para id fora do manifest', () async {
-      expect(
-        await _plpcgSource().materialById(encodePdfId('ColAdultos/999.pdf')),
-        isNull,
-      );
-    });
-
-    test('groupById monta o grupo do manifest', () async {
-      final group = await _plpcgSource().groupById(_plpcgGroupId);
-
-      expect(group, isNotNull);
-      expect(group!.totalPdfs, 2);
-    });
-
-    test('groupForMaterial agrupa irmãos PLPCG', () async {
-      final group = await _plpcgSource().groupForMaterial(_plpcgPdfId);
-
-      expect(group, isNotNull);
-      expect(group!.totalMaterials, 2);
-      expect(
-        group.sections
-            .expand((s) => s.materials)
-            .every((m) => m.louvor.source == LouvorDataSource.plpcg),
-        isTrue,
-      );
-    });
-
-    test('não conhece cifra nem áudio Coldigom', () async {
-      final source = _plpcgSource();
-
-      expect(await source.materialById(_coldigomChordId), isNull);
-      expect(await source.materialById(_coldigomAudioId), isNull);
-    });
-  });
-
   group('ColdigomCatalogSource', () {
     test('materialById resolve pdf, cifra e áudio pelo cache', () async {
       final source = _coldigomSource();
@@ -372,236 +203,7 @@ void main() {
     });
   });
 
-  group('CompositeCatalogSource', () {
-    CompositeCatalogSource composite() => CompositeCatalogSource(
-      plpcg: _plpcgSource(),
-      coldigom: _coldigomSource(),
-    );
-
-    test('materialById despacha pelo espaço de ids', () async {
-      final source = composite();
-
-      final plpcg = await source.materialById(_plpcgPdfId);
-      expect(plpcg, isA<PdfMaterial>());
-      expect((plpcg! as PdfMaterial).louvor.source, LouvorDataSource.plpcg);
-
-      final chord = await source.materialById(_coldigomChordId);
-      expect(chord, isA<ChordMaterialRef>());
-    });
-
-    test('groupForMaterial não mistura PLPCG e Coldigom', () async {
-      final source = composite();
-
-      final plpcgGroup = await source.groupForMaterial(_plpcgPdfId);
-      expect(
-        plpcgGroup!.sections
-            .expand((s) => s.materials)
-            .every((m) => m.louvor.source == LouvorDataSource.plpcg),
-        isTrue,
-      );
-
-      final coldigomGroup = await source.groupForMaterial(_coldigomPdfId);
-      expect(coldigomGroup!.groupId, 'p1');
-      expect(
-        coldigomGroup.sections
-            .expand((s) => s.materials)
-            .every((m) => m.louvor.source == LouvorDataSource.coldigom),
-        isTrue,
-      );
-    });
-
-    test('groupById tenta o manifest e cai no cache Coldigom', () async {
-      final source = composite();
-
-      expect((await source.groupById(_plpcgGroupId))!.totalPdfs, 2);
-      expect((await source.groupById('p1'))!.groupId, 'p1');
-      expect(await source.groupById('desconhecido'), isNull);
-    });
-  });
-
-  group('CompositeCatalogSource — fusão por praise', () {
-    test(
-      'groupById de praise do manifest funde PDFs legados, extras e áudio',
-      () async {
-        final group = await _fusedComposite().groupById(_fusedPraiseId);
-
-        expect(group, isNotNull);
-        expect(group!.groupId, _fusedPraiseId);
-        final pdfIds = group.flatPdfMaterials.map((m) => m.pdfId).toList();
-        expect(
-          pdfIds,
-          containsAll([
-            _fusedPartitura.pdfId,
-            _fusedCifra.pdfId,
-            _fusedExtraPdfId,
-          ]),
-        );
-        expect(
-          pdfIds,
-          isNot(contains(_fusedPartituraColdigomId)),
-          reason: 'PDF coberto pelo manifest aparece uma vez, pelo id legado',
-        );
-        expect(group.audioTracks.single.audioId, _fusedAudioId);
-        expect(group.totalPdfs, 3);
-      },
-    );
-
-    test('groupForMaterial resolve legado, alias Coldigom e extra para o mesmo grupo', () async {
-      final source = _fusedComposite();
-
-      final byLegacy = await source.groupForMaterial(_fusedPartitura.pdfId);
-      final byAlias = await source.groupForMaterial(_fusedPartituraColdigomId);
-      final byExtra = await source.groupForMaterial(_fusedExtraPdfId);
-      final byAudio = await source.groupForMaterial(_fusedAudioId);
-
-      for (final group in [byLegacy, byAlias, byExtra, byAudio]) {
-        expect(group?.groupId, _fusedPraiseId);
-        expect(group?.totalPdfs, 3);
-      }
-    });
-
-    test('materialById: cache Coldigom primeiro, alias sem cache', () async {
-      final quente = await _fusedComposite().materialById(
-        _fusedPartituraColdigomId,
-      );
-      expect((quente! as PdfMaterial).louvor.source, LouvorDataSource.coldigom);
-
-      final frio = CompositeCatalogSource(
-        plpcg: PlpcgCatalogSource(catalog: _fusedManifest),
-        coldigom: const ColdigomCatalogSource(),
-        aliases: ManifestMaterialAliases.fromLouvores(_fusedManifest),
-      );
-      final material = await frio.materialById(_fusedPartituraColdigomId);
-      expect(material, isA<PdfMaterial>());
-      expect((material! as PdfMaterial).louvor.pdfId, _fusedPartitura.pdfId);
-      expect(await frio.groupForMaterial(_fusedPartituraColdigomId), isNotNull);
-    });
-
-    test('praise fora do manifest continua a vir do cache Coldigom', () async {
-      final group = await _fusedComposite().groupById('p1');
-      expect(group!.groupId, 'p1');
-      expect(group.chordMaterials.single.chordId, _coldigomChordId);
-    });
-
-    test('pré-sync (sem praiseId) cai no comportamento antigo', () async {
-      final source = CompositeCatalogSource(
-        plpcg: _plpcgSource(),
-        coldigom: _coldigomSource(),
-      );
-      expect((await source.groupById(_plpcgGroupId))!.totalPdfs, 2);
-      expect(
-        (await source.groupForMaterial(_plpcgPdfId))!.groupId,
-        _plpcgGroupId,
-      );
-    });
-
-    test(
-      'searchLocal mantém a ordem PLPCG e filtra grupos Coldigom cobertos',
-      () {
-        final plpcgGroups = LouvorGroup.fromLouvores([
-          _fusedPartitura,
-          _fusedCifra,
-        ]);
-        final coldigomGroups = [
-          ...LouvorGroup.fromLouvores([_fusedExtraPdf]), // coberto: cai
-          ...LouvorGroup.fromLouvores([_coldigomPdf]), // p1: fica
-        ];
-
-        final merged = mergeLocalSearchResults(
-          plpcg: plpcgGroups,
-          coldigom: coldigomGroups,
-          manifestPraiseIds: {_fusedPraiseId},
-        );
-
-        expect(merged.map((g) => g.groupId).toList(), [_fusedPraiseId, 'p1']);
-      },
-    );
-
-    test(
-      'search substitui grupo remoto de praise do manifest pelo fundido',
-      () async {
-        final remoteGroup = LouvorGroup.fromLouvores(
-          [_fusedCoveredPdf, _fusedExtraPdf],
-          audioTracks: [_fusedTrack],
-        ).single;
-        final repository = _RecordingSearchRepository(
-          ColdigomSearchResult(
-            groups: [
-              remoteGroup,
-              ...LouvorGroup.fromLouvores([_coldigomPdf]),
-            ],
-            louvores: const [],
-            page: 1,
-            hasNextPage: false,
-          ),
-        );
-
-        final page = await _fusedComposite(searchRepository: repository)
-            .search(_query('firme'));
-
-        expect(page.groups, hasLength(2));
-        final fused = page.groups.first;
-        expect(fused.groupId, _fusedPraiseId);
-        expect(
-          fused.totalPdfs,
-          3,
-          reason: '2 legados + 1 extra, sem o coberto',
-        );
-        expect(fused.audioTracks.single.audioId, _fusedAudioId);
-        expect(page.groups.last.groupId, 'p1');
-      },
-    );
-
-    test('search mantém o grupo remoto quando a fusão fica sem PDF', () async {
-      // Praise coberto pelo alias mas sem PDF no manifest desta instância e
-      // com o único PDF remoto coberto: `fromLouvores([])` não tem `.first`.
-      final remoteGroup = LouvorGroup.fromLouvores(
-        [_fusedCoveredPdf],
-        audioTracks: [_fusedTrack],
-      ).single;
-      final repository = _RecordingSearchRepository(
-        ColdigomSearchResult(
-          groups: [remoteGroup],
-          louvores: const [],
-          page: 1,
-          hasNextPage: false,
-        ),
-      );
-      final composite = CompositeCatalogSource(
-        plpcg: PlpcgCatalogSource(
-          catalog: const [],
-          index: PlpcgSearchIndex.build(const []),
-        ),
-        coldigom: ColdigomCatalogSource(searchRepository: repository),
-        aliases: ManifestMaterialAliases.fromLouvores(_fusedManifest),
-      );
-
-      final page = await composite.search(_query('firme'));
-
-      expect(page.groups.single, same(remoteGroup));
-    });
-  });
-
   group('searchLocal / search', () {
-    test('PlpcgCatalogSource.searchLocal roda o pipeline do índice', () {
-      final groups = _plpcgSource().searchLocal(_query('Grande Deus'));
-
-      expect(groups, hasLength(1));
-      expect(groups.first.totalMaterials, 2);
-    });
-
-    test('PlpcgCatalogSource.search não toca rede: página vazia', () async {
-      final page = await _plpcgSource().search(_query('Grande Deus'));
-
-      expect(page.groups, isEmpty);
-      expect(page.page, 1);
-      expect(page.hasNextPage, isFalse);
-    });
-
-    test('PlpcgCatalogSource sem índice devolve busca local vazia', () {
-      expect(const PlpcgCatalogSource().searchLocal(_query('x')), isEmpty);
-    });
-
     test('ColdigomCatalogSource.searchLocal é vazio sem índice', () {
       expect(_coldigomSource().searchLocal(_query('Comigo')), isEmpty);
     });
@@ -633,61 +235,6 @@ void main() {
 
         expect(repo.calls, 0);
         expect(page.groups, isEmpty);
-      },
-    );
-
-    test(
-      'CompositeCatalogSource: searchLocal PLPCG, search Coldigom',
-      () async {
-        final repo = _RecordingSearchRepository(_searchResult());
-        final source = CompositeCatalogSource(
-          plpcg: _plpcgSource(),
-          coldigom: _coldigomSource(searchRepository: repo),
-        );
-
-        final local = source.searchLocal(_query('Grande Deus'));
-        expect(local, hasLength(1));
-        expect(local.first.groupId, _plpcgGroupId);
-
-        final page = await source.search(_query('Comigo'));
-        expect(repo.calls, 1);
-        expect(page.groups.single.groupId, 'p1');
-      },
-    );
-
-    test(
-      'CompositeCatalogSource.searchLocal concatena PLPCG e Coldigom (O16)',
-      () {
-        final plpcg = PlpcgCatalogSource(
-          catalog: [_plpcgPartitura],
-          index: PlpcgSearchIndex.build([_plpcgPartitura]),
-        );
-        final coldigomGroup = LouvorGroup(
-          groupId: 'p1',
-          numero: '001',
-          nome: 'Grande Deus',
-          sections: const [],
-          chordMaterials: [_coldigomChord],
-        );
-        final coldigom = ColdigomCatalogSource(
-          index: ColdigomSearchIndex.build([
-            ColdigomIndexedPraise.build(
-              praiseId: 'p1',
-              numero: '001',
-              nome: 'Grande Deus',
-              searchTokens: 'grande deus 001',
-              group: coldigomGroup,
-            ),
-          ]),
-        );
-        final composite = CompositeCatalogSource(
-          plpcg: plpcg,
-          coldigom: coldigom,
-        );
-
-        final hits = composite.searchLocal(const CatalogQuery(text: 'grande'));
-
-        expect(hits.map((g) => g.groupId), [_plpcgGroupId, 'p1']);
       },
     );
   });

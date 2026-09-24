@@ -1,12 +1,9 @@
-import '../entities/louvor.dart';
-
 /// Classificação/arranjo do manifesto (`ColAdultos (Especial)`) → rótulos.
 ///
 /// Serve à exibição — o nome das secções de material ([materialSectionLabel])
-/// e o chip do carrossel — e ao manifesto ([collectAvailableArranjos]). Os
-/// filtros do catálogo já não usam classificação nem arranjo: são tom, ritmo,
-/// categoria, tags e tipo de material, do índice Coldigom (spec fim-fonte
-/// §2.2).
+/// e o chip do carrossel. Os filtros do catálogo já não usam classificação
+/// nem arranjo: são tom, ritmo, categoria, tags e tipo de material, do índice
+/// Coldigom (spec fim-fonte §2.2).
 abstract final class LouvorClassification {
   /// Rótulo quando [classificacao] não contém parênteses (UC-03).
   static const String specialArrangementPadrao = 'Padrão';
@@ -33,12 +30,6 @@ abstract final class LouvorClassification {
     final base = classificacao.trim();
     if (base.startsWith('Coletânea ')) return base;
     return displayLabel(classificacao);
-  }
-
-  /// Classificações base únicas de [louvores] — alimenta
-  /// `LouvoresManifest.availableArranjos`.
-  static Set<String> collectAvailableArranjos(Iterable<Louvor> louvores) {
-    return louvores.map((l) => baseClassification(l.classificacao)).toSet();
   }
 
   /// Extrai classificação base antes de parênteses.

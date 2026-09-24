@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
@@ -23,14 +22,6 @@ Isar openOfflineTestIsar(Directory dir) {
     schemas: [OfflinePdfIndexSchema],
     directory: dir.path,
     name: 'offline_test_${DateTime.now().microsecondsSinceEpoch}',
-  );
-}
-
-Isar openOfflineCatalogTestIsar(Directory dir) {
-  return Isar.open(
-    schemas: [OfflinePdfIndexSchema, LouvorCacheSchema],
-    directory: dir.path,
-    name: 'offline_catalog_test_${DateTime.now().microsecondsSinceEpoch}',
   );
 }
 

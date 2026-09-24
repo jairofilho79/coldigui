@@ -143,7 +143,7 @@ CarouselItem _enrich(ActiveEntry entry, CatalogMaterialLookup lookup) {
   );
 }
 
-/// Fallback quando o id não está no manifest nem nos caches.
+/// Fallback quando o id não está no catálogo coldigom em memória.
 String fallbackCarouselNome(String materialId) {
   if (materialId.length <= 12) return materialId;
   return '${materialId.substring(0, 12)}…';
