@@ -5,15 +5,16 @@ import '../utils/catalog_tag_hierarchy.dart';
 /// Predicado único dos filtros do catálogo (spec fim-fonte §2.2) — usado
 /// pela /biblioteca, pela busca local e pelos «novos» da busca remota.
 ///
-/// - Tom, ritmo, categoria: o valor do praise (`coldigomMeta`, aparado) está
-///   no conjunto (OU).
+/// - Tom, ritmo: o valor do praise (`coldigomMeta`, aparado) está no
+///   conjunto (OU). A seção da Coletânea é tag (`Coletânea · <seção>`), não
+///   categoria (spec seções-coletânea §4.1).
 /// - Tags: alguma tag do praise é uma selecionada ou filha dela
 ///   ([catalogTagMatches]: `PES` apanha `PES · 9.2026`). Subtag selecionada
 ///   junto com o pai refina o pai ([catalogTagsRefined]).
 /// - Tipo de material: algum material do grupo (PDF de secção ou extra) tem
 ///   o `materialKindId` no conjunto.
 /// - Entre filtros, E; filtro vazio não restringe. Um grupo sem
-///   `coldigomMeta` só passa sem filtros de tom/ritmo/categoria/tags.
+///   `coldigomMeta` só passa sem filtros de tom/ritmo/tags.
 bool matchesCatalogFilters(LouvorGroup group, CatalogFilterState filters) {
   if (filters.isEmpty) return true;
   final meta = group.coldigomMeta;
@@ -23,10 +24,6 @@ bool matchesCatalogFilters(LouvorGroup group, CatalogFilterState filters) {
   }
   if (filters.rhythms.isNotEmpty &&
       (meta == null || !filters.rhythms.contains(meta.rhythm.trim()))) {
-    return false;
-  }
-  if (filters.categories.isNotEmpty &&
-      (meta == null || !filters.categories.contains(meta.category.trim()))) {
     return false;
   }
   if (filters.tags.isNotEmpty &&

@@ -27,8 +27,9 @@ abstract final class StorageKeys {
   /// Claro/escuro do leitor de cifras (`light` | `dark`).
   static const String chordReaderMode = 'chordReaderMode';
 
-  /// Filtros do catálogo (JSON v2: tom, ritmo, categoria, tags, tipos de
-  /// material) — C13, spec fim-fonte §2.2.
+  /// Filtros do catálogo (JSON v3: tom, ritmo, tags, tipos de material; a v2
+  /// com `categories` ainda é lida e convertida em tags) — C13, spec
+  /// fim-fonte §2.2 e seções-coletânea §4.2.
   static const String catalogFilters = 'catalogFilters';
 
   /// Itens por página da Biblioteca (UC-03) — C13.

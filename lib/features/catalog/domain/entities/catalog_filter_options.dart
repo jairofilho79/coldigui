@@ -29,7 +29,6 @@ class CatalogFilterOptions {
   const CatalogFilterOptions({
     this.tonalities = const [],
     this.rhythms = const [],
-    this.categories = const [],
     this.tags = const [],
     this.materialKinds = const [],
   });
@@ -39,14 +38,12 @@ class CatalogFilterOptions {
 
   final List<String> tonalities;
   final List<String> rhythms;
-  final List<String> categories;
   final List<String> tags;
   final List<CatalogKindOption> materialKinds;
 
   factory CatalogFilterOptions.fromGroups(Iterable<LouvorGroup> groups) {
     final tonalities = <String>{};
     final rhythms = <String>{};
-    final categories = <String>{};
     final tags = <String>{};
     final kindNames = <String, String>{};
 
@@ -55,7 +52,6 @@ class CatalogFilterOptions {
       if (meta != null) {
         _addValue(tonalities, meta.tonality);
         _addValue(rhythms, meta.rhythm);
-        _addValue(categories, meta.category);
         for (final raw in meta.tagNames) {
           final tag = raw.trim();
           if (tag.isEmpty) continue;
@@ -88,7 +84,6 @@ class CatalogFilterOptions {
     return CatalogFilterOptions(
       tonalities: _sorted(tonalities),
       rhythms: _sorted(rhythms),
-      categories: _sorted(categories),
       tags: _sorted(tags),
       materialKinds: List<CatalogKindOption>.unmodifiable(kinds),
     );

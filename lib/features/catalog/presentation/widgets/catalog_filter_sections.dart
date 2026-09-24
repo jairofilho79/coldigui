@@ -9,8 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef _ChipItem = ({String id, String name});
 
-/// Secções de chips dos filtros do catálogo (tom, ritmo, categoria, tags,
-/// tipo de material) — as mesmas na página inicial e na /biblioteca.
+/// Secções de chips dos filtros do catálogo (tom, ritmo, tags, tipo de
+/// material) — as mesmas na página inicial e na /biblioteca.
 ///
 /// As opções vêm do índice local ([catalogFilterOptionsProvider]); a seleção
 /// é [catalogFiltersProvider]. Secção sem opções não aparece. Um valor
@@ -43,12 +43,6 @@ class CatalogFilterSections extends ConsumerWidget {
         items: _withSelected(_named(options.rhythms), selected.rhythms),
         selectedIds: selected.rhythms,
         onToggle: notifier.toggleRhythm,
-      ),
-      _ChipSection(
-        title: l10n.coldigomFilterCategory,
-        items: _withSelected(_named(options.categories), selected.categories),
-        selectedIds: selected.categories,
-        onToggle: notifier.toggleCategory,
       ),
       _ChipSection(
         title: l10n.coldigomFilterTags,

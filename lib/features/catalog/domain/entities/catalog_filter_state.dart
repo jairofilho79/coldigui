@@ -1,3 +1,5 @@
+import '../utils/legacy_category_tags.dart';
+
 /// Filtros do catálogo — um conjunto só para a página inicial e a
 /// /biblioteca (spec fim-fonte §2.2, C5).
 ///
@@ -5,11 +7,14 @@
 /// restringe (`matchesCatalogFilters`). [tags] guarda **nomes** de tag;
 /// [materialKindIds], ids de `material_kind`. Os getters `*UrlValue` dão o
 /// CSV ordenado de cada conjunto (`null` quando vazio) para a URL (§2.5).
+///
+/// Não há filtro de categoria: a seção da Coletânea é a subtag
+/// `Coletânea · <seção>` (spec seções-coletânea §4). Links e prefs antigos
+/// com categoria são convertidos em tags na leitura ([legacyCategoryToTags]).
 class CatalogFilterState {
   const CatalogFilterState({
     this.tonalities = const {},
     this.rhythms = const {},
-    this.categories = const {},
     this.tags = const {},
     this.materialKindIds = const {},
   });
@@ -18,6 +23,10 @@ class CatalogFilterState {
   static const empty = CatalogFilterState();
 
   /// Estado a partir dos params da URL (CSV de cada filtro).
+  ///
+  /// [category] é o param legado `?category=`: cada valor vira a subtag de
+  /// `Coletânea` e soma-se a [tags]; valores sem seção (Avulsos…) são
+  /// descartados (spec seções-coletânea §4.2).
   factory CatalogFilterState.fromUrl({
     String? tonality,
     String? rhythm,
@@ -28,15 +37,13 @@ class CatalogFilterState {
     return CatalogFilterState(
       tonalities: parseCsv(tonality),
       rhythms: parseCsv(rhythm),
-      categories: parseCsv(category),
-      tags: parseCsv(tags),
+      tags: {...parseCsv(tags), ...legacyCategoryToTags(parseCsv(category))},
       materialKindIds: parseCsv(materialKinds),
     );
   }
 
   final Set<String> tonalities;
   final Set<String> rhythms;
-  final Set<String> categories;
 
   /// Nomes de tag; `PES` também apanha `PES · 9.2026`.
   final Set<String> tags;
@@ -47,30 +54,23 @@ class CatalogFilterState {
   bool get isEmpty =>
       tonalities.isEmpty &&
       rhythms.isEmpty &&
-      categories.isEmpty &&
       tags.isEmpty &&
       materialKindIds.isEmpty;
 
   /// Quantos valores estão escolhidos, somando todos os filtros — a
   /// contagem do cabeçalho do painel (`filtersActiveCount`).
   int get activeCount =>
-      tonalities.length +
-      rhythms.length +
-      categories.length +
-      tags.length +
-      materialKindIds.length;
+      tonalities.length + rhythms.length + tags.length + materialKindIds.length;
 
   CatalogFilterState copyWith({
     Set<String>? tonalities,
     Set<String>? rhythms,
-    Set<String>? categories,
     Set<String>? tags,
     Set<String>? materialKindIds,
   }) {
     return CatalogFilterState(
       tonalities: tonalities ?? this.tonalities,
       rhythms: rhythms ?? this.rhythms,
-      categories: categories ?? this.categories,
       tags: tags ?? this.tags,
       materialKindIds: materialKindIds ?? this.materialKindIds,
     );
@@ -78,26 +78,30 @@ class CatalogFilterState {
 
   String? get tonalityUrlValue => _csvOrNull(tonalities);
   String? get rhythmUrlValue => _csvOrNull(rhythms);
-  String? get categoryUrlValue => _csvOrNull(categories);
   String? get tagsUrlValue => _csvOrNull(tags);
   String? get materialKindsUrlValue => _csvOrNull(materialKindIds);
 
-  /// Versão do JSON gravado em `StorageKeys.catalogFilters`.
-  static const persistedVersion = 2;
+  /// Versão do JSON gravado em `StorageKeys.catalogFilters`. A v3 não tem
+  /// `categories`; a v2 (com `categories`) continua a ser lida
+  /// ([_readableVersions]) e convertida em tags.
+  static const persistedVersion = 3;
+
+  static const _readableVersions = {2, persistedVersion};
 
   Map<String, Object> toPersistedJson() => {
     'v': persistedVersion,
     'tonalities': _sorted(tonalities),
     'rhythms': _sorted(rhythms),
-    'categories': _sorted(categories),
     'tags': _sorted(tags),
     'materialKinds': _sorted(materialKindIds),
   };
 
-  /// `null` quando [json] não é o formato [persistedVersion] — inclusive o
-  /// antigo `{materials, arranjos}`, que é descartado (spec §2.2).
+  /// `null` quando [json] não é uma versão legível — inclusive o antigo
+  /// `{materials, arranjos}`, que é descartado (spec fim-fonte §2.2). A chave
+  /// `categories` (v2) vira subtags de `Coletânea` somadas a [tags] (spec
+  /// seções-coletânea §4.2).
   static CatalogFilterState? fromPersistedJson(Object? json) {
-    if (json is! Map || json['v'] != persistedVersion) return null;
+    if (json is! Map || !_readableVersions.contains(json['v'])) return null;
     Set<String> read(String key) {
       final raw = json[key];
       if (raw is! List) return <String>{};
@@ -110,8 +114,7 @@ class CatalogFilterState {
     return CatalogFilterState(
       tonalities: read('tonalities'),
       rhythms: read('rhythms'),
-      categories: read('categories'),
-      tags: read('tags'),
+      tags: {...read('tags'), ...legacyCategoryToTags(read('categories'))},
       materialKindIds: read('materialKinds'),
     );
   }
@@ -140,7 +143,6 @@ class CatalogFilterState {
       other is CatalogFilterState &&
           _sameSet(tonalities, other.tonalities) &&
           _sameSet(rhythms, other.rhythms) &&
-          _sameSet(categories, other.categories) &&
           _sameSet(tags, other.tags) &&
           _sameSet(materialKindIds, other.materialKindIds);
 
@@ -148,7 +150,6 @@ class CatalogFilterState {
   int get hashCode => Object.hash(
     Object.hashAllUnordered(tonalities),
     Object.hashAllUnordered(rhythms),
-    Object.hashAllUnordered(categories),
     Object.hashAllUnordered(tags),
     Object.hashAllUnordered(materialKindIds),
   );
@@ -156,5 +157,5 @@ class CatalogFilterState {
   @override
   String toString() =>
       'CatalogFilterState(tom: $tonalities, ritmo: $rhythms, '
-      'categoria: $categories, tags: $tags, tipos: $materialKindIds)';
+      'tags: $tags, tipos: $materialKindIds)';
 }

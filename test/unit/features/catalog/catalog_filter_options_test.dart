@@ -81,14 +81,15 @@ void main() {
     ];
     final options = CatalogFilterOptions.fromGroups(groups);
 
-    test(
-      'tom, ritmo e categoria: valores com praise, aparados, sem vazios',
-      () {
-        expect(options.tonalities, ['Dm', 'G']);
-        expect(options.rhythms, ['Fox']);
-        expect(options.categories, ['Adoração', 'Clamor']);
-      },
-    );
+    test('tom e ritmo: valores com praise, aparados, sem vazios', () {
+      expect(options.tonalities, ['Dm', 'G']);
+      expect(options.rhythms, ['Fox']);
+    });
+
+    test('a categoria do praise não vira opção em lugar nenhum', () {
+      expect(options.tags, isNot(contains('Clamor')));
+      expect(options.tags, isNot(contains('Adoração')));
+    });
 
     test(
       'tags como estão (M5), com os ancestrais, sem acento/caixa na ordem',

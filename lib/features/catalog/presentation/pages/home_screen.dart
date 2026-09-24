@@ -24,7 +24,7 @@ import 'package:go_router/go_router.dart';
 /// UC-01, UC-02 — página inicial / Pesquisador.
 ///
 /// Busca com debounce 300ms no índice local do catálogo, filtros do catálogo
-/// (tom, ritmo, categoria, tags, tipo de material — os mesmos da
+/// (tom, ritmo, tags, tipo de material — os mesmos da
 /// /biblioteca), resultados como [LouvorGroupCard] e sync URL (`pesquisa=` +
 /// params de filtro, spec fim-fonte §2.5). Enquanto o índice está vazio
 /// mostra carregamento; vazio com o sync falhado mostra `catalogLoadError` +
@@ -49,7 +49,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   final String initialSearchQuery;
 
   /// CSVs iniciais dos filtros do catálogo (`?tonality=`, `?rhythm=`,
-  /// `?category=`, `?tags=` por nome, `?materialKinds=` por id de kind).
+  /// `?tags=` por nome, `?materialKinds=` por id de kind). `?category=` é
+  /// legado: vira subtag de `Coletânea` na hidratação.
   final String? initialTonality;
   final String? initialRhythm;
   final String? initialCategory;
@@ -191,7 +192,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       pesquisa: pesquisa,
       tonality: filters.tonalityUrlValue,
       rhythm: filters.rhythmUrlValue,
-      category: filters.categoryUrlValue,
       tags: filters.tagsUrlValue,
       materialKinds: filters.materialKindsUrlValue,
     );

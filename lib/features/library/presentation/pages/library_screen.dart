@@ -169,7 +169,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final target = buildLibraryLocation(
       tonality: filters.tonalityUrlValue,
       rhythm: filters.rhythmUrlValue,
-      category: filters.categoryUrlValue,
       tags: filters.tagsUrlValue,
       materialKinds: filters.materialKindsUrlValue,
       ordenar: view.ordenarUrlValue ?? view.sortBy,
