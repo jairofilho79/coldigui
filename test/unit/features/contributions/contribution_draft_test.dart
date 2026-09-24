@@ -168,4 +168,11 @@ void main() {
       );
     });
   });
+
+  test('MetadataField: wireNames sem category (a seção virou tag)', () {
+    expect(
+      [for (final f in MetadataField.values) f.name],
+      ['title', 'number', 'author', 'tonality', 'rhythm', 'tags'],
+    );
+  });
 }

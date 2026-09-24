@@ -155,9 +155,7 @@ class MetadataFields extends ConsumerWidget {
       MetadataField.tonality => meta.tonality,
       MetadataField.author => meta.author,
       MetadataField.rhythm => meta.rhythm,
-      MetadataField.number ||
-      MetadataField.category ||
-      MetadataField.tags => null,
+      MetadataField.number || MetadataField.tags => null,
     };
   }
 }

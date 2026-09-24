@@ -21,6 +21,5 @@ String metadataFieldLabel(AppLocalizations l10n, MetadataField field) =>
       MetadataField.author => l10n.contributeMetadataAuthor,
       MetadataField.tonality => l10n.contributeMetadataTonality,
       MetadataField.rhythm => l10n.contributeMetadataRhythm,
-      MetadataField.category => l10n.contributeMetadataCategory,
       MetadataField.tags => l10n.contributeMetadataTags,
     };

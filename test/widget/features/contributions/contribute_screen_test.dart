@@ -386,4 +386,37 @@ void main() {
       expect(find.text('Dm'), findsOneWidget);
     },
   );
+
+  testWidgets('metadata: o campo não oferece «Categoria»', (tester) async {
+    await pumpApp(
+      tester,
+      const ContributeScreen(
+        target: ContributionTarget(
+          source: ContributionSource.coldigom,
+          praiseId: 'p1',
+        ),
+      ),
+      overrides: [
+        ..._logged(),
+        coldigomPraiseMetaCacheProvider.overrideWith(
+          () => _FakePraiseMetaNotifier({
+            'p1': const ColdigomPraiseMetadata(
+              name: 'Nome',
+              category: 'Clamor',
+            ),
+          }),
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Título, número, tom…'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('contribute-metadata-field')));
+    await tester.pumpAndSettle();
+
+    for (final label in ['Título', 'Número', 'Autor', 'Tom', 'Ritmo', 'Tags']) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
+    expect(find.text('Categoria'), findsNothing);
+  });
 }

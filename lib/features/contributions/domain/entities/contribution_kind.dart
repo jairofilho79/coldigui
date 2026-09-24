@@ -45,7 +45,11 @@ List<ContributionSubkind> subkindsOf(ContributionKind kind) => [
 
 /// Campo de metadado alvo de um `wrong_info/metadata` — o nome do enum já é
 /// o `wireName` esperado pelo servidor.
-enum MetadataField { title, number, author, tonality, rhythm, category, tags }
+///
+/// Sem `category`: a seção da Coletânea virou tag (spec seções-coletânea
+/// §4.1). Contribuições antigas com `field: category` não casam com nenhum
+/// valor e o detalhe omite a linha, como com qualquer campo desconhecido.
+enum MetadataField { title, number, author, tonality, rhythm, tags }
 
 enum ContributionSource {
   coldigom('coldigom'),
