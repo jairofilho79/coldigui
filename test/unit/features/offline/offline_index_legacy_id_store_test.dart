@@ -27,6 +27,7 @@ void main() {
   late OfflinePdfRepositoryImpl repository;
   var lockFree = true;
   var unlocks = 0;
+  var indexChanges = 0;
 
   OfflineIndexLegacyIdStore store() => OfflineIndexLegacyIdStore(
     repository,
@@ -47,6 +48,7 @@ void main() {
   setUp(() async {
     lockFree = true;
     unlocks = 0;
+    indexChanges = 0;
     tempDir = await Directory.systemTemp.createTemp('legacy_offline_');
     final docsDir = Directory('${tempDir.path}/docs')
       ..createSync(recursive: true);
@@ -55,7 +57,10 @@ void main() {
       store: pdfStoragePortFor(
         PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
       ),
-      local: OfflinePdfLocalDatasource(isar),
+      local: OfflinePdfLocalDatasource(
+        isar,
+        onIndexChanged: () => indexChanges++,
+      ),
     );
   });
 
@@ -133,6 +138,20 @@ void main() {
       expect(File(path).existsSync(), isTrue);
     },
   );
+
+  test('resolvidos e desconhecidos: uma escrita só no índice', () async {
+    await seed(_legadoA);
+    await seed(_desconhecido);
+    await seed(_coldigomB);
+    indexChanges = 0;
+
+    expect(await store().rewrite(_resolution()), 2);
+
+    expect(indexChanges, 1);
+    expect(await repository.findIndexEntry(_coldigomA), isNotNull);
+    expect(await repository.findIndexEntry(_desconhecido), isNull);
+    expect(await repository.findIndexEntry(_coldigomB), isNotNull);
+  });
 
   test('manutenção ocupada: não mexe e não liberta o lock alheio', () async {
     await seed(_legadoA);

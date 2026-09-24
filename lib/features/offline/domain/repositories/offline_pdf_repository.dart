@@ -51,12 +51,19 @@ abstract class OfflinePdfRepository {
   /// ~1700×). Idempotente se algum `pdfId` ausente.
   Future<void> removeMany(Set<String> pdfIds);
 
-  /// Reindexa [fromPdfId] como [toPdfId] sem mover o arquivo no disco.
+  /// Reindexa cada chave de [fromTo] como o seu valor, sem mover arquivos no
+  /// disco, e tira [remove] do índice — tudo numa escrita só, com **um**
+  /// aviso a quem deriva estado do índice (a troca de ids legados de um
+  /// índice com milhares de PDFs; spec fim-fonte-plpcg §6.2).
   ///
-  /// Idempotente se [fromPdfId] ausente. Se [toPdfId] já está indexado, a
-  /// linha de [fromPdfId] sai e a de [toPdfId] fica — persistente se qualquer
-  /// das duas era.
-  Future<void> remapPdfId({required String fromPdfId, required String toPdfId});
+  /// Chave ausente é ignorada. Se o destino já está indexado (ou outra chave
+  /// do lote já foi para ele), a linha de origem sai e a do destino fica —
+  /// persistente se qualquer das duas era. Devolve quantas linhas de origem
+  /// mudaram ou saíram.
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  });
 
   /// Resolve [pdfId] a partir do path absoluto no índice Isar, ou `null`.
   Future<String?> findPdfIdByAbsolutePath(String absolutePath);

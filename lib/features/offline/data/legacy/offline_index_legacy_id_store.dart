@@ -6,11 +6,11 @@ import '../../domain/repositories/offline_pdf_repository.dart';
 
 /// `OfflinePdfIndex` (spec 2026-09-23 §6.2).
 ///
-/// Resolvido → [OfflinePdfRepository.remapPdfId]: o ficheiro fica onde está e
-/// só a chave muda (se o id coldigom já estava indexado, a linha legada sai e
-/// a que fica herda `isPersistent` dela).
-/// Desconhecido → a linha sai; o ficheiro órfão é limpo pelo reconcile
-/// (`listOrphans`). Reescreve sob o lock de manutenção: com outro dono (um
+/// Resolvido → o ficheiro fica onde está e só a chave muda (se o id coldigom
+/// já estava indexado, a linha legada sai e a que fica herda `isPersistent`
+/// dela). Desconhecido → a linha sai; o ficheiro órfão é limpo pelo reconcile
+/// (`listOrphans`). Tudo numa só [OfflinePdfRepository.remapPdfIds]: uma
+/// escrita e um aviso ao índice, mesmo com milhares de PDFs legados. Reescreve sob o lock de manutenção: com outro dono (um
 /// download, o reconcile) não mexe, e a próxima rodada tenta de novo.
 class OfflineIndexLegacyIdStore implements LegacyIdStore {
   const OfflineIndexLegacyIdStore(
@@ -40,22 +40,18 @@ class OfflineIndexLegacyIdStore implements LegacyIdStore {
       return 0;
     }
     try {
-      var changed = 0;
+      final remap = <String, String>{};
       final unknown = <String>{};
       for (final entry in await _repository.listAll()) {
         final id = entry.pdfId;
         final mapped = resolution.resolved[id];
         if (mapped != null) {
-          await _repository.remapPdfId(fromPdfId: id, toPdfId: mapped);
-          changed++;
+          remap[id] = mapped;
         } else if (resolution.isUnknown(id)) {
           unknown.add(id);
         }
       }
-      if (unknown.isNotEmpty) {
-        changed += await _repository.removeIndexEntries(unknown);
-      }
-      return changed;
+      return await _repository.remapPdfIds(remap, remove: unknown);
     } finally {
       _unlock();
     }

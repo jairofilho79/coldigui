@@ -715,4 +715,169 @@ void main() {
       expect(await local.markPersistent({lru1}), 0);
     },
   );
+
+  group('remapPdfIds (ids legados → coldigom, spec fim-fonte-plpcg §6.2)', () {
+    late int indexChanges;
+    late OfflinePdfRepositoryImpl tracked;
+
+    OfflinePdfIndex row(String pdfId, {bool persistent = true}) =>
+        OfflinePdfIndex()
+          ..pdfId = pdfId
+          ..storagePath = '${docsDir.path}/$pdfId.pdf'
+          ..category = category
+          ..fileSize = 4
+          ..downloadedAt = DateTime.utc(2026, 9, 1)
+          ..isPersistent = persistent;
+
+    Future<OfflinePdfIndex?> find(String pdfId) => local.findByPdfId(pdfId);
+
+    setUp(() {
+      indexChanges = 0;
+      tracked = OfflinePdfRepositoryImpl(
+        store: pdfStoragePortFor(store),
+        local: OfflinePdfLocalDatasource(
+          isar,
+          onIndexChanged: () => indexChanges++,
+        ),
+      );
+    });
+
+    test('milhares de linhas numa escrita só: um aviso ao índice', () async {
+      const total = 3000;
+      String legacy(int i) => _encodePdfId('ColAdultos/${i + 1}.pdf');
+      String coldigom(int i) => _encodePdfId('assets/praises/p$i/m$i.pdf');
+      await local.putAllByPdfId([
+        for (var i = 0; i < total; i++) row(legacy(i)),
+      ]);
+
+      final changed = await tracked.remapPdfIds({
+        for (var i = 0; i < total; i++) legacy(i): coldigom(i),
+      });
+
+      expect(changed, total);
+      expect(indexChanges, 1);
+      expect(isar.offlinePdfIndexs.where().count(), total);
+      expect(await find(legacy(0)), isNull);
+      final last = await find(coldigom(total - 1));
+      expect(last?.storagePath, '${docsDir.path}/${legacy(total - 1)}.pdf');
+      expect(last?.isPersistent, isTrue);
+    });
+
+    test('resolvido: a chave muda e o resto da linha fica', () async {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      final original = row(legacy, persistent: false)
+        ..lastAccessedAt = DateTime.utc(2026, 9, 10);
+      await local.put(original);
+
+      expect(await tracked.remapPdfIds({legacy: coldigom}), 1);
+
+      expect(await find(legacy), isNull);
+      final remapped = await find(coldigom);
+      expect(remapped?.storagePath, original.storagePath);
+      expect(remapped?.category, original.category);
+      expect(remapped?.fileSize, original.fileSize);
+      expect(remapped?.downloadedAt.toUtc(), original.downloadedAt);
+      expect(remapped?.lastAccessedAt?.toUtc(), DateTime.utc(2026, 9, 10));
+      expect(remapped?.isPersistent, isFalse);
+    });
+
+    group('colisão (o id coldigom já está indexado)', () {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+
+      Future<OfflinePdfIndex?> collide({
+        required bool legacyPersistent,
+        required bool coldigomPersistent,
+      }) async {
+        await local.putAllByPdfId([
+          row(legacy, persistent: legacyPersistent),
+          row(coldigom, persistent: coldigomPersistent),
+        ]);
+        expect(await tracked.remapPdfIds({legacy: coldigom}), 1);
+        expect(indexChanges, 1);
+        expect(await find(legacy), isNull);
+        expect(isar.offlinePdfIndexs.where().count(), 1);
+        return find(coldigom);
+      }
+
+      test('a linha legada sai e a coldigom fica com o seu ficheiro', () async {
+        final kept = await collide(
+          legacyPersistent: false,
+          coldigomPersistent: true,
+        );
+        expect(kept?.storagePath, '${docsDir.path}/$coldigom.pdf');
+        expect(kept?.isPersistent, isTrue);
+      });
+
+      test('a que fica é persistente se a legada era', () async {
+        final kept = await collide(
+          legacyPersistent: true,
+          coldigomPersistent: false,
+        );
+        expect(kept?.isPersistent, isTrue);
+      });
+
+      test('duas linhas só de cache continuam só de cache', () async {
+        final kept = await collide(
+          legacyPersistent: false,
+          coldigomPersistent: false,
+        );
+        expect(kept?.isPersistent, isFalse);
+      });
+    });
+
+    test('dois legados para o mesmo id coldigom: fica uma linha', () async {
+      final a = _encodePdfId('ColAdultos/001.pdf');
+      final b = _encodePdfId('ColAdultos/002.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.putAllByPdfId([
+        row(a, persistent: false),
+        row(b, persistent: true),
+      ]);
+
+      expect(await tracked.remapPdfIds({a: coldigom, b: coldigom}), 2);
+
+      expect(indexChanges, 1);
+      expect(isar.offlinePdfIndexs.where().count(), 1);
+      expect((await find(coldigom))?.isPersistent, isTrue);
+    });
+
+    test('remove sai na mesma escrita (um aviso só)', () async {
+      final legacy = _encodePdfId('ColAdultos/001.pdf');
+      final unknown = _encodePdfId('ColAdultos/999.pdf');
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.putAllByPdfId([row(legacy), row(unknown)]);
+
+      final changed = await tracked.remapPdfIds(
+        {legacy: coldigom},
+        remove: {unknown},
+      );
+
+      expect(changed, 2);
+      expect(indexChanges, 1);
+      expect(await find(unknown), isNull);
+      expect(await find(coldigom), isNotNull);
+    });
+
+    test('nada a mudar: sem escrita e sem aviso', () async {
+      final coldigom = _encodePdfId('assets/praises/p1/m1.pdf');
+      await local.put(row(coldigom));
+
+      expect(
+        await tracked.remapPdfIds(
+          {
+            _encodePdfId('ColAdultos/ausente.pdf'): coldigom,
+            coldigom: coldigom,
+          },
+          remove: {_encodePdfId('ColAdultos/ausente-2.pdf')},
+        ),
+        0,
+      );
+      expect(await tracked.remapPdfIds(const {}), 0);
+
+      expect(indexChanges, 0);
+      expect(await find(coldigom), isNotNull);
+    });
+  });
 }

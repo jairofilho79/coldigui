@@ -48,10 +48,10 @@ class _FakeOfflinePdfRepository implements OfflinePdfRepository {
   Future<void> removeMany(Set<String> pdfIds) async {}
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
-  }) async {}
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async => 0;
 
   @override
   Future<String?> findPdfIdByAbsolutePath(String absolutePath) async => null;

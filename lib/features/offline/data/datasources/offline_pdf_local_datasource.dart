@@ -241,6 +241,59 @@ class OfflinePdfLocalDatasource {
     return removed;
   }
 
+  /// Troca de chaves em lote — o `remapPdfIds` do repositório (spec
+  /// fim-fonte-plpcg §6.2).
+  ///
+  /// Uma transação e um [onIndexChanged] só, seja qual for o tamanho do lote:
+  /// a linha de origem ganha a chave nova (mesmo ficheiro, mesmo LRU); com o
+  /// destino já indexado ela sai e o destino herda `isPersistent`. As linhas
+  /// de [remove] saem na mesma transação. Lê o índice inteiro uma vez em vez
+  /// de um `anyOf` com milhares de ramos.
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async {
+    final pairs = {
+      for (final MapEntry(:key, :value) in fromTo.entries)
+        if (key != value) key: value,
+    };
+    if (pairs.isEmpty && remove.isEmpty) return 0;
+    final isar = _requireIsar('remapPdfIds');
+
+    var changed = 0;
+    await isar.write((isar) {
+      final coll = isar.offlinePdfIndexs;
+      final byPdfId = {
+        for (final row in coll.where().findAll()) row.pdfId: row,
+      };
+      for (final MapEntry(key: from, value: to) in pairs.entries) {
+        final source = byPdfId.remove(from);
+        if (source == null) continue;
+        final target = byPdfId[to];
+        if (target == null) {
+          source.pdfId = to;
+          coll.put(source);
+          byPdfId[to] = source;
+        } else {
+          // Um PDF «baixado» não vira candidato à eviction LRU por causa da
+          // troca de id.
+          if (source.isPersistent && !target.isPersistent) {
+            target.isPersistent = true;
+            coll.put(target);
+          }
+          coll.delete(source.id);
+        }
+        changed++;
+      }
+      for (final pdfId in remove) {
+        final row = byPdfId.remove(pdfId);
+        if (row != null && coll.delete(row.id)) changed++;
+      }
+    });
+    if (changed > 0) onIndexChanged?.call();
+    return changed;
+  }
+
   /// Isar obrigatório nas escritas — [StorageUnavailableException] se ausente.
   Isar _requireIsar(String operation) {
     final isar = _isar;

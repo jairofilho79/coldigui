@@ -161,39 +161,15 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
   }
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   }) async {
-    if (fromPdfId == toPdfId) return;
-
-    final fromIndex = await _local.findByPdfId(fromPdfId);
-    if (fromIndex == null) return;
-
-    final toIndex = await _local.findByPdfId(toPdfId);
-    if (toIndex != null) {
-      // A linha que fica herda a persistência da que sai: um PDF «baixado»
-      // não pode virar candidato à eviction LRU por causa da troca de id.
-      if (fromIndex.isPersistent && !toIndex.isPersistent) {
-        await _local.markPersistent({toPdfId});
-      }
-      await _local.deleteByPdfId(fromPdfId);
-      _pendingTouchAt.remove(fromPdfId);
-      return;
+    final changed = await _local.remapPdfIds(fromTo, remove: remove);
+    for (final pdfId in [...fromTo.keys, ...remove]) {
+      _pendingTouchAt.remove(pdfId);
     }
-
-    final remapped = OfflinePdfIndex()
-      ..pdfId = toPdfId
-      ..storagePath = fromIndex.storagePath
-      ..category = fromIndex.category
-      ..fileSize = fromIndex.fileSize
-      ..downloadedAt = fromIndex.downloadedAt
-      ..lastAccessedAt = fromIndex.lastAccessedAt
-      ..isPersistent = fromIndex.isPersistent;
-
-    await _local.put(remapped);
-    await _local.deleteByPdfId(fromPdfId);
-    _pendingTouchAt.remove(fromPdfId);
+    return changed;
   }
 
   @override

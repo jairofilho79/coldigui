@@ -109,9 +109,9 @@ class _UnusedRepository implements OfflinePdfRepository {
   Future<void> removeMany(Set<String> pdfIds) => throw UnimplementedError();
 
   @override
-  Future<void> remapPdfId({
-    required String fromPdfId,
-    required String toPdfId,
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
   }) => throw UnimplementedError();
 
   @override
