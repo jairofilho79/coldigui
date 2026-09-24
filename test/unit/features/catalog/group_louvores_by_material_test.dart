@@ -1,8 +1,11 @@
-import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/usecases/group_louvores_by_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// Valores de [Louvor.categoria] usados nos cenários.
+const _partitura = 'Partitura';
+const _cifraNivelI = 'Cifra nível I';
 
 Louvor _louvor({
   required String nome,
@@ -52,19 +55,19 @@ void main() {
       final louvores = [
         _louvor(
           nome: 'Cristo sente',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea CIAs',
           pdfId: 'p1',
         ),
         _louvor(
           nome: 'Cristo sente',
-          categoria: CatalogMaterials.cifraNivelI,
+          categoria: _cifraNivelI,
           classificacao: 'Coletânea CIAs',
           pdfId: 'c1',
         ),
         _louvor(
           nome: 'Cristo sente',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea CIAs (Evento X)',
           pdfId: 'p2',
         ),
@@ -81,14 +84,14 @@ void main() {
       final louvores = [
         _louvor(
           nome: 'Clama ó igreja',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea CIAs',
           pdfId: 'a',
           numero: '10',
         ),
         _louvor(
           nome: 'Vamos lavar as vestes',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea Adultos',
           pdfId: 'b',
           numero: '10',
@@ -102,14 +105,14 @@ void main() {
       final louvores = [
         _louvor(
           nome: 'Clamo a ti',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea CIAs',
           pdfId: 'a',
           numero: '003',
         ),
         _louvor(
           nome: 'Clamo a ti',
-          categoria: CatalogMaterials.cifraNivelI,
+          categoria: _cifraNivelI,
           classificacao: 'Coletânea CIAs',
           pdfId: 'b',
           numero: '3',
@@ -124,14 +127,14 @@ void main() {
       final louvores = [
         _louvor(
           nome: 'A Ti Senhor',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea',
           pdfId: 'top',
           numero: '500',
         ),
         _louvor(
           nome: 'Abraão',
-          categoria: CatalogMaterials.partitura,
+          categoria: _partitura,
           classificacao: 'Coletânea',
           pdfId: 'low',
           numero: '001',

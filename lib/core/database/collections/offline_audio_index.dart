@@ -7,7 +7,7 @@ part 'offline_audio_index.g.dart';
 ///
 /// Irmão de [OfflinePdfIndex], sem `isPersistent` nem `lastAccessedAt`: áudio
 /// só entra aqui por download explícito e nunca é evictado (não há LRU de
-/// áudio, §9) — sai só por «Remover baixados do Coldigom».
+/// áudio, §9) — sai só por «Remover todos os baixados» no `/offline`.
 @Collection()
 class OfflineAudioIndex {
   int id = 0;
