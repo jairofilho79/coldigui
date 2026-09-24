@@ -11,6 +11,7 @@ import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../catalog/domain/entities/catalog_material.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
@@ -192,6 +193,16 @@ final coldigomSearchIndexProvider = Provider<ColdigomSearchIndex>((ref) {
       ColdigomSearchIndex.empty;
 });
 
+/// Classes e famílias dos material kinds do último dump (spec filtro-materiais
+/// §4.1). Lê as prefs; [ColdigomCatalogSyncNotifier] invalida depois de um
+/// dump novo. Vazia antes do primeiro dump com taxonomia.
+final coldigomKindTaxonomyProvider = Provider<MaterialKindTaxonomy>((ref) {
+  return ref
+          .watch(coldigomCatalogSyncMetadataStoreProvider)
+          .readKindTaxonomy() ??
+      MaterialKindTaxonomy.empty;
+});
+
 /// Estado do sync do catálogo Coldigom — a linha «Catálogo: N louvores ·
 /// atualizado há …» do `/offline` lê daqui.
 class ColdigomCatalogSyncState {
@@ -344,6 +355,7 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
         lastSyncedAt: DateTime.now().toUtc(),
         count: result.count,
       );
+      ref.invalidate(coldigomKindTaxonomyProvider);
       return result;
     }
     if (inMemory) {
@@ -365,6 +377,7 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
       // O Isar mudou por baixo dos caches: re-hidrata (o índice novo troca
       // a lista local sem tocar em quem já leu `groupById`).
       ref.invalidate(coldigomCatalogHydrationProvider);
+      ref.invalidate(coldigomKindTaxonomyProvider);
     }
     return result;
   }

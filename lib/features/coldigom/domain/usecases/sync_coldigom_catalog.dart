@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/database/collections/coldigom_praise_cache.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../data/datasources/coldigom_catalog_local_datasource.dart';
 import '../../data/datasources/coldigom_catalog_sync_metadata_store.dart';
 import '../../data/datasources/coldigom_remote_datasource.dart';
@@ -76,7 +77,14 @@ class SyncColdigomCatalog {
       // sem nenhum `shortId`: foi gravado por um app que não lia o campo e
       // guardou o ETag do dump que já o trazia — com `If-None-Match` o
       // servidor responderia 304 para sempre e as linhas nunca o ganhariam.
-      final etag = !persist || _local.count() == 0 || !_local.hasAnyShortId()
+      // Idem sem taxonomia dos kinds gravada: o app anterior ao filtro por
+      // classes guardou o ETag de um dump que já a trazia (spec
+      // filtro-materiais §4.1).
+      final etag =
+          !persist ||
+              _local.count() == 0 ||
+              !_local.hasAnyShortId() ||
+              _metadata.readKindTaxonomy() == null
           ? null
           : _metadata.readEtag();
       final result = await _remote.fetchCatalog(ifNoneMatch: etag);
@@ -101,6 +109,9 @@ class SyncColdigomCatalog {
           if (rows.isEmpty) {
             return const ColdigomCatalogSyncFailed('dump vazio');
           }
+          await _metadata.writeKindTaxonomy(
+            catalog.kindTaxonomy ?? MaterialKindTaxonomy.empty,
+          );
           if (!persist) return ColdigomCatalogSyncInMemory(rows);
           await _local.replaceAll(rows);
           await _metadata.markReplaced(

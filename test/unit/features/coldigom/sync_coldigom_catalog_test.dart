@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
+import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_sync_metadata_store.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_remote_datasource.dart';
@@ -105,6 +106,7 @@ void main() {
         count: 3,
         at: DateTime.utc(2026, 1, 1),
       );
+      await metadata.writeKindTaxonomy(MaterialKindTaxonomy.empty);
       await local.replaceAll([_storedRow('antigo', shortId: 'abc')]);
       final remote = _ScriptedRemote(
         (_) async => const ColdigomCatalogNotModified(),
@@ -153,6 +155,7 @@ void main() {
       count: 2,
       at: DateTime.utc(2026, 1, 1),
     );
+    await metadata.writeKindTaxonomy(MaterialKindTaxonomy.empty);
     await local.replaceAll([
       _storedRow('p-001', shortId: '000'),
       _storedRow('p-003'),
@@ -289,5 +292,78 @@ void main() {
 
     expect(result, isA<ColdigomCatalogSyncFailed>());
     expect((result as ColdigomCatalogSyncFailed).cause, 'dump vazio');
+  });
+
+  group('taxonomia dos kinds (spec filtro-materiais §4.1)', () {
+    ColdigomCatalogDto comTaxonomia() {
+      final json = jsonDecode(
+        File('test/fixtures/coldigom_catalog_sample.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      json['kindClasses'] = [
+        {'id': 'regencia', 'label': 'Regência e geral'},
+      ];
+      json['kinds'] = [
+        for (final k in json['kinds'] as List<dynamic>)
+          {...(k as Map<String, dynamic>), 'class': 'regencia'},
+      ];
+      return ColdigomCatalogDto.fromJson(json);
+    }
+
+    test('200 grava a taxonomia nas prefs', () async {
+      final remote = _ScriptedRemote(
+        (_) async =>
+            ColdigomCatalogFresh(catalog: comTaxonomia(), etag: '"v1"'),
+      );
+
+      await usecase(remote).run();
+
+      final stored = metadata.readKindTaxonomy()!;
+      expect(stored.classes.single.id, 'regencia');
+      expect(stored.kinds.values.every((k) => k.classId == 'regencia'), isTrue);
+    });
+
+    test('sem Isar (web) também grava a taxonomia', () async {
+      final remote = _ScriptedRemote(
+        (_) async =>
+            ColdigomCatalogFresh(catalog: comTaxonomia(), etag: '"v1"'),
+      );
+      final degraded = SyncColdigomCatalog(
+        remote: remote,
+        local: const ColdigomCatalogLocalDatasource.unavailable(),
+        metadata: metadata,
+        now: () => fixedNow,
+      );
+
+      expect(await degraded.run(), isA<ColdigomCatalogSyncInMemory>());
+      expect(metadata.readKindTaxonomy()!.classes.single.id, 'regencia');
+    });
+
+    test('autocura: ETag guardado sem taxonomia pede o dump inteiro', () async {
+      await metadata.markReplaced(
+        etag: '"v1"',
+        count: 1,
+        at: DateTime.utc(2026, 1, 1),
+      );
+      await local.replaceAll([_storedRow('antigo', shortId: 'abc')]);
+      final remote = _ScriptedRemote(
+        (_) async =>
+            ColdigomCatalogFresh(catalog: comTaxonomia(), etag: '"v1"'),
+      );
+
+      await usecase(remote).run();
+
+      expect(remote.ifNoneMatches, [null]);
+      expect(metadata.readKindTaxonomy(), isNotNull);
+    });
+
+    test('taxonomia ilegível nas prefs conta como ausente', () async {
+      SharedPreferences.setMockInitialValues({
+        'coldigomKindTaxonomy': '{quebrado',
+      });
+      final store = ColdigomCatalogSyncMetadataStore(
+        await SharedPreferences.getInstance(),
+      );
+      expect(store.readKindTaxonomy(), isNull);
+    });
   });
 }

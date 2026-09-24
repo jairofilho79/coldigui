@@ -7,6 +7,7 @@ import 'package:coldigui/core/providers/device_connectivity_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
+import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_sync_metadata_store.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_remote_datasource.dart';
@@ -358,8 +359,13 @@ void main() {
     'sync espera o Isar abrir antes de tocar na rede/local (sem perder o ETag)',
     () async {
       await seed();
-      await ColdigomCatalogSyncMetadataStore(prefs)
-          .markReplaced(etag: '"v1"', count: 3, at: DateTime.now().toUtc());
+      final metadataStore = ColdigomCatalogSyncMetadataStore(prefs);
+      await metadataStore.markReplaced(
+        etag: '"v1"',
+        count: 3,
+        at: DateTime.now().toUtc(),
+      );
+      await metadataStore.writeKindTaxonomy(MaterialKindTaxonomy.empty);
       final remote = _ScriptedRemote(
         () async => const ColdigomCatalogNotModified(),
       );
