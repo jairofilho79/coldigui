@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../domain/utils/praise_short_id.dart';
 
 /// Extensão do objeto no R2 por `type` do Worker — a outra metade da regra
@@ -163,6 +164,7 @@ class ColdigomCatalogDto {
     required this.generatedAt,
     required this.kindNames,
     required this.praises,
+    this.kindTaxonomy,
   });
 
   final String generatedAt;
@@ -170,6 +172,10 @@ class ColdigomCatalogDto {
   /// `kindId → nome` — o rótulo das tiles do sheet (`materialKindName`).
   final Map<String, String> kindNames;
   final List<ColdigomCatalogPraiseDto> praises;
+
+  /// Classes e famílias dos kinds (spec filtro-materiais §4.1). Vazia com o
+  /// coldigom anterior à migração; `null` só em DTOs montados à mão (testes).
+  final MaterialKindTaxonomy? kindTaxonomy;
 
   factory ColdigomCatalogDto.fromJson(Map<String, dynamic> json) {
     final kinds = <String, String>{};
@@ -197,6 +203,7 @@ class ColdigomCatalogDto {
       generatedAt: json['generatedAt'] as String? ?? '',
       kindNames: Map.unmodifiable(kinds),
       praises: List.unmodifiable(praises),
+      kindTaxonomy: MaterialKindTaxonomy.fromJson(json),
     );
   }
 }
