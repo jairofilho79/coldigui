@@ -25,58 +25,30 @@ Louvor _louvorWithPdfId(String relPath) {
 }
 
 void main() {
-  test('LouvorPdfPath.fromLouvor retorna path com prefixo /assets/', () {
-    const relPath = 'assets/ColAdultos/001.pdf';
+  test('deriva /assets/praises/… do pdfId coldigom', () {
+    const relPath = 'assets/praises/p1/m1.pdf';
     final louvor = _louvorWithPdfId(relPath);
 
     expect(LouvorPdfPath.fromLouvor(louvor), '/$relPath');
-    expect(
-      PdfPathNormalizer.getPdfRelPath(louvor.pdfId),
-      relPath,
-    );
+    expect(PdfPathNormalizer.getPdfRelPath(louvor.pdfId), relPath);
   });
 
-  test('LouvorPdfPath preserva acentos do pdfId', () {
-    const relPath = 'assets/ColAdultos/Cifra nível I/001.pdf';
-    final louvor = _louvorWithPdfId(relPath);
+  test('preserva acentos e espaços do path', () {
+    const relPath = 'assets/praises/p1/Cifra nível I.pdf';
 
-    expect(LouvorPdfPath.fromLouvor(louvor), '/$relPath');
+    expect(LouvorPdfPath.fromLouvor(_louvorWithPdfId(relPath)), '/$relPath');
   });
 
-  test(
-      'LouvorPdfPath adiciona assets/ quando pdfId omite prefixo (manifest produção)',
-      () {
-    const relPath = 'ColAdultos/001.pdf';
-    final louvor = _louvorWithPdfId(relPath);
-
-    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/ColAdultos/001.pdf');
-  });
-
-  test('pdf absoluto (manifest coldigom) vence a derivação por pdfId', () {
+  test('ignora o campo pdf (só nome do ficheiro no adapter)', () {
     final louvor = Louvor.fromManifest(
       nome: 'Teste',
       numero: '001',
       categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: 'https://coldigom.test/assets/praises/p1/m1.pdf',
-      pdfId: _encodePdfId('ColAdultos/001.pdf'),
+      classificacao: 'Coro',
+      pdf: 'https://outro.test/qualquer.pdf',
+      pdfId: _encodePdfId('assets/praises/p1/m1.pdf'),
     );
 
-    expect(
-      LouvorPdfPath.fromLouvor(louvor),
-      'https://coldigom.test/assets/praises/p1/m1.pdf',
-    );
-  });
-
-  test('pdf só com nome de ficheiro continua na derivação legada', () {
-    final louvor = _louvorWithPdfId('ColAdultos/001.pdf'); // pdf: '001.pdf'
-    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/ColAdultos/001.pdf');
-  });
-
-  test('remotePath aceita http e ignora espaços à volta', () {
-    expect(
-      LouvorPdfPath.remotePath(pdf: ' http://x/a.pdf ', pdfId: 'ignored'),
-      'http://x/a.pdf',
-    );
+    expect(LouvorPdfPath.fromLouvor(louvor), '/assets/praises/p1/m1.pdf');
   });
 }
