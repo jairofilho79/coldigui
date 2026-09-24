@@ -187,6 +187,18 @@ void main() {
     expect(find.textContaining('ocultos pelo tipo'), findsNothing);
   });
 
+  testWidgets(
+    'tipo escondendo tudo que é classificado mantém o rótulo Outros',
+    (tester) async {
+      await pump(tester, index: metaisIndex, taxonomy: metais);
+
+      await tapChip(tester, 'Áudio');
+      expect(find.text('Playback'), findsOneWidget);
+      expect(family('Saxofone'), findsNothing);
+      expect(find.text('OUTROS'), findsOneWidget);
+    },
+  );
+
   testWidgets('selecionado fora do tipo continua visível', (tester) async {
     await pump(tester, index: metaisIndex, taxonomy: metais);
 

@@ -50,8 +50,11 @@ class _MaterialKindFilterSectionState
       types: _types,
       selected: selected,
     );
-    final onlyOthers =
-        view.sections.length == 1 && view.sections.single.classId == null;
+    // Sem classes na taxonomia (coldigom antigo, ou vazia): lista plana, sem
+    // o rótulo «Outros» — não depende de quais seções estão visíveis agora,
+    // senão um filtro de Tipo que esconde tudo que é classificado faria o
+    // rótulo sumir mesmo com taxonomia ativa.
+    final flat = taxonomy.classes.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +101,7 @@ class _MaterialKindFilterSectionState
           ),
         for (final section in view.sections) ...[
           const SizedBox(height: 10),
-          if (!onlyOthers)
+          if (!flat)
             _ClassHeader(
               label: section.label ?? l10n.materialKindOtherClass,
               count: section.count,
