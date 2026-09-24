@@ -65,6 +65,10 @@ class _FixedDownload extends OfflineColdigomDownloadNotifier {
 }
 
 class _FixedCacheStatus extends OfflineCacheStatusNotifier {
+  _FixedCacheStatus({this.refreshError});
+
+  /// Quando não nulo, [refresh] lança este erro.
+  final Object? refreshError;
   var refreshAllCalls = 0;
   var refreshCalls = 0;
 
@@ -76,7 +80,11 @@ class _FixedCacheStatus extends OfflineCacheStatusNotifier {
   Future<void> refreshAll() async => refreshAllCalls++;
 
   @override
-  Future<void> refresh({int? removedCount}) async => refreshCalls++;
+  Future<void> refresh({int? removedCount}) async {
+    refreshCalls++;
+    final error = refreshError;
+    if (error != null) throw error;
+  }
 }
 
 class _BusyLock extends OfflineMaintenanceLock {
@@ -127,10 +135,11 @@ _pump(
       const OfflineColdigomDownloadState(),
   Map<String, int> rank = const {'k-grade': 0, 'k-play': 1},
   List<Override> extra = const [],
+  Object? cacheRefreshError,
 }) async {
   final sync = _FixedSync(syncState);
   final download = _FixedDownload(downloadState);
-  final cache = _FixedCacheStatus();
+  final cache = _FixedCacheStatus(refreshError: cacheRefreshError);
   await pumpApp(
     tester,
     const SingleChildScrollView(child: ColdigomOfflineSection()),
@@ -464,6 +473,34 @@ void main() {
     expect(handles.download.removes, 1);
     expect(find.text('1 PDFs e 2 áudios removidos'), findsOneWidget);
     expect(handles.cache.refreshCalls, 1);
+  });
+
+  testWidgets('remover: falha ao reler o uso de disco só vai para o log', (
+    tester,
+  ) async {
+    final handles = await _pump(
+      tester,
+      cacheRefreshError: StateError('disco indisponível'),
+    );
+    await tester.tap(find.text('Remover todos os baixados'));
+    await tester.pumpAndSettle();
+
+    // Restaurado ainda no corpo: o binding confere o `debugPrint` no fim.
+    final logs = <String>[];
+    final originalDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) logs.add(message);
+    };
+    try {
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+    } finally {
+      debugPrint = originalDebugPrint;
+    }
+
+    expect(handles.cache.refreshCalls, 1);
+    expect(find.text('1 PDFs e 2 áudios removidos'), findsOneWidget);
+    expect(logs, contains(contains('disco indisponível')));
   });
 
   testWidgets(

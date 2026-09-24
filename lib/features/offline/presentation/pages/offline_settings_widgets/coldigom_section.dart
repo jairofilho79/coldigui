@@ -285,7 +285,15 @@ class _KindsBody extends ConsumerWidget {
         ),
       ),
     );
-    unawaited(ref.read(offlineCacheStatusProvider.notifier).refresh());
+    // Só a releitura do uso de disco: a remoção já foi feita e anunciada.
+    unawaited(
+      ref
+          .read(offlineCacheStatusProvider.notifier)
+          .refresh()
+          .catchError(
+            (Object e) => debugPrint('[offline] uso de disco não relido: $e'),
+          ),
+    );
   }
 
   @override
