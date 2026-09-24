@@ -1,5 +1,6 @@
 import 'package:isar_plus/isar_plus.dart';
 
+import '../../../../core/database/collections/louvor_cache.dart';
 import '../../../../core/database/collections/offline_pdf_index.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 
@@ -205,6 +206,17 @@ class OfflinePdfLocalDatasource {
       isar.offlinePdfIndexs.clear();
     });
     onIndexChanged?.call();
+  }
+
+  /// Esvazia a coleção obsoleta `LouvorCache` numa transação — passo 5 do
+  /// `MigrateOfflineStorage`. Sem Isar lança [StorageUnavailableException]
+  /// (`offline.migrateV5`) para a versão não subir e o passo repetir.
+  /// Não mexe no índice offline, por isso não avisa [onIndexChanged].
+  Future<void> clearLegacyCatalogCache() async {
+    final isar = _requireIsar('migrateV5');
+    await isar.write((isar) {
+      isar.louvorCaches.clear();
+    });
   }
 
   /// Remove entradas cujo [pdfId] está em [pdfIds].

@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/offline_config.dart';
 import '../../../../core/constants/storage_keys.dart';
-import '../../../../core/database/collections/louvor_cache.dart';
 import '../../data/datasources/offline_pdf_local_datasource.dart';
 import '../ports/pdf_storage_port.dart';
 
@@ -31,16 +29,15 @@ const _deadPrefsV5 = [
 /// Move PDFs entre versões de diretório/schema; atualiza paths no índice Isar.
 /// A v5 também esvazia a coleção Isar `LouvorCache` (cache do manifesto, sem
 /// leitores): ela continua no schema até se medir na web a remoção de uma
-/// coleção, então os dados são apagados aqui, por transação.
+/// coleção, então os dados são apagados aqui, por transação. Sem Isar o passo
+/// lança `StorageUnavailableException` depois de limpar as prefs: a versão
+/// fica em 4 e a limpeza repete na próxima manutenção.
 class MigrateOfflineStorage {
-  const MigrateOfflineStorage(this.prefs, this.local, this.store, {this.isar});
+  const MigrateOfflineStorage(this.prefs, this.local, this.store);
 
   final SharedPreferences prefs;
   final OfflinePdfLocalDatasource local;
   final PdfStoragePort store;
-
-  /// Isar do app; `null` em modo degradado — aí o passo que o usa é pulado.
-  final Isar? isar;
 
   Future<void> call() async {
     final stored = prefs.getInt(StorageKeys.offlineStorageVersion) ?? 0;
@@ -87,9 +84,7 @@ class MigrateOfflineStorage {
         for (final key in _deadPrefsV5) {
           await prefs.remove(key);
         }
-        await isar?.write((isar) {
-          isar.louvorCaches.clear();
-        });
+        await local.clearLegacyCatalogCache();
         break;
       default:
         break;

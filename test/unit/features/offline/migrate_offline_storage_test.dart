@@ -3,10 +3,8 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
-import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
-import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/isar_app_schemas.dart';
+import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
@@ -54,6 +52,31 @@ class _TrackingPdfStoragePort implements PdfStoragePort {
   }
 }
 
+/// Isar com o schema real do app (o passo 5 mexe em `LouvorCache`), fechado
+/// e apagado no teardown junto com [dir].
+Isar _openIsar(Directory dir) {
+  final isar = Isar.open(
+    schemas: kAppIsarSchemas,
+    directory: dir.path,
+    name: 'migrate_${DateTime.now().microsecondsSinceEpoch}',
+  );
+  addTearDown(() async {
+    isar.close(deleteFromDisk: true);
+    if (dir.existsSync()) await dir.delete(recursive: true);
+  });
+  return isar;
+}
+
+/// Conta as limpezas do cache legado sem precisar de Isar.
+class _RecordingLocalDatasource extends OfflinePdfLocalDatasource {
+  _RecordingLocalDatasource() : super.unavailable();
+
+  int legacyCatalogClears = 0;
+
+  @override
+  Future<void> clearLegacyCatalogCache() async => legacyCatalogClears++;
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -62,9 +85,7 @@ void main() {
   test('v0 migra para versão atual', () async {
     final prefs = await SharedPreferences.getInstance();
     final store = _TrackingPdfStoragePort();
-    final isar = openOfflineTestIsar(
-      await Directory.systemTemp.createTemp('migrate_'),
-    );
+    final isar = _openIsar(await Directory.systemTemp.createTemp('migrate_'));
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
@@ -78,7 +99,6 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
     expect(store.purgeLegacyCalls, 1);
-    isar.close(deleteFromDisk: true);
   });
 
   test('segunda execução é no-op', () async {
@@ -89,9 +109,7 @@ void main() {
     );
 
     final store = _TrackingPdfStoragePort();
-    final isar = openOfflineTestIsar(
-      await Directory.systemTemp.createTemp('migrate_'),
-    );
+    final isar = _openIsar(await Directory.systemTemp.createTemp('migrate_'));
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
@@ -104,7 +122,6 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
     expect(store.purgeLegacyCalls, 0);
-    isar.close(deleteFromDisk: true);
   });
 
   test('v2 marca PDFs como persistentes quando offline configurado', () async {
@@ -114,7 +131,7 @@ void main() {
     final tempDir = await Directory.systemTemp.createTemp('migrate_v2_');
     final docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
-    final isar = openOfflineTestIsar(tempDir);
+    final isar = _openIsar(tempDir);
     final repository = OfflinePdfRepositoryImpl(
       store: pdfStoragePortFor(
         PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
@@ -141,8 +158,6 @@ void main() {
       encodePdfId('ColAdultos/a.pdf'),
     );
     expect(entry?.isPersistent, isTrue);
-
-    isar.close(deleteFromDisk: true);
   });
 
   test('v3 chama purgeLegacyStorage ao migrar de v2', () async {
@@ -150,7 +165,7 @@ void main() {
     await prefs.setInt(StorageKeys.offlineStorageVersion, 2);
 
     final store = _TrackingPdfStoragePort();
-    final isar = openOfflineTestIsar(
+    final isar = _openIsar(
       await Directory.systemTemp.createTemp('migrate_v3_'),
     );
     final useCase = MigrateOfflineStorage(
@@ -166,7 +181,6 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
     expect(store.purgeLegacyCalls, 1);
-    isar.close(deleteFromDisk: true);
   });
 
   test(
@@ -177,7 +191,7 @@ void main() {
       await prefs.setString('manifestChecksum', 'checksum-antigo');
 
       final store = _TrackingPdfStoragePort();
-      final isar = openOfflineTestIsar(
+      final isar = _openIsar(
         await Directory.systemTemp.createTemp('migrate_v4_'),
       );
       final useCase = MigrateOfflineStorage(
@@ -193,7 +207,6 @@ void main() {
         OfflineConfig.offlineStorageVersion,
       );
       expect(prefs.getString('manifestChecksum'), isNull);
-      isar.close(deleteFromDisk: true);
     },
   );
 
@@ -206,7 +219,7 @@ void main() {
     await prefs.setString('manifestChecksum', 'checksum-atual');
 
     final store = _TrackingPdfStoragePort();
-    final isar = openOfflineTestIsar(
+    final isar = _openIsar(
       await Directory.systemTemp.createTemp('migrate_v4_noop_'),
     );
     final useCase = MigrateOfflineStorage(
@@ -222,7 +235,6 @@ void main() {
       OfflineConfig.offlineStorageVersion,
     );
     expect(prefs.getString('manifestChecksum'), 'checksum-atual');
-    isar.close(deleteFromDisk: true);
   });
 
   test('v5 apaga as prefs mortas do manifesto e da secção PLPCG', () async {
@@ -242,7 +254,7 @@ void main() {
     }
     await prefs.setString(StorageKeys.recentlyOpened, '[]');
 
-    final isar = openOfflineTestIsar(
+    final isar = _openIsar(
       await Directory.systemTemp.createTemp('migrate_v5_'),
     );
     await MigrateOfflineStorage(
@@ -260,84 +272,41 @@ void main() {
       '[]',
       reason: 'só as mortas saem',
     );
-    isar.close(deleteFromDisk: true);
   });
 
   group('v5 apaga os dados da coleção LouvorCache', () {
-    test('com Isar: linhas saem e as outras coleções ficam', () async {
+    test('com Isar: esvazia a coleção e a versão sobe', () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(StorageKeys.offlineStorageVersion, 4);
-      final dir = await Directory.systemTemp.createTemp('migrate_v5_louvor_');
-      final isar = Isar.open(
-        schemas: kAppIsarSchemas,
-        directory: dir.path,
-        name: 'migrate_v5_${DateTime.now().microsecondsSinceEpoch}',
-      );
-      isar.write((isar) {
-        isar.louvorCaches.putAll([
-          for (var i = 0; i < 3; i++)
-            LouvorCache()
-              ..id = isar.louvorCaches.autoIncrement()
-              ..pdfId = 'legado-$i'
-              ..nome = 'Louvor $i'
-              ..numero = '00$i'
-              ..categoria = 'Partitura'
-              ..classificacao = 'ColAdultos'
-              ..pdf = '00$i.pdf'
-              ..groupId = '',
-        ]);
-        isar.offlinePdfIndexs.put(
-          OfflinePdfIndex()
-            ..id = isar.offlinePdfIndexs.autoIncrement()
-            ..pdfId = 'pdf-offline'
-            ..storagePath = 'plpcg_pdfs/x.pdf'
-            ..category = 'praises'
-            ..fileSize = 4
-            ..downloadedAt = DateTime(2026, 9, 1),
-        );
-        isar.coldigomPraiseCaches.put(
-          ColdigomPraiseCache()
-            ..id = isar.coldigomPraiseCaches.autoIncrement()
-            ..praiseId = 'p1'
-            ..number = '1'
-            ..name = 'Praise'
-            ..author = ''
-            ..rhythm = ''
-            ..tonality = ''
-            ..category = ''
-            ..tags = const []
-            ..lyrics = ''
-            ..materialsJson = '[]'
-            ..searchTokens = 'praise',
-        );
-      });
+      final local = _RecordingLocalDatasource();
 
-      await MigrateOfflineStorage(
-        prefs,
-        OfflinePdfLocalDatasource(isar),
-        _TrackingPdfStoragePort(),
-        isar: isar,
-      )();
+      await MigrateOfflineStorage(prefs, local, _TrackingPdfStoragePort())();
 
+      expect(local.legacyCatalogClears, 1);
       expect(prefs.getInt(StorageKeys.offlineStorageVersion), 5);
-      expect(isar.louvorCaches.count(), 0);
-      expect(isar.offlinePdfIndexs.count(), 1);
-      expect(isar.coldigomPraiseCaches.count(), 1);
-      isar.close(deleteFromDisk: true);
     });
 
-    test('sem Isar: o passo não quebra e a versão sobe', () async {
+    test('sem Isar: limpa as prefs, lança e a versão fica em 4', () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(StorageKeys.offlineStorageVersion, 4);
       await prefs.setString('manifestChecksum', 'x');
 
-      await MigrateOfflineStorage(
-        prefs,
-        const OfflinePdfLocalDatasource.unavailable(),
-        _TrackingPdfStoragePort(),
-      )();
+      await expectLater(
+        MigrateOfflineStorage(
+          prefs,
+          const OfflinePdfLocalDatasource.unavailable(),
+          _TrackingPdfStoragePort(),
+        )(),
+        throwsA(
+          isA<StorageUnavailableException>().having(
+            (e) => e.operation,
+            'operation',
+            'offline.migrateV5',
+          ),
+        ),
+      );
 
-      expect(prefs.getInt(StorageKeys.offlineStorageVersion), 5);
+      expect(prefs.getInt(StorageKeys.offlineStorageVersion), 4);
       expect(prefs.containsKey('manifestChecksum'), isFalse);
     });
   });

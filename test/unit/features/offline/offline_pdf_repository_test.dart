@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
-
 import 'offline_test_helpers.dart';
 
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
@@ -92,10 +90,7 @@ void main() {
     docsDir = Directory('${tempDir.path}/docs');
     await docsDir.create(recursive: true);
 
-    isar = Isar.open(
-      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema],
-      directory: tempDir.path,
-    );
+    isar = Isar.open(schemas: [OfflinePdfIndexSchema], directory: tempDir.path);
 
     store = PdfLocalStore(
       getApplicationDocumentsDirectory: () async => docsDir,

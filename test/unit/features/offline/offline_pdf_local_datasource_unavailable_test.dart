@@ -103,6 +103,19 @@ void main() {
         throwsA(isA<StorageUnavailableException>()),
       );
     });
+
+    test('clearLegacyCatalogCache', () {
+      expect(
+        () => local.clearLegacyCatalogCache(),
+        throwsA(
+          isA<StorageUnavailableException>().having(
+            (e) => e.operation,
+            'operation',
+            'offline.migrateV5',
+          ),
+        ),
+      );
+    });
   });
 
   group('escritas vazias continuam no-op', () {

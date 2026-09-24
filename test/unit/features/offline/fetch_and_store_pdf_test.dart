@@ -7,7 +7,6 @@ import 'package:coldigui/core/constants/offline_config.dart';
 
 import 'offline_test_helpers.dart';
 
-import 'package:coldigui/core/database/collections/louvor_cache.dart';
 import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
@@ -78,7 +77,7 @@ void main() {
     await docsDir.create(recursive: true);
 
     isar = Isar.open(
-      schemas: [LouvorCacheSchema, OfflinePdfIndexSchema, PlaylistSchema],
+      schemas: [OfflinePdfIndexSchema, PlaylistSchema],
       directory: tempDir.path,
     );
 

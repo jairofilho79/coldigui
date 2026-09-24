@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/database/isar_provider.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../pdf_opening/data/providers/pdf_opening_providers.dart';
 import '../../../pdf_opening/domain/usecases/validate_pdf_availability.dart';
@@ -57,6 +56,5 @@ final migrateOfflineStorageProvider = Provider<MigrateOfflineStorage>((ref) {
     ref.watch(sharedPreferencesProvider),
     ref.watch(offlinePdfLocalDatasourceProvider),
     ref.watch(pdfStoragePortProvider),
-    isar: ref.watch(optionalIsarProvider),
   );
 });
