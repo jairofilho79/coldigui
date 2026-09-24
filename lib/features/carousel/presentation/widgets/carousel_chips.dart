@@ -399,8 +399,8 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         showAppSnackbar(
           context,
           l10n?.pdfExternallyDeleted ??
-              'O PDF foi removido do dispositivo. Conecte-se ou use '
-                  'Configurações Offline → Baixar faltantes.',
+              'O PDF foi removido do dispositivo. Conecte-se ou baixe o '
+                  'tipo dele de novo em Offline → Baixar para usar offline.',
         );
       }
     } on PdfFetchFailedException catch (e) {

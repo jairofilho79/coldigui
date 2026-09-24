@@ -222,6 +222,28 @@ void main() {
       expect(userMessageFor(en, error), isNot(error.message));
     });
 
+    test('PDF offline indisponível aponta para o download por tipo', () {
+      const error = PdfOfflineUnavailableException(pdfId: 'p1');
+
+      // «Baixar faltantes» saiu com a secção PLPCG (plano 3, Tarefa 10).
+      expect(
+        userMessageFor(pt, error),
+        'Este PDF não foi baixado para uso offline. Conecte-se à internet ou '
+        'baixe o tipo dele em Offline → Baixar para usar offline.',
+      );
+      expect(
+        userMessageFor(en, error),
+        'This PDF was not downloaded for offline use. Connect to the internet '
+        'or download its type in Offline → Download for offline use.',
+      );
+      // O literal PT da exceção (mostrado direto pelo carrossel) idem.
+      expect(error.message, userMessageFor(pt, error));
+      expect(
+        userMessageFor(pt, const PdfExternallyDeletedException(pdfId: 'p1')),
+        contains('Offline → Baixar para usar offline'),
+      );
+    });
+
     test('leitura local falha usa a chave própria', () {
       const error = PdfLocalReadFailedException(pdfId: 'p1');
 

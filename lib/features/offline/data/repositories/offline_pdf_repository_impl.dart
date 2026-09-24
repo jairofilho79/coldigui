@@ -112,8 +112,8 @@ class OfflinePdfRepositoryImpl implements OfflinePdfRepository {
 
     // O arquivo já está no disco: em modo degradado o leitor precisa poder
     // abri-lo, mesmo sem entrada no índice (fix round 1 / spec C.1). Quem
-    // realmente depende do índice (bulk, faltantes, limpar) usa as outras
-    // operações, que continuam propagando a exceção.
+    // realmente depende do índice (download/remoção por tipo, reconcile) usa
+    // as outras operações, que continuam propagando a exceção.
     try {
       await _local.put(index);
     } on StorageUnavailableException {

@@ -41,9 +41,9 @@ class FetchAndStorePdf {
   /// (via [LouvorPdfPath.fromLouvor]).
   /// [category] — classificação Isar; se `null`, derivada do primeiro segmento de
   /// [PdfPathNormalizer.getPdfRelPath] (ex.: `ColAdultos`).
-  /// [persistentDownload] — quando `true`, omite a eviction LRU. Use em downloads
-  /// bulk (UC-10 "baixar faltantes") para evitar que PDFs recém-persistidos sejam
-  /// deletados para abrir espaço no cache.
+  /// [persistentDownload] — quando `true`, omite a eviction LRU. Use no
+  /// download por tipo do `/offline` para evitar que PDFs recém-persistidos
+  /// sejam deletados para abrir espaço no cache.
   Future<LocalPdfSource> call({
     required String pdfId,
     required String remotePath,

@@ -72,8 +72,8 @@ final offlineColdigomDownloadProvider =
 
 /// Orquestra [DownloadColdigomMaterials] com lock de manutenção, wakelock e
 /// cancelamento (§5.2). Reconcile, normalização de ids e este são mutuamente
-/// exclusivos pelo lock. Sem checkpoint (O12): parar guarda o parcial e «Tentar de novo»
-/// simplesmente re-executa — o use case salta o que já está.
+/// exclusivos pelo lock. Sem checkpoint (O12): parar guarda o parcial e
+/// «Tentar de novo» simplesmente re-executa — o use case salta o que já está.
 class OfflineColdigomDownloadNotifier
     extends Notifier<OfflineColdigomDownloadState> {
   CancelToken? _cancelToken;

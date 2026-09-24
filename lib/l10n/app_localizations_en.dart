@@ -244,7 +244,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pdfOfflineUnavailableMessage =>
-      'This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.';
+      'This PDF was not downloaded for offline use. Connect to the internet or download its type in Offline → Download for offline use.';
 
   @override
   String get pdfLocalReadFailedMessage =>
@@ -252,7 +252,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pdfExternallyDeleted =>
-      'The PDF was removed from this device. Go online or use Offline Settings → Download missing.';
+      'The PDF was removed from this device. Go online or download its type again in Offline → Download for offline use.';
 
   @override
   String get pdfLocalCorrupted =>
@@ -1184,7 +1184,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failureOffline =>
-      'This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.';
+      'This PDF was not downloaded for offline use. Connect to the internet or download its type in Offline → Download for offline use.';
 
   @override
   String get failureNotFound =>

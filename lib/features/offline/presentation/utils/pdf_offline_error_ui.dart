@@ -31,5 +31,6 @@ class PdfOfflineUnavailableMessageFallback {
 
   String get message =>
       'Este PDF não foi baixado para uso offline. '
-      'Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.';
+      'Conecte-se à internet ou baixe o tipo dele em '
+      'Offline → Baixar para usar offline.';
 }

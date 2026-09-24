@@ -24,10 +24,7 @@ void main() {
 
   test('rootDirectory resolve para docs/plpcg_pdfs/', () async {
     final root = await store.rootDirectory;
-    expect(
-      root.path,
-      '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}',
-    );
+    expect(root.path, '${docsDir.path}/${OfflineConfig.pdfStorageSubdir}');
     expect(await root.exists(), isTrue);
   });
 
@@ -90,10 +87,14 @@ void main() {
     final indexedBytes = Uint8List.fromList([1]);
     final orphanBytes = Uint8List.fromList([2]);
 
-    final indexedPath =
-        await store.writeAtomic(indexedBytes, 'ColAdultos/indexed.pdf');
-    final orphanPath =
-        await store.writeAtomic(orphanBytes, 'ColAdultos/orphan.pdf');
+    final indexedPath = await store.writeAtomic(
+      indexedBytes,
+      'ColAdultos/indexed.pdf',
+    );
+    final orphanPath = await store.writeAtomic(
+      orphanBytes,
+      'ColAdultos/orphan.pdf',
+    );
 
     final orphans = await store.listOrphans({indexedPath});
 
@@ -112,4 +113,25 @@ void main() {
     expect(await rootAfter.exists(), isTrue);
     expect(await rootAfter.list().length, 0);
   });
+
+  test(
+    'getTotalOfflineBytes soma tudo sob a raiz (recursivo), menos .tmp',
+    () async {
+      // Única fonte da linha «Acervo offline» do /offline (plano 3, T10).
+      expect(await store.getTotalOfflineBytes(), 0);
+
+      await store.writeAtomic(Uint8List(100), 'ColAdultos/001.pdf');
+      await store.writeAtomic(Uint8List(50), 'ColAdultos/Cifra/002.pdf');
+      final root = await store.rootDirectory;
+      // Órfão (sem entrada no índice) conta: ocupa disco na mesma.
+      await File('${root.path}/orfao.pdf').writeAsBytes(Uint8List(7));
+      // Escrita a meio não conta.
+      await File('${root.path}/ColAdultos/003.pdf.tmp')
+          .writeAsBytes(Uint8List(1000));
+      // Fora da raiz não conta.
+      await File('${docsDir.path}/fora.pdf').writeAsBytes(Uint8List(3000));
+
+      expect(await store.getTotalOfflineBytes(), 157);
+    },
+  );
 }

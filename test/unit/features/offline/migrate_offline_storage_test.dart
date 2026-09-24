@@ -192,7 +192,7 @@ void main() {
     },
   );
 
-  test('v4 já migrado mantém o checksum intacto (no-op)', () async {
+  test('versão atual mantém o checksum intacto (no-op)', () async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       StorageKeys.offlineStorageVersion,

@@ -31,6 +31,6 @@ class OfflinePdfEntry {
   /// Momento do último acesso bem-sucedido — LRU eviction.
   final DateTime? lastAccessedAt;
 
-  /// `true` quando baixado via bulk ou "baixar faltantes" — isento de eviction LRU.
+  /// `true` quando baixado por tipo no `/offline` — isento de eviction LRU.
   final bool isPersistent;
 }

@@ -18,8 +18,8 @@ import '../../../playlists/presentation/providers/playlists_provider.dart';
 ///
 /// Caminho `PdfMaterial` do `openMaterialProvider`, que traduz por
 /// `presentMaterialOpenError` as exceções tipadas que escapam daqui. Quem chama
-/// esta função direto (cards, sheet de faltantes) trata o erro por conta
-/// própria — normalmente com [louvorPdfErrorMessage].
+/// esta função direto (card do grupo, troca de material no carrossel) trata o
+/// erro por conta própria — normalmente com [louvorPdfErrorMessage].
 ///
 /// Sempre entra na lista ativa. Lista nova só pelo limpar da barra
 /// ([CarouselBarTrailingActions] → Nova Lista).
@@ -89,9 +89,8 @@ Future<LocalPdfSource> resolveLouvorPdf({
 
 /// Mensagem amigável para falhas de abertura/compartilhamento.
 ///
-/// Ponto único das três superfícies que chamam [openLouvorInReader] direto
-/// (card do grupo, sheet de faltantes e tile de playlist): elas mostram todas o
-/// mesmo texto para o mesmo erro.
+/// Ponto único para quem chama [openLouvorInReader] direto e mostra o erro
+/// numa snackbar (hoje o card do grupo): o mesmo texto para o mesmo erro.
 ///
 /// Recebe o [l10n] em vez de um genérico já resolvido porque as exceções de PDF
 /// não carregam mais o texto em português — quem traduz é [userMessageFor], que

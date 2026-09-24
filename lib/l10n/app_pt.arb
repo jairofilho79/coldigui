@@ -151,12 +151,12 @@
     }
   },
   "offlineDismissRemoved": "Dispensar",
-  "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.",
   "pdfLocalReadFailedMessage": "Não foi possível ler o arquivo. Tente novamente.",
   "@pdfLocalReadFailedMessage": {
     "description": "PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente"
   },
-  "pdfExternallyDeleted": "O PDF foi removido do dispositivo. Conecte-se ou use Configurações Offline → Baixar faltantes.",
+  "pdfExternallyDeleted": "O PDF foi removido do dispositivo. Conecte-se ou baixe o tipo dele de novo em Offline → Baixar para usar offline.",
   "@pdfExternallyDeleted": {
     "description": "PDF indexado cujo arquivo sumiu do disco e não deu para rebaixar (D.6)"
   },
@@ -641,7 +641,7 @@
   "@failureNetwork": {
     "description": "failureMessage (E8): NetworkFailure — DioException sem resposta, SocketException"
   },
-  "failureOffline": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
+  "failureOffline": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.",
   "@failureOffline": {
     "description": "failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException"
   },

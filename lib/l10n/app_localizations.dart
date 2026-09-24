@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// No description provided for @pdfOfflineUnavailableMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
+  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.'**
   String get pdfOfflineUnavailableMessage;
 
   /// PDF local existe mas a leitura falhou sem evidência de corrupção (B3) — arquivo é preservado, usuário pode tentar novamente
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// PDF indexado cujo arquivo sumiu do disco e não deu para rebaixar (D.6)
   ///
   /// In pt, this message translates to:
-  /// **'O PDF foi removido do dispositivo. Conecte-se ou use Configurações Offline → Baixar faltantes.'**
+  /// **'O PDF foi removido do dispositivo. Conecte-se ou baixe o tipo dele de novo em Offline → Baixar para usar offline.'**
   String get pdfExternallyDeleted;
 
   /// PDF em cache passou na validação de disco mas não abre no leitor (D.6)
@@ -2075,7 +2075,7 @@ abstract class AppLocalizations {
   /// failureMessage (E8): OfflineFailure — PdfOfflineUnavailableException
   ///
   /// In pt, this message translates to:
-  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.'**
+  /// **'Este PDF não foi baixado para uso offline. Conecte-se à internet ou baixe o tipo dele em Offline → Baixar para usar offline.'**
   String get failureOffline;
 
   /// failureMessage (E8): NotFoundFailure — HTTP 404, PlaylistNotFoundException, PdfExternallyDeletedException
