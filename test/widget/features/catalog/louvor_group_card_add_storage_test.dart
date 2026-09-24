@@ -5,11 +5,11 @@
 // lista ativa: ele espera/grava e só devolve `storageUnavailable` quando o
 // storage de fato não veio. A snackbar segue o resultado, não o status.
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
@@ -52,7 +52,6 @@ LouvorGroup _singlePdfGroup() {
       pdf: 'pdf1.pdf',
       pdfId: 'pdf1',
       groupId: 'g1',
-      source: LouvorDataSource.plpcg,
     ),
   ]).first;
 }

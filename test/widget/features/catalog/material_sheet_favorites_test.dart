@@ -1,7 +1,6 @@
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
@@ -22,7 +21,6 @@ Louvor _pdf(String categoria, String pdfId, {String? kind}) =>
       pdf: '$pdfId.pdf',
       pdfId: pdfId,
       groupId: 'g1',
-      source: LouvorDataSource.coldigom,
       materialKindId: kind,
     );
 

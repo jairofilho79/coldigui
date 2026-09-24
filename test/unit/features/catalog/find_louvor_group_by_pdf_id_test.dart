@@ -1,7 +1,6 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
@@ -19,7 +18,6 @@ void main() {
       pdf: 'mat.pdf',
       pdfId: coldigomPdfId,
       groupId: 'p9',
-      source: LouvorDataSource.coldigom,
     );
     const track = AudioTrack(
       audioId: 'a1',

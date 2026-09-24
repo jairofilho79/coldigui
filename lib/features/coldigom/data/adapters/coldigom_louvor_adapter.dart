@@ -3,7 +3,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
@@ -47,7 +46,6 @@ abstract final class ColdigomLouvorAdapter {
           pdf: pdfFileName,
           pdfId: encodePdfId(r2Key),
           groupId: praise.id,
-          source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
           praiseId: praise.id,
           materialId: material.id,
@@ -77,7 +75,6 @@ abstract final class ColdigomLouvorAdapter {
           categoria: material.materialKindName ?? 'Áudio',
           classificacao: praise.rhythm,
           author: praise.author,
-          source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
         ),
       );
@@ -106,7 +103,6 @@ abstract final class ColdigomLouvorAdapter {
           categoria: material.materialKindName ?? 'YouTube',
           classificacao: praise.rhythm,
           author: praise.author,
-          source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
         ),
       );
@@ -134,7 +130,6 @@ abstract final class ColdigomLouvorAdapter {
           categoria: material.materialKindName ?? 'Cifra',
           classificacao: praise.rhythm,
           author: praise.author,
-          source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
         ),
       );
@@ -162,7 +157,6 @@ abstract final class ColdigomLouvorAdapter {
           categoria: material.materialKindName ?? 'Gestos',
           classificacao: praise.rhythm,
           author: praise.author,
-          source: LouvorDataSource.coldigom,
           materialKindId: material.materialKindId,
         ),
       );

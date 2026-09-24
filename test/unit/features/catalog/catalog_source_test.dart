@@ -5,7 +5,6 @@ import 'package:coldigui/features/catalog/data/providers/catalog_source_provider
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
@@ -30,7 +29,6 @@ final _coldigomPdf = Louvor.fromManifest(
   pdf: 'm1.pdf',
   pdfId: _coldigomPdfId,
   groupId: 'p1',
-  source: LouvorDataSource.coldigom,
 );
 
 final _coldigomChord = ChordMaterial(
@@ -51,7 +49,6 @@ final _coldigomTrack = AudioTrack(
   groupId: 'p1',
   categoria: 'Áudio',
   classificacao: 'Country',
-  source: LouvorDataSource.coldigom,
 );
 
 final _coldigomYoutube = YoutubeMaterial(
@@ -160,7 +157,6 @@ void main() {
           pdf: 'm9.pdf',
           pdfId: movedId,
           groupId: 'p1',
-          source: LouvorDataSource.coldigom,
           praiseId: 'p1',
         );
         final source = ColdigomCatalogSource(

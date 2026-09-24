@@ -1,5 +1,3 @@
-import '../../../catalog/domain/entities/louvor_data_source.dart';
-
 /// Faixa de áudio Coldigom — independente de [Louvor] (PDF).
 class AudioTrack {
   const AudioTrack({
@@ -11,7 +9,6 @@ class AudioTrack {
     required this.categoria,
     required this.classificacao,
     this.author = '',
-    this.source = LouvorDataSource.coldigom,
     this.duration,
     this.materialKindId,
   });
@@ -33,12 +30,11 @@ class AudioTrack {
   final String classificacao;
 
   final String author;
-  final LouvorDataSource source;
 
   /// Duração descoberta pelo player, se já conhecida.
   final Duration? duration;
 
-  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 
   AudioTrack copyWith({Duration? duration}) {
@@ -51,7 +47,6 @@ class AudioTrack {
       categoria: categoria,
       classificacao: classificacao,
       author: author,
-      source: source,
       duration: duration ?? this.duration,
       materialKindId: materialKindId,
     );

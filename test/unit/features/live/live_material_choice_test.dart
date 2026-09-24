@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/live/data/providers/live_providers.dart';
 import 'package:coldigui/features/live/presentation/providers/live_material_choice_provider.dart';
@@ -38,7 +37,6 @@ Louvor _pdf(String pdfId, String nome, String kindId) => Louvor.fromManifest(
   pdf: '$nome.pdf',
   pdfId: pdfId,
   groupId: 'p1',
-  source: LouvorDataSource.coldigom,
   materialKindId: kindId,
 );
 

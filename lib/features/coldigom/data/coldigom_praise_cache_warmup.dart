@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../catalog/domain/entities/louvor.dart';
-import '../../catalog/domain/entities/louvor_data_source.dart';
 import '../domain/utils/coldigom_praise_id.dart';
 import 'coldigom_cache_writer.dart';
 import 'datasources/coldigom_remote_datasource.dart';
@@ -117,12 +116,9 @@ final ensureColdigomPraiseMaterialsCachedProvider =
             louvor.praiseId ?? coldigomPraiseIdFromPdfId(louvor.pdfId);
         if (praiseId == null) return;
 
-        // Só materiais Coldigom nativos entram no cache Coldigom.
-        if (louvor.source == LouvorDataSource.coldigom) {
-          ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
-            louvor,
-          ]);
-        }
+        ref.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
+          louvor,
+        ]);
 
         if (ref.read(coldigomPraiseMetaCacheProvider).containsKey(praiseId)) {
           return;

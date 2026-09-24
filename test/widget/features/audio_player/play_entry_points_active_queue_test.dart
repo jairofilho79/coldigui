@@ -1,5 +1,6 @@
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -10,7 +11,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_items
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -44,7 +44,6 @@ const _trackDaLista = AudioTrack(
   groupId: 'p9',
   categoria: 'Áudio',
   classificacao: 'Coro',
-  source: LouvorDataSource.coldigom,
 );
 
 const _trackAlvo = AudioTrack(
@@ -55,7 +54,6 @@ const _trackAlvo = AudioTrack(
   groupId: 'p1',
   categoria: 'Áudio',
   classificacao: 'Coro',
-  source: LouvorDataSource.coldigom,
 );
 
 const _trackForaDaLista = AudioTrack(
@@ -66,7 +64,6 @@ const _trackForaDaLista = AudioTrack(
   groupId: 'p1',
   categoria: 'Playback',
   classificacao: 'Coro',
-  source: LouvorDataSource.coldigom,
 );
 
 CarouselItem _audioItem(AudioTrack track, int index) => CarouselItem(
@@ -203,7 +200,6 @@ void main() {
       pdf: 'pdf1.pdf',
       pdfId: 'pdf1',
       groupId: 'p1',
-      source: LouvorDataSource.coldigom,
     );
     final group = LouvorGroup(
       groupId: 'p1',

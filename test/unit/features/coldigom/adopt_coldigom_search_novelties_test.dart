@@ -4,7 +4,6 @@ import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -24,7 +23,6 @@ LouvorGroup _remoteGroup(String praiseId) {
     pdf: 'm-pdf.pdf',
     pdfId: encodePdfId('assets/praises/$praiseId/m-pdf.pdf'),
     groupId: praiseId,
-    source: LouvorDataSource.coldigom,
     materialKindId: 'k-grade',
   );
   return LouvorGroup.fromLouvores(
@@ -151,33 +149,37 @@ void main() {
     );
 
     test(
-      'grupos PLPCG são ignorados; sem Isar devolve vazio sem lançar',
+      'grupo remoto sem meta também é adotado (um espaço de ids só)',
       () async {
-        final plpcg = LouvorGroup.fromLouvores([
+        final semMeta = LouvorGroup.fromLouvores([
           Louvor.fromManifest(
             nome: 'Aleluia',
             numero: '001',
             categoria: 'Partitura',
-            classificacao: 'ColAdultos',
-            pdf: '001.pdf',
-            pdfId: encodePdfId('ColAdultos/001.pdf'),
+            classificacao: 'Coro',
+            pdf: 'm1.pdf',
+            pdfId: encodePdfId('assets/praises/p-sem-meta/m1.pdf'),
+            groupId: 'p-sem-meta',
+            praiseId: 'p-sem-meta',
           ),
         ]).single;
 
         expect(
           await AdoptColdigomSearchNovelties(local)([
-            plpcg,
+            semMeta,
           ], knownPraiseIds: const {}),
-          isEmpty,
-        );
-        expect(local.count(), 0);
-        expect(
-          await const AdoptColdigomSearchNovelties(
-            ColdigomCatalogLocalDatasource.unavailable(),
-          )([_remoteGroup('p-new')], knownPraiseIds: const {}),
-          isEmpty,
+          {'p-sem-meta'},
         );
       },
     );
+
+    test('sem Isar devolve vazio sem lançar', () async {
+      expect(
+        await const AdoptColdigomSearchNovelties(
+          ColdigomCatalogLocalDatasource.unavailable(),
+        )([_remoteGroup('p-new')], knownPraiseIds: const {}),
+        isEmpty,
+      );
+    });
   });
 }

@@ -9,7 +9,6 @@ import 'package:coldigui/features/audio_player/presentation/providers/audio_play
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
@@ -41,7 +40,6 @@ Louvor _pdf({required String categoria, required String pdfId}) {
     pdf: '$pdfId.pdf',
     pdfId: pdfId,
     groupId: 'g1',
-    source: LouvorDataSource.coldigom,
   );
 }
 
@@ -73,7 +71,6 @@ const _trackA = AudioTrack(
   groupId: 'g1',
   categoria: 'Playback',
   classificacao: 'Básico',
-  source: LouvorDataSource.coldigom,
 );
 
 const _trackB = AudioTrack(
@@ -84,7 +81,6 @@ const _trackB = AudioTrack(
   groupId: 'g1',
   categoria: 'Instrumental',
   classificacao: 'Básico',
-  source: LouvorDataSource.coldigom,
 );
 
 /// Ids "de verdade" (Base64 de um path com extensão de áudio) — só com isso
@@ -103,7 +99,6 @@ final _voiceTrackA = AudioTrack(
   groupId: 'g1',
   categoria: 'Playback',
   classificacao: 'Básico',
-  source: LouvorDataSource.coldigom,
 );
 
 final _voiceTrackB = AudioTrack(
@@ -114,7 +109,6 @@ final _voiceTrackB = AudioTrack(
   groupId: 'g1',
   categoria: 'Instrumental',
   classificacao: 'Básico',
-  source: LouvorDataSource.coldigom,
 );
 
 // ------------------------------------------------------------------- fakes

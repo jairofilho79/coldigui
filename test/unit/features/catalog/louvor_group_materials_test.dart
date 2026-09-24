@@ -3,7 +3,6 @@ import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -23,7 +22,6 @@ Louvor _louvor({
     pdf: '$pdfId.pdf',
     pdfId: pdfId,
     groupId: 'praise-1',
-    source: LouvorDataSource.coldigom,
   );
 }
 
@@ -248,18 +246,6 @@ void main() {
       expect(withMeta.audioTracks, const [_track]);
       expect(withMeta.coldigomMeta?.name, 'Grande Deus');
     });
-
-    test('isColdigom continua verdadeiro por cifra em extras', () {
-      final group = LouvorGroup(
-        groupId: 'praise-1',
-        numero: '001',
-        nome: 'Grande Deus',
-        sections: const [],
-        extras: const [ChordMaterialRef(_chord)],
-      );
-
-      expect(group.isColdigom, isTrue);
-    });
   });
 
   // Migrado de test/widget/features/coldigom/coldigom_material_sheet_test.dart.
@@ -273,7 +259,6 @@ void main() {
         pdf: 'a.pdf',
         pdfId: 'a',
         groupId: 'g1',
-        source: LouvorDataSource.coldigom,
       );
       final b = Louvor.fromManifest(
         nome: 'Hino',
@@ -283,7 +268,6 @@ void main() {
         pdf: 'b.pdf',
         pdfId: 'b',
         groupId: 'g1',
-        source: LouvorDataSource.coldigom,
       );
 
       final group = LouvorGroup.fromLouvores(
@@ -294,7 +278,6 @@ void main() {
       ).first;
 
       expect(group.coldigomMeta?.rhythm, 'Básico');
-      expect(group.isColdigom, isTrue);
       expect(group.flatPdfMaterials.map((e) => e.categoria), [
         'Partitura',
         'Cifra',

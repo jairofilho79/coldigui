@@ -1,5 +1,3 @@
-import 'louvor_data_source.dart';
-
 /// Material YouTube Coldigom — abre URL externa (app / navegador).
 class YoutubeMaterial {
   const YoutubeMaterial({
@@ -11,7 +9,6 @@ class YoutubeMaterial {
     required this.categoria,
     required this.classificacao,
     this.author = '',
-    this.source = LouvorDataSource.coldigom,
     this.materialKindId,
   });
 
@@ -29,8 +26,7 @@ class YoutubeMaterial {
 
   final String classificacao;
   final String author;
-  final LouvorDataSource source;
 
-  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 }

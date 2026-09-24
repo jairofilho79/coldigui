@@ -6,7 +6,6 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_position_provider.dart';
@@ -40,7 +39,6 @@ Louvor _louvor(String pdfId, String numero, String nome) => Louvor(
   searchTitleNorm: nome.toLowerCase(),
   searchContentTokens: const [],
   searchCompactContent: '',
-  source: LouvorDataSource.plpcg,
 );
 
 Future<void> _flush() async {

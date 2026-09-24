@@ -10,7 +10,6 @@ import 'package:coldigui/features/playlists/presentation/providers/active_playli
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
@@ -40,7 +39,6 @@ Louvor _pdf({
   required String categoria,
   required String pdfId,
   String classificacao = 'Básico',
-  LouvorDataSource source = LouvorDataSource.plpcg,
 }) {
   return Louvor.fromManifest(
     nome: 'Comigo habita',
@@ -50,7 +48,6 @@ Louvor _pdf({
     pdf: '$pdfId.pdf',
     pdfId: pdfId,
     groupId: 'g1',
-    source: source,
   );
 }
 
@@ -75,7 +72,6 @@ const _track = AudioTrack(
   categoria: 'Playback',
   classificacao: 'Básico',
   author: 'CIAS',
-  source: LouvorDataSource.coldigom,
 );
 
 const _youtube = YoutubeMaterial(
@@ -86,7 +82,6 @@ const _youtube = YoutubeMaterial(
   groupId: 'g1',
   categoria: 'Gestos CIAs',
   classificacao: 'Básico',
-  source: LouvorDataSource.coldigom,
 );
 
 // ------------------------------------------------------------------- fakes
@@ -316,11 +311,7 @@ void main() {
     // Praise Coldigom de seção única sem cifra/áudio/YouTube: um bloco só.
     testWidgets('praise de bloco único não mostra rótulo', (tester) async {
       final group = LouvorGroup.fromLouvores([
-        _pdf(
-          categoria: 'Partitura',
-          pdfId: 'pdf1',
-          source: LouvorDataSource.coldigom,
-        ),
+        _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
       ]).first;
 
       await _pumpSheet(tester, group: group);
@@ -384,16 +375,8 @@ void main() {
     ) async {
       final group = LouvorGroup.fromLouvores(
         [
-          _pdf(
-            categoria: 'Partitura',
-            pdfId: 'pdf1',
-            source: LouvorDataSource.coldigom,
-          ),
-          _pdf(
-            categoria: 'Cifra I',
-            pdfId: 'pdf2',
-            source: LouvorDataSource.coldigom,
-          ),
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+          _pdf(categoria: 'Cifra I', pdfId: 'pdf2'),
         ],
         audioTracks: const [_track],
         youtubeMaterials: const [_youtube],
@@ -619,7 +602,6 @@ void main() {
       categoria: 'Gestos',
       classificacao: 'x',
       author: '',
-      source: LouvorDataSource.coldigom,
     );
 
     testWidgets(
@@ -715,7 +697,6 @@ void main() {
         groupId: 'g1',
         categoria: 'Instrumental',
         classificacao: 'Básico',
-        source: LouvorDataSource.coldigom,
       );
       const terceira = AudioTrack(
         audioId: 'audio3',
@@ -725,7 +706,6 @@ void main() {
         groupId: 'g1',
         categoria: 'Coral',
         classificacao: 'Básico',
-        source: LouvorDataSource.coldigom,
       );
       final opener = _OpenMaterialSpy();
       final group = LouvorGroup.fromLouvores(
@@ -1033,16 +1013,8 @@ void main() {
       await pumpCard(
         tester,
         group: LouvorGroup.fromLouvores([
-          _pdf(
-            categoria: 'Partitura',
-            pdfId: 'pdf1',
-            source: LouvorDataSource.coldigom,
-          ),
-          _pdf(
-            categoria: 'Cifra I',
-            pdfId: 'pdf2',
-            source: LouvorDataSource.coldigom,
-          ),
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+          _pdf(categoria: 'Cifra I', pdfId: 'pdf2'),
         ]).first,
         // Grupo sem coldigomMeta: groupWithColdigomMeta anexa o do cache.
         praiseMeta: const {
@@ -1079,11 +1051,7 @@ void main() {
         addTearDown(tester.view.reset);
 
         final group = LouvorGroup.fromLouvores([
-          _pdf(
-            categoria: 'Partitura',
-            pdfId: 'pdf1',
-            source: LouvorDataSource.coldigom,
-          ),
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
         ]).first;
 
         Map<String, String>? capturedQuery;

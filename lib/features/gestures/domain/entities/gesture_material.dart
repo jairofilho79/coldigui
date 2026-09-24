@@ -1,5 +1,3 @@
-import '../../../catalog/domain/entities/louvor_data_source.dart';
-
 /// Material "documento de gestos" coldigom — abre em `/gestos`.
 ///
 /// Mesma forma de `ChordMaterial`: [gestureId] vive no espaço do `pdfId`
@@ -15,7 +13,6 @@ class GestureMaterial {
     required this.categoria,
     required this.classificacao,
     this.author = '',
-    this.source = LouvorDataSource.coldigom,
     this.materialKindId,
   });
 
@@ -34,8 +31,7 @@ class GestureMaterial {
 
   final String classificacao;
   final String author;
-  final LouvorDataSource source;
 
-  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 }

@@ -6,7 +6,6 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -27,7 +26,6 @@ final _louvor = Louvor.fromManifest(
   pdf: 'a.pdf',
   pdfId: 'pdf1',
   groupId: 'praise-1',
-  source: LouvorDataSource.coldigom,
 );
 
 const _chord = ChordMaterial(

@@ -4,7 +4,6 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/usecases/resolve_catalog_material.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
@@ -28,7 +27,6 @@ final _coldigomPdf = Louvor.fromManifest(
   pdf: 'm1.pdf',
   pdfId: _coldigomPdfId,
   groupId: 'p1',
-  source: LouvorDataSource.coldigom,
 );
 
 final _chord = ChordMaterial(
@@ -115,7 +113,7 @@ void main() {
     );
 
     expect(material, isA<PdfMaterial>());
-    expect((material! as PdfMaterial).louvor.source, LouvorDataSource.coldigom);
+    expect((material! as PdfMaterial).louvor.pdfId, _coldigomPdfId);
   });
 
   testWidgets('resolve cifra do cache', (tester) async {

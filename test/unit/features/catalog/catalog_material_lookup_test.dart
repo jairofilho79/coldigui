@@ -1,7 +1,6 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -27,7 +26,6 @@ final _coldigomLouvor = Louvor.fromManifest(
   pdf: 'm1.pdf',
   pdfId: _coldigomPdfId,
   groupId: 'p1',
-  source: LouvorDataSource.coldigom,
 );
 
 final _chord = ChordMaterial(
@@ -58,7 +56,6 @@ AudioTrack _track(String audioId, String groupId) => AudioTrack(
   groupId: groupId,
   categoria: 'Áudio',
   classificacao: 'Balada',
-  source: LouvorDataSource.coldigom,
 );
 
 final _youtube = YoutubeMaterial(

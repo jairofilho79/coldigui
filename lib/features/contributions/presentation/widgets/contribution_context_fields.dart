@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/entities/louvor.dart';
-import '../../../catalog/domain/entities/louvor_data_source.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../material_kind_prefs/presentation/providers/coldigom_material_kinds_provider.dart';
@@ -199,12 +198,8 @@ class DuplicateField extends ConsumerWidget {
           decoration: InputDecoration(labelText: l10n.contributeDuplicateOf),
         );
       },
-      onSelected: (l) => onSelected(
-        praiseId: l.groupId,
-        source: l.source == LouvorDataSource.coldigom
-            ? ContributionSource.coldigom
-            : ContributionSource.plpcg,
-      ),
+      onSelected: (l) =>
+          onSelected(praiseId: l.groupId, source: ContributionSource.coldigom),
     );
   }
 }

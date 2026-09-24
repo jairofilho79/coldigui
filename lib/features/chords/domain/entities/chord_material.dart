@@ -1,5 +1,3 @@
-import '../../../catalog/domain/entities/louvor_data_source.dart';
-
 /// Material de cifra ChordPro coldigom — abre em `/cifra`.
 ///
 /// Espelha `YoutubeMaterial` na forma, mas com uma diferença deliberada:
@@ -16,7 +14,6 @@ class ChordMaterial {
     required this.categoria,
     required this.classificacao,
     this.author = '',
-    this.source = LouvorDataSource.coldigom,
     this.materialKindId,
   });
 
@@ -35,8 +32,7 @@ class ChordMaterial {
 
   final String classificacao;
   final String author;
-  final LouvorDataSource source;
 
-  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 }

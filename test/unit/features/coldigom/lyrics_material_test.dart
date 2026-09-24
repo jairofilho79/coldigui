@@ -41,7 +41,7 @@ void main() {
     expect(LouvorMaterialIcons.forMaterial(lyrics), Icons.subject);
   });
 
-  test('LouvorGroup põe a letra no fim de extras e conta como Coldigom', () {
+  test('LouvorGroup põe a letra no fim de extras', () {
     final lyrics = ColdigomLouvorAdapter.toLyricsMaterial(_praise, 'texto')!;
     final group = LouvorGroup(
       groupId: 'p-001',
@@ -53,7 +53,6 @@ void main() {
 
     expect(group.extras.last, same(lyrics));
     expect(group.lyrics, same(lyrics));
-    expect(group.isColdigom, isTrue);
     expect(group.totalMaterials, 1);
   });
 

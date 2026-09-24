@@ -2,7 +2,6 @@ import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
@@ -27,7 +26,6 @@ final _pdf = Louvor.fromManifest(
   pdf: 'm1.pdf',
   pdfId: 'pdf-1',
   groupId: 'p1',
-  source: LouvorDataSource.coldigom,
 );
 
 class _OpenSpy extends OpenMaterial {

@@ -465,7 +465,7 @@ void main() {
           AppColors.textLight.withValues(alpha: 0.7),
         );
         // O card do material usa `CarouselLouvorChip` — título em branco
-        // sobre o fundo vermelho/preto do chip (por `LouvorDataSource`).
+        // sobre o fundo vinho (`AppColors.title`) do chip.
         expect(_textColor(tester, '#001 — Aleluia'), AppColors.textLight);
       });
 

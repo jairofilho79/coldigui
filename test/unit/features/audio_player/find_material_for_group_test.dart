@@ -2,7 +2,6 @@ import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +22,6 @@ void main() {
       pdf: 'x.pdf',
       pdfId: pdfId,
       groupId: groupId,
-      source: LouvorDataSource.coldigom,
     );
   }
 

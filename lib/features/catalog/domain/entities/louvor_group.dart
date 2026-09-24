@@ -7,7 +7,6 @@ import '../constants/louvor_category_order.dart';
 import '../utils/louvor_classification.dart';
 import 'catalog_material.dart';
 import 'louvor.dart';
-import 'louvor_data_source.dart';
 import 'youtube_material.dart';
 
 /// Folha da sublista — exatamente um PDF/material.
@@ -83,7 +82,7 @@ class LouvorGroup {
   /// os getters por tipo abaixo continuam servindo os consumidores antigos.
   final List<CatalogMaterial> extras;
 
-  /// Metadados Coldigom (tom, autor, ritmo…) — null no PLPCG.
+  /// Metadados Coldigom (tom, autor, ritmo…) — null enquanto o grupo não os tem.
   final ColdigomPraiseMetadata? coldigomMeta;
 
   /// Faixas Coldigom associadas ao mesmo [groupId] — derivado de [extras].
@@ -110,7 +109,7 @@ class LouvorGroup {
       if (material is GestureMaterialRef) material.gesture,
   ];
 
-  /// Letra Coldigom do grupo — de [extras]; `null` no PLPCG e sem letra.
+  /// Letra Coldigom do grupo — de [extras]; `null` sem letra.
   LyricsMaterial? get lyrics {
     for (final material in extras) {
       if (material is LyricsMaterial) return material;
@@ -120,26 +119,6 @@ class LouvorGroup {
 
   /// Chave numérica para ordenação — parse feito uma vez no construtor.
   final int numeroSortKey;
-
-  /// True se o grupo vem do acervo Coldigom.
-  bool get isColdigom {
-    if (coldigomMeta != null) return true;
-    final primary = primaryLouvor;
-    if (primary?.source == LouvorDataSource.coldigom) return true;
-    for (final material in extras) {
-      switch (material) {
-        case AudioMaterial(:final track):
-          if (track.source == LouvorDataSource.coldigom) return true;
-        case YoutubeMaterialRef(material: final item):
-          if (item.source == LouvorDataSource.coldigom) return true;
-        case ChordMaterialRef() || GestureMaterialRef() || LyricsMaterial():
-          return true;
-        case PdfMaterial():
-          break;
-      }
-    }
-    return false;
-  }
 
   /// Cópia com [coldigomMeta] (ex.: attach a partir do cache).
   LouvorGroup withColdigomMeta(ColdigomPraiseMetadata? meta) {

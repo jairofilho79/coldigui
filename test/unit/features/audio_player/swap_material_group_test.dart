@@ -1,7 +1,6 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
@@ -23,7 +22,6 @@ void main() {
     pdf: 'x.pdf',
     pdfId: pdfId,
     groupId: praiseId,
-    source: LouvorDataSource.coldigom,
     praiseId: praiseId,
   );
 
@@ -96,10 +94,7 @@ void main() {
   test('cifra focada resolve o grupo do praise pelo id da cifra', () {
     final group = findSwapMaterialGroup(
       pdfId: focusedChordId,
-      source: source(
-        coldigom: coldigomCache,
-        chords: {focusedChordId: chord},
-      ),
+      source: source(coldigom: coldigomCache, chords: {focusedChordId: chord}),
     );
 
     expect(group, isNotNull);

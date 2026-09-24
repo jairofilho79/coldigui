@@ -1,11 +1,11 @@
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvor_pdf_download_state.dart';
@@ -57,7 +57,6 @@ void main() {
     groupId: '001:aleluia',
     categoria: 'Áudio',
     classificacao: 'Coro',
-    source: LouvorDataSource.coldigom,
   );
 
   LouvorGroup audioOnlyGroup() => LouvorGroup(

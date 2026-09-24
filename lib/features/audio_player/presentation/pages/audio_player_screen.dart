@@ -14,7 +14,6 @@ import 'package:coldigui/features/audio_player/data/web_audio_environment.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_transport_controls.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_web_platform_hint.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_material_icons.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
@@ -189,10 +188,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                           onPressed: () => openContribute(
                             context,
                             target: ContributionTarget(
-                              source: contributionSourceOf(
-                                isColdigom:
-                                    track.source == LouvorDataSource.coldigom,
-                              ),
+                              source: ContributionSource.coldigom,
                               praiseId: track.groupId,
                               materialId: track.audioId,
                             ),

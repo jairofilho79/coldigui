@@ -1,6 +1,5 @@
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,7 +14,6 @@ void main() {
       pdf: 'a.pdf',
       pdfId: 'pdf1',
       groupId: 'praise-1',
-      source: LouvorDataSource.coldigom,
     );
     const track = AudioTrack(
       audioId: 'audio1',
@@ -62,7 +60,6 @@ void main() {
       pdf: 'a.pdf',
       pdfId: 'pdf1',
       groupId: 'praise-1',
-      source: LouvorDataSource.coldigom,
     );
     const yt = YoutubeMaterial(
       id: 'yt1',

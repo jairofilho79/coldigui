@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_remote_datasource.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
@@ -91,11 +90,12 @@ Louvor _coldigomLouvor({required String praiseId, String pdf = 'm1.pdf'}) {
     pdf: pdf,
     pdfId: encodePdfId(relPath),
     groupId: praiseId,
-    source: LouvorDataSource.coldigom,
   );
 }
 
-Louvor _manifestLouvor({required String praiseId}) => Louvor.fromManifest(
+/// Louvor cujo `pdfId` não decodifica para um praise — só o campo
+/// [Louvor.praiseId] diz qual praise aquecer.
+Louvor _louvorComPraiseId({required String praiseId}) => Louvor.fromManifest(
   nome: 'Firme nas promessas',
   numero: '010',
   categoria: 'Partitura',
@@ -177,31 +177,36 @@ void main() {
       });
     });
 
-    test('louvor do manifest com praiseId aquece o praise sem entrar no cache Coldigom', () async {
-      final datasource = _ControllableColdigomDatasource(
-        (praiseId) async => _detailFor(praiseId),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'louvor com praiseId explícito aquece o praise e entra no cache Coldigom',
+      () async {
+        final datasource = _ControllableColdigomDatasource(
+          (praiseId) async => _detailFor(praiseId),
+        );
+        final container = ProviderContainer(
+          overrides: [
+            coldigomRemoteDatasourceProvider.overrideWithValue(datasource),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      await container.read(ensureColdigomPraiseMaterialsCachedProvider)(
-        _manifestLouvor(praiseId: 'pf'),
-      );
+        await container.read(ensureColdigomPraiseMaterialsCachedProvider)(
+          _louvorComPraiseId(praiseId: 'pf'),
+        );
 
-      expect(datasource.calls, ['pf']);
-      expect(
-        container.read(coldigomPraiseMetaCacheProvider).keys,
-        contains('pf'),
-      );
-      expect(
-        container.read(coldigomLouvoresCacheProvider).containsKey('legado-010'),
-        isFalse,
-      );
-    });
+        expect(datasource.calls, ['pf']);
+        expect(
+          container.read(coldigomPraiseMetaCacheProvider).keys,
+          contains('pf'),
+        );
+        expect(
+          container
+              .read(coldigomLouvoresCacheProvider)
+              .containsKey('legado-010'),
+          isTrue,
+        );
+      },
+    );
 
     test('não busca de novo quando o praise já tem meta em cache', () async {
       final datasource = _ControllableColdigomDatasource(
@@ -218,7 +223,7 @@ void main() {
       });
 
       await container.read(ensureColdigomPraiseMaterialsCachedProvider)(
-        _manifestLouvor(praiseId: 'pf'),
+        _louvorComPraiseId(praiseId: 'pf'),
       );
 
       expect(datasource.calls, isEmpty);

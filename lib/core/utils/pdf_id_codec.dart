@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-
 import 'material_id_kind.dart';
 import 'pdf_path_normalizer.dart';
 
@@ -24,13 +22,6 @@ bool isColdigomPdfId(String pdfId) {
   } on Object {
     return false;
   }
-}
-
-/// Infere [LouvorDataSource] a partir de [pdfId] quando não há entidade.
-LouvorDataSource louvorDataSourceFromPdfId(String pdfId) {
-  return isColdigomPdfId(pdfId)
-      ? LouvorDataSource.coldigom
-      : LouvorDataSource.plpcg;
 }
 
 /// Id legado do manifest PLPCG (spec 2026-09-23 §6.1): entrada **PDF** cujo

@@ -1,5 +1,4 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
-import 'louvor_data_source.dart';
 import '../utils/louvor_group_id.dart';
 import '../utils/louvor_numero_normalizer.dart';
 
@@ -19,7 +18,6 @@ class Louvor {
     required this.searchTitleNorm,
     required this.searchContentTokens,
     required this.searchCompactContent,
-    this.source = LouvorDataSource.plpcg,
     this.materialKindId,
     this.praiseId,
     this.materialId,
@@ -55,10 +53,7 @@ class Louvor {
   /// Título compacto (sem separadores) para match de queries como "buscarmeeis".
   final String searchCompactContent;
 
-  /// Origem dos metadados — PLPCG ou coldigom.
-  final LouvorDataSource source;
-
-  /// Id do `material_kind` Coldigom; `null` no acervo PLPCG.
+  /// Id do `material_kind` Coldigom; `null` quando o dump não traz o kind.
   final String? materialKindId;
 
   /// Id do praise no coldigom — identidade do louvor lógico.
@@ -85,7 +80,6 @@ class Louvor {
     required String pdf,
     required String pdfId,
     String groupId = '',
-    LouvorDataSource source = LouvorDataSource.plpcg,
     String? materialKindId,
     String? praiseId,
     String? materialId,
@@ -111,7 +105,6 @@ class Louvor {
       searchTitleNorm: searchTitleNorm,
       searchContentTokens: tokens.toList(),
       searchCompactContent: searchCompactContent,
-      source: source,
       materialKindId: materialKindId,
       praiseId: praiseId,
       materialId: materialId,

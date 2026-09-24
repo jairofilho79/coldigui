@@ -1,6 +1,5 @@
 // test/unit/features/chords/chord_material_adapter_test.dart
 import 'package:coldigui/core/utils/material_id_kind.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,7 +41,6 @@ void main() {
     expect(items.first.groupId, 'praise-1');
     expect(items.first.author, 'J.G.R');
     expect(items.first.classificacao, 'Cancao');
-    expect(items.first.source, LouvorDataSource.coldigom);
   });
 
   test('o chordId cai no mesmo espaco do pdfId e e reconhecido como cifra', () {

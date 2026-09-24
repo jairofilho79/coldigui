@@ -9,7 +9,6 @@ import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
@@ -353,9 +352,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
           : () => openContribute(
               context,
               target: ContributionTarget(
-                source: contributionSourceOf(
-                  isColdigom: reportLouvor.source == LouvorDataSource.coldigom,
-                ),
+                source: ContributionSource.coldigom,
                 praiseId: reportLouvor.groupId,
                 materialId: pdfId,
               ),

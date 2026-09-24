@@ -6,10 +6,10 @@
 // com YouTube), o long-press cai no mesmo caminho do tap de hoje.
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
@@ -33,7 +33,6 @@ Louvor _pdf(String categoria, String pdfId, {String? kind}) =>
       pdf: '$pdfId.pdf',
       pdfId: pdfId,
       groupId: 'g1',
-      source: LouvorDataSource.plpcg,
       materialKindId: kind,
     );
 

@@ -5,11 +5,11 @@
 // reabre o sheet no fluxo de troca (`replaceByKey`).
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
@@ -34,7 +34,6 @@ LouvorGroup _multiMaterialGroup() {
     searchTitleNorm: 'aleluia',
     searchContentTokens: const [],
     searchCompactContent: '',
-    source: LouvorDataSource.plpcg,
   );
 
   return LouvorGroup(

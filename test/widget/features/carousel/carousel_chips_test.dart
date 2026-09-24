@@ -1,5 +1,6 @@
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
@@ -9,7 +10,6 @@ import 'package:coldigui/features/audio_player/presentation/providers/audio_play
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -395,9 +395,7 @@ void main() {
     },
   );
 
-  testWidgets('compartilhar folheto pelo sheet da barra', (
-    tester,
-  ) async {
+  testWidgets('compartilhar folheto pelo sheet da barra', (tester) async {
     final playlistsNotifier = FakePlaylistsNotifier();
     final shareNotifier = _FakePlaylistShareActionsNotifier();
     final editor = FakeActiveEditor(entries);
@@ -926,7 +924,6 @@ void main() {
         pdf: 'partitura.pdf',
         pdfId: pdfId,
         groupId: 'p1',
-        source: LouvorDataSource.coldigom,
       );
       const track = AudioTrack(
         audioId: 'aud-p1',
@@ -1001,7 +998,6 @@ void main() {
       pdf: 'partitura.pdf',
       pdfId: pdfId,
       groupId: groupId,
-      source: LouvorDataSource.coldigom,
     );
 
     final chordP1 = ChordMaterial(
@@ -1203,9 +1199,9 @@ void main() {
 
         // Sanidade: uma troca real na seleção que o widget observa continua
         // reconstruindo.
-        final session =
-            container.read(audioPlayerSessionProvider.notifier)
-                as _ControllableAudioSession;
+        final session = container.read(
+          audioPlayerSessionProvider.notifier,
+        ) as _ControllableAudioSession;
         session.emitQueue([
           AudioTrack(
             audioId: 'aud-a',

@@ -6,13 +6,13 @@
 // pré-julga no toque. Quem tem `BuildContext` (`openAudioInPlayer`) mostra a
 // snackbar de storage a partir do resultado.
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -33,7 +33,6 @@ const _track = AudioTrack(
   categoria: 'Playback',
   classificacao: 'Básico',
   author: 'CIAS',
-  source: LouvorDataSource.coldigom,
 );
 
 class _FakeSession extends AudioPlayerSessionNotifier {

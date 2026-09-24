@@ -1,5 +1,4 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,7 +36,6 @@ void main() {
       expect(louvores.first.classificacao, 'Coletânea');
       expect(louvores.first.pdf, 'mat-1.pdf');
       expect(louvores.first.groupId, 'praise-1');
-      expect(louvores.first.source, LouvorDataSource.coldigom);
       expect(
         louvores.first.pdfId,
         encodePdfId('assets/praises/praise-1/mat-1.pdf'),
@@ -52,7 +50,6 @@ void main() {
       expect(tracks.first.nome, 'Grande Deus');
       expect(tracks.first.groupId, 'praise-1');
       expect(tracks.first.categoria, 'Áudio');
-      expect(tracks.first.source, LouvorDataSource.coldigom);
     });
 
     test('mapeia YouTube com URL válida e ignora url null/inválida', () {
@@ -98,7 +95,6 @@ void main() {
       expect(items.first.categoria, 'Áudio');
       expect(items.first.groupId, 'praise-1');
       expect(items.first.author, 'CIAS');
-      expect(items.first.source, LouvorDataSource.coldigom);
       expect(items.last.url, 'https://youtu.be/1Pks43ceAac');
     });
 
