@@ -157,4 +157,59 @@ void main() {
     expect(currentUri(router).path, RoutePaths.library);
     expect(currentUri(router).queryParameters[UrlSyncParams.tonality], 'Dm');
   });
+
+  testWidgets(
+    'link antigo ?category= na página inicial filtra pela subtag e o param '
+    'sai no próximo sync, mesmo quando o alvo fica vazio',
+    (tester) async {
+      final router = await pumpShell(
+        tester,
+        initialLocation: '${RoutePaths.home}?${UrlSyncParams.category}=Clamor',
+      );
+      final container = containerOf(tester);
+      expect(
+        container.read(catalogFiltersProvider),
+        const CatalogFilterState(tags: {'Coletânea', 'Coletânea · Clamor'}),
+      );
+
+      // Desmarcar tudo: desmarcar a raiz desmarca a subtag também (as
+      // subtags só aparecem com o pai marcado). O alvo é `/`; o
+      // `?category=` não pode ficar na URL (recarregar reaplicaria o filtro).
+      container.read(catalogFiltersProvider.notifier).toggleTag('Coletânea');
+      await tester.pumpAndSettle();
+
+      expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
+      expect(currentUri(router).path, RoutePaths.home);
+      expect(
+        currentUri(router).queryParameters,
+        isNot(contains(UrlSyncParams.category)),
+      );
+    },
+  );
+
+  testWidgets(
+    'link antigo ?category= na /biblioteca filtra pela subtag e o param sai '
+    'no próximo sync',
+    (tester) async {
+      final router = await pumpShell(
+        tester,
+        initialLocation:
+            '${RoutePaths.library}?${UrlSyncParams.category}=Clamor',
+      );
+      final container = containerOf(tester);
+      expect(
+        container.read(catalogFiltersProvider),
+        const CatalogFilterState(tags: {'Coletânea', 'Coletânea · Clamor'}),
+      );
+
+      container.read(catalogFiltersProvider.notifier).toggleTag('Coletânea');
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, RoutePaths.library);
+      expect(
+        currentUri(router).queryParameters,
+        isNot(contains(UrlSyncParams.category)),
+      );
+    },
+  );
 }

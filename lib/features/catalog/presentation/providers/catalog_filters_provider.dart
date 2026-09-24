@@ -52,8 +52,11 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
   /// Hidrata os filtros dos params da rota (página inicial ou /biblioteca).
   ///
   /// Chamado no primeiro build das telas mesmo sem params: sem nenhum dos
-  /// cinco, mantém o estado atual (gravado) em vez de limpar. Com algum,
-  /// a URL manda nos cinco (os ausentes ficam vazios). Não grava.
+  /// cinco (`tonality`, `rhythm`, `category`, `tags`, `materialKinds`),
+  /// mantém o estado atual (gravado) em vez de limpar. Com algum, a URL
+  /// manda nos quatro filtros de [CatalogFilterState] (os ausentes ficam
+  /// vazios); `category` é legado e soma-se a `tags` em vez de valer
+  /// sozinho ([CatalogFilterState.fromUrl]). Não grava.
   void hydrateFromUrl({
     String? tonality,
     String? rhythm,

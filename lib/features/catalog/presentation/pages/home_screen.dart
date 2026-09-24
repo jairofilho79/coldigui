@@ -7,6 +7,7 @@ import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
+import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
@@ -196,7 +197,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       materialKinds: filters.materialKindsUrlValue,
     );
 
-    if (buildHomeLocationFromUri(uri) == target) return;
+    // `?category=` (link antigo) já virou tags na hidratação e o normalizador
+    // o ignora; sem esta checagem, um alvo igual ao resto da URL (ex.: tudo
+    // desmarcado → `/`) deixaria o param lá e recarregar reaplicaria o filtro.
+    final hasLegacyCategory = uri.queryParameters.containsKey(
+      UrlSyncParams.category,
+    );
+    if (!hasLegacyCategory && buildHomeLocationFromUri(uri) == target) return;
     _suppressSearchHydrationFromOwnUrlSync = true;
     // replaceState, não pushState: digitar não pode poluir o voltar (P4).
     goReplacingUrl(context, goRouter, target);
