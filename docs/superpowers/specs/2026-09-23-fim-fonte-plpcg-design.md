@@ -1,7 +1,7 @@
 # Fim da fonte PLPCG — o app vive só do coldigom
 
 **Data:** 2026-09-23
-**Estado:** implementado (planos 0–3, branch `feat/fim-fonte-plpcg` @ `0e6c6b08`); ver §13 «Estado implementado e desvios».
+**Estado:** implementado (planos 0–3 e correções da revisão final, branch `feat/fim-fonte-plpcg` @ `c6b1433e` + o commit de docs que regista esta nota); ver §13 «Estado implementado e desvios».
 **Branch:** `feat/fim-fonte-plpcg` (worktree `.claude/worktrees/fim-fonte-plpcg`), a partir de `web/integration` @ `59e38160`.
 **Repos:** `coldigui` (app Flutter + Worker `plpcg-catalog`) e `coldigom` (`api/`, só as duas peças de §7).
 **Substitui:** a dicotomia PLPCG × Coldigom que sobrou do spec `2026-09-18-catalogo-coldigom-modo-unico-design.md`. Fecha os follow-ups §11 «Lista ao Vivo» e «Share» desse spec e o débito «gate Coldigom» de `docs/features/FEATURE_INDEX.md`.
@@ -215,7 +215,7 @@ https://v2.plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo
 | Store | Reescrita | Id desconhecido |
 |---|---|---|
 | `Playlist.items` + `pdfIds` | `PlaylistRepository.update(entries:)`: mantém o `kind` e a ordem, preserva `syncStatus == conflict`, faz push nas guardadas. | Fica. Aparece como indisponível e o usuário remove. |
-| `OfflinePdfIndex` | `remapPdfId` (o ficheiro fica em `storagePath`). | A linha sai; o ficheiro órfão é limpo pelo reconcile (`listOrphans`). |
+| `OfflinePdfIndex` | `remapPdfIds`, em lote numa só escrita (o ficheiro fica em `storagePath`). | A linha sai; o ficheiro órfão é limpo pelo reconcile (`listOrphans`). |
 | pref `recentlyOpened` | Troca o id, sem repetidos. | Descartado. |
 | pref `pdfLastPages` | Troca o `id`; em colisão fica a entrada mais recente. | Descartada. |
 | pref `carousel_focused_pdf_id` | Troca a parte do id e mantém o sufixo `#n`. | Pref apagada (o foco cai no início). |
@@ -225,7 +225,7 @@ https://v2.plpcg.com/?p=1a2-0c3-fff&n=Culto%20de%20domingo
   - Varre as stores e junta os ids legados. **Sem ids legados não há rede nem escrita.**
   - Com ids legados e sem rede, fica pendente e tenta no próximo gatilho.
   - Não há flag de «feito»: é idempotente, e por isso também apanha ids legados que um cliente antigo volte a empurrar pelo servidor.
-- **Concorrência:** o índice offline é reescrito sob o `offlineMaintenanceLockProvider`. As playlists passam pelo repositório, que já serializa as escritas.
+- **Concorrência:** o índice offline é reescrito sob o `offlineMaintenanceLockProvider`; com o lock ocupado a store adia e o normalizador repete quando ele solta (§13). As playlists passam pelo repositório, que já serializa as escritas.
 - **Sem Isar:** não há playlists nem índice para migrar; só as prefs são normalizadas.
 - **Remoção futura:** quando deixar de haver ids legados, `NormalizeLegacyMaterialIds` e `resolveLegacyPdfIds` saem (follow-up, §12).
 - **Item parkeado L/X do offline (spec de 18/09):** resolvido. Todo o índice passa a X.
@@ -433,6 +433,8 @@ As unidades 2–4 saem **juntas** numa versão do app: não há estado interméd
 7. Link antigo `?s=…`: mensagem de link antigo.
 8. Ao vivo: pôr no ar uma lista que antes era recusada; o chip do carrossel é vinho em todo o lado.
 9. Rede: nenhuma chamada a `/api/plpcg/manifest*`, `/api/praises/filters` ou `/api/materials/kinds` na página inicial ou na /biblioteca.
+10. `LouvorCache` na web — descrito na validação manual do plano 3 (Tarefa 15; §13, Plano 3, desvio 3).
+11. Aparelho web com muitos PDFs offline legados: medir o tempo da normalização e confirmar que o /offline mostra os PDFs sem os baixar de novo.
 
 ## 12. Follow-ups (fora desta entrega)
 
@@ -445,7 +447,7 @@ As unidades 2–4 saem **juntas** numa versão do app: não há estado interméd
 
 ## 13. Estado implementado e desvios
 
-Os quatro planos (0 coldigom, 1 catálogo, 2 share/ao vivo/cor, 3 ids legados/manifesto/offline/D1/docs) estão implementados na branch `feat/fim-fonte-plpcg` (HEAD `0e6c6b08`). Esta secção regista as decisões tomadas durante a execução que mudam o que os §§1–12 descrevem — não os ajustes por tarefa (nits), que ficam só nos `progress.md` de cada plano.
+Os quatro planos (0 coldigom, 1 catálogo, 2 share/ao vivo/cor, 3 ids legados/manifesto/offline/D1/docs) estão implementados na branch `feat/fim-fonte-plpcg` (HEAD `c6b1433e`, com as correções da revisão final do plano 3, mais o commit de docs que regista esta secção). Esta secção regista as decisões tomadas durante a execução que mudam o que os §§1–12 descrevem — não os ajustes por tarefa (nits), que ficam só nos `progress.md` de cada plano.
 
 ### Plano 0 — coldigom (`praises.short_id` + crosswalk)
 
@@ -477,4 +479,12 @@ Os sete desvios decididos ao planear (topo do plano, `docs/superpowers/plans/202
 Outras decisões de design do plano 3, fora da lista acima:
 
 - **Listas de conta estranha (`ownerSub` ≠ sessão atual, incluindo deslogado) são normalizadas mantendo o `syncStatus`** — uma lista `synced` continua `synced`, preservando a purga na troca de conta; a normalização do lado do servidor para essas listas fica a cargo do script D1 (§6.3) ou espera a conta dona voltar.
+- **Lista da conta corrente reescrita passa a `pendingPush`** e sobe no próximo gatilho de sync (edição, volta ao app, reconexão, abrir /listas) — o normalizador não força um push. Se a sessão ainda está a carregar na hora da reescrita, o `sub` lido é `null` e a lista conta como de outra conta: fica `synced` no aparelho e só o script D1 (§6.3) normaliza a cópia do servidor.
 - **Segurança do script D1** (`migrate-legacy-playlist-ids.ts`): exige `--local`/`--remote` explícito (rejeita flags desconhecidas, nunca corre "às cegas"); relata as linhas saltadas pela guarda de versão (re-`SELECT` pós-escrita, contra escrita concorrente); o runbook pede um bookmark de time-travel do D1 antes de rodar e documenta o comando de restauro.
+
+Correções da revisão final do plano 3:
+
+- **Índice offline com a manutenção ocupada é adiado, não saltado:** com o reconcile ou um download a segurar o `offlineMaintenanceLockProvider`, o `OfflineIndexLegacyIdStore` lança `LegacyIdStoreDeferred` (não espera o lock); a rodada sai `deferred` — as outras stores reescrevem — e o normalizador escuta o lock e corre **uma** rodada a mais quando ele volta a livre (ou logo, se soltou antes do fim da rodada). Antes o índice ficava com as chaves legadas até o próximo arranque.
+- **Troca de chaves do índice em lote:** `OfflinePdfRepository.remapPdfIds` faz a troca e a remoção dos desconhecidos numa transação Isar, com um só aviso ao índice (antes eram 2–3 escritas e 2–3 reconstruções do mapa de disponibilidade por PDF). O `remapPdfId` de uma linha saiu (não tinha outro chamador).
+- **Importar uma lista pública com id legado** (card social) pede uma rodada ao normalizador — quarto gatilho, além de hydrate, pull e reconexão.
+- **Script D1:** a releitura pós-escrita vai em lotes de 200 chaves por `SELECT` (um `OR` único passaria do limite de statement do D1 com ~1200 linhas).
