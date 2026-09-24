@@ -5,8 +5,10 @@ import {
   buildReport,
   coldigomPdfIdFromAssetUrl,
   collectLegacyIds,
+  detectSkipped,
   encodePdfId,
   isLegacyPdfId,
+  parseArgs,
   resolvedFromCrosswalk,
   rewriteRow,
   updateSql,
@@ -57,6 +59,13 @@ test('coldigomPdfIdFromAssetUrl lê o r2Key da URL', () => {
   assert.equal(coldigomPdfIdFromAssetUrl('https://c.test/assets/praises/p9/m%202.pdf'), coldigomB);
   assert.equal(coldigomPdfIdFromAssetUrl('https://c.test/outra/coisa.pdf'), null);
   assert.equal(coldigomPdfIdFromAssetUrl('https://c.test/assets/praises/p1'), null);
+});
+
+test('coldigomPdfIdFromAssetUrl descarta query string e fragment antes do path (mesmo teste de pdf_id_codec_test.dart)', () => {
+  assert.equal(
+    coldigomPdfIdFromAssetUrl('https://host/assets/praises/p/m.pdf?v=2#x'),
+    coldigomPdfIdFromAssetUrl('https://host/assets/praises/p/m.pdf'),
+  );
 });
 
 test('resolvedFromCrosswalk ignora entradas sem URL de assets/praises', () => {
@@ -151,6 +160,91 @@ test('updateSql: version + 1, updated_at intacto, guarda de versão, aspas escap
   assert.match(sql, /WHERE user_id = 'u''1' AND id = 'pl1' AND version = 3;$/);
   assert.ok(sql.includes(`items = '${JSON.stringify([{ id: coldigomA, kind: 'pdf' }])}'`));
   assert.ok(sql.includes(`pdf_ids = '${JSON.stringify([coldigomA])}'`));
+});
+
+test('detectSkipped: guarda de versão rejeitou — linha relida ainda tem o legado', () => {
+  const planned = rewriteRow(
+    row({ items: JSON.stringify([{ id: legadoA, kind: 'pdf' }]) }),
+    new Map([[legadoA, coldigomA]]),
+  );
+  assert.ok(planned);
+  // Outra escrita mudou a versão entretanto: a guarda `AND version = N` não
+  // bateu, e a linha relida continua com o id legado.
+  const afterRows = [
+    row({ items: JSON.stringify([{ id: legadoA, kind: 'pdf' }]), version: 4 }),
+  ];
+  assert.deepEqual(
+    detectSkipped([planned], afterRows, new Map([[legadoA, coldigomA]])),
+    [planned],
+  );
+});
+
+test('detectSkipped: escrita pegou — linha relida já tem o id coldigom', () => {
+  const planned = rewriteRow(
+    row({ items: JSON.stringify([{ id: legadoA, kind: 'pdf' }]) }),
+    new Map([[legadoA, coldigomA]]),
+  );
+  assert.ok(planned);
+  const afterRows = [
+    row({ items: JSON.stringify([{ id: coldigomA, kind: 'pdf' }]), version: 4 }),
+  ];
+  assert.deepEqual(
+    detectSkipped([planned], afterRows, new Map([[legadoA, coldigomA]])),
+    [],
+  );
+});
+
+test('detectSkipped: linha ausente da releitura (ex.: soft delete concorrente) não conta como pulada', () => {
+  const planned = rewriteRow(
+    row({ items: JSON.stringify([{ id: legadoA, kind: 'pdf' }]) }),
+    new Map([[legadoA, coldigomA]]),
+  );
+  assert.ok(planned);
+  assert.deepEqual(detectSkipped([planned], [], new Map([[legadoA, coldigomA]])), []);
+});
+
+test('buildReport com skipped: desconta de rowsChanged e marca a linha', () => {
+  const rows = [
+    row({ items: JSON.stringify([{ id: legadoA, kind: 'pdf' }]) }),
+  ];
+  const resolved = new Map([[legadoA, coldigomA]]);
+  const rewrites = rows
+    .map((r) => rewriteRow(r, resolved))
+    .filter((r): r is RowRewrite => r !== null);
+  const report = buildReport(
+    rows,
+    rewrites,
+    collectLegacyIds(rows),
+    resolved,
+    new Date('2026-09-23T00:00:00Z'),
+    rewrites,
+  );
+  assert.equal(report.rowsChanged, 0);
+  assert.deepEqual(report.skipped, [{ userId: 'u1', id: 'pl1' }]);
+  assert.equal(report.rows[0].skipped, true);
+});
+
+test('parseArgs: --dry-run --local', () => {
+  assert.deepEqual(parseArgs(['--dry-run', '--local']), {
+    dryRun: true,
+    target: '--local',
+  });
+});
+
+test('parseArgs: --remote sem --dry-run', () => {
+  assert.deepEqual(parseArgs(['--remote']), { dryRun: false, target: '--remote' });
+});
+
+test('parseArgs: flag desconhecida rejeita', () => {
+  assert.throws(() => parseArgs(['--dryrun', '--local']));
+});
+
+test('parseArgs: sem --local nem --remote rejeita (sem default)', () => {
+  assert.throws(() => parseArgs(['--dry-run']));
+});
+
+test('parseArgs: --local e --remote juntos rejeita', () => {
+  assert.throws(() => parseArgs(['--local', '--remote']));
 });
 
 test('buildReport conta linhas, resolvidos e desconhecidos', () => {

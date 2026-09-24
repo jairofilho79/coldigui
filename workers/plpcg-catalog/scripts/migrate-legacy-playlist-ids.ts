@@ -5,7 +5,7 @@
  * legados logo a seguir) e só com pedido do dono. Ver o runbook no README.
  *
  *   COLDIGOM_API_BASE_URL=https://coldigom-api.jairofilho79.workers.dev \
- *     npm run migrate:legacy-ids -- --dry-run [--local]
+ *     npm run migrate:legacy-ids -- --dry-run --local
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -14,9 +14,13 @@ import { join } from 'node:path';
 import {
   buildReport,
   collectLegacyIds,
+  detectSkipped,
+  parseArgs,
   resolvedFromCrosswalk,
   rewriteRow,
+  sqlString,
   updateSql,
+  type MigrationReport,
   type PlaylistRow,
   type RowRewrite,
 } from './legacy_playlist_ids.ts';
@@ -33,15 +37,47 @@ function d1(target: string, extra: string[]): unknown {
   return JSON.parse(out);
 }
 
-function selectRows(target: string): PlaylistRow[] {
-  const parsed = d1(target, [
-    '--command',
-    'SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists WHERE deleted_at IS NULL',
-  ]);
+function runSelect(target: string, sql: string): PlaylistRow[] {
+  const parsed = d1(target, ['--command', sql]);
   const first = Array.isArray(parsed) ? parsed[0] : parsed;
   const results = (first as { results?: unknown } | undefined)?.results;
   if (!Array.isArray(results)) throw new Error('resposta inesperada do wrangler');
   return results as PlaylistRow[];
+}
+
+function selectRows(target: string): PlaylistRow[] {
+  return runSelect(
+    target,
+    'SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists WHERE deleted_at IS NULL',
+  );
+}
+
+/** Relê só as linhas de [keys] — a conferência pós-escrita (`detectSkipped`). */
+function selectRowsByKeys(
+  target: string,
+  keys: Array<{ userId: string; id: string }>,
+): PlaylistRow[] {
+  if (keys.length === 0) return [];
+  const where = keys
+    .map((k) => `(user_id = ${sqlString(k.userId)} AND id = ${sqlString(k.id)})`)
+    .join(' OR ');
+  return runSelect(
+    target,
+    `SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists ` +
+      `WHERE deleted_at IS NULL AND (${where})`,
+  );
+}
+
+/**
+ * Executa o `.sql` de [sqlPath] contra [target]. Devolve o `final_bookmark`
+ * quando a resposta do wrangler traz um (import `--remote` via `--file`) —
+ * `--local` nunca traz.
+ */
+function importFile(target: string, sqlPath: string): string | undefined {
+  const parsed = d1(target, ['--file', sqlPath]);
+  const first = Array.isArray(parsed) ? parsed[0] : parsed;
+  const bookmark = (first as { finalBookmark?: unknown } | undefined)?.finalBookmark;
+  return typeof bookmark === 'string' ? bookmark : undefined;
 }
 
 async function resolve(base: string, ids: string[]): Promise<Map<string, string>> {
@@ -70,9 +106,7 @@ async function resolve(base: string, ids: string[]): Promise<Map<string, string>
 }
 
 async function main(): Promise<void> {
-  const args = new Set(process.argv.slice(2));
-  const dryRun = args.has('--dry-run');
-  const target = args.has('--local') ? '--local' : '--remote';
+  const { dryRun, target } = parseArgs(process.argv.slice(2));
   const base = (process.env.COLDIGOM_API_BASE_URL ?? '').replace(/\/$/, '');
   if (!base) throw new Error('defina COLDIGOM_API_BASE_URL');
 
@@ -82,7 +116,8 @@ async function main(): Promise<void> {
   const rewrites = rows
     .map((row) => rewriteRow(row, resolved))
     .filter((r): r is RowRewrite => r !== null);
-  const report = buildReport(rows, rewrites, legacy, resolved);
+  const now = new Date();
+  const plannedReport = buildReport(rows, rewrites, legacy, resolved, now);
 
   for (const r of rewrites) {
     console.log(`${r.userId}/${r.id} (v${r.version} → v${r.version + 1}):`);
@@ -90,9 +125,9 @@ async function main(): Promise<void> {
     for (const id of r.unknown) console.log(`  ? ${id} (desconhecido, fica)`);
   }
   console.log(
-    `${report.rowsScanned} linhas lidas; ${report.rowsChanged} a reescrever; ` +
-      `${report.legacyIds} ids legados: ${report.resolvedIds} resolvidos, ` +
-      `${report.unknownIds.length} desconhecidos.`,
+    `${plannedReport.rowsScanned} linhas lidas; ${plannedReport.rowsChanged} a reescrever; ` +
+      `${plannedReport.legacyIds} ids legados: ${plannedReport.resolvedIds} resolvidos, ` +
+      `${plannedReport.unknownIds.length} desconhecidos.`,
   );
   if (dryRun) {
     console.log('--dry-run: nada gravado.');
@@ -101,13 +136,40 @@ async function main(): Promise<void> {
 
   const outDir = join(import.meta.dirname, 'out');
   mkdirSync(outDir, { recursive: true });
-  const stamp = report.generatedAt.replaceAll(':', '-');
+  const stamp = plannedReport.generatedAt.replaceAll(':', '-');
+  const reportPath = join(outDir, `migrate-legacy-playlist-ids-${stamp}.json`);
+
+  // Grava o relatório PLANEADO antes de tocar no D1: se o `wrangler --file`
+  // escrever com sucesso mas algo falhar depois (ex.: stdout inesperado ao
+  // relê a linhas), ainda sobra um relatório em disco — não fica preso só no
+  // stdout que já rolou.
+  writeFileSync(reportPath, JSON.stringify(plannedReport, null, 2) + '\n');
+
   const sqlPath = join(outDir, `migrate-legacy-playlist-ids-${stamp}.sql`);
   writeFileSync(sqlPath, rewrites.map(updateSql).join('\n') + '\n');
-  if (rewrites.length > 0) d1(target, ['--file', sqlPath]);
-  const reportPath = join(outDir, `migrate-legacy-playlist-ids-${stamp}.json`);
-  writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
+
+  let finalBookmark: string | undefined;
+  let skipped: RowRewrite[] = [];
+  if (rewrites.length > 0) {
+    finalBookmark = importFile(target, sqlPath);
+    const afterRows = selectRowsByKeys(
+      target,
+      rewrites.map((r) => ({ userId: r.userId, id: r.id })),
+    );
+    skipped = detectSkipped(rewrites, afterRows, resolved);
+  }
+
+  const finalReport: MigrationReport = {
+    ...buildReport(rows, rewrites, legacy, resolved, now, skipped),
+    ...(finalBookmark !== undefined ? { finalBookmark } : {}),
+  };
+  writeFileSync(reportPath, JSON.stringify(finalReport, null, 2) + '\n');
   console.log(`Gravado. SQL: ${sqlPath}\nRelatório: ${reportPath}`);
+  if (skipped.length > 0) {
+    console.log(
+      `${skipped.length} linha(s) não gravada(s) (a versão mudou entretanto) — rode de novo.`,
+    );
+  }
 }
 
 main().catch((error: unknown) => {

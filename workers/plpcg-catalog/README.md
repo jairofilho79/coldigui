@@ -50,14 +50,30 @@ Spec: `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md` §6.3. Troca
 
 **Só depois do deploy do app novo e com pedido do dono.**
 
+Um import `--remote` (`wrangler d1 execute … --file`) deixa o D1 indisponível para todo mundo enquanto roda — escolher uma hora de baixo tráfego.
+
+Ponto de restauro antes da escrita real:
+
+```bash
+npx wrangler d1 time-travel info plpcg-catalog
+```
+
+Anotar o `bookmark` impresso. Restauro, só se algo der errado:
+
+```bash
+npx wrangler d1 time-travel restore plpcg-catalog --bookmark=<bookmark>
+```
+
+(desfaz também qualquer escrita posterior no D1, não só a desta migração.)
+
 ```bash
 cd workers/plpcg-catalog
 export COLDIGOM_API_BASE_URL=https://coldigom-api.jairofilho79.workers.dev
-npm run migrate:legacy-ids -- --dry-run   # diff + contagem, não grava
-npm run migrate:legacy-ids                # grava; SQL e relatório em scripts/out/
+npm run migrate:legacy-ids -- --dry-run --remote   # diff + contagem, não grava
+npm run migrate:legacy-ids -- --remote             # grava; SQL e relatório em scripts/out/
 ```
 
-Pode correr de novo: linhas já normalizadas não mudam, e uma linha que mudou entre a leitura e a escrita (guarda `AND version = N`) fica para a passada seguinte. O normalizador do app (`NormalizeLegacyMaterialIds`) cobre o que escapar.
+`--local`/`--remote` é sempre obrigatório (sem default) — evita que um `--dry-run` esquecido do `--local` vire escrita real. Pode correr de novo: linhas já normalizadas não mudam, e uma linha que mudou entre a leitura e a escrita (guarda `AND version = N`) fica marcada como `skipped` no relatório e a saída avisa "rode de novo". O normalizador do app (`NormalizeLegacyMaterialIds`) cobre o que escapar.
 
 ## Setup local
 

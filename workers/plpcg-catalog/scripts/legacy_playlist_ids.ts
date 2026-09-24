@@ -41,17 +41,50 @@ export interface MigrationReport {
   legacyIds: number;
   resolvedIds: number;
   unknownIds: string[];
+  /** Linhas planeadas cuja guarda `AND version = N` rejeitou a escrita (§6.3). */
+  skipped: Array<{ userId: string; id: string }>;
   rows: Array<{
     userId: string;
     id: string;
     replaced: Array<[string, string]>;
     unknown: string[];
+    skipped: boolean;
   }>;
+  /** `final_bookmark` do import remoto (`wrangler d1 … --file`), quando houve. */
+  finalBookmark?: string;
 }
 
 const strictUtf8 = new TextDecoder('utf-8', { fatal: true });
 const PRAISES_MARKER = '/assets/praises/';
 const PRAISES_R2_PREFIX = 'assets/praises/';
+
+/** Opções da CLI já validadas — ver [parseArgs]. */
+export interface CliOptions {
+  dryRun: boolean;
+  target: '--local' | '--remote';
+}
+
+const KNOWN_FLAGS: ReadonlySet<string> = new Set(['--dry-run', '--local', '--remote']);
+
+/**
+ * Analisa `process.argv.slice(2)`.
+ *
+ * Rejeita qualquer flag desconhecida — um typo como `--dryrun` não pode virar
+ * escrita real, silenciosamente ignorado. Exige exatamente um de
+ * `--local`/`--remote`, **sem default**: um default de `--remote` faria um
+ * `--dry-run` esquecido do `--local` escrever direto na produção.
+ */
+export function parseArgs(argv: readonly string[]): CliOptions {
+  for (const arg of argv) {
+    if (!KNOWN_FLAGS.has(arg)) throw new Error(`flag desconhecida: ${arg}`);
+  }
+  const hasLocal = argv.includes('--local');
+  const hasRemote = argv.includes('--remote');
+  if (hasLocal === hasRemote) {
+    throw new Error('use exatamente um de --local ou --remote');
+  }
+  return { dryRun: argv.includes('--dry-run'), target: hasLocal ? '--local' : '--remote' };
+}
 
 /** Path que [id] codifica (base64url UTF-8), ou `null`. Espelha `PdfPathNormalizer.getPdfRelPath`. */
 export function decodePdfId(id: string): string | null {
@@ -75,11 +108,27 @@ export function isLegacyPdfId(id: string): boolean {
   return path.toLowerCase().endsWith('.pdf') && !path.startsWith(PRAISES_R2_PREFIX);
 }
 
-/** Espelha `coldigomPdfIdFromAssetUrl`: `encodePdfId(r2Key)` lido da URL. */
+/** Corta [url] no primeiro `?` ou `#`, o que vier primeiro. Espelha `_stripQueryAndFragment`. */
+function stripQueryAndFragment(url: string): string {
+  let end = url.length;
+  const queryIndex = url.indexOf('?');
+  if (queryIndex !== -1 && queryIndex < end) end = queryIndex;
+  const fragmentIndex = url.indexOf('#');
+  if (fragmentIndex !== -1 && fragmentIndex < end) end = fragmentIndex;
+  return url.substring(0, end);
+}
+
+/**
+ * Espelha `coldigomPdfIdFromAssetUrl`: `encodePdfId(r2Key)` lido da URL.
+ *
+ * Query string (`?…`) e fragment (`#…`) são descartados antes de procurar o
+ * path — não fazem parte do `r2Key` (ruling do pre-flight 6.7).
+ */
 export function coldigomPdfIdFromAssetUrl(url: string): string | null {
-  const index = url.indexOf(PRAISES_MARKER);
+  const withoutQueryAndFragment = stripQueryAndFragment(url);
+  const index = withoutQueryAndFragment.indexOf(PRAISES_MARKER);
   if (index < 0) return null;
-  const r2Key = url.substring(index + 1);
+  const r2Key = withoutQueryAndFragment.substring(index + 1);
   const rest = r2Key.substring(PRAISES_R2_PREFIX.length);
   if (rest.length === 0 || !rest.includes('/')) return null;
   try {
@@ -169,8 +218,32 @@ export function rewriteRow(
   };
 }
 
-function sqlString(value: string): string {
+/** Aspa e escapa [value] para embutir num literal SQL. */
+export function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function rowKey(userId: string, id: string): string {
+  return `${userId}\u0000${id}`;
+}
+
+/**
+ * [rewrites] cuja guarda `AND version = N` rejeitou a escrita: lidas de novo
+ * depois do UPDATE ([afterRows]), ainda têm algum legado que [resolved]
+ * resolveria — outra escrita concorrente mudou a `version` entretanto, e a
+ * linha fica para a próxima passada. Uma linha ausente de [afterRows] (ex.:
+ * soft delete concorrente) não conta como pulada — já não importa a ninguém.
+ */
+export function detectSkipped(
+  rewrites: RowRewrite[],
+  afterRows: PlaylistRow[],
+  resolved: ReadonlyMap<string, string>,
+): RowRewrite[] {
+  const after = new Map(afterRows.map((row) => [rowKey(row.user_id, row.id), row]));
+  return rewrites.filter((r) => {
+    const row = after.get(rowKey(r.userId, r.id));
+    return row !== undefined && rewriteRow(row, resolved) !== null;
+  });
 }
 
 /**
@@ -190,26 +263,35 @@ export function updateSql(rewrite: RowRewrite): string {
   );
 }
 
+/**
+ * [skipped] (default `[]`) são as [rewrites] que [detectSkipped] apontou como
+ * rejeitadas pela guarda de versão — chamado antes da escrita (planeado, sem
+ * `skipped`) e de novo depois (final, com `skipped`); ver o runbook do README.
+ */
 export function buildReport(
   rows: PlaylistRow[],
   rewrites: RowRewrite[],
   legacy: ReadonlySet<string>,
   resolved: ReadonlyMap<string, string>,
   now: Date = new Date(),
+  skipped: RowRewrite[] = [],
 ): MigrationReport {
   const all = [...legacy];
+  const skippedKeys = new Set(skipped.map((r) => rowKey(r.userId, r.id)));
   return {
     generatedAt: now.toISOString(),
     rowsScanned: rows.length,
-    rowsChanged: rewrites.length,
+    rowsChanged: rewrites.length - skipped.length,
     legacyIds: legacy.size,
     resolvedIds: all.filter((id) => resolved.has(id)).length,
     unknownIds: all.filter((id) => !resolved.has(id)).sort(),
+    skipped: skipped.map((r) => ({ userId: r.userId, id: r.id })),
     rows: rewrites.map((r) => ({
       userId: r.userId,
       id: r.id,
       replaced: r.replaced,
       unknown: r.unknown,
+      skipped: skippedKeys.has(rowKey(r.userId, r.id)),
     })),
   };
 }
