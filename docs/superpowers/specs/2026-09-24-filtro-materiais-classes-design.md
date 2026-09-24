@@ -1,4 +1,4 @@
-# Filtro «Materiais» por classe e família — chip de família compartilhado com as subtags
+# Filtro «Materiais» por classe e família
 
 **Data:** 2026-09-24
 **Estado:** design aprovado em conversa (partes 1–3); spec aguardando revisão.
@@ -11,22 +11,23 @@
 - `coldigom`: `feat/material-kind-classes`, a partir de `origin/main` (@ `e614d43` em 2026-09-24), num worktree próprio;
 - `coldigui`: `feat/filtro-materiais-classes`, a partir de `web/integration`.
 
-**Depende de:** spec das subtags (`2026-09-24-secoes-coletanea-subtags-design.md`, branch `feat/secoes-coletanea-subtags`). As duas mexem em `catalog_filter_sections.dart` (§6).
+**Convive com:**
+- as «subtags sob demanda» nos filtros (`d8dd304d`, já em `web/integration` e em produção), de onde vem a regra de seleção das famílias (F5);
+- a spec das subtags da Coletânea (`2026-09-24-secoes-coletanea-subtags-design.md`, branch `feat/secoes-coletanea-subtags`), que também mexe em `catalog_filter_sections.dart` (§6).
 
 ## 0. Objetivo e limites
 
 A seção «Materiais» dos filtros (Home e /biblioteca) mostra uns 95 chips soltos em ordem alfabética: MIDI, instrumentos, vozes e acompanhamento misturados. A entrega organiza essa seção e mantém o padrão visual de hoje (título + `Wrap` de `FilterChip`):
 - **chips de Tipo** (PDF, Cifra, Áudio…) logo abaixo do título, com seleção múltipla, que escondem da lista os materiais sem arquivo daquele tipo;
 - **classes** (Metais, Banda, Vozes…) como rótulos pequenos com um fio, cada uma com o seu `Wrap`;
-- **famílias** recolhidas num chip só («Saxofone 4 ▾»), com a semântica das subtags: o pai inclui os filhos.
-
-O **chip de família** é um componente genérico. Depois do merge das subtags, a seção «Tags» passa a usá-lo também («Coletânea 13 ▾»).
+- **famílias** recolhidas num chip só («Saxofone 4 ▾»), com a mesma regra das subtags que já está em produção: o pai inclui os filhos, e um filho marcado junto com o pai refina o pai.
 
 **Não entra (decidido):**
 - **Tela no admin** para editar classe, pai e ordem. Os dados vêm de migration; um kind novo aparece em «Outros» até alguém rodar SQL ou script.
 - **`/api/materials/kinds`** e o filtro por material kind da API e do admin continuam como estão.
 - **A tela «Materiais favoritos»**, as preferências de tipo por material e o plpcjf.
 - **Chip de Tipo filtrando louvores.** O chip só organiza a lista de materiais (decisão do dono).
+- **A seção «Tags».** Ela continua com as «subtags sob demanda» (`d8dd304d`). O chip de família fica só em Materiais (decisão do dono, 2026-09-24).
 
 ## 1. Fatos medidos (2026-09-24)
 
@@ -36,7 +37,7 @@ O **chip de família** é um componente genérico. Depois do merge das subtags, 
 | F2 | O dump `GET /api/plpcg/catalog` já manda `kinds: [{id, name}]` (só os kinds com material), e o ETag é o hash de `{kinds, praises}` (`api/src/plpcgPraises.ts`). | Os campos novos vão em `kinds`. O ETag muda sozinho quando a classificação muda. |
 | F3 | No app, `ColdigomCatalogDto.kindNames` lê `kinds` e desnormaliza o nome em cada material do cache Isar. As opções de filtro (`CatalogFilterOptions.fromGroups`) saem do índice local, a partir dos materiais. | A classificação precisa de um lugar próprio no cache, guardado na mesma sincronização. |
 | F4 | O filtro guarda `materialKindIds` (ids, não rótulos). `_hasSelectedKind` (`matches_catalog_filters.dart`) casa só o id exato. | O casamento passa a expandir pai → filhos. |
-| F5 | As tags já têm hierarquia no app: `catalogTagMatches` (o pai casa os filhos), `catalogTagsRefined` (pai + filho selecionados vale pelo filho) e `catalogTagWithAncestors` (`lib/features/catalog/domain/utils/catalog_tag_hierarchy.dart`). A seleção de tags grava o **rótulo completo** (`Coletânea · Clamor`). | A regra de família dos kinds copia a das tags. O chip de tag lê e grava rótulos completos. |
+| F5 | As tags já têm hierarquia no app (`lib/features/catalog/domain/utils/catalog_tag_hierarchy.dart`):<br>• `catalogTagMatches`: o pai casa os filhos;<br>• `catalogTagsRefined`: pai + filho selecionados vale pelo filho.<br>Com `d8dd304d` (decisão do dono), o filtro usa a seleção refinada, e `toggleTag` desmarca as subtags quando desmarca o pai. | A regra de família dos kinds copia essa: refinar em vez de trocar, e desmarcar o pai desmarca os filhos. |
 | F6 | Produção tem **104** kinds (`GET /api/materials/kinds`); 102 deles têm material e vêm no dump. Os `type` dos materiais no dump são `pdf` 11501, `mp3` 6028, `chord` 2261, `youtube` 409, `gestures` 254, `midi` 120, `m4a` 3, `mpeg` 1 e `mid` 1. Migrations em `origin/main` vão até a `023`; a `022` já foi usada em outra branch. | O mapeamento (§2) cobre os 104 kinds. A migration provavelmente é a `024`; conferir antes de criar. |
 | F7 | No coldigom, as tags têm um nível de hierarquia (migration `010`): FK `parent_id` com `ON DELETE RESTRICT` e o pai sempre raiz. O resolver da API exclui o pai quando há filhos (bug, corrigido na spec das subtags), e a trava «Cannot attach a parent tag» vai cair. | Copiar o modelo (um nível, pai raiz, RESTRICT) e **não** copiar o resolver com bug nem a trava. |
 
@@ -163,9 +164,13 @@ Só aparecem chips de tipos que existem no catálogo.
 
 ### 4.3 Casamento no filtro
 
-- `_hasSelectedKind` expande a seleção: um id selecionado casa com ele mesmo e com os filhos (`[id, ...filhos]`), igual a `catalogTagMatches`.
-- Pai e filho selecionados juntos (por exemplo, num link antigo) valem só pelo filho, igual a `catalogTagsRefined`.
-- **Muda o comportamento:** um filtro salvo com «Saxofone» passa a trazer também as variantes.
+Duas etapas, na mesma ordem das tags:
+1. **Refinar:** um pai com algum filho também selecionado sai da seleção efetiva. O filho refina o pai, como `catalogTagsRefined`.
+2. **Expandir:** cada pai que sobra casa com ele mesmo e com os filhos (`[id, ...filhos]`), como `catalogTagMatches`.
+
+`_hasSelectedKind` recebe a seleção já expandida. O estado guardado (URL e prefs) continua sendo a lista de ids marcados, sem expandir.
+
+**Muda o comportamento:** um filtro salvo com «Saxofone» passa a trazer também as variantes.
 
 ## 5. coldigui — tela
 
@@ -185,7 +190,7 @@ A ordem na tela, de cima para baixo:
 - uma classe sem kinds visíveis some;
 - o estado dos tipos fica só na tela: não vai para a URL nem para as prefs, e volta a «Todos» ao reabrir.
 
-### 5.2 Chip de família (componente genérico)
+### 5.2 Chip de família
 
 Visual: uma pílula com dois alvos de toque.
 - **Corpo:** o rótulo do pai e a contagem de filhos. Marca ou desmarca o pai.
@@ -195,33 +200,25 @@ Estados do chip:
 
 | Estado | Quando | Visual |
 |---|---|---|
-| marcado | pai selecionado | igual ao chip selecionado de hoje (dourado, borda 2) |
-| parcial | algum filho selecionado e o pai não | borda dourada tracejada |
+| marcado | pai selecionado e nenhum filho | igual ao chip selecionado de hoje (dourado, borda 2) |
+| refinado | algum filho selecionado, com ou sem o pai | borda dourada tracejada |
 | nenhum | nada selecionado | igual ao chip de hoje |
 
-Regras de toque:
-- **marcar o pai** tira da seleção os filhos que estavam marcados;
-- com o pai marcado, os filhos aparecem **«incluídos»** (borda tracejada, fundo dourado claro). Tocar em um deles **troca**: desmarca o pai e marca só aquele filho;
-- sem o pai marcado, cada filho liga e desliga normalmente;
+Regras de toque, a mesma regra das subtags em produção (F5):
+- **marcar o pai** vale pela família inteira: se havia filhos marcados, eles saem;
+- com o pai marcado e nenhum filho, os filhos aparecem **«incluídos»** (borda tracejada, fundo dourado claro);
+- com o pai marcado, **tocar num filho** marca o filho, e o pai continua marcado. A partir daí vale só o que está marcado entre os filhos (refinar). Desmarcar o último filho volta a valer a família inteira;
+- **desmarcar o pai** desmarca também os filhos, como `toggleTag`;
+- sem o pai marcado, cada filho liga e desliga normalmente, e o chip fica «refinado»;
 - uma família com um filho selecionado abre sozinha. Abrir e fechar não é salvo;
 - uma família com um membro só (depois do filtro de tipo, por exemplo) vira chip simples.
 
-O componente não sabe se trata tags ou kinds: recebe o pai, os filhos (id + rótulo curto), a seleção e os callbacks.
-
-### 5.3 Seção Tags (depois do merge das subtags)
-
-- As famílias saem dos rótulos: uma raiz com filhos «raiz · x» vira chip de família. Um filho é exibido pelo **rótulo curto** («Clamor»).
-- A seleção grava o **rótulo completo** («Coletânea · Clamor»), como hoje. A conversão de legado das subtags (`?category=` → tag) também gera rótulos completos.
-- As regras de toque são as de §5.2. O casamento continua em `catalogTagMatches` e `catalogTagsRefined`, sem mudar.
-- As tags não ganham classes.
-
-### 5.4 Unidades (lógica fora do widget)
+### 5.3 Unidades (lógica fora do widget)
 
 Funções puras, testáveis sem widget:
 - montar as seções: kinds + taxonomia + tipos marcados + seleção → classes visíveis com unidades (chip ou família);
-- expandir a seleção para o casamento: id → `[id, ...filhos]`, e pai + filho → filho;
-- as ações de seleção: marcar o pai (tira os filhos) e trocar um «incluído» (tira o pai, põe o filho);
-- montar as famílias de tags a partir dos rótulos «pai · filho».
+- a seleção efetiva do casamento: refinar e depois expandir (§4.3);
+- as ações de seleção: marcar o pai (tira os filhos), desmarcar o pai (tira os filhos) e alternar um filho.
 
 O `FamilyFilterChip` e a seção agrupada são widgets finos em cima delas.
 
@@ -229,10 +226,9 @@ O `FamilyFilterChip` e a seção agrupada são widgets finos em cima delas.
 
 1. **coldigom** (`feat/material-kind-classes`): migration + `schema.sql` + dump + testes.
 2. **App — seção Materiais** (`feat/filtro-materiais-classes`): DTO, cache da taxonomia, opções, casamento, chips de Tipo, classes, famílias e testes.
-   - Pode ser feito em paralelo com as subtags, mas passa por **rebase sobre o merge das subtags** em `web/integration` antes de mesclar. As duas mexem em `catalog_filter_sections.dart`: a das subtags tira a seção Categoria.
+   - Pode ser feito em paralelo com as subtags da Coletânea, mas passa por **rebase sobre o merge delas** em `web/integration` antes de mesclar. As duas mexem em `catalog_filter_sections.dart`: a das subtags tira a seção Categoria.
    - A sessão das subtags avisa quando mesclar.
-3. **App — famílias na seção Tags:** só depois do merge das subtags.
-4. **Deploy**, cada passo com ok do dono:
+3. **Deploy**, cada passo com ok do dono:
    1. migration no D1 de produção;
    2. deploy do Worker;
    3. deploy do app em v2.plpcg.com;
@@ -257,15 +253,14 @@ O app novo funciona com o coldigom antigo (tudo em «Outros»), então os passos
 - Tipos: o conjunto de tipos por kind; os tipos de áudio juntos e os de MIDI juntos; um selecionado nunca some; classe vazia some.
 - Seleção:
   - marcar o pai tira os filhos;
-  - tocar num «incluído» troca;
-  - pai + filho vale pelo filho;
-  - o casamento pai → filhos em `matches_catalog_filters`.
-- Tags: famílias montadas a partir dos rótulos; a seleção grava o rótulo completo.
+  - desmarcar o pai tira os filhos;
+  - pai + filho vale pelo filho, e desmarcar o último filho volta à família inteira;
+  - o casamento refina e expande em `matches_catalog_filters`.
 
 **coldigui — widget**
 - O chip de família nos três estados.
 - Abrir e fechar.
-- Os filhos «incluídos».
+- Os filhos «incluídos» e o estado «refinado».
 - A dica de ocultos.
 
 A suíte inteira roda antes de cada merge.
@@ -274,10 +269,10 @@ A suíte inteira roda antes de cada merge.
 
 1. As classes aparecem na ordem de §2.1, com «Outros» só se houver kind sem classe.
 2. «Saxofone 4 ▾» fica em Metais. Marcar o chip traz louvores de todas as variantes.
-3. Abrir a família e marcar «Saxofone alto»: o chip fica parcial.
-4. Com o pai marcado, tocar em «Saxofone tenor»: fica só o tenor.
+3. Abrir a família e marcar «Saxofone alto»: o chip fica «refinado» e só os louvores com sax alto aparecem.
+4. Com o pai marcado, tocar em «Saxofone tenor»: o pai continua marcado e vale só o tenor. Desmarcar o pai desmarca o tenor.
 5. Tipo «Cifra»: a lista encolhe, aparece a dica de ocultos, e um material marcado fora do tipo continua visível.
 6. Um link antigo com um id de pai traz as variantes.
 7. Offline (modo avião, depois de uma sincronização): as classes continuam.
 8. Largura de celular: as famílias abertas não estouram a tela.
-9. Depois do passo 3 de §6: «Coletânea 13 ▾» na seção Tags; marcar «Clamor» grava `Coletânea · Clamor` na URL.
+9. A seção Tags continua com as «subtags sob demanda», sem mudança.
