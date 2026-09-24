@@ -3,12 +3,17 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
+import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
+import 'package:coldigui/core/database/collections/louvor_cache.dart';
+import 'package:coldigui/core/database/collections/offline_pdf_index.dart';
+import 'package:coldigui/core/database/isar_app_schemas.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
 import 'package:coldigui/features/offline/domain/ports/pdf_storage_port.dart';
 import 'package:coldigui/features/offline/domain/usecases/migrate_offline_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'offline_test_helpers.dart';
@@ -256,5 +261,84 @@ void main() {
       reason: 'só as mortas saem',
     );
     isar.close(deleteFromDisk: true);
+  });
+
+  group('v5 apaga os dados da coleção LouvorCache', () {
+    test('com Isar: linhas saem e as outras coleções ficam', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(StorageKeys.offlineStorageVersion, 4);
+      final dir = await Directory.systemTemp.createTemp('migrate_v5_louvor_');
+      final isar = Isar.open(
+        schemas: kAppIsarSchemas,
+        directory: dir.path,
+        name: 'migrate_v5_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      isar.write((isar) {
+        isar.louvorCaches.putAll([
+          for (var i = 0; i < 3; i++)
+            LouvorCache()
+              ..id = isar.louvorCaches.autoIncrement()
+              ..pdfId = 'legado-$i'
+              ..nome = 'Louvor $i'
+              ..numero = '00$i'
+              ..categoria = 'Partitura'
+              ..classificacao = 'ColAdultos'
+              ..pdf = '00$i.pdf'
+              ..groupId = '',
+        ]);
+        isar.offlinePdfIndexs.put(
+          OfflinePdfIndex()
+            ..id = isar.offlinePdfIndexs.autoIncrement()
+            ..pdfId = 'pdf-offline'
+            ..storagePath = 'plpcg_pdfs/x.pdf'
+            ..category = 'praises'
+            ..fileSize = 4
+            ..downloadedAt = DateTime(2026, 9, 1),
+        );
+        isar.coldigomPraiseCaches.put(
+          ColdigomPraiseCache()
+            ..id = isar.coldigomPraiseCaches.autoIncrement()
+            ..praiseId = 'p1'
+            ..number = '1'
+            ..name = 'Praise'
+            ..author = ''
+            ..rhythm = ''
+            ..tonality = ''
+            ..category = ''
+            ..tags = const []
+            ..lyrics = ''
+            ..materialsJson = '[]'
+            ..searchTokens = 'praise',
+        );
+      });
+
+      await MigrateOfflineStorage(
+        prefs,
+        OfflinePdfLocalDatasource(isar),
+        _TrackingPdfStoragePort(),
+        isar: isar,
+      )();
+
+      expect(prefs.getInt(StorageKeys.offlineStorageVersion), 5);
+      expect(isar.louvorCaches.count(), 0);
+      expect(isar.offlinePdfIndexs.count(), 1);
+      expect(isar.coldigomPraiseCaches.count(), 1);
+      isar.close(deleteFromDisk: true);
+    });
+
+    test('sem Isar: o passo não quebra e a versão sobe', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(StorageKeys.offlineStorageVersion, 4);
+      await prefs.setString('manifestChecksum', 'x');
+
+      await MigrateOfflineStorage(
+        prefs,
+        const OfflinePdfLocalDatasource.unavailable(),
+        _TrackingPdfStoragePort(),
+      )();
+
+      expect(prefs.getInt(StorageKeys.offlineStorageVersion), 5);
+      expect(prefs.containsKey('manifestChecksum'), isFalse);
+    });
   });
 }

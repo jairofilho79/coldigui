@@ -16,6 +16,7 @@ const kAppIsarName = 'plpcg_plus';
 
 /// Schemas abertos no boot da aplicação.
 final List<IsarGeneratedSchema> kAppIsarSchemas = [
+  // Obsoleta, sem leitores: sai depois de medir a remoção na web.
   LouvorCacheSchema,
   CarouselEntrySchema,
   PlaylistSchema,
