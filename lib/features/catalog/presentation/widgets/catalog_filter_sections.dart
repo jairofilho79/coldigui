@@ -11,8 +11,8 @@ import 'material_kind_filter_section.dart';
 
 typedef _ChipItem = ({String id, String name});
 
-/// Secções de chips dos filtros do catálogo (tom, ritmo, categoria, tags) —
-/// as mesmas na página inicial e na /biblioteca. O tipo de material tem seção
+/// Secções de chips dos filtros do catálogo (tom, ritmo, tags) — as
+/// mesmas na página inicial e na /biblioteca. O tipo de material tem seção
 /// própria, [MaterialKindFilterSection], com classes e famílias.
 ///
 /// As opções vêm do índice local ([catalogFilterOptionsProvider]); a seleção
@@ -46,12 +46,6 @@ class CatalogFilterSections extends ConsumerWidget {
         items: _withSelected(_named(options.rhythms), selected.rhythms),
         selectedIds: selected.rhythms,
         onToggle: notifier.toggleRhythm,
-      ),
-      _ChipSection(
-        title: l10n.coldigomFilterCategory,
-        items: _withSelected(_named(options.categories), selected.categories),
-        selectedIds: selected.categories,
-        onToggle: notifier.toggleCategory,
       ),
       _ChipSection(
         title: l10n.coldigomFilterTags,

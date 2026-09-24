@@ -224,19 +224,21 @@ void main() {
     for (final label in [
       'Tom',
       'Ritmo',
-      'Categoria',
       'Tags',
       'Materiais',
       'Dm',
       'G',
       'Fox',
-      'Clamor',
       'PES',
       'CIAs',
       'Grade',
       'Cifra I',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
+    }
+    // p1 tem category «Clamor»: não há mais secção nem chip de categoria.
+    for (final gone in ['Categoria', 'Clamor']) {
+      expect(find.text(gone), findsNothing, reason: gone);
     }
     expect(find.text('Subtags'), findsNothing);
     expect(find.text('9.2026'), findsNothing);
@@ -324,6 +326,29 @@ void main() {
 
       await tapChip(tester, 'Sumida');
       expect(container.read(catalogFiltersProvider).tags, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'filtro gravado antes (v2, categories) aparece como subtag marcada',
+    (tester) async {
+      final container = await pump(
+        tester,
+        prefsValues: {
+          StorageKeys.catalogFilters: jsonEncode({
+            'v': 2,
+            'categories': ['Clamor'],
+          }),
+        },
+      );
+
+      expect(find.text('Categoria'), findsNothing);
+      expect(isSelected(tester, 'Coletânea'), isTrue);
+      expect(find.text('Subtags'), findsOneWidget);
+      expect(isSelected(tester, 'Clamor'), isTrue);
+
+      await tapChip(tester, 'Clamor');
+      expect(container.read(catalogFiltersProvider).tags, {'Coletânea'});
     },
   );
 }

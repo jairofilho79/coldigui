@@ -11,7 +11,6 @@ void main() {
     final location = buildLibraryLocation(
       tonality: 'Dm,G',
       rhythm: 'Fox',
-      category: 'Clamor',
       tags: 'PES',
       materialKinds: 'k1',
       ordenar: 'nome',
@@ -21,7 +20,6 @@ void main() {
 
     expect(location, contains('tonality=${Uri.encodeComponent('Dm,G')}'));
     expect(location, contains('rhythm=Fox'));
-    expect(location, contains('category=Clamor'));
     expect(location, contains('tags=PES'));
     expect(location, contains('materialKinds=k1'));
     expect(location, contains('ordenar=nome'));
@@ -60,4 +58,13 @@ void main() {
       expect(location, isNot(contains('arranjo')));
     },
   );
+
+  test('category (legado) não é escrito e a normalização o ignora', () {
+    final uri = Uri.parse('/biblioteca?category=Clamor&tonality=Dm');
+
+    final location = buildLibraryLocationFromUri(uri);
+
+    expect(location, buildLibraryLocation(tonality: 'Dm'));
+    expect(location, isNot(contains('category')));
+  });
 }

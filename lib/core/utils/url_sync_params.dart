@@ -9,6 +9,9 @@ abstract final class UrlSyncParams {
   /// §2.5). [tags] leva **nomes** de tag; [materialKinds], ids de kind.
   static const String tonality = 'tonality';
   static const String rhythm = 'rhythm';
+
+  /// Legado — categoria do praise. Só lido: vira subtag `Coletânea · <seção>`
+  /// (spec seções-coletânea §4.2); a URL não o grava mais.
   static const String category = 'category';
   static const String tags = 'tags';
   static const String materialKinds = 'materialKinds';

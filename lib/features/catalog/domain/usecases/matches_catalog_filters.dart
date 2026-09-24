@@ -7,8 +7,9 @@ import '../utils/material_kind_selection.dart';
 /// Predicado único dos filtros do catálogo (spec fim-fonte §2.2) — usado
 /// pela /biblioteca, pela busca local e pelos «novos» da busca remota.
 ///
-/// - Tom, ritmo, categoria: o valor do praise (`coldigomMeta`, aparado) está
-///   no conjunto (OU).
+/// - Tom, ritmo: o valor do praise (`coldigomMeta`, aparado) está no
+///   conjunto (OU). A seção da Coletânea é tag (`Coletânea · <seção>`), não
+///   categoria (spec seções-coletânea §4.1).
 /// - Tags: alguma tag do praise é uma selecionada ou filha dela
 ///   ([catalogTagMatches]: `PES` apanha `PES · 9.2026`). Subtag selecionada
 ///   junto com o pai refina o pai ([catalogTagsRefined]).
@@ -16,7 +17,7 @@ import '../utils/material_kind_selection.dart';
 ///   seleção efetiva — pai expande nos filhos, pai + filho vale pelo filho
 ///   ([effectiveMaterialKindIds]).
 /// - Entre filtros, E; filtro vazio não restringe. Um grupo sem
-///   `coldigomMeta` só passa sem filtros de tom/ritmo/categoria/tags.
+///   `coldigomMeta` só passa sem filtros de tom/ritmo/tags.
 ///
 /// [effectiveKindIds] é o [effectiveMaterialKindIds] já resolvido — quem
 /// varre muitos grupos na mesma passada (providers) computa uma vez e passa
@@ -36,10 +37,6 @@ bool matchesCatalogFilters(
   }
   if (filters.rhythms.isNotEmpty &&
       (meta == null || !filters.rhythms.contains(meta.rhythm.trim()))) {
-    return false;
-  }
-  if (filters.categories.isNotEmpty &&
-      (meta == null || !filters.categories.contains(meta.category.trim()))) {
     return false;
   }
   if (filters.tags.isNotEmpty &&

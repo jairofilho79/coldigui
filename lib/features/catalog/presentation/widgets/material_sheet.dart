@@ -713,7 +713,7 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
-/// Bloco de metadados do praise Coldigom (tom, ritmo, autor, categoria, tags).
+/// Bloco de metadados do praise Coldigom (tom, ritmo, autor, tags).
 class _ColdigomMetaBlock extends StatelessWidget {
   const _ColdigomMetaBlock({required this.meta, required this.l10n});
 
@@ -725,7 +725,6 @@ class _ColdigomMetaBlock extends StatelessWidget {
     final tonality = meta.tonality.trim();
     final rhythm = meta.rhythm.trim();
     final author = meta.author.trim();
-    final category = meta.category.trim();
     final hasPair = tonality.isNotEmpty || rhythm.isNotEmpty;
 
     return DecoratedBox(
@@ -758,10 +757,6 @@ class _ColdigomMetaBlock extends StatelessWidget {
             if (author.isNotEmpty) ...[
               if (hasPair) const SizedBox(height: 10),
               _metaField(l10n.coldigomMetaAuthor, author),
-            ],
-            if (category.isNotEmpty) ...[
-              if (hasPair || author.isNotEmpty) const SizedBox(height: 10),
-              _metaField(l10n.coldigomMetaCategory, category),
             ],
             if (meta.tagNames.isNotEmpty) ...[
               const SizedBox(height: 12),

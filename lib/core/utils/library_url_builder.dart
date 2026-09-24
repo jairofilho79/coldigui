@@ -5,13 +5,12 @@ import 'package:coldigui/core/utils/url_sync_params.dart';
 /// §2.5).
 ///
 /// Filtros do catálogo (os mesmos da página inicial): CSV de [tonality],
-/// [rhythm], [category], [tags] (nomes) e [materialKinds] (ids de kind);
+/// [rhythm], [tags] (nomes) e [materialKinds] (ids de kind);
 /// omitidos quando vazios. Vista: [ordenar] `numero`, [itensPorPagina] `10` e
 /// [pagina] `1` são omitidos. Valores codificados via [Uri.encodeComponent].
 String buildLibraryLocation({
   String? tonality,
   String? rhythm,
-  String? category,
   String? tags,
   String? materialKinds,
   String ordenar = UrlSyncParams.defaultOrdenar,
@@ -26,7 +25,6 @@ String buildLibraryLocation({
 
   put(UrlSyncParams.tonality, tonality);
   put(UrlSyncParams.rhythm, rhythm);
-  put(UrlSyncParams.category, category);
   put(UrlSyncParams.tags, tags);
   put(UrlSyncParams.materialKinds, materialKinds);
   if (ordenar != UrlSyncParams.defaultOrdenar) {
@@ -50,12 +48,13 @@ String buildLibraryLocation({
 /// Normaliza [uri] da /biblioteca para comparação com [buildLibraryLocation].
 ///
 /// Params que não existem mais (`fonte`, `materiais`, `arranjo`,
-/// `arranjoEspecial`) são ignorados — um link antigo abre sem erro e o sync
-/// de URL os tira.
+/// `arranjoEspecial`, `category`) são ignorados — um link antigo abre sem
+/// erro e o sync de URL os tira. `category` já virou tags na hidratação
+/// (spec seções-coletânea §4.2); quem compara força a regravação quando ele
+/// está presente (ver `LibraryScreen._applyUrlSyncFromState`).
 String buildLibraryLocationFromUri(Uri uri) => buildLibraryLocation(
   tonality: uri.queryParameters[UrlSyncParams.tonality],
   rhythm: uri.queryParameters[UrlSyncParams.rhythm],
-  category: uri.queryParameters[UrlSyncParams.category],
   tags: uri.queryParameters[UrlSyncParams.tags],
   materialKinds: uri.queryParameters[UrlSyncParams.materialKinds],
   ordenar:

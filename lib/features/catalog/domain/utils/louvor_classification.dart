@@ -2,8 +2,8 @@
 ///
 /// Serve à exibição — o nome das secções de material ([materialSectionLabel])
 /// e o chip do carrossel. Os filtros do catálogo já não usam classificação
-/// nem arranjo: são tom, ritmo, categoria, tags e tipo de material, do índice
-/// Coldigom (spec fim-fonte §2.2).
+/// nem arranjo: são tom, ritmo, tags e tipo de material, do índice Coldigom
+/// (spec fim-fonte §2.2).
 abstract final class LouvorClassification {
   /// Rótulo quando [classificacao] não contém parênteses (UC-03).
   static const String specialArrangementPadrao = 'Padrão';

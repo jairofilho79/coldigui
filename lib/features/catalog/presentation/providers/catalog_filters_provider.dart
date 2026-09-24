@@ -22,8 +22,8 @@ final catalogFiltersProvider =
       CatalogFiltersNotifier.new,
     );
 
-/// Seleção, persistência (C13: pref `catalogFilters`, formato v2) e
-/// hidratação da URL.
+/// Seleção, persistência (C13: pref `catalogFilters`, formato v3; a v2 é
+/// lida e convertida) e hidratação da URL.
 ///
 /// Mexer num filtro (toggle ou [clear]) volta a /biblioteca à página 1 — o
 /// conjunto de resultados mudou. Hidratar da URL não: a URL traz a página.
@@ -54,8 +54,13 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
   /// Hidrata os filtros dos params da rota (página inicial ou /biblioteca).
   ///
   /// Chamado no primeiro build das telas mesmo sem params: sem nenhum dos
-  /// cinco, mantém o estado atual (gravado) em vez de limpar. Com algum,
-  /// a URL manda nos cinco (os ausentes ficam vazios). Não grava.
+  /// cinco (`tonality`, `rhythm`, `category`, `tags`, `materialKinds`),
+  /// mantém o estado atual (gravado) em vez de limpar. `category` é legado e
+  /// soma-se a `tags` em vez de valer sozinho ([CatalogFilterState.fromUrl]);
+  /// um link cujos params só convertem em nada (ex.: `category=Avulsos`, uma
+  /// coleção sem seção) também mantém o estado gravado — só substitui os
+  /// quatro filtros de [CatalogFilterState] (os ausentes ficam vazios) quando
+  /// o resultado da conversão não é vazio. Não grava.
   void hydrateFromUrl({
     String? tonality,
     String? rhythm,
@@ -79,9 +84,6 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
 
   void toggleRhythm(String value) =>
       _apply(state.copyWith(rhythms: _toggle(state.rhythms, value)));
-
-  void toggleCategory(String value) =>
-      _apply(state.copyWith(categories: _toggle(state.categories, value)));
 
   /// Desmarcar uma tag desmarca também as subtags dela — senão ficariam
   /// ativas sem chip visível (as subtags só aparecem com o pai marcado).

@@ -398,12 +398,6 @@ abstract class AppLocalizations {
   /// **'Ritmo'**
   String get coldigomFilterRhythm;
 
-  /// No description provided for @coldigomFilterCategory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Categoria'**
-  String get coldigomFilterCategory;
-
   /// No description provided for @coldigomFilterTags.
   ///
   /// In pt, this message translates to:
@@ -1351,12 +1345,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ritmo'**
   String get coldigomMetaRhythm;
-
-  /// No description provided for @coldigomMetaCategory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Categoria'**
-  String get coldigomMetaCategory;
 
   /// No description provided for @coldigomMetaTags.
   ///
@@ -3001,12 +2989,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ritmo'**
   String get contributeMetadataRhythm;
-
-  /// No description provided for @contributeMetadataCategory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Categoria'**
-  String get contributeMetadataCategory;
 
   /// No description provided for @contributeMetadataTags.
   ///

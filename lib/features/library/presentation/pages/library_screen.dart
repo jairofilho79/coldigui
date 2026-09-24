@@ -6,6 +6,7 @@ import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
+import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
@@ -169,7 +170,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final target = buildLibraryLocation(
       tonality: filters.tonalityUrlValue,
       rhythm: filters.rhythmUrlValue,
-      category: filters.categoryUrlValue,
       tags: filters.tagsUrlValue,
       materialKinds: filters.materialKindsUrlValue,
       ordenar: view.ordenarUrlValue ?? view.sortBy,
@@ -177,7 +177,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       pagina: view.paginaUrlValue ?? '${view.page}',
     );
 
-    if (buildLibraryLocationFromUri(uri) == target) return;
+    // `?category=` (link antigo) já virou tags na hidratação e o normalizador
+    // o ignora; sem esta checagem, um alvo igual ao resto da URL deixaria o
+    // param lá e recarregar reaplicaria o filtro.
+    final hasLegacyCategory = uri.queryParameters.containsKey(
+      UrlSyncParams.category,
+    );
+    if (!hasLegacyCategory && buildLibraryLocationFromUri(uri) == target) {
+      return;
+    }
     // Filtros, ordenação e página espelham estado — replaceState (P4).
     goReplacingUrl(context, goRouter, target);
   }

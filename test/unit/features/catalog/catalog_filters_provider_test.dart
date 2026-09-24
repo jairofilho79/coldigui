@@ -32,32 +32,68 @@ void main() {
     );
   });
 
-  test('toggles gravam o formato v2 e um container novo relê', () async {
+  test('toggles gravam o formato v3 e um container novo relê', () async {
     await setUpPrefs();
     final first = createContainer();
     first.read(catalogFiltersProvider.notifier)
       ..toggleTonality('Dm')
       ..toggleRhythm('Fox')
-      ..toggleCategory('Clamor')
       ..toggleTag('PES')
       ..toggleMaterialKind('k1');
 
     final raw = jsonDecode(
       prefs.getString(StorageKeys.catalogFilters)!,
     ) as Map<String, dynamic>;
-    expect(raw['v'], 2);
+    expect(raw['v'], 3);
+    expect(raw, isNot(contains('categories')));
     expect(raw['tags'], ['PES']);
     expect(
       createContainer().read(catalogFiltersProvider),
       const CatalogFilterState(
         tonalities: {'Dm'},
         rhythms: {'Fox'},
-        categories: {'Clamor'},
         tags: {'PES'},
         materialKindIds: {'k1'},
       ),
     );
   });
+
+  test(
+    'pref v2 com categories é migrada para tags, não descartada nem apagada',
+    () async {
+      await setUpPrefs({
+        StorageKeys.catalogFilters: jsonEncode({
+          'v': 2,
+          'tonalities': ['Dm'],
+          'rhythms': <String>[],
+          'categories': ['Clamor', 'Avulsos'],
+          'tags': ['PES'],
+          'materialKinds': <String>[],
+        }),
+      });
+
+      final container = createContainer();
+
+      expect(
+        container.read(catalogFiltersProvider),
+        const CatalogFilterState(
+          tonalities: {'Dm'},
+          tags: {'PES', 'Coletânea', 'Coletânea · Clamor'},
+        ),
+      );
+      await pumpEventQueue();
+      expect(prefs.getString(StorageKeys.catalogFilters), isNotNull);
+
+      // O próximo toggle grava a v3, já sem categories.
+      container.read(catalogFiltersProvider.notifier).toggleRhythm('Fox');
+      final raw = jsonDecode(
+        prefs.getString(StorageKeys.catalogFilters)!,
+      ) as Map<String, dynamic>;
+      expect(raw['v'], 3);
+      expect(raw, isNot(contains('categories')));
+      expect(raw['tags'], ['Coletânea', 'Coletânea · Clamor', 'PES']);
+    },
+  );
 
   test('tocar duas vezes desmarca', () async {
     await setUpPrefs();
@@ -161,6 +197,40 @@ void main() {
     await pumpEventQueue();
     expect(prefs.getString(StorageKeys.catalogFilters), isNull);
   });
+
+  test('hydrateFromUrl converte category legado em subtag', () async {
+    await setUpPrefs();
+    final container = createContainer();
+
+    container
+        .read(catalogFiltersProvider.notifier)
+        .hydrateFromUrl(category: 'Clamor', tonality: 'Dm');
+
+    expect(
+      container.read(catalogFiltersProvider),
+      const CatalogFilterState(
+        tonalities: {'Dm'},
+        tags: {'Coletânea', 'Coletânea · Clamor'},
+      ),
+    );
+  });
+
+  test(
+    'link só com categoria descartada (Avulsos) mantém o gravado (D2)',
+    () async {
+      await setUpPrefs();
+      final container = createContainer();
+      final notifier = container.read(catalogFiltersProvider.notifier)
+        ..toggleTag('PES');
+
+      notifier.hydrateFromUrl(category: 'Avulsos');
+
+      expect(
+        container.read(catalogFiltersProvider),
+        const CatalogFilterState(tags: {'PES'}),
+      );
+    },
+  );
 
   test('toggleMaterialKind segue a regra de família da taxonomia', () async {
     await setUpPrefs({

@@ -12,7 +12,6 @@ void main() {
       pesquisa: 'aleluia',
       tonality: 'Dm',
       rhythm: 'Fox',
-      category: 'Clamor',
       tags: 'PES',
       materialKinds: 'k1',
     );
@@ -20,7 +19,6 @@ void main() {
     expect(location, contains('pesquisa=aleluia'));
     expect(location, contains('tonality=Dm'));
     expect(location, contains('rhythm=Fox'));
-    expect(location, contains('category=Clamor'));
     expect(location, contains('tags=PES'));
     expect(location, contains('materialKinds=k1'));
   });
@@ -44,5 +42,14 @@ void main() {
     expect(location, buildHomeLocation(pesquisa: 'x', tags: 'PES'));
     expect(location, isNot(contains('materiais')));
     expect(location, isNot(contains('arranjo')));
+  });
+
+  test('category (legado) não é escrito e a normalização o ignora', () {
+    final uri = Uri.parse('/?category=Clamor&tags=PES');
+
+    final location = buildHomeLocationFromUri(uri);
+
+    expect(location, buildHomeLocation(tags: 'PES'));
+    expect(location, isNot(contains('category')));
   });
 }

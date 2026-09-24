@@ -47,18 +47,45 @@ void main() {
     expect(matches(coro, filters), isFalse);
   });
 
-  test('ritmo e categoria', () {
+  test('ritmo', () {
     expect(matches(hino, const CatalogFilterState(rhythms: {'Fox'})), isTrue);
     expect(matches(coro, const CatalogFilterState(rhythms: {'Fox'})), isFalse);
-    expect(
-      matches(coro, const CatalogFilterState(categories: {'Adoração'})),
-      isTrue,
-    );
-    expect(
-      matches(hino, const CatalogFilterState(categories: {'Adoração'})),
-      isFalse,
-    );
   });
+
+  test(
+    'a categoria do praise não filtra; link antigo acha a seção pela subtag',
+    () {
+      final secao = catalogGroup(
+        praiseId: 'p4',
+        name: 'Seção',
+        category: 'Clamor',
+        tags: const ['Coletânea · Clamor'],
+      );
+      final soCategoria = catalogGroup(
+        praiseId: 'p5',
+        name: 'Só categoria',
+        category: 'Clamor',
+      );
+      final outraSecao = catalogGroup(
+        praiseId: 'p6',
+        name: 'Outra seção',
+        category: 'Louvor',
+        tags: const ['Coletânea · Louvor'],
+      );
+      final fromLink = CatalogFilterState.fromUrl(category: 'Clamor');
+
+      expect(matches(secao, fromLink), isTrue);
+      expect(matches(soCategoria, fromLink), isFalse);
+      // A raiz Coletânea entra junto com a subtag na conversão do link
+      // legado, mas catalogTagsRefined a descarta por ter descendente
+      // selecionado — não pode alargar o filtro para outras seções.
+      expect(matches(outraSecao, fromLink), isFalse);
+      expect(
+        matches(secao, const CatalogFilterState(tags: {'Coletânea'})),
+        isTrue,
+      );
+    },
+  );
 
   test('tags: o pai inclui os filhos; o filho não inclui o pai; prefixo solto não conta', () {
     expect(matches(hino, const CatalogFilterState(tags: {'PES'})), isTrue);

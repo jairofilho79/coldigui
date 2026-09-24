@@ -12,7 +12,6 @@ String buildHomeLocation({
   String pesquisa = '',
   String? tonality,
   String? rhythm,
-  String? category,
   String? tags,
   String? materialKinds,
 }) {
@@ -25,7 +24,6 @@ String buildHomeLocation({
   put(UrlSyncParams.pesquisa, pesquisa);
   put(UrlSyncParams.tonality, tonality);
   put(UrlSyncParams.rhythm, rhythm);
-  put(UrlSyncParams.category, category);
   put(UrlSyncParams.tags, tags);
   put(UrlSyncParams.materialKinds, materialKinds);
 
@@ -39,12 +37,14 @@ String buildHomeLocation({
 
 /// Normaliza [uri] da página inicial para comparação com [buildHomeLocation].
 ///
-/// `materiais`/`arranjo` de links antigos são ignorados (spec §2.5).
+/// `materiais`/`arranjo` de links antigos são ignorados (spec fim-fonte
+/// §2.5), e `category` também: a hidratação já o converteu em tags (spec
+/// seções-coletânea §4.2). Quem compara precisa forçar a regravação quando
+/// o param legado está presente (ver `HomeScreen._applyUrlSyncFromState`).
 String buildHomeLocationFromUri(Uri uri) => buildHomeLocation(
   pesquisa: uri.queryParameters[UrlSyncParams.pesquisa] ?? '',
   tonality: uri.queryParameters[UrlSyncParams.tonality],
   rhythm: uri.queryParameters[UrlSyncParams.rhythm],
-  category: uri.queryParameters[UrlSyncParams.category],
   tags: uri.queryParameters[UrlSyncParams.tags],
   materialKinds: uri.queryParameters[UrlSyncParams.materialKinds],
 );

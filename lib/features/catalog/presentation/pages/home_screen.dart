@@ -7,6 +7,7 @@ import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/home_url_builder.dart';
+import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/features/app_shell/presentation/widgets/app_shortcuts.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
@@ -24,7 +25,7 @@ import 'package:go_router/go_router.dart';
 /// UC-01, UC-02 — página inicial / Pesquisador.
 ///
 /// Busca com debounce 300ms no índice local do catálogo, filtros do catálogo
-/// (tom, ritmo, categoria, tags, tipo de material — os mesmos da
+/// (tom, ritmo, tags, tipo de material — os mesmos da
 /// /biblioteca), resultados como [LouvorGroupCard] e sync URL (`pesquisa=` +
 /// params de filtro, spec fim-fonte §2.5). Enquanto o índice está vazio
 /// mostra carregamento; vazio com o sync falhado mostra `catalogLoadError` +
@@ -49,7 +50,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   final String initialSearchQuery;
 
   /// CSVs iniciais dos filtros do catálogo (`?tonality=`, `?rhythm=`,
-  /// `?category=`, `?tags=` por nome, `?materialKinds=` por id de kind).
+  /// `?tags=` por nome, `?materialKinds=` por id de kind). `?category=` é
+  /// legado: vira subtag de `Coletânea` na hidratação.
   final String? initialTonality;
   final String? initialRhythm;
   final String? initialCategory;
@@ -191,12 +193,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       pesquisa: pesquisa,
       tonality: filters.tonalityUrlValue,
       rhythm: filters.rhythmUrlValue,
-      category: filters.categoryUrlValue,
       tags: filters.tagsUrlValue,
       materialKinds: filters.materialKindsUrlValue,
     );
 
-    if (buildHomeLocationFromUri(uri) == target) return;
+    // `?category=` (link antigo) já virou tags na hidratação e o normalizador
+    // o ignora; sem esta checagem, um alvo igual ao resto da URL (ex.: tudo
+    // desmarcado → `/`) deixaria o param lá e recarregar reaplicaria o filtro.
+    final hasLegacyCategory = uri.queryParameters.containsKey(
+      UrlSyncParams.category,
+    );
+    if (!hasLegacyCategory && buildHomeLocationFromUri(uri) == target) return;
     _suppressSearchHydrationFromOwnUrlSync = true;
     // replaceState, não pushState: digitar não pode poluir o voltar (P4).
     goReplacingUrl(context, goRouter, target);
