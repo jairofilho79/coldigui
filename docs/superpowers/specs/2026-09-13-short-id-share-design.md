@@ -5,6 +5,8 @@
 **Origem:** conversa com o dono do produto em 2026-09-13. Motivações: (1) o WhatsApp no iOS passou a entregar texto junto com imagem, o que dispensa o fluxo em dois passos do share; (2) o link de share é enorme porque cada `pdfId` é Base64 do caminho do arquivo; (3) o folheto deve carregar um QR code legível.
 **Substitui parcialmente:** `2026-09-11-onda4-web-design.md` §C.2 (link curto `/l/<code>`) — o `/l/` **continua existindo** e não é tocado por esta spec; deixa de ser o caminho principal para listas PLPCG.
 
+> **Substituído no v2 (2026-09-23)** pelo link por praise `?p=` do spec [fim da fonte PLPCG](./2026-09-23-fim-fonte-plpcg-design.md) §4: a §4 (coldigui) já não descreve o app — links `?s=` antigos mostram «link de versão antiga». A §3 (plpcjf) não é tocada.
+
 ---
 
 ## 0. Decisões fechadas

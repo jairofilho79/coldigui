@@ -5,33 +5,35 @@
 | **ID** | UC-09 |
 | **Feature** | `offline` |
 | **Prioridade** | Alta |
-| **Ator** | Usuário |
+| **Ator** | Usuário (com ou sem login) |
 
 ## Pré-condições
 
-Rede disponível; espaço em disco
+Rede disponível; espaço em disco; catálogo coldigom sincronizado (a linha de estado do `/offline` diz quantos louvores e quando).
 
 ## Fluxo principal
 
-1. Acessa offline. 2. Seleciona categorias. 3. Baixa ZIP. 4. Extrai PDFs. 5. OFFLINE_AVAILABLE=TRUE. 6. Coldigom (logado): no /offline marca kinds (favoritos pré-marcados + «Outros tipos») → «Baixar selecionados (~X MB)» → PDFs/áudios/cifras/gestos desses kinds ficam no aparelho (DownloadColdigomMaterials).
+1. Acessa `/offline` — uma secção, «Baixar para usar offline».
+2. Marca os tipos de material a baixar. Sem login aparece a lista «Tipos» inteira; com login os tipos favoritos vêm primeiro e pré-marcados, e os outros ficam em «Outros tipos».
+3. Toca «Baixar selecionados (~X MB)» → PDFs, áudios, cifras e gestos desses tipos ficam no aparelho (`DownloadColdigomMaterials`), com progresso por tipo e «Parar».
 
 ## Fluxos alternativos
 
-Fases: fetching → extracting → storing → syncing
+- «Parar»: o que já baixou fica; «Tentar de novo» retoma saltando o que existe.
+- «Atualizar»: sincroniza o catálogo e reconcilia o índice com o disco (banner «N removidos», só com «Dispensar»).
+- «Remover todos os baixados»: apaga todos os PDFs e áudios do índice (cifras e gestos ficam).
 
 ## Pós-condições
 
-PDFs disponíveis offline; Catálogo Coldigom local (ColdigomPraiseCache) sincronizado por ETag no boot com rede — metadados, lista de materiais e letra disponíveis offline; materiais binários Coldigom são o plano 2.
+Materiais dos tipos escolhidos disponíveis offline; catálogo coldigom local (`ColdigomPraiseCache`) com metadados, lista de materiais e letra.
 
 ## Regras de negócio
 
-Filesystem + índice Isar OfflinePdfIndex
-
-Coldigom por tipo (C1/O7): PDF → OfflinePdfIndex persistente; áudio → OfflineAudioIndex + AudioStoragePort (documents/plpcg_audio, Cache API plpcg-audio-store-v1); cifra/gestos → caches Isar existentes. Só logado (O9); seleção local em prefs offlineColdigomKindIds (O11); idempotente sem checkpoint (O12); estimativas por tipo quando o dump não traz size (O13).
+PDF → `OfflinePdfIndex` persistente; áudio → `OfflineAudioIndex` + `AudioStoragePort`; cifra/gestos → caches Isar. Seleção local em prefs `offlineColdigomKindIds`; idempotente sem checkpoint; estimativas por tipo quando o dump não traz `size`. Um estado de ocupado só: o `offlineMaintenanceLockProvider` (reconcile, download/remoção, normalização de ids legados). Sem `OFFLINE_AVAILABLE` nem seleção por categoria PLPCG (saíram em 23/09/2026).
 
 ## Componentes Flutter alvo
 
-DownloadOfflinePackages, ExtractAndStorePdfs, DownloadColdigomMaterials, RemoveColdigomDownloads, ColdigomOfflineSection, offlineColdigomDownloadProvider
+`OfflineSettingsScreen`, `ColdigomOfflineSection`, `DownloadColdigomMaterials`, `RemoveColdigomDownloads`, `offlineColdigomDownloadProvider`, `offlineCacheStatusProvider`
 
 ## Dependências
 

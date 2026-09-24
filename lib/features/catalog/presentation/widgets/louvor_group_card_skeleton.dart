@@ -3,7 +3,7 @@ import 'package:coldigui/core/widgets/shimmer_placeholder.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:flutter/material.dart';
 
-/// Placeholder de [LouvorGroupCard] com shimmer durante carregamento do manifest.
+/// Placeholder de [LouvorGroupCard] com shimmer durante carregamento do catálogo coldigom.
 class LouvorGroupCardSkeleton extends StatelessWidget {
   const LouvorGroupCardSkeleton({super.key});
 

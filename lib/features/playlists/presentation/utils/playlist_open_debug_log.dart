@@ -38,8 +38,8 @@ void playlistOpenDebugLogError(
   debugPrint('[UC-06 playlist-open] $stackTrace');
 }
 
-/// Registra falha lógica sem exceção — ex.: louvor ausente no manifest ou
-/// lista sem face de partituras para abrir.
+/// Registra falha lógica sem exceção — ex.: louvor ausente no catálogo
+/// coldigom ou lista sem face de partituras para abrir.
 void playlistOpenDebugLogFailure(String stage, String detail) {
   if (!kDebugMode) return;
   playlistOpenLastStage = stage;

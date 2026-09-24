@@ -2,6 +2,8 @@
 
 **Data:** 2026-09-18
 **Estado:** desenho aprovado; implementação por fazer.
+
+> **Substituído em parte (2026-09-23)** pelo spec [fim da fonte PLPCG](./2026-09-23-fim-fonte-plpcg-design.md): §3.2–§3.5 (manifest e checksum), §4.3–§4.5 (`LouvorDataSource`, `isColdigom`, alias de ids), §5 (fusão no `CompositeCatalogSource`), §6 (offline PDF a PDF sobre o `LouvorCache`) e os follow-ups «Lista ao Vivo» e «Share» de §11 já não descrevem o app.
 **Escopo:** o app `coldigui` deixa de depender do site `plpcg.com` para catálogo, PDFs e pacotes offline. O manifest e o checksum passam a vir do Worker `coldigom-api`; o PDF é aberto pela URL absoluta que o manifest traz; PLPCG e Coldigom deixam de ser dois acervos separados e passam a ser **um louvor por praise**, com os ids legados (`pdfId`, `shortId`) preservados. A primeira configuração offline deixa de usar ZIPs.
 **Fora do escopo (follow-ups em §11):** gates «Lista ao Vivo só Coldigom» e «share só PLPCG puro»; áudio/cifra/gestos pelo proxy; qualquer mudança no coldigom ou no Worker `plpcg-catalog`.
 

@@ -178,6 +178,8 @@ Parâmetros sincronizados com stores:
 | `sharepdfs` | IDs de playlist compartilhada (CSV) | — |
 | `sharename` | Nome da playlist compartilhada | — |
 
+> **Nota (23/09/2026):** esta tabela é do PWA plpcjf de origem (`src/lib/utils/urlSync.js`). No app v2 (`coldigui`), os params `arranjoEspecial` e `fonte` já não existem — o fim da fonte PLPCG (spec `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md`) tirou o seletor de fonte e o filtro de arranjo especial; `materiais`/`arranjo` viraram `tonality`/`rhythm`/`category`/`tags`/`materialKinds`, e `sharepdfs`/`sharename` viraram `p`/`n` (link por praise, §4).
+
 ---
 
 ## 3. Use cases detalhados

@@ -1,7 +1,7 @@
 # Fim da fonte PLPCG — o app vive só do coldigom
 
 **Data:** 2026-09-23
-**Estado:** desenho aprovado em conversa (secções 1–4); spec por rever.
+**Estado:** implementado (planos 0–3, branch `feat/fim-fonte-plpcg` @ `0e6c6b08`); ver §13 «Estado implementado e desvios».
 **Branch:** `feat/fim-fonte-plpcg` (worktree `.claude/worktrees/fim-fonte-plpcg`), a partir de `web/integration` @ `59e38160`.
 **Repos:** `coldigui` (app Flutter + Worker `plpcg-catalog`) e `coldigom` (`api/`, só as duas peças de §7).
 **Substitui:** a dicotomia PLPCG × Coldigom que sobrou do spec `2026-09-18-catalogo-coldigom-modo-unico-design.md`. Fecha os follow-ups §11 «Lista ao Vivo» e «Share» desse spec e o débito «gate Coldigom» de `docs/features/FEATURE_INDEX.md`.
@@ -441,3 +441,40 @@ As unidades 2–4 saem **juntas** numa versão do app: não há estado interméd
 - **Remover `NormalizeLegacyMaterialIds` e `resolveLegacyPdfIds`** quando deixar de haver ids legados (o log do normalizador conta os casos).
 - **Qualidade de dados no coldigom (M5):** unificar valores duplicados de categoria e ritmo.
 - **coldigom:** congelar `/api/plpcg/manifest*` quando não houver builds antigas em uso.
+- **Remover `LouvorCacheSchema` do schema Isar** depois de medir a limpeza do passo 5 na web (SQLite) — ver §13, Plano 3, desvio 3.
+
+## 13. Estado implementado e desvios
+
+Os quatro planos (0 coldigom, 1 catálogo, 2 share/ao vivo/cor, 3 ids legados/manifesto/offline/D1/docs) estão implementados na branch `feat/fim-fonte-plpcg` (HEAD `0e6c6b08`). Esta secção regista as decisões tomadas durante a execução que mudam o que os §§1–12 descrevem — não os ajustes por tarefa (nits), que ficam só nos `progress.md` de cada plano.
+
+### Plano 0 — coldigom (`praises.short_id` + crosswalk)
+
+- **§7.2 — `praiseId` do crosswalk é o dono *atual* do material** (`praise_materials.praise_id`), não o `plpcg_crosswalk.praise_id` que o `/resolve` devolve: merge e move trocam o dono, e o crosswalk desatualizado apontaria para o praise errado. Mesmo motivo por que a `url` também vem do `r2_key` real, não do crosswalk. Sem isto, um material movido depois do crosswalk resolvia para o praise antigo.
+
+### Plano 1 — catálogo, filtros, /biblioteca, página inicial
+
+- **`shortId` autocurativo via reset de ETag:** `SyncColdigomCatalog` não envia `If-None-Match` quando o índice tem linhas mas nenhuma tem `shortId` — sem flag de controlo. Achado Critical da revisão final: sem isto, uma instalação que sincronizou antes do deploy do `short_id` no coldigom (plano 0) nunca o recebia, porque o `304` do ETag nunca deixava o dump completo passar de novo.
+- **Reconexão dispara sync sempre que o catálogo está `failed`**, substituindo a regra original «só na transição offline→online» — a web não emite um valor inicial de conectividade, então a transição nunca disparava lá. Achado Important da revisão final; custo aceito: um sync extra deduplicado em alguns casos.
+
+### Plano 2 — compartilhar, ao vivo, cor
+
+- **O share salta entradas órfãs em vez de falhar a lista inteira** (desvio do spec §4.2): uma entrada cujo id **não** é id coldigom (legado que o crosswalk não conhece) é saltada; entradas coldigom sem praise/`shortId` continuam a falhar o share + disparar sync, como o spec pedia. Motivo: depois do plano 3 uma órfã nunca abre em lado nenhum, e falhar a lista inteira por causa dela bloquearia o share para sempre.
+- **Os dois lados do link por praise avisam quando algo fica de fora:** quem envia vê aviso quando órfãs saem do link; quem importa vê «N louvores ficaram de fora» pelos saltados (praise sem nada adicionável). Achado da revisão final (Important: descarte silencioso de praises sem PDF/áudio).
+- **Import cai para cifra/gestos quando não há PDF nem áudio:** `preferredEntryForPraise` ganhou um terceiro nível de fallback (PDF → áudio → cifra/gestos) para praises que só têm esses materiais.
+
+### Plano 3 — ids legados, fim do manifesto, `/offline`, script D1
+
+Os sete desvios decididos ao planear (topo do plano, `docs/superpowers/plans/2026-09-23-fim-fonte-plpcg-3-manifesto-offline-migracao.md`):
+
+1. `LouvorPdfPath` fica, simplificado — ainda monta `/assets/praises/<praise>/<material>.pdf` a partir do `pdfId` para todo PDF coldigom; só o ramo do `pdf` absoluto do manifesto sai.
+2. `contributionSourceOf` é apagado — com um valor só (`ContributionSource.coldigom`), os três chamadores passam a constante direto; `ContributionSource` fica.
+3. **`LouvorCache` sem passo de limpeza no `MigrateOfflineStorage`, como planeado ao início — mas revertido na Task 11:** a sonda em VM (`isar_plus` 1.3.7 nativo, 2026-09-23) mediu que abrir a instância com um schema sem a coleção **apaga os dados dela** sozinho, mas isso não foi medido na web (SQLite) — arriscaria o Isar não abrir lá. Por isso o `LouvorCacheSchema` **fica** no schema Isar, marcado obsoleto e sem consumidores de leitura, e os dados são limpos explicitamente no passo 5 do `MigrateOfflineStorage`; tirar a coleção do schema vira follow-up depois de medir na web (item 10 da validação manual, Tarefa 15, e follow-up acima).
+4. Um só «Atualizar» no `/offline` — o botão da linha de estado faz `coldigomCatalogSyncProvider.sync()` **e** `offlineCacheStatusProvider.refreshAll()` (reconcile) numa ação só, em vez de dois controlos separados.
+5. `ResolvePdfForReader` perde `isFullOfflineMode` e `hasNetworkConnection` — só existiam para a flag `OFFLINE_AVAILABLE`; sem ela, o caminho passa a ser sempre o fetch on-demand com LRU.
+6. Saem chaves l10n mortas não listadas no spec (`offlineDownloadSelected`, `offlineMaintenanceBusy`, `offlineMissingLouvoresEmpty`, `offlineMissingLouvoresLoadError`, `offlineMissingLouvoresSheetTitle`), conferidas por grep antes de apagar.
+7. **«Sem gatilho extra ao voltar a rede», como planeado — revertido na Task 6 (ruling 6.4):** o normalizador (`NormalizeLegacyMaterialIds`) passou a correr também na transição offline→online (deduplicado), além do hydrate da sessão e de cada pull de playlists. Motivo: com o crosswalk fora do ar, sem este terceiro gatilho os ids legados só normalizavam no próximo hydrate/pull, que podia demorar. Reruns concorrentes coalescem: uma rodada em voo marca um novo pedido e corre **uma** rodada extra ao terminar, em vez de perder ids trazidos por um pull no meio do caminho.
+
+Outras decisões de design do plano 3, fora da lista acima:
+
+- **Listas de conta estranha (`ownerSub` ≠ sessão atual, incluindo deslogado) são normalizadas mantendo o `syncStatus`** — uma lista `synced` continua `synced`, preservando a purga na troca de conta; a normalização do lado do servidor para essas listas fica a cargo do script D1 (§6.3) ou espera a conta dona voltar.
+- **Segurança do script D1** (`migrate-legacy-playlist-ids.ts`): exige `--local`/`--remote` explícito (rejeita flags desconhecidas, nunca corre "às cegas"); relata as linhas saltadas pela guarda de versão (re-`SELECT` pós-escrita, contra escrita concorrente); o runbook pede um bookmark de time-travel do D1 antes de rodar e documenta o comando de restauro.

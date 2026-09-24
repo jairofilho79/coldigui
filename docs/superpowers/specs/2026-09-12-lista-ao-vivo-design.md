@@ -243,6 +243,8 @@ Notas adicionais descobertas durante a execução (Tasks 1–19), que não const
 
 ## 14. Refinamento pós-deploy (2026-09-14): só Coldigom, material próprio
 
+> **Substituído (2026-09-23):** a regra «só Coldigom» morreu com o fim da fonte PLPCG (spec [fim da fonte PLPCG](./2026-09-23-fim-fonte-plpcg-design.md) §5). O material próprio de cada consumidor fica.
+
 Decidido depois do primeiro deploy, ao rever a Fase 1 contra o acervo Coldigom (um louvor com dezenas de materiais tipados, ao contrário do PLPCG):
 
 | Antes | Agora | Porquê |

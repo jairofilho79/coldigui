@@ -7,7 +7,7 @@ import 'connectivity_results.dart';
 /// (qualquer resultado além de [ConnectivityResult.none]).
 ///
 /// Usado por Home/Biblioteca (C.8) para recarregar automaticamente o
-/// manifest/Coldigom quando a conexão volta depois de um erro. Sobrescrever
+/// catálogo coldigom quando a conexão volta depois de um erro. Sobrescrever
 /// em testes via `ProviderScope(overrides: [connectivityStreamProvider
 /// .overrideWith(...)])`.
 final connectivityStreamProvider = StreamProvider<bool>((ref) {

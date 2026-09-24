@@ -6,6 +6,8 @@
 
 **Atualização set/2026:** a identidade do louvor lógico passou a ser o `praiseId` do coldigom (`Louvor.effectiveGroupId` = `praiseId` → `groupId` do manifest → calculado). O `groupId` fuzzy do script Python continua no manifest e no Isar, mas só decide quando não há `praiseId` (cache anterior ao primeiro sync). Consequência aceite: 82 grupos fuzzy que juntavam 2 praises separam-se; 64 praises que estavam em 2 grupos fundem-se. Ver spec `docs/superpowers/specs/2026-09-18-catalogo-coldigom-modo-unico-design.md` §4.2.
 
+**Atualização 23/09/2026 (fim da fonte PLPCG):** o app já não lê o `louvores-manifest.json` em forma nenhuma. Um louvor lógico é um praise do coldigom: o `ColdigomSearchIndex` monta um `LouvorGroup` por praise a partir do dump `GET /api/plpcg/catalog` (`effectiveGroupId` = `praiseId`). O `groupId` fuzzy e o `LouvorCache` saíram; o resto deste documento é histórico. Ver `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md`.
+
 **Relacionado:** UC-01 (Home), UC-03 (Biblioteca), UC-12 (manifest)  
 **Índice geral:** [FEATURE_INDEX.md](./FEATURE_INDEX.md) · [AGENT_PIPELINE.md](../AGENT_PIPELINE.md)
 
