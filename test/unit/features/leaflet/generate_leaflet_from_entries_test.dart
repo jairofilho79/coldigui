@@ -41,7 +41,7 @@ void main() {
 
   test('PDF + áudio do mesmo louvor (groupId) vira uma linha', () {
     final lookup = CatalogMaterialLookup(
-      plpcgLouvoresByPdfId: {
+      coldigomLouvoresByPdfId: {
         'pdf-1': Louvor.fromManifest(
           nome: 'Louvor A',
           numero: '001',
@@ -80,7 +80,7 @@ void main() {
 
   test('ordem preservada — primeira ocorrência de cada grupo, na ordem', () {
     final lookup = CatalogMaterialLookup(
-      plpcgLouvoresByPdfId: {
+      coldigomLouvoresByPdfId: {
         'pdf-a': Louvor.fromManifest(
           nome: 'Louvor A',
           numero: '001',

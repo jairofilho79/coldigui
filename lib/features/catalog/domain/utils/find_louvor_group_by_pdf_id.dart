@@ -1,4 +1,4 @@
-import '../../data/sources/composite_catalog_source.dart';
+import '../../../coldigom/data/sources/coldigom_catalog_source.dart';
 import '../../data/sources/plpcg_catalog_source.dart';
 import '../entities/louvor.dart';
 import '../entities/louvor_group.dart';
@@ -24,17 +24,16 @@ LouvorGroup? findLouvorGroupByPdfId(List<Louvor>? catalog, String pdfId) {
 /// carousel não tem relação com o que está tocando. Com os dois no mesmo
 /// grupo o [pdfId] segue mandando.
 ///
-/// Continua síncrono (a UI decide se mostra o botão durante o build) e por
-/// isso usa os métodos síncronos do composite, que já funde manifest e caches
-/// Coldigom por praise.
+/// Síncrono (a UI decide se mostra o botão durante o build): usa os métodos
+/// síncronos da fonte coldigom, que só lê memória.
 LouvorGroup? findSwapMaterialGroup({
   String? pdfId,
   String? audioId,
-  required CompositeCatalogSource source,
+  required ColdigomCatalogSource source,
 }) {
   final playingTrack = (audioId == null || audioId.isEmpty)
       ? null
-      : source.coldigom.audioTracks[audioId];
+      : source.audioTracks[audioId];
   final playingGroupId =
       (playingTrack == null || playingTrack.groupId.isEmpty)
       ? null

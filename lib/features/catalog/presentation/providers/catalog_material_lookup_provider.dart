@@ -8,34 +8,27 @@ import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../domain/entities/louvor.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/entities/youtube_material.dart';
-import 'louvores_by_pdf_id_provider.dart';
-import 'manifest_material_aliases_provider.dart';
 
 /// Leitura **síncrona** de material por id, para a presentation (C.3).
 ///
-/// Vinte arquivos liam os caches Coldigom direto — cada um sabendo qual dos
-/// cinco notifiers guardava o quê, e nenhum sabendo do manifest PLPCG. Aqui a
-/// pergunta é sempre a mesma ("qual material é este id?") e a resposta vem no
-/// mesmo frame: nada aqui espera rede.
+/// Vinte arquivos liam os caches Coldigom direto, cada um sabendo qual dos
+/// cinco notifiers guardava o quê. Aqui a pergunta é sempre a mesma ("qual
+/// material é este id?") e a resposta vem no mesmo frame — sempre dos caches
+/// do catálogo coldigom: nada aqui espera rede.
 ///
 /// Complementa (não substitui) `CatalogSource`: a porta monta **grupos** e é
 /// assíncrona; o lookup só devolve o material solto que já está em memória.
 final class CatalogMaterialLookup {
   const CatalogMaterialLookup({
-    this.plpcgLouvoresByPdfId = const {},
     this.coldigomLouvoresByPdfId = const {},
     this.audioTracksById = const {},
     this.chordsById = const {},
     this.gesturesById = const {},
     this.praiseMetaByGroupId = const {},
     this.youtubeByGroupId = const {},
-    this.legacyPdfIdByColdigomPdfId = const {},
   });
 
-  /// PDFs do manifest PLPCG, por `pdfId` (`louvoresByPdfIdProvider`).
-  final Map<String, Louvor> plpcgLouvoresByPdfId;
-
-  /// PDFs Coldigom em cache, por `pdfId`.
+  /// PDFs do catálogo coldigom em memória, por `pdfId`.
   final Map<String, Louvor> coldigomLouvoresByPdfId;
 
   /// Faixas Coldigom em cache, por `audioId`.
@@ -53,20 +46,9 @@ final class CatalogMaterialLookup {
   /// Links de YouTube em cache, por `groupId`.
   final Map<String, List<YoutubeMaterial>> youtubeByGroupId;
 
-  /// Id Coldigom → `pdfId` legado dos materiais que o manifest cobre
-  /// (`manifestMaterialAliasesProvider`). Serve o alias sem rede de
-  /// [louvor] para playlists recentes com ids Coldigom.
-  final Map<String, String> legacyPdfIdByColdigomPdfId;
-
-  /// PDF de [materialId] — manifest, cache Coldigom, e por fim o alias
-  /// (id Coldigom de material que o manifest também lista).
-  Louvor? louvor(String materialId) {
-    final direct =
-        plpcgLouvoresByPdfId[materialId] ?? coldigomLouvoresByPdfId[materialId];
-    if (direct != null) return direct;
-    final legacyId = legacyPdfIdByColdigomPdfId[materialId];
-    return legacyId == null ? null : plpcgLouvoresByPdfId[legacyId];
-  }
+  /// PDF de [materialId], ou `null` se o catálogo em memória ainda não o tem
+  /// (antes da hidratação, ou id legado que o crosswalk não conhece).
+  Louvor? louvor(String materialId) => coldigomLouvoresByPdfId[materialId];
 
   /// Faixa de áudio em cache, ou `null`.
   AudioTrack? audioTrack(String audioId) => audioTracksById[audioId];
@@ -115,18 +97,14 @@ final class CatalogMaterialLookup {
   ];
 }
 
-/// Lookup síncrono do material por id (PLPCG + caches Coldigom).
+/// Lookup síncrono do material por id, sobre os caches do catálogo coldigom.
 final catalogMaterialLookupProvider = Provider<CatalogMaterialLookup>((ref) {
   return CatalogMaterialLookup(
-    plpcgLouvoresByPdfId: ref.watch(louvoresByPdfIdProvider),
     coldigomLouvoresByPdfId: ref.watch(coldigomLouvoresCacheProvider),
     audioTracksById: ref.watch(coldigomAudioTracksCacheProvider),
     chordsById: ref.watch(coldigomChordMaterialsCacheProvider),
     gesturesById: ref.watch(coldigomGestureMaterialsCacheProvider),
     praiseMetaByGroupId: ref.watch(coldigomPraiseMetaCacheProvider),
     youtubeByGroupId: ref.watch(coldigomYoutubeCacheProvider),
-    legacyPdfIdByColdigomPdfId: ref
-        .watch(manifestMaterialAliasesProvider)
-        .legacyPdfIdByColdigomPdfId,
   );
 });

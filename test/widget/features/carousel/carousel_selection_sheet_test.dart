@@ -4,7 +4,6 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_selection_sheet.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -12,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 Louvor _louvor(String pdfId, String numero, String nome, String classificacao) {
   return Louvor.fromManifest(
@@ -62,7 +63,7 @@ void main() {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresByPdfIdProvider.overrideWithValue(manifest),
+        coldigomLouvoresOverride(manifest.values.toList()),
         activePlaylistEditorProvider.overrideWith(() => editor),
       ],
       child: MaterialApp(

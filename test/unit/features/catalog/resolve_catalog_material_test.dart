@@ -129,13 +129,12 @@ Future<WidgetRef> _widgetRef(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('resolve PDF do manifest PLPCG', (tester) async {
+  testWidgets('id legado não resolve (o manifesto já não é fonte)', (
+    tester,
+  ) async {
     final ref = await _widgetRef(tester);
 
-    final material = await resolveCatalogMaterialFromWidget(ref, _plpcgPdfId);
-
-    expect(material, isA<PdfMaterial>());
-    expect(material!.id, _plpcgPdfId);
+    expect(await resolveCatalogMaterialFromWidget(ref, _plpcgPdfId), isNull);
   });
 
   testWidgets('resolve PDF do cache Coldigom', (tester) async {
@@ -174,11 +173,11 @@ void main() {
     expect(await resolveCatalogMaterialFromWidget(ref, 'ADmqXpHmVIQ'), isNull);
   });
 
-  test('catalogSourceProvider despacha os dois acervos', () async {
+  test('catalogSourceProvider lê o catálogo coldigom', () async {
     final container = await _container();
     final source = container.read(catalogSourceProvider);
 
     expect((await source.groupForMaterial(_coldigomPdfId))!.groupId, 'p1');
-    expect(await source.materialById(_plpcgPdfId), isA<PdfMaterial>());
+    expect(await source.materialById(_plpcgPdfId), isNull);
   });
 }

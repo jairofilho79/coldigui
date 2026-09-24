@@ -10,7 +10,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/coldigom/data/coldigom_praise_cache_warmup.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/offline/data/datasources/favorite_pdf_ids_resolver.dart';
 import 'package:coldigui/features/offline/data/providers/offline_core_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart';
@@ -26,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Repositório PDF nunca chamado — [_FixedResolvePdfForReader] ignora os
@@ -95,6 +95,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
+            coldigomLouvoresOverride([louvor]),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
               // O timeout mora dentro do provider real; a versão de teste o
               // reproduz para o "nunca completa" virar falha registrada.
@@ -147,6 +148,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
+          coldigomLouvoresOverride([louvor]),
           ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
             (Louvor _) async => throw StateError('coldigom indisponível'),
           ),
@@ -168,60 +170,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(logs.any((l) => l.contains('[coldigom] warmup falhou')), isTrue);
     });
-  });
-
-  group('navigateToPdfId — id Coldigom de material coberto pelo manifest', () {
-    // Manifest servido pelo coldigom: `pdf` é a URL absoluta em
-    // `/assets/praises/…`, e o alias X → L nasce dela.
-    const r2Key = 'assets/praises/p9/m9.pdf';
-    final legacyPdfId = encodePdfId('assets/ColAdultos/692.pdf');
-    final coldigomPdfId = encodePdfId(r2Key);
-    final covered = Louvor.fromManifest(
-      nome: 'Comigo habita',
-      numero: '692',
-      categoria: 'Partitura',
-      classificacao: 'Balada',
-      pdf: 'https://coldigom.example/$r2Key',
-      pdfId: legacyPdfId,
-      praiseId: 'p9',
-      materialId: 'm9',
-    );
-
-    test(
-      'com cache Coldigom frio a rota leva o id pedido, não o legado',
-      () async {
-        final resolver = _FixedResolvePdfForReader(source);
-        final container = ProviderContainer(
-          overrides: [
-            louvoresManifestOverride(LouvoresManifest.fromLouvores([covered])),
-            ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
-              (Louvor _) async {},
-            ),
-            resolvePdfForReaderProvider.overrideWithValue(resolver),
-          ],
-        );
-        addTearDown(container.dispose);
-        await container.read(louvoresManifestProvider.future);
-        expect(container.read(coldigomLouvoresCacheProvider), isEmpty);
-
-        final location = await container
-            .read(readerCarouselActionsProvider.notifier)
-            .navigateToPdfId(targetPdfId: coldigomPdfId);
-
-        expect(location, isNotNull);
-        final query = Uri.parse(location!).queryParameters;
-        expect(
-          query['pdfId'],
-          coldigomPdfId,
-          reason:
-              'o carrossel e a Lista ao Vivo procuram o id da entrada; o id '
-              'legado do alias só serve para achar o louvor',
-        );
-        // A chave de armazenamento continua a do louvor resolvido (índice
-        // offline partilhado com o download em massa do manifest).
-        expect(resolver.resolvedPdfIds, [legacyPdfId]);
-      },
-    );
   });
 
   group('navigateToKey — foca a ocorrência e resolve a rota', () {
@@ -259,6 +207,7 @@ void main() {
           louvoresManifestOverride(
             LouvoresManifest.fromLouvores([louvor, other]),
           ),
+          coldigomLouvoresOverride([louvor, other]),
           ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
             (Louvor _) async {},
           ),

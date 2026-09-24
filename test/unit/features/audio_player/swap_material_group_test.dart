@@ -1,17 +1,14 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
-import 'package:coldigui/features/catalog/data/sources/composite_catalog_source.dart';
-import 'package:coldigui/features/catalog/data/sources/plpcg_catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/catalog/domain/entities/manifest_material_aliases.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Precedência do botão layers com uma entrada de áudio focada: manda a
-/// faixa tocando — agora sobre o composite fundido por praise.
+/// faixa tocando — sobre a fonte coldigom, agrupada por praise.
 void main() {
   final focusedPdfId = encodePdfId('assets/praises/p1/partitura.pdf');
   final focusedChordId = encodePdfId('assets/praises/p1/cifra.chord');
@@ -50,19 +47,14 @@ void main() {
     classificacao: 'Coro',
   );
 
-  CompositeCatalogSource source({
-    List<Louvor> manifest = const [],
+  ColdigomCatalogSource source({
     Map<String, Louvor> coldigom = const {},
     Map<String, AudioTrack> audio = const {},
     Map<String, ChordMaterial> chords = const {},
-  }) => CompositeCatalogSource(
-    plpcg: PlpcgCatalogSource(catalog: manifest),
-    coldigom: ColdigomCatalogSource(
-      louvores: coldigom,
-      audioTracks: audio,
-      chords: chords,
-    ),
-    aliases: ManifestMaterialAliases.fromLouvores(manifest),
+  }) => ColdigomCatalogSource(
+    louvores: coldigom,
+    audioTracks: audio,
+    chords: chords,
   );
 
   final coldigomCache = <String, Louvor>{
@@ -99,36 +91,6 @@ void main() {
     expect(group!.groupId, 'p9');
     expect(group.totalPdfs, 2);
     expect(group.audioTracks.single.audioId, playingTrack.audioId);
-  });
-
-  test('não perde PDFs do manifest do praise da faixa tocando', () {
-    final partitura = Louvor.fromManifest(
-      nome: 'Louvor p9',
-      numero: '002',
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: 'https://coldigom.test/assets/praises/p9/legado.pdf',
-      pdfId: 'legado-p9',
-      groupId: '002:louvor-p9',
-      praiseId: 'p9',
-      materialId: 'legado',
-    );
-
-    final group = findSwapMaterialGroup(
-      pdfId: focusedPdfId,
-      audioId: playingTrack.audioId,
-      source: source(
-        manifest: [partitura],
-        coldigom: coldigomCache,
-        audio: {playingTrack.audioId: playingTrack},
-      ),
-    );
-
-    expect(group!.groupId, 'p9');
-    expect(
-      group.flatPdfMaterials.map((m) => m.pdfId),
-      containsAll(['legado-p9', playingPdfId, playingOtherPdfId]),
-    );
   });
 
   test('cifra focada resolve o grupo do praise pelo id da cifra', () {

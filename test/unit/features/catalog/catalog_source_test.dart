@@ -2,7 +2,6 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
-import 'package:coldigui/features/catalog/data/providers/plpcg_catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/data/sources/composite_catalog_source.dart';
 import 'package:coldigui/features/catalog/data/sources/plpcg_catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -10,15 +9,12 @@ import 'package:coldigui/features/catalog/domain/entities/catalog_query.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/catalog/domain/entities/manifest_material_aliases.dart';
 import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/ports/catalog_source.dart';
 import 'package:coldigui/features/catalog/domain/ports/search_cancellation.dart';
 import 'package:coldigui/features/catalog/domain/search/plpcg_search_index.dart';
 import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/manifest_material_aliases_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
@@ -26,8 +22,6 @@ import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_r
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 final _plpcgGroupId = LouvorGroupId.compute(numero: '001', nome: 'Grande Deus');
 
@@ -716,63 +710,24 @@ void main() {
 
   group('providers de fonte', () {
     test(
-      'plpcgCatalogSourceProvider não recompõe com merge Coldigom',
+      'catalogSourceProvider é a fonte coldigom (spec fim-fonte-plpcg §2.1)',
       () async {
-        final container = ProviderContainer(
-          overrides: [
-            louvoresManifestOverride(
-              LouvoresManifest.fromLouvores([_plpcgPartitura, _plpcgCifra]),
-            ),
-          ],
-        );
+        final container = ProviderContainer();
         addTearDown(container.dispose);
-        await container.read(louvoresManifestProvider.future);
-
-        final before = container.read(plpcgCatalogSourceProvider);
-        final compositeBefore = container.read(catalogSourceProvider);
-
         container.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
           _coldigomPdf,
         ]);
 
-        final after = container.read(plpcgCatalogSourceProvider);
-        expect(identical(before, after), isTrue);
+        final CatalogSource source = container.read(catalogSourceProvider);
+
+        expect(source, isA<ColdigomCatalogSource>());
+        expect(await source.materialById(_coldigomPdfId), isA<PdfMaterial>());
         expect(
-          identical(compositeBefore, container.read(catalogSourceProvider)),
-          isFalse,
-          reason: 'o composite reflete o cache Coldigom novo',
+          await source.materialById(_plpcgPdfId),
+          isNull,
+          reason: 'id legado já não é endereçável',
         );
-        expect(before.index.louvores, hasLength(2));
       },
     );
-
-    test('catalogSourceProvider compõe as duas fontes', () async {
-      final container = ProviderContainer(
-        overrides: [
-          louvoresManifestOverride(
-            LouvoresManifest.fromLouvores([_plpcgPartitura, _plpcgCifra]),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(louvoresManifestProvider.future);
-
-      container.read(coldigomLouvoresCacheProvider.notifier).mergeLouvores([
-        _coldigomPdf,
-      ]);
-
-      final CatalogSource source = container.read(catalogSourceProvider);
-
-      expect(await source.materialById(_plpcgPdfId), isA<PdfMaterial>());
-      expect(await source.materialById(_coldigomPdfId), isA<PdfMaterial>());
-      expect(source.searchLocal(_query('Grande Deus')), hasLength(1));
-      expect(
-        identical(
-          container.read(compositeCatalogSourceProvider).aliases,
-          container.read(manifestMaterialAliasesProvider),
-        ),
-        isTrue,
-      );
-    });
   });
 }

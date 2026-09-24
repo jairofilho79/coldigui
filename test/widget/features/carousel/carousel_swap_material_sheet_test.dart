@@ -11,7 +11,6 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_ma
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -28,6 +27,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 // ---------------------------------------------------------------- fixtures
 
@@ -270,9 +271,7 @@ Future<_Harness> _pumpSwapSheet(
         sharedPreferencesProvider.overrideWithValue(prefs),
         isarStatusProvider.overrideWithValue(IsarStatus.available),
         activePlaylistEditorProvider.overrideWith(() => carousel),
-        louvoresByPdfIdProvider.overrideWithValue({
-          'pdf1': _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
-        }),
+        coldigomLouvoresOverride([_pdf(categoria: 'Partitura', pdfId: 'pdf1')]),
         readerCarouselActionsProvider.overrideWith(() => readerActions),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         audioPlayerSessionProvider.overrideWith(() => audio),

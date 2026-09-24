@@ -1,7 +1,9 @@
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
 import 'package:coldigui/features/coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 import 'package:coldigui/features/coldigom/data/models/praise_dto.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -125,4 +127,22 @@ List<Override> catalogIndexOverrides(
       () => sync ?? FakeColdigomCatalogSyncNotifier(),
     ),
   ];
+}
+
+/// `coldigomLouvoresCacheProvider` já com [louvores] — o catálogo em memória
+/// que o lookup e a fonte leem. Substitui o `louvoresManifestOverride` nos
+/// testes que precisavam de PDFs conhecidos (spec fim-fonte-plpcg §6.4).
+Override coldigomLouvoresOverride(List<Louvor> louvores) {
+  return coldigomLouvoresCacheProvider.overrideWith(
+    () => _SeededLouvoresCache(louvores),
+  );
+}
+
+class _SeededLouvoresCache extends ColdigomLouvoresCacheNotifier {
+  _SeededLouvoresCache(this._seed);
+
+  final List<Louvor> _seed;
+
+  @override
+  Map<String, Louvor> build() => {for (final l in _seed) l.pdfId: l};
 }

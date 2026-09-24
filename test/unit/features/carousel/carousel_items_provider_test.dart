@@ -23,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_plus/isar_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 import '../../../support/test_overrides.dart';
 
@@ -91,6 +92,10 @@ void main() {
             _louvor(_pdfB, '002', 'Aleluia'),
           ]),
         ),
+        coldigomLouvoresOverride([
+          _louvor(_pdfA, '001', 'Santo'),
+          _louvor(_pdfB, '002', 'Aleluia'),
+        ]),
       ],
     );
     addTearDown(container.dispose);

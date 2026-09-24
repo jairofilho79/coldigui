@@ -20,6 +20,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../helpers/louvores_manifest_test_helpers.dart';
 
 /// Repositório PDF nunca chamado — [_FixedResolvePdfForReader] ignora os
@@ -146,6 +147,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
+            coldigomLouvoresOverride([louvor]),
             ensureColdigomPraiseMaterialsCachedProvider.overrideWithValue(
               (Louvor _) async {},
             ),

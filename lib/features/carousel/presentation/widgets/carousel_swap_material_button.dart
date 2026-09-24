@@ -6,7 +6,6 @@ import 'package:coldigui/features/carousel/presentation/providers/carousel_focus
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
-import 'package:coldigui/features/catalog/data/providers/catalog_source_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
@@ -14,6 +13,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_materia
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/utils/open_louvor_in_reader.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
+import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -29,7 +29,7 @@ LouvorGroup? resolveCarouselSwapMaterialGroup(
   return findSwapMaterialGroup(
     pdfId: materialId,
     audioId: audioId,
-    source: ref.watch(compositeCatalogSourceProvider),
+    source: ref.watch(coldigomCatalogSourceProvider),
   );
 }
 

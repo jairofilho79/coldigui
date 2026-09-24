@@ -521,7 +521,7 @@ void main() {
               '/tmp/corrupt.pdf',
             ).overrideWith((ref) => Future.error(corrupted)),
             catalogMaterialLookupProvider.overrideWithValue(
-              CatalogMaterialLookup(plpcgLouvoresByPdfId: {pdfId: louvor}),
+              CatalogMaterialLookup(coldigomLouvoresByPdfId: {pdfId: louvor}),
             ),
             resolvePdfForReaderProvider.overrideWithValue(
               _ThrowingResolvePdfForReader(

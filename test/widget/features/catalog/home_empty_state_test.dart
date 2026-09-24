@@ -225,7 +225,7 @@ void main() {
             ),
             catalogMaterialLookupProvider.overrideWithValue(
               CatalogMaterialLookup(
-                plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
+                coldigomLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
                 chordsById: const {'chord-1': _chord},
                 audioTracksById: const {'audio-1': _track},
               ),
@@ -458,7 +458,7 @@ void main() {
             ),
             catalogMaterialLookupProvider.overrideWithValue(
               CatalogMaterialLookup(
-                plpcgLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
+                coldigomLouvoresByPdfId: {'pdf-1': _louvor('pdf-1')},
               ),
             ),
           ],

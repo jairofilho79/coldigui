@@ -10,7 +10,6 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.d
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/domain/entities/carousel_reader_position.dart';
@@ -28,6 +27,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 class _FakePlaylistShareActionsNotifier extends PlaylistShareActionsNotifier {
   PlaylistShareOption? lastOption;
@@ -175,7 +176,7 @@ void main() {
     return ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        louvoresByPdfIdProvider.overrideWithValue(manifest),
+        coldigomLouvoresOverride(manifest.values.toList()),
         activePlaylistEditorProvider.overrideWith(() => editor),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
       ],
@@ -330,7 +331,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           activePlaylistProvider.overrideWithValue(activePlaylist),
@@ -369,7 +370,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
-            louvoresByPdfIdProvider.overrideWithValue(manifest),
+            coldigomLouvoresOverride(manifest.values.toList()),
             activePlaylistEditorProvider.overrideWith(() => editor),
             playlistsProvider.overrideWith(() => playlistsNotifier),
             activePlaylistProvider.overrideWithValue(activePlaylist),
@@ -404,7 +405,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(() => editor),
           playlistsProvider.overrideWith(() => playlistsNotifier),
           activePlaylistProvider.overrideWithValue(activePlaylist),
@@ -435,7 +436,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(() => notifier),
           playlistsProvider.overrideWith(() => playlists),
         ],
@@ -485,7 +486,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(entries),
           ),
@@ -529,7 +530,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(entries),
           ),
@@ -577,7 +578,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(entries),
           ),
@@ -649,7 +650,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(entries),
           ),
@@ -741,7 +742,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(entries),
           ),
@@ -808,7 +809,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor(repeated),
           ),
@@ -872,7 +873,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(() => repeated),
           readerCarouselActionsProvider.overrideWith(() => readerActions),
         ],

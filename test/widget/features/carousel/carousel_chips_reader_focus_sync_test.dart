@@ -4,7 +4,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
@@ -19,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../support/fakes/fake_active_editor.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 /// Reproduz a cadeia de campo do `navigateToPdfId` real para PDFs: o warmup
 /// Coldigom escreve no cache (o lookup e a lista re-emitem, a barra
@@ -90,7 +90,7 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          louvoresByPdfIdProvider.overrideWithValue(manifest),
+          coldigomLouvoresOverride(manifest.values.toList()),
           activePlaylistEditorProvider.overrideWith(
             () => FakeActiveEditor([
               for (final id in const ['a', 'b', 'c', 'd'])

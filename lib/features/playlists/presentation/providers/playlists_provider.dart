@@ -434,34 +434,29 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     await ref.read(activePlaylistEditorProvider.notifier).deleteActiveDraft();
   }
 
-  /// Busca louvor no manifest carregado — usado ao abrir PDF de playlist no leitor.
+  /// Louvor do PDF [pdfId] no catálogo em memória — usado ao abrir PDF de
+  /// playlist no leitor.
   ///
-  /// Lookup O(1) pelo [catalogMaterialLookupProvider] (A4/C.3). Retorna `null`
-  /// se o manifest ainda não carregou ou o [pdfId] for órfão. Em debug,
-  /// registra estado do manifest e falhas via [playlistOpenDebugLog*].
+  /// Lookup O(1) pelo [catalogMaterialLookupProvider] (A4/C.3). `null` se o
+  /// catálogo ainda não hidratou ou o id é desconhecido (ex.: legado que o
+  /// crosswalk não conhece). Em debug registra via [playlistOpenDebugLog*].
   Louvor? findLouvorByPdfId(String pdfId) {
-    final manifestAsync = ref.read(louvoresManifestProvider);
     final lookup = ref.read(catalogMaterialLookupProvider);
     playlistOpenDebugLog(
       'findLouvorByPdfId: pdfId=$pdfId '
-      'manifest=${manifestAsync.isLoading
-          ? 'loading'
-          : manifestAsync.hasError
-          ? 'error'
-          : '${lookup.plpcgLouvoresByPdfId.length} itens'} '
-      'coldigomCache=${lookup.coldigomLouvoresByPdfId.length}',
+      'catalogo=${lookup.coldigomLouvoresByPdfId.length}',
     );
     final louvor = lookup.louvor(pdfId);
     if (louvor != null) {
       playlistOpenDebugLog(
         'findLouvorByPdfId: encontrado numero=${louvor.numero} '
-        'nome="${louvor.nome}" source=${louvor.source.name}',
+        'nome="${louvor.nome}"',
       );
       return louvor;
     }
     playlistOpenDebugLogFailure(
       'findLouvorByPdfId',
-      'pdfId=$pdfId ausente no manifest e cache coldigom',
+      'pdfId=$pdfId ausente no catálogo',
     );
     return null;
   }

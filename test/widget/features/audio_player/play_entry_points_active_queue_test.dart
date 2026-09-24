@@ -13,7 +13,6 @@ import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_by_pdf_id_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
@@ -25,6 +24,8 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 /// D4 — a fila do player é a reunião: os pontos de play preferem os
 /// áudios da lista ativa quando a faixa tocada já está nela.
@@ -259,7 +260,7 @@ void main() {
           activePlaylistEditorProvider.overrideWith(FakeActiveEditor.new),
           playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
           audioPlayerSessionProvider.overrideWith(() => audio),
-          louvoresByPdfIdProvider.overrideWithValue({'pdf1': louvor}),
+          coldigomLouvoresOverride([louvor]),
           catalogMaterialLookupProvider.overrideWithValue(
             const CatalogMaterialLookup(
               audioTracksById: {

@@ -29,8 +29,6 @@ class MaterialDropdown extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final lookup = ref.watch(catalogMaterialLookupProvider);
     final options = <(String id, String label)>[
-      for (final l in lookup.plpcgLouvoresByPdfId.values)
-        if (l.groupId == praiseId) (l.pdfId, l.categoria),
       for (final l in lookup.coldigomLouvoresByPdfId.values)
         if (l.groupId == praiseId) (l.pdfId, l.categoria),
       for (final a in lookup.audioTracksById.values)
@@ -184,11 +182,7 @@ class DuplicateField extends ConsumerWidget {
       optionsBuilder: (textEditingValue) {
         final q = textEditingValue.text.trim().toLowerCase();
         if (q.isEmpty) return const Iterable<Louvor>.empty();
-        final all = [
-          ...lookup.plpcgLouvoresByPdfId.values,
-          ...lookup.coldigomLouvoresByPdfId.values,
-        ];
-        return all
+        return lookup.coldigomLouvoresByPdfId.values
             .where(
               (l) =>
                   l.numero.toLowerCase().contains(q) ||
