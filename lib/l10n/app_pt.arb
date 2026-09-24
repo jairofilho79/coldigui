@@ -1039,6 +1039,8 @@
   "lyricsReaderDecreaseFont": "Diminuir letra",
   "offlineColdigomPlpcgSection": "Acervo PLPCG (PDFs)",
   "offlineColdigomSection": "Coldigom por tipo de material",
+  "offlineSectionTitle": "Baixar para usar offline",
+  "offlineKindsAll": "Tipos",
   "offlineColdigomCatalogStatus": "Catálogo: {count} louvores · atualizado {ago}",
   "@offlineColdigomCatalogStatus": {
     "placeholders": {
@@ -1054,7 +1056,7 @@
   "@offlineColdigomAgoHours": { "placeholders": { "n": { "type": "int" } } },
   "offlineColdigomAgoDays": "há {n} d",
   "@offlineColdigomAgoDays": { "placeholders": { "n": { "type": "int" } } },
-  "offlineColdigomSignInPrompt": "Entre com Google para baixar os seus tipos favoritos",
+  "offlineColdigomSignInPrompt": "Entre com Google para ver os seus tipos favoritos primeiro",
   "offlineColdigomFavoriteKinds": "Seus tipos favoritos",
   "offlineColdigomNoFavorites": "Sem favoritos — escolha em Materiais favoritos ou abra «Outros tipos»",
   "offlineColdigomOtherKinds": "Outros tipos",
@@ -1084,9 +1086,9 @@
   "@offlineColdigomStopped": { "placeholders": { "n": { "type": "int" } } },
   "offlineColdigomOutOfSpace": "Sem espaço no aparelho",
   "offlineColdigomRetry": "Tentar de novo",
-  "offlineColdigomRemove": "Remover áudios e PDFs baixados do Coldigom",
+  "offlineColdigomRemove": "Remover todos os baixados",
   "offlineColdigomRemoveNote": "Cifras, gestos e letras ficam no aparelho.",
-  "offlineColdigomRemoveConfirmTitle": "Remover baixados do Coldigom?",
+  "offlineColdigomRemoveConfirmTitle": "Remover todos os baixados?",
   "offlineColdigomRemoved": "{pdfs} PDFs e {audios} áudios removidos",
   "@offlineColdigomRemoved": {
     "placeholders": {

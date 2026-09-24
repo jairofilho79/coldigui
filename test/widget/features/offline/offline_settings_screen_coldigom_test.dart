@@ -5,8 +5,10 @@ import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_butto
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
+import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_widgets/coldigom_section.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
@@ -63,9 +65,25 @@ class _FixedDownload extends OfflineColdigomDownloadNotifier {
   }
 }
 
+class _FixedCacheStatus extends OfflineCacheStatusNotifier {
+  var refreshAllCalls = 0;
+  var refreshCalls = 0;
+
+  @override
+  OfflineCacheStatus build() => const OfflineCacheStatus(
+    stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 5 * 1024 * 1024),
+  );
+
+  @override
+  Future<void> refreshAll() async => refreshAllCalls++;
+
+  @override
+  Future<void> refresh({int? removedCount}) async => refreshCalls++;
+}
+
 class _BusyLock extends OfflineMaintenanceLock {
   @override
-  OfflineMaintenanceOwner? build() => OfflineMaintenanceOwner.bulk;
+  OfflineMaintenanceOwner? build() => OfflineMaintenanceOwner.reconcile;
 }
 
 const _stats = OfflineColdigomStats({
@@ -100,7 +118,8 @@ const _stats = OfflineColdigomStats({
 
 late SharedPreferences _prefs;
 
-Future<({_FixedSync sync, _FixedDownload download})> _pump(
+Future<({_FixedSync sync, _FixedDownload download, _FixedCacheStatus cache})>
+_pump(
   WidgetTester tester, {
   bool loggedIn = true,
   ColdigomCatalogSyncState syncState = const ColdigomCatalogSyncState(
@@ -113,11 +132,10 @@ Future<({_FixedSync sync, _FixedDownload download})> _pump(
 }) async {
   final sync = _FixedSync(syncState);
   final download = _FixedDownload(downloadState);
+  final cache = _FixedCacheStatus();
   await pumpApp(
     tester,
-    const SingleChildScrollView(
-      child: ColdigomOfflineSection(maintenanceBusy: false),
-    ),
+    const SingleChildScrollView(child: ColdigomOfflineSection()),
     overrides: [
       sharedPreferencesProvider.overrideWithValue(_prefs),
       authStateProvider.overrideWith(loggedIn ? _LoggedIn.new : _LoggedOut.new),
@@ -125,11 +143,12 @@ Future<({_FixedSync sync, _FixedDownload download})> _pump(
       offlineColdigomStatsProvider.overrideWith((ref) async => _stats),
       coldigomCatalogSyncProvider.overrideWith(() => sync),
       offlineColdigomDownloadProvider.overrideWith(() => download),
+      offlineCacheStatusProvider.overrideWith(() => cache),
       ...extra,
     ],
   );
   await tester.pumpAndSettle();
-  return (sync: sync, download: download);
+  return (sync: sync, download: download, cache: cache);
 }
 
 void main() {
@@ -138,27 +157,49 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  testWidgets('deslogado: convite + botão Google; sem lista de kinds', (
-    tester,
-  ) async {
-    await _pump(tester, loggedIn: false);
+  testWidgets(
+    'deslogado: lista Tipos inteira e baixa sem conta; entrar é opcional',
+    (tester) async {
+      final handles = await _pump(tester, loggedIn: false, rank: const {});
 
-    expect(
-      find.text('Entre com Google para baixar os seus tipos favoritos'),
-      findsOneWidget,
-    );
-    expect(find.byType(GoogleSignInButton), findsOneWidget);
-    expect(find.byType(CheckboxListTile), findsNothing);
-  });
+      expect(
+        find.text('Entre com Google para ver os seus tipos favoritos primeiro'),
+        findsOneWidget,
+      );
+      expect(find.byType(GoogleSignInButton), findsOneWidget);
+      expect(find.text('Tipos'), findsOneWidget);
+      expect(find.text('Seus tipos favoritos'), findsNothing);
+      expect(find.text('Outros tipos'), findsNothing);
+      final tiles = tester
+          .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
+          .map((t) => (t.title as Text).data)
+          .toList();
+      expect(tiles, ['Cifra', 'Grade', 'Playback']);
+
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'Grade'));
+      await tester.pumpAndSettle();
+      final baixar = find.textContaining('Baixar selecionados');
+      await tester.ensureVisible(baixar);
+      await tester.tap(baixar);
+      await tester.pumpAndSettle();
+
+      expect(handles.download.started.single, {'k-grade'});
+    },
+  );
 
   testWidgets(
-    'linha do catálogo com contagem e botão Atualizar; sem catálogo mostra o aviso',
+    'linha de estado: catálogo + disco e um só Atualizar (sync + reconcile)',
     (tester) async {
       final handles = await _pump(tester);
       expect(find.textContaining('Catálogo: 1690 louvores'), findsOneWidget);
+      expect(find.textContaining('Acervo offline: '), findsOneWidget);
+      expect(find.text('Atualizar'), findsOneWidget);
+
       await tester.tap(find.text('Atualizar'));
       await tester.pumpAndSettle();
+
       expect(handles.sync.syncCalls, 1);
+      expect(handles.cache.refreshAllCalls, 1);
 
       await _pump(tester, syncState: const ColdigomCatalogSyncState(count: 0));
       expect(
@@ -265,10 +306,7 @@ void main() {
     );
     expect(retry.onPressed, isNull);
     final remove = tester.widget<TextButton>(
-      find.widgetWithText(
-        TextButton,
-        'Remover áudios e PDFs baixados do Coldigom',
-      ),
+      find.widgetWithText(TextButton, 'Remover todos os baixados'),
     );
     expect(remove.onPressed, isNull);
   });
@@ -400,9 +438,9 @@ void main() {
   testWidgets('remover pede confirmação e mostra o resultado', (tester) async {
     final handles = await _pump(tester);
 
-    await tester.tap(find.text('Remover áudios e PDFs baixados do Coldigom'));
+    await tester.tap(find.text('Remover todos os baixados'));
     await tester.pumpAndSettle();
-    expect(find.text('Remover baixados do Coldigom?'), findsOneWidget);
+    expect(find.text('Remover todos os baixados?'), findsOneWidget);
     expect(
       find.text('Cifras, gestos e letras ficam no aparelho.'),
       findsOneWidget,
@@ -412,6 +450,7 @@ void main() {
 
     expect(handles.download.removes, 1);
     expect(find.text('1 PDFs e 2 áudios removidos'), findsOneWidget);
+    expect(handles.cache.refreshCalls, 1);
   });
 
   testWidgets(

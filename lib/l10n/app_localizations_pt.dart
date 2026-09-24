@@ -1639,6 +1639,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineColdigomSection => 'Coldigom por tipo de material';
 
   @override
+  String get offlineSectionTitle => 'Baixar para usar offline';
+
+  @override
+  String get offlineKindsAll => 'Tipos';
+
+  @override
   String offlineColdigomCatalogStatus(int count, String ago) {
     return 'Catálogo: $count louvores · atualizado $ago';
   }
@@ -1667,7 +1673,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get offlineColdigomSignInPrompt =>
-      'Entre com Google para baixar os seus tipos favoritos';
+      'Entre com Google para ver os seus tipos favoritos primeiro';
 
   @override
   String get offlineColdigomFavoriteKinds => 'Seus tipos favoritos';
@@ -1738,16 +1744,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineColdigomRetry => 'Tentar de novo';
 
   @override
-  String get offlineColdigomRemove =>
-      'Remover áudios e PDFs baixados do Coldigom';
+  String get offlineColdigomRemove => 'Remover todos os baixados';
 
   @override
   String get offlineColdigomRemoveNote =>
       'Cifras, gestos e letras ficam no aparelho.';
 
   @override
-  String get offlineColdigomRemoveConfirmTitle =>
-      'Remover baixados do Coldigom?';
+  String get offlineColdigomRemoveConfirmTitle => 'Remover todos os baixados?';
 
   @override
   String offlineColdigomRemoved(int pdfs, int audios) {

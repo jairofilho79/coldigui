@@ -44,24 +44,26 @@ OfflinePdfEntry _entry(String path, {required bool persistent}) =>
     );
 
 void main() {
-  test(
-    'remove áudios (tudo) e só PDFs Coldigom persistentes; PLPCG e LRU ficam',
-    () async {
-      final pdfRepo = _PdfRepo([
-        _entry('assets/praises/p1/a.pdf', persistent: true),
-        _entry('assets/praises/p1/b.pdf', persistent: false),
-        _entry('ColAdultos/001.pdf', persistent: true),
-      ]);
-      final audioRepo = _AudioRepo();
+  test('remove todos os áudios e todos os PDFs indexados', () async {
+    final pdfRepo = _PdfRepo([
+      _entry('assets/praises/p1/a.pdf', persistent: true),
+      _entry('assets/praises/p1/b.pdf', persistent: false),
+      // Id legado que o crosswalk não conhecia — também sai.
+      _entry('ColAdultos/001.pdf', persistent: true),
+    ]);
+    final audioRepo = _AudioRepo();
 
-      final result = await RemoveColdigomDownloads(
-        pdfRepository: pdfRepo,
-        audioRepository: audioRepo,
-      ).call();
+    final result = await RemoveColdigomDownloads(
+      pdfRepository: pdfRepo,
+      audioRepository: audioRepo,
+    ).call();
 
-      expect(pdfRepo.removedMany, {encodePdfId('assets/praises/p1/a.pdf')});
-      expect(audioRepo.removeAllCalls, 1);
-      expect(result.removedPdfs, 1);
-    },
-  );
+    expect(pdfRepo.removedMany, {
+      encodePdfId('assets/praises/p1/a.pdf'),
+      encodePdfId('assets/praises/p1/b.pdf'),
+      encodePdfId('ColAdultos/001.pdf'),
+    });
+    expect(audioRepo.removeAllCalls, 1);
+    expect(result.removedPdfs, 3);
+  });
 }

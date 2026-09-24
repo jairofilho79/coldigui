@@ -1,4 +1,3 @@
-import '../../../../core/utils/pdf_id_codec.dart';
 import '../repositories/offline_audio_repository.dart';
 import '../repositories/offline_pdf_repository.dart';
 
@@ -14,12 +13,11 @@ class RemoveColdigomDownloadsResult {
   final int removedAudios;
 }
 
-/// «Remover áudios e PDFs baixados do Coldigom» (spec §5.2, O8).
+/// «Remover todos os baixados» (spec 2026-09-23 §3.1).
 ///
-/// Áudio sai inteiro (índice + store — só entra lá por download explícito).
-/// PDF Coldigom só o persistente: o LRU on-demand continua a ser cache do
-/// leitor e o PLPCG não é tocado. Cifras e gestos ficam — pesam KB e não são
-/// evictados («textos ficam sempre» na UI).
+/// Áudio sai inteiro (índice + store). PDF sai todo o que está no índice —
+/// baixado por tipo ou guardado pelo leitor —, de qualquer espaço de ids.
+/// Cifras e gestos ficam: pesam KB («textos ficam sempre» na UI).
 class RemoveColdigomDownloads {
   const RemoveColdigomDownloads({
     required OfflinePdfRepository pdfRepository,
@@ -36,8 +34,7 @@ class RemoveColdigomDownloads {
     await _audioRepository.removeAll();
 
     final pdfIds = {
-      for (final entry in await _pdfRepository.listAll())
-        if (entry.isPersistent && isColdigomPdfId(entry.pdfId)) entry.pdfId,
+      for (final entry in await _pdfRepository.listAll()) entry.pdfId,
     };
     // `removeMany` (uma baixa no índice) — não `remove` em laço, que bumpa
     // `offlineIndexRevisionProvider` uma vez por PDF (até ~1700× num

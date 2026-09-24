@@ -2753,6 +2753,18 @@ abstract class AppLocalizations {
   /// **'Coldigom por tipo de material'**
   String get offlineColdigomSection;
 
+  /// No description provided for @offlineSectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Baixar para usar offline'**
+  String get offlineSectionTitle;
+
+  /// No description provided for @offlineKindsAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipos'**
+  String get offlineKindsAll;
+
   /// No description provided for @offlineColdigomCatalogStatus.
   ///
   /// In pt, this message translates to:
@@ -2792,7 +2804,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineColdigomSignInPrompt.
   ///
   /// In pt, this message translates to:
-  /// **'Entre com Google para baixar os seus tipos favoritos'**
+  /// **'Entre com Google para ver os seus tipos favoritos primeiro'**
   String get offlineColdigomSignInPrompt;
 
   /// No description provided for @offlineColdigomFavoriteKinds.
@@ -2870,7 +2882,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineColdigomRemove.
   ///
   /// In pt, this message translates to:
-  /// **'Remover áudios e PDFs baixados do Coldigom'**
+  /// **'Remover todos os baixados'**
   String get offlineColdigomRemove;
 
   /// No description provided for @offlineColdigomRemoveNote.
@@ -2882,7 +2894,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineColdigomRemoveConfirmTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Remover baixados do Coldigom?'**
+  /// **'Remover todos os baixados?'**
   String get offlineColdigomRemoveConfirmTitle;
 
   /// No description provided for @offlineColdigomRemoved.

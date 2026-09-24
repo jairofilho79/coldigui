@@ -154,8 +154,7 @@ class OfflineColdigomDownloadNotifier
   /// meio» que só falharia (o parcial fica; retomar é re-executar, O12).
   void pauseForBackground() => stop();
 
-  /// «Remover áudios e PDFs baixados do Coldigom»; `null` se o lock estiver
-  /// ocupado ou não houver Isar.
+  /// «Remover todos os baixados»; `null` se o lock estiver ocupado ou não houver Isar.
   Future<RemoveColdigomDownloadsResult?> removeDownloads() async {
     if (state.isActive || !ref.read(isarAvailableProvider)) return null;
     final lock = ref.read(offlineMaintenanceLockProvider.notifier);

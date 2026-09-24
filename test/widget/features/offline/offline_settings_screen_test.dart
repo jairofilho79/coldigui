@@ -1,19 +1,12 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
-import 'package:coldigui/features/catalog/domain/constants/catalog_materials.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_download_progress.dart';
-import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_category_selection_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_missing_louvores_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_reconcile_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -26,31 +19,34 @@ class _FixedCacheStatusNotifier extends OfflineCacheStatusNotifier {
   _FixedCacheStatusNotifier(this.fixed);
 
   final OfflineCacheStatus fixed;
+  var dismissCalls = 0;
 
   @override
   OfflineCacheStatus build() => fixed;
+
+  @override
+  Future<void> refreshAll() async {}
+
+  @override
+  Future<void> refresh({int? removedCount}) async {}
+
+  @override
+  void dismissRemovedWarning() => dismissCalls++;
 }
 
-/// Deslogado — a secção Coldigom nova mostra só o convite (O9).
 class _LoggedOut extends AuthNotifier {
   @override
   Future<AuthUser?> build() async => null;
 }
 
 class _FixedSync extends ColdigomCatalogSyncNotifier {
-  _FixedSync(this.fixed);
-  final ColdigomCatalogSyncState fixed;
   @override
-  ColdigomCatalogSyncState build() => fixed;
+  ColdigomCatalogSyncState build() =>
+      const ColdigomCatalogSyncState(count: 2063);
+
   @override
   Future<ColdigomCatalogSyncResult> sync() async =>
       const ColdigomCatalogSyncNoop();
-}
-
-/// Lock de manutenção já tomado por outro dono (spec C.1).
-class _BusyMaintenanceLock extends OfflineMaintenanceLock {
-  @override
-  OfflineMaintenanceOwner? build() => OfflineMaintenanceOwner.bulk;
 }
 
 class _IdleReconcileNotifier extends OfflineReconcileNotifier {
@@ -61,92 +57,46 @@ class _IdleReconcileNotifier extends OfflineReconcileNotifier {
   Future<void> requestReconcile() async {}
 }
 
-class _IdleBulkNotifier extends OfflineBulkDownloadNotifier {
+class _BusyLock extends OfflineMaintenanceLock {
   @override
-  OfflineBulkDownloadState build() => const OfflineBulkDownloadState();
+  OfflineMaintenanceOwner? build() => OfflineMaintenanceOwner.reconcile;
 }
 
-class _RunningBulkPdfOnlyProgressNotifier extends OfflineBulkDownloadNotifier {
-  @override
-  OfflineBulkDownloadState build() => OfflineBulkDownloadState(
-    status: OfflineBulkDownloadStatus.running,
-    progress: const OfflineDownloadProgress(
-      currentCategory: 'Partitura',
-      donePdfs: 12,
-      totalPdfs: 100,
-    ),
-  );
-}
-
-class _CancellingBulkNotifier extends OfflineBulkDownloadNotifier {
-  @override
-  OfflineBulkDownloadState build() => const OfflineBulkDownloadState(
-    status: OfflineBulkDownloadStatus.cancelling,
-    progress: OfflineDownloadProgress(
-      currentCategory: 'Partitura',
-      donePdfs: 12,
-      totalPdfs: 100,
-    ),
-  );
-}
-
-class _FixedCategorySelectionNotifier extends OfflineCategorySelectionNotifier {
-  _FixedCategorySelectionNotifier(this.fixed);
-
-  final OfflineCategorySelectionState fixed;
-
-  @override
-  OfflineCategorySelectionState build() => fixed;
-}
-
-/// Prefs mockadas — só a secção Coldigom (`sharedPreferencesProvider`) lê
-/// isto nesta suíte; renovada a cada teste no `setUp`.
 late SharedPreferences _prefs;
 
-Widget _offlineTestApp({
-  required OfflineCacheStatus cacheStatus,
-  OfflineCategorySelectionState selectionState =
-      const OfflineCategorySelectionState(
-        selected: CatalogMaterials.defaultSelected,
-        bulkDownloaded: {CatalogMaterials.partitura},
+Future<_FixedCacheStatusNotifier> _pump(
+  WidgetTester tester, {
+  OfflineCacheStatus status = const OfflineCacheStatus(
+    stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 5 * 1024 * 1024),
+  ),
+  List<Override> extra = const [],
+}) async {
+  final cache = _FixedCacheStatusNotifier(status);
+  await tester.pumpWidget(
+    ProviderScope(
+      key: UniqueKey(),
+      retry: (retryCount, error) => null,
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(_prefs),
+        authStateProvider.overrideWith(_LoggedOut.new),
+        offlineCacheStatusProvider.overrideWith(() => cache),
+        offlineReconcileProvider.overrideWith(_IdleReconcileNotifier.new),
+        coldigomCatalogSyncProvider.overrideWith(_FixedSync.new),
+        offlineColdigomStatsProvider.overrideWith(
+          (ref) async => OfflineColdigomStats.empty,
+        ),
+        ...extra,
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        home: const OfflineSettingsScreen(),
       ),
-  OfflineBulkDownloadNotifier Function()? bulkDownloadNotifier,
-  List<Override> extraOverrides = const [],
-}) {
-  return ProviderScope(
-    key: UniqueKey(),
-    retry: (retryCount, error) => null,
-    overrides: [
-      offlineCacheStatusProvider.overrideWith(
-        () => _FixedCacheStatusNotifier(cacheStatus),
-      ),
-      offlineCategorySelectionProvider.overrideWith(
-        () => _FixedCategorySelectionNotifier(selectionState),
-      ),
-      offlineReconcileProvider.overrideWith(_IdleReconcileNotifier.new),
-      offlineBulkDownloadProvider.overrideWith(
-        bulkDownloadNotifier ?? _IdleBulkNotifier.new,
-      ),
-      // Secção Coldigom nova: deslogada e sem catálogo/stats — os testes
-      // desta suíte não exercitam essa secção, só precisam de overrides
-      // para o `/offline` montar sem tocar em Isar/rede de verdade.
-      sharedPreferencesProvider.overrideWithValue(_prefs),
-      authStateProvider.overrideWith(_LoggedOut.new),
-      coldigomCatalogSyncProvider.overrideWith(
-        () => _FixedSync(const ColdigomCatalogSyncState()),
-      ),
-      offlineColdigomStatsProvider.overrideWith(
-        (ref) async => OfflineColdigomStats.empty,
-      ),
-      ...extraOverrides,
-    ],
-    child: MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('pt'),
-      home: const OfflineSettingsScreen(),
     ),
   );
+  await tester.pumpAndSettle();
+  return cache;
 }
 
 void main() {
@@ -155,264 +105,73 @@ void main() {
     _prefs = await SharedPreferences.getInstance();
   });
 
-  testWidgets('shows stats section with single download and clear buttons', (
+  testWidgets('uma secção «Baixar para usar offline» e um só «Atualizar»', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
-      ),
-    );
-    await tester.pump();
+    await _pump(tester);
 
-    expect(find.text('Acervo PLPCG (PDFs)'), findsOneWidget);
-    expect(find.text('3 PDFs offline'), findsOneWidget);
-    // Duas seções, dois botões «Atualizar» (PLPCG + Coldigom).
-    expect(find.text('Atualizar'), findsNWidgets(2));
-    expect(find.text('Limpar cache offline'), findsOneWidget);
-    expect(find.text('Baixar selecionados'), findsOneWidget);
-    expect(find.text('Baixar faltantes'), findsNothing);
-    expect(find.byType(FilterChip), findsWidgets);
+    expect(find.text('Baixar para usar offline'), findsOneWidget);
+    expect(find.text('Acervo PLPCG (PDFs)'), findsNothing);
+    expect(find.text('Coldigom por tipo de material'), findsNothing);
+    expect(find.text('Atualizar'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.text('Limpar cache offline'), findsNothing);
   });
 
-  testWidgets('shows removed banner when removedCount > 0', (tester) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 1}),
-          removedCount: 2,
-        ),
+  testWidgets('banner de removidos só com «Dispensar»', (tester) async {
+    final cache = await _pump(
+      tester,
+      status: const OfflineCacheStatus(
+        stats: OfflineStats(byCategory: {}),
+        removedCount: 2,
       ),
     );
-    await tester.pump();
 
     expect(
       find.text('2 PDFs deixaram de estar disponíveis localmente'),
       findsOneWidget,
     );
-    expect(find.text('Dispensar'), findsOneWidget);
-  });
-
-  testWidgets('shows unreliable missing label when manifest unavailable', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(
-            byCategory: {'Partitura': 2},
-            missingCountReliable: false,
-          ),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {CatalogMaterials.partitura},
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Faltantes indisponíveis (sem conexão)'), findsOneWidget);
+    final banner = find.byType(MaterialBanner);
     expect(
-      find.text('Partitura: 2 (— faltantes, sem conexão)'),
+      find.descendant(of: banner, matching: find.byType(TextButton)),
       findsOneWidget,
     );
+    await tester.tap(find.text('Dispensar'));
+    expect(cache.dismissCalls, 1);
   });
 
-  testWidgets('enables download when categories are selected', (tester) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {
-            CatalogMaterials.partitura,
-            CatalogMaterials.gestosEmGravura,
-          },
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    final downloadButton = find.widgetWithText(
-      FilledButton,
-      'Baixar selecionados',
-    );
-    expect(downloadButton, findsOneWidget);
-    expect(tester.widget<FilledButton>(downloadButton).onPressed, isNotNull);
-  });
-
-  testWidgets('long press on category chip opens missing louvores sheet', (
+  testWidgets('manutenção de outro dono desabilita «Dispensar»', (
     tester,
   ) async {
-    const missingLouvor = Louvor(
-      nome: 'Bondade de Deus',
-      numero: '002',
-      categoria: 'Partitura',
-      classificacao: 'ColAdultos',
-      pdf: 'bondade.pdf',
-      pdfId: 'missing-part',
-      groupId: 'missing-part',
-      searchTitleNorm: 'bondade de deus',
-      searchContentTokens: [],
-      searchCompactContent: '',
-    );
-
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(
-            byCategory: {'Partitura': 1},
-            missingByCategory: {'Partitura': 1},
-          ),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {CatalogMaterials.partitura},
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-        extraOverrides: [
-          offlineMissingLouvoresProvider(CatalogMaterials.partitura)
-              .overrideWith((ref) async => [missingLouvor]),
-        ],
+    await _pump(
+      tester,
+      status: const OfflineCacheStatus(
+        stats: OfflineStats(byCategory: {}),
+        removedCount: 1,
       ),
+      extra: [offlineMaintenanceLockProvider.overrideWith(_BusyLock.new)],
     );
-    await tester.pump();
 
-    await tester.longPress(find.textContaining('Partitura: 1'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Partitura — faltantes'), findsOneWidget);
-    expect(find.text('#002 — Bondade de Deus'), findsOneWidget);
+    final dismiss = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Dispensar'),
+    );
+    expect(dismiss.onPressed, isNull);
   });
 
-  testWidgets('disables clear cache when selected categories have no PDFs', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {CatalogMaterials.gestosEmGravura},
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    final clearButton = find.widgetWithText(TextButton, 'Limpar cache offline');
-    expect(clearButton, findsOneWidget);
-    expect(tester.widget<TextButton>(clearButton).onPressed, isNull);
-  });
-
-  testWidgets('enables clear cache when selected category has PDFs', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {CatalogMaterials.partitura},
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    final clearButton = find.widgetWithText(TextButton, 'Limpar cache offline');
-    expect(clearButton, findsOneWidget);
-    expect(tester.widget<TextButton>(clearButton).onPressed, isNotNull);
-  });
-
-  testWidgets('limpar com manutenção ocupada avisa em vez de agir', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
-        selectionState: const OfflineCategorySelectionState(
-          selected: {CatalogMaterials.partitura},
-          bulkDownloaded: {CatalogMaterials.partitura},
-        ),
-        extraOverrides: [
-          isarAvailableProvider.overrideWithValue(true),
-          offlineMaintenanceLockProvider.overrideWith(_BusyMaintenanceLock.new),
-        ],
-      ),
-    );
-    await tester.pump();
-
-    await tester.tap(find.widgetWithText(TextButton, 'Limpar cache offline'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Limpar'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(
-        'Outra operação offline está em andamento. Tente de novo em instantes.',
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('shows pdf progress with one bar', (tester) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {}),
-        ),
-        bulkDownloadNotifier: _RunningBulkPdfOnlyProgressNotifier.new,
-      ),
-    );
-    await tester.pump();
-
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.textContaining('12/100 PDFs'), findsOneWidget);
-    expect(find.textContaining('parte'), findsNothing);
-    expect(find.textContaining('Baixando pacote'), findsNothing);
-    expect(find.text('Parar'), findsOneWidget);
-  });
-
-  testWidgets('shows stopping label while cancelling download', (tester) async {
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {}),
-        ),
-        bulkDownloadNotifier: _CancellingBulkNotifier.new,
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Parando...'), findsOneWidget);
-    expect(find.text('Parar'), findsNothing);
-  });
-
-  testWidgets('sem overflow a 400px de largura (duas secções juntas)', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(400, 1200);
+  testWidgets('sem overflow a 400px de largura', (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      _offlineTestApp(
-        cacheStatus: const OfflineCacheStatus(
-          stats: OfflineStats(byCategory: {'Partitura': 3}),
-        ),
+    await _pump(
+      tester,
+      status: const OfflineCacheStatus(
+        stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 1 << 30),
+        removedCount: 12,
+        freeDiskBytes: 1 << 34,
       ),
     );
-    await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
   });

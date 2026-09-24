@@ -16,6 +16,7 @@ import '../../../../material_kind_prefs/presentation/providers/material_kind_pre
 import '../../../data/utils/storage_quota_estimator.dart';
 import '../../../domain/entities/coldigom_download_progress.dart';
 import '../../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../providers/offline_cache_status_provider.dart';
 import '../../providers/offline_coldigom_download_provider.dart';
 import '../../providers/offline_coldigom_kind_selection_provider.dart';
 import '../../providers/offline_coldigom_stats_provider.dart';
@@ -54,24 +55,25 @@ String _resultStatusText(
 String coldigomSizeLabel(int bytes, {required bool estimated}) =>
     '${estimated ? '~' : ''}${formatCompactBytes(bytes)}';
 
-/// Secção «Coldigom por tipo de material» do `/offline` (spec §5.4).
+/// A secção única do `/offline` — «Baixar para usar offline» (spec
+/// 2026-09-23 §3.1): estado do catálogo e do disco, tipos de material,
+/// baixar/parar/remover. Sem login mostra todos os tipos; a conta só traz os
+/// favoritos para o topo.
 class ColdigomOfflineSection extends ConsumerWidget {
-  const ColdigomOfflineSection({required this.maintenanceBusy, super.key});
-
-  /// Bulk/reconcile/limpeza PLPCG em curso — desabilita tudo aqui também.
-  final bool maintenanceBusy;
+  const ColdigomOfflineSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
     final sync = ref.watch(coldigomCatalogSyncProvider);
+    final cacheStatus = ref.watch(offlineCacheStatusProvider);
     final lockOwner = ref.watch(offlineMaintenanceLockProvider);
     final download = ref.watch(offlineColdigomDownloadProvider);
-    // O lock nosso não nos desabilita: é o «Parar» que fica ativo.
+    // Um estado de ocupado só (§3.1): decide o lock. O nosso não nos
+    // desabilita — é o «Parar» que fica ativo.
     final busy =
-        maintenanceBusy ||
-        (lockOwner != null && lockOwner != OfflineMaintenanceOwner.coldigom);
+        lockOwner != null && lockOwner != OfflineMaintenanceOwner.coldigom;
 
     ref.listen(offlineColdigomDownloadProvider, (previous, next) {
       if (next.failure != null && next.failure != previous?.failure) {
@@ -97,25 +99,38 @@ class ColdigomOfflineSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _CatalogStatusLine(sync: sync, l10n: l10n, busy: busy),
+        _StatusLines(
+          sync: sync,
+          cacheStatus: cacheStatus,
+          l10n: l10n,
+          busy: busy || download.isActive || download.removing,
+        ),
         const SizedBox(height: 12),
-        if (user == null)
-          _SignInCard(l10n: l10n)
-        else
-          _KindsBody(l10n: l10n, busy: busy, download: download),
+        if (user == null) ...[
+          _SignInRow(l10n: l10n),
+          const SizedBox(height: 8),
+        ],
+        _KindsBody(
+          l10n: l10n,
+          busy: busy,
+          download: download,
+          signedIn: user != null,
+        ),
       ],
     );
   }
 }
 
-class _CatalogStatusLine extends ConsumerWidget {
-  const _CatalogStatusLine({
+class _StatusLines extends ConsumerWidget {
+  const _StatusLines({
     required this.sync,
+    required this.cacheStatus,
     required this.l10n,
     required this.busy,
   });
 
   final ColdigomCatalogSyncState sync;
+  final OfflineCacheStatus cacheStatus;
   final AppLocalizations l10n;
   final bool busy;
 
@@ -128,25 +143,54 @@ class _CatalogStatusLine extends ConsumerWidget {
     return l10n.offlineColdigomAgoDays(diff.inDays);
   }
 
+  String _diskUsage() {
+    final used = formatCompactBytes(cacheStatus.stats.totalDiskUsageBytes);
+    final free = cacheStatus.freeDiskBytes;
+    return free == null
+        ? l10n.offlineStatsDiskUsageUsedOnly(used)
+        : l10n.offlineStatsDiskUsage(used, formatCompactBytes(free));
+  }
+
+  /// Um «Atualizar» (desvio 4 do plano): catálogo (sync por ETag) + índice
+  /// offline (reconcile + uso de disco).
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
+    try {
+      await ref.read(offlineCacheStatusProvider.notifier).refreshAll();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshSuccess)));
+    } on Object {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.offlineRefreshError)));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final text = sync.count == 0
+    final catalog = sync.count == 0
         ? l10n.offlineColdigomCatalogMissing
         : l10n.offlineColdigomCatalogStatus(
             sync.count,
             _ago(sync.lastSyncedAt),
           );
+    final hintStyle = AppTypography.body.copyWith(
+      color: AppColors.title.withValues(alpha: 0.75),
+    );
     return Row(
       children: [
         Expanded(
-          child: Text(
-            text,
-            style: AppTypography.body.copyWith(
-              color: AppColors.title.withValues(alpha: 0.75),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(catalog, style: hintStyle),
+              const SizedBox(height: 4),
+              Text(_diskUsage(), style: hintStyle),
+            ],
           ),
         ),
-        if (sync.isSyncing)
+        if (sync.isSyncing || cacheStatus.isRefreshing)
           const SizedBox(
             width: 18,
             height: 18,
@@ -154,11 +198,7 @@ class _CatalogStatusLine extends ConsumerWidget {
           )
         else
           TextButton.icon(
-            onPressed: busy
-                ? null
-                : () => unawaited(
-                    ref.read(coldigomCatalogSyncProvider.notifier).sync(),
-                  ),
+            onPressed: busy ? null : () => unawaited(_refresh(context, ref)),
             icon: const Icon(Icons.refresh, size: 18),
             label: Text(l10n.offlineRefreshStats),
           ),
@@ -167,9 +207,9 @@ class _CatalogStatusLine extends ConsumerWidget {
   }
 }
 
-/// Deslogado (O9): a mesma chamada da tela de favoritos (D10).
-class _SignInCard extends StatelessWidget {
-  const _SignInCard({required this.l10n});
+/// Deslogado: convite opcional — os tipos aparecem na mesma (§3.1, M8).
+class _SignInRow extends StatelessWidget {
+  const _SignInRow({required this.l10n});
 
   final AppLocalizations l10n;
 
@@ -180,9 +220,9 @@ class _SignInCard extends StatelessWidget {
         Text(
           l10n.offlineColdigomSignInPrompt,
           textAlign: TextAlign.center,
-          style: AppTypography.body.copyWith(color: AppColors.title),
+          style: AppTypography.hint(),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         const GoogleSignInButton(),
       ],
     );
@@ -194,11 +234,13 @@ class _KindsBody extends ConsumerWidget {
     required this.l10n,
     required this.busy,
     required this.download,
+    required this.signedIn,
   });
 
   final AppLocalizations l10n;
   final bool busy;
   final OfflineColdigomDownloadState download;
+  final bool signedIn;
 
   Future<void> _start(
     BuildContext context,
@@ -243,6 +285,7 @@ class _KindsBody extends ConsumerWidget {
         ),
       ),
     );
+    unawaited(ref.read(offlineCacheStatusProvider.notifier).refresh());
   }
 
   @override
@@ -250,7 +293,9 @@ class _KindsBody extends ConsumerWidget {
     final stats =
         ref.watch(offlineColdigomStatsProvider).value ??
         OfflineColdigomStats.empty;
-    final rank = ref.watch(favoriteMaterialKindRankProvider);
+    final rank = signedIn
+        ? ref.watch(favoriteMaterialKindRankProvider)
+        : const <String, int>{};
     final favoriteIds = rank.keys.toList()
       ..sort((a, b) => rank[a]!.compareTo(rank[b]!));
     final favorites = [
@@ -294,26 +339,32 @@ class _KindsBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _sectionLabel(l10n.offlineColdigomFavoriteKinds),
-        if (favorites.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Text(
-              l10n.offlineColdigomNoFavorites,
-              style: AppTypography.hint(),
+        if (signedIn) ...[
+          _sectionLabel(l10n.offlineColdigomFavoriteKinds),
+          if (favorites.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Text(
+                l10n.offlineColdigomNoFavorites,
+                style: AppTypography.hint(),
+              ),
+            )
+          else
+            for (final kind in favorites) tile(kind),
+          if (others.isNotEmpty)
+            ExpansionTile(
+              title: Text(
+                l10n.offlineColdigomOtherKinds,
+                style: AppTypography.label,
+              ),
+              tilePadding: EdgeInsets.zero,
+              children: [for (final kind in others) tile(kind)],
             ),
-          )
-        else
-          for (final kind in favorites) tile(kind),
-        if (others.isNotEmpty)
-          ExpansionTile(
-            title: Text(
-              l10n.offlineColdigomOtherKinds,
-              style: AppTypography.label,
-            ),
-            tilePadding: EdgeInsets.zero,
-            children: [for (final kind in others) tile(kind)],
-          ),
+        ] else ...[
+          // Sem conta não há favoritos: `others` já é a lista inteira, por nome.
+          _sectionLabel(l10n.offlineKindsAll),
+          for (final kind in others) tile(kind),
+        ],
         const SizedBox(height: 12),
         if (download.isActive && download.progress != null) ...[
           // Emissão inicial tem `kindId: ''` (nenhum alvo processado ainda,
