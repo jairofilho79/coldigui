@@ -43,11 +43,13 @@ final homeSearchDebouncedQueryProvider =
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   final results = ref.watch(coldigomSearchIndexProvider).search(query);
   if (filters.isEmpty) return results;
   return [
     for (final group in results)
-      if (matchesCatalogFilters(group, filters)) group,
+      if (matchesCatalogFilters(group, filters, kindTaxonomy: kindTaxonomy))
+        group,
   ];
 });
 
@@ -60,6 +62,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   // Observado incondicionalmente (mesmo com query vazia): assim o provider
   // já está de pé — e resolvido — quando a primeira query chega, em vez de
   // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
@@ -98,7 +101,9 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   // cliente — os nomes de tag não viram ids do servidor.
   final newGroups = [
     for (final g in remote.value?.groups ?? const <LouvorGroup>[])
-      if (!localIds.contains(g.groupId) && matchesCatalogFilters(g, filters)) g,
+      if (!localIds.contains(g.groupId) &&
+          matchesCatalogFilters(g, filters, kindTaxonomy: kindTaxonomy))
+        g,
   ];
 
   // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`

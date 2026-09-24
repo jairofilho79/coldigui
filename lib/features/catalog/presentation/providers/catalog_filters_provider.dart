@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../library/presentation/providers/library_view_settings_provider.dart';
 import '../../domain/entities/catalog_filter_state.dart';
 import '../../domain/utils/catalog_tag_hierarchy.dart';
+import '../../domain/utils/material_kind_selection.dart';
 
 // O objeto de valor mora no domínio; quem importava daqui continua a vê-lo.
 export '../../domain/entities/catalog_filter_state.dart';
@@ -93,8 +95,15 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
     _apply(state.copyWith(tags: tags));
   }
 
+  /// Com a regra de família dos kinds (spec filtro-materiais §5.2).
   void toggleMaterialKind(String kindId) => _apply(
-    state.copyWith(materialKindIds: _toggle(state.materialKindIds, kindId)),
+    state.copyWith(
+      materialKindIds: toggleMaterialKindSelection(
+        state.materialKindIds,
+        kindId,
+        ref.read(coldigomKindTaxonomyProvider),
+      ),
+    ),
   );
 
   /// Tira todos os filtros e apaga a pref.

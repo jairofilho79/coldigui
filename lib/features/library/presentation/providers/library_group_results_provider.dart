@@ -20,6 +20,7 @@ import 'library_view_settings_provider.dart';
 final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
   final groups = ref.watch(coldigomSearchIndexProvider).groups;
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   final sortBy = ref.watch(
     libraryViewSettingsProvider.select((view) => view.sortBy),
   );
@@ -27,7 +28,12 @@ final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
       ? groups
       : [
           for (final group in groups)
-            if (matchesCatalogFilters(group, filters)) group,
+            if (matchesCatalogFilters(
+              group,
+              filters,
+              kindTaxonomy: kindTaxonomy,
+            ))
+              group,
         ];
   return ref.watch(sortLouvorGroupsProvider)(filtered, sortBy: sortBy);
 });

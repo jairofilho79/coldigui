@@ -161,4 +161,31 @@ void main() {
     await pumpEventQueue();
     expect(prefs.getString(StorageKeys.catalogFilters), isNull);
   });
+
+  test('toggleMaterialKind segue a regra de família da taxonomia', () async {
+    await setUpPrefs({
+      StorageKeys.coldigomKindTaxonomy: jsonEncode({
+        'kindClasses': [],
+        'kinds': [
+          {'id': 'sax', 'name': 'Saxofone'},
+          {'id': 'alto', 'name': 'Saxofone alto', 'parent': 'sax'},
+        ],
+      }),
+    });
+    final container = createContainer();
+    final notifier = container.read(catalogFiltersProvider.notifier);
+
+    notifier.toggleMaterialKind('alto');
+    notifier.toggleMaterialKind('sax');
+    expect(container.read(catalogFiltersProvider).materialKindIds, {'sax'});
+
+    notifier.toggleMaterialKind('alto');
+    expect(container.read(catalogFiltersProvider).materialKindIds, {
+      'sax',
+      'alto',
+    });
+
+    notifier.toggleMaterialKind('sax');
+    expect(container.read(catalogFiltersProvider).materialKindIds, isEmpty);
+  });
 }
