@@ -240,6 +240,20 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String materialKindFamilyVariantsLabel(String name, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count variantes',
+      one: '1 variante',
+    );
+    return '$name, $_temp0';
+  }
+
+  @override
+  String get materialKindFamilyRefinedValue => 'Parcialmente selecionado';
+
+  @override
   String get offlineTitle => 'Offline';
 
   @override

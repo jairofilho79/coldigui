@@ -482,6 +482,18 @@ abstract class AppLocalizations {
   /// **'Ver variantes de {name}'**
   String materialKindShowVariants(String name);
 
+  /// No description provided for @materialKindFamilyVariantsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name}, {count, plural, =1{1 variante} other{{count} variantes}}'**
+  String materialKindFamilyVariantsLabel(String name, int count);
+
+  /// No description provided for @materialKindFamilyRefinedValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parcialmente selecionado'**
+  String get materialKindFamilyRefinedValue;
+
   /// No description provided for @offlineTitle.
   ///
   /// In pt, this message translates to:

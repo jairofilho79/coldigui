@@ -1,3 +1,4 @@
+import 'package:coldigui/core/theme/app_theme.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/features/catalog/domain/utils/material_kind_selection.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_kind_chips.dart';
@@ -66,6 +67,8 @@ void main() {
           onToggle: () => toggles++,
           onExpand: () => expands++,
           expandTooltip: 'Ver variantes de Saxofone',
+          bodyLabel: 'Saxofone, 4 variantes',
+          refinedValue: 'Parcialmente selecionado',
         ),
       );
       expect(find.text('4'), findsOneWidget);
@@ -87,6 +90,8 @@ void main() {
         onToggle: () {},
         onExpand: () {},
         expandTooltip: 'x',
+        bodyLabel: 'Saxofone, 4 variantes',
+        refinedValue: 'Parcialmente selecionado',
       );
       await pumpChip(tester, chip(MaterialKindFamilyState.refined));
       expect(familyShape(tester), isA<DashedRoundedRectangleBorder>());
@@ -113,13 +118,15 @@ void main() {
           onToggle: () {},
           onExpand: () {},
           expandTooltip: 'Ver variantes de Saxofone',
+          bodyLabel: 'Saxofone, 4 variantes',
+          refinedValue: 'Parcialmente selecionado',
         ),
       );
 
       expect(
-        tester.getSemantics(find.bySemanticsLabel('Saxofone, 4')),
+        tester.getSemantics(find.bySemanticsLabel('Saxofone, 4 variantes')),
         isSemantics(
-          label: 'Saxofone, 4',
+          label: 'Saxofone, 4 variantes',
           isButton: true,
           isSelected: true,
           hasTapAction: true,
@@ -138,6 +145,108 @@ void main() {
       );
 
       handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'MaterialKindFamilyChip: refinado não fica "selecionado" mas anuncia o'
+    ' valor de seleção parcial',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await pumpChip(
+        tester,
+        MaterialKindFamilyChip(
+          label: 'Saxofone',
+          count: 4,
+          state: MaterialKindFamilyState.refined,
+          expanded: false,
+          onToggle: () {},
+          onExpand: () {},
+          expandTooltip: 'Ver variantes de Saxofone',
+          bodyLabel: 'Saxofone, 4 variantes',
+          refinedValue: 'Parcialmente selecionado',
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Saxofone, 4 variantes')),
+        isSemantics(
+          label: 'Saxofone, 4 variantes',
+          value: 'Parcialmente selecionado',
+          isButton: true,
+          isSelected: false,
+          hasTapAction: true,
+        ),
+      );
+
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'MaterialKindFamilyChip: centralizado com o vizinho e alvo de toque >='
+    ' ao do FilterChip (achado 1)',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  MaterialKindFamilyChip(
+                    label: 'Saxofone',
+                    count: 4,
+                    state: MaterialKindFamilyState.none,
+                    expanded: false,
+                    onToggle: () {},
+                    onExpand: () {},
+                    expandTooltip: 'Ver variantes de Saxofone',
+                    bodyLabel: 'Saxofone, 4 variantes',
+                    refinedValue: 'Parcialmente selecionado',
+                  ),
+                  MaterialKindChip(
+                    label: 'Tuba',
+                    look: MaterialKindChipLook.normal,
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final familyCenter = tester.getCenter(
+        find.byType(MaterialKindFamilyChip),
+      );
+      final kindCenter = tester.getCenter(find.byType(MaterialKindChip));
+      expect(
+        (familyCenter.dy - kindCenter.dy).abs(),
+        lessThanOrEqualTo(1),
+        reason: 'centros verticais devem coincidir (achado 1)',
+      );
+
+      final familyHeight = tester
+          .getSize(find.byType(MaterialKindFamilyChip))
+          .height;
+      final filterChipHeight = tester.getSize(find.byType(FilterChip)).height;
+      expect(
+        familyHeight,
+        greaterThanOrEqualTo(filterChipHeight),
+        reason: 'alvo de toque da família não pode ser menor que o do chip',
+      );
     },
   );
 

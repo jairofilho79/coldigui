@@ -99,6 +99,8 @@ class MaterialKindFamilyChip extends StatelessWidget {
     required this.onToggle,
     required this.onExpand,
     required this.expandTooltip,
+    required this.bodyLabel,
+    required this.refinedValue,
   });
 
   final String label;
@@ -109,6 +111,15 @@ class MaterialKindFamilyChip extends StatelessWidget {
   final VoidCallback onExpand;
   final String expandTooltip;
 
+  /// Nome acessível do corpo (nome + nº de variantes por extenso, plural) —
+  /// o chip não sabe l10n, quem chama monta a frase (spec filtro-materiais
+  /// achado 4).
+  final String bodyLabel;
+
+  /// Valor anunciado quando [state] é `refined` (seleção parcial da
+  /// família) — igual, vem de fora já traduzido.
+  final String refinedValue;
+
   @override
   Widget build(BuildContext context) {
     final none = state == MaterialKindFamilyState.none;
@@ -118,82 +129,95 @@ class MaterialKindFamilyChip extends StatelessWidget {
     );
     final labelStyle = Theme.of(context).textTheme.labelLarge
         ?.copyWith(color: AppColors.title);
-    return Material(
-      color: state == MaterialKindFamilyState.selected
-          ? AppColors.gold.withValues(alpha: 0.3)
-          : AppColors.card,
-      shape: state == MaterialKindFamilyState.refined
-          ? DashedRoundedRectangleBorder(side: side, borderRadius: _pill)
-          : RoundedRectangleBorder(side: side, borderRadius: _pill),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              container: true,
-              button: true,
-              selected: state == MaterialKindFamilyState.selected,
-              label: '$label, $count',
-              onTap: onToggle,
-              excludeSemantics: true,
-              child: InkWell(
-                onTap: onToggle,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(label, style: labelStyle),
-                      const SizedBox(width: 6),
-                      Container(
-                        constraints: const BoxConstraints(minWidth: 18),
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.title.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Text(
-                          '$count',
-                          textAlign: TextAlign.center,
-                          style: labelStyle?.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+      // `widthFactor: 1` — o `Wrap` limita a largura (`maxWidth` finito, para
+      // saber quando quebrar linha), então sem isso o `Center` esticaria o
+      // chip pela linha inteira; a altura fica livre (o `Wrap` não limita
+      // `maxHeight`) para o `minHeight` do `ConstrainedBox` valer.
+      child: Center(
+        widthFactor: 1,
+        child: Material(
+          color: state == MaterialKindFamilyState.selected
+              ? AppColors.gold.withValues(alpha: 0.3)
+              : AppColors.card,
+          shape: state == MaterialKindFamilyState.refined
+              ? DashedRoundedRectangleBorder(side: side, borderRadius: _pill)
+              : RoundedRectangleBorder(side: side, borderRadius: _pill),
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Semantics(
+                  container: true,
+                  button: true,
+                  selected: state == MaterialKindFamilyState.selected,
+                  label: bodyLabel,
+                  value: state == MaterialKindFamilyState.refined
+                      ? refinedValue
+                      : null,
+                  onTap: onToggle,
+                  excludeSemantics: true,
+                  child: InkWell(
+                    onTap: onToggle,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(label, style: labelStyle),
+                          const SizedBox(width: 6),
+                          Container(
+                            constraints: const BoxConstraints(minWidth: 18),
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.title.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Text(
+                              '$count',
+                              textAlign: TextAlign.center,
+                              style: labelStyle?.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            VerticalDivider(
-              width: 1,
-              thickness: 1,
-              color: AppColors.title.withValues(alpha: 0.16),
-            ),
-            Semantics(
-              button: true,
-              label: expandTooltip,
-              expanded: expanded,
-              onTap: onExpand,
-              excludeSemantics: true,
-              child: Tooltip(
-                message: expandTooltip,
-                child: InkWell(
-                  onTap: onExpand,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                      color: AppColors.title,
                     ),
                   ),
                 ),
-              ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: AppColors.title.withValues(alpha: 0.16),
+                ),
+                Semantics(
+                  button: true,
+                  label: expandTooltip,
+                  expanded: expanded,
+                  onTap: onExpand,
+                  excludeSemantics: true,
+                  child: Tooltip(
+                    message: expandTooltip,
+                    child: InkWell(
+                      onTap: onExpand,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          expanded ? Icons.expand_less : Icons.expand_more,
+                          size: 18,
+                          color: AppColors.title,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

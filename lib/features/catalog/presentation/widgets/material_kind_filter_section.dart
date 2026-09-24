@@ -109,6 +109,7 @@ class _MaterialKindFilterSectionState
           Wrap(
             spacing: 8,
             runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               for (final unit in section.units)
                 ..._unit(l10n, unit, selected, notifier.toggleMaterialKind),
@@ -144,6 +145,11 @@ class _MaterialKindFilterSectionState
               _open[parent.id] = !open;
             }),
             expandTooltip: l10n.materialKindShowVariants(parent.name),
+            bodyLabel: l10n.materialKindFamilyVariantsLabel(
+              parent.name,
+              children.length,
+            ),
+            refinedValue: l10n.materialKindFamilyRefinedValue,
           ),
           if (open)
             SizedBox(
@@ -159,6 +165,7 @@ class _MaterialKindFilterSectionState
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     for (final child in children)
                       state == MaterialKindFamilyState.selected

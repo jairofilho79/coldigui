@@ -135,6 +135,8 @@
   "materialKindOtherClass": "Other",
   "materialKindHiddenByType": "{count, plural, =1{1 material hidden by type} other{{count} materials hidden by type}}",
   "materialKindShowVariants": "Show variants of {name}",
+  "materialKindFamilyVariantsLabel": "{name}, {count, plural, =1{1 variant} other{{count} variants}}",
+  "materialKindFamilyRefinedValue": "Partially selected",
   "offlineTitle": "Offline",
   "offlineStoppingDownload": "Stopping...",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
