@@ -28,10 +28,12 @@ class ColdigomPraiseMetadata {
   /// ainda não o expõe para este praise.
   final String? shortId;
 
+  /// Há algo a mostrar no bloco de metadados da ficha. [category] não conta:
+  /// a ficha não a mostra mais — a seção da Coletânea vem em [tagNames] (spec
+  /// seções-coletânea §4.1). O campo em si sai na fase 3.
   bool get hasAnyField =>
       tonality.trim().isNotEmpty ||
       author.trim().isNotEmpty ||
       rhythm.trim().isNotEmpty ||
-      category.trim().isNotEmpty ||
       tagNames.isNotEmpty;
 }
