@@ -449,7 +449,7 @@ Os quatro planos (0 coldigom, 1 catálogo, 2 share/ao vivo/cor, 3 ids legados/ma
 
 ### Plano 0 — coldigom (`praises.short_id` + crosswalk)
 
-- **§7.2 — `praiseId` do crosswalk é o dono *atual* do material** (`praise_materials.praise_id`), não o `plpcg_crosswalk.praise_id` que o `/resolve` devolve: merge e move trocam o dono, e o crosswalk desatualizado apontaria para o praise errado. Mesmo motivo por que a `url` também vem do `r2_key` real, não do crosswalk. Sem isto, um material movido depois do crosswalk resolvia para o praise antigo.
+- **§7.2, confirmado na implementação:** o `praiseId` que o crosswalk devolve é o dono *atual* do material (`praise_materials.praise_id`), lido junto com o `r2_key` atual — não o `plpcg_crosswalk.praise_id` desatualizado. É a mesma regra que já valia para a `url` («o `url` tem de ser o real... para acertar os materiais movidos», §7.2); a Task 4 testou explicitamente o caso de material movido depois do crosswalk, e o `praiseId` acompanha o `url`.
 
 ### Plano 1 — catálogo, filtros, /biblioteca, página inicial
 
