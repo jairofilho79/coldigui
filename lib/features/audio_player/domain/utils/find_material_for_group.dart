@@ -15,19 +15,18 @@ const kPrimaryAudioCategoria = 'Áudio';
 /// 1. o material desse louvor que **já está na lista ativa**
 ///    ([carouselPdfIds]) — respeita a escolha do usuário (PRODUCT §4: a lista
 ///    é de louvores, não de um tipo de arquivo);
-/// 2. senão o primeiro PDF do grupo no catálogo ([catalog] e [byPdfId]);
+/// 2. senão o primeiro PDF do grupo no cache ([byPdfId]);
 /// 3. senão `null` (louvor sem material de leitura).
 ///
-/// [byPdfId] é o cache Coldigom (`pdfId → Louvor`); [catalog] é o manifest
-/// PLPCG; [chordsById] é o cache de cifras e [gesturesById] o de gestos
-/// (`chordId`/`gestureId` vivem no mesmo espaço de ids do `pdfId`).
+/// [byPdfId] é o cache Coldigom (`pdfId → Louvor`); [chordsById] é o cache de
+/// cifras e [gesturesById] o de gestos (`chordId`/`gestureId` vivem no mesmo
+/// espaço de ids do `pdfId`).
 String? findMaterialForGroup({
   required String groupId,
   required List<String> carouselPdfIds,
   required Map<String, Louvor> byPdfId,
   Map<String, ChordMaterial> chordsById = const {},
   Map<String, GestureMaterial> gesturesById = const {},
-  List<Louvor> catalog = const [],
 }) {
   final gid = groupId.trim();
   if (gid.isEmpty) return null;
@@ -38,14 +37,10 @@ String? findMaterialForGroup({
       byPdfId: byPdfId,
       chordsById: chordsById,
       gesturesById: gesturesById,
-      catalog: catalog,
     );
     if (materialGroupId == gid) return pdfId;
   }
 
-  for (final louvor in catalog) {
-    if (louvor.effectiveGroupId == gid) return louvor.pdfId;
-  }
   for (final louvor in byPdfId.values) {
     if (louvor.effectiveGroupId == gid) return louvor.pdfId;
   }
@@ -54,13 +49,12 @@ String? findMaterialForGroup({
 
 /// `groupId` do louvor a que [materialId] (PDF, cifra ou gesto) pertence.
 ///
-/// Retorna `null` quando o id não está em nenhum dos caches/catálogo.
+/// Retorna `null` quando o id não está em nenhum dos caches.
 String? groupIdForMaterialId({
   required String materialId,
   required Map<String, Louvor> byPdfId,
   Map<String, ChordMaterial> chordsById = const {},
   Map<String, GestureMaterial> gesturesById = const {},
-  List<Louvor> catalog = const [],
 }) {
   if (materialId.isEmpty) return null;
 
@@ -78,10 +72,6 @@ String? groupIdForMaterialId({
 
   final cached = byPdfId[materialId];
   if (cached != null) return cached.effectiveGroupId;
-
-  for (final louvor in catalog) {
-    if (louvor.pdfId == materialId) return louvor.effectiveGroupId;
-  }
   return null;
 }
 

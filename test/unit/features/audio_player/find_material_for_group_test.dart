@@ -3,7 +3,6 @@ import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart'
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_data_source.dart';
-import 'package:coldigui/features/catalog/domain/utils/louvor_group_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,29 +53,6 @@ void main() {
     classificacao: 'Coro',
   );
 
-  final plpcgGroupId = LouvorGroupId.compute(
-    numero: '001',
-    nome: 'Grande Deus',
-  );
-  final plpcgPartitura = Louvor.fromManifest(
-    nome: 'Grande Deus',
-    numero: '001',
-    categoria: 'Partitura',
-    classificacao: 'ColAdultos',
-    pdf: '001.pdf',
-    pdfId: 'plpcg-part',
-    groupId: plpcgGroupId,
-  );
-  final plpcgCifra = Louvor.fromManifest(
-    nome: 'Grande Deus',
-    numero: '001',
-    categoria: 'Cifra',
-    classificacao: 'ColAdultos',
-    pdf: '001c.pdf',
-    pdfId: 'plpcg-cifra',
-    groupId: plpcgGroupId,
-  );
-
   group('findMaterialForGroup', () {
     test('prefere o material do grupo que já está na lista ativa', () {
       final found = findMaterialForGroup(
@@ -118,28 +94,6 @@ void main() {
       );
 
       expect(found, coldigomPdfId);
-    });
-
-    test('resolve grupo PLPCG pelo catálogo do manifest', () {
-      final found = findMaterialForGroup(
-        groupId: plpcgGroupId,
-        carouselPdfIds: const [],
-        byPdfId: const {},
-        catalog: [plpcgPartitura, plpcgCifra],
-      );
-
-      expect(found, 'plpcg-part');
-    });
-
-    test('encontra material da lista ativa vindo do catálogo PLPCG', () {
-      final found = findMaterialForGroup(
-        groupId: plpcgGroupId,
-        carouselPdfIds: const ['plpcg-cifra'],
-        byPdfId: const {},
-        catalog: [plpcgPartitura, plpcgCifra],
-      );
-
-      expect(found, 'plpcg-cifra');
     });
 
     test('retorna null sem material do grupo', () {
@@ -192,17 +146,6 @@ void main() {
           gesturesById: {gestureId: gesture},
         ),
         'p1',
-      );
-    });
-
-    test('resolve pelo catálogo PLPCG', () {
-      expect(
-        groupIdForMaterialId(
-          materialId: 'plpcg-cifra',
-          byPdfId: const {},
-          catalog: [plpcgPartitura, plpcgCifra],
-        ),
-        plpcgGroupId,
       );
     });
 

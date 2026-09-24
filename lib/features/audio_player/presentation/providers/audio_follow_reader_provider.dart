@@ -11,7 +11,6 @@ import '../../../carousel/presentation/providers/carousel_focused_index_provider
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
 import '../../../carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
 import '../../domain/utils/find_material_for_group.dart';
 import 'audio_player_session_provider.dart';
 
@@ -111,9 +110,6 @@ String? resolveMaterialForGroup(
   final lookup = listen
       ? ref.watch(catalogMaterialLookupProvider)
       : ref.read(catalogMaterialLookupProvider);
-  final manifest = listen
-      ? ref.watch(louvoresManifestProvider)
-      : ref.read(louvoresManifestProvider);
 
   return findMaterialForGroup(
     groupId: groupId,
@@ -121,7 +117,6 @@ String? resolveMaterialForGroup(
     byPdfId: lookup.coldigomLouvoresByPdfId,
     chordsById: lookup.chordsById,
     gesturesById: lookup.gesturesById,
-    catalog: manifest.value?.louvores ?? const [],
   );
 }
 
@@ -139,16 +134,12 @@ String? resolveGroupIdForMaterial(
   final lookup = listen
       ? ref.watch(catalogMaterialLookupProvider)
       : ref.read(catalogMaterialLookupProvider);
-  final manifest = listen
-      ? ref.watch(louvoresManifestProvider)
-      : ref.read(louvoresManifestProvider);
 
   return groupIdForMaterialId(
     materialId: materialId,
     byPdfId: lookup.coldigomLouvoresByPdfId,
     chordsById: lookup.chordsById,
     gesturesById: lookup.gesturesById,
-    catalog: manifest.value?.louvores ?? const [],
   );
 }
 
@@ -210,9 +201,9 @@ String? currentRoutePath(BuildContext context) {
 /// Material aberto no leitor (`pdfId` da URL — cifras usam a mesma chave).
 String? currentReaderMaterialPdfId(BuildContext context) {
   if (GoRouter.maybeOf(context) == null) return null;
-  final pdfId = GoRouterState.of(
-    context,
-  ).uri.queryParameters[UrlSyncParams.pdfId];
+  final pdfId = GoRouterState.of(context)
+      .uri
+      .queryParameters[UrlSyncParams.pdfId];
   return pdfId == null || pdfId.isEmpty ? null : pdfId;
 }
 

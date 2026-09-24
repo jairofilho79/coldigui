@@ -9,13 +9,13 @@ import '../../../core/constants/app_config.dart';
 import '../../../core/network/save_data_stub.dart'
     if (dart.library.js_interop) '../../../core/network/save_data_web.dart';
 import '../../../core/utils/retryable_init.dart';
-import '../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'providers/pdf_reader_prefetch_providers.dart';
 
 final RetryableInit<void> _pdfrxInit = RetryableInit(pdfrxFlutterInitialize);
 var _idlePreloadScheduled = false;
 
-/// Ociosidade exigida depois do manifest antes de buscar o `pdfium.wasm` (A11).
+/// Ociosidade exigida depois do catálogo antes de buscar o `pdfium.wasm` (A11).
 const pdfrxPreloadIdleDelay = Duration(seconds: 3);
 
 /// Inicializa pdfrx/pdfium — idempotente; compartilhada entre preload e
@@ -42,12 +42,12 @@ final pdfrxIdlePreloadSchedulerProvider = Provider<void Function()>(
   (ref) => schedulePdfrxIdlePreload,
 );
 
-/// Agenda [schedulePdfrxIdlePreload] só depois que o manifest sai da frente (A11).
+/// Agenda [schedulePdfrxIdlePreload] só depois que o catálogo sai da frente (A11).
 ///
-/// O `pdfium.wasm` tem 5,2 MB e o manifest 1,45 MB: disparar os dois logo após
-/// o primeiro frame fazia um brigar pela banda do outro justamente no boot.
-/// Aqui o preload espera [louvoresManifestProvider] chegar a `data` **ou**
-/// `error` e, depois disso, mais [pdfrxPreloadIdleDelay] de folga.
+/// O `pdfium.wasm` tem 5,2 MB e o catálogo coldigom (~950 KB comprimidos)
+/// compete pela mesma banda no boot. Aqui o preload espera
+/// [coldigomCatalogHydrationProvider] chegar a `data` **ou** `error` e, depois
+/// disso, mais [pdfrxPreloadIdleDelay] de folga.
 ///
 /// Continua valendo a política Wi-Fi-only dos downloads offline; na web, onde
 /// `connectivity_plus` não distingue Wi-Fi de dados móveis, `saveData` do
@@ -71,7 +71,7 @@ class _PdfrxIdlePreloaderState extends ConsumerState<PdfrxIdlePreloader> {
     super.dispose();
   }
 
-  /// Arma a folga ociosa uma única vez, quando o manifest já não usa a rede.
+  /// Arma a folga ociosa uma única vez, quando o catálogo já hidratou.
   void _armIdleTimer() {
     if (_armed) return;
     _armed = true;
@@ -95,14 +95,14 @@ class _PdfrxIdlePreloaderState extends ConsumerState<PdfrxIdlePreloader> {
 
   @override
   Widget build(BuildContext context) {
-    // `listen` (não `watch`): o preload reage à conclusão do manifest sem
-    // reconstruir a subárvore inteira quando os ~4600 louvores chegam.
-    ref.listen(louvoresManifestProvider, (_, next) {
+    // `listen` (não `watch`): o preload reage à hidratação sem reconstruir a
+    // subárvore quando o índice chega.
+    ref.listen(coldigomCatalogHydrationProvider, (_, next) {
       if (next.hasValue || next.hasError) _armIdleTimer();
     });
 
-    final manifest = ref.read(louvoresManifestProvider);
-    if (manifest.hasValue || manifest.hasError) _armIdleTimer();
+    final hydration = ref.read(coldigomCatalogHydrationProvider);
+    if (hydration.hasValue || hydration.hasError) _armIdleTimer();
 
     return widget.child;
   }

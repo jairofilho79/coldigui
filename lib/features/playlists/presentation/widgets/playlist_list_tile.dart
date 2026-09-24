@@ -30,7 +30,7 @@ import 'playlist_tile_header.dart';
 /// ([ActivePlaylistEditor.activate]) e navegam via [openPdfInReaderProvider] +
 /// `context.push` (rota `/leitor` com [rootNavigatorKey]).
 ///
-/// Metadados dos chips enriquecidos via [louvoresManifestProvider] quando
+/// Metadados dos chips enriquecidos via [catalogMaterialLookupProvider] quando
 /// disponível; fallback parse do label `"numero — nome"` em [PlaylistViewItem.pdfLabels].
 ///
 /// Cabeçalho, chips de detalhe e ações do menu (E4) vivem em
@@ -38,7 +38,7 @@ import 'playlist_tile_header.dart';
 class PlaylistListTile extends ConsumerStatefulWidget {
   const PlaylistListTile({required this.item, required this.tab, super.key});
 
-  /// Playlist enriquecida com labels do manifest para exibição e chips.
+  /// Playlist enriquecida com os rótulos do catálogo para exibição e chips.
   final PlaylistViewItem item;
 
   /// Aba atual — define ícone de ação no cabeçalho.

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../catalog/presentation/providers/catalog_checksum_poll_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/offline_core_providers.dart';
 import '../providers/offline_reconcile_provider.dart';
@@ -47,7 +46,6 @@ class _OfflineLifecycleListenerState
         );
       case AppLifecycleState.resumed:
         ref.read(offlineReconcileProvider.notifier).requestReconcileDebounced();
-        ref.read(catalogChecksumPollProvider.notifier).requestPollDebounced();
         unawaited(
           ref.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale(),
         );

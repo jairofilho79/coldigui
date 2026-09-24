@@ -11,7 +11,7 @@ import '../../../audio_player/presentation/providers/audio_player_session_provid
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
-import '../../../catalog/presentation/providers/louvores_manifest_provider.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/playlist_providers.dart';
 import '../../domain/entities/playlist_tab.dart';
 import '../../domain/entities/saved_playlist.dart';
@@ -27,7 +27,7 @@ import 'playlist_sync_provider.dart';
 import 'playlists_ui_provider.dart';
 import 'shared_import_outcome.dart';
 
-/// Playlist enriquecida com labels do manifest para exibição na UI.
+/// Playlist enriquecida com os rótulos do catálogo para exibição na UI.
 class PlaylistViewItem {
   const PlaylistViewItem({required this.playlist, required this.pdfLabels});
 
@@ -53,7 +53,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
   @override
   List<PlaylistViewItem> build() {
-    ref.listen(louvoresManifestProvider, (_, _) {
+    // Os rótulos saem do lookup, que só enche quando o catálogo hidrata:
+    // recarrega quando o índice troca (boot e cada sync que substituiu o dump).
+    ref.listen(coldigomSearchIndexProvider, (_, _) {
       unawaited(_reload());
     });
     // O app monta durante a abertura do Isar (A8), então o primeiro `_reload`
@@ -122,7 +124,7 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 
     if (!_sessionHydrated) {
       // Trava antes de esperar para não disparar duas hidratações concorrentes
-      // (`_reload` roda de novo quando o manifest chega e quando o Isar abre).
+      // (`_reload` roda de novo quando o catálogo hidrata e quando o Isar abre).
       _sessionHydrated = true;
       unawaited(_hydrateSession());
     }

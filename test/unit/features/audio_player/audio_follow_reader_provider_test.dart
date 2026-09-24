@@ -6,9 +6,7 @@ import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
-import 'package:coldigui/features/catalog/domain/entities/louvores_manifest.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
-import 'package:coldigui/features/catalog/presentation/providers/louvores_manifest_provider.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlist_session_prefs.dart';
@@ -18,7 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../helpers/louvores_manifest_test_helpers.dart';
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 /// Resolve qualquer id para uma rota de leitor — o teste só quer o efeito de
 /// foco de [openMaterialForGroupInReader], não a abertura real do PDF.
@@ -118,7 +116,6 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             carouselItemsProvider.overrideWithValue(items),
-            louvoresManifestOverride(LouvoresManifest.fromLouvores(const [])),
           ],
           child: Consumer(
             builder: (context, ref, _) {
@@ -231,9 +228,6 @@ void main() {
               body: Consumer(
                 builder: (context, ref, _) {
                   captured = ref;
-                  // O manifest é assíncrono: alguém tem que observá-lo para
-                  // ele sair de `loading` antes do toque.
-                  ref.watch(louvoresManifestProvider);
                   return ElevatedButton(
                     onPressed: () => openMaterialForGroupInReader(
                       ref: ref,
@@ -261,7 +255,7 @@ void main() {
               occurrence(0, pdfId),
               occurrence(1, '$pdfId#1'),
             ]),
-            louvoresManifestOverride(LouvoresManifest.fromLouvores([louvor])),
+            coldigomLouvoresOverride([louvor]),
             readerCarouselActionsProvider.overrideWith(
               _StubReaderCarouselActions.new,
             ),
