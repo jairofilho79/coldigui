@@ -13,6 +13,7 @@ import 'package:coldigui/features/catalog/presentation/providers/legacy_material
 import 'package:coldigui/features/offline/data/providers/offline_repository_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/offline_pdf_entry.dart';
 import 'package:coldigui/features/offline/domain/repositories/offline_pdf_repository.dart';
+import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
 import 'package:coldigui/features/playlists/data/providers/playlist_providers.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/domain/repositories/playlist_repository.dart';
@@ -87,6 +88,64 @@ class _EmptyOfflineRepo extends Fake implements OfflinePdfRepository {
   Future<List<OfflinePdfEntry>> listAll() async => const [];
 }
 
+/// Índice offline com PDFs legados; [remapPdfIds] troca as chaves e regista
+/// cada lote.
+class _LegacyOfflineRepo extends Fake implements OfflinePdfRepository {
+  _LegacyOfflineRepo(Iterable<String> pdfIds) : pdfIds = pdfIds.toSet();
+
+  final Set<String> pdfIds;
+  final remaps = <Map<String, String>>[];
+
+  @override
+  Future<List<OfflinePdfEntry>> listAll() async => [
+    for (final pdfId in pdfIds)
+      OfflinePdfEntry(
+        pdfId: pdfId,
+        absolutePath: '/docs/$pdfId.pdf',
+        category: 'x',
+        fileSize: 4,
+        downloadedAt: DateTime.utc(2026, 9),
+        lastAccessedAt: null,
+        isPersistent: true,
+      ),
+  ];
+
+  @override
+  Future<int> remapPdfIds(
+    Map<String, String> fromTo, {
+    Set<String> remove = const {},
+  }) async {
+    remaps.add(fromTo);
+    var changed = 0;
+    for (final MapEntry(key: from, value: to) in fromTo.entries) {
+      if (pdfIds.remove(from)) {
+        pdfIds.add(to);
+        changed++;
+      }
+    }
+    return changed;
+  }
+}
+
+/// Sem listas guardadas.
+class _NoPlaylistsRepo extends Fake implements PlaylistRepository {
+  @override
+  Future<List<SavedPlaylist>> getAll() async => const [];
+}
+
+/// Corre [onReload] no reload pós-reescrita — o fim da rodada.
+class _HookedPlaylists extends FakePlaylistsNotifier {
+  _HookedPlaylists(this.onReload);
+
+  final void Function() onReload;
+
+  @override
+  Future<void> reload() async {
+    onReload();
+    await super.reload();
+  }
+}
+
 void main() {
   late SharedPreferences prefs;
   late FakePlaylistsNotifier playlists;
@@ -121,8 +180,9 @@ void main() {
     // Sem Isar: só as prefs entram na rodada (spec §6.2).
     IsarStatus isar = IsarStatus.unavailable,
     List<Override> overrides = const [],
+    FakePlaylistsNotifier? playlistsNotifier,
   }) {
-    playlists = FakePlaylistsNotifier();
+    playlists = playlistsNotifier ?? FakePlaylistsNotifier();
     final c = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -346,6 +406,94 @@ void main() {
 
       expect(resolver.calls, hasLength(1));
     });
+  });
+
+  group('índice offline com a manutenção ocupada', () {
+    const reconcile = OfflineMaintenanceOwner.reconcile;
+
+    ProviderContainer offlineContainer(
+      _Resolver resolver,
+      _LegacyOfflineRepo offline, {
+      FakePlaylistsNotifier? playlistsNotifier,
+    }) {
+      final c = container(
+        resolver,
+        isar: IsarStatus.available,
+        playlistsNotifier: playlistsNotifier,
+        overrides: [
+          playlistRepositoryProvider.overrideWithValue(_NoPlaylistsRepo()),
+          offlinePdfRepositoryProvider.overrideWithValue(offline),
+        ],
+      );
+      // Como o `ShellScaffold`: sem ouvinte o provider fica pausado.
+      c.listen(legacyMaterialIdsNormalizerProvider, (_, _) {});
+      return c;
+    }
+
+    test('adia a rodada e corre uma só a mais quando o lock solta', () async {
+      await boot({});
+      final resolver = _Resolver({_legadoA: _coldigomA});
+      final offline = _LegacyOfflineRepo({_legadoA});
+      final c = offlineContainer(resolver, offline);
+      final lock = c.read(offlineMaintenanceLockProvider.notifier);
+      expect(lock.tryAcquire(reconcile), isTrue);
+
+      final outcome = await c
+          .read(legacyMaterialIdsNormalizerProvider.notifier)
+          .run();
+
+      expect(outcome.deferred, isTrue);
+      expect(offline.remaps, isEmpty);
+      await pumpEventQueue();
+      expect(resolver.calls, hasLength(1), reason: 'espera o lock');
+
+      lock.release(reconcile);
+      await pumpEventQueue();
+
+      expect(resolver.calls, hasLength(2));
+      expect(offline.remaps, [
+        {_legadoA: _coldigomA},
+      ]);
+      expect(offline.pdfIds, {_coldigomA});
+      expect(c.read(legacyMaterialIdsNormalizerProvider)?.deferred, isFalse);
+      expect(c.read(offlineMaintenanceLockProvider), isNull);
+
+      // Já não há nada adiado: outra volta do lock não pede rodada.
+      expect(lock.tryAcquire(reconcile), isTrue);
+      lock.release(reconcile);
+      await pumpEventQueue();
+      expect(resolver.calls, hasLength(2));
+    });
+
+    test(
+      'lock que solta antes do fim da rodada adiada: corre na hora',
+      () async {
+        await boot({
+          StorageKeys.recentlyOpened: jsonEncode([_legadoA]),
+        });
+        final resolver = _Resolver({_legadoA: _coldigomA});
+        final offline = _LegacyOfflineRepo({_legadoA});
+        late ProviderContainer c;
+        // O reload é o último passo da rodada: a store offline já adiou, mas o
+        // desfecho ainda não saiu.
+        final hooked = _HookedPlaylists(
+          () => c
+              .read(offlineMaintenanceLockProvider.notifier)
+              .release(reconcile),
+        );
+        c = offlineContainer(resolver, offline, playlistsNotifier: hooked);
+        c.read(offlineMaintenanceLockProvider.notifier).tryAcquire(reconcile);
+
+        final outcome = await c
+            .read(legacyMaterialIdsNormalizerProvider.notifier)
+            .run();
+        expect(outcome.deferred, isTrue);
+        await pumpEventQueue();
+
+        expect(resolver.calls, hasLength(2));
+        expect(offline.pdfIds, {_coldigomA});
+      },
+    );
   });
 
   group('dono das listas (sub da sessão, lido na hora da reescrita)', () {

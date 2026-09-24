@@ -39,5 +39,22 @@ abstract interface class LegacyIdStore {
   Future<Set<String>> collectLegacyIds();
 
   /// Reescreve com [resolution]; devolve quantos registos mudaram.
+  ///
+  /// Lança [LegacyIdStoreDeferred] quando agora não pode escrever (sem mexer
+  /// em nada); outro erro conta como falha da store.
   Future<int> rewrite(LegacyIdResolution resolution);
+}
+
+/// A store não reescreveu **agora** — o recurso de que depende está ocupado
+/// (o índice offline sob o lock de manutenção) — e deve ser tentada de novo
+/// assim que ele soltar. Não é uma falha: a rodada sai
+/// [LegacyIdNormalizationOutcome.deferred] e quem a pediu agenda outra.
+final class LegacyIdStoreDeferred implements Exception {
+  const LegacyIdStoreDeferred(this.reason);
+
+  /// Porquê, para o log.
+  final String reason;
+
+  @override
+  String toString() => 'LegacyIdStoreDeferred: $reason';
 }

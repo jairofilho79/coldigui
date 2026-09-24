@@ -37,8 +37,9 @@ final legacyPdfIdResolverProvider = Provider<LegacyPdfIdResolver>((ref) {
 /// Normalização única dos ids legados guardados (spec 2026-09-23 §6.2).
 ///
 /// Gatilhos: `hydratePlaylistSession`, cada pull de playlists com linhas
-/// novas (`PlaylistSyncNotifier`) e a volta da rede (offline → online).
-/// Estado = desfecho da última rodada.
+/// novas (`PlaylistSyncNotifier`), a volta da rede (offline → online) e, depois
+/// de uma rodada [LegacyIdNormalizationOutcome.deferred], o lock de manutenção
+/// offline a soltar. Estado = desfecho da última rodada.
 final legacyMaterialIdsNormalizerProvider =
     NotifierProvider<
       LegacyMaterialIdsNormalizer,
@@ -62,6 +63,10 @@ class LegacyMaterialIdsNormalizer
   Completer<LegacyIdNormalizationOutcome>? _followUp;
   Timer? _reconnectTimer;
 
+  /// A última rodada adiou o índice offline: corre outra quando o lock de
+  /// manutenção soltar.
+  var _retryWhenLockFree = false;
+
   @override
   LegacyIdNormalizationOutcome? build() {
     ref.onDispose(() {
@@ -80,6 +85,14 @@ class LegacyMaterialIdsNormalizer
         if (!ref.mounted) return;
         unawaited(run());
       });
+    });
+
+    // O reconcile ou um download seguravam o lock: sem isto o índice ficava
+    // com as chaves legadas até o próximo boot. Só uma rodada por soltura.
+    ref.listen(offlineMaintenanceLockProvider, (_, owner) {
+      if (owner != null || !_retryWhenLockFree) return;
+      _retryWhenLockFree = false;
+      unawaited(run());
     });
 
     return null;
@@ -126,6 +139,7 @@ class LegacyMaterialIdsNormalizer
       )();
       if (!ref.mounted) return outcome;
       state = outcome;
+      if (outcome.deferred) _scheduleAfterLock();
       if (outcome.rewritten > 0) {
         // As prefs mudaram por baixo dos notifiers que as leram no build, e o
         // `PlaylistsNotifier` não observa o banco (mesma razão do reload pós-
@@ -138,6 +152,16 @@ class LegacyMaterialIdsNormalizer
     } on Object catch (e) {
       debugPrint('[legacy-ids] normalização abortada: $e');
       return const LegacyIdNormalizationOutcome(pending: true);
+    }
+  }
+
+  /// Pede a rodada seguinte para quando o lock de manutenção soltar — ou
+  /// já, se soltou enquanto esta rodada acabava (o ouvinte não viu a volta).
+  void _scheduleAfterLock() {
+    if (ref.read(offlineMaintenanceLockProvider) == null) {
+      unawaited(run());
+    } else {
+      _retryWhenLockFree = true;
     }
   }
 

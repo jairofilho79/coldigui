@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../../core/utils/pdf_id_codec.dart';
 import '../../../catalog/domain/legacy_ids/legacy_id_store.dart';
 import '../../domain/repositories/offline_pdf_repository.dart';
@@ -10,8 +8,11 @@ import '../../domain/repositories/offline_pdf_repository.dart';
 /// já estava indexado, a linha legada sai e a que fica herda `isPersistent`
 /// dela). Desconhecido → a linha sai; o ficheiro órfão é limpo pelo reconcile
 /// (`listOrphans`). Tudo numa só [OfflinePdfRepository.remapPdfIds]: uma
-/// escrita e um aviso ao índice, mesmo com milhares de PDFs legados. Reescreve sob o lock de manutenção: com outro dono (um
-/// download, o reconcile) não mexe, e a próxima rodada tenta de novo.
+/// escrita e um aviso ao índice, mesmo com milhares de PDFs legados.
+///
+/// Reescreve sob o lock de manutenção: com outro dono (um download, o
+/// reconcile) não mexe e lança [LegacyIdStoreDeferred] — o normalizador corre
+/// outra rodada quando o lock soltar.
 class OfflineIndexLegacyIdStore implements LegacyIdStore {
   const OfflineIndexLegacyIdStore(
     this._repository, {
@@ -36,8 +37,7 @@ class OfflineIndexLegacyIdStore implements LegacyIdStore {
   @override
   Future<int> rewrite(LegacyIdResolution resolution) async {
     if (!_tryLock()) {
-      debugPrint('[legacy-ids] offline: manutenção ocupada, fica para depois');
-      return 0;
+      throw const LegacyIdStoreDeferred('manutenção offline ocupada');
     }
     try {
       final remap = <String, String>{};

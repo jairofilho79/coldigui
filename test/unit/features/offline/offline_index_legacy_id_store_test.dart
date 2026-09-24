@@ -153,13 +153,19 @@ void main() {
     expect(await repository.findIndexEntry(_coldigomB), isNotNull);
   });
 
-  test('manutenção ocupada: não mexe e não liberta o lock alheio', () async {
-    await seed(_legadoA);
-    lockFree = false;
+  test(
+    'manutenção ocupada: adia, não mexe e não liberta o lock alheio',
+    () async {
+      await seed(_legadoA);
+      lockFree = false;
 
-    expect(await store().rewrite(_resolution()), 0);
+      await expectLater(
+        store().rewrite(_resolution()),
+        throwsA(isA<LegacyIdStoreDeferred>()),
+      );
 
-    expect(await repository.findIndexEntry(_legadoA), isNotNull);
-    expect(unlocks, 0);
-  });
+      expect(await repository.findIndexEntry(_legadoA), isNotNull);
+      expect(unlocks, 0);
+    },
+  );
 }

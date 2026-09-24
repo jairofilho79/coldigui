@@ -119,6 +119,7 @@ void main() {
     expect(outcome.resolved, 2);
     expect(outcome.unknown, 1);
     expect(outcome.rewritten, 5, reason: 'soma das stores');
+    expect(outcome.deferred, isFalse);
     expect(
       logs.last,
       '[legacy-ids] 3 legados: 2 resolvidos, 1 desconhecidos, '
@@ -159,6 +160,32 @@ void main() {
     expect(boa.received, hasLength(1));
     expect(outcome.rewritten, 1);
   });
+
+  test(
+    'store adiada (manutenção ocupada) → deferred; as outras reescrevem',
+    () async {
+      final adiada = _FakeStore('offline', {
+        'l1',
+      }, rewriteThrows: const LegacyIdStoreDeferred('manutenção ocupada'));
+      final boa = _FakeStore('b', {'l1'});
+      final resolver = _Resolver({'l1': 'x1'});
+
+      final outcome = await NormalizeLegacyMaterialIds(
+        stores: [adiada, boa],
+        resolve: resolver.call,
+      )();
+
+      expect(outcome.deferred, isTrue);
+      expect(outcome.pending, isFalse);
+      expect(outcome.rewritten, 1);
+      expect(boa.received, hasLength(1));
+      expect(
+        logs,
+        contains('[legacy-ids] offline: adiada (manutenção ocupada)'),
+      );
+      expect(logs, isNot(contains(contains('reescrita falhou'))));
+    },
+  );
 
   test('chave que não foi perguntada é ignorada', () async {
     final a = _FakeStore('a', {'l1'});

@@ -14,6 +14,7 @@ final class LegacyIdNormalizationOutcome {
     this.resolved = 0,
     this.rewritten = 0,
     this.pending = false,
+    this.deferred = false,
   });
 
   static const nothingToDo = LegacyIdNormalizationOutcome();
@@ -30,6 +31,11 @@ final class LegacyIdNormalizationOutcome {
   /// Crosswalk indisponível: nada foi escrito, tenta no próximo gatilho.
   final bool pending;
 
+  /// Alguma store adiou a escrita ([LegacyIdStoreDeferred]) — as outras
+  /// reescreveram. Para agendar conta como pendente, mas o gatilho é o
+  /// recurso soltar (o lock de manutenção offline), não o próximo evento.
+  final bool deferred;
+
   /// Legados que o crosswalk não conhece (0 enquanto [pending]).
   int get unknown => pending ? 0 : legacy - resolved;
 }
@@ -40,7 +46,8 @@ final class LegacyIdNormalizationOutcome {
 /// chamada e entrega a mesma [LegacyIdResolution] a cada store que tinha
 /// legados. Sem legados não há rede nem escrita; [resolve] a falhar deixa
 /// tudo como está ([LegacyIdNormalizationOutcome.pending]). Uma store que
-/// falha não trava as outras. Idempotente — sem flag de «feito», e por isso
+/// falha não trava as outras; uma que adia marca
+/// [LegacyIdNormalizationOutcome.deferred]. Idempotente — sem flag de «feito», e por isso
 /// também apanha ids legados que um cliente antigo volte a empurrar.
 class NormalizeLegacyMaterialIds {
   const NormalizeLegacyMaterialIds({
@@ -82,9 +89,13 @@ class NormalizeLegacyMaterialIds {
       },
     );
     var rewritten = 0;
+    var deferred = false;
     for (final store in withLegacy) {
       try {
         rewritten += await store.rewrite(resolution);
+      } on LegacyIdStoreDeferred catch (e) {
+        deferred = true;
+        debugPrint('[legacy-ids] ${store.name}: adiada (${e.reason})');
       } on Object catch (e) {
         debugPrint('[legacy-ids] ${store.name}: reescrita falhou: $e');
       }
@@ -100,6 +111,7 @@ class NormalizeLegacyMaterialIds {
       legacy: all.length,
       resolved: resolved,
       rewritten: rewritten,
+      deferred: deferred,
     );
   }
 }
