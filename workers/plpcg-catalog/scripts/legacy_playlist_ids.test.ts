@@ -11,6 +11,7 @@ import {
   parseArgs,
   resolvedFromCrosswalk,
   rewriteRow,
+  selectRowsByKeysSql,
   updateSql,
   type PlaylistRow,
   type RowRewrite,
@@ -268,4 +269,37 @@ test('buildReport conta linhas, resolvidos e desconhecidos', () => {
   assert.equal(report.resolvedIds, 1);
   assert.deepEqual(report.unknownIds, [desconhecido]);
   assert.equal(report.generatedAt, '2026-09-23T00:00:00.000Z');
+});
+
+test('selectRowsByKeysSql: ~1200 chaves viram lotes de até 200 (limite de statement do D1)', () => {
+  const keys = Array.from({ length: 1201 }, (_, i) => ({ userId: `u${i % 7}`, id: `pl${i}` }));
+
+  const statements = selectRowsByKeysSql(keys);
+
+  assert.equal(statements.length, 7);
+  const counts = statements.map((sql) => sql.split(' AND id = ').length - 1);
+  assert.deepEqual(counts, [200, 200, 200, 200, 200, 200, 1]);
+  for (const sql of statements) {
+    assert.match(sql, /^SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists WHERE deleted_at IS NULL AND \(/);
+  }
+  // Toda chave aparece exatamente uma vez.
+  const all = statements.join('\n');
+  for (const k of [keys[0]!, keys[199]!, keys[200]!, keys[1200]!]) {
+    const predicate = `(user_id = '${k.userId}' AND id = '${k.id}')`;
+    assert.equal(all.split(predicate).length - 1, 1, predicate);
+  }
+});
+
+test('selectRowsByKeysSql: vazio não gera SELECT; aspas escapadas; tamanho de lote configurável', () => {
+  assert.deepEqual(selectRowsByKeysSql([]), []);
+  const [only, ...rest] = selectRowsByKeysSql([{ userId: "o'brien", id: 'pl1' }]);
+  assert.deepEqual(rest, []);
+  assert.ok(only!.endsWith(`AND ((user_id = 'o''brien' AND id = 'pl1'))`));
+  assert.equal(
+    selectRowsByKeysSql(
+      Array.from({ length: 5 }, (_, i) => ({ userId: 'u', id: `p${i}` })),
+      2,
+    ).length,
+    3,
+  );
 });

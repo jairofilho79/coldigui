@@ -18,7 +18,7 @@ import {
   parseArgs,
   resolvedFromCrosswalk,
   rewriteRow,
-  sqlString,
+  selectRowsByKeysSql,
   updateSql,
   type MigrationReport,
   type PlaylistRow,
@@ -57,15 +57,7 @@ function selectRowsByKeys(
   target: string,
   keys: Array<{ userId: string; id: string }>,
 ): PlaylistRow[] {
-  if (keys.length === 0) return [];
-  const where = keys
-    .map((k) => `(user_id = ${sqlString(k.userId)} AND id = ${sqlString(k.id)})`)
-    .join(' OR ');
-  return runSelect(
-    target,
-    `SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists ` +
-      `WHERE deleted_at IS NULL AND (${where})`,
-  );
+  return selectRowsByKeysSql(keys).flatMap((sql) => runSelect(target, sql));
 }
 
 /**

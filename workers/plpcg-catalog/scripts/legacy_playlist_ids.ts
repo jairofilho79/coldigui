@@ -223,6 +223,32 @@ export function sqlString(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
+/** Chaves por SELECT de releitura — bem abaixo do limite de statement do D1. */
+export const SELECT_KEYS_BATCH = 200;
+
+/**
+ * SELECTs que relêem só as linhas de [keys] (a conferência pós-escrita,
+ * `detectSkipped`), em lotes de [batchSize] chaves: com ~1200 linhas
+ * reescritas um `OR` único passaria do tamanho máximo de statement do D1.
+ */
+export function selectRowsByKeysSql(
+  keys: ReadonlyArray<{ userId: string; id: string }>,
+  batchSize: number = SELECT_KEYS_BATCH,
+): string[] {
+  const statements: string[] = [];
+  for (let start = 0; start < keys.length; start += batchSize) {
+    const where = keys
+      .slice(start, start + batchSize)
+      .map((k) => `(user_id = ${sqlString(k.userId)} AND id = ${sqlString(k.id)})`)
+      .join(' OR ');
+    statements.push(
+      'SELECT user_id, id, items, pdf_ids, audio_ids, version FROM user_playlists ' +
+        `WHERE deleted_at IS NULL AND (${where})`,
+    );
+  }
+  return statements;
+}
+
 function rowKey(userId: string, id: string): string {
   return `${userId}\u0000${id}`;
 }
