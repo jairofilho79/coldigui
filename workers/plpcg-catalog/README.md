@@ -44,6 +44,21 @@ Protocolo e regras: `docs/superpowers/specs/2026-09-12-lista-ao-vivo-design.md` 
 
 Deploy: `npm run db:migrate:remote` (migration `0013_create_live_rooms.sql`) **antes** de `npm run deploy` — o primeiro deploy aplica a migration `live-v1` (`new_sqlite_classes`) do wrangler. Verificar binding com `npx wrangler deploy --dry-run` listando `LIVE` → `LiveRoom`. Um deploy fecha todos os WebSockets abertos; os clientes religam sozinhos com jitter.
 
+## Migração única de ids legados das playlists (set/2026)
+
+Spec: `docs/superpowers/specs/2026-09-23-fim-fonte-plpcg-design.md` §6.3. Troca, em `user_playlists.items` e `pdf_ids`, os ids de PDF do manifesto PLPCG pelos ids coldigom (via `POST /api/plpcg/crosswalk`), com `version + 1` e `updated_at` intacto. Desconhecidos ficam (o app mostra-os indisponíveis). `short_links` não é migrado.
+
+**Só depois do deploy do app novo e com pedido do dono.**
+
+```bash
+cd workers/plpcg-catalog
+export COLDIGOM_API_BASE_URL=https://coldigom-api.jairofilho79.workers.dev
+npm run migrate:legacy-ids -- --dry-run   # diff + contagem, não grava
+npm run migrate:legacy-ids                # grava; SQL e relatório em scripts/out/
+```
+
+Pode correr de novo: linhas já normalizadas não mudam, e uma linha que mudou entre a leitura e a escrita (guarda `AND version = N`) fica para a passada seguinte. O normalizador do app (`NormalizeLegacyMaterialIds`) cobre o que escapar.
+
 ## Setup local
 
 ```bash

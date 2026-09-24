@@ -10,7 +10,8 @@
     "db:migrate:local": "wrangler d1 migrations apply plpcg-catalog --local",
     "db:migrate:remote": "wrangler d1 migrations apply plpcg-catalog --remote",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\""
+    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\" \"scripts/**/*.test.ts\"",
+    "migrate:legacy-ids": "node --experimental-strip-types scripts/migrate-legacy-playlist-ids.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250601.0",
