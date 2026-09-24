@@ -65,10 +65,20 @@ void main() {
         name: 'Só categoria',
         category: 'Clamor',
       );
+      final outraSecao = catalogGroup(
+        praiseId: 'p6',
+        name: 'Outra seção',
+        category: 'Louvor',
+        tags: const ['Coletânea · Louvor'],
+      );
       final fromLink = CatalogFilterState.fromUrl(category: 'Clamor');
 
       expect(matches(secao, fromLink), isTrue);
       expect(matches(soCategoria, fromLink), isFalse);
+      // A raiz Coletânea entra junto com a subtag na conversão do link
+      // legado, mas catalogTagsRefined a descarta por ter descendente
+      // selecionado — não pode alargar o filtro para outras seções.
+      expect(matches(outraSecao, fromLink), isFalse);
       expect(
         matches(secao, const CatalogFilterState(tags: {'Coletânea'})),
         isTrue,

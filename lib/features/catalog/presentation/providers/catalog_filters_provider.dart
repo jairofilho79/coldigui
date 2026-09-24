@@ -53,10 +53,12 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
   ///
   /// Chamado no primeiro build das telas mesmo sem params: sem nenhum dos
   /// cinco (`tonality`, `rhythm`, `category`, `tags`, `materialKinds`),
-  /// mantém o estado atual (gravado) em vez de limpar. Com algum, a URL
-  /// manda nos quatro filtros de [CatalogFilterState] (os ausentes ficam
-  /// vazios); `category` é legado e soma-se a `tags` em vez de valer
-  /// sozinho ([CatalogFilterState.fromUrl]). Não grava.
+  /// mantém o estado atual (gravado) em vez de limpar. `category` é legado e
+  /// soma-se a `tags` em vez de valer sozinho ([CatalogFilterState.fromUrl]);
+  /// um link cujos params só convertem em nada (ex.: `category=Avulsos`, uma
+  /// coleção sem seção) também mantém o estado gravado — só substitui os
+  /// quatro filtros de [CatalogFilterState] (os ausentes ficam vazios) quando
+  /// o resultado da conversão não é vazio. Não grava.
   void hydrateFromUrl({
     String? tonality,
     String? rhythm,

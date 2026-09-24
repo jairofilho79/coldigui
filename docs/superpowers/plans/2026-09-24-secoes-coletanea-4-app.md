@@ -1723,7 +1723,7 @@ git commit -m "chore(l10n): remove as chaves de Categoria (filtro, ficha, contri
 ## Homologação (depois do deploy, spec §6.4; fora deste plano)
 
 - A seção Categoria sumiu dos filtros, da ficha e do campo de contribuição.
-- Tags mostra `Coletânea` e as 13 seções. Marcar `Coletânea` traz as 1123.
+- Tags mostra só `Coletânea`; marcá-la revela as 13 seções na seção Subtags (rótulo do último nível, ex.: `Clamor`) e traz as 1123.
 - `/?category=Clamor` e `/biblioteca?category=Clamor` abrem filtrados por `Coletânea · Clamor`. Ao mexer num filtro, o `category` some da URL.
 - Um usuário com filtro de categoria salvo antes do deploy reabre o app com a subtag marcada.
 - A busca «Clamor» encontra louvores da seção.

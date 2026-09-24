@@ -156,7 +156,7 @@ Detalhes:
 
 ### 4.3 Sem mudança de código
 
-- **Tags:** as 13 subtags e `Avulsos · GLTM` aparecem sozinhas na seção Tags, com os ancestrais, e na ficha do material. Também entram na busca local.
+- **Tags:** a seção Tags mostra só as raízes `Coletânea` e `Avulsos`; marcá-las revela as 13 subtags e `GLTM` na seção Subtags (rótulo do último nível, ex.: `Clamor`, `GLTM` — spec subtags sob demanda, d8dd304d). Na ficha do material continuam aparecendo com os ancestrais. Também entram na busca local.
 - **Resync:** a migração muda o ETag do catálogo, e o app faz um resync completo (desejado).
 
 ## 5. Script de dados (`coldigom/scripts/validate-acervo`)
@@ -209,7 +209,7 @@ O `--undo <run_id>` desfaz a execução:
    - O app segue o fluxo habitual: `web/integration`, depois produção v2, depois homologação.
    - Homologação:
      - a seção Categoria sumiu;
-     - a seção Tags mostra `Coletânea` e as 13 seções, e marcar `Coletânea` traz as 1123;
+     - a seção Tags mostra só `Coletânea`; marcá-la revela as 13 seções na seção Subtags (rótulo do último nível, ex.: `Clamor`) e traz as 1123;
      - um link antigo `?category=Clamor` abre filtrado por `Coletânea · Clamor`;
      - a busca «Clamor» encontra louvores da seção.
 5. **Fase 3, depois da homologação do passo 4.**
