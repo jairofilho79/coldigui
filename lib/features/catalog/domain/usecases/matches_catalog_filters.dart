@@ -8,7 +8,8 @@ import '../utils/catalog_tag_hierarchy.dart';
 /// - Tom, ritmo, categoria: o valor do praise (`coldigomMeta`, aparado) está
 ///   no conjunto (OU).
 /// - Tags: alguma tag do praise é uma selecionada ou filha dela
-///   ([catalogTagMatches]: `PES` apanha `PES · 9.2026`).
+///   ([catalogTagMatches]: `PES` apanha `PES · 9.2026`). Subtag selecionada
+///   junto com o pai refina o pai ([catalogTagsRefined]).
 /// - Tipo de material: algum material do grupo (PDF de secção ou extra) tem
 ///   o `materialKindId` no conjunto.
 /// - Entre filtros, E; filtro vazio não restringe. Um grupo sem
@@ -29,7 +30,8 @@ bool matchesCatalogFilters(LouvorGroup group, CatalogFilterState filters) {
     return false;
   }
   if (filters.tags.isNotEmpty &&
-      (meta == null || !_hasSelectedTag(meta.tagNames, filters.tags))) {
+      (meta == null ||
+          !_hasSelectedTag(meta.tagNames, catalogTagsRefined(filters.tags)))) {
     return false;
   }
   if (filters.materialKindIds.isNotEmpty &&

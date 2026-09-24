@@ -123,6 +123,7 @@
   "coldigomFilterRhythm": "Rhythm",
   "coldigomFilterCategory": "Category",
   "coldigomFilterTags": "Tags",
+  "coldigomFilterSubtags": "Subtags",
   "coldigomFilterMaterials": "Materials",
   "offlineTitle": "Offline",
   "offlineStoppingDownload": "Stopping...",

@@ -69,6 +69,19 @@ void main() {
     expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
   });
 
+  test('desmarcar a tag pai desmarca as subtags dela', () async {
+    await setUpPrefs();
+    final container = createContainer();
+    container.read(catalogFiltersProvider.notifier)
+      ..toggleTag('PES')
+      ..toggleTag('PES · 9.2026')
+      ..toggleTag('PES · 9.2026 · Coro')
+      ..toggleTag('PESCA')
+      ..toggleTag('PES');
+
+    expect(container.read(catalogFiltersProvider).tags, {'PESCA'});
+  });
+
   test(
     'pref no formato antigo {materials, arranjos} é descartada e apagada',
     () async {

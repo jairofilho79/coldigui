@@ -76,6 +76,25 @@ void main() {
     );
   });
 
+  test('tags: subtag selecionada junto com o pai refina o pai', () {
+    final soPes = catalogGroup(
+      praiseId: 'p3',
+      name: 'Só PES',
+      tags: const ['PES'],
+    );
+    const refinado = CatalogFilterState(tags: {'PES', 'PES · 9.2026'});
+    expect(matches(hino, refinado), isTrue);
+    expect(matches(soPes, refinado), isFalse);
+    expect(matches(soPes, const CatalogFilterState(tags: {'PES'})), isTrue);
+    expect(
+      matches(
+        coro,
+        const CatalogFilterState(tags: {'PES', 'PES · 9.2026', 'CIAs'}),
+      ),
+      isTrue,
+    );
+  });
+
   test('tipo de material: algum PDF ou extra com o materialKindId', () {
     expect(
       matches(hino, const CatalogFilterState(materialKindIds: {'k-play'})),

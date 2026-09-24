@@ -194,6 +194,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get coldigomFilterTags => 'Tags';
 
   @override
+  String get coldigomFilterSubtags => 'Subtags';
+
+  @override
   String get coldigomFilterMaterials => 'Materiais';
 
   @override

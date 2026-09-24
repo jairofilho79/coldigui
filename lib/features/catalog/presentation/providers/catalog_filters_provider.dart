@@ -8,6 +8,7 @@ import '../../../../core/logging/app_logger.dart';
 import '../../../../core/providers/shared_prefs_provider.dart';
 import '../../../library/presentation/providers/library_view_settings_provider.dart';
 import '../../domain/entities/catalog_filter_state.dart';
+import '../../domain/utils/catalog_tag_hierarchy.dart';
 
 // O objeto de valor mora no domínio; quem importava daqui continua a vê-lo.
 export '../../domain/entities/catalog_filter_state.dart';
@@ -80,8 +81,17 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
   void toggleCategory(String value) =>
       _apply(state.copyWith(categories: _toggle(state.categories, value)));
 
-  void toggleTag(String name) =>
-      _apply(state.copyWith(tags: _toggle(state.tags, name)));
+  /// Desmarcar uma tag desmarca também as subtags dela — senão ficariam
+  /// ativas sem chip visível (as subtags só aparecem com o pai marcado).
+  void toggleTag(String name) {
+    final tags = state.tags.contains(name)
+        ? {
+            for (final tag in state.tags)
+              if (!catalogTagMatches(tag, name)) tag,
+          }
+        : {...state.tags, name};
+    _apply(state.copyWith(tags: tags));
+  }
 
   void toggleMaterialKind(String kindId) => _apply(
     state.copyWith(materialKindIds: _toggle(state.materialKindIds, kindId)),

@@ -26,6 +26,27 @@ void main() {
       ]);
       expect(catalogTagWithAncestors('Avulsos').toList(), ['Avulsos']);
     });
+
+    test('pai imediato; raiz não tem pai', () {
+      expect(catalogTagParent('A · B · C'), 'A · B');
+      expect(catalogTagParent('PES · 9.2026'), 'PES');
+      expect(catalogTagParent('PES'), isNull);
+    });
+
+    test('rótulo da subtag é o último nível', () {
+      expect(catalogTagLeaf('A · B · C'), 'C');
+      expect(catalogTagLeaf('PES · 9.2026'), '9.2026');
+      expect(catalogTagLeaf('PES'), 'PES');
+    });
+
+    test('seleção refinada: tag com descendente selecionado sai', () {
+      expect(catalogTagsRefined({'PES', 'PES · 9.2026', 'CIAs'}), {
+        'PES · 9.2026',
+        'CIAs',
+      });
+      expect(catalogTagsRefined({'A', 'A · B · C'}), {'A · B · C'});
+      expect(catalogTagsRefined({'PES', 'PESCA'}), {'PES', 'PESCA'});
+    });
   });
 
   group('CatalogFilterOptions.fromGroups', () {

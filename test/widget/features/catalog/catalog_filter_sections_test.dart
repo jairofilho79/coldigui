@@ -78,7 +78,7 @@ void main() {
       .widget<FilterChip>(find.widgetWithText(FilterChip, label))
       .selected;
 
-  testWidgets('secções e chips saem do índice local, com o pai das tags', (
+  testWidgets('secções e chips saem do índice local; tags só as raízes', (
     tester,
   ) async {
     await pump(tester);
@@ -94,13 +94,60 @@ void main() {
       'Fox',
       'Clamor',
       'PES',
-      'PES · 9.2026',
       'CIAs',
       'Grade',
       'Cifra I',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
+    expect(find.text('Subtags'), findsNothing);
+    expect(find.text('9.2026'), findsNothing);
+  });
+
+  testWidgets('selecionar a tag pai mostra as subtags; desmarcar esconde', (
+    tester,
+  ) async {
+    final container = await pump(tester);
+
+    await tapChip(tester, 'CIAs');
+    expect(find.text('Subtags'), findsNothing, reason: 'CIAs não tem filhas');
+
+    await tapChip(tester, 'PES');
+    expect(find.text('Subtags'), findsOneWidget);
+    expect(isSelected(tester, '9.2026'), isFalse);
+
+    await tapChip(tester, '9.2026');
+    expect(container.read(catalogFiltersProvider).tags, {
+      'CIAs',
+      'PES',
+      'PES · 9.2026',
+    });
+
+    await tapChip(tester, 'PES');
+    expect(container.read(catalogFiltersProvider).tags, {'CIAs'});
+    expect(find.text('Subtags'), findsNothing);
+    expect(find.text('9.2026'), findsNothing);
+  });
+
+  testWidgets('subtag selecionada sem o pai continua visível para desmarcar', (
+    tester,
+  ) async {
+    final container = await pump(
+      tester,
+      prefsValues: {
+        StorageKeys.catalogFilters: jsonEncode(
+          const CatalogFilterState(tags: {'PES · 9.2026'}).toPersistedJson(),
+        ),
+      },
+    );
+
+    expect(find.text('Subtags'), findsOneWidget);
+    expect(isSelected(tester, '9.2026'), isTrue);
+    expect(isSelected(tester, 'PES'), isFalse);
+
+    await tapChip(tester, '9.2026');
+    expect(container.read(catalogFiltersProvider).tags, isEmpty);
+    expect(find.text('Subtags'), findsNothing);
   });
 
   testWidgets('tocar num chip alterna o filtro', (tester) async {

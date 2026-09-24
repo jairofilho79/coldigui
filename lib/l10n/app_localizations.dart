@@ -410,6 +410,12 @@ abstract class AppLocalizations {
   /// **'Tags'**
   String get coldigomFilterTags;
 
+  /// No description provided for @coldigomFilterSubtags.
+  ///
+  /// In pt, this message translates to:
+  /// **'Subtags'**
+  String get coldigomFilterSubtags;
+
   /// No description provided for @coldigomFilterMaterials.
   ///
   /// In pt, this message translates to:
