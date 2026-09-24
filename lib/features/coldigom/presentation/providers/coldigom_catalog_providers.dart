@@ -359,10 +359,12 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
       return result;
     }
     if (inMemory) {
-      // Sem Isar não há prefs para reler (`metadata` nunca grava sem
-      // catálogo persistido): uma falha só troca `isSyncing`/`lastResult`,
-      // senão um «Atualizar» que falhou depois de um sync em memória bem-
-      // sucedido zeraria o `count`/`lastSyncedAt` no `/offline`.
+      // Sem Isar não há `count`/`lastSyncedAt` para reler de `metadata`
+      // (esses só gravam com catálogo persistido; a taxonomia de kinds
+      // grava nas prefs mesmo em memória): uma falha só troca
+      // `isSyncing`/`lastResult`, senão um «Atualizar» que falhou depois de
+      // um sync em memória bem-sucedido zeraria o `count`/`lastSyncedAt` no
+      // `/offline`.
       state = state.copyWith(isSyncing: false, lastResult: result);
       return result;
     }
