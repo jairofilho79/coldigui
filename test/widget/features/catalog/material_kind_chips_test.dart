@@ -98,6 +98,49 @@ void main() {
     },
   );
 
+  testWidgets(
+    'MaterialKindFamilyChip: semântica expõe nome acessível do corpo e da seta',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await pumpChip(
+        tester,
+        MaterialKindFamilyChip(
+          label: 'Saxofone',
+          count: 4,
+          state: MaterialKindFamilyState.selected,
+          expanded: false,
+          onToggle: () {},
+          onExpand: () {},
+          expandTooltip: 'Ver variantes de Saxofone',
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Saxofone, 4')),
+        isSemantics(
+          label: 'Saxofone, 4',
+          isButton: true,
+          isSelected: true,
+          hasTapAction: true,
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Ver variantes de Saxofone')),
+        isSemantics(
+          label: 'Ver variantes de Saxofone',
+          isButton: true,
+          hasTapAction: true,
+          hasExpandedState: true,
+          isExpanded: false,
+        ),
+      );
+
+      handle.dispose();
+    },
+  );
+
   testWidgets('MaterialTypeChip: marcado fica preenchido de vinho', (
     tester,
   ) async {

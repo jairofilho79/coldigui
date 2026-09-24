@@ -131,8 +131,12 @@ class MaterialKindFamilyChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Semantics(
+              container: true,
               button: true,
               selected: state == MaterialKindFamilyState.selected,
+              label: '$label, $count',
+              onTap: onToggle,
+              excludeSemantics: true,
               child: InkWell(
                 onTap: onToggle,
                 child: Padding(
@@ -168,16 +172,23 @@ class MaterialKindFamilyChip extends StatelessWidget {
               thickness: 1,
               color: AppColors.title.withValues(alpha: 0.16),
             ),
-            Tooltip(
-              message: expandTooltip,
-              child: InkWell(
-                onTap: onExpand,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                    color: AppColors.title,
+            Semantics(
+              button: true,
+              label: expandTooltip,
+              expanded: expanded,
+              onTap: onExpand,
+              excludeSemantics: true,
+              child: Tooltip(
+                message: expandTooltip,
+                child: InkWell(
+                  onTap: onExpand,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: AppColors.title,
+                    ),
                   ),
                 ),
               ),
