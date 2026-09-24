@@ -200,6 +200,46 @@ class AppLocalizationsPt extends AppLocalizations {
   String get coldigomFilterMaterials => 'Materiais';
 
   @override
+  String get materialTypeFilterLabel => 'Tipo';
+
+  @override
+  String get materialTypeAll => 'Todos';
+
+  @override
+  String get materialTypePdf => 'PDF';
+
+  @override
+  String get materialTypeChord => 'Cifra';
+
+  @override
+  String get materialTypeAudio => 'Áudio';
+
+  @override
+  String get materialTypeYoutube => 'YouTube';
+
+  @override
+  String get materialTypeGesture => 'Gestos';
+
+  @override
+  String get materialKindOtherClass => 'Outros';
+
+  @override
+  String materialKindHiddenByType(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count materiais ocultos pelo tipo',
+      one: '1 material oculto pelo tipo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String materialKindShowVariants(String name) {
+    return 'Ver variantes de $name';
+  }
+
+  @override
   String get offlineTitle => 'Offline';
 
   @override

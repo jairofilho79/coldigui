@@ -199,6 +199,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coldigomFilterMaterials => 'Materials';
 
   @override
+  String get materialTypeFilterLabel => 'Type';
+
+  @override
+  String get materialTypeAll => 'All';
+
+  @override
+  String get materialTypePdf => 'PDF';
+
+  @override
+  String get materialTypeChord => 'Chords';
+
+  @override
+  String get materialTypeAudio => 'Audio';
+
+  @override
+  String get materialTypeYoutube => 'YouTube';
+
+  @override
+  String get materialTypeGesture => 'Gestures';
+
+  @override
+  String get materialKindOtherClass => 'Other';
+
+  @override
+  String materialKindHiddenByType(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count materials hidden by type',
+      one: '1 material hidden by type',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String materialKindShowVariants(String name) {
+    return 'Show variants of $name';
+  }
+
+  @override
   String get offlineTitle => 'Offline';
 
   @override
