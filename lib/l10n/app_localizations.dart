@@ -422,53 +422,11 @@ abstract class AppLocalizations {
   /// **'Offline'**
   String get offlineTitle;
 
-  /// No description provided for @offlineSelectCategories.
-  ///
-  /// In pt, this message translates to:
-  /// **'Selecione as categorias'**
-  String get offlineSelectCategories;
-
-  /// No description provided for @offlineDownloadSelected.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixar selecionados'**
-  String get offlineDownloadSelected;
-
-  /// No description provided for @offlineStopDownload.
-  ///
-  /// In pt, this message translates to:
-  /// **'Parar'**
-  String get offlineStopDownload;
-
   /// No description provided for @offlineStoppingDownload.
   ///
   /// In pt, this message translates to:
   /// **'Parando...'**
   String get offlineStoppingDownload;
-
-  /// No description provided for @offlineCancelDownload.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cancelar'**
-  String get offlineCancelDownload;
-
-  /// No description provided for @offlineDownloadCompleted.
-  ///
-  /// In pt, this message translates to:
-  /// **'Download offline concluído'**
-  String get offlineDownloadCompleted;
-
-  /// No description provided for @offlineDownloadCompletedWithFailures.
-  ///
-  /// In pt, this message translates to:
-  /// **'{failedCount, plural, one{Download concluído com 1 arquivo com falha} other{Download concluído com {failedCount} arquivos com falha}}'**
-  String offlineDownloadCompletedWithFailures(int failedCount);
-
-  /// No description provided for @offlineKeepAppOpenDuringDownload.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mantenha o app aberto durante o download.'**
-  String get offlineKeepAppOpenDuringDownload;
 
   /// No description provided for @offlineInsufficientDiskSpace.
   ///
@@ -482,69 +440,6 @@ abstract class AppLocalizations {
   /// **'Armazenamento local indisponível. Recarregue a página ou libere espaço.'**
   String get offlineStorageUnavailable;
 
-  /// No description provided for @offlineMaintenanceBusy.
-  ///
-  /// In pt, this message translates to:
-  /// **'Outra operação offline está em andamento. Tente de novo em instantes.'**
-  String get offlineMaintenanceBusy;
-
-  /// No description provided for @offlinePhaseFetching.
-  ///
-  /// In pt, this message translates to:
-  /// **'baixando'**
-  String get offlinePhaseFetching;
-
-  /// No description provided for @offlineProgressDetail.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category} — {done}/{total} PDFs ({phase})'**
-  String offlineProgressDetail(
-    String category,
-    int done,
-    int total,
-    String phase,
-  );
-
-  /// No description provided for @offlineStatsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'PDFs armazenados'**
-  String get offlineStatsTitle;
-
-  /// No description provided for @offlineStatsTotal.
-  ///
-  /// In pt, this message translates to:
-  /// **'{count, plural, =0{Nenhum PDF offline} one{1 PDF offline} other{{count} PDFs offline}}'**
-  String offlineStatsTotal(int count);
-
-  /// No description provided for @offlineStatsCategory.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category}: {count}'**
-  String offlineStatsCategory(String category, int count);
-
-  /// No description provided for @offlineStatsCategoryWithMissing.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category}: {downloaded} ({missing} faltantes)'**
-  String offlineStatsCategoryWithMissing(
-    String category,
-    int downloaded,
-    int missing,
-  );
-
-  /// No description provided for @offlineStatsTotalMissing.
-  ///
-  /// In pt, this message translates to:
-  /// **'{count, plural, one{1 PDF faltante no total} other{{count} PDFs faltantes no total}}'**
-  String offlineStatsTotalMissing(int count);
-
-  /// No description provided for @offlineStatsMissingUnreliable.
-  ///
-  /// In pt, this message translates to:
-  /// **'Faltantes indisponíveis (sem conexão)'**
-  String get offlineStatsMissingUnreliable;
-
   /// No description provided for @offlineStatsDiskUsage.
   ///
   /// In pt, this message translates to:
@@ -556,12 +451,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Acervo offline: {used}'**
   String offlineStatsDiskUsageUsedOnly(String used);
-
-  /// No description provided for @offlineStatsCategoryUnreliableMissing.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category}: {downloaded} (— faltantes, sem conexão)'**
-  String offlineStatsCategoryUnreliableMissing(String category, int downloaded);
 
   /// No description provided for @offlineRefreshStats.
   ///
@@ -587,101 +476,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 PDF deixou de estar disponível localmente} other{{count} PDFs deixaram de estar disponíveis localmente}}'**
   String offlineRemovedBanner(int count);
 
-  /// No description provided for @offlineDownloadMissing.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixar faltantes'**
-  String get offlineDownloadMissing;
-
-  /// No description provided for @offlineMissingLouvoresSheetTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'{category} — faltantes'**
-  String offlineMissingLouvoresSheetTitle(String category);
-
-  /// No description provided for @offlineMissingLouvoresEmpty.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nenhum PDF faltante nesta categoria'**
-  String get offlineMissingLouvoresEmpty;
-
-  /// No description provided for @offlineMissingLouvoresLoadError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível carregar os faltantes'**
-  String get offlineMissingLouvoresLoadError;
-
   /// No description provided for @offlineDismissRemoved.
   ///
   /// In pt, this message translates to:
   /// **'Dispensar'**
   String get offlineDismissRemoved;
-
-  /// No description provided for @offlineClearCache.
-  ///
-  /// In pt, this message translates to:
-  /// **'Limpar cache offline'**
-  String get offlineClearCache;
-
-  /// No description provided for @offlineClearCacheConfirmTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Limpar cache offline?'**
-  String get offlineClearCacheConfirmTitle;
-
-  /// No description provided for @offlineClearCacheConfirmBody.
-  ///
-  /// In pt, this message translates to:
-  /// **'Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.'**
-  String offlineClearCacheConfirmBody(String categories);
-
-  /// No description provided for @offlineClearCacheConfirmBodyAll.
-  ///
-  /// In pt, this message translates to:
-  /// **'Todos os PDFs offline serão removidos. Esta ação não pode ser desfeita.'**
-  String get offlineClearCacheConfirmBodyAll;
-
-  /// No description provided for @offlineClearCacheConfirm.
-  ///
-  /// In pt, this message translates to:
-  /// **'Limpar'**
-  String get offlineClearCacheConfirm;
-
-  /// No description provided for @offlineClearCacheCancel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cancelar'**
-  String get offlineClearCacheCancel;
-
-  /// No description provided for @offlineClearCacheSuccess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cache offline limpo'**
-  String get offlineClearCacheSuccess;
-
-  /// No description provided for @offlineClearCacheSuccessPartial.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cache de {categories} limpo'**
-  String offlineClearCacheSuccessPartial(String categories);
-
-  /// No description provided for @offlineMissingProgress.
-  ///
-  /// In pt, this message translates to:
-  /// **'Baixando faltantes: {done}/{total}'**
-  String offlineMissingProgress(int done, int total);
-
-  /// No description provided for @offlineMissingCompleted.
-  ///
-  /// In pt, this message translates to:
-  /// **'Download concluído: {downloaded} baixados, {failed} falhas'**
-  String offlineMissingCompleted(int downloaded, int failed);
-
-  /// No description provided for @offlineMissingError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível baixar os PDFs faltantes'**
-  String get offlineMissingError;
 
   /// No description provided for @pdfOfflineUnavailableMessage.
   ///
@@ -2741,18 +2540,6 @@ abstract class AppLocalizations {
   /// **'Diminuir letra'**
   String get lyricsReaderDecreaseFont;
 
-  /// No description provided for @offlineColdigomPlpcgSection.
-  ///
-  /// In pt, this message translates to:
-  /// **'Acervo PLPCG (PDFs)'**
-  String get offlineColdigomPlpcgSection;
-
-  /// No description provided for @offlineColdigomSection.
-  ///
-  /// In pt, this message translates to:
-  /// **'Coldigom por tipo de material'**
-  String get offlineColdigomSection;
-
   /// No description provided for @offlineSectionTitle.
   ///
   /// In pt, this message translates to:
@@ -2885,11 +2672,11 @@ abstract class AppLocalizations {
   /// **'Remover todos os baixados'**
   String get offlineColdigomRemove;
 
-  /// No description provided for @offlineColdigomRemoveNote.
+  /// No description provided for @offlineColdigomRemoveConfirmBody.
   ///
   /// In pt, this message translates to:
-  /// **'Cifras, gestos e letras ficam no aparelho.'**
-  String get offlineColdigomRemoveNote;
+  /// **'Todos os PDFs e áudios guardados no aparelho saem, incluindo os abertos recentemente. Cifras, gestos e letras ficam.'**
+  String get offlineColdigomRemoveConfirmBody;
 
   /// No description provided for @offlineColdigomRemoveConfirmTitle.
   ///

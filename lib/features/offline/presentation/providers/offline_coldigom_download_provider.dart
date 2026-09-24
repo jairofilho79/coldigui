@@ -10,7 +10,7 @@ import '../../../../core/failures/app_failure.dart';
 import '../../data/providers/offline_coldigom_providers.dart';
 import '../../domain/entities/coldigom_download_progress.dart';
 import '../../domain/usecases/remove_coldigom_downloads.dart';
-import 'offline_bulk_download_provider.dart' show bulkDownloadWakelockProvider;
+import 'download_wakelock_provider.dart';
 import 'offline_coldigom_stats_provider.dart';
 import 'offline_maintenance_lock_provider.dart';
 
@@ -71,8 +71,8 @@ final offlineColdigomDownloadProvider =
     >(OfflineColdigomDownloadNotifier.new);
 
 /// Orquestra [DownloadColdigomMaterials] com lock de manutenção, wakelock e
-/// cancelamento (§5.2). Bulk PLPCG e este são mutuamente exclusivos pelo
-/// lock. Sem checkpoint (O12): parar guarda o parcial e «Tentar de novo»
+/// cancelamento (§5.2). Reconcile, normalização de ids e este são mutuamente
+/// exclusivos pelo lock. Sem checkpoint (O12): parar guarda o parcial e «Tentar de novo»
 /// simplesmente re-executa — o use case salta o que já está.
 class OfflineColdigomDownloadNotifier
     extends Notifier<OfflineColdigomDownloadState> {

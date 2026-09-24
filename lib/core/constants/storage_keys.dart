@@ -1,22 +1,7 @@
 /// Chaves de [SharedPreferences] e flags leves.
 abstract final class StorageKeys {
-  /// UC-09 — bulk concluído (`'TRUE'`). Gate da UI offline (UC-10 vs UC-09).
-  /// **Não** usar como gate de abertura PDF (Fase 3 local-first).
-  static const String offlineAvailable = 'OFFLINE_AVAILABLE';
   static const String pdfPreferredFitMode = 'pdfPreferredFitMode';
   static const String perfDebug = 'plpcjf_perf_debug';
-
-  /// **Legado** — checkpoint JSON do bulk ZIP (Fase 3.5), pipeline removido em
-  /// set/2026. Ninguém mais escreve aqui; a chave fica só para
-  /// [OfflineBulkCategoriesStore.removeLegacyCheckpoint] apagar o blob antigo
-  /// quando o utilizador limpa o cache offline.
-  static const String offlineBulkCheckpoint = 'offlineBulkCheckpoint';
-
-  /// Materiais de UI cujo bulk ZIP já foi concluído (UC-09/UC-10).
-  static const String offlineBulkCategories = 'offlineBulkCategories';
-
-  /// Chips de material selecionados na tela offline (UC-09/UC-10).
-  static const String offlineSelectedCategories = 'offlineSelectedCategories';
 
   /// Versão do layout offline nativo — [MigrateOfflineStorage] (Fase 3.6).
   static const String offlineStorageVersion = 'offlineStorageVersion';

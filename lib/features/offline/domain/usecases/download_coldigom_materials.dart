@@ -43,7 +43,7 @@ typedef GestureFigureKeysResolver = Future<Set<String>> Function(
 /// cifra e gestos nos caches Isar (404 vira marcador negativo e conta como
 /// feito — o sheet já sabe que «não existe»).
 ///
-/// Falha individual → `failed` e segue, como `DownloadMissingPdfs`;
+/// Falha individual → `failed` e segue para o próximo;
 /// [InsufficientDiskSpaceException] ou cancelamento → para tudo e devolve o
 /// parcial (`cancelled: true`).
 class DownloadColdigomMaterials {
@@ -129,10 +129,10 @@ class DownloadColdigomMaterials {
     var nextIndex = 0;
     final failed = <ColdigomDownloadFailure>[];
 
-    // Como em `DownloadMissingPdfs`: uma emissão antes dos workers, com os
-    // totais já conhecidos (`skipped`/`targets.length`) — sem isso uma
-    // chamada onde tudo já está presente (`pending` vazio) nunca reporta
-    // nada, e a UI fica sem saber que terminou.
+    // Uma emissão antes dos workers, com os totais já conhecidos
+    // (`skipped`/`targets.length`) — sem isso uma chamada onde tudo já está
+    // presente (`pending` vazio) nunca reporta nada, e a UI fica sem saber
+    // que terminou.
     onProgress?.call(
       ColdigomDownloadProgress(
         kindId: '',

@@ -5,7 +5,6 @@ import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
@@ -24,12 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'offline_test_helpers.dart';
 
 class _CountingMigrate extends MigrateOfflineStorage {
-  _CountingMigrate(
-    super.prefs,
-    super.local,
-    super.offlineAvailableStore,
-    super.store,
-  );
+  _CountingMigrate(super.prefs, super.local, super.store);
 
   int callCount = 0;
   bool throwStorageUnavailable = false;
@@ -142,7 +136,6 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       pdfStoragePortFor(
         PdfLocalStore(
           getApplicationDocumentsDirectory: () async =>
@@ -199,7 +192,6 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       pdfStoragePortFor(
         PdfLocalStore(
           getApplicationDocumentsDirectory: () async =>
@@ -236,7 +228,6 @@ void main() {
     migrate = _CountingMigrate(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       pdfStoragePortFor(
         PdfLocalStore(
           getApplicationDocumentsDirectory: () async =>
@@ -275,7 +266,7 @@ void main() {
     final container = createContainer();
     container
         .read(offlineMaintenanceLockProvider.notifier)
-        .tryAcquire(OfflineMaintenanceOwner.bulk);
+        .tryAcquire(OfflineMaintenanceOwner.coldigom);
 
     await container.read(offlineReconcileProvider.notifier).requestReconcile();
 

@@ -2,7 +2,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_screen.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
@@ -67,7 +66,7 @@ late SharedPreferences _prefs;
 Future<_FixedCacheStatusNotifier> _pump(
   WidgetTester tester, {
   OfflineCacheStatus status = const OfflineCacheStatus(
-    stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 5 * 1024 * 1024),
+    diskUsageBytes: 5 * 1024 * 1024,
   ),
   List<Override> extra = const [],
 }) async {
@@ -121,10 +120,7 @@ void main() {
   testWidgets('banner de removidos só com «Dispensar»', (tester) async {
     final cache = await _pump(
       tester,
-      status: const OfflineCacheStatus(
-        stats: OfflineStats(byCategory: {}),
-        removedCount: 2,
-      ),
+      status: const OfflineCacheStatus(removedCount: 2),
     );
 
     expect(
@@ -145,10 +141,7 @@ void main() {
   ) async {
     await _pump(
       tester,
-      status: const OfflineCacheStatus(
-        stats: OfflineStats(byCategory: {}),
-        removedCount: 1,
-      ),
+      status: const OfflineCacheStatus(removedCount: 1),
       extra: [offlineMaintenanceLockProvider.overrideWith(_BusyLock.new)],
     );
 
@@ -167,7 +160,7 @@ void main() {
     await _pump(
       tester,
       status: const OfflineCacheStatus(
-        stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 1 << 30),
+        diskUsageBytes: 1 << 30,
         removedCount: 12,
         freeDiskBytes: 1 << 34,
       ),

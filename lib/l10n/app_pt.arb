@@ -125,61 +125,9 @@
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materiais",
   "offlineTitle": "Offline",
-  "offlineSelectCategories": "Selecione as categorias",
-  "offlineDownloadSelected": "Baixar selecionados",
-  "offlineStopDownload": "Parar",
   "offlineStoppingDownload": "Parando...",
-  "offlineCancelDownload": "Cancelar",
-  "offlineDownloadCompleted": "Download offline concluído",
-  "offlineDownloadCompletedWithFailures": "{failedCount, plural, one{Download concluído com 1 arquivo com falha} other{Download concluído com {failedCount} arquivos com falha}}",
-  "@offlineDownloadCompletedWithFailures": {
-    "placeholders": {
-      "failedCount": { "type": "int" }
-    }
-  },
-  "offlineKeepAppOpenDuringDownload": "Mantenha o app aberto durante o download.",
   "offlineInsufficientDiskSpace": "Espaço em disco insuficiente para o download",
   "offlineStorageUnavailable": "Armazenamento local indisponível. Recarregue a página ou libere espaço.",
-  "offlineMaintenanceBusy": "Outra operação offline está em andamento. Tente de novo em instantes.",
-  "offlinePhaseFetching": "baixando",
-  "offlineProgressDetail": "{category} — {done}/{total} PDFs ({phase})",
-  "@offlineProgressDetail": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "done": { "type": "int" },
-      "total": { "type": "int" },
-      "phase": { "type": "String" }
-    }
-  },
-  "offlineStatsTitle": "PDFs armazenados",
-  "offlineStatsTotal": "{count, plural, =0{Nenhum PDF offline} one{1 PDF offline} other{{count} PDFs offline}}",
-  "@offlineStatsTotal": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategory": "{category}: {count}",
-  "@offlineStatsCategory": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} faltantes)",
-  "@offlineStatsCategoryWithMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" },
-      "missing": { "type": "int" }
-    }
-  },
-  "offlineStatsTotalMissing": "{count, plural, one{1 PDF faltante no total} other{{count} PDFs faltantes no total}}",
-  "@offlineStatsTotalMissing": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsMissingUnreliable": "Faltantes indisponíveis (sem conexão)",
   "offlineStatsDiskUsage": "Acervo offline: {used} | Disponível: {free}",
   "@offlineStatsDiskUsage": {
     "placeholders": {
@@ -193,13 +141,6 @@
       "used": { "type": "String" }
     }
   },
-  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— faltantes, sem conexão)",
-  "@offlineStatsCategoryUnreliableMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" }
-    }
-  },
   "offlineRefreshStats": "Atualizar",
   "offlineRefreshSuccess": "Informações offline atualizadas",
   "offlineRefreshError": "Não foi possível atualizar as informações offline",
@@ -209,49 +150,7 @@
       "count": { "type": "int" }
     }
   },
-  "offlineDownloadMissing": "Baixar faltantes",
-  "offlineMissingLouvoresSheetTitle": "{category} — faltantes",
-  "@offlineMissingLouvoresSheetTitle": {
-    "placeholders": {
-      "category": { "type": "String" }
-    }
-  },
-  "offlineMissingLouvoresEmpty": "Nenhum PDF faltante nesta categoria",
-  "offlineMissingLouvoresLoadError": "Não foi possível carregar os faltantes",
   "offlineDismissRemoved": "Dispensar",
-  "offlineClearCache": "Limpar cache offline",
-  "offlineClearCacheConfirmTitle": "Limpar cache offline?",
-  "offlineClearCacheConfirmBody": "Os PDFs baixados de {categories} serão removidos. Esta ação não pode ser desfeita.",
-  "@offlineClearCacheConfirmBody": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineClearCacheConfirmBodyAll": "Todos os PDFs offline serão removidos. Esta ação não pode ser desfeita.",
-  "offlineClearCacheConfirm": "Limpar",
-  "offlineClearCacheCancel": "Cancelar",
-  "offlineClearCacheSuccess": "Cache offline limpo",
-  "offlineClearCacheSuccessPartial": "Cache de {categories} limpo",
-  "@offlineClearCacheSuccessPartial": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineMissingProgress": "Baixando faltantes: {done}/{total}",
-  "@offlineMissingProgress": {
-    "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
-  "offlineMissingCompleted": "Download concluído: {downloaded} baixados, {failed} falhas",
-  "@offlineMissingCompleted": {
-    "placeholders": {
-      "downloaded": { "type": "int" },
-      "failed": { "type": "int" }
-    }
-  },
-  "offlineMissingError": "Não foi possível baixar os PDFs faltantes",
   "pdfOfflineUnavailableMessage": "Este PDF não foi baixado para uso offline. Conecte-se à internet ou acesse Configurações Offline → Baixar Faltantes.",
   "pdfLocalReadFailedMessage": "Não foi possível ler o arquivo. Tente novamente.",
   "@pdfLocalReadFailedMessage": {
@@ -1037,8 +936,6 @@
   "lyricsReaderEmpty": "Este louvor não tem letra guardada",
   "lyricsReaderIncreaseFont": "Aumentar letra",
   "lyricsReaderDecreaseFont": "Diminuir letra",
-  "offlineColdigomPlpcgSection": "Acervo PLPCG (PDFs)",
-  "offlineColdigomSection": "Coldigom por tipo de material",
   "offlineSectionTitle": "Baixar para usar offline",
   "offlineKindsAll": "Tipos",
   "offlineColdigomCatalogStatus": "Catálogo: {count} louvores · atualizado {ago}",
@@ -1087,7 +984,7 @@
   "offlineColdigomOutOfSpace": "Sem espaço no aparelho",
   "offlineColdigomRetry": "Tentar de novo",
   "offlineColdigomRemove": "Remover todos os baixados",
-  "offlineColdigomRemoveNote": "Cifras, gestos e letras ficam no aparelho.",
+  "offlineColdigomRemoveConfirmBody": "Todos os PDFs e áudios guardados no aparelho saem, incluindo os abertos recentemente. Cifras, gestos e letras ficam.",
   "offlineColdigomRemoveConfirmTitle": "Remover todos os baixados?",
   "offlineColdigomRemoved": "{pdfs} PDFs e {audios} áudios removidos",
   "@offlineColdigomRemoved": {

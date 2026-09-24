@@ -75,8 +75,8 @@ class OfflineColdigomStats {
 /// Recalcula quando sobem as revisões (PDF, áudio, cifra/gestos) ou o
 /// catálogo é re-hidratado. Corre em fatias de
 /// [OfflineConfig.coldigomHydrationChunkSize] praises cedendo o event loop
-/// — o padrão do `library_group_worker` —, sem `compute`: as linhas Isar não
-/// atravessam isolates e a soma cabe entre frames.
+/// entre fatias, sem `compute`: as linhas Isar não atravessam isolates e a
+/// soma cabe entre frames.
 ///
 /// Observa [coldigomSearchIndexProvider] (não [coldigomCatalogHydrationProvider]
 /// diretamente): os dois mudam junto — o índice é derivado dele —, mas

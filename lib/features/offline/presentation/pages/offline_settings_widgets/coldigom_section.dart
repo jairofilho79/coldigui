@@ -144,7 +144,7 @@ class _StatusLines extends ConsumerWidget {
   }
 
   String _diskUsage() {
-    final used = formatCompactBytes(cacheStatus.stats.totalDiskUsageBytes);
+    final used = formatCompactBytes(cacheStatus.diskUsageBytes);
     final free = cacheStatus.freeDiskBytes;
     return free == null
         ? l10n.offlineStatsDiskUsageUsedOnly(used)
@@ -271,7 +271,7 @@ class _KindsBody extends ConsumerWidget {
     final confirmed = await showConfirmDialog(
       context: context,
       title: l10n.offlineColdigomRemoveConfirmTitle,
-      message: l10n.offlineColdigomRemoveNote,
+      message: l10n.offlineColdigomRemoveConfirmBody,
     );
     if (confirmed != true || !context.mounted) return;
     final result = await ref

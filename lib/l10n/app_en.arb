@@ -125,61 +125,9 @@
   "coldigomFilterTags": "Tags",
   "coldigomFilterMaterials": "Materials",
   "offlineTitle": "Offline",
-  "offlineSelectCategories": "Select categories",
-  "offlineDownloadSelected": "Download selected",
-  "offlineStopDownload": "Stop",
   "offlineStoppingDownload": "Stopping...",
-  "offlineCancelDownload": "Cancel",
-  "offlineDownloadCompleted": "Offline download completed",
-  "offlineDownloadCompletedWithFailures": "{failedCount, plural, one{Download completed with 1 failed file} other{Download completed with {failedCount} failed files}}",
-  "@offlineDownloadCompletedWithFailures": {
-    "placeholders": {
-      "failedCount": { "type": "int" }
-    }
-  },
-  "offlineKeepAppOpenDuringDownload": "Keep the app open while downloading.",
   "offlineInsufficientDiskSpace": "Not enough disk space for download",
   "offlineStorageUnavailable": "Local storage is unavailable. Reload the page or free up space.",
-  "offlineMaintenanceBusy": "Another offline operation is running. Try again shortly.",
-  "offlinePhaseFetching": "downloading",
-  "offlineProgressDetail": "{category} — {done}/{total} PDFs ({phase})",
-  "@offlineProgressDetail": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "done": { "type": "int" },
-      "total": { "type": "int" },
-      "phase": { "type": "String" }
-    }
-  },
-  "offlineStatsTitle": "Stored PDFs",
-  "offlineStatsTotal": "{count, plural, =0{No offline PDFs} one{1 offline PDF} other{{count} offline PDFs}}",
-  "@offlineStatsTotal": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategory": "{category}: {count}",
-  "@offlineStatsCategory": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsCategoryWithMissing": "{category}: {downloaded} ({missing} missing)",
-  "@offlineStatsCategoryWithMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" },
-      "missing": { "type": "int" }
-    }
-  },
-  "offlineStatsTotalMissing": "{count, plural, one{1 PDF missing in total} other{{count} PDFs missing in total}}",
-  "@offlineStatsTotalMissing": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "offlineStatsMissingUnreliable": "Missing count unavailable (offline)",
   "offlineStatsDiskUsage": "Offline library: {used} | Available: {free}",
   "@offlineStatsDiskUsage": {
     "placeholders": {
@@ -193,13 +141,6 @@
       "used": { "type": "String" }
     }
   },
-  "offlineStatsCategoryUnreliableMissing": "{category}: {downloaded} (— missing, offline)",
-  "@offlineStatsCategoryUnreliableMissing": {
-    "placeholders": {
-      "category": { "type": "String" },
-      "downloaded": { "type": "int" }
-    }
-  },
   "offlineRefreshStats": "Refresh",
   "offlineRefreshSuccess": "Offline info updated",
   "offlineRefreshError": "Could not update offline info",
@@ -209,49 +150,7 @@
       "count": { "type": "int" }
     }
   },
-  "offlineDownloadMissing": "Download missing",
-  "offlineMissingLouvoresSheetTitle": "{category} — missing",
-  "@offlineMissingLouvoresSheetTitle": {
-    "placeholders": {
-      "category": { "type": "String" }
-    }
-  },
-  "offlineMissingLouvoresEmpty": "No missing PDFs in this category",
-  "offlineMissingLouvoresLoadError": "Could not load missing PDFs",
   "offlineDismissRemoved": "Dismiss",
-  "offlineClearCache": "Clear offline cache",
-  "offlineClearCacheConfirmTitle": "Clear offline cache?",
-  "offlineClearCacheConfirmBody": "Downloaded PDFs for {categories} will be removed. This action cannot be undone.",
-  "@offlineClearCacheConfirmBody": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineClearCacheConfirmBodyAll": "All offline PDFs will be removed. This action cannot be undone.",
-  "offlineClearCacheConfirm": "Clear",
-  "offlineClearCacheCancel": "Cancel",
-  "offlineClearCacheSuccess": "Offline cache cleared",
-  "offlineClearCacheSuccessPartial": "Cache cleared for {categories}",
-  "@offlineClearCacheSuccessPartial": {
-    "placeholders": {
-      "categories": { "type": "String" }
-    }
-  },
-  "offlineMissingProgress": "Downloading missing: {done}/{total}",
-  "@offlineMissingProgress": {
-    "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
-  "offlineMissingCompleted": "Download complete: {downloaded} downloaded, {failed} failed",
-  "@offlineMissingCompleted": {
-    "placeholders": {
-      "downloaded": { "type": "int" },
-      "failed": { "type": "int" }
-    }
-  },
-  "offlineMissingError": "Could not download missing PDFs",
   "pdfOfflineUnavailableMessage": "This PDF was not downloaded for offline use. Connect to the internet or go to Offline Settings → Download Missing.",
   "pdfLocalReadFailedMessage": "Could not read the file. Please try again.",
   "pdfExternallyDeleted": "The PDF was removed from this device. Go online or use Offline Settings → Download missing.",
@@ -921,8 +820,6 @@
   "lyricsReaderEmpty": "No lyrics stored for this hymn",
   "lyricsReaderIncreaseFont": "Increase text size",
   "lyricsReaderDecreaseFont": "Decrease text size",
-  "offlineColdigomPlpcgSection": "PLPCG collection (PDFs)",
-  "offlineColdigomSection": "Coldigom by material type",
   "offlineSectionTitle": "Download for offline use",
   "offlineKindsAll": "Types",
   "offlineColdigomCatalogStatus": "Catalog: {count} hymns · updated {ago}",
@@ -945,7 +842,7 @@
   "offlineColdigomOutOfSpace": "Not enough space on this device",
   "offlineColdigomRetry": "Try again",
   "offlineColdigomRemove": "Remove all downloads",
-  "offlineColdigomRemoveNote": "Chords, gestures and lyrics stay on the device.",
+  "offlineColdigomRemoveConfirmBody": "All PDFs and audio stored on this device are removed, including recently opened ones. Chords, gestures and lyrics stay.",
   "offlineColdigomRemoveConfirmTitle": "Remove all downloads?",
   "offlineColdigomRemoved": "{pdfs} PDFs and {audios} audios removed",
   "offlineColdigomSpaceWarning": "Estimated {size} exceeds free space ({free}) — the download may stop midway.",

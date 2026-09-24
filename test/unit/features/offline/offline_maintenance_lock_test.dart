@@ -18,18 +18,17 @@ void main() {
     final container = createContainer();
     final lock = container.read(offlineMaintenanceLockProvider.notifier);
 
-    expect(lock.tryAcquire(OfflineMaintenanceOwner.bulk), isTrue);
+    expect(lock.tryAcquire(OfflineMaintenanceOwner.coldigom), isTrue);
     expect(
       container.read(offlineMaintenanceLockProvider),
-      OfflineMaintenanceOwner.bulk,
+      OfflineMaintenanceOwner.coldigom,
     );
 
     expect(lock.tryAcquire(OfflineMaintenanceOwner.reconcile), isFalse);
-    expect(lock.tryAcquire(OfflineMaintenanceOwner.missing), isFalse);
-    expect(lock.tryAcquire(OfflineMaintenanceOwner.clear), isFalse);
+    expect(lock.tryAcquire(OfflineMaintenanceOwner.normalize), isFalse);
     expect(
       container.read(offlineMaintenanceLockProvider),
-      OfflineMaintenanceOwner.bulk,
+      OfflineMaintenanceOwner.coldigom,
     );
   });
 
@@ -37,11 +36,11 @@ void main() {
     final container = createContainer();
     final lock = container.read(offlineMaintenanceLockProvider.notifier);
 
-    expect(lock.tryAcquire(OfflineMaintenanceOwner.bulk), isTrue);
-    expect(lock.tryAcquire(OfflineMaintenanceOwner.bulk), isTrue);
+    expect(lock.tryAcquire(OfflineMaintenanceOwner.coldigom), isTrue);
+    expect(lock.tryAcquire(OfflineMaintenanceOwner.coldigom), isTrue);
     expect(
       container.read(offlineMaintenanceLockProvider),
-      OfflineMaintenanceOwner.bulk,
+      OfflineMaintenanceOwner.coldigom,
     );
   });
 
@@ -49,12 +48,12 @@ void main() {
     final container = createContainer();
     final lock = container.read(offlineMaintenanceLockProvider.notifier);
 
-    lock.tryAcquire(OfflineMaintenanceOwner.bulk);
+    lock.tryAcquire(OfflineMaintenanceOwner.coldigom);
     lock.release(OfflineMaintenanceOwner.reconcile);
 
     expect(
       container.read(offlineMaintenanceLockProvider),
-      OfflineMaintenanceOwner.bulk,
+      OfflineMaintenanceOwner.coldigom,
     );
   });
 
@@ -62,8 +61,8 @@ void main() {
     final container = createContainer();
     final lock = container.read(offlineMaintenanceLockProvider.notifier);
 
-    lock.tryAcquire(OfflineMaintenanceOwner.bulk);
-    lock.release(OfflineMaintenanceOwner.bulk);
+    lock.tryAcquire(OfflineMaintenanceOwner.coldigom);
+    lock.release(OfflineMaintenanceOwner.coldigom);
 
     expect(container.read(offlineMaintenanceLockProvider), isNull);
     expect(lock.tryAcquire(OfflineMaintenanceOwner.reconcile), isTrue);
@@ -73,7 +72,7 @@ void main() {
     final container = createContainer();
     final lock = container.read(offlineMaintenanceLockProvider.notifier);
 
-    lock.release(OfflineMaintenanceOwner.clear);
+    lock.release(OfflineMaintenanceOwner.normalize);
 
     expect(container.read(offlineMaintenanceLockProvider), isNull);
   });

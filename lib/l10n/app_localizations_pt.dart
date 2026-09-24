@@ -200,37 +200,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineTitle => 'Offline';
 
   @override
-  String get offlineSelectCategories => 'Selecione as categorias';
-
-  @override
-  String get offlineDownloadSelected => 'Baixar selecionados';
-
-  @override
-  String get offlineStopDownload => 'Parar';
-
-  @override
   String get offlineStoppingDownload => 'Parando...';
-
-  @override
-  String get offlineCancelDownload => 'Cancelar';
-
-  @override
-  String get offlineDownloadCompleted => 'Download offline concluído';
-
-  @override
-  String offlineDownloadCompletedWithFailures(int failedCount) {
-    String _temp0 = intl.Intl.pluralLogic(
-      failedCount,
-      locale: localeName,
-      other: 'Download concluído com $failedCount arquivos com falha',
-      one: 'Download concluído com 1 arquivo com falha',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get offlineKeepAppOpenDuringDownload =>
-      'Mantenha o app aberto durante o download.';
 
   @override
   String get offlineInsufficientDiskSpace =>
@@ -241,67 +211,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Armazenamento local indisponível. Recarregue a página ou libere espaço.';
 
   @override
-  String get offlineMaintenanceBusy =>
-      'Outra operação offline está em andamento. Tente de novo em instantes.';
-
-  @override
-  String get offlinePhaseFetching => 'baixando';
-
-  @override
-  String offlineProgressDetail(
-    String category,
-    int done,
-    int total,
-    String phase,
-  ) {
-    return '$category — $done/$total PDFs ($phase)';
-  }
-
-  @override
-  String get offlineStatsTitle => 'PDFs armazenados';
-
-  @override
-  String offlineStatsTotal(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count PDFs offline',
-      one: '1 PDF offline',
-      zero: 'Nenhum PDF offline',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String offlineStatsCategory(String category, int count) {
-    return '$category: $count';
-  }
-
-  @override
-  String offlineStatsCategoryWithMissing(
-    String category,
-    int downloaded,
-    int missing,
-  ) {
-    return '$category: $downloaded ($missing faltantes)';
-  }
-
-  @override
-  String offlineStatsTotalMissing(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count PDFs faltantes no total',
-      one: '1 PDF faltante no total',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get offlineStatsMissingUnreliable =>
-      'Faltantes indisponíveis (sem conexão)';
-
-  @override
   String offlineStatsDiskUsage(String used, String free) {
     return 'Acervo offline: $used | Disponível: $free';
   }
@@ -309,14 +218,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String offlineStatsDiskUsageUsedOnly(String used) {
     return 'Acervo offline: $used';
-  }
-
-  @override
-  String offlineStatsCategoryUnreliableMissing(
-    String category,
-    int downloaded,
-  ) {
-    return '$category: $downloaded (— faltantes, sem conexão)';
   }
 
   @override
@@ -341,65 +242,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get offlineDownloadMissing => 'Baixar faltantes';
-
-  @override
-  String offlineMissingLouvoresSheetTitle(String category) {
-    return '$category — faltantes';
-  }
-
-  @override
-  String get offlineMissingLouvoresEmpty =>
-      'Nenhum PDF faltante nesta categoria';
-
-  @override
-  String get offlineMissingLouvoresLoadError =>
-      'Não foi possível carregar os faltantes';
-
-  @override
   String get offlineDismissRemoved => 'Dispensar';
-
-  @override
-  String get offlineClearCache => 'Limpar cache offline';
-
-  @override
-  String get offlineClearCacheConfirmTitle => 'Limpar cache offline?';
-
-  @override
-  String offlineClearCacheConfirmBody(String categories) {
-    return 'Os PDFs baixados de $categories serão removidos. Esta ação não pode ser desfeita.';
-  }
-
-  @override
-  String get offlineClearCacheConfirmBodyAll =>
-      'Todos os PDFs offline serão removidos. Esta ação não pode ser desfeita.';
-
-  @override
-  String get offlineClearCacheConfirm => 'Limpar';
-
-  @override
-  String get offlineClearCacheCancel => 'Cancelar';
-
-  @override
-  String get offlineClearCacheSuccess => 'Cache offline limpo';
-
-  @override
-  String offlineClearCacheSuccessPartial(String categories) {
-    return 'Cache de $categories limpo';
-  }
-
-  @override
-  String offlineMissingProgress(int done, int total) {
-    return 'Baixando faltantes: $done/$total';
-  }
-
-  @override
-  String offlineMissingCompleted(int downloaded, int failed) {
-    return 'Download concluído: $downloaded baixados, $failed falhas';
-  }
-
-  @override
-  String get offlineMissingError => 'Não foi possível baixar os PDFs faltantes';
 
   @override
   String get pdfOfflineUnavailableMessage =>
@@ -1633,12 +1476,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get lyricsReaderDecreaseFont => 'Diminuir letra';
 
   @override
-  String get offlineColdigomPlpcgSection => 'Acervo PLPCG (PDFs)';
-
-  @override
-  String get offlineColdigomSection => 'Coldigom por tipo de material';
-
-  @override
   String get offlineSectionTitle => 'Baixar para usar offline';
 
   @override
@@ -1747,8 +1584,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get offlineColdigomRemove => 'Remover todos os baixados';
 
   @override
-  String get offlineColdigomRemoveNote =>
-      'Cifras, gestos e letras ficam no aparelho.';
+  String get offlineColdigomRemoveConfirmBody =>
+      'Todos os PDFs e áudios guardados no aparelho saem, incluindo os abertos recentemente. Cifras, gestos e letras ficam.';
 
   @override
   String get offlineColdigomRemoveConfirmTitle => 'Remover todos os baixados?';

@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:coldigui/core/constants/offline_config.dart';
 import 'package:coldigui/core/constants/storage_keys.dart';
-import 'package:coldigui/features/offline/data/datasources/offline_available_store.dart';
 import 'package:coldigui/features/offline/data/datasources/offline_pdf_local_datasource.dart';
 import 'package:coldigui/features/offline/data/datasources/pdf_local_store.dart';
 import 'package:coldigui/features/offline/data/repositories/offline_pdf_repository_impl.dart';
@@ -64,7 +63,6 @@ void main() {
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       store,
     );
 
@@ -92,7 +90,6 @@ void main() {
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       store,
     );
     await useCase();
@@ -107,7 +104,7 @@ void main() {
 
   test('v2 marca PDFs como persistentes quando offline configurado', () async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(StorageKeys.offlineAvailable, 'TRUE');
+    await prefs.setString('OFFLINE_AVAILABLE', 'TRUE');
 
     final tempDir = await Directory.systemTemp.createTemp('migrate_v2_');
     final docsDir = Directory('${tempDir.path}/docs');
@@ -129,7 +126,6 @@ void main() {
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       pdfStoragePortFor(
         PdfLocalStore(getApplicationDocumentsDirectory: () async => docsDir),
       ),
@@ -155,7 +151,6 @@ void main() {
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       store,
     );
 
@@ -174,7 +169,7 @@ void main() {
     () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(StorageKeys.offlineStorageVersion, 3);
-      await prefs.setString(StorageKeys.manifestChecksum, 'checksum-antigo');
+      await prefs.setString('manifestChecksum', 'checksum-antigo');
 
       final store = _TrackingPdfStoragePort();
       final isar = openOfflineTestIsar(
@@ -183,7 +178,6 @@ void main() {
       final useCase = MigrateOfflineStorage(
         prefs,
         OfflinePdfLocalDatasource(isar),
-        OfflineAvailableStore(prefs),
         store,
       );
 
@@ -193,7 +187,7 @@ void main() {
         prefs.getInt(StorageKeys.offlineStorageVersion),
         OfflineConfig.offlineStorageVersion,
       );
-      expect(prefs.getString(StorageKeys.manifestChecksum), isNull);
+      expect(prefs.getString('manifestChecksum'), isNull);
       isar.close(deleteFromDisk: true);
     },
   );
@@ -204,7 +198,7 @@ void main() {
       StorageKeys.offlineStorageVersion,
       OfflineConfig.offlineStorageVersion,
     );
-    await prefs.setString(StorageKeys.manifestChecksum, 'checksum-atual');
+    await prefs.setString('manifestChecksum', 'checksum-atual');
 
     final store = _TrackingPdfStoragePort();
     final isar = openOfflineTestIsar(
@@ -213,7 +207,6 @@ void main() {
     final useCase = MigrateOfflineStorage(
       prefs,
       OfflinePdfLocalDatasource(isar),
-      OfflineAvailableStore(prefs),
       store,
     );
 
@@ -223,7 +216,45 @@ void main() {
       prefs.getInt(StorageKeys.offlineStorageVersion),
       OfflineConfig.offlineStorageVersion,
     );
-    expect(prefs.getString(StorageKeys.manifestChecksum), 'checksum-atual');
+    expect(prefs.getString('manifestChecksum'), 'checksum-atual');
+    isar.close(deleteFromDisk: true);
+  });
+
+  test('v5 apaga as prefs mortas do manifesto e da secção PLPCG', () async {
+    const dead = [
+      'manifestChecksum',
+      'catalogLastSyncAt',
+      'lastChecksumPollAt',
+      'offlineSelectedCategories',
+      'offlineBulkCategories',
+      'offlineBulkCheckpoint',
+      'OFFLINE_AVAILABLE',
+    ];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(StorageKeys.offlineStorageVersion, 4);
+    for (final key in dead) {
+      await prefs.setString(key, 'x');
+    }
+    await prefs.setString(StorageKeys.recentlyOpened, '[]');
+
+    final isar = openOfflineTestIsar(
+      await Directory.systemTemp.createTemp('migrate_v5_'),
+    );
+    await MigrateOfflineStorage(
+      prefs,
+      OfflinePdfLocalDatasource(isar),
+      _TrackingPdfStoragePort(),
+    )();
+
+    expect(prefs.getInt(StorageKeys.offlineStorageVersion), 5);
+    for (final key in dead) {
+      expect(prefs.containsKey(key), isFalse, reason: key);
+    }
+    expect(
+      prefs.getString(StorageKeys.recentlyOpened),
+      '[]',
+      reason: 'só as mortas saem',
+    );
     isar.close(deleteFromDisk: true);
   });
 }

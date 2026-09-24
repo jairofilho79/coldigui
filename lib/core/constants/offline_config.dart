@@ -56,7 +56,7 @@ abstract final class OfflineConfig {
   static const Duration reconcileMinInterval = Duration(minutes: 30);
 
   /// Versão atual do layout offline — incrementar ao migrar paths/schema.
-  static const int offlineStorageVersion = 4;
+  static const int offlineStorageVersion = 5;
 
   /// Intervalo mínimo entre syncs do catálogo Coldigom ao voltar ao
   /// foreground (O5) — o mesmo dos 30 min do checksum PLPCG.

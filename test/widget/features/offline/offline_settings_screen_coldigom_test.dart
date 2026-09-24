@@ -5,7 +5,6 @@ import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_butto
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
-import 'package:coldigui/features/offline/domain/entities/offline_stats.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_widgets/coldigom_section.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
@@ -70,9 +69,8 @@ class _FixedCacheStatus extends OfflineCacheStatusNotifier {
   var refreshCalls = 0;
 
   @override
-  OfflineCacheStatus build() => const OfflineCacheStatus(
-    stats: OfflineStats(byCategory: {}, totalDiskUsageBytes: 5 * 1024 * 1024),
-  );
+  OfflineCacheStatus build() =>
+      const OfflineCacheStatus(diskUsageBytes: 5 * 1024 * 1024);
 
   @override
   Future<void> refreshAll() async => refreshAllCalls++;
@@ -160,7 +158,12 @@ void main() {
   testWidgets(
     'deslogado: lista Tipos inteira e baixa sem conta; entrar é opcional',
     (tester) async {
-      final handles = await _pump(tester, loggedIn: false, rank: const {});
+      // Rank não vazio: prova que o guard `signedIn` o ignora deslogado.
+      final handles = await _pump(
+        tester,
+        loggedIn: false,
+        rank: const {'k-grade': 0, 'k-play': 1},
+      );
 
       expect(
         find.text('Entre com Google para ver os seus tipos favoritos primeiro'),
@@ -175,6 +178,13 @@ void main() {
           .map((t) => (t.title as Text).data)
           .toList();
       expect(tiles, ['Cifra', 'Grade', 'Playback']);
+      expect(
+        tester
+            .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
+            .every((t) => t.value == false),
+        isTrue,
+        reason: 'deslogado nada vem pré-marcado pelo rank',
+      );
 
       await tester.tap(find.widgetWithText(CheckboxListTile, 'Grade'));
       await tester.pumpAndSettle();
@@ -192,7 +202,7 @@ void main() {
     (tester) async {
       final handles = await _pump(tester);
       expect(find.textContaining('Catálogo: 1690 louvores'), findsOneWidget);
-      expect(find.textContaining('Acervo offline: '), findsOneWidget);
+      expect(find.textContaining('Acervo offline: 5,0 MB'), findsOneWidget);
       expect(find.text('Atualizar'), findsOneWidget);
 
       await tester.tap(find.text('Atualizar'));
@@ -442,7 +452,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Remover todos os baixados?'), findsOneWidget);
     expect(
-      find.text('Cifras, gestos e letras ficam no aparelho.'),
+      find.text(
+        'Todos os PDFs e áudios guardados no aparelho saem, incluindo os '
+        'abertos recentemente. Cifras, gestos e letras ficam.',
+      ),
       findsOneWidget,
     );
     await tester.tap(find.text('Confirmar'));

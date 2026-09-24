@@ -5,7 +5,7 @@ import 'package:coldigui/features/offline/data/providers/offline_coldigom_provid
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_coldigom_materials.dart';
 import 'package:coldigui/features/offline/domain/usecases/remove_coldigom_downloads.dart';
-import 'package:coldigui/features/offline/presentation/providers/offline_bulk_download_provider.dart';
+import 'package:coldigui/features/offline/presentation/providers/download_wakelock_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_maintenance_lock_provider.dart';
@@ -174,7 +174,7 @@ void main() {
       final c2 = container(_ScriptedDownload());
       c2
           .read(offlineMaintenanceLockProvider.notifier)
-          .tryAcquire(OfflineMaintenanceOwner.bulk);
+          .tryAcquire(OfflineMaintenanceOwner.reconcile);
       await c2.read(offlineColdigomDownloadProvider.notifier).start({'k'});
       expect(
         c2.read(offlineColdigomDownloadProvider).status,

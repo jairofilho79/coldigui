@@ -4,21 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Quem pode segurar o lock de manutenção offline (spec C.1 / B14).
 ///
 /// `normalize` é a troca de ids legados do índice (spec fim-fonte-plpcg §6.2).
-enum OfflineMaintenanceOwner {
-  bulk,
-  missing,
-  clear,
-  reconcile,
-  coldigom,
-  normalize,
-}
+enum OfflineMaintenanceOwner { reconcile, coldigom, normalize }
 
 /// Lock cooperativo de manutenção offline (spec C.1 / B14).
 ///
-/// Bulk download, download de faltantes, limpar cache e reconcile — e o
-/// download/remoção Coldigom — mexem no mesmo par índice+disco: rodar em
-/// paralelo faz um enxergar arquivos que o outro ainda não indexou (e
-/// apagá-los como órfãos). Só um dono por vez.
+/// Reconcile, download/remoção por tipo e a normalização de ids mexem no
+/// mesmo par índice+disco: rodar em paralelo faz um enxergar arquivos que o
+/// outro ainda não indexou (e apagá-los como órfãos). Só um dono por vez.
 final offlineMaintenanceLockProvider =
     NotifierProvider<OfflineMaintenanceLock, OfflineMaintenanceOwner?>(
       OfflineMaintenanceLock.new,

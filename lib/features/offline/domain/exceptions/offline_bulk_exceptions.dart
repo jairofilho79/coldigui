@@ -13,14 +13,6 @@ class InsufficientDiskSpaceException implements Exception {
       'InsufficientDiskSpaceException(required: $requiredBytes, available: $availableBytes)';
 }
 
-/// Bulk download cancelado pelo usuário.
-class OfflineBulkCancelledException implements Exception {
-  const OfflineBulkCancelledException();
-
-  @override
-  String toString() => 'OfflineBulkCancelledException';
-}
-
 /// Falha ao gravar PDF no storage (web — Cache API) não relacionada a quota.
 class PdfStorageWriteException implements Exception {
   const PdfStorageWriteException(this.message);
