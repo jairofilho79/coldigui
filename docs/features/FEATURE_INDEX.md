@@ -2006,6 +2006,8 @@ Modal — tap outro louvor (leitor)
 
 ## APIs públicas — Data layer (offline, Fase 3.1–3.7)
 
+> **Histórico (23/09/2026):** `offlineModeProvider` e `offlineMissingDownloadProvider` (linhas abaixo) foram apagados — zero chamador/arquivo em `lib/`; a UI atual usa `offlineColdigomDownloadProvider` / `offlineColdigomKindSelectionProvider` (`offline/presentation/providers/offline_coldigom_download_provider.dart` e `offline_coldigom_kind_selection_provider.dart`), com `offlineCacheStatusProvider` mantido. Os fluxos «Fase 1.1 (LoadLouvoresManifest)», «Fase 1.2 (SearchLouvorByNumberOrText / UC-01)» e «Fase 1.3 (FilterByMaterialAndArranjo / UC-02)» descritos mais abaixo pertencem à pilha do manifesto PLPCG, também apagada: `louvoresManifestProvider`, `LoadLouvoresManifest`, `CatalogRepositoryImpl`, `CatalogRemoteDatasource`, `CatalogLocalDatasource`, `SearchLouvorByNumberOrText` e `FilterByMaterialAndArranjo` — zero chamador em `lib/`. A busca e o filtro atuais rodam sobre `ColdigomSearchIndex`/`matchesCatalogFilters` — ver `lib/features/catalog/presentation/providers/home_search_provider.dart`.
+
 | API | Arquivo | Estado | Descrição |
 |-----|---------|--------|-----------|
 | `GetApplicationDocumentsDirectoryFn` | `offline/data/datasources/pdf_local_store.dart` | **Implementado 3.1** | Typedef para injeção de diretório em testes |
