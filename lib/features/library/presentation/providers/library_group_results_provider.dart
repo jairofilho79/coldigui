@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../catalog/domain/entities/louvor_group.dart';
 import '../../../catalog/domain/usecases/matches_catalog_filters.dart';
+import '../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/library_providers.dart';
@@ -20,15 +21,26 @@ import 'library_view_settings_provider.dart';
 final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
   final groups = ref.watch(coldigomSearchIndexProvider).groups;
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   final sortBy = ref.watch(
     libraryViewSettingsProvider.select((view) => view.sortBy),
   );
-  final filtered = filters.isEmpty
-      ? groups
-      : [
-          for (final group in groups)
-            if (matchesCatalogFilters(group, filters)) group,
-        ];
+  if (filters.isEmpty) {
+    return ref.watch(sortLouvorGroupsProvider)(groups, sortBy: sortBy);
+  }
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
+  final filtered = [
+    for (final group in groups)
+      if (matchesCatalogFilters(
+        group,
+        filters,
+        effectiveKindIds: effectiveKindIds,
+      ))
+        group,
+  ];
   return ref.watch(sortLouvorGroupsProvider)(filtered, sortBy: sortBy);
 });
 

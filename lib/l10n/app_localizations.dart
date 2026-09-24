@@ -416,6 +416,78 @@ abstract class AppLocalizations {
   /// **'Materiais'**
   String get coldigomFilterMaterials;
 
+  /// No description provided for @materialTypeFilterLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo'**
+  String get materialTypeFilterLabel;
+
+  /// No description provided for @materialTypeAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get materialTypeAll;
+
+  /// No description provided for @materialTypePdf.
+  ///
+  /// In pt, this message translates to:
+  /// **'PDF'**
+  String get materialTypePdf;
+
+  /// No description provided for @materialTypeChord.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifra'**
+  String get materialTypeChord;
+
+  /// No description provided for @materialTypeAudio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Áudio'**
+  String get materialTypeAudio;
+
+  /// No description provided for @materialTypeYoutube.
+  ///
+  /// In pt, this message translates to:
+  /// **'YouTube'**
+  String get materialTypeYoutube;
+
+  /// No description provided for @materialTypeGesture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestos'**
+  String get materialTypeGesture;
+
+  /// No description provided for @materialKindOtherClass.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros'**
+  String get materialKindOtherClass;
+
+  /// No description provided for @materialKindHiddenByType.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 material oculto pelo tipo} other{{count} materiais ocultos pelo tipo}}'**
+  String materialKindHiddenByType(int count);
+
+  /// No description provided for @materialKindShowVariants.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver variantes de {name}'**
+  String materialKindShowVariants(String name);
+
+  /// No description provided for @materialKindFamilyVariantsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name}, {count, plural, =1{1 variante} other{{count} variantes}}'**
+  String materialKindFamilyVariantsLabel(String name, int count);
+
+  /// No description provided for @materialKindFamilyRefinedValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parcialmente selecionado'**
+  String get materialKindFamilyRefinedValue;
+
   /// No description provided for @offlineTitle.
   ///
   /// In pt, this message translates to:

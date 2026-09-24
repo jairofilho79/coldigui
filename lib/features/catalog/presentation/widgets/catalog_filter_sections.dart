@@ -7,10 +7,13 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'material_kind_filter_section.dart';
+
 typedef _ChipItem = ({String id, String name});
 
-/// Secções de chips dos filtros do catálogo (tom, ritmo, tags, tipo de
-/// material) — as mesmas na página inicial e na /biblioteca.
+/// Secções de chips dos filtros do catálogo (tom, ritmo, tags) — as
+/// mesmas na página inicial e na /biblioteca. O tipo de material tem seção
+/// própria, [MaterialKindFilterSection], com classes e famílias.
 ///
 /// As opções vêm do índice local ([catalogFilterOptionsProvider]); a seleção
 /// é [catalogFiltersProvider]. Secção sem opções não aparece. Um valor
@@ -77,15 +80,6 @@ class CatalogFilterSections extends ConsumerWidget {
         selectedIds: selected.tags,
         onToggle: notifier.toggleTag,
       ),
-      _ChipSection(
-        title: l10n.coldigomFilterMaterials,
-        items: _withSelected([
-          for (final kind in options.materialKinds)
-            (id: kind.id, name: kind.name),
-        ], selected.materialKindIds),
-        selectedIds: selected.materialKindIds,
-        onToggle: notifier.toggleMaterialKind,
-      ),
     ].where((section) => section.items.isNotEmpty).toList();
 
     return Column(
@@ -94,6 +88,11 @@ class CatalogFilterSections extends ConsumerWidget {
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 8),
           sections[i],
+        ],
+        if (options.materialKinds.isNotEmpty ||
+            selected.materialKindIds.isNotEmpty) ...[
+          if (sections.isNotEmpty) const SizedBox(height: 8),
+          const MaterialKindFilterSection(),
         ],
       ],
     );

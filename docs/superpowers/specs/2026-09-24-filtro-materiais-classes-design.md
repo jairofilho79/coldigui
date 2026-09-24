@@ -148,19 +148,17 @@ Em seguida, os `INSERT` das 10 classes e um `UPDATE` por kind com `class_id`, `p
 
 `CatalogFilterOptions.materialKinds` passa a trazer, por kind: classe, pai, ordem e o **conjunto de tipos** encontrados nos materiais daquele kind no índice local.
 
-Rótulos dos tipos:
+Os tipos são os do app (`MaterialKind`, via `materialKindOfRawType`), e não o `type` cru do coldigom. Os materiais `midi`, `mid`, `m4a` e `mpeg` viram `MaterialKind.unknown` e já são descartados pelo `ColdigomLouvorAdapter`: não entram no índice nem no filtro, então não ganham chip.
 
-| `type` | Chip |
+| `MaterialKind` | Chip |
 |---|---|
 | `pdf` | PDF |
 | `chord` | Cifra |
-| `mp3`, `audio`, `m4a`, `mpeg` | Áudio (um chip só) |
-| `midi`, `mid` | MIDI (um chip só) |
-| `gestures` | Gestos |
+| `audio` (`mp3`, `audio`) | Áudio |
 | `youtube` | YouTube |
-| outro | o próprio valor |
+| `gesture` | Gestos |
 
-Só aparecem chips de tipos que existem no catálogo.
+Só aparecem chips de tipos que algum kind do índice tem, nesta ordem.
 
 ### 4.3 Casamento no filtro
 
@@ -250,7 +248,7 @@ O app novo funciona com o coldigom antigo (tudo em «Outros»), então os passos
 - A taxonomia é gravada e lida do cache.
 - Agrupamento: ordem das classes, «Outros» por último, ordem dentro da classe.
 - Famílias: o pai com filhos vira família; um membro só vira chip simples.
-- Tipos: o conjunto de tipos por kind; os tipos de áudio juntos e os de MIDI juntos; um selecionado nunca some; classe vazia some.
+- Tipos: o conjunto de `MaterialKind` por kind; um selecionado nunca some; classe vazia some.
 - Seleção:
   - marcar o pai tira os filhos;
   - desmarcar o pai tira os filhos;

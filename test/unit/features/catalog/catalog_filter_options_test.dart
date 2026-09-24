@@ -1,3 +1,4 @@
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/domain/utils/catalog_tag_hierarchy.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filter_options_provider.dart';
@@ -102,12 +103,44 @@ void main() {
       'tipos de material por id, com o nome do kind, ordenados pelo nome',
       () {
         expect(options.materialKinds, const [
-          CatalogKindOption(id: 'k-cifra1', name: 'Cifra I'),
-          CatalogKindOption(id: 'k-grade', name: 'Grade'),
-          CatalogKindOption(id: 'k-play', name: 'Playback'),
+          CatalogKindOption(
+            id: 'k-cifra1',
+            name: 'Cifra I',
+            types: {MaterialKind.pdf},
+          ),
+          CatalogKindOption(
+            id: 'k-grade',
+            name: 'Grade',
+            types: {MaterialKind.pdf},
+          ),
+          CatalogKindOption(
+            id: 'k-play',
+            name: 'Playback',
+            types: {MaterialKind.audio},
+          ),
         ]);
       },
     );
+
+    test('um kind com PDF num louvor e áudio noutro tem os dois tipos', () {
+      final mixed = CatalogFilterOptions.fromGroups([
+        catalogGroup(
+          praiseId: 'a',
+          name: 'A',
+          pdfKinds: const {'k-coro': 'Coro'},
+        ),
+        catalogGroup(
+          praiseId: 'b',
+          name: 'B',
+          pdfKinds: const {},
+          audioKinds: const {'k-coro': 'Coro'},
+        ),
+      ]);
+      expect(mixed.materialKinds.single.types, {
+        MaterialKind.pdf,
+        MaterialKind.audio,
+      });
+    });
 
     test('sem grupos → vazio', () {
       final empty = CatalogFilterOptions.fromGroups(const []);
