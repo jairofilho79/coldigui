@@ -1,5 +1,8 @@
+import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../support/fakes/fake_playlists_notifier.dart';
+
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/playlists/presentation/providers/playlists_provider.dart';
@@ -46,21 +49,23 @@ void main() {
     publicationCategory: PlaylistCategory.evangelizacao,
   );
 
-  testWidgets('import social adiciona partituras e áudios na ordem', (
-    tester,
-  ) async {
+  Future<void> importPlaylist(
+    WidgetTester tester,
+    PublicPlaylist playlist, {
+    required _RecordingActiveEditor editor,
+    required FakePlaylistsNotifier playlists,
+    required CountingLegacyMaterialIdsNormalizer normalizer,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final editor = _RecordingActiveEditor();
-    final playlists = FakePlaylistsNotifier();
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playlistsProvider.overrideWith(() => playlists),
           activePlaylistEditorProvider.overrideWith(() => editor),
+          noOpLegacyMaterialIdsNormalizerOverride(normalizer),
           socialUserPlaylistsProvider.overrideWith(
-            (ref, username) async => const [playlist],
+            (ref, username) async => [playlist],
           ),
         ],
         child: MaterialApp(
@@ -79,15 +84,59 @@ void main() {
 
     await tester.tap(find.text('@maria'));
     await tester.pumpAndSettle();
-
-    // A contagem é das entradas (4), não só das partituras (3).
-    expect(find.text('4 louvores'), findsOneWidget);
-
-    await tester.tap(find.text('Culto de domingo'));
+    await tester.tap(find.text(playlist.nome));
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('import social adiciona partituras e áudios na ordem', (
+    tester,
+  ) async {
+    final editor = _RecordingActiveEditor();
+    final playlists = FakePlaylistsNotifier();
+    final normalizer = CountingLegacyMaterialIdsNormalizer();
+
+    await importPlaylist(
+      tester,
+      playlist,
+      editor: editor,
+      playlists: playlists,
+      normalizer: normalizer,
+    );
 
     expect(editor.received, entries);
     expect(playlists.addedPdfIds, isEmpty);
+    // A contagem é das entradas (4), não só das partituras (3).
     expect(find.text('4 louvores adicionados à sua lista'), findsOneWidget);
+    expect(normalizer.runs, 0, reason: 'sem ids legados');
+  });
+
+  testWidgets('lista pública com id legado pede a normalização', (
+    tester,
+  ) async {
+    // Um dono com cliente antigo publicou antes do script D1 (spec
+    // fim-fonte-plpcg §6.2): o id legado entra na lista ativa e só a
+    // normalização o troca pelo coldigom.
+    final legacy = PublicPlaylist(
+      id: 'pub-2',
+      nome: 'Ensaio',
+      entries: [
+        PlaylistEntry(
+          id: encodePdfId('ColAdultos/001.pdf'),
+          kind: MaterialKind.pdf,
+        ),
+      ],
+      publicationCategory: PlaylistCategory.evangelizacao,
+    );
+    final normalizer = CountingLegacyMaterialIdsNormalizer();
+
+    await importPlaylist(
+      tester,
+      legacy,
+      editor: _RecordingActiveEditor(),
+      playlists: FakePlaylistsNotifier(),
+      normalizer: normalizer,
+    );
+
+    expect(normalizer.runs, 1);
   });
 }

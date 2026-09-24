@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
+import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
+import 'package:coldigui/features/catalog/presentation/providers/legacy_material_ids_normalizer_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/saved_playlist.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/features/social/domain/entities/public_playlist.dart';
@@ -243,9 +247,18 @@ class _PublicPlaylistTileState extends ConsumerState<_PublicPlaylistTile> {
     try {
       // A lista pública chega como veio do dono: partituras e áudios na
       // ordem, repetições incluídas — nada de dedupe nem de "só PDFs".
+      final entries = widget.playlist.entries;
+      // Lista publicada por um cliente antigo antes do script D1: os ids
+      // legados que entram na lista ativa só a normalização troca (spec
+      // fim-fonte-plpcg §6.2) — sem ela ficariam até o próximo gatilho. O
+      // notifier é lido antes do `await`: o card pode sair da árvore.
+      final normalizer = entries.any((e) => isLegacyPdfId(e.id))
+          ? ref.read(legacyMaterialIdsNormalizerProvider.notifier)
+          : null;
       final added = await ref
           .read(activePlaylistEditorProvider.notifier)
-          .addEntriesToActive(widget.playlist.entries);
+          .addEntriesToActive(entries);
+      if (normalizer != null) unawaited(normalizer.run());
       if (!mounted) return;
       showAppSnackbar(
         context,
