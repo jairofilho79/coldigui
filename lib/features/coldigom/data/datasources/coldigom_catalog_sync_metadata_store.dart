@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/storage_keys.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 
 /// Metadados do sync do catálogo Coldigom em SharedPreferences: o ETag que
 /// vai no `If-None-Match`, quando foi a última validação e quantos praises o
@@ -44,4 +47,27 @@ class ColdigomCatalogSyncMetadataStore {
       at.toUtc().toIso8601String(),
     );
   }
+
+  /// Taxonomia dos kinds do último dump; `null` quando nunca foi gravada ou
+  /// o JSON está ilegível.
+  MaterialKindTaxonomy? readKindTaxonomy() {
+    final raw = _prefs.getString(StorageKeys.coldigomKindTaxonomy);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic>
+          ? MaterialKindTaxonomy.fromJson(decoded)
+          : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Gravada a cada dump novo, com ou sem Isar: sem ela o filtro Materiais
+  /// não tem classes, e ela não é um ETag (não há risco de `304` órfão).
+  Future<void> writeKindTaxonomy(MaterialKindTaxonomy taxonomy) =>
+      _prefs.setString(
+        StorageKeys.coldigomKindTaxonomy,
+        jsonEncode(taxonomy.toJson()),
+      );
 }

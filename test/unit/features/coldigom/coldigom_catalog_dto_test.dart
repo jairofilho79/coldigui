@@ -166,4 +166,36 @@ void main() {
     expect(material.size, isNull);
     expect(material.r2Key, 'assets/praises/p-001/m-size-errado.pdf');
   });
+
+  test('lê a taxonomia dos kinds (kindClasses + class/parent/order)', () {
+    final dto = ColdigomCatalogDto.fromJson({
+      'generatedAt': '',
+      'kindClasses': [
+        {'id': 'metais', 'label': 'Metais'},
+      ],
+      'kinds': [
+        {'id': 'sax', 'name': 'Saxofone', 'class': 'metais', 'order': 30},
+        {
+          'id': 'sax-alto',
+          'name': 'Saxofone alto',
+          'class': 'metais',
+          'parent': 'sax',
+          'order': 50,
+        },
+      ],
+      'praises': [],
+    });
+    expect(dto.kindNames, {'sax': 'Saxofone', 'sax-alto': 'Saxofone alto'});
+    expect(dto.kindTaxonomy!.childrenOf('sax'), ['sax-alto']);
+    expect(dto.kindTaxonomy!.classes.single.label, 'Metais');
+  });
+
+  test('dump sem taxonomia (coldigom antigo) dá taxonomia vazia', () {
+    final dto = ColdigomCatalogDto.fromJson(_fixture());
+    expect(dto.kindTaxonomy!.classes, isEmpty);
+    expect(
+      dto.kindTaxonomy!.kinds.values.every((k) => k.classId == null),
+      isTrue,
+    );
+  });
 }

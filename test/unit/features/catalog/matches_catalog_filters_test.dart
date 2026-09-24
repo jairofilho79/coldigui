@@ -1,5 +1,6 @@
 import 'package:coldigui/features/catalog/domain/entities/catalog_filter_state.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/catalog/domain/usecases/matches_catalog_filters.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -134,5 +135,40 @@ void main() {
   test('valor do praise com espaços nas pontas casa com o chip aparado', () {
     final sujo = catalogGroup(praiseId: 'p3', name: 'S', tonality: ' Dm ');
     expect(matches(sujo, const CatalogFilterState(tonalities: {'Dm'})), isTrue);
+  });
+
+  group('família de kinds (spec filtro-materiais §4.3)', () {
+    final sax = catalogGroup(
+      praiseId: 's1',
+      name: 'Sax alto',
+      pdfKinds: const {'alto': 'Saxofone alto'},
+    );
+    final t = MaterialKindTaxonomy(
+      kinds: const {
+        'sax': MaterialKindTaxon(name: 'Saxofone'),
+        'alto': MaterialKindTaxon(name: 'Saxofone alto', parentId: 'sax'),
+        'tenor': MaterialKindTaxon(name: 'Saxofone tenor', parentId: 'sax'),
+      },
+    );
+    CatalogFilterState kinds(Set<String> ids) =>
+        CatalogFilterState.empty.copyWith(materialKindIds: ids);
+
+    test('o pai casa o louvor que só tem o filho', () {
+      expect(
+        matchesCatalogFilters(sax, kinds({'sax'}), kindTaxonomy: t),
+        isTrue,
+      );
+    });
+
+    test('pai + outro filho refina: o louvor do alto sai', () {
+      expect(
+        matchesCatalogFilters(sax, kinds({'sax', 'tenor'}), kindTaxonomy: t),
+        isFalse,
+      );
+    });
+
+    test('sem taxonomia o pai casa só o próprio id', () {
+      expect(matchesCatalogFilters(sax, kinds({'sax'})), isFalse);
+    });
   });
 }

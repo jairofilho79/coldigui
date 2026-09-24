@@ -1,6 +1,8 @@
 import '../entities/catalog_filter_state.dart';
 import '../entities/louvor_group.dart';
+import '../entities/material_kind_taxonomy.dart';
 import '../utils/catalog_tag_hierarchy.dart';
+import '../utils/material_kind_selection.dart';
 
 /// Predicado único dos filtros do catálogo (spec fim-fonte §2.2) — usado
 /// pela /biblioteca, pela busca local e pelos «novos» da busca remota.
@@ -10,11 +12,22 @@ import '../utils/catalog_tag_hierarchy.dart';
 /// - Tags: alguma tag do praise é uma selecionada ou filha dela
 ///   ([catalogTagMatches]: `PES` apanha `PES · 9.2026`). Subtag selecionada
 ///   junto com o pai refina o pai ([catalogTagsRefined]).
-/// - Tipo de material: algum material do grupo (PDF de secção ou extra) tem
-///   o `materialKindId` no conjunto.
+/// - Tipo de material: algum material do grupo tem um `materialKindId` da
+///   seleção efetiva — pai expande nos filhos, pai + filho vale pelo filho
+///   ([effectiveMaterialKindIds]).
 /// - Entre filtros, E; filtro vazio não restringe. Um grupo sem
 ///   `coldigomMeta` só passa sem filtros de tom/ritmo/categoria/tags.
-bool matchesCatalogFilters(LouvorGroup group, CatalogFilterState filters) {
+///
+/// [effectiveKindIds] é o [effectiveMaterialKindIds] já resolvido — quem
+/// varre muitos grupos na mesma passada (providers) computa uma vez e passa
+/// aqui, em vez de refazer a conta a cada grupo. Sem ele, calcula na hora
+/// (chamadas avulsas, como os testes).
+bool matchesCatalogFilters(
+  LouvorGroup group,
+  CatalogFilterState filters, {
+  MaterialKindTaxonomy? kindTaxonomy,
+  Set<String>? effectiveKindIds,
+}) {
   if (filters.isEmpty) return true;
   final meta = group.coldigomMeta;
   if (filters.tonalities.isNotEmpty &&
@@ -35,7 +48,14 @@ bool matchesCatalogFilters(LouvorGroup group, CatalogFilterState filters) {
     return false;
   }
   if (filters.materialKindIds.isNotEmpty &&
-      !_hasSelectedKind(group, filters.materialKindIds)) {
+      !_hasSelectedKind(
+        group,
+        effectiveKindIds ??
+            effectiveMaterialKindIds(
+              filters.materialKindIds,
+              kindTaxonomy ?? MaterialKindTaxonomy.empty,
+            ),
+      )) {
     return false;
   }
   return true;

@@ -7,6 +7,7 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/usecases/matches_catalog_filters.dart';
+import '../../domain/utils/material_kind_selection.dart';
 import 'catalog_filters_provider.dart';
 import 'home_remote_search_provider.dart';
 import 'home_search_state.dart';
@@ -43,11 +44,21 @@ final homeSearchDebouncedQueryProvider =
 final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   final results = ref.watch(coldigomSearchIndexProvider).search(query);
   if (filters.isEmpty) return results;
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
   return [
     for (final group in results)
-      if (matchesCatalogFilters(group, filters)) group,
+      if (matchesCatalogFilters(
+        group,
+        filters,
+        effectiveKindIds: effectiveKindIds,
+      ))
+        group,
   ];
 });
 
@@ -60,6 +71,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
   final filters = ref.watch(catalogFiltersProvider);
+  final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   // Observado incondicionalmente (mesmo com query vazia): assim o provider
   // já está de pé — e resolvido — quando a primeira query chega, em vez de
   // nascer `AsyncLoading` bem na hora em que a Home mais precisa saber se
@@ -96,9 +108,15 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final localIds = {for (final g in localGroups) g.groupId};
   // Os «novos» passam pelo mesmo predicado da lista local (spec §2.4), no
   // cliente — os nomes de tag não viram ids do servidor.
+  final effectiveKindIds = effectiveMaterialKindIds(
+    filters.materialKindIds,
+    kindTaxonomy,
+  );
   final newGroups = [
     for (final g in remote.value?.groups ?? const <LouvorGroup>[])
-      if (!localIds.contains(g.groupId) && matchesCatalogFilters(g, filters)) g,
+      if (!localIds.contains(g.groupId) &&
+          matchesCatalogFilters(g, filters, effectiveKindIds: effectiveKindIds))
+        g,
   ];
 
   // Enquanto a hidratação ainda não devolveu valor, `coldigomSearchIndexProvider`

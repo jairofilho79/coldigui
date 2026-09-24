@@ -54,6 +54,11 @@ abstract final class StorageKeys {
   /// Quantos praises o último sync gravou — linha de estado do `/offline`.
   static const String coldigomCatalogCount = 'coldigomCatalogCount';
 
+  /// Classes e famílias dos material kinds do último dump (JSON no formato
+  /// do dump: `{kindClasses, kinds}`). Ausente = nunca gravada, e o próximo
+  /// sync pede o dump inteiro (spec filtro-materiais §4.1).
+  static const String coldigomKindTaxonomy = 'coldigomKindTaxonomy';
+
   /// Corpo da letra no leitor de letras `/letra` (`double`).
   static const String lyricsReaderFontSize = 'lyricsReaderFontSize';
 
