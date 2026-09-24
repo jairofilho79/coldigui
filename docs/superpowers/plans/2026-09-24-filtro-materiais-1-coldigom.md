@@ -686,13 +686,12 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Depois do merge (com ok do dono, fora das tasks)
+## Deploy (com ok do dono, fora das tasks)
 
-A ordem é obrigatória: um Worker novo sobre um D1 sem a migration devolve 500 no dump.
+A ordem é obrigatória: a CI (`.github/workflows/deploy-api.yml`) faz o deploy do Worker a cada push em `main` que toca `api/**`, e um Worker novo sobre um D1 sem a migration devolve 500 no dump. A migration é segura com o Worker antigo (colunas novas anuláveis; nenhuma consulta antiga usa `SELECT *`).
 
-1. Abrir a PR `feat/material-kind-classes` → `develop`/`main`, seguindo o fluxo do repo.
-2. Com ok do dono, aplicar a migration no D1 remoto:
-   `cd api && wrangler d1 execute coldigom --remote --file=migrations/024_material_kind_classes.sql`
-3. Rodar a verificação do fim do arquivo no remoto; ela deve voltar vazia.
-4. Com ok do dono, fazer o deploy do Worker.
-5. Conferir: `curl -s https://coldigom-api.jairofilho79.workers.dev/api/plpcg/catalog | head -c 600` mostra `kindClasses`.
+1. Aplicar a migration no D1 remoto **antes** de qualquer merge que chegue em `main`:
+   `cd api && npx wrangler d1 execute coldigom --remote --file=migrations/024_material_kind_classes.sql`
+2. Rodar a verificação do fim do arquivo no remoto; ela deve voltar vazia. Se a migration falhar no meio, conferir `PRAGMA table_info(material_kinds)` antes de repetir: se as colunas já existem, rodar só os `INSERT` e `UPDATE`.
+3. PR `feat/material-kind-classes` → `develop`, merge; PR `develop` → `main`, merge. A CI roda os testes com cobertura e faz o deploy.
+4. Conferir: `curl -s https://coldigom-api.jairofilho79.workers.dev/api/plpcg/catalog | head -c 600` mostra `kindClasses`, e os kinds trazem `class`.
