@@ -187,9 +187,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coldigomFilterRhythm => 'Rhythm';
 
   @override
-  String get coldigomFilterCategory => 'Category';
-
-  @override
   String get coldigomFilterTags => 'Tags';
 
   @override
@@ -692,9 +689,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coldigomMetaRhythm => 'Rhythm';
-
-  @override
-  String get coldigomMetaCategory => 'Category';
 
   @override
   String get coldigomMetaTags => 'Tags';
@@ -1705,9 +1699,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contributeMetadataRhythm => 'Rhythm';
-
-  @override
-  String get contributeMetadataCategory => 'Category';
 
   @override
   String get contributeMetadataTags => 'Tags';
