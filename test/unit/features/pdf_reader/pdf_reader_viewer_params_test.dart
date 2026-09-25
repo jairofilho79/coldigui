@@ -58,7 +58,8 @@ void main() {
     );
 
     testWidgets(
-      'getPageRenderingScale segue PdfRenderScalePolicy no nativo e na web',
+      'sem viewer pronto, getPageRenderingScale cai na política antiga '
+      '(nativo e web)',
       (tester) async {
         late BuildContext context;
         await tester.pumpWidget(
@@ -91,7 +92,21 @@ void main() {
       },
     );
 
-    testWidgets('em tela 1× o teto por DPR (2.0) vence', (tester) async {
+    test(
+      'getPageRenderingScale é pdfReaderPreviewScale (escala pela tela)',
+      () {
+        for (final isWeb in [false, true]) {
+          expect(
+            _params(isWeb: isWeb).getPageRenderingScale,
+            pdfReaderPreviewScale,
+          );
+        }
+      },
+    );
+
+    testWidgets('sem viewer pronto, em tela 1× o teto por DPR (2.0) vence', (
+      tester,
+    ) async {
       late BuildContext context;
       await tester.pumpWidget(
         MediaQuery(
