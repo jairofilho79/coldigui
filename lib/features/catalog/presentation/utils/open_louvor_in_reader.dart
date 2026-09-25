@@ -4,10 +4,10 @@ import 'package:coldigui/features/offline/domain/entities/local_pdf_source.dart'
 import 'package:coldigui/features/pdf_opening/domain/utils/louvor_pdf_path.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/louvor.dart';
 import '../../../../core/errors/user_message_for.dart';
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../coldigom/data/coldigom_praise_cache_warmup.dart';
 import '../providers/louvor_pdf_download_provider.dart';
@@ -61,7 +61,7 @@ Future<void> openLouvorInReader({
         pdfId: louvor.pdfId,
         titulo: louvor.nome,
       );
-  unawaited(context.push(location));
+  openReadingLocation(context, location);
 }
 
 /// Adicionar à playlist ativa nunca deve impedir abrir o PDF (A3).

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/utils/gesture_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
@@ -57,13 +57,12 @@ Future<void> openGestureInReader({
 
   if (!context.mounted) return;
 
-  unawaited(
-    context.push(
-      buildGestureReaderLocation(
-        gestureId: gesture.gestureId,
-        titulo: gesture.nome,
-        subtitulo: gesture.numero,
-      ),
+  openReadingLocation(
+    context,
+    buildGestureReaderLocation(
+      gestureId: gesture.gestureId,
+      titulo: gesture.nome,
+      subtitulo: gesture.numero,
     ),
   );
 }

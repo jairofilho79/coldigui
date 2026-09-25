@@ -1,3 +1,4 @@
+import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
@@ -222,13 +223,7 @@ Future<void> _onReadableMaterialSelected({
     ref: ref,
     context: context,
     materialId: selected.id,
-    navigate: (location) async {
-      if (onReader) {
-        context.replace(location);
-      } else {
-        context.push(location);
-      }
-    },
+    navigate: (location) async => openReadingLocation(context, location),
   );
   if (!context.mounted) return;
   final focusedKey = _keyForMaterialId(ref, selected.id);

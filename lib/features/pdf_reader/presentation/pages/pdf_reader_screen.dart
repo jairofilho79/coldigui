@@ -14,6 +14,7 @@ import 'package:coldigui/features/contributions/domain/entities/contribution_kin
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
 import 'package:coldigui/features/contributions/presentation/utils/open_contribute.dart';
 import 'package:coldigui/features/offline/data/providers/offline_providers.dart';
+import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/shell_navigation.dart';
 import 'package:coldigui/features/offline/domain/exceptions/pdf_resolve_exceptions.dart';
@@ -36,7 +37,6 @@ import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_pdf
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// Query param que, se presente na rota, sinaliza uma página específica
 /// pedida explicitamente (deep link) — desliga a restauração da última
@@ -238,7 +238,7 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
             pdfId: pdfId,
             titulo: louvor.nome,
           );
-      context.replace(location);
+      replaceReadingLocation(context, location);
     } on PdfExternallyDeletedException {
       // Caso especial (fix round 1): PdfExternallyDeletedException tem texto
       // e ação ("Baixar") próprios — `l10n.pdfExternallyDeleted` é mais

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/platform/platform_capabilities.dart';
 import '../../../../core/platform/platform_capabilities_provider.dart';
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../audio_player/domain/entities/audio_track.dart';
@@ -85,7 +85,8 @@ Future<void> openLyricsInReader({
   required BuildContext context,
   required LyricsMaterial lyrics,
 }) async {
-  await context.push(
+  openReadingLocation(
+    context,
     buildLyricsReaderLocation(
       praiseId: lyrics.praiseId,
       titulo: lyrics.nome,

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/utils/chord_reader_url_builder.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
@@ -68,13 +68,12 @@ Future<void> openChordInReader({
 
   if (!context.mounted) return;
 
-  unawaited(
-    context.push(
-      buildChordReaderLocation(
-        chordId: chord.chordId,
-        titulo: chord.nome,
-        subtitulo: chord.numero,
-      ),
+  openReadingLocation(
+    context,
+    buildChordReaderLocation(
+      chordId: chord.chordId,
+      titulo: chord.nome,
+      subtitulo: chord.numero,
     ),
   );
 }

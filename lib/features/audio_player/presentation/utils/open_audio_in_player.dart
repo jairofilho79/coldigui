@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
@@ -14,7 +15,8 @@ import 'package:go_router/go_router.dart';
 
 /// Navega para `/audio` com os query params da faixa (sem alterar a sessão).
 ///
-/// No-op se já estiver na rota de áudio.
+/// No-op se já estiver na rota de áudio; vindo de outro leitor, substitui a
+/// rota em vez de empilhar ([openReadingLocation]).
 void pushAudioPlayerRoute(BuildContext context, AudioTrack track) {
   if (!context.mounted) return;
   final path = GoRouterState.of(context).uri.path;
@@ -28,7 +30,7 @@ void pushAudioPlayerRoute(BuildContext context, AudioTrack track) {
   final query = params.entries
       .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
       .join('&');
-  unawaited(context.push('${RoutePaths.audio}?$query'));
+  openReadingLocation(context, '${RoutePaths.audio}?$query');
 }
 
 /// Índice inicial da fila — [startIndex] ganha; senão o [track.audioId].

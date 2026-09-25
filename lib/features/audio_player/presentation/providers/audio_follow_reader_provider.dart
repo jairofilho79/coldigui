@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/shared_prefs_provider.dart';
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/utils/url_sync_params.dart';
 import '../../../carousel/presentation/providers/carousel_focused_index_provider.dart';
@@ -145,8 +146,8 @@ String? resolveGroupIdForMaterial(
 
 /// Abre no leitor o material do louvor [groupId] (botão "partitura/cifra").
 ///
-/// `replace` na rota de leitura (troca o material sem empilhar) e `push` fora
-/// dela — mesma convenção de [openCarouselPdfInReader] no carousel.
+/// `replace` numa rota de leitura — inclusive `/audio`, de onde o botão sai —
+/// e `push` fora dela ([openReadingLocation]).
 Future<void> openMaterialForGroupInReader({
   required WidgetRef ref,
   required BuildContext context,
@@ -155,18 +156,11 @@ Future<void> openMaterialForGroupInReader({
   final targetPdfId = resolveMaterialForGroup(ref, groupId, listen: false);
   if (targetPdfId == null) return;
 
-  final onReader = isReaderRoute(context);
   await openCarouselPdfInReader(
     ref: ref,
     context: context,
     materialId: targetPdfId,
-    navigate: (location) async {
-      if (onReader) {
-        context.replace(location);
-      } else {
-        context.push(location);
-      }
-    },
+    navigate: (location) async => openReadingLocation(context, location),
   );
   if (!context.mounted) return;
 

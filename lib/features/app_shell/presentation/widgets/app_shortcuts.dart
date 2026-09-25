@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../../core/routing/reading_navigation.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/routing/shell_navigation.dart';
 import '../../../../core/widgets/app_snackbar.dart';
@@ -121,7 +121,7 @@ Future<bool> navigateReaderCarouselByKeyboard({
       _showReaderActionError(context);
       return false;
     }
-    context.replace(location);
+    replaceReadingLocation(context, location);
     return true;
   } on Object catch (error) {
     debugPrint('[AppShortcuts.navigateReaderCarouselByKeyboard] $error');

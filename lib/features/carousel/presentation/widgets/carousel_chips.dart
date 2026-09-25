@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:coldigui/core/routing/reading_navigation.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
@@ -234,9 +235,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         ref: ref,
         context: context,
         materialId: item.materialId,
-        navigate: (location) async {
-          context.push(location);
-        },
+        navigate: (location) async => openReadingLocation(context, location),
       );
       if (!mounted) return;
       ref.read(carouselFocusedIndexProvider.notifier).focusKey(item.key);
@@ -306,7 +305,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
       if (!mounted) return;
 
       if (location != null) {
-        context.replace(location);
+        replaceReadingLocation(context, location);
       }
     } finally {
       if (mounted) setState(() => _carouselNavLoading = false);
@@ -342,9 +341,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         ref: ref,
         context: context,
         materialId: selected.materialId,
-        navigate: (location) async {
-          context.replace(location);
-        },
+        navigate: (location) async => replaceReadingLocation(context, location),
       );
     } finally {
       if (mounted) setState(() => _carouselNavLoading = false);
@@ -383,7 +380,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
         return;
       }
 
-      context.replace(location);
+      replaceReadingLocation(context, location);
     } on InvalidPdfPathException {
       if (mounted) {
         showAppSnackbar(
