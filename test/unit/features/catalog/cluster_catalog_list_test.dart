@@ -92,4 +92,33 @@ void main() {
       '…a ti pertence…',
     );
   });
+
+  group('índice desatualizado: o remoto diz outro grupo', () {
+    // O índice ainda põe b em G; a busca remota já traz b no grupo H.
+    final bEmH = _g('b', '002').withColdigomMeta(
+      const ColdigomPraiseMetadata(name: 'Louvor b', groupId: 'H'),
+    );
+
+    List<String> praiseIdsOf(List<String> described) => [
+      for (final entry in described)
+        ...entry
+            .replaceAll(RegExp(r'[\[\]()]'), '')
+            .split(' ')
+            .where((id) => id.isNotEmpty),
+    ];
+
+    test('b entra no amendoim de G e não reaparece solto', () {
+      final result = run([a, bEmH], [a, b]);
+      final ids = praiseIdsOf(result);
+      expect(ids.toSet().length, ids.length, reason: '$result');
+      expect(result, ['[a b]']);
+    });
+
+    test('b casado primeiro fica solto e G, sem ele, vira chip de a', () {
+      final result = run([bEmH, a], [a, b]);
+      final ids = praiseIdsOf(result);
+      expect(ids.toSet().length, ids.length, reason: '$result');
+      expect(result, ['b', 'a']);
+    });
+  });
 }

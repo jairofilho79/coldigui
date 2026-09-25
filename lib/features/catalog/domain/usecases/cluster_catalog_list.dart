@@ -15,6 +15,11 @@ import 'cluster_member_order.dart';
 ///   os membros; as aparições seguintes são puladas.
 /// - Grupo que fica com 1 membro depois da soma vira [SingleEntry]; grupo
 ///   sem membro em [ordered] não aparece.
+/// - Nenhum praiseId sai duas vezes. Com o índice desatualizado, o remoto
+///   pode trazer em [ordered] um praise X com grupo H enquanto o índice ainda
+///   o põe em G: quem sai primeiro fica com X (o amendoim de G o puxa como
+///   membro; ou X sai solto/em H e G segue sem ele) e a outra aparição é
+///   pulada.
 List<CatalogListEntry> clusterCatalogList(
   List<LouvorGroup> ordered, {
   required List<LouvorGroup> Function(String praiseGroupId) membersOf,
@@ -30,11 +35,18 @@ List<CatalogListEntry> clusterCatalogList(
   }
 
   final clustered = <String>{};
+  final emitted = <String>{};
   final entries = <CatalogListEntry>[];
+  void emitSingle(LouvorGroup group) {
+    emitted.add(group.groupId);
+    entries.add(SingleEntry(group));
+  }
+
   for (final group in ordered) {
+    if (emitted.contains(group.groupId)) continue;
     final key = praiseGroupKeyOf(group);
     if (key == null) {
-      entries.add(SingleEntry(group));
+      emitSingle(group);
       continue;
     }
     if (clustered.contains(key)) continue;
@@ -47,8 +59,9 @@ List<CatalogListEntry> clusterCatalogList(
       byId.putIfAbsent(member.groupId, () => member);
     }
     byId[group.groupId] = group;
+    byId.removeWhere((id, _) => emitted.contains(id));
     if (byId.length < 2) {
-      entries.add(SingleEntry(group));
+      emitSingle(group);
       continue;
     }
 
@@ -56,6 +69,7 @@ List<CatalogListEntry> clusterCatalogList(
     final members = [
       for (final member in byId.values) orderedById[member.groupId] ?? member,
     ]..sort(compareClusterMembers);
+    emitted.addAll(byId.keys);
     entries.add(
       ClusterEntry(
         praiseGroupId: key,
