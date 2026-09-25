@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/utils/praise_group_id.dart';
 import '../../domain/utils/praise_short_id.dart';
 
 /// Material de um louvor (PDF, áudio, YouTube, etc.).
@@ -106,6 +107,7 @@ class PraiseDetailDto {
     this.tagNames = const [],
     this.lyricsExcerpt,
     this.shortId,
+    this.groupId,
   });
 
   final String id;
@@ -124,6 +126,9 @@ class PraiseDetailDto {
   /// `short_id` do praise ([normalizePraiseShortId]); `null` se ausente.
   final String? shortId;
 
+  /// `group_id` do praise ([normalizePraiseGroupId]); `null` fora de grupo.
+  final String? groupId;
+
   factory PraiseDetailDto.fromJson(Map<String, dynamic> json) {
     final materialsJson = json['materials'] as List<dynamic>? ?? const [];
     return PraiseDetailDto(
@@ -136,6 +141,7 @@ class PraiseDetailDto {
       tagNames: splitColdigomCsv(json['tag_names']),
       lyricsExcerpt: json['lyrics_excerpt'] as String?,
       shortId: normalizePraiseShortId(json['short_id']),
+      groupId: normalizePraiseGroupId(json['group_id']),
       materials: _parseMaterials(materialsJson),
     );
   }

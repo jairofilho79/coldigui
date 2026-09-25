@@ -62,6 +62,7 @@ void main() {
       expect(lido.tags, ['Coletânea · Clamor']);
       expect(lido.searchTokens, 'ainda ha tempo');
       expect(lido.shortId, '2cf');
+      expect(lido.groupId, isNull);
 
       // O próximo sync grava por cima com o schema novo.
       atual.write((isar) {

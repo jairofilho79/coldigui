@@ -98,6 +98,7 @@ abstract final class ColdigomPraiseCacheMapper {
           ),
       ],
       shortId: praise.shortId,
+      groupId: praise.groupId,
     );
   }
 
@@ -133,6 +134,7 @@ abstract final class ColdigomPraiseCacheMapper {
             ),
       ],
       shortId: praise.shortId,
+      groupId: praise.groupId,
     );
   }
 
@@ -179,6 +181,7 @@ abstract final class ColdigomPraiseCacheMapper {
       lyrics: '',
       materials: materials,
       shortId: meta?.shortId,
+      groupId: meta?.groupId,
     );
   }
 
@@ -221,6 +224,7 @@ abstract final class ColdigomPraiseCacheMapper {
     required String lyrics,
     required List<ColdigomCatalogMaterialEntry> materials,
     String? shortId,
+    String? groupId,
   }) {
     return ColdigomPraiseCache()
       ..praiseId = praiseId
@@ -233,6 +237,7 @@ abstract final class ColdigomPraiseCacheMapper {
       ..lyrics = lyrics
       ..materialsJson = jsonEncode([for (final m in materials) m.toJson()])
       ..shortId = shortId
+      ..groupId = groupId
       ..searchTokens = buildSearchTokens(
         name: name,
         number: number,
@@ -324,6 +329,7 @@ abstract final class ColdigomPraiseCacheMapper {
       tagNames: List<String>.from(row.tags),
       materials: materials,
       shortId: row.shortId,
+      groupId: row.groupId,
     );
   }
 }

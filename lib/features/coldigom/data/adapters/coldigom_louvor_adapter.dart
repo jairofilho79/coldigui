@@ -23,6 +23,7 @@ abstract final class ColdigomLouvorAdapter {
       tagNames: praise.tagNames,
       lyricsExcerpt: praise.lyricsExcerpt,
       shortId: praise.shortId,
+      groupId: praise.groupId,
     );
   }
 

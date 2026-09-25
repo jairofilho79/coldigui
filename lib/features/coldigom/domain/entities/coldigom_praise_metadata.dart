@@ -9,6 +9,7 @@ class ColdigomPraiseMetadata {
     this.tagNames = const [],
     this.lyricsExcerpt,
     this.shortId,
+    this.groupId,
   });
 
   final String name;
@@ -25,6 +26,11 @@ class ColdigomPraiseMetadata {
   /// mapa `ColdigomSearchIndex.groupByShortId`. `null` quando o coldigom
   /// ainda não o expõe para este praise.
   final String? shortId;
+
+  /// `groupId` do praise (chave opaca do grupo no coldigom) — é por ele que
+  /// a lista junta as versões num amendoim (spec louvores-agrupados §4).
+  /// `null` fora de grupo.
+  final String? groupId;
 
   /// Há algo a mostrar no bloco de metadados da ficha. A seção da Coletânea
   /// vem em [tagNames] (spec seções-coletânea §4.1).

@@ -32,6 +32,7 @@ final ColdigomPraiseCacheSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'materialsJson', type: IsarType.string),
       IsarPropertySchema(name: 'searchTokens', type: IsarType.string),
       IsarPropertySchema(name: 'shortId', type: IsarType.string),
+      IsarPropertySchema(name: 'groupId', type: IsarType.string),
     ],
     indexes: [
       IsarIndexSchema(
@@ -80,6 +81,14 @@ int serializeColdigomPraiseCache(
       IsarCore.writeString(writer, 11, value);
     }
   }
+  {
+    final value = object.groupId;
+    if (value == null) {
+      IsarCore.writeNull(writer, 12);
+    } else {
+      IsarCore.writeString(writer, 12, value);
+    }
+  }
   return object.id;
 }
 
@@ -113,6 +122,7 @@ ColdigomPraiseCache deserializeColdigomPraiseCache(IsarReader reader) {
   object.materialsJson = IsarCore.readString(reader, 9) ?? '';
   object.searchTokens = IsarCore.readString(reader, 10) ?? '';
   object.shortId = IsarCore.readString(reader, 11);
+  object.groupId = IsarCore.readString(reader, 12);
   return object;
 }
 
@@ -158,6 +168,8 @@ dynamic deserializeColdigomPraiseCacheProp(IsarReader reader, int property) {
       return IsarCore.readString(reader, 10) ?? '';
     case 11:
       return IsarCore.readString(reader, 11);
+    case 12:
+      return IsarCore.readString(reader, 12);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -176,6 +188,7 @@ sealed class _ColdigomPraiseCacheUpdate {
     String? materialsJson,
     String? searchTokens,
     String? shortId,
+    String? groupId,
   });
 }
 
@@ -197,6 +210,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
     Object? shortId = ignore,
+    Object? groupId = ignore,
   }) {
     return collection.updateProperties(
           [id],
@@ -211,6 +225,7 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
             if (materialsJson != ignore) 9: materialsJson as String?,
             if (searchTokens != ignore) 10: searchTokens as String?,
             if (shortId != ignore) 11: shortId as String?,
+            if (groupId != ignore) 12: groupId as String?,
           },
         ) >
         0;
@@ -230,6 +245,7 @@ sealed class _ColdigomPraiseCacheUpdateAll {
     String? materialsJson,
     String? searchTokens,
     String? shortId,
+    String? groupId,
   });
 }
 
@@ -252,6 +268,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
     Object? shortId = ignore,
+    Object? groupId = ignore,
   }) {
     return collection.updateProperties(id, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -264,6 +281,7 @@ class _ColdigomPraiseCacheUpdateAllImpl
       if (materialsJson != ignore) 9: materialsJson as String?,
       if (searchTokens != ignore) 10: searchTokens as String?,
       if (shortId != ignore) 11: shortId as String?,
+      if (groupId != ignore) 12: groupId as String?,
     });
   }
 }
@@ -288,6 +306,7 @@ sealed class _ColdigomPraiseCacheQueryUpdate {
     String? materialsJson,
     String? searchTokens,
     String? shortId,
+    String? groupId,
   });
 }
 
@@ -310,6 +329,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
     Object? shortId = ignore,
+    Object? groupId = ignore,
   }) {
     return query.updateProperties(limit: limit, {
       if (praiseId != ignore) 1: praiseId as String?,
@@ -322,6 +342,7 @@ class _ColdigomPraiseCacheQueryUpdateImpl
       if (materialsJson != ignore) 9: materialsJson as String?,
       if (searchTokens != ignore) 10: searchTokens as String?,
       if (shortId != ignore) 11: shortId as String?,
+      if (groupId != ignore) 12: groupId as String?,
     });
   }
 }
@@ -354,6 +375,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
     Object? shortId = ignore,
+    Object? groupId = ignore,
   }) {
     final q = query.build();
     try {
@@ -368,6 +390,7 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
         if (materialsJson != ignore) 9: materialsJson as String?,
         if (searchTokens != ignore) 10: searchTokens as String?,
         if (shortId != ignore) 11: shortId as String?,
+        if (groupId != ignore) 12: groupId as String?,
       });
     } finally {
       q.close();
@@ -2033,6 +2056,165 @@ extension ColdigomPraiseCacheQueryFilter
       );
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdIsNotNull() {
+    return QueryBuilder.apply(not(), (query) {
+      return query.addFilterCondition(const IsNullCondition(property: 12));
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdGreaterThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdGreaterThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        GreaterOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdLessThan(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessCondition(property: 12, value: value, caseSensitive: caseSensitive),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdLessThanOrEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        LessOrEqualCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdBetween(String? lower, String? upper, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        BetweenCondition(
+          property: 12,
+          lower: lower,
+          upper: upper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        StartsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        EndsWithCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        ContainsCondition(
+          property: 12,
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        MatchesCondition(
+          property: 12,
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const EqualCondition(property: 12, value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
+  groupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const GreaterCondition(property: 12, value: ''),
+      );
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryObject
@@ -2198,6 +2380,20 @@ extension ColdigomPraiseCacheQuerySortBy
       return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  sortByGroupIdDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQuerySortThenBy
@@ -2355,6 +2551,20 @@ extension ColdigomPraiseCacheQuerySortThenBy
       return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
+  thenByGroupIdDesc({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryWhereDistinct
@@ -2435,6 +2645,13 @@ extension ColdigomPraiseCacheQueryWhereDistinct
       return query.addDistinctBy(11, caseSensitive: caseSensitive);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
+  distinctByGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(12, caseSensitive: caseSensitive);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty1
@@ -2511,6 +2728,12 @@ extension ColdigomPraiseCacheQueryProperty1
   QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty> shortIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty> groupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }
@@ -2599,6 +2822,13 @@ extension ColdigomPraiseCacheQueryProperty2<R>
       return query.addProperty(11);
     });
   }
+
+  QueryBuilder<ColdigomPraiseCache, (R, String?), QAfterProperty>
+  groupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
+    });
+  }
 }
 
 extension ColdigomPraiseCacheQueryProperty3<R1, R2>
@@ -2683,6 +2913,13 @@ extension ColdigomPraiseCacheQueryProperty3<R1, R2>
   shortIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(11);
+    });
+  }
+
+  QueryBuilder<ColdigomPraiseCache, (R1, R2, String?), QOperations>
+  groupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addProperty(12);
     });
   }
 }

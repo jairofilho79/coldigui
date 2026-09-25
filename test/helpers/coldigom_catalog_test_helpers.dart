@@ -25,6 +25,7 @@ LouvorGroup catalogGroup({
   Map<String, String> pdfKinds = const {'k-partitura': 'Partitura'},
   Map<String, String> audioKinds = const {},
   String? shortId,
+  String? groupId,
 }) {
   final materials = <MaterialDto>[
     for (final kind in pdfKinds.entries)
@@ -52,6 +53,7 @@ LouvorGroup catalogGroup({
     tonality: tonality,
     tagNames: tags,
     shortId: shortId,
+    groupId: groupId,
     materials: materials,
   );
   return LouvorGroup.fromLouvores(
