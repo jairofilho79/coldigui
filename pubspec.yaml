@@ -49,6 +49,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+# pdfrx 2.6.1 com patch local (ImageBitmap no worker, web) — ver
+# third_party/pdfrx/PATCH.md. Remover esta seção volta ao pacote do pub.dev.
+dependency_overrides:
+  pdfrx:
+    path: third_party/pdfrx
+
 flutter_launcher_icons:
   android: true
   ios: true
