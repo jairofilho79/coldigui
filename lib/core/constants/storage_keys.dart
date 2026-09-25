@@ -60,6 +60,12 @@ abstract final class StorageKeys {
   /// sync pede o dump inteiro (spec filtro-materiais §4.1).
   static const String coldigomKindTaxonomy = 'coldigomKindTaxonomy';
 
+  /// Versão do formato do dump que as linhas do Isar sabem ler
+  /// (`coldigomCatalogSchemaVersion`). Menor que a do app, ou ausente, faz o
+  /// próximo sync pedir o dump inteiro (spec louvores-agrupados §3.4).
+  static const String coldigomCatalogSchemaVersion =
+      'coldigomCatalogSchemaVersion';
+
   /// Corpo da letra no leitor de letras `/letra` (`double`).
   static const String lyricsReaderFontSize = 'lyricsReaderFontSize';
 
