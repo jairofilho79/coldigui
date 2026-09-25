@@ -51,14 +51,14 @@ void main() {
   });
 
   test(
-    'a categoria do praise não filtra; link antigo acha a seção pela subtag',
+    'link antigo ?category= acha a seção pela subtag, não quem está fora dela',
     () {
       final secao = catalogGroup(
         praiseId: 'p4',
         name: 'Seção',
         tags: const ['Coletânea · Clamor'],
       );
-      final soCategoria = catalogGroup(praiseId: 'p5', name: 'Só categoria');
+      final semSecao = catalogGroup(praiseId: 'p5', name: 'Sem seção');
       final outraSecao = catalogGroup(
         praiseId: 'p6',
         name: 'Outra seção',
@@ -67,7 +67,7 @@ void main() {
       final fromLink = CatalogFilterState.fromUrl(category: 'Clamor');
 
       expect(matches(secao, fromLink), isTrue);
-      expect(matches(soCategoria, fromLink), isFalse);
+      expect(matches(semSecao, fromLink), isFalse);
       // A raiz Coletânea entra junto com a subtag na conversão do link
       // legado, mas catalogTagsRefined a descarta por ter descendente
       // selecionado — não pode alargar o filtro para outras seções.
