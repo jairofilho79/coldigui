@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
-import 'package:coldigui/core/platform/platform_capabilities.dart';
-import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
@@ -16,6 +14,7 @@ import 'package:coldigui/features/coldigom/domain/repositories/coldigom_search_r
 import '../../../helpers/coldigom_catalog_test_helpers.dart';
 
 import 'package:coldigui/l10n/app_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -352,8 +351,8 @@ void main() {
   );
 
   testWidgets(
-    'SearchBar autofoca com capabilities.isWeb=true, mesmo sem ProviderScope '
-    '(T2 — currentPlatformCapabilities() só como default do parâmetro)',
+    'SearchBar autofoca só com teclado físico (defaultTargetPlatform — na web, '
+    'o SO do navegador)',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -361,52 +360,19 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('pt'),
           home: Scaffold(
-            body: SearchBar(
-              hintText: 'Buscar',
-              onQueryChanged: (_) {},
-              capabilities: PlatformCapabilities.web,
-            ),
+            body: SearchBar(hintText: 'Buscar', onQueryChanged: (_) {}),
           ),
         ),
       );
 
-      // Plataforma de teste é Android (não-desktop, `defaultTargetPlatform`):
-      // sem `capabilities.isWeb`, o autofoco ficaria false (UC-01, C1).
       final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.autofocus, isTrue);
+      final desktop = const {
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+      }.contains(defaultTargetPlatform);
+      expect(field.autofocus, desktop);
     },
-  );
-
-  testWidgets(
-    'HomeScreen repassa platformCapabilitiesProvider ao SearchBar (T2 — '
-    'sem currentPlatformCapabilities() direto no widget)',
-    (tester) async {
-      final prefs = await SharedPreferences.getInstance();
-      final catalog = [_louvor(nome: 'Aleluia', numero: '001')];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: _homeSearchTestOverrides(
-            prefs: prefs,
-            catalog: catalog,
-            extra: [
-              platformCapabilitiesProvider.overrideWithValue(
-                PlatformCapabilities.web,
-              ),
-            ],
-          ),
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('pt'),
-            home: const HomeScreen(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.autofocus, isTrue);
-    },
+    variant: TargetPlatformVariant.all(),
   );
 }

@@ -97,36 +97,34 @@ void main() {
   });
 
   group('shouldAutofocusSearch', () {
-    test('web abre com o cursor no campo', () {
-      expect(
-        shouldAutofocusSearch(isWeb: true, platform: TargetPlatform.android),
-        isTrue,
-      );
-    });
-
-    test('desktop abre com o cursor no campo', () {
+    // Na web, `defaultTargetPlatform` é o SO do navegador: o mesmo teste
+    // cobre o app nativo e o site/PWA.
+    test('desktop (nativo ou navegador) abre com o cursor no campo', () {
       for (final platform in const [
         TargetPlatform.macOS,
         TargetPlatform.windows,
         TargetPlatform.linux,
       ]) {
         expect(
-          shouldAutofocusSearch(isWeb: false, platform: platform),
+          shouldAutofocusSearch(platform: platform),
           isTrue,
           reason: '$platform tem teclado físico',
         );
       }
     });
 
-    test('celular nativo não abre o teclado sozinho', () {
+    test('celular (nativo ou navegador/PWA) abre sem foco', () {
+      // Na web do celular o campo focado deixa o engine em «edição», que
+      // congela o tamanho da tela: se a janela muda logo após abrir o PWA,
+      // a barra de navegação de baixo fica cortada até fechar o app.
       for (final platform in const [
         TargetPlatform.android,
         TargetPlatform.iOS,
       ]) {
         expect(
-          shouldAutofocusSearch(isWeb: false, platform: platform),
+          shouldAutofocusSearch(platform: platform),
           isFalse,
-          reason: '$platform abriria o teclado virtual sem pedido',
+          reason: '$platform não tem teclado físico',
         );
       }
     });

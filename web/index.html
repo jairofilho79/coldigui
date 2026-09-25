@@ -314,6 +314,105 @@
     })();
   </script>
 
+  <script id="plpcg-viewport-guard">
+    // Guarda do tamanho da tela (barra de navegação de baixo «cortada» ao
+    // abrir o PWA, só resolvida fechando o app). O Flutter web (full-page) só
+    // re-mede a janela no 'resize' do visualViewport — no iOS mede
+    // documentElement.clientHeight, que o WebKit do app instalado às vezes
+    // muda sem disparar esse evento — e congela o tamanho enquanto há campo
+    // de texto em edição (pesquisa), sem re-medir quando a edição acaba. Aí o
+    // <flutter-view> fica mais alto que a página e o fim dele (a barra) sai
+    // da tela. O guarda compara a altura em que o Flutter desenhou
+    // (<flutter-view>.style.height, gravada a cada frame) com a da página e,
+    // se divergirem sem campo focado, dispara um 'resize' sintético no
+    // visualViewport: o engine re-mede como num resize real.
+    // window.__plpcgViewport.heals guarda as últimas correções (diagnóstico
+    // pelo Web Inspector do Safari).
+    (function () {
+      var vv = window.visualViewport;
+      if (!vv || typeof vv.dispatchEvent !== 'function') return;
+      var state = { heals: [], lastKey: null };
+      window.__plpcgViewport = state;
+
+      function editing() {
+        var el = document.activeElement;
+        if (!el) return false;
+        return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+          el.isContentEditable === true;
+      }
+
+      function check(reason) {
+        var view = document.querySelector('flutter-view');
+        if (!view) return;
+        var viewH = parseFloat(view.style.height);
+        var viewW = parseFloat(view.style.width);
+        if (!(viewH > 0) || !(viewW > 0)) return;
+        var root = document.documentElement;
+        var pageH = root.clientHeight;
+        var pageW = root.clientWidth;
+        if (Math.abs(viewH - pageH) <= 1 && Math.abs(viewW - pageW) <= 1) {
+          state.lastKey = null;
+          return;
+        }
+        // Em edição o engine segura o tamanho de propósito (teclado vira
+        // viewInsets); o focusout volta a verificar.
+        if (editing()) return;
+        // Uma tentativa por par de medidas: se o engine chegar ao mesmo
+        // valor (fora do iOS ele mede o visualViewport), não insistir.
+        var key = viewW + 'x' + viewH + '/' + pageW + 'x' + pageH;
+        if (key === state.lastKey) return;
+        state.lastKey = key;
+        var heal = {
+          reason: reason,
+          at: Math.round(performance.now()),
+          view: viewW + 'x' + viewH,
+          page: pageW + 'x' + pageH,
+          visualViewport: vv.width + 'x' + vv.height,
+          inner: window.innerWidth + 'x' + window.innerHeight,
+          screen: window.screen ? window.screen.width + 'x' + window.screen.height : null,
+        };
+        state.heals.push(heal);
+        if (state.heals.length > 20) state.heals.shift();
+        try {
+          console.info('[viewport] re-medindo: ' + JSON.stringify(heal));
+        } catch (e) {}
+        vv.dispatchEvent(new Event('resize'));
+      }
+
+      function schedule(reason, delay) {
+        window.setTimeout(function () { check(reason); }, delay);
+      }
+
+      window.addEventListener('flutter-first-frame', function () {
+        schedule('first-frame', 0);
+        schedule('first-frame+1s', 1000);
+        schedule('first-frame+3s', 3000);
+      }, { once: true });
+      window.addEventListener('resize', function () { schedule('resize', 150); });
+      window.addEventListener('orientationchange', function () {
+        schedule('orientationchange', 400);
+      });
+      window.addEventListener('pageshow', function () { schedule('pageshow', 300); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        schedule('visible', 300);
+        schedule('visible+1s', 1000);
+      });
+      // Fim da edição: o teclado leva ~250 ms a descer e o engine só larga o
+      // campo depois do framework.
+      document.addEventListener('focusout', function () {
+        schedule('focusout', 400);
+        schedule('focusout+1s', 1200);
+      });
+      if (typeof ResizeObserver === 'function') {
+        try {
+          new ResizeObserver(function () { schedule('observer', 150); })
+            .observe(document.documentElement);
+        } catch (e) {}
+      }
+    })();
+  </script>
+
   <script>
     // Service worker do shell (web/sw.js — spec 2026-09-14-pwa-shell-offline).
     // Registado só depois do primeiro frame: o boot é o caminho crítico e o

@@ -1,4 +1,3 @@
-import 'package:coldigui/core/platform/platform_capabilities.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/widgets/golden_tagged_container.dart';
@@ -9,14 +8,15 @@ import 'package:flutter/services.dart';
 
 /// Decide se a busca abre já com o cursor dentro (C1).
 ///
-/// Web e desktop têm teclado físico: quem chega no pesquisador quer digitar, e
-/// o campo é o único destino plausível. No celular o autofoco abriria o teclado
-/// virtual por cima dos resultados sem ninguém pedir.
-bool shouldAutofocusSearch({
-  required bool isWeb,
-  required TargetPlatform platform,
-}) {
-  if (isWeb) return true;
+/// Só com teclado físico (desktop — nativo ou navegador; na web
+/// [defaultTargetPlatform] é o SO do navegador): quem chega no pesquisador
+/// quer digitar, e o campo é o único destino plausível. No celular o
+/// autofoco abriria o teclado virtual por cima dos resultados sem ninguém
+/// pedir — e na web do celular é pior: o campo focado deixa o engine em
+/// «edição», que congela o tamanho da tela (redimensionamento vira
+/// `viewInsets` de teclado). Se a janela muda logo após abrir o PWA, a
+/// barra de navegação de baixo fica fora da tela até fechar o app.
+bool shouldAutofocusSearch({required TargetPlatform platform}) {
   return platform == TargetPlatform.macOS ||
       platform == TargetPlatform.windows ||
       platform == TargetPlatform.linux;
@@ -51,19 +51,11 @@ class SearchBar extends StatefulWidget {
     this.initialValue = '',
     this.focusNode,
     this.onSubmitted,
-    this.capabilities,
   });
 
   /// [FocusNode] externo — a Home usa para o atalho `Ctrl+K` / `/`.
   /// Quando `null`, o widget cria e descarta o seu.
   final FocusNode? focusNode;
-
-  /// Capacidades da plataforma usadas em [shouldAutofocusSearch] (C1).
-  ///
-  /// `null` cai em [currentPlatformCapabilities] — mantém os testes que
-  /// montam [SearchBar] sem `ProviderScope` funcionando (T2). Em produção o
-  /// pai com `ref` (`home_screen.dart`) passa `platformCapabilitiesProvider`.
-  final PlatformCapabilities? capabilities;
 
   /// Enter no campo. Recebe o texto atual.
   final ValueChanged<String>? onSubmitted;
@@ -162,9 +154,6 @@ class _SearchBarState extends State<SearchBar> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   autofocus: shouldAutofocusSearch(
-                    isWeb:
-                        (widget.capabilities ?? currentPlatformCapabilities())
-                            .isWeb,
                     platform: defaultTargetPlatform,
                   ),
                   textInputAction: TextInputAction.search,

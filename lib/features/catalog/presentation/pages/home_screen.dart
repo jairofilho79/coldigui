@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:coldigui/core/network/connectivity_stream_provider.dart';
-import 'package:coldigui/core/platform/platform_capabilities_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/routing/url_sync_navigation.dart';
 import 'package:coldigui/core/theme/app_typography.dart';
@@ -281,7 +280,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     hintText: l10n.searchHint,
                     initialValue: _searchBarInitialValue,
                     focusNode: _searchFocusNode,
-                    capabilities: ref.read(platformCapabilitiesProvider),
                     onQueryChanged: (value) {
                       ref
                           .read(homeSearchQueryProvider.notifier)
