@@ -1,6 +1,8 @@
 import '../../../helpers/legacy_ids_normalizer_test_helpers.dart';
 import '../../../support/fakes/fake_active_editor.dart';
+
 import 'dart:io';
+
 import 'package:coldigui/core/database/collections/playlist.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
@@ -12,6 +14,7 @@ import 'package:coldigui/features/app_shell/presentation/widgets/stage_wakelock.
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar.dart';
+import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
@@ -235,8 +238,14 @@ void main() {
   );
 
   testWidgets(
-    'em fullscreen, o mini-player aparece como overlay sobre o navigationShell',
+    'em fullscreen, o mini-player fica no topo, abaixo da safe area, e o '
+    'navigationShell começa abaixo dele',
     (tester) async {
+      // Status bar/notch de 30 px lógicos: a barra não pode ficar por baixo.
+      tester.view.devicePixelRatio = 3;
+      tester.view.padding = const FakeViewPadding(top: 90, bottom: 60);
+      addTearDown(tester.view.reset);
+
       await pumpShell(
         tester,
         initialLocation: '${RoutePaths.home}leitor',
@@ -256,7 +265,20 @@ void main() {
       expect(find.byType(MiniPlayerBar), findsOneWidget);
       final bar = tester.widget<MiniPlayerBar>(find.byType(MiniPlayerBar));
       expect(bar.overlay, isTrue);
-      expect(find.byType(Stack), findsWidgets);
+
+      // No topo (nunca no rodapé, área do gesto de sistema), logo abaixo do
+      // recuo de cima.
+      final barRect = tester.getRect(find.byType(MiniPlayerBar));
+      expect(barRect.top, 30);
+      expect(barRect.height, kMiniPlayerBarHeight);
+
+      // Espaço reservado: o leitor começa abaixo da barra, sem o recuo de
+      // cima (já consumido por ela) para não somá-lo de novo.
+      final shellFinder = find.byType(StatefulNavigationShell);
+      expect(tester.getTopLeft(shellFinder).dy, barRect.bottom);
+      final shellPadding = MediaQuery.paddingOf(tester.element(shellFinder));
+      expect(shellPadding.top, 0);
+      expect(shellPadding.bottom, 20);
     },
   );
 

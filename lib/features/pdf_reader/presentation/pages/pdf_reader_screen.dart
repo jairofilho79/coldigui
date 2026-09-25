@@ -6,8 +6,6 @@ import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/share_position_origin.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
-import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
@@ -317,13 +315,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
     final fitMode = ref.watch(
       pdfReaderViewSettingsProvider.select((settings) => settings.fitMode),
     );
-    // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
-    // (hideChrome + faixa tocando) — reserva o espaço do mini-player para o
-    // FAB de saída e o conteúdo não ficarem por baixo dele.
-    final hasPlayingTrack = ref.watch(
-      audioPlayerSessionProvider.select((s) => s.currentTrack != null),
-    );
-    final miniPlayerOverlayVisible = isFullscreen && hasPlayingTrack;
 
     // O botão «Reportar» só aparece quando dá pra montar um alvo — sem
     // `louvor` (pdfId vazio ou ainda não aquecido no lookup), a bandeirinha
@@ -336,7 +327,6 @@ class _PdfReaderScreenState extends ConsumerState<PdfReaderScreen> {
       titulo: titulo,
       showTitle: sessionLoading && carouselEmpty,
       isFullscreen: isFullscreen,
-      miniPlayerOverlayVisible: miniPlayerOverlayVisible,
       filePath: sessionLoaded ? filePath : null,
       onToggleFullscreen: () => ref.read(toggleReaderFullscreenProvider).call(),
       onToggleFitMode: () =>
@@ -425,7 +415,6 @@ class _ReaderScaffold extends StatelessWidget {
     required this.showTitle,
     required this.body,
     this.isFullscreen = false,
-    this.miniPlayerOverlayVisible = false,
     this.filePath,
     this.onToggleFullscreen,
     this.onToggleFitMode,
@@ -444,10 +433,6 @@ class _ReaderScaffold extends StatelessWidget {
   final bool showTitle;
   final bool isFullscreen;
 
-  /// `true` quando o overlay [MiniPlayerBar] (44 px, `bottom: 0`) some em
-  /// cima do FAB de saída e do conteúdo em fullscreen — mesma condição do
-  /// overlay em `shell_scaffold.dart` (Important 3, onda 4).
-  final bool miniPlayerOverlayVisible;
   final Widget body;
   final String? filePath;
   final VoidCallback? onToggleFullscreen;
@@ -483,17 +468,9 @@ class _ReaderScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Important 3 (onda 4): o mini-player overlay some em `bottom: 0` com
-    // 44 px de altura — sem este respiro o conteúdo fica coberto por ele.
-    final pdfArea = ColoredBox(
-      color: AppColors.pdfArea,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: miniPlayerOverlayVisible ? kMiniPlayerBarHeight : 0,
-        ),
-        child: body,
-      ),
-    );
+    // Em fullscreen com áudio, o mini-player fica no topo e o
+    // `shell_scaffold.dart` já entrega esta tela abaixo dele — nada a reservar.
+    final pdfArea = ColoredBox(color: AppColors.pdfArea, child: body);
 
     return Column(
       children: [
@@ -572,9 +549,7 @@ class _ReaderScaffold extends StatelessWidget {
               if (isFullscreen)
                 Positioned(
                   right: 16,
-                  bottom:
-                      16 +
-                      (miniPlayerOverlayVisible ? kMiniPlayerBarHeight : 0),
+                  bottom: 16,
                   child: Opacity(
                     opacity: 0.25,
                     child: FloatingActionButton(

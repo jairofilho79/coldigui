@@ -52,9 +52,10 @@ import 'widgets/stage_wakelock.dart';
 ///
 /// Mini-player persistente (D5, [MiniPlayerBar]): entre a barra de chips e o
 /// corpo sempre que há faixa corrente — sem faces (spec 2026-09-12, D1), o
-/// áudio vive só no mini-player; em fullscreen, sobrevive como overlay
-/// translúcido sobre o `navigationShell`. No layout com rail, mini-player e
-/// chips ficam na coluna à direita do rail.
+/// áudio vive só no mini-player; em fullscreen, sobrevive como faixa escura
+/// discreta no topo (abaixo da safe area), com o `navigationShell` abaixo
+/// dela — nunca no rodapé, que é a área do gesto de sistema. No layout com
+/// rail, mini-player e chips ficam na coluna à direita do rail.
 ///
 /// Título da aba (C14, [browserTitle]): o corpo do `Scaffold` fica dentro de
 /// um [Title] — mecanismo do Flutter para o `<title>` da aba no web
@@ -223,17 +224,35 @@ class ShellScaffold extends ConsumerWidget {
               child: Scaffold(
                 appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
                 body: hideChrome
-                    ? Stack(
+                    ? Column(
                         children: [
-                          navigationShell,
+                          // No topo, e não em `bottom: 0`: o rodapé da tela é
+                          // a área do gesto de sistema (Android e iOS), onde
+                          // um toque na barra virava «ir para o início».
+                          // `SafeArea` tira a barra de baixo do notch/status
+                          // bar; a faixa preta cobre esse recuo.
                           if (currentTrack != null)
-                            const Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              height: kMiniPlayerBarHeight,
-                              child: MiniPlayerBar(overlay: true),
+                            const ColoredBox(
+                              color: Colors.black,
+                              child: SafeArea(
+                                bottom: false,
+                                child: SizedBox(
+                                  height: kMiniPlayerBarHeight,
+                                  child: MiniPlayerBar(overlay: true),
+                                ),
+                              ),
                             ),
+                          // Espaço reservado em vez de sobreposição: o leitor
+                          // começa abaixo da barra e não perde a parte de cima
+                          // do PDF. Sem o recuo de cima (já consumido pela
+                          // barra), o `SafeArea` das telas não o soma de novo.
+                          Expanded(
+                            child: MediaQuery.removePadding(
+                              context: context,
+                              removeTop: currentTrack != null,
+                              child: navigationShell,
+                            ),
+                          ),
                         ],
                       )
                     : SafeArea(

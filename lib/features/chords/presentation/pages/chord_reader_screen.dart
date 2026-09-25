@@ -11,10 +11,7 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
-import '../../../audio_player/presentation/providers/audio_player_session_provider.dart';
-import '../../../audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
-import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_reader_font_size.dart';
@@ -270,14 +267,6 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     final semitones = ref.watch(chordReaderTransposeProvider(r2Key));
     final songAsync = ref.watch(chordSongProvider(r2Key));
     final autoscroll = ref.watch(chordAutoscrollProvider);
-    // Important 3 (onda 4): mesma condição do overlay em `shell_scaffold.dart`
-    // — reserva espaço para as últimas linhas não ficarem cobertas por ele.
-    final isFullscreen = ref.watch(readerFullscreenProvider);
-    final hasPlayingTrack = ref.watch(
-      audioPlayerSessionProvider.select((s) => s.currentTrack != null),
-    );
-    final bottomPadding =
-        24.0 + (isFullscreen && hasPlayingTrack ? kMiniPlayerBarHeight : 0);
 
     // Liga/desliga o motor do Ticker junto da intenção do usuário — o
     // provider só guarda o estado, quem move o scroll é este `State`.
@@ -368,11 +357,11 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                                   ),
                                 ),
                                 SliverPadding(
-                                  padding: EdgeInsets.fromLTRB(
+                                  padding: const EdgeInsets.fromLTRB(
                                     16,
                                     0,
                                     16,
-                                    bottomPadding,
+                                    24,
                                   ),
                                   sliver: ChordProView(
                                     song: song,

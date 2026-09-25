@@ -3,7 +3,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_reader_font_size.dart';
 import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
@@ -578,23 +577,25 @@ void main() {
       expect(lastPaddingBottom(tester), 24);
     });
 
-    testWidgets('fullscreen com faixa tocando soma a altura do mini-player', (
-      tester,
-    ) async {
-      await _pump(
-        tester,
-        available: true,
-        overrides: [
-          readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
-          audioPlayerSessionProvider.overrideWith(
-            () => _FakeAudioSession(
-              const AudioPlayerSessionState(queue: [_playingTrack]),
+    testWidgets(
+      'fullscreen com faixa tocando mantém o respiro padrão (mini-player no '
+      'topo)',
+      (tester) async {
+        await _pump(
+          tester,
+          available: true,
+          overrides: [
+            readerFullscreenProvider.overrideWith(_FullscreenFixedNotifier.new),
+            audioPlayerSessionProvider.overrideWith(
+              () => _FakeAudioSession(
+                const AudioPlayerSessionState(queue: [_playingTrack]),
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      expect(lastPaddingBottom(tester), 24 + kMiniPlayerBarHeight);
-    });
+        expect(lastPaddingBottom(tester), 24);
+      },
+    );
   });
 }

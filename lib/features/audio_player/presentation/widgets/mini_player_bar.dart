@@ -19,8 +19,8 @@ import 'mini_player_bar_metrics.dart';
 /// marcadores e transporte.
 ///
 /// Vive no `ShellScaffold`, único lugar com estes controles (sem faces — spec
-/// 2026-09-12, D1) e sobrevive ao fullscreen do leitor como overlay
-/// translúcido ([overlay] = `true`) sobre o `navigationShell`.
+/// 2026-09-12, D1) e sobrevive ao fullscreen do leitor como faixa escura
+/// discreta ([overlay] = `true`) no topo da tela, acima do `navigationShell`.
 ///
 /// Controles próprios (não reaproveita `AudioTransportControls`, que outra
 /// tarefa da onda edita em paralelo): faixa anterior / play-pausa / próxima,

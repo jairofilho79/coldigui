@@ -5,7 +5,6 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
-import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar_metrics.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -278,9 +277,8 @@ void main() {
     expect(find.byIcon(Icons.share), findsNothing);
   });
 
-  // Important 3 (onda 4): o overlay MiniPlayerBar (44px, bottom: 0) do shell
-  // aparece na mesma condição — fullscreen + faixa tocando — e cobriria a
-  // metade de baixo do FAB sem esse respiro.
+  // O mini-player de tela cheia fica no topo (`shell_scaffold.dart`) — o FAB
+  // de sair não precisa mais subir para escapar dele.
   Future<Positioned> pumpFullscreenFabPositioned(
     WidgetTester tester, {
     required List<Override> overrides,
@@ -321,7 +319,7 @@ void main() {
     );
   }
 
-  testWidgets('sem faixa tocando, fullscreen mantém o FAB em bottom 16 (I3)', (
+  testWidgets('sem faixa tocando, fullscreen mantém o FAB em bottom 16', (
     tester,
   ) async {
     final positioned = await pumpFullscreenFabPositioned(tester, overrides: []);
@@ -330,7 +328,7 @@ void main() {
   });
 
   testWidgets(
-    'com faixa tocando, fullscreen sobe o FAB acima do mini-player (I3)',
+    'com faixa tocando, o FAB também fica em bottom 16 (mini-player no topo)',
     (tester) async {
       final positioned = await pumpFullscreenFabPositioned(
         tester,
@@ -343,7 +341,7 @@ void main() {
         ],
       );
 
-      expect(positioned.bottom, 16 + kMiniPlayerBarHeight);
+      expect(positioned.bottom, 16);
     },
   );
 
@@ -383,9 +381,8 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider(
-            '/tmp/read-failed.pdf',
-          ).overrideWith((ref) => Future.error(readFailed)),
+          pdfReaderSessionProvider('/tmp/read-failed.pdf')
+              .overrideWith((ref) => Future.error(readFailed)),
         ],
         child: const MaterialApp(
           home: Scaffold(
@@ -421,9 +418,8 @@ void main() {
         _readerScope(
           prefs: prefs,
           overrides: [
-            pdfReaderSessionProvider(
-              '/tmp/read-failed.pdf',
-            ).overrideWith((ref) => Future.error(readFailed)),
+            pdfReaderSessionProvider('/tmp/read-failed.pdf')
+                .overrideWith((ref) => Future.error(readFailed)),
           ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -461,9 +457,8 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider(
-            '/tmp/corrupt.pdf',
-          ).overrideWith((ref) => Future.error(corrupted)),
+          pdfReaderSessionProvider('/tmp/corrupt.pdf')
+              .overrideWith((ref) => Future.error(corrupted)),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -517,9 +512,8 @@ void main() {
         _readerScope(
           prefs: prefs,
           overrides: [
-            pdfReaderSessionProvider(
-              '/tmp/corrupt.pdf',
-            ).overrideWith((ref) => Future.error(corrupted)),
+            pdfReaderSessionProvider('/tmp/corrupt.pdf')
+                .overrideWith((ref) => Future.error(corrupted)),
             catalogMaterialLookupProvider.overrideWithValue(
               CatalogMaterialLookup(coldigomLouvoresByPdfId: {pdfId: louvor}),
             ),
@@ -567,17 +561,16 @@ void main() {
       _readerScope(
         prefs: prefs,
         overrides: [
-          pdfReaderSessionProvider('asset:fixtures/sample.pdf').overrideWith((
-            ref,
-          ) async {
-            final handle = createTrackableHandle();
-            handle.loadingState.value = PdfReaderLoadingState.success;
-            ref.onDispose(handle.dispose);
-            return PdfReaderSession(
-              handle: handle,
-              filePath: 'asset:fixtures/sample.pdf',
-            );
-          }),
+          pdfReaderSessionProvider('asset:fixtures/sample.pdf')
+              .overrideWith((ref) async {
+                final handle = createTrackableHandle();
+                handle.loadingState.value = PdfReaderLoadingState.success;
+                ref.onDispose(handle.dispose);
+                return PdfReaderSession(
+                  handle: handle,
+                  filePath: 'asset:fixtures/sample.pdf',
+                );
+              }),
         ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
