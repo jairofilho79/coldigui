@@ -88,7 +88,6 @@ class ColdigomCatalogPraiseDto {
     required this.author,
     required this.rhythm,
     required this.tonality,
-    required this.category,
     required this.tags,
     required this.lyrics,
     required this.materials,
@@ -101,7 +100,6 @@ class ColdigomCatalogPraiseDto {
   final String author;
   final String rhythm;
   final String tonality;
-  final String category;
   final List<String> tags;
 
   /// `''` quando o dump omite (letra vazia).
@@ -122,7 +120,6 @@ class ColdigomCatalogPraiseDto {
       author: json['author'] as String? ?? '',
       rhythm: json['rhythm'] as String? ?? '',
       tonality: json['tonality'] as String? ?? '',
-      category: json['category'] as String? ?? '',
       tags: [
         for (final tag in json['tags'] as List<dynamic>? ?? const [])
           if (tag is String && tag.trim().isNotEmpty) tag.trim(),

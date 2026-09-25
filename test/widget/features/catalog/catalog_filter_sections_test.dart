@@ -23,7 +23,6 @@ void main() {
       name: 'Hino',
       tonality: 'Dm',
       rhythm: 'Fox',
-      category: 'Clamor',
       tags: const ['PES · 9.2026'],
       pdfKinds: const {'k-grade': 'Grade'},
     ),

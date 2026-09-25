@@ -164,7 +164,6 @@ void main() {
       number: '001',
       rhythm: 'Básico',
       tonality: 'Dm',
-      category: 'Dm',
       tagNames: const ['Avulsos', 'PES'],
       materials: const [
         MaterialDto(

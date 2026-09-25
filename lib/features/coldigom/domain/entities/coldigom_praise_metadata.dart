@@ -6,7 +6,6 @@ class ColdigomPraiseMetadata {
     this.tonality = '',
     this.author = '',
     this.rhythm = '',
-    this.category = '',
     this.tagNames = const [],
     this.lyricsExcerpt,
     this.shortId,
@@ -16,7 +15,6 @@ class ColdigomPraiseMetadata {
   final String tonality;
   final String author;
   final String rhythm;
-  final String category;
   final List<String> tagNames;
 
   /// Trecho da letra ao redor do match da busca — `null` fora de uma busca
@@ -28,9 +26,8 @@ class ColdigomPraiseMetadata {
   /// ainda não o expõe para este praise.
   final String? shortId;
 
-  /// Há algo a mostrar no bloco de metadados da ficha. [category] não conta:
-  /// a ficha não a mostra mais — a seção da Coletânea vem em [tagNames] (spec
-  /// seções-coletânea §4.1). O campo em si sai na fase 3.
+  /// Há algo a mostrar no bloco de metadados da ficha. A seção da Coletânea
+  /// vem em [tagNames] (spec seções-coletânea §4.1).
   bool get hasAnyField =>
       tonality.trim().isNotEmpty ||
       author.trim().isNotEmpty ||

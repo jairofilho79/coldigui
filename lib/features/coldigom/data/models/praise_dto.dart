@@ -50,7 +50,6 @@ class PraiseSummaryDto {
     required this.number,
     this.rhythm = '',
     this.tonality = '',
-    this.category = '',
     this.author = '',
     this.tagIds = const [],
     this.tagNames = const [],
@@ -62,7 +61,6 @@ class PraiseSummaryDto {
   final String number;
   final String rhythm;
   final String tonality;
-  final String category;
   final String author;
   final List<String> tagIds;
   final List<String> tagNames;
@@ -77,7 +75,6 @@ class PraiseSummaryDto {
       number: json['number'] as String? ?? '',
       rhythm: json['rhythm'] as String? ?? '',
       tonality: json['tonality'] as String? ?? '',
-      category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
       tagIds: splitColdigomCsv(json['tag_ids']),
       tagNames: splitColdigomCsv(json['tag_names']),
@@ -105,7 +102,6 @@ class PraiseDetailDto {
     required this.rhythm,
     required this.materials,
     this.tonality = '',
-    this.category = '',
     this.author = '',
     this.tagNames = const [],
     this.lyricsExcerpt,
@@ -117,7 +113,6 @@ class PraiseDetailDto {
   final String number;
   final String rhythm;
   final String tonality;
-  final String category;
   final String author;
   final List<String> tagNames;
   final List<MaterialDto> materials;
@@ -137,7 +132,6 @@ class PraiseDetailDto {
       number: json['number'] as String? ?? '',
       rhythm: json['rhythm'] as String? ?? '',
       tonality: json['tonality'] as String? ?? '',
-      category: json['category'] as String? ?? '',
       author: json['author'] as String? ?? '',
       tagNames: splitColdigomCsv(json['tag_names']),
       lyricsExcerpt: json['lyrics_excerpt'] as String?,

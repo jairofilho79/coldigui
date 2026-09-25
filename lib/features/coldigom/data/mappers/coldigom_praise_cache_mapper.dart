@@ -83,7 +83,6 @@ abstract final class ColdigomPraiseCacheMapper {
       author: praise.author,
       rhythm: praise.rhythm,
       tonality: praise.tonality,
-      category: praise.category,
       tags: praise.tags,
       lyrics: praise.lyrics,
       materials: [
@@ -117,7 +116,6 @@ abstract final class ColdigomPraiseCacheMapper {
       author: praise.author,
       rhythm: praise.rhythm,
       tonality: praise.tonality,
-      category: praise.category,
       tags: praise.tagNames,
       lyrics: lyrics,
       materials: [
@@ -177,7 +175,6 @@ abstract final class ColdigomPraiseCacheMapper {
       author: meta?.author ?? '',
       rhythm: meta?.rhythm ?? '',
       tonality: meta?.tonality ?? '',
-      category: meta?.category ?? '',
       tags: meta?.tagNames ?? const [],
       lyrics: '',
       materials: materials,
@@ -220,7 +217,6 @@ abstract final class ColdigomPraiseCacheMapper {
     required String author,
     required String rhythm,
     required String tonality,
-    required String category,
     required List<String> tags,
     required String lyrics,
     required List<ColdigomCatalogMaterialEntry> materials,
@@ -233,7 +229,6 @@ abstract final class ColdigomPraiseCacheMapper {
       ..author = author
       ..rhythm = rhythm
       ..tonality = tonality
-      ..category = category
       ..tags = List<String>.from(tags)
       ..lyrics = lyrics
       ..materialsJson = jsonEncode([for (final m in materials) m.toJson()])
@@ -325,7 +320,6 @@ abstract final class ColdigomPraiseCacheMapper {
       number: row.number,
       rhythm: row.rhythm,
       tonality: row.tonality,
-      category: row.category,
       author: row.author,
       tagNames: List<String>.from(row.tags),
       materials: materials,

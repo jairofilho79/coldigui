@@ -13,7 +13,6 @@ class ColdigomPraisesQuery {
     this.q,
     this.tonalities = const {},
     this.rhythms = const {},
-    this.categories = const {},
     this.tagIds = const {},
     this.materialKindIds = const {},
     this.page = 1,
@@ -25,7 +24,6 @@ class ColdigomPraisesQuery {
   final String? q;
   final Set<String> tonalities;
   final Set<String> rhythms;
-  final Set<String> categories;
   final Set<String> tagIds;
   final Set<String> materialKindIds;
   final int page;
@@ -46,7 +44,6 @@ class ColdigomPraisesQuery {
     }
     _putCsv(params, 'tonality', tonalities);
     _putCsv(params, 'rhythm', rhythms);
-    _putCsv(params, 'category', categories);
     _putCsv(params, 'tags', tagIds);
     _putCsv(params, 'materialKinds', materialKindIds);
     return params;

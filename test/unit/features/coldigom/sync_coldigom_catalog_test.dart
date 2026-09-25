@@ -42,7 +42,6 @@ ColdigomPraiseCache _storedRow(String praiseId, {String? shortId}) =>
       ..author = ''
       ..rhythm = ''
       ..tonality = ''
-      ..category = ''
       ..tags = const []
       ..lyrics = ''
       ..materialsJson = '[]'
@@ -209,7 +208,6 @@ void main() {
           ..author = ''
           ..rhythm = ''
           ..tonality = ''
-          ..category = ''
           ..tags = const []
           ..lyrics = ''
           ..materialsJson = '[]'

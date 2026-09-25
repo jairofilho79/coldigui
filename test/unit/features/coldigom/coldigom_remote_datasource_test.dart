@@ -79,6 +79,14 @@ void main() {
     expect(params['materialKinds'], 'k1');
   });
 
+  test('ColdigomPraisesQuery não manda category (fase 3)', () {
+    final params = const ColdigomPraisesQuery(tonalities: {'Dm'})
+        .toQueryParameters();
+
+    expect(params['tonality'], 'Dm');
+    expect(params.containsKey('category'), isFalse);
+  });
+
   test('PlpcgPraisesPageDto parseia materials slim sem lyrics', () {
     final page = PlpcgPraisesPageDto.fromJson({
       'data': [

@@ -39,7 +39,6 @@ ColdigomPraiseCache _row(String lyrics) => ColdigomPraiseCache()
   ..author = ''
   ..rhythm = ''
   ..tonality = ''
-  ..category = ''
   ..tags = const []
   ..lyrics = lyrics
   ..materialsJson = '[]'

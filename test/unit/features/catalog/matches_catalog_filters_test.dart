@@ -12,7 +12,6 @@ void main() {
     name: 'Hino',
     tonality: 'Dm',
     rhythm: 'Fox',
-    category: 'Clamor',
     tags: const ['PES · 9.2026', 'Avulsos'],
     pdfKinds: const {'k-grade': 'Grade'},
     audioKinds: const {'k-play': 'Playback'},
@@ -22,7 +21,6 @@ void main() {
     name: 'Coro',
     tonality: 'G',
     rhythm: 'Valsa',
-    category: 'Adoração',
     tags: const ['CIAs'],
     pdfKinds: const {'k-cifra1': 'Cifra I'},
   );
@@ -58,18 +56,12 @@ void main() {
       final secao = catalogGroup(
         praiseId: 'p4',
         name: 'Seção',
-        category: 'Clamor',
         tags: const ['Coletânea · Clamor'],
       );
-      final soCategoria = catalogGroup(
-        praiseId: 'p5',
-        name: 'Só categoria',
-        category: 'Clamor',
-      );
+      final soCategoria = catalogGroup(praiseId: 'p5', name: 'Só categoria');
       final outraSecao = catalogGroup(
         praiseId: 'p6',
         name: 'Outra seção',
-        category: 'Louvor',
         tags: const ['Coletânea · Louvor'],
       );
       final fromLink = CatalogFilterState.fromUrl(category: 'Clamor');
