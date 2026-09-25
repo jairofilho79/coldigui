@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 
 import 'chip_parts/chip_body.dart';
 import 'chip_parts/chip_buttons.dart';
+import 'chip_parts/chip_group_label.dart';
 import 'chip_parts/chip_nav_zone.dart';
 import 'chip_parts/metadata_row.dart';
+import 'chip_parts/peanut_lobe_border.dart';
 import 'chip_parts/share_overflow_button.dart';
 
 export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
@@ -36,7 +38,9 @@ const carouselChipMetadataCompactWidth = 180.0;
 /// texto.
 const carouselChipMetadataMediumWidth = 280.0;
 
-const _modalChipRadius = 24.0;
+/// Raio da pílula (variante modal) — também o das pontas do amendoim
+/// (`PeanutLobeBorder`).
+const carouselChipModalRadius = 24.0;
 const _topBarChipRadius = 8.0;
 const _compactWidth = carouselChipMetadataCompactWidth;
 
@@ -111,8 +115,15 @@ class CarouselLouvorChip extends StatelessWidget {
     this.onPrevious,
     this.onNext,
     this.isNew = false,
+    this.lobePosition,
+    this.groupLabel,
+    this.dimmed = false,
     super.key,
-  });
+  }) : assert(
+         lobePosition == null ||
+             (variant == CarouselLouvorChipVariant.modal && !showNavArrows),
+         'gomo do amendoim só na variante modal, sem setas',
+       );
 
   /// Louvor enriquecido com metadados do manifest (`numero`, `nome`, etc.).
   final CarouselItem item;
@@ -191,6 +202,18 @@ class CarouselLouvorChip extends StatelessWidget {
   /// offline, sem competir com o título.
   final bool isNew;
 
+  /// Gomo do amendoim (spec louvores-agrupados §6.2): troca a pílula pela
+  /// [PeanutLobeBorder] desta posição, sem sombra própria (o cluster pinta
+  /// uma só) e com padding 20/12 — a curva da junta recua na altura do «+».
+  final LobePosition? lobePosition;
+
+  /// Etiqueta dourada da versão, entre o corpo e o «+» (§5).
+  final String? groupLabel;
+
+  /// Membro do grupo que não casou com a busca ou os filtros: esmaece só o
+  /// conteúdo; fundo e contorno ficam inteiros e o toque continua ativo (D3).
+  final bool dimmed;
+
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
   Widget? get _trailingAction {
@@ -219,9 +242,11 @@ class CarouselLouvorChip extends StatelessWidget {
         LouvorMaterialIcons.kindForCategory(item.categoria),
       _ => item.kind,
     });
-    final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
+    final chipRadius = _isTopBar ? _topBarChipRadius : carouselChipModalRadius;
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)
+        : lobePosition != null
+        ? const EdgeInsets.fromLTRB(20, 6, 12, 6)
         : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
     const backgroundColor = AppColors.title;
 
@@ -240,7 +265,7 @@ class CarouselLouvorChip extends StatelessWidget {
           ],
           Expanded(
             child: ChipBody(
-              borderRadius: BorderRadius.circular(chipRadius),
+              borderRadius: _inkRadius(chipRadius),
               onTap: onTap,
               onLongPress: onLongPress,
               child: LayoutBuilder(
@@ -316,6 +341,12 @@ class CarouselLouvorChip extends StatelessWidget {
               ),
             ),
           ),
+          // Fora do `Expanded`: o `LayoutBuilder` do corpo já recebe a largura
+          // sem a etiqueta, e o breakpoint da linha de metadados sai certo.
+          if (groupLabel != null) ...[
+            const SizedBox(width: 6),
+            ChipGroupLabel(label: groupLabel!),
+          ],
           if (_trailingAction != null) ...[
             const SizedBox(width: 4),
             _trailingAction!,
@@ -347,14 +378,25 @@ class CarouselLouvorChip extends StatelessWidget {
             ),
           )
         : body;
+    final content = dimmed
+        ? Opacity(opacity: 0.45, child: constrainedBody)
+        : constrainedBody;
 
     return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(chipRadius),
-        border: Border.all(color: AppColors.gold, width: 2),
-        boxShadow: AppColors.shadowMd,
-      ),
+      decoration: lobePosition == null
+          ? BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(chipRadius),
+              border: Border.all(color: AppColors.gold, width: 2),
+              boxShadow: AppColors.shadowMd,
+            )
+          : ShapeDecoration(
+              color: backgroundColor,
+              shape: PeanutLobeBorder(
+                position: lobePosition!,
+                radius: carouselChipModalRadius,
+              ),
+            ),
       clipBehavior: showNavArrows ? Clip.antiAlias : Clip.none,
       padding: showNavArrows ? EdgeInsets.zero : padding,
       // `Stack`/`Positioned`, não `Row`+`stretch`: o corpo continua dono da
@@ -392,8 +434,27 @@ class CarouselLouvorChip extends StatelessWidget {
                 ),
               ],
             )
-          : constrainedBody,
+          : content,
     );
+  }
+
+  /// Ripple do corpo: no gomo, 24 do lado da pílula e 12 do lado da junta
+  /// — o `InkWell` fica recuado pelo padding e não vaza pelo bico.
+  BorderRadius _inkRadius(double chipRadius) {
+    const pill = Radius.circular(carouselChipModalRadius);
+    const joint = Radius.circular(12);
+    return switch (lobePosition) {
+      null => BorderRadius.circular(chipRadius),
+      LobePosition.first => const BorderRadius.vertical(
+        top: pill,
+        bottom: joint,
+      ),
+      LobePosition.middle => const BorderRadius.all(joint),
+      LobePosition.last => const BorderRadius.vertical(
+        top: joint,
+        bottom: pill,
+      ),
+    };
   }
 
   static String _titleLine(CarouselItem item, bool topBar) {
