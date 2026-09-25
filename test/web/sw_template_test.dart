@@ -66,6 +66,25 @@ void main() {
     expect(sw, contains('sem respondWith'));
   });
 
+  test('manifestos de nome fixo do Flutter vão à rede primeiro', () {
+    // FontManifest.json aponta para a MaterialIcons da tag: servido do cache
+    // do SW velho no 1.º load pós-deploy, o código novo desenhava ícones novos
+    // com a fonte velha (tree-shaken, sem o glifo) — quadrado preto.
+    for (final name in [
+      'FontManifest.json',
+      'AssetManifest.bin.json',
+      'AssetManifest.bin',
+      'AssetManifest.json',
+    ]) {
+      expect(sw, contains("SCOPE_PATH + 'assets/$name'"));
+    }
+    // A checagem de NETWORK_FIRST vem antes da de cache-first do shell.
+    expect(
+      sw.indexOf('NETWORK_FIRST.has(url.pathname)'),
+      lessThan(sw.indexOf('isShellRequest(url)) {')),
+    );
+  });
+
   test('nunca apaga o cache dos PDFs offline do Dart', () {
     expect(sw, isNot(contains('plpcg-pdfs-store')));
     expect(sw, contains("startsWith('plpcg-shell-')"));

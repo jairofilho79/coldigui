@@ -29,7 +29,18 @@ const CACHE = `plpcg-shell-${TAG}`;
 const LEGACY_CACHES = ['flutter-app-cache', 'flutter-temp-cache', 'flutter-app-manifest'];
 const SCOPE_PATH = new URL(self.registration.scope).pathname;
 // Mudam de conteúdo sem mudar de nome: rede primeiro, cache só sem rede (S10).
-const NETWORK_FIRST = new Set([SCOPE_PATH + 'version.json', SCOPE_PATH + 'manifest.json']);
+// Os manifestos do Flutter em assets/ também: o FontManifest aponta para a
+// MaterialIcons com hash da tag. Em cache-first, o 1.º load depois de um deploy
+// (ainda sob o SW velho) juntava main.dart.* novo com o manifesto velho, e
+// ícone novo virava quadrado (glifo ausente na fonte velha, tree-shaken).
+const NETWORK_FIRST = new Set([
+  SCOPE_PATH + 'version.json',
+  SCOPE_PATH + 'manifest.json',
+  SCOPE_PATH + 'assets/FontManifest.json',
+  SCOPE_PATH + 'assets/AssetManifest.bin.json',
+  SCOPE_PATH + 'assets/AssetManifest.bin',
+  SCOPE_PATH + 'assets/AssetManifest.json',
+]);
 // Nunca entram no cache mesmo que a página os tenha carregado: o próprio SW
 // (congelaria a versão) e o stub do Flutter.
 const NEVER_CACHED = new Set([SCOPE_PATH + 'sw.js', SCOPE_PATH + 'flutter_service_worker.js']);
