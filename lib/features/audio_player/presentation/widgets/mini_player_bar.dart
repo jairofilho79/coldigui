@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../audio_flags/domain/entities/saved_audio_flag.dart';
 import '../../../audio_flags/presentation/providers/audio_flag_sync_provider.dart';
 import '../../../audio_flags/presentation/providers/audio_flags_for_track_provider.dart';
+import '../providers/audio_follow_reader_provider.dart';
 import '../providers/audio_player_position_provider.dart';
 import '../providers/audio_player_session_provider.dart';
 import '../utils/open_audio_in_player.dart';
@@ -35,7 +38,10 @@ import 'mini_player_bar_metrics.dart';
 /// dependia do foco do carrossel de PDFs — sem ele, sair da tela com o áudio
 /// ainda tocando não deixava jeito de voltar além de iniciar uma faixa nova.
 /// Aqui o botão usa a faixa da própria sessão ([track]), não o item focado no
-/// carrossel, e some (desabilitado) quando já se está em `/audio`.
+/// carrossel. Em `/audio` ele vira «voltar à leitura»: abre a partitura/cifra
+/// do louvor da faixa ([openMaterialForGroupInReader], o mesmo do chip da
+/// barra e do botão de partitura do player). Ida e volta substituem a rota
+/// dentro da leitura ([openReadingLocation]) — não empilham.
 class MiniPlayerBar extends ConsumerWidget {
   const MiniPlayerBar({this.overlay = false, super.key});
 
@@ -79,6 +85,9 @@ class MiniPlayerBar extends ConsumerWidget {
     final isOnAudioScreen =
         GoRouter.maybeOf(context) != null &&
         GoRouterState.of(context).uri.path == RoutePaths.audio;
+    // Sem partitura/cifra resolvível para o louvor, «voltar» fica desabilitado.
+    final canBackToReading =
+        isOnAudioScreen && resolveMaterialForGroup(ref, track.groupId) != null;
 
     final fg = overlay ? AppColors.textLight : AppColors.title;
     final title = track.numero.isNotEmpty
@@ -177,15 +186,30 @@ class MiniPlayerBar extends ConsumerWidget {
                           .skipToNext()
                     : null,
               ),
-              IconButton(
-                tooltip: l10n.miniPlayerOpenScreen,
-                iconSize: 20,
-                style: iconButtonStyle,
-                icon: const Icon(Icons.open_in_full),
-                onPressed: isOnAudioScreen
-                    ? null
-                    : () => pushAudioPlayerRoute(context, track),
-              ),
+              if (isOnAudioScreen)
+                IconButton(
+                  tooltip: l10n.miniPlayerBackToReading,
+                  iconSize: 20,
+                  style: iconButtonStyle,
+                  icon: const Icon(Icons.close_fullscreen),
+                  onPressed: canBackToReading
+                      ? () => unawaited(
+                          openMaterialForGroupInReader(
+                            ref: ref,
+                            context: context,
+                            groupId: track.groupId,
+                          ),
+                        )
+                      : null,
+                )
+              else
+                IconButton(
+                  tooltip: l10n.miniPlayerOpenScreen,
+                  iconSize: 20,
+                  style: iconButtonStyle,
+                  icon: const Icon(Icons.open_in_full),
+                  onPressed: () => pushAudioPlayerRoute(context, track),
+                ),
             ],
           ),
         ),

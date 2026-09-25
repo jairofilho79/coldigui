@@ -419,6 +419,10 @@
   "@miniPlayerOpenScreen": {
     "description": "Tooltip do botão que abre a tela cheia do áudio (/audio) a partir do mini-player persistente — única forma de voltar a ela depois que a barra sem faces (D5) parou de expor essa ação"
   },
+  "miniPlayerBackToReading": "Voltar à leitura",
+  "@miniPlayerBackToReading": {
+    "description": "Tooltip do botão do mini-player que, na tela de áudio (/audio), substitui «abrir» e volta à partitura/cifra do louvor da faixa (troca a rota, não empilha)"
+  },
   "audioClosePlayer": "Encerrar e voltar à busca",
   "audioOpenSheetMusic": "Partitura/cifra deste louvor",
   "@audioOpenSheetMusic": {

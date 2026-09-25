@@ -1,3 +1,4 @@
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_flags/domain/entities/saved_audio_flag.dart';
 import 'package:coldigui/features/audio_flags/presentation/providers/audio_flag_sync_provider.dart';
@@ -7,12 +8,20 @@ import 'package:coldigui/features/audio_player/presentation/providers/audio_play
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/audio_seek_bar.dart';
 import 'package:coldigui/features/audio_player/presentation/widgets/mini_player_bar.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
+import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
+import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
+import '../../../support/fakes/fake_active_editor.dart';
 
 /// Sessão de mentira: registra chamadas de transporte/seek em vez de tocar
 /// nada (mesmo padrão do `_FakeAudioSession` de `shell_scaffold_test.dart`).
@@ -59,6 +68,21 @@ class _FixedSyncNotifier extends AudioFlagSyncNotifier {
   AudioFlagSyncState build() => const AudioFlagSyncState();
 }
 
+/// Resolve a rota do leitor sem baixar PDF — registra o que foi pedido (mesmo
+/// padrão de `carousel_chips_open_audio_test.dart`).
+class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
+  final navigatedPdfIds = <String>[];
+
+  @override
+  void build() {}
+
+  @override
+  Future<String?> navigateToPdfId({required String targetPdfId}) async {
+    navigatedPdfIds.add(targetPdfId);
+    return '${RoutePaths.reader}?pdfId=$targetPdfId';
+  }
+}
+
 void main() {
   const track = AudioTrack(
     audioId: 'aud-1',
@@ -69,6 +93,13 @@ void main() {
     categoria: 'Áudio',
     classificacao: 'Coro',
   );
+
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   /// Sem marcador nenhum por padrão — quem quiser marcadores passa [flags].
   List<Override> flagOverrides({List<SavedAudioFlag> flags = const []}) => [
@@ -340,6 +371,7 @@ void main() {
     return ProviderScope(
       overrides: [
         audioPlayerSessionProvider.overrideWith(() => session),
+        sharedPreferencesProvider.overrideWithValue(prefs),
         ...flagOverrides(),
       ],
       child: MaterialApp.router(
@@ -387,20 +419,92 @@ void main() {
     },
   );
 
-  testWidgets('já em /audio, botão «abrir» fica desabilitado (no-op)', (
-    tester,
-  ) async {
+  testWidgets(
+    'em /audio, «abrir» vira «voltar à leitura», desabilitado sem partitura '
+    'do louvor',
+    (tester) async {
+      final session = _RecordingAudioSession(
+        const AudioPlayerSessionState(queue: [track]),
+      );
+      await tester.pumpWidget(
+        buildWithRouter(session, initial: RoutePaths.audio),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.open_in_full), findsNothing);
+      final back = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.close_fullscreen),
+      );
+      expect(back.onPressed, isNull);
+    },
+  );
+
+  testWidgets('em /audio, «voltar à leitura» abre a partitura do louvor '
+      'substituindo a rota', (tester) async {
     final session = _RecordingAudioSession(
       const AudioPlayerSessionState(queue: [track]),
     );
+    final readerActions = _FakeReaderCarouselActions();
+    final louvor = Louvor.fromManifest(
+      nome: 'Louvor',
+      numero: '12',
+      categoria: 'Partitura',
+      classificacao: 'Coro',
+      pdf: 'pdf1.pdf',
+      pdfId: 'pdf1',
+      groupId: track.groupId,
+    );
+    final router = GoRouter(
+      initialLocation: '${RoutePaths.audio}?audioId=${track.audioId}',
+      routes: [
+        GoRoute(
+          path: RoutePaths.audio,
+          builder: (_, _) => const Scaffold(
+            body: Column(children: [MiniPlayerBar(), Text('tela de áudio')]),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.reader,
+          builder: (_, state) => Scaffold(
+            body: Text('leitor=${state.uri.queryParameters['pdfId']}'),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
     await tester.pumpWidget(
-      buildWithRouter(session, initial: RoutePaths.audio),
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          coldigomLouvoresOverride([louvor]),
+          activePlaylistEditorProvider.overrideWith(
+            () => FakeActiveEditor([
+              const PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf),
+            ]),
+          ),
+          audioPlayerSessionProvider.overrideWith(() => session),
+          readerCarouselActionsProvider.overrideWith(() => readerActions),
+          ...flagOverrides(),
+        ],
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('pt'),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
-    final open = tester.widget<IconButton>(
-      find.widgetWithIcon(IconButton, Icons.open_in_full),
-    );
-    expect(open.onPressed, isNull);
+    await tester.tap(find.byIcon(Icons.close_fullscreen));
+    await tester.pumpAndSettle();
+
+    expect(readerActions.navigatedPdfIds, ['pdf1']);
+    expect(find.text('leitor=pdf1'), findsOneWidget);
+    // `replace`, não `push`: `/audio` não fica embaixo do leitor.
+    expect(router.canPop(), isFalse);
+    // A faixa segue tocando — voltar à leitura não mexe na sessão.
+    expect(session.playPauseCalls, 0);
   });
 }

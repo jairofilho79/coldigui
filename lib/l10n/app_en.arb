@@ -407,6 +407,7 @@
   "@miniPlayerOpenScreen": {
     "description": "Tooltip for the button that opens the full audio screen (/audio) from the persistent mini-player — the only way back to it once the faceless bar (D5) stopped exposing that action"
   },
+  "miniPlayerBackToReading": "Back to reading",
   "audioClosePlayer": "Close and return to search",
   "audioOpenSheetMusic": "Sheet music for this hymn",
   "audioFollowReader": "Follow the audio",

@@ -1424,6 +1424,12 @@ abstract class AppLocalizations {
   /// **'Abrir tela do áudio'**
   String get miniPlayerOpenScreen;
 
+  /// Tooltip do botão do mini-player que, na tela de áudio (/audio), substitui «abrir» e volta à partitura/cifra do louvor da faixa (troca a rota, não empilha)
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar à leitura'**
+  String get miniPlayerBackToReading;
+
   /// No description provided for @audioClosePlayer.
   ///
   /// In pt, this message translates to:

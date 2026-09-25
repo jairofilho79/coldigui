@@ -786,6 +786,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get miniPlayerOpenScreen => 'Open audio screen';
 
   @override
+  String get miniPlayerBackToReading => 'Back to reading';
+
+  @override
   String get audioClosePlayer => 'Close and return to search';
 
   @override
