@@ -1,5 +1,6 @@
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/chip_group_label.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/peanut_lobe_border.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -128,6 +129,75 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+  });
+
+  const longLabel =
+      'Coletânea · Consolo e Encorajamento · Edição revista e ampliada';
+  const longTitleItem = CarouselItem(
+    materialId: 'm2',
+    index: 0,
+    numero: '003',
+    nome: 'Clamo a ti, Senhor, na angústia do meu coração aflito',
+    categoria: 'Partitura',
+    classificacao: 'Coro',
+  );
+
+  testWidgets('chip largo: etiqueta longa corta com «…» no teto de 128 px', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      CarouselLouvorChip(
+        item: _item,
+        lobePosition: LobePosition.middle,
+        groupLabel: longLabel,
+        onAdd: () {},
+      ),
+      width: 400,
+    );
+
+    final painter = TextPainter(
+      text: TextSpan(
+        text: longLabel,
+        style: tester.widget<Text>(find.text(longLabel)).style,
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    // Sem corte o texto passaria do teto — prova que o «…» entrou.
+    expect(painter.width, greaterThan(ChipGroupLabel.maxTextWidth));
+    expect(
+      tester.getSize(find.text(longLabel)).width,
+      closeTo(ChipGroupLabel.maxTextWidth, 0.01),
+    );
+  });
+
+  testWidgets('chip de 320 px: etiqueta cabe em 40% da linha e o título '
+      'fica com mais espaço que ela', (tester) async {
+    await _pump(
+      tester,
+      CarouselLouvorChip(
+        item: longTitleItem,
+        lobePosition: LobePosition.first,
+        groupLabel: longLabel,
+        isNew: true,
+        onAdd: () {},
+      ),
+      width: 320,
+    );
+
+    expect(tester.takeException(), isNull);
+    // W = largura da `Row` de conteúdo (dentro do padding do gomo) — a
+    // mesma que o código mede.
+    final row = find
+        .ancestor(of: find.byType(ChipGroupLabel), matching: find.byType(Row))
+        .first;
+    final w = tester.getSize(row).width;
+    final labelWidth = tester.getSize(find.text(longLabel)).width;
+    expect(labelWidth, lessThanOrEqualTo(0.4 * w + 0.01));
+    final titleWidth = tester
+        .getSize(find.textContaining('Clamo a ti, Senhor'))
+        .width;
+    expect(titleWidth, greaterThan(labelWidth));
   });
 
   testWidgets('dimmed esmaece só o conteúdo, não o fundo', (tester) async {

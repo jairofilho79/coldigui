@@ -251,117 +251,134 @@ class CarouselLouvorChip extends StatelessWidget {
     const backgroundColor = AppColors.title;
 
     final l10n = AppLocalizations.of(context);
-    final body = Padding(
-      padding: showNavArrows ? padding : EdgeInsets.zero,
-      child: Row(
-        children: [
-          if (showDragHandle) ...[
-            Icon(
-              Icons.drag_indicator,
-              color: AppColors.textLight.withValues(alpha: 0.7),
-              size: 20,
-            ),
-            const SizedBox(width: 4),
-          ],
-          Expanded(
-            child: ChipBody(
-              borderRadius: _inkRadius(chipRadius),
-              onTap: onTap,
-              onLongPress: onLongPress,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  // O chip «novo» tira espaço da linha de metadados — reserva
-                  // essa largura antes de decidir o breakpoint (compacto vs.
-                  // médio), senão `ChipMetadataRow` escolhe um layout largo
-                  // demais para o que sobra e estoura.
-                  final metadataWidth = isNew
-                      ? (width - _newChipReserve).clamp(0.0, width)
-                      : width;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+    // `labelTextWidth` só importa com etiqueta: aí a `Row` passa por um
+    // `LayoutBuilder` (abaixo) que mede a largura da linha de conteúdo.
+    Widget contentRow({
+      double labelTextWidth = ChipGroupLabel.maxTextWidth,
+    }) => Row(
+      children: [
+        if (showDragHandle) ...[
+          Icon(
+            Icons.drag_indicator,
+            color: AppColors.textLight.withValues(alpha: 0.7),
+            size: 20,
+          ),
+          const SizedBox(width: 4),
+        ],
+        Expanded(
+          child: ChipBody(
+            borderRadius: _inkRadius(chipRadius),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                // O chip «novo» tira espaço da linha de metadados — reserva
+                // essa largura antes de decidir o breakpoint (compacto vs.
+                // médio), senão `ChipMetadataRow` escolhe um layout largo
+                // demais para o que sobra e estoura.
+                final metadataWidth = isNew
+                    ? (width - _newChipReserve).clamp(0.0, width)
+                    : width;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HighlightedText(
+                      text: _titleLine(item, _isTopBar),
+                      query: highlightQuery ?? '',
+                      style: AppTypography.headline.copyWith(
+                        fontSize: width < _compactWidth ? 12 : 14,
+                        height: 1.1,
+                        color: AppColors.textLight,
+                        shadows: const [],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if ((lyricsSnippet ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
                       HighlightedText(
-                        text: _titleLine(item, _isTopBar),
+                        text: lyricsSnippet!,
                         query: highlightQuery ?? '',
-                        style: AppTypography.headline.copyWith(
-                          fontSize: width < _compactWidth ? 12 : 14,
-                          height: 1.1,
-                          color: AppColors.textLight,
-                          shadows: const [],
+                        style: AppTypography.body.copyWith(
+                          fontStyle: FontStyle.italic,
+                          fontSize: width < _compactWidth ? 11 : 12.5,
+                          height: 1.2,
+                          color: AppColors.textLight.withValues(alpha: 0.64),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if ((lyricsSnippet ?? '').trim().isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        HighlightedText(
-                          text: lyricsSnippet!,
-                          query: highlightQuery ?? '',
-                          style: AppTypography.body.copyWith(
-                            fontStyle: FontStyle.italic,
-                            fontSize: width < _compactWidth ? 11 : 12.5,
-                            height: 1.2,
-                            color: AppColors.textLight.withValues(alpha: 0.64),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChipMetadataRow(
-                              width: metadataWidth,
-                              numero: _isTopBar ? item.numero : null,
-                              summary: metadataSummary,
-                              materialKindsGroup: materialKindsGroup,
-                              onMaterialKindTap: onMaterialKindTap,
-                              classificationLabel: classificationLabel,
-                              categoria: item.categoria,
-                              categoryIcon: categoryIcon,
-                              offlineAvailability: offlineAvailability,
-                            ),
-                          ),
-                          if (isNew) ...[
-                            const SizedBox(width: 4),
-                            _NewChip(
-                              label: AppLocalizations.of(context)!
-                                  .searchResultNew,
-                            ),
-                          ],
-                        ],
-                      ),
                     ],
-                  );
-                },
-              ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChipMetadataRow(
+                            width: metadataWidth,
+                            numero: _isTopBar ? item.numero : null,
+                            summary: metadataSummary,
+                            materialKindsGroup: materialKindsGroup,
+                            onMaterialKindTap: onMaterialKindTap,
+                            classificationLabel: classificationLabel,
+                            categoria: item.categoria,
+                            categoryIcon: categoryIcon,
+                            offlineAvailability: offlineAvailability,
+                          ),
+                        ),
+                        if (isNew) ...[
+                          const SizedBox(width: 4),
+                          _NewChip(
+                            label: AppLocalizations.of(context)!
+                                .searchResultNew,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-          // Fora do `Expanded`: o `LayoutBuilder` do corpo já recebe a largura
-          // sem a etiqueta, e o breakpoint da linha de metadados sai certo.
-          if (groupLabel != null) ...[
-            const SizedBox(width: 6),
-            ChipGroupLabel(label: groupLabel!),
-          ],
-          if (_trailingAction != null) ...[
-            const SizedBox(width: 4),
-            _trailingAction!,
-          ],
-          if (onShare != null) ...[
-            const SizedBox(width: 2),
-            ShareOverflowButton(
-              onShare: onShare!,
-              shareLabel:
-                  AppLocalizations.of(context)?.sharePdf ?? 'Compartilhar',
-              loading: shareLoading,
-            ),
-          ],
+        ),
+        // Fora do `Expanded`: o `LayoutBuilder` do corpo já recebe a largura
+        // sem a etiqueta, e o breakpoint da linha de metadados sai certo.
+        if (groupLabel != null) ...[
+          const SizedBox(width: 6),
+          ChipGroupLabel(label: groupLabel!, textWidthLimit: labelTextWidth),
         ],
-      ),
+        if (_trailingAction != null) ...[
+          const SizedBox(width: 4),
+          _trailingAction!,
+        ],
+        if (onShare != null) ...[
+          const SizedBox(width: 2),
+          ShareOverflowButton(
+            onShare: onShare!,
+            shareLabel:
+                AppLocalizations.of(context)?.sharePdf ?? 'Compartilhar',
+            loading: shareLoading,
+          ),
+        ],
+      ],
+    );
+    final body = Padding(
+      padding: showNavArrows ? padding : EdgeInsets.zero,
+      // Com etiqueta, o teto do texto dela acompanha a largura da linha
+      // (`clamp(0.4 × W, 64, 128)`): num celular estreito o título não fica
+      // espremido por uma etiqueta de 128 px fixos. Sem etiqueta, nada de
+      // `LayoutBuilder` (não mexe no chip solto nem na barra).
+      child: groupLabel == null
+          ? contentRow()
+          : LayoutBuilder(
+              builder: (context, constraints) => contentRow(
+                labelTextWidth: ChipGroupLabel.maxTextWidthFor(
+                  constraints.maxWidth,
+                ),
+              ),
+            ),
     );
 
     // Com setas o chip vira o próprio carrossel: as zonas ficam coladas nas
