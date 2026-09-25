@@ -6,6 +6,7 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
+import '../../domain/usecases/cluster_catalog_list.dart';
 import '../../domain/usecases/matches_catalog_filters.dart';
 import '../../domain/utils/material_kind_selection.dart';
 import 'catalog_filters_provider.dart';
@@ -70,6 +71,7 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
+  final index = ref.watch(coldigomSearchIndexProvider);
   final filters = ref.watch(catalogFiltersProvider);
   final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   // Observado incondicionalmente (mesmo com query vazia): assim o provider
@@ -90,6 +92,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
       query: query,
       localGroups: localGroups,
       remote: const AsyncData(CatalogSearchPage.empty),
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
     );
   }
 
@@ -99,6 +102,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
       localGroups: localGroups,
       remote: const AsyncLoading(),
       offline: true,
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
     );
   }
 
@@ -138,6 +142,13 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
     // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
     knownIds: knownIds,
+    // Um «novo» que é membro de um grupo já na tela entra no amendoim dele,
+    // não no fim — `extraMembers` porque o índice ainda não o conhece.
+    entries: clusterCatalogList(
+      [...localGroups, ...newGroups],
+      membersOf: index.membersOf,
+      extraMembers: newGroups,
+    ),
   );
 });
 

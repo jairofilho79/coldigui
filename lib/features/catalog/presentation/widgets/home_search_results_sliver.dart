@@ -1,5 +1,7 @@
+import 'package:coldigui/features/catalog/domain/entities/catalog_list_entry.dart';
 import 'package:coldigui/features/catalog/presentation/providers/home_search_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/home_empty_state.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_cluster_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/search_freshness_line.dart';
 import 'package:flutter/material.dart';
@@ -44,16 +46,25 @@ class HomeSearchResultsSliver extends ConsumerWidget {
       );
     }
 
+    // Um item por entrada, não por praise: os grupos do coldigom viram um
+    // amendoim só (spec louvores-agrupados §6.3).
+    final entries = state.entries;
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         if (index == 0) return line;
-        final group = results[index - 1];
-        return LouvorGroupCard(
-          key: ValueKey('card-${group.groupId}'),
-          group: group,
-          isNew: newIds.contains(group.groupId),
-        );
-      }, childCount: results.length + 1),
+        return switch (entries[index - 1]) {
+          SingleEntry(:final group) => LouvorGroupCard(
+            key: ValueKey('card-${group.groupId}'),
+            group: group,
+            isNew: newIds.contains(group.groupId),
+          ),
+          final ClusterEntry cluster => LouvorClusterCard(
+            key: ValueKey('cluster-${cluster.praiseGroupId}'),
+            entry: cluster,
+            newGroupIds: newIds,
+          ),
+        };
+      }, childCount: entries.length + 1),
     );
   }
 }
