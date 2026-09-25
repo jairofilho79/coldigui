@@ -104,7 +104,7 @@
   "storagePreparing": "Preparing local storage…",
   "storageUnavailableTitle": "Local storage unavailable",
   "storageUnavailableBody": "This area needs the app's local database. The online catalog and the PDF reader are still available on the other tabs.",
-  "libraryResultsSummary": "Showing {from}–{to} of {total} hymns",
+  "libraryResultsSummary": "Showing {from}–{to} of {total} results",
   "@libraryResultsSummary": {
     "placeholders": {
       "from": {

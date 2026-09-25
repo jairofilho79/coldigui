@@ -377,7 +377,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryResultsSummary.
   ///
   /// In pt, this message translates to:
-  /// **'Mostrando {from}–{to} de {total} louvores'**
+  /// **'Mostrando {from}–{to} de {total} resultados'**
   String libraryResultsSummary(int from, int to, int total);
 
   /// No description provided for @libraryResultsEmpty.

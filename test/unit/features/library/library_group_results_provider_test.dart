@@ -41,7 +41,7 @@ void main() {
   ];
 
   List<String> ids(ProviderContainer c) => [
-    for (final g in c.read(libraryGroupResultsProvider).items) g.groupId,
+    for (final e in c.read(libraryGroupResultsProvider).items) describeEntry(e),
   ];
 
   test('ordena por número e pagina', () {
@@ -54,7 +54,7 @@ void main() {
     expect(page.totalPages, 3);
     expect(page.page, 2);
     expect(page.items, hasLength(10));
-    expect(page.items.first.numero, '011');
+    expect(describeEntry(page.items.first), 'p11');
   });
 
   test('ordena por nome sem distinguir caixa', () {
@@ -135,5 +135,56 @@ void main() {
 
     expect(c.read(libraryGroupResultsProvider).page, 1);
     expect(c.read(libraryGroupResultsProvider).totalItems, 25);
+  });
+
+  test('amendoim conta 1 na paginação e não se parte entre páginas', () {
+    final c = containerWith([
+      for (var i = 1; i <= 12; i++)
+        catalogGroup(
+          praiseId: 'p$i',
+          number: '$i'.padLeft(3, '0'),
+          name: 'Louvor $i',
+          groupId: i == 10 || i == 11 ? 'G' : null,
+        ),
+    ]);
+
+    final first = c.read(libraryGroupResultsProvider);
+    expect(first.totalItems, 11);
+    expect(first.totalPages, 2);
+    expect(describeEntry(first.items.last), '[p10 p11]');
+
+    c.read(libraryViewSettingsProvider.notifier).setPage(2);
+    expect(ids(c), ['p12']);
+
+    // Página além do fim cai na última, que agora é a 2 (11 cartões).
+    c.read(libraryViewSettingsProvider.notifier).setPage(9);
+    expect(c.read(libraryGroupResultsProvider).page, 2);
+    expect(ids(c), ['p12']);
+  });
+
+  test('filtro que deixa um membro de fora: o grupo aparece inteiro, com '
+      'ele esmaecido', () {
+    final c = containerWith([
+      catalogGroup(
+        praiseId: 'col',
+        number: '003',
+        name: 'Clamo a ti',
+        tonality: 'Dm',
+        groupId: 'G',
+      ),
+      catalogGroup(
+        praiseId: 'pes',
+        number: '003',
+        name: 'Clamo a ti',
+        tonality: 'Em',
+        tags: const ['PES'],
+        groupId: 'G',
+      ),
+      catalogGroup(praiseId: 'x', number: '004', name: 'Outro', tonality: 'Em'),
+    ]);
+
+    c.read(catalogFiltersProvider.notifier).toggleTonality('Em');
+
+    expect(ids(c), ['[(col) pes]', 'x']);
   });
 }

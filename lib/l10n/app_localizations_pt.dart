@@ -174,7 +174,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String libraryResultsSummary(int from, int to, int total) {
-    return 'Mostrando $from–$to de $total louvores';
+    return 'Mostrando $from–$to de $total resultados';
   }
 
   @override
