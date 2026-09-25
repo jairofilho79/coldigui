@@ -9,8 +9,8 @@ import 'go_to_page_dialog.dart';
 /// Indicador `page/total` da barra 3 — escuta [PdfReaderViewerHandle.pageListenable]
 /// diretamente para ficar sempre sincronizado com scroll e navegação programática.
 ///
-/// Toque abre [GoToPageDialog] (spec A.3 C16); long-press navega para a
-/// primeira página (comportamento existente).
+/// Toque abre [GoToPageDialog] (spec A.3 C16); long-press volta à primeira
+/// página já no ajuste efetivo ([PdfReaderViewerHandle.goToFirstPage]).
 class PdfReaderPageIndicator extends ConsumerWidget {
   /// Query param [UrlSyncParams.file] da rota `/leitor` — chave do provider family.
   const PdfReaderPageIndicator({required this.filePath, super.key});
@@ -50,13 +50,16 @@ class PdfReaderPageIndicator extends ConsumerWidget {
                               pagesCount: pagesCount,
                             )
                           : null,
+                      // O ajuste efetivo vai junto: o último trecho já
+                      // chega na página 1 enquadrada (desfaz pinch) — antes,
+                      // um `applyInitialFit` depois da chegada fazia um
+                      // segundo movimento (zoom) visível.
                       onLongPress: displayedPage > 1
-                          ? () async {
-                              await handle.goToFirstPage();
-                              await ref
-                                  .read(pdfReaderViewSettingsProvider.notifier)
-                                  .applyInitialFit();
-                            }
+                          ? () => handle.goToFirstPage(
+                              fitMode: ref.read(
+                                pdfReaderEffectiveFitModeProvider,
+                              ),
+                            )
                           : null,
                       child: Text(
                         '$displayedPage/$pagesCount',

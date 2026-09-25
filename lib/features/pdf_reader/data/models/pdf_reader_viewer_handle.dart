@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../domain/entities/pdf_reader_preferences.dart';
+import '../../presentation/utils/pdf_page_jump_policy.dart';
+
 /// Estado de carregamento do viewer — equivalente estável ao `PdfLoadingState` do pdfx.
 enum PdfReaderLoadingState { loading, success }
 
@@ -76,36 +79,85 @@ class PdfReaderViewerHandle {
     }
   }
 
+  /// Navega para [pageNumber] — virada vizinha anima direto por [duration];
+  /// destino a mais de uma página faz o «salto curto» de
+  /// [PdfPageJumpPolicy]: salto sem animação para a vizinha do destino e
+  /// [PdfPageJumpPolicy.finalLegDuration] só no último trecho.
   Future<void> animateToPage({
     required int pageNumber,
     Duration duration = const Duration(milliseconds: 500),
     Curve curve = Curves.easeInOut,
+  }) => _navigateTo(
+    pageNumber,
+    duration: duration,
+    step: (page, stepDuration) =>
+        viewerController.goToPage(pageNumber: page, duration: stepDuration),
+  );
+
+  /// Volta à primeira página — long-press no indicador `page/total`.
+  ///
+  /// Mesmo «salto curto» de [animateToPage] (da 16 salta para a 2 e anima
+  /// só até a 1). Com [fitMode], cada passo já enquadra a página nesse
+  /// ajuste ([fitMatrixForPage]) em vez do enquadramento do `goToPage` —
+  /// o reajuste do zoom (desfaz pinch) chega no mesmo movimento, sem um
+  /// segundo `goTo` animado depois da chegada.
+  Future<void> goToFirstPage({PdfFitMode? fitMode}) async {
+    if (_disposed || !isViewerReady) return;
+    if (pageListenable.value <= 1) return;
+    if (fitMode == null) return animateToPage(pageNumber: 1);
+
+    await _navigateTo(
+      1,
+      duration: const Duration(milliseconds: 500),
+      step: (page, stepDuration) => viewerController.goTo(
+        fitMatrixForPage(page, fitMode),
+        duration: stepDuration,
+      ),
+    );
+  }
+
+  /// Matriz que enquadra [pageNumber] em [mode] — `pageWidth` pela largura,
+  /// `pageFit` pela altura. Usada por [goToFirstPage] e pelo
+  /// `PdfrxViewerAdapter.applyFitMode`.
+  Matrix4? fitMatrixForPage(int pageNumber, PdfFitMode mode) => switch (mode) {
+    PdfFitMode.pageWidth => viewerController.calcMatrixFitWidthForPage(
+      pageNumber: pageNumber,
+    ),
+    PdfFitMode.pageFit => viewerController.calcMatrixFitHeightForPage(
+      pageNumber: pageNumber,
+    ),
+  };
+
+  /// Executa a navegação em até dois passos de [step]: o salto sem animação
+  /// até a página de pouso ([PdfPageJumpPolicy.landingPage]), se houver, e
+  /// a animação até [pageNumber] — por [duration] quando não há salto.
+  Future<void> _navigateTo(
+    int pageNumber, {
+    required Duration duration,
+    required Future<void> Function(int page, Duration duration) step,
   }) async {
     if (_disposed || !isViewerReady) return;
+    final landing = PdfPageJumpPolicy.landingPage(
+      from: page,
+      to: pageNumber,
+      pageCount: pagesCount ?? 0,
+    );
+    final legDuration = landing == null
+        ? duration
+        : PdfPageJumpPolicy.finalLegDuration;
     try {
-      await viewerController
-          .goToPage(pageNumber: pageNumber, duration: duration)
-          .timeout(duration + const Duration(seconds: 2));
+      if (landing != null) {
+        await step(landing, Duration.zero);
+        if (_disposed) return;
+      }
+      await step(
+        pageNumber,
+        legDuration,
+      ).timeout(legDuration + const Duration(seconds: 2));
     } on TimeoutException {
       // Animação interrompida — sincroniza com a página visível abaixo.
     }
     _syncPageFromController();
-  }
-
-  /// Navega animado para a primeira página — long-press no indicador `page/total`.
-  ///
-  /// Duração escala com a distância percorrida; pdfrx anima o tween completo até
-  /// a página 1 (não é “uma página por animação”).
-  Future<void> goToFirstPage() async {
-    if (_disposed || !isViewerReady) return;
-    final fromPage = pageListenable.value;
-    if (fromPage <= 1) return;
-
-    final distance = fromPage - 1;
-    final duration = Duration(
-      milliseconds: (400 + distance * 60).clamp(500, 1800),
-    );
-    await animateToPage(pageNumber: 1, duration: duration);
   }
 
   void _syncPageFromController() {

@@ -147,14 +147,7 @@ class PdfrxViewerAdapter implements PdfReaderControllerPort {
 
     try {
       final pageNumber = controller.pageNumber ?? handle.page;
-      final matrix = switch (mode) {
-        PdfFitMode.pageWidth => controller.calcMatrixFitWidthForPage(
-          pageNumber: pageNumber,
-        ),
-        PdfFitMode.pageFit => controller.calcMatrixFitHeightForPage(
-          pageNumber: pageNumber,
-        ),
-      };
+      final matrix = handle.fitMatrixForPage(pageNumber, mode);
       if (matrix != null) {
         await controller.goTo(matrix);
       }
