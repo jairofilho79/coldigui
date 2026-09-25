@@ -689,7 +689,7 @@ class _SheetHeader extends StatelessWidget {
             );
             Navigator.of(context).pop();
           },
-          icon: const Icon(Icons.flag_outlined, color: AppColors.title),
+          icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
           style: IconButton.styleFrom(
             padding: EdgeInsets.zero,
             minimumSize: const Size(44, 44),

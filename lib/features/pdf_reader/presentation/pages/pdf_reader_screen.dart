@@ -488,7 +488,7 @@ class _ReaderScaffold extends StatelessWidget {
                 if (onReport != null)
                   IconButton(
                     tooltip: reportTooltip,
-                    icon: const Icon(Icons.flag_outlined),
+                    icon: const Icon(Icons.handshake_outlined),
                     // Ação navega para fora do leitor — sem
                     // `_runAndRestoreKeyboardFocus`, que devolveria o foco de
                     // teclado a uma tela que já não está em cena.

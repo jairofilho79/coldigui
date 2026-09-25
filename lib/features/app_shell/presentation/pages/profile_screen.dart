@@ -73,7 +73,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             _ProfilePageTile(
-              icon: Icons.volunteer_activism_outlined,
+              icon: Icons.handshake_outlined,
               title: l10n.contributeTitle,
               // `openContribute` (não `context.push` direto): manda o
               // `from` no payload — o Perfil é de onde a maioria dos

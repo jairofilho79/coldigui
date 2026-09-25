@@ -194,7 +194,7 @@ class AudioPlayerScreen extends ConsumerWidget {
                             ),
                           ),
                           icon: const Icon(
-                            Icons.flag_outlined,
+                            Icons.handshake_outlined,
                             color: AppColors.textLight,
                           ),
                         ),
