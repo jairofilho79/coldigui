@@ -1,3 +1,4 @@
+import 'package:coldigui/features/catalog/domain/entities/catalog_list_entry.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
@@ -145,3 +146,12 @@ class _SeededLouvoresCache extends ColdigomLouvoresCacheNotifier {
   @override
   Map<String, Louvor> build() => {for (final l in _seed) l.pdfId: l};
 }
+
+/// Resumo legível de uma entrada da lista: o praiseId para chip solto e
+/// `[a (b)]` para amendoim — membro que não casou (esmaecido) entre
+/// parênteses.
+String describeEntry(CatalogListEntry entry) => switch (entry) {
+  SingleEntry(:final group) => group.groupId,
+  ClusterEntry(:final members) =>
+    '[${[for (final m in members) m.matched ? m.group.groupId : '(${m.group.groupId})'].join(' ')}]',
+};
