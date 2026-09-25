@@ -72,10 +72,24 @@ Future<AddToActiveOutcome> playAudioInSession({
   final add = ref
       .read(activePlaylistEditorProvider.notifier)
       .addToActive(track.audioId, kind: MaterialKind.audio);
-  await ref
-      .read(audioPlayerSessionProvider.notifier)
-      .playQueue(tracks, startIndex: index);
+  final session = ref.read(audioPlayerSessionProvider);
+  final notifier = ref.read(audioPlayerSessionProvider.notifier);
+  if (isAudioTrackLoaded(session, tracks[index])) {
+    // Já é a faixa da sessão: recarregar a fonte recomeçava do zero e deixava
+    // a sessão sem duração nem estado de play — os streams do just_audio são
+    // `distinct` e não reemitem a mesma duração / o mesmo `playing`.
+    if (!session.playing) await notifier.playPause();
+    return add;
+  }
+  await notifier.playQueue(tracks, startIndex: index);
   return add;
+}
+
+/// `true` quando [track] já é a faixa carregada (sem erro) na sessão —
+/// abri-la de novo é só voltar a ela, não recarregar.
+bool isAudioTrackLoaded(AudioPlayerSessionState session, AudioTrack track) {
+  return session.errorMessage == null &&
+      session.currentTrack?.audioId == track.audioId;
 }
 
 /// Abre a rota `/audio` e inicia a faixa (ou fila) na sessão global.

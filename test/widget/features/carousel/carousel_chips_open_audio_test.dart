@@ -13,8 +13,12 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
+import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_chips.dart';
+import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_carousel_actions_provider.dart';
 import 'package:coldigui/features/playlists/domain/entities/playlist_entry.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
@@ -24,6 +28,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../helpers/coldigom_catalog_test_helpers.dart';
 import '../../../support/fakes/fake_active_editor.dart';
 
 /// Sessão de mentira: grava a fila e o índice recebidos por [playQueue] —
@@ -39,10 +44,29 @@ class _FakeAudioSession extends AudioPlayerSessionNotifier {
   @override
   AudioPlayerSessionState build() => _state;
 
+  int playPauseCalls = 0;
+
   @override
   Future<void> playQueue(List<AudioTrack> tracks, {int startIndex = 0}) async {
     playedQueue = tracks;
     playedStartIndex = startIndex;
+  }
+
+  @override
+  Future<void> playPause() async => playPauseCalls++;
+}
+
+/// Resolve a rota do leitor sem baixar PDF — registra o que foi pedido.
+class _FakeReaderCarouselActions extends ReaderCarouselActionsNotifier {
+  final navigatedPdfIds = <String>[];
+
+  @override
+  void build() {}
+
+  @override
+  Future<String?> navigateToPdfId({required String targetPdfId}) async {
+    navigatedPdfIds.add(targetPdfId);
+    return '${RoutePaths.reader}?pdfId=$targetPdfId';
   }
 }
 
@@ -218,4 +242,153 @@ void main() {
       expect(find.text(track.audioId), findsOneWidget);
     },
   );
+
+  group('entrada de áudio que já é a faixa da sessão', () {
+    const pdfEntry = PlaylistEntry(id: 'pdf1', kind: MaterialKind.pdf);
+    final louvor = Louvor.fromManifest(
+      nome: 'Louvor',
+      numero: '12',
+      categoria: 'Partitura',
+      classificacao: 'Coro',
+      pdf: 'pdf1.pdf',
+      pdfId: 'pdf1',
+      groupId: track.groupId,
+    );
+
+    /// Sessão já carregada com [track] — é o que o app tem depois de abrir o
+    /// áudio (e o que o chip/«Abrir» da barra reencontra focado).
+    _FakeAudioSession loadedSession({required bool playing}) =>
+        _FakeAudioSession(
+          AudioPlayerSessionState(queue: const [track], playing: playing),
+        );
+
+    Future<void> pumpBar(
+      WidgetTester tester, {
+      required String initialLocation,
+      required _FakeAudioSession session,
+      required _FakeReaderCarouselActions readerActions,
+    }) async {
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      Widget screen(String label) => Scaffold(
+        body: Column(children: [const CarouselChips(), Text('tela=$label')]),
+      );
+
+      final router = GoRouter(
+        initialLocation: initialLocation,
+        routes: [
+          GoRoute(path: RoutePaths.home, builder: (_, _) => screen('home')),
+          GoRoute(path: RoutePaths.audio, builder: (_, _) => screen('audio')),
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (_, state) => Scaffold(
+              body: Text('leitor=${state.uri.queryParameters['pdfId']}'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            coldigomLouvoresOverride([louvor]),
+            activePlaylistEditorProvider.overrideWith(
+              () => FakeActiveEditor([pdfEntry, audioEntry]),
+            ),
+            audioPlayerSessionProvider.overrideWith(() => session),
+            readerCarouselActionsProvider.overrideWith(() => readerActions),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(CarouselChips)),
+      );
+      container.read(coldigomAudioTracksCacheProvider.notifier).mergeTracks([
+        track,
+      ]);
+      // Abrir o áudio foca a entrada dele — é esse o chip que o usuário vê.
+      final audioItem = container
+          .read(carouselItemsProvider)
+          .firstWhere((item) => item.isAudio);
+      container
+          .read(carouselFocusedIndexProvider.notifier)
+          .focusKey(audioItem.key);
+      await tester.pumpAndSettle();
+    }
+
+    for (final (label, tap) in [
+      ('«Abrir»', (WidgetTester t) => t.tap(find.text('Abrir'))),
+      ('o chip', (WidgetTester t) => t.tap(find.textContaining(track.nome))),
+    ]) {
+      testWidgets('em /audio, $label abre a leitura do louvor sem recarregar '
+          'a faixa', (tester) async {
+        final session = loadedSession(playing: true);
+        final readerActions = _FakeReaderCarouselActions();
+        await pumpBar(
+          tester,
+          initialLocation: '${RoutePaths.audio}?audioId=${track.audioId}',
+          session: session,
+          readerActions: readerActions,
+        );
+
+        await tap(tester);
+        await tester.pumpAndSettle();
+
+        // Recarregar a mesma faixa zerava duração/estado de play no player
+        // (streams `distinct` do just_audio não reemitem o mesmo valor).
+        expect(session.playedQueue, isNull);
+        expect(session.playPauseCalls, 0);
+        expect(readerActions.navigatedPdfIds, ['pdf1']);
+        expect(find.text('leitor=pdf1'), findsOneWidget);
+      });
+    }
+
+    testWidgets('fora de /audio, «Abrir» vai ao player sem reiniciar a faixa '
+        'que já toca', (tester) async {
+      final session = loadedSession(playing: true);
+      await pumpBar(
+        tester,
+        initialLocation: RoutePaths.home,
+        session: session,
+        readerActions: _FakeReaderCarouselActions(),
+      );
+
+      await tester.tap(find.text('Abrir'));
+      await tester.pumpAndSettle();
+
+      expect(session.playedQueue, isNull);
+      expect(session.playPauseCalls, 0);
+      expect(find.text('tela=audio'), findsOneWidget);
+    });
+
+    testWidgets('fora de /audio, «Abrir» na faixa pausada retoma de onde '
+        'parou', (tester) async {
+      final session = loadedSession(playing: false);
+      await pumpBar(
+        tester,
+        initialLocation: RoutePaths.home,
+        session: session,
+        readerActions: _FakeReaderCarouselActions(),
+      );
+
+      await tester.tap(find.text('Abrir'));
+      await tester.pumpAndSettle();
+
+      expect(session.playedQueue, isNull);
+      expect(session.playPauseCalls, 1);
+      expect(find.text('tela=audio'), findsOneWidget);
+    });
+  });
 }

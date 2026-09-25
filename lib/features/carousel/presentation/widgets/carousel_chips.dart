@@ -6,6 +6,7 @@ import 'package:coldigui/core/utils/url_sync_params.dart';
 import 'package:coldigui/core/widgets/app_snackbar.dart';
 import 'package:coldigui/features/audio_player/domain/utils/find_material_for_group.dart';
 import 'package:coldigui/features/audio_player/presentation/providers/audio_follow_reader_provider.dart';
+import 'package:coldigui/features/audio_player/presentation/providers/audio_player_session_provider.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/active_list_audio_queue.dart';
 import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_player.dart';
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
@@ -225,6 +226,36 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
   Future<void> _openItem(CarouselItem item) async {
     if (item.isAudio) return _openAudio(item);
     return _openInReader(item);
+  }
+
+  /// Chip e «Abrir» da barra. Em `/audio`, a entrada focada que já é a
+  /// faixa da sessão é a própria tela: abrir leva à leitura do louvor — o
+  /// mesmo do botão de partitura do player — em vez de recarregar a faixa.
+  Future<void> _openFocusedItem(CarouselItem item) {
+    if (item.isAudio && currentRoutePath(context) == RoutePaths.audio) {
+      final track = ref
+          .read(catalogMaterialLookupProvider)
+          .audioTrack(item.materialId);
+      if (track != null &&
+          isAudioTrackLoaded(ref.read(audioPlayerSessionProvider), track)) {
+        return _openReadingOfGroup(track.groupId);
+      }
+    }
+    return _openItem(item);
+  }
+
+  Future<void> _openReadingOfGroup(String groupId) async {
+    if (_openingReader) return;
+    setState(() => _openingReader = true);
+    try {
+      await openMaterialForGroupInReader(
+        ref: ref,
+        context: context,
+        groupId: groupId,
+      );
+    } finally {
+      if (mounted) setState(() => _openingReader = false);
+    }
   }
 
   Future<void> _openInReader(CarouselItem item) async {
@@ -512,8 +543,10 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                 ? () => _replaceReaderWithCarouselItem(items[focusedIndex + 1])
                 : null)
           : () => ref.read(carouselFocusedIndexProvider.notifier).goNext(),
-      onChipTap: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
-      onOpen: onReaderWithoutPdfId ? null : () => _openItem(focusedItem),
+      onChipTap: onReaderWithoutPdfId
+          ? null
+          : () => _openFocusedItem(focusedItem),
+      onOpen: onReaderWithoutPdfId ? null : () => _openFocusedItem(focusedItem),
       onOpenSelection: () => showCarouselSelectionSheet(
         context,
         onItemTap: (item) async {
