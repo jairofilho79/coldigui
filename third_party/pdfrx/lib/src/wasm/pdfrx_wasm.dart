@@ -57,6 +57,10 @@ Future<Map<Object?, dynamic>> _sendCommand(
   return (result.dartify()) as Map<Object?, dynamic>;
 }
 
+/// Versão do `pdfium_worker.js` com patch local, na query da URL do worker
+/// (cache-bust — ver `_getWorkerUrl` e PATCH.md).
+const _patchedWorkerVersion = 'imagebitmap-1';
+
 /// The URL of the PDFium WASM worker script; pdfium_client.js tries to load worker script from this URL.'
 @JS()
 external String pdfiumWasmWorkerUrl;
@@ -133,7 +137,11 @@ class PdfrxEntryFunctionsWasmImpl extends PdfrxEntryFunctions {
   /// Workaround for Cross-Origin-Embedder-Policy restriction on WASM enabled environments
   String _getWorkerUrl() {
     final moduleUrl = _resolveUrl(Pdfrx.pdfiumWasmModulesUrl ?? defaultWasmModulePath);
-    final workerJsUrl = _resolveUrl('pdfium_worker.js', baseUrl: moduleUrl);
+    // Patch local (PATCH.md): versão na URL do worker. `/assets/*` sai com
+    // cache `immutable` de 1 ano e nome fixo — sem isto, quem já abriu o
+    // leitor continuaria com o `pdfium_worker.js` antigo (sem o atalho do
+    // ImageBitmap). Subir [_patchedWorkerVersion] a cada mudança no worker.
+    final workerJsUrl = _resolveUrl('pdfium_worker.js?v=$_patchedWorkerVersion', baseUrl: moduleUrl);
     final pdfiumWasmUrl = _resolveUrl('pdfium.wasm', baseUrl: moduleUrl);
     final content = 'const pdfiumWasmUrl="$pdfiumWasmUrl";importScripts("$workerJsUrl");';
     final blob = web.Blob(

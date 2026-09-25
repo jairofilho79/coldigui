@@ -64,6 +64,14 @@ Mínimo, com fallback total para o caminho de sempre:
   (a ponte condicional `dart:ui_web`, seguindo o padrão que o pacote já usa
   em `utils/platform.dart`).
 
+- **Cache-bust do worker** (`lib/src/wasm/pdfrx_wasm.dart`,
+  `_getWorkerUrl`): o `importScripts` pede
+  `pdfium_worker.js?v=<_patchedWorkerVersion>`. O `_headers` do app serve
+  `/assets/packages/pdfrx/assets/*` como `immutable` por 1 ano, com nome
+  fixo: sem a versão na URL, quem já abriu o leitor continuaria com o worker
+  antigo do cache HTTP (sem o atalho — não quebra, só não melhora). **Toda
+  mudança em `pdfium_worker.js` exige subir `_patchedWorkerVersion`.**
+
 Nada mais no pdfrx muda. `lib/pdfrx.dart` ganha só o export da chave.
 
 ## Chave de desligar
