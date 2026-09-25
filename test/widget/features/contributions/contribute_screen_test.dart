@@ -400,10 +400,7 @@ void main() {
         ..._logged(),
         coldigomPraiseMetaCacheProvider.overrideWith(
           () => _FakePraiseMetaNotifier({
-            'p1': const ColdigomPraiseMetadata(
-              name: 'Nome',
-              category: 'Clamor',
-            ),
+            'p1': const ColdigomPraiseMetadata(name: 'Nome'),
           }),
         ),
       ],

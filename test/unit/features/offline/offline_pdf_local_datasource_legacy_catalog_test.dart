@@ -56,7 +56,6 @@ void main() {
           ..author = ''
           ..rhythm = ''
           ..tonality = ''
-          ..category = ''
           ..tags = const []
           ..lyrics = ''
           ..materialsJson = '[]'

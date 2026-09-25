@@ -386,7 +386,6 @@ void main() {
             tonality: 'Dm',
             author: 'CIAS',
             rhythm: 'Básico',
-            category: 'Clamor',
             tagNames: ['PES'],
           ),
         },
@@ -404,10 +403,9 @@ void main() {
       // Só no bloco de meta: a seção única de PDF não ganha rótulo, a aba
       // «Partituras» já diz o que é.
       expect(find.text('Básico'), findsOneWidget);
-      // A meta ainda traz category (fase 3), mas a ficha não a mostra: a
-      // seção da Coletânea aparece nas tags (spec seções-coletânea §4.1).
+      // Sem linha «Categoria»: a seção da Coletânea aparece nas tags (spec
+      // seções-coletânea §4.1).
       expect(find.text('Categoria'), findsNothing);
-      expect(find.text('Clamor'), findsNothing);
       expect(find.text('PES'), findsOneWidget);
       expect(find.text('TAGS'), findsOneWidget);
 

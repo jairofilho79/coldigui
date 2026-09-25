@@ -23,7 +23,6 @@ ColdigomPraiseCache _row(String id, List<Map<String, Object?>> materials) =>
       ..author = ''
       ..rhythm = ''
       ..tonality = ''
-      ..category = ''
       ..tags = const []
       ..lyrics = ''
       ..materialsJson = jsonEncode(materials)

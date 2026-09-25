@@ -37,7 +37,6 @@ ColdigomPraiseCache _row(
   ..author = ''
   ..rhythm = ''
   ..tonality = ''
-  ..category = ''
   ..tags = const []
   ..lyrics = ''
   ..materialsJson = jsonEncode(materials)

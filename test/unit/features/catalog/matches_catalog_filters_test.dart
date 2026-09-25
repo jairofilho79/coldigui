@@ -12,7 +12,6 @@ void main() {
     name: 'Hino',
     tonality: 'Dm',
     rhythm: 'Fox',
-    category: 'Clamor',
     tags: const ['PES · 9.2026', 'Avulsos'],
     pdfKinds: const {'k-grade': 'Grade'},
     audioKinds: const {'k-play': 'Playback'},
@@ -22,7 +21,6 @@ void main() {
     name: 'Coro',
     tonality: 'G',
     rhythm: 'Valsa',
-    category: 'Adoração',
     tags: const ['CIAs'],
     pdfKinds: const {'k-cifra1': 'Cifra I'},
   );
@@ -53,29 +51,23 @@ void main() {
   });
 
   test(
-    'a categoria do praise não filtra; link antigo acha a seção pela subtag',
+    'link antigo ?category= acha a seção pela subtag, não quem está fora dela',
     () {
       final secao = catalogGroup(
         praiseId: 'p4',
         name: 'Seção',
-        category: 'Clamor',
         tags: const ['Coletânea · Clamor'],
       );
-      final soCategoria = catalogGroup(
-        praiseId: 'p5',
-        name: 'Só categoria',
-        category: 'Clamor',
-      );
+      final semSecao = catalogGroup(praiseId: 'p5', name: 'Sem seção');
       final outraSecao = catalogGroup(
         praiseId: 'p6',
         name: 'Outra seção',
-        category: 'Louvor',
         tags: const ['Coletânea · Louvor'],
       );
       final fromLink = CatalogFilterState.fromUrl(category: 'Clamor');
 
       expect(matches(secao, fromLink), isTrue);
-      expect(matches(soCategoria, fromLink), isFalse);
+      expect(matches(semSecao, fromLink), isFalse);
       // A raiz Coletânea entra junto com a subtag na conversão do link
       // legado, mas catalogTagsRefined a descarta por ter descendente
       // selecionado — não pode alargar o filtro para outras seções.

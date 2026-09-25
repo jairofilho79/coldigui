@@ -68,7 +68,6 @@ LouvorGroup _remoteGroup(String praiseId) {
         tonality: 'Dm',
         author: 'Autor',
         rhythm: 'Básico',
-        category: 'Dm',
         tagNames: ['PES'],
       ),
     },

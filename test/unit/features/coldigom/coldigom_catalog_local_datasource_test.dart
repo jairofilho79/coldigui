@@ -14,7 +14,6 @@ ColdigomPraiseCache _row(String praiseId, {String number = '001'}) =>
       ..author = ''
       ..rhythm = ''
       ..tonality = ''
-      ..category = ''
       ..tags = const []
       ..lyrics = ''
       ..materialsJson = '[]'

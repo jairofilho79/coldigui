@@ -24,7 +24,6 @@ class ColdigomPraiseCache {
   late String author;
   late String rhythm;
   late String tonality;
-  late String category;
 
   /// Nomes das tags (`tag_names`), sem ids.
   late List<String> tags;

@@ -27,7 +27,6 @@ final ColdigomPraiseCacheSchema = IsarGeneratedSchema(
       IsarPropertySchema(name: 'author', type: IsarType.string),
       IsarPropertySchema(name: 'rhythm', type: IsarType.string),
       IsarPropertySchema(name: 'tonality', type: IsarType.string),
-      IsarPropertySchema(name: 'category', type: IsarType.string),
       IsarPropertySchema(name: 'tags', type: IsarType.stringList),
       IsarPropertySchema(name: 'lyrics', type: IsarType.string),
       IsarPropertySchema(name: 'materialsJson', type: IsarType.string),
@@ -62,24 +61,23 @@ int serializeColdigomPraiseCache(
   IsarCore.writeString(writer, 4, object.author);
   IsarCore.writeString(writer, 5, object.rhythm);
   IsarCore.writeString(writer, 6, object.tonality);
-  IsarCore.writeString(writer, 7, object.category);
   {
     final list = object.tags;
-    final listWriter = IsarCore.beginList(writer, 8, list.length);
+    final listWriter = IsarCore.beginList(writer, 7, list.length);
     for (var i = 0; i < list.length; i++) {
       IsarCore.writeString(listWriter, i, list[i]);
     }
     IsarCore.endList(writer, listWriter);
   }
-  IsarCore.writeString(writer, 9, object.lyrics);
-  IsarCore.writeString(writer, 10, object.materialsJson);
-  IsarCore.writeString(writer, 11, object.searchTokens);
+  IsarCore.writeString(writer, 8, object.lyrics);
+  IsarCore.writeString(writer, 9, object.materialsJson);
+  IsarCore.writeString(writer, 10, object.searchTokens);
   {
     final value = object.shortId;
     if (value == null) {
-      IsarCore.writeNull(writer, 12);
+      IsarCore.writeNull(writer, 11);
     } else {
-      IsarCore.writeString(writer, 12, value);
+      IsarCore.writeString(writer, 11, value);
     }
   }
   return object.id;
@@ -95,9 +93,8 @@ ColdigomPraiseCache deserializeColdigomPraiseCache(IsarReader reader) {
   object.author = IsarCore.readString(reader, 4) ?? '';
   object.rhythm = IsarCore.readString(reader, 5) ?? '';
   object.tonality = IsarCore.readString(reader, 6) ?? '';
-  object.category = IsarCore.readString(reader, 7) ?? '';
   {
-    final length = IsarCore.readList(reader, 8, IsarCore.readerPtrPtr);
+    final length = IsarCore.readList(reader, 7, IsarCore.readerPtrPtr);
     {
       final reader = IsarCore.readerPtr;
       if (reader.isNull) {
@@ -112,10 +109,10 @@ ColdigomPraiseCache deserializeColdigomPraiseCache(IsarReader reader) {
       }
     }
   }
-  object.lyrics = IsarCore.readString(reader, 9) ?? '';
-  object.materialsJson = IsarCore.readString(reader, 10) ?? '';
-  object.searchTokens = IsarCore.readString(reader, 11) ?? '';
-  object.shortId = IsarCore.readString(reader, 12);
+  object.lyrics = IsarCore.readString(reader, 8) ?? '';
+  object.materialsJson = IsarCore.readString(reader, 9) ?? '';
+  object.searchTokens = IsarCore.readString(reader, 10) ?? '';
+  object.shortId = IsarCore.readString(reader, 11);
   return object;
 }
 
@@ -137,10 +134,8 @@ dynamic deserializeColdigomPraiseCacheProp(IsarReader reader, int property) {
     case 6:
       return IsarCore.readString(reader, 6) ?? '';
     case 7:
-      return IsarCore.readString(reader, 7) ?? '';
-    case 8:
       {
-        final length = IsarCore.readList(reader, 8, IsarCore.readerPtrPtr);
+        final length = IsarCore.readList(reader, 7, IsarCore.readerPtrPtr);
         {
           final reader = IsarCore.readerPtr;
           if (reader.isNull) {
@@ -155,14 +150,14 @@ dynamic deserializeColdigomPraiseCacheProp(IsarReader reader, int property) {
           }
         }
       }
+    case 8:
+      return IsarCore.readString(reader, 8) ?? '';
     case 9:
       return IsarCore.readString(reader, 9) ?? '';
     case 10:
       return IsarCore.readString(reader, 10) ?? '';
     case 11:
-      return IsarCore.readString(reader, 11) ?? '';
-    case 12:
-      return IsarCore.readString(reader, 12);
+      return IsarCore.readString(reader, 11);
     default:
       throw ArgumentError('Unknown property: $property');
   }
@@ -177,7 +172,6 @@ sealed class _ColdigomPraiseCacheUpdate {
     String? author,
     String? rhythm,
     String? tonality,
-    String? category,
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
@@ -199,7 +193,6 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
     Object? author = ignore,
     Object? rhythm = ignore,
     Object? tonality = ignore,
-    Object? category = ignore,
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
@@ -214,11 +207,10 @@ class _ColdigomPraiseCacheUpdateImpl implements _ColdigomPraiseCacheUpdate {
             if (author != ignore) 4: author as String?,
             if (rhythm != ignore) 5: rhythm as String?,
             if (tonality != ignore) 6: tonality as String?,
-            if (category != ignore) 7: category as String?,
-            if (lyrics != ignore) 9: lyrics as String?,
-            if (materialsJson != ignore) 10: materialsJson as String?,
-            if (searchTokens != ignore) 11: searchTokens as String?,
-            if (shortId != ignore) 12: shortId as String?,
+            if (lyrics != ignore) 8: lyrics as String?,
+            if (materialsJson != ignore) 9: materialsJson as String?,
+            if (searchTokens != ignore) 10: searchTokens as String?,
+            if (shortId != ignore) 11: shortId as String?,
           },
         ) >
         0;
@@ -234,7 +226,6 @@ sealed class _ColdigomPraiseCacheUpdateAll {
     String? author,
     String? rhythm,
     String? tonality,
-    String? category,
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
@@ -257,7 +248,6 @@ class _ColdigomPraiseCacheUpdateAllImpl
     Object? author = ignore,
     Object? rhythm = ignore,
     Object? tonality = ignore,
-    Object? category = ignore,
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
@@ -270,11 +260,10 @@ class _ColdigomPraiseCacheUpdateAllImpl
       if (author != ignore) 4: author as String?,
       if (rhythm != ignore) 5: rhythm as String?,
       if (tonality != ignore) 6: tonality as String?,
-      if (category != ignore) 7: category as String?,
-      if (lyrics != ignore) 9: lyrics as String?,
-      if (materialsJson != ignore) 10: materialsJson as String?,
-      if (searchTokens != ignore) 11: searchTokens as String?,
-      if (shortId != ignore) 12: shortId as String?,
+      if (lyrics != ignore) 8: lyrics as String?,
+      if (materialsJson != ignore) 9: materialsJson as String?,
+      if (searchTokens != ignore) 10: searchTokens as String?,
+      if (shortId != ignore) 11: shortId as String?,
     });
   }
 }
@@ -295,7 +284,6 @@ sealed class _ColdigomPraiseCacheQueryUpdate {
     String? author,
     String? rhythm,
     String? tonality,
-    String? category,
     String? lyrics,
     String? materialsJson,
     String? searchTokens,
@@ -318,7 +306,6 @@ class _ColdigomPraiseCacheQueryUpdateImpl
     Object? author = ignore,
     Object? rhythm = ignore,
     Object? tonality = ignore,
-    Object? category = ignore,
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
@@ -331,11 +318,10 @@ class _ColdigomPraiseCacheQueryUpdateImpl
       if (author != ignore) 4: author as String?,
       if (rhythm != ignore) 5: rhythm as String?,
       if (tonality != ignore) 6: tonality as String?,
-      if (category != ignore) 7: category as String?,
-      if (lyrics != ignore) 9: lyrics as String?,
-      if (materialsJson != ignore) 10: materialsJson as String?,
-      if (searchTokens != ignore) 11: searchTokens as String?,
-      if (shortId != ignore) 12: shortId as String?,
+      if (lyrics != ignore) 8: lyrics as String?,
+      if (materialsJson != ignore) 9: materialsJson as String?,
+      if (searchTokens != ignore) 10: searchTokens as String?,
+      if (shortId != ignore) 11: shortId as String?,
     });
   }
 }
@@ -364,7 +350,6 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
     Object? author = ignore,
     Object? rhythm = ignore,
     Object? tonality = ignore,
-    Object? category = ignore,
     Object? lyrics = ignore,
     Object? materialsJson = ignore,
     Object? searchTokens = ignore,
@@ -379,11 +364,10 @@ class _ColdigomPraiseCacheQueryBuilderUpdateImpl
         if (author != ignore) 4: author as String?,
         if (rhythm != ignore) 5: rhythm as String?,
         if (tonality != ignore) 6: tonality as String?,
-        if (category != ignore) 7: category as String?,
-        if (lyrics != ignore) 9: lyrics as String?,
-        if (materialsJson != ignore) 10: materialsJson as String?,
-        if (searchTokens != ignore) 11: searchTokens as String?,
-        if (shortId != ignore) 12: shortId as String?,
+        if (lyrics != ignore) 8: lyrics as String?,
+        if (materialsJson != ignore) 9: materialsJson as String?,
+        if (searchTokens != ignore) 10: searchTokens as String?,
+        if (shortId != ignore) 11: shortId as String?,
       });
     } finally {
       q.close();
@@ -1306,151 +1290,10 @@ extension ColdigomPraiseCacheQueryFilter
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryEqualTo(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        EqualCondition(property: 7, value: value, caseSensitive: caseSensitive),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryGreaterThan(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        GreaterCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryGreaterThanOrEqualTo(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        GreaterOrEqualCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryLessThan(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        LessCondition(property: 7, value: value, caseSensitive: caseSensitive),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryLessThanOrEqualTo(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        LessOrEqualCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryBetween(String lower, String upper, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        BetweenCondition(
-          property: 7,
-          lower: lower,
-          upper: upper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        StartsWithCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        EndsWithCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        ContainsCondition(
-          property: 7,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        MatchesCondition(
-          property: 7,
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const EqualCondition(property: 7, value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
-  categoryIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const GreaterCondition(property: 7, value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
   tagsElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 8, value: value, caseSensitive: caseSensitive),
+        EqualCondition(property: 7, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1460,7 +1303,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1473,7 +1316,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1485,7 +1328,7 @@ extension ColdigomPraiseCacheQueryFilter
   tagsElementLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 8, value: value, caseSensitive: caseSensitive),
+        LessCondition(property: 7, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1495,7 +1338,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1508,7 +1351,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(
-          property: 8,
+          property: 7,
           lower: lower,
           upper: upper,
           caseSensitive: caseSensitive,
@@ -1522,7 +1365,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         StartsWithCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1535,7 +1378,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EndsWithCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1548,7 +1391,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         ContainsCondition(
-          property: 8,
+          property: 7,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1561,7 +1404,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         MatchesCondition(
-          property: 8,
+          property: 7,
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -1573,7 +1416,7 @@ extension ColdigomPraiseCacheQueryFilter
   tagsElementIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const EqualCondition(property: 8, value: ''),
+        const EqualCondition(property: 7, value: ''),
       );
     });
   }
@@ -1582,7 +1425,7 @@ extension ColdigomPraiseCacheQueryFilter
   tagsElementIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterCondition(property: 8, value: ''),
+        const GreaterCondition(property: 7, value: ''),
       );
     });
   }
@@ -1596,7 +1439,7 @@ extension ColdigomPraiseCacheQueryFilter
   tagsIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterOrEqualCondition(property: 8, value: null),
+        const GreaterOrEqualCondition(property: 7, value: null),
       );
     });
   }
@@ -1605,7 +1448,7 @@ extension ColdigomPraiseCacheQueryFilter
   lyricsEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(property: 9, value: value, caseSensitive: caseSensitive),
+        EqualCondition(property: 8, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1615,7 +1458,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1628,7 +1471,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1640,7 +1483,7 @@ extension ColdigomPraiseCacheQueryFilter
   lyricsLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 9, value: value, caseSensitive: caseSensitive),
+        LessCondition(property: 8, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1650,7 +1493,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1663,7 +1506,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(
-          property: 9,
+          property: 8,
           lower: lower,
           upper: upper,
           caseSensitive: caseSensitive,
@@ -1677,7 +1520,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         StartsWithCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1690,7 +1533,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EndsWithCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1703,7 +1546,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         ContainsCondition(
-          property: 9,
+          property: 8,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1716,7 +1559,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         MatchesCondition(
-          property: 9,
+          property: 8,
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -1728,7 +1571,7 @@ extension ColdigomPraiseCacheQueryFilter
   lyricsIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const EqualCondition(property: 9, value: ''),
+        const EqualCondition(property: 8, value: ''),
       );
     });
   }
@@ -1737,7 +1580,7 @@ extension ColdigomPraiseCacheQueryFilter
   lyricsIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterCondition(property: 9, value: ''),
+        const GreaterCondition(property: 8, value: ''),
       );
     });
   }
@@ -1746,11 +1589,7 @@ extension ColdigomPraiseCacheQueryFilter
   materialsJsonEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        EqualCondition(
-          property: 10,
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
+        EqualCondition(property: 9, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1760,7 +1599,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1773,7 +1612,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1785,7 +1624,7 @@ extension ColdigomPraiseCacheQueryFilter
   materialsJsonLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 10, value: value, caseSensitive: caseSensitive),
+        LessCondition(property: 9, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1795,7 +1634,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1812,7 +1651,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(
-          property: 10,
+          property: 9,
           lower: lower,
           upper: upper,
           caseSensitive: caseSensitive,
@@ -1826,7 +1665,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         StartsWithCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1839,7 +1678,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EndsWithCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1852,7 +1691,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         ContainsCondition(
-          property: 10,
+          property: 9,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1865,7 +1704,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         MatchesCondition(
-          property: 10,
+          property: 9,
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -1877,7 +1716,7 @@ extension ColdigomPraiseCacheQueryFilter
   materialsJsonIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const EqualCondition(property: 10, value: ''),
+        const EqualCondition(property: 9, value: ''),
       );
     });
   }
@@ -1886,7 +1725,7 @@ extension ColdigomPraiseCacheQueryFilter
   materialsJsonIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterCondition(property: 10, value: ''),
+        const GreaterCondition(property: 9, value: ''),
       );
     });
   }
@@ -1896,7 +1735,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EqualCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1909,7 +1748,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1922,7 +1761,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1934,7 +1773,7 @@ extension ColdigomPraiseCacheQueryFilter
   searchTokensLessThan(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 11, value: value, caseSensitive: caseSensitive),
+        LessCondition(property: 10, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -1944,7 +1783,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1957,7 +1796,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(
-          property: 11,
+          property: 10,
           lower: lower,
           upper: upper,
           caseSensitive: caseSensitive,
@@ -1971,7 +1810,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         StartsWithCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1984,7 +1823,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EndsWithCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -1997,7 +1836,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         ContainsCondition(
-          property: 11,
+          property: 10,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2010,7 +1849,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         MatchesCondition(
-          property: 11,
+          property: 10,
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -2022,7 +1861,7 @@ extension ColdigomPraiseCacheQueryFilter
   searchTokensIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const EqualCondition(property: 11, value: ''),
+        const EqualCondition(property: 10, value: ''),
       );
     });
   }
@@ -2031,7 +1870,7 @@ extension ColdigomPraiseCacheQueryFilter
   searchTokensIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterCondition(property: 11, value: ''),
+        const GreaterCondition(property: 10, value: ''),
       );
     });
   }
@@ -2039,14 +1878,14 @@ extension ColdigomPraiseCacheQueryFilter
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
   shortIdIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 12));
+      return query.addFilterCondition(const IsNullCondition(property: 11));
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterFilterCondition>
   shortIdIsNotNull() {
     return QueryBuilder.apply(not(), (query) {
-      return query.addFilterCondition(const IsNullCondition(property: 12));
+      return query.addFilterCondition(const IsNullCondition(property: 11));
     });
   }
 
@@ -2055,7 +1894,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EqualCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2068,7 +1907,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2081,7 +1920,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         GreaterOrEqualCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2093,7 +1932,7 @@ extension ColdigomPraiseCacheQueryFilter
   shortIdLessThan(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        LessCondition(property: 12, value: value, caseSensitive: caseSensitive),
+        LessCondition(property: 11, value: value, caseSensitive: caseSensitive),
       );
     });
   }
@@ -2103,7 +1942,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         LessOrEqualCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2116,7 +1955,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         BetweenCondition(
-          property: 12,
+          property: 11,
           lower: lower,
           upper: upper,
           caseSensitive: caseSensitive,
@@ -2130,7 +1969,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         StartsWithCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2143,7 +1982,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         EndsWithCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2156,7 +1995,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         ContainsCondition(
-          property: 12,
+          property: 11,
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2169,7 +2008,7 @@ extension ColdigomPraiseCacheQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         MatchesCondition(
-          property: 12,
+          property: 11,
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -2181,7 +2020,7 @@ extension ColdigomPraiseCacheQueryFilter
   shortIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const EqualCondition(property: 12, value: ''),
+        const EqualCondition(property: 11, value: ''),
       );
     });
   }
@@ -2190,7 +2029,7 @@ extension ColdigomPraiseCacheQueryFilter
   shortIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const GreaterCondition(property: 12, value: ''),
+        const GreaterCondition(property: 11, value: ''),
       );
     });
   }
@@ -2305,72 +2144,58 @@ extension ColdigomPraiseCacheQuerySortBy
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
-  sortByCategory({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(7, caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
-  sortByCategoryDesc({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(7, sort: Sort.desc, caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByLyrics({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(9, caseSensitive: caseSensitive);
+      return query.addSortBy(8, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByLyricsDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(9, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(8, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByMaterialsJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(10, caseSensitive: caseSensitive);
+      return query.addSortBy(9, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByMaterialsJsonDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(9, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortBySearchTokens({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(11, caseSensitive: caseSensitive);
+      return query.addSortBy(10, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortBySearchTokensDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByShortId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(12, caseSensitive: caseSensitive);
+      return query.addSortBy(11, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   sortByShortIdDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 }
@@ -2476,72 +2301,58 @@ extension ColdigomPraiseCacheQuerySortThenBy
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
-  thenByCategory({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(7, caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
-  thenByCategoryDesc({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(7, sort: Sort.desc, caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByLyrics({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(9, caseSensitive: caseSensitive);
+      return query.addSortBy(8, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByLyricsDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(9, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(8, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByMaterialsJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(10, caseSensitive: caseSensitive);
+      return query.addSortBy(9, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByMaterialsJsonDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(9, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenBySearchTokens({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(11, caseSensitive: caseSensitive);
+      return query.addSortBy(10, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenBySearchTokensDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(10, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByShortId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(12, caseSensitive: caseSensitive);
+      return query.addSortBy(11, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterSortBy>
   thenByShortIdDesc({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(12, sort: Sort.desc, caseSensitive: caseSensitive);
+      return query.addSortBy(11, sort: Sort.desc, caseSensitive: caseSensitive);
     });
   }
 }
@@ -2591,44 +2402,37 @@ extension ColdigomPraiseCacheQueryWhereDistinct
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
-  distinctByCategory({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(7, caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
   distinctByTags() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(8);
+      return query.addDistinctBy(7);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
   distinctByLyrics({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(9, caseSensitive: caseSensitive);
+      return query.addDistinctBy(8, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
   distinctByMaterialsJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(10, caseSensitive: caseSensitive);
+      return query.addDistinctBy(9, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
   distinctBySearchTokens({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(11, caseSensitive: caseSensitive);
+      return query.addDistinctBy(10, caseSensitive: caseSensitive);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, ColdigomPraiseCache, QAfterDistinct>
   distinctByShortId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(12, caseSensitive: caseSensitive);
+      return query.addDistinctBy(11, caseSensitive: caseSensitive);
     });
   }
 }
@@ -2677,42 +2481,36 @@ extension ColdigomPraiseCacheQueryProperty1
     });
   }
 
-  QueryBuilder<ColdigomPraiseCache, String, QAfterProperty> categoryProperty() {
+  QueryBuilder<ColdigomPraiseCache, List<String>, QAfterProperty>
+  tagsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addProperty(7);
     });
   }
 
-  QueryBuilder<ColdigomPraiseCache, List<String>, QAfterProperty>
-  tagsProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addProperty(8);
-    });
-  }
-
   QueryBuilder<ColdigomPraiseCache, String, QAfterProperty> lyricsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(9);
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, String, QAfterProperty>
   materialsJsonProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(10);
+      return query.addProperty(9);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, String, QAfterProperty>
   searchTokensProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(11);
+      return query.addProperty(10);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, String?, QAfterProperty> shortIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(12);
+      return query.addProperty(11);
     });
   }
 }
@@ -2767,45 +2565,38 @@ extension ColdigomPraiseCacheQueryProperty2<R>
     });
   }
 
-  QueryBuilder<ColdigomPraiseCache, (R, String), QAfterProperty>
-  categoryProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addProperty(7);
-    });
-  }
-
   QueryBuilder<ColdigomPraiseCache, (R, List<String>), QAfterProperty>
   tagsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(8);
+      return query.addProperty(7);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R, String), QAfterProperty>
   lyricsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(9);
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R, String), QAfterProperty>
   materialsJsonProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(10);
+      return query.addProperty(9);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R, String), QAfterProperty>
   searchTokensProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(11);
+      return query.addProperty(10);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R, String?), QAfterProperty>
   shortIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(12);
+      return query.addProperty(11);
     });
   }
 }
@@ -2860,45 +2651,38 @@ extension ColdigomPraiseCacheQueryProperty3<R1, R2>
     });
   }
 
-  QueryBuilder<ColdigomPraiseCache, (R1, R2, String), QOperations>
-  categoryProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addProperty(7);
-    });
-  }
-
   QueryBuilder<ColdigomPraiseCache, (R1, R2, List<String>), QOperations>
   tagsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(8);
+      return query.addProperty(7);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R1, R2, String), QOperations>
   lyricsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(9);
+      return query.addProperty(8);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R1, R2, String), QOperations>
   materialsJsonProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(10);
+      return query.addProperty(9);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R1, R2, String), QOperations>
   searchTokensProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(11);
+      return query.addProperty(10);
     });
   }
 
   QueryBuilder<ColdigomPraiseCache, (R1, R2, String?), QOperations>
   shortIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addProperty(12);
+      return query.addProperty(11);
     });
   }
 }
