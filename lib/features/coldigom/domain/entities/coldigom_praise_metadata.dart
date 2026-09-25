@@ -27,9 +27,12 @@ class ColdigomPraiseMetadata {
   /// ainda não o expõe para este praise.
   final String? shortId;
 
-  /// `groupId` do praise (chave opaca do grupo no coldigom) — é por ele que
-  /// a lista junta as versões num amendoim (spec louvores-agrupados §4).
-  /// `null` fora de grupo.
+  /// `group_id` do praise no coldigom (chave opaca do grupo de versões) — é
+  /// por ele que a lista junta as versões num amendoim (spec
+  /// louvores-agrupados §4). `null` fora de grupo.
+  ///
+  /// **Não** confundir com `LouvorGroup.groupId`: apesar do nome, aquele é o
+  /// id do próprio praise (um card por praise), não o grupo do coldigom.
   final String? groupId;
 
   /// Há algo a mostrar no bloco de metadados da ficha. A seção da Coletânea

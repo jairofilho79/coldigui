@@ -10,10 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Lista de resultados da Home — isolada da [SearchBar] para evitar rebuilds
 /// do campo de busca quando a validação remota conclui.
 ///
-/// Desde a pesquisa híbrida (§6) a lista é a local; o remoto só acrescenta
-/// «novos» no fim e alimenta a [SearchFreshnessLine] no topo. Não há mais
-/// spinner de rodapé, pager nem linha «Coldigom indisponível»: os três
-/// viraram estados da linha.
+/// Desde a pesquisa híbrida (§6) a lista é a local; o remoto acrescenta
+/// extras e alimenta a [SearchFreshnessLine] no topo. A tela desenha
+/// `state.entries`: um extra que é membro de um grupo já na tela entra no
+/// amendoim dele, os outros vão no fim (spec louvores-agrupados §6.3). Não
+/// há mais spinner de rodapé, pager nem linha «Coldigom indisponível»: os
+/// três viraram estados da linha.
 class HomeSearchResultsSliver extends ConsumerWidget {
   const HomeSearchResultsSliver({super.key});
 

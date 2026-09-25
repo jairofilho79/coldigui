@@ -67,7 +67,10 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
 ///
 /// A lista é a local (índice do catálogo); o remoto só valida (O15):
 /// sem rede nem é instanciado (`offline`), com rede o que ele trouxer a mais
-/// entra em `newGroups`, no fim, na ordem remota.
+/// entra em `newGroups`, na ordem remota. `groups` (lista plana, que diz se
+/// há resultado) põe esses extras no fim; `entries` (o que a tela desenha)
+/// junta os grupos do coldigom em amendoins, e um extra membro de um grupo
+/// já na tela vai para o amendoim dele.
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
@@ -142,8 +145,11 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
     // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
     knownIds: knownIds,
-    // Um «novo» que é membro de um grupo já na tela entra no amendoim dele,
-    // não no fim — `extraMembers` porque o índice ainda não o conhece.
+    // Um extra do remoto que é membro de um grupo já na tela entra no
+    // amendoim dele, não no fim. Vai também em `extraMembers` porque
+    // `membersOf` só sabe do índice: parte dos extras o índice nem conhece
+    // (os «novos»); os que ele conhece mas a busca local não achou já saem
+    // de `membersOf` e o praiseId não se repete.
     entries: clusterCatalogList(
       [...localGroups, ...newGroups],
       membersOf: index.membersOf,
