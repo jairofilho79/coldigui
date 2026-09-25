@@ -1,0 +1,301 @@
+diff -ruN -x PATCH.md pdfrx-2.6.1/assets/pdfium_worker.js pdfrx-2.6.1-patched/assets/pdfium_worker.js
+--- pdfrx-2.6.1/assets/pdfium_worker.js	2026-09-25 12:40:23
++++ pdfrx-2.6.1-patched/assets/pdfium_worker.js	2026-09-25 12:40:23
+@@ -1710,14 +1710,24 @@
+  * rotation: number,
+  * annotationRenderingMode: number,
+  * flags: number,
+- * formHandle: number
++ * formHandle: number,
++ * outputImageBitmap: boolean
+  * }} params
+  * @returns {{
+  * imageData: ArrayBuffer,
++ * imageBitmap: ImageBitmap,
+  * width: number,
+  * height: number,
+  * missingFonts: FontQueries
+  * }}
++ *
++ * `outputImageBitmap` é o atalho do patch local (ver PATCH.md): quando
++ * verdadeiro e sem alpha premultiplicado, devolve `imageBitmap` (criado
++ * aqui no worker, transferido) em vez de `imageData` — a thread principal
++ * evita o BMP montado pixel a pixel. `imageData` continua existindo sempre
++ * que `imageBitmap` não vier (chamador não pediu, `createImageBitmap`
++ * ausente, ou falhou), sempre em BGRA como antes: o contrato desta função
++ * não muda para quem não pede o atalho.
+  */
+ async function renderPage(params) {
+   const {
+@@ -1734,6 +1744,7 @@
+     annotationRenderingMode = 0,
+     flags = 0,
+     formHandle,
++    outputImageBitmap = false,
+   } = params;
+ 
+   let pageHandle = 0;
+@@ -1765,9 +1776,18 @@
+     const PdfAnnotationRenderingMode_none = 0;
+     const PdfAnnotationRenderingMode_annotationAndForms = 2;
+     const premultipliedAlpha = 0x80000000;
++    // Atalho do ImageBitmap (PATCH.md): pedimos ao PDFium que já escreva os
++    // bytes em RGBA (mesmos valores, só a ordem dos canais) para criar o
++    // ImageData/ImageBitmap sem um loop de troca de canais aqui. Alpha
++    // premultiplicado sempre usa o caminho de sempre (BGRA).
++    const FPDF_REVERSE_BYTE_ORDER = 0x10;
++    const wantImageBitmap =
++      !!outputImageBitmap && !(flags & premultipliedAlpha) && typeof createImageBitmap === 'function';
+ 
+     const pdfiumFlags =
+-      (flags & 0xffff) | (annotationRenderingMode !== PdfAnnotationRenderingMode_none ? FPDF_ANNOT : 0);
++      (flags & 0xffff) |
++      (annotationRenderingMode !== PdfAnnotationRenderingMode_none ? FPDF_ANNOT : 0) |
++      (wantImageBitmap ? FPDF_REVERSE_BYTE_ORDER : 0);
+     Pdfium.wasmExports.FPDF_RenderPageBitmap(bitmap, pageHandle, -x, -y, fullWidth, fullHeight, rotation, pdfiumFlags);
+ 
+     if (formHandle && annotationRenderingMode == PdfAnnotationRenderingMode_annotationAndForms) {
+@@ -1799,6 +1819,39 @@
+     }
+ 
+     _updateMissingFonts(docHandle);
++
++    if (wantImageBitmap) {
++      // `dest` já está em RGBA por causa do FPDF_REVERSE_BYTE_ORDER acima.
++      // O ImageBitmap é criado aqui, no worker, e transferido: a thread
++      // principal só recebe um handle (ver PATCH.md — ~0,1 ms contra as
++      // tarefas de 120–240 ms do caminho por BMP).
++      try {
++        const imageBitmap = await createImageBitmap(
++          new ImageData(new Uint8ClampedArray(copiedBuffer), width, height),
++          { premultiplyAlpha: 'none', colorSpaceConversion: 'none' },
++        );
++        return {
++          result: {
++            imageBitmap,
++            width: width,
++            height: height,
++            missingFonts: missingFonts[docHandle],
++          },
++          transfer: [imageBitmap],
++        };
++      } catch (e) {
++        // Sem suporte de verdade (ou falhou por outro motivo): cai para o
++        // caminho de sempre. `dest`/`copiedBuffer` não foram transferidos
++        // (só lidos por createImageBitmap), então ainda dá para devolvê-los
++        // — só falta trocar os canais de volta para BGRA, o contrato de
++        // `imageData`.
++        for (let i = 0; i < dest.length; i += 4) {
++          const t = dest[i];
++          dest[i] = dest[i + 2];
++          dest[i + 2] = t;
++        }
++      }
++    }
+ 
+     return {
+       result: {
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/pdfrx.dart pdfrx-2.6.1-patched/lib/pdfrx.dart
+--- pdfrx-2.6.1/lib/pdfrx.dart	2026-09-25 12:40:23
++++ pdfrx-2.6.1-patched/lib/pdfrx.dart	2026-09-25 12:40:23
+@@ -4,6 +4,7 @@
+ export 'src/pdf_document_ref.dart';
+ export 'src/pdfrx_flutter.dart';
+ export 'src/utils/fixed_overscroll_physics.dart';
++export 'src/utils/web_image_path.dart';
+ export 'src/widgets/pdf_text_searcher.dart';
+ export 'src/widgets/pdf_viewer.dart';
+ export 'src/widgets/pdf_viewer_layout_metrics.dart';
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/src/pdfrx_flutter.dart pdfrx-2.6.1-patched/lib/src/pdfrx_flutter.dart
+--- pdfrx-2.6.1/lib/src/pdfrx_flutter.dart	2026-09-25 12:40:23
++++ pdfrx-2.6.1-patched/lib/src/pdfrx_flutter.dart	2026-09-25 12:40:23
+@@ -6,6 +6,7 @@
+ import 'package:pdfrx_engine/pdfrx_engine.dart';
+ 
+ import 'utils/platform.dart';
++import 'web_image_bitmap_stub.dart' if (dart.library.js_interop) 'web_image_bitmap_web.dart' as web_image_bitmap;
+ 
+ bool _isInitialized = false;
+ 
+@@ -62,6 +63,13 @@
+   /// means it failed to allocate for it - a large page on a memory-constrained
+   /// device. The returned future never completes with null.
+   Future<Image> createImage({int? pixelSizeThreshold}) async {
++    // Atalho web do patch local (ver third_party/pdfrx/PATCH.md no app):
++    // se o worker já devolveu um `ImageBitmap` pronto, entrega-o direto ao
++    // engine em vez de montar um BMP e decodificá-lo (o caminho abaixo).
++    // `null` em qualquer outra plataforma ou quando o atalho não se aplica.
++    final fromBitmap = await web_image_bitmap.tryCreateImageFromBitmap(this, pixelSizeThreshold: pixelSizeThreshold);
++    if (fromBitmap != null) return fromBitmap;
++
+     int? targetWidth;
+     int? targetHeight;
+     if (pixelSizeThreshold != null && (width > pixelSizeThreshold || height > pixelSizeThreshold)) {
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/src/utils/web_image_path.dart pdfrx-2.6.1-patched/lib/src/utils/web_image_path.dart
+--- pdfrx-2.6.1/lib/src/utils/web_image_path.dart	1969-12-31 21:00:00
++++ pdfrx-2.6.1-patched/lib/src/utils/web_image_path.dart	2026-09-25 12:40:23
+@@ -0,0 +1,15 @@
++/// Chave de desligar do atalho de `ImageBitmap` na web (patch local do
++/// pdfrx, ver `third_party/pdfrx/PATCH.md` no app).
++///
++/// Sem import de plataforma de propósito: é lida tanto do código
++/// compartilhado (`pdfrx_flutter.dart`) quanto do implementação WASM
++/// (`wasm/pdfrx_wasm.dart`, web-only), e dá para alternar em teste ou em
++/// campo sem precisar de um novo build condicional.
++abstract final class PdfrxWebImagePath {
++  /// `true`: pede um `ImageBitmap` já pronto ao worker (renderPage) e, ao
++  /// montar o `ui.Image`, entrega esse bitmap direto ao engine
++  /// (`dart:ui_web`), sem o BMP montado pixel a pixel. `false` restaura
++  /// 100% o caminho anterior do pdfrx 2.6.1, inclusive não pedindo o
++  /// bitmap ao worker — é a válvula de emergência.
++  static bool useImageBitmap = true;
++}
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/src/wasm/pdfrx_wasm.dart pdfrx-2.6.1-patched/lib/src/wasm/pdfrx_wasm.dart
+--- pdfrx-2.6.1/lib/src/wasm/pdfrx_wasm.dart	2026-09-25 12:40:23
++++ pdfrx-2.6.1-patched/lib/src/wasm/pdfrx_wasm.dart	2026-09-25 12:40:23
+@@ -12,6 +12,8 @@
+ import 'package:synchronized/extension.dart';
+ import 'package:web/web.dart' as web;
+ 
++import '../utils/web_image_path.dart';
++
+ /// The PDFium WASM communicator object
+ @JS('PdfiumWasmCommunicator')
+ extension type _PdfiumWasmCommunicator(JSObject _) implements JSObject {
+@@ -895,28 +897,89 @@
+         'annotationRenderingMode': annotationRenderingMode.index,
+         'flags': flags,
+         'formHandle': document.document['formHandle'],
++        // Atalho do ImageBitmap (ver PATCH.md): o worker só o atende se
++        // também achar viável (sem alpha premultiplicado e com
++        // `createImageBitmap` disponível); senão devolve `imageData` como
++        // sempre.
++        'outputImageBitmap': PdfrxWebImagePath.useImageBitmap,
+       },
+     );
+-    final bb = result['imageData'] as ByteBuffer;
+-    final pixels = Uint8List.view(bb.asByteData().buffer, 0, bb.lengthInBytes);
+ 
+     document.updateMissingFonts(result['missingFonts']);
+ 
++    final imageBitmap = result['imageBitmap'] as web.ImageBitmap?;
++    if (imageBitmap != null) {
++      return PdfImageWeb(width: width, height: height, bitmap: imageBitmap);
++    }
++
++    final bb = result['imageData'] as ByteBuffer;
++    final pixels = Uint8List.view(bb.asByteData().buffer, 0, bb.lengthInBytes);
+     return PdfImageWeb(width: width, height: height, pixels: pixels);
+   }
+ }
+ 
+ class PdfImageWeb extends PdfImage {
+-  PdfImageWeb({required this.width, required this.height, required this.pixels});
++  PdfImageWeb({required this.width, required this.height, Uint8List? pixels, this.bitmap}) : _pixels = pixels;
+ 
+   @override
+   final int width;
+   @override
+   final int height;
++
++  /// `ImageBitmap` do atalho (ver `PdfrxWebImagePath`), quando o worker
++  /// devolveu um em vez de `imageData`. `null` no caminho de sempre, onde
++  /// [_pixels] já vem pronto do construtor.
++  final web.ImageBitmap? bitmap;
++
++  Uint8List? _pixels;
++  bool _bitmapConsumed = false;
++
++  /// BGRA8888, como sempre. Quando a imagem só tem [bitmap] (atalho web),
++  /// é lida sob demanda por um `OffscreenCanvas` — o viewer do pdfrx não
++  /// passa por aqui (usa [bitmap] direto via `dart:ui_web`), mas outros
++  /// consumidores de [PdfImage.pixels] continuam funcionando.
+   @override
+-  final Uint8List pixels;
++  Uint8List get pixels => _pixels ??= _readBgraFromBitmap();
++
++  Uint8List _readBgraFromBitmap() {
++    final bmp = bitmap;
++    if (bmp == null) {
++      throw StateError('PdfImageWeb sem pixels e sem bitmap.');
++    }
++    final canvas = web.OffscreenCanvas(width, height);
++    final ctx = canvas.getContext('2d') as web.OffscreenCanvasRenderingContext2D?;
++    if (ctx == null) {
++      throw StateError('OffscreenCanvas 2D indisponível para ler o ImageBitmap.');
++    }
++    ctx.drawImage(bmp, 0, 0);
++    final clamped = ctx.getImageData(0, 0, width, height).data.toDart;
++    final rgba = clamped.buffer.asUint8List(clamped.offsetInBytes, clamped.lengthInBytes);
++    for (var i = 0; i < rgba.length; i += 4) {
++      final r = rgba[i];
++      rgba[i] = rgba[i + 2];
++      rgba[i + 2] = r;
++    }
++    return rgba;
++  }
++
++  /// Entrega [bitmap] ao Flutter (`ui_web.createImageFromImageBitmap`), que
++  /// passa a ser dono dele. Depois disso, [dispose] não fecha o bitmap —
++  /// evita fechar algo que o engine (ou o worker de render do skwasm, que
++  /// pode transferi-lo) ainda está usando.
++  web.ImageBitmap? takeBitmapForFlutter() {
++    final bmp = bitmap;
++    if (bmp == null) return null;
++    _bitmapConsumed = true;
++    return bmp;
++  }
++
+   @override
+-  void dispose() {}
++  void dispose() {
++    final bmp = bitmap;
++    if (bmp != null && !_bitmapConsumed) {
++      bmp.close();
++    }
++  }
+ }
+ 
+ PdfDest? _pdfDestFromMap(dynamic dest) {
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/src/web_image_bitmap_stub.dart pdfrx-2.6.1-patched/lib/src/web_image_bitmap_stub.dart
+--- pdfrx-2.6.1/lib/src/web_image_bitmap_stub.dart	1969-12-31 21:00:00
++++ pdfrx-2.6.1-patched/lib/src/web_image_bitmap_stub.dart	2026-09-25 12:40:23
+@@ -0,0 +1,8 @@
++import 'dart:ui';
++
++import 'package:pdfrx_engine/pdfrx_engine.dart';
++
++/// Fora da web não há `ImageBitmap`/`dart:ui_web`: sempre `null`, o
++/// chamador ([PdfImageExt.createImage]) cai no caminho comum (`pixels` +
++/// `ImageDescriptor.raw`).
++Future<Image?> tryCreateImageFromBitmap(PdfImage image, {int? pixelSizeThreshold}) async => null;
+diff -ruN -x PATCH.md pdfrx-2.6.1/lib/src/web_image_bitmap_web.dart pdfrx-2.6.1-patched/lib/src/web_image_bitmap_web.dart
+--- pdfrx-2.6.1/lib/src/web_image_bitmap_web.dart	1969-12-31 21:00:00
++++ pdfrx-2.6.1-patched/lib/src/web_image_bitmap_web.dart	2026-09-25 12:40:23
+@@ -0,0 +1,26 @@
++import 'dart:ui' as ui;
++import 'dart:ui_web' as ui_web;
++
++import 'package:pdfrx_engine/pdfrx_engine.dart';
++
++import 'utils/web_image_path.dart';
++import 'wasm/pdfrx_wasm.dart';
++
++/// Caminho rápido do patch local (ver `PATCH.md`): se [image] carrega um
++/// `ImageBitmap` pronto do worker, entrega-o direto ao engine via
++/// `dart:ui_web` (~0,1 ms) em vez do caminho por BMP do pdfrx 2.6.1
++/// (`ImageDescriptor.raw` — 120–240 ms numa página A4 no Chrome).
++///
++/// `null` faz [PdfImageExt.createImage] cair no caminho comum: chave
++/// [PdfrxWebImagePath.useImageBitmap] desligada, imagem sem bitmap (o
++/// worker não devolveu um — alpha premultiplicado ou `createImageBitmap`
++/// ausente), ou [pixelSizeThreshold] pedindo downscale (só o caminho por
++/// BMP faz isso, via `targetWidth`/`targetHeight` do `Codec`).
++Future<ui.Image?> tryCreateImageFromBitmap(PdfImage image, {int? pixelSizeThreshold}) async {
++  if (!PdfrxWebImagePath.useImageBitmap) return null;
++  if (pixelSizeThreshold != null) return null;
++  if (image is! PdfImageWeb) return null;
++  final bitmap = image.takeBitmapForFlutter();
++  if (bitmap == null) return null;
++  return await ui_web.createImageFromImageBitmap(bitmap);
++}
