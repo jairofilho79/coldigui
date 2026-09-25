@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 /// Spec D2 — em `/listas/publicas` a barra mostra a seta de voltar (mesmo
 /// padrão das rotas imersivas); em `/listas` não. Sub-páginas do Perfil
 /// (`/biblioteca`, `/offline`, `/sobre`, `/materiais-favoritos`) voltam para
-/// `/perfil`.
+/// `/perfil`. Os leitores da Home (`/letra`, …) voltam para a Pesquisa.
 void main() {
   Widget page(String label) =>
       Scaffold(appBar: const PlpcgPrimaryAppBar(), body: Text(label));
@@ -32,6 +32,9 @@ void main() {
             ),
           ],
         ),
+        // Branch Home: leitores irmãos da raiz — deep link cai no `go('/')`.
+        GoRoute(path: RoutePaths.home, builder: (_, _) => page('Pesquisar')),
+        GoRoute(path: RoutePaths.lyrics, builder: (_, _) => page('Letra')),
         // Branch Perfil: rotas irmãs, sem pilha — a seta cai no `go('/perfil')`.
         GoRoute(path: RoutePaths.profile, builder: (_, _) => page('Perfil')),
         GoRoute(
@@ -95,4 +98,15 @@ void main() {
       expect(find.text(label), findsNothing);
     });
   }
+
+  testWidgets('em /letra a seta volta para a Pesquisa', (tester) async {
+    await pump(tester, RoutePaths.lyrics);
+    expect(find.text('Letra'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pesquisar'), findsOneWidget);
+    expect(find.text('Letra'), findsNothing);
+  });
 }

@@ -11,7 +11,7 @@ import 'plpcg_app_bar_title.dart';
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
 /// inclusive `/leitor`. Sem `actions` (badge offline removido).
 /// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
-/// Em `/leitor`, `/audio`, `/cifra`, `/gestos`, `/listas/publicas`,
+/// Em `/leitor`, `/audio`, `/cifra`, `/gestos`, `/letra`, `/listas/publicas`,
 /// `/biblioteca`, `/offline`, `/sobre` e `/materiais-favoritos`, exibe voltar
 /// (pop → raiz da aba dona) para padronizar.
 class PlpcgPrimaryAppBar extends StatelessWidget
@@ -30,7 +30,8 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       RoutePaths.reader ||
       RoutePaths.audio ||
       RoutePaths.chords ||
-      RoutePaths.gestos => RoutePaths.home,
+      RoutePaths.gestos ||
+      RoutePaths.lyrics => RoutePaths.home,
       RoutePaths.publicPlaylists => RoutePaths.playlists,
       RoutePaths.library ||
       RoutePaths.offline ||
