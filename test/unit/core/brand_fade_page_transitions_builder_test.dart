@@ -218,8 +218,40 @@ void main() {
       for (var ms = 0; ms <= 240; ms += 20) {
         await tester.pump(const Duration(milliseconds: 20));
         expect(pageScale(tester), 1);
-        expect(backdropColor(tester).a, 0);
       }
+      await tester.pumpAndSettle();
+    });
+
+    // Telas do shell (ex.: Perfil) não pintam fundo; sem isto a rota de
+    // baixo aparece através da de cima durante a transição («fantasma»).
+    testWidgets('página tem fundo marrom opaco, escondido junto com ela', (
+      tester,
+    ) async {
+      final controller = await pumpRoute(tester);
+      for (var i = 0; i <= 20; i++) {
+        controller.value = i / 20;
+        await tester.pump();
+        expect(backdropColor(tester), AppColors.background);
+        expect(
+          find.ancestor(
+            of: find.byType(ColoredBox),
+            matching: find.byType(Opacity),
+          ),
+          findsOneWidget,
+        );
+      }
+    });
+
+    testWidgets('pop: tela de cima segue opaca enquanto a cor sobe', (
+      tester,
+    ) async {
+      final controller = await pumpRoute(tester);
+      controller.value = 1;
+      unawaited(controller.reverse());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 30));
+      expect(pageOpacity(tester), 1);
+      expect(backdropColor(tester), AppColors.background);
       await tester.pumpAndSettle();
     });
 

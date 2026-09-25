@@ -16,6 +16,8 @@ typedef BrandFadeFrame = ({double overlay, bool pageVisible, double scale});
 /// Pensada para GPU fraca na web: a página nunca fica semitransparente —
 /// só é pintada ou não ([Opacity] 0/1 não abre camada offscreen) — e o
 /// esmaecer é um retângulo de cor sólida por cima. Escala é só transform.
+/// Cada página ganha fundo [AppColors.background] opaco, então a rota de
+/// baixo nunca aparece através da de cima.
 ///
 /// Push: a rota de cima faz tudo ([frameAt]); a de baixo fica parada.
 /// Pop tem coreografia própria — tocar o push ao contrário deixava a tela de
@@ -143,13 +145,15 @@ class _BrandFadeTransition extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.background.withValues(alpha: frame.overlay),
           ),
-          // Fundo sob a rota de baixo reduzida no pop: a borda que sobra fica
-          // marrom, e não o que houver abaixo (vazio no navigator raiz). Só
-          // nela — no push a cor sobe por cima da página parada.
-          child: ColoredBox(
-            color: revealScale < 1 ? AppColors.background : Colors.transparent,
-            child: Opacity(
-              opacity: frame.pageVisible ? 1 : 0,
+          child: Opacity(
+            opacity: frame.pageVisible ? 1 : 0,
+            // Fundo opaco da página: as telas do shell (ex.: Perfil) não
+            // pintam fundo, e o Navigator mantém a rota de baixo desenhada
+            // durante a transição — sem isto ela aparece através da de cima
+            // («fantasma» dos widgets). Fora da escala, cobre também a borda
+            // da página reduzida. Dentro do Opacity: some junto com ela.
+            child: ColoredBox(
+              color: AppColors.background,
               child: Transform.scale(scale: scale, child: child),
             ),
           ),

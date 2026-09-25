@@ -61,4 +61,16 @@ void main() {
       );
     },
   );
+  test('splash sai em duas fases: conteúdo some, depois o fundo liso', () {
+    // Esmaecer o overlay inteiro deixava logo + halo (blur) como «fantasma»
+    // sobre a tela já desenhada. Mesma lógica da transição de página:
+    // conteúdo some sobre fundo opaco, depois só o marrom liso esmaece.
+    expect(html, contains('#loading.leaving .logo-wrap'));
+    expect(html, contains('#loading.leaving .title'));
+    expect(html, contains('#loading.hidden .logo-wrap'));
+    final leaving = html.indexOf("loader.classList.add('leaving')");
+    final hidden = html.indexOf("loader.classList.add('hidden')");
+    expect(leaving, greaterThan(0));
+    expect(hidden, greaterThan(leaving));
+  });
 }
