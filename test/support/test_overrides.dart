@@ -32,14 +32,19 @@ Future<Isar> _unavailableIsarOpener() => Future<Isar>.error(
 /// de `await SharedPreferences.getInstance()` — quando omitido, o override
 /// de `sharedPreferencesProvider` fica de fora da lista (nenhum teste que usa
 /// `standardTestOverrides()` sem [prefs] lê esse provider).
+///
+/// Com [isarOpener], o Isar abre por ele e `isarStatusProvider` segue a
+/// abertura de verdade (`opening` → `available`) — para testes de boot frio.
 List<Override> standardTestOverrides({
   SharedPreferences? prefs,
   PlatformCapabilities capabilities = PlatformCapabilities.native,
+  Future<Isar> Function()? isarOpener,
 }) {
   return [
     if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
-    isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
-    isarOpenerProvider.overrideWithValue(_unavailableIsarOpener),
+    if (isarOpener == null)
+      isarStatusProvider.overrideWithValue(IsarStatus.unavailable),
+    isarOpenerProvider.overrideWithValue(isarOpener ?? _unavailableIsarOpener),
     carouselLocalDatasourceProvider.overrideWithValue(
       const CarouselLocalDatasource.unavailable(),
     ),

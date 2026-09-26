@@ -463,8 +463,10 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
     return null;
   }
 
-  Future<void> refreshAfterImport() async {
-    await _reload();
+  /// Torna a lista importada por deep link a ativa (D6) — o mesmo caminho do
+  /// «Importar lista» em [importSharedFromUrl]; a ativação já recarrega.
+  Future<void> activateImported(String playlistId) async {
+    await ref.read(activePlaylistEditorProvider.notifier).activate(playlistId);
   }
 
   /// Adiciona áudio à lista ativa (cria rascunho se necessário).
@@ -488,6 +490,9 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
   Future<SharedImportOutcome> importSharedFromUrl({
     required PlaylistShareParams params,
   }) async {
+    // Import nos primeiros segundos do boot frio: espera o Isar decidir em vez
+    // de ler o repositório degradado de um banco que só está abrindo (A8).
+    await awaitIsarSettled(ref);
     try {
       // Fix round 2 (Minor): a lista pendente de exclusão adiada (C11, ainda
       // sem `deletedAt` no repositório) não pode ser reaproveitada pela
@@ -536,12 +541,11 @@ class PlaylistsNotifier extends Notifier<List<PlaylistViewItem>> {
 /// Callback injetável para testes — espelha `SharePlus.instance.share` do
 /// pacote `share_plus` (implementação real em
 /// `playlist_share_actions_provider.dart`).
-typedef ShareFn =
-    Future<void> Function(
-      String text, {
-      String? subject,
-      Rect? sharePositionOrigin,
-    });
+typedef ShareFn = Future<void> Function(
+  String text, {
+  String? subject,
+  Rect? sharePositionOrigin,
+});
 
 final playlistsProvider =
     NotifierProvider<PlaylistsNotifier, List<PlaylistViewItem>>(

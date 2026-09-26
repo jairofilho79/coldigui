@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:isar_plus/isar_plus.dart';
 
 import 'isar_bootstrap.dart';
@@ -118,12 +119,19 @@ final isarAvailableProvider = Provider<bool>((ref) {
 /// abertura já terminou, devolve sem `await` — e sem tocar em
 /// [isarInitializerProvider], o que deixa o teste sobrescrever só
 /// [isarStatusProvider].
-Future<IsarStatus> awaitIsarSettled(Ref ref) async {
-  final status = ref.read(isarStatusProvider);
+Future<IsarStatus> awaitIsarSettled(Ref ref) => awaitIsarSettledWith(ref.read);
+
+/// Leitura de provider comum a [Ref.read] e `WidgetRef.read`.
+typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
+
+/// [awaitIsarSettled] para quem só tem um `read` — ex.: `WidgetRef.read` num
+/// `ConsumerState` (o deep link do boot frio).
+Future<IsarStatus> awaitIsarSettledWith(ProviderRead read) async {
+  final status = read(isarStatusProvider);
   if (status != IsarStatus.opening) return status;
 
   try {
-    await ref.read(isarInitializerProvider.future);
+    await read(isarInitializerProvider.future);
     return IsarStatus.available;
   } on Object catch (error) {
     debugPrint('[isar] abertura não concluiu: $error');

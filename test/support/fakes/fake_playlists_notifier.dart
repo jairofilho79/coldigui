@@ -43,7 +43,8 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   var saveActiveResult = true;
   PlaylistShareParams? lastImport;
 
-  var refreshCalled = false;
+  /// Lista passada a [activateImported] (deep link, D6).
+  String? activatedImportId;
   var reloadCalls = 0;
   var startedNewEmpty = false;
   var deletedActiveUnsaved = false;
@@ -52,8 +53,8 @@ class FakePlaylistsNotifier extends PlaylistsNotifier {
   List<PlaylistViewItem> build() => initial;
 
   @override
-  Future<void> refreshAfterImport() async {
-    refreshCalled = true;
+  Future<void> activateImported(String playlistId) async {
+    activatedImportId = playlistId;
   }
 
   @override

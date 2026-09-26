@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/platform/platform_capabilities_provider.dart';
 import '../../../../core/routing/app_router.dart';
@@ -103,6 +104,11 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
 
     _handling = true;
     try {
+      // O link do boot frio chega logo após o primeiro frame, com o Isar
+      // ainda abrindo (A8): ler o caso de uso agora prenderia o repositório
+      // degradado e o import acabaria em «armazenamento indisponível».
+      await awaitIsarSettledWith(ref.read);
+      if (!mounted) return;
       final result = await ref.read(syncDeepLinkStateProvider)(
         uri: sanitizedUri,
       );
@@ -113,7 +119,10 @@ class DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
           return;
         case SyncDeepLinkOutcome.success:
           _markProcessed(fingerprint);
-          await ref.read(playlistsProvider.notifier).refreshAfterImport();
+          // D6: como no «Importar lista», a importada vira a ativa.
+          await ref
+              .read(playlistsProvider.notifier)
+              .activateImported(result.playlistId!);
           if (!mounted) return;
           _navigateAfterImport(sanitizedUri);
           if (result.alreadyExisted) {

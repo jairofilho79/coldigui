@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../../support/fakes/fake_playlists_notifier.dart';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/routing/app_router.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/app_shell/data/providers/app_shell_providers.dart';
@@ -81,6 +82,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(syncState),
           playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],

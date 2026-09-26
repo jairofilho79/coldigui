@@ -2,7 +2,10 @@ import 'dart:io';
 
 import '../../../support/fakes/fake_playlists_notifier.dart';
 
+import 'dart:async';
+
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/database/storage_unavailable_exception.dart';
 import 'package:coldigui/core/routing/app_router.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
@@ -120,6 +123,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(
             _StubSyncDeepLinkState(
               SyncDeepLinkResult.success('playlist-id'),
@@ -150,7 +154,7 @@ void main() {
 
     expect(find.text('Home Screen'), findsOneWidget);
     expect(find.text('Lista importada'), findsOneWidget);
-    expect(fakePlaylists.refreshCalled, isTrue);
+    expect(fakePlaylists.activatedImportId, 'playlist-id');
   });
 
   testWidgets(
@@ -177,6 +181,7 @@ void main() {
           overrides: [
             appRouterProvider.overrideWithValue(router),
             deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            isarStatusProvider.overrideWithValue(IsarStatus.available),
             syncDeepLinkStateProvider.overrideWithValue(
               _StubSyncDeepLinkState(
                 SyncDeepLinkResult.success(
@@ -212,7 +217,7 @@ void main() {
         find.text('Lista já estava salva: Ensaio de sábado'),
         findsOneWidget,
       );
-      expect(fakePlaylists.refreshCalled, isTrue);
+      expect(fakePlaylists.activatedImportId, 'playlist-id');
     },
   );
 
@@ -233,6 +238,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(
             _StubSyncDeepLinkState(SyncDeepLinkResult.invalid, importUseCase),
           ),
@@ -280,6 +286,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(
             sync ?? SyncDeepLinkState(importUseCase),
           ),
@@ -383,6 +390,7 @@ void main() {
           overrides: [
             appRouterProvider.overrideWithValue(router),
             deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            isarStatusProvider.overrideWithValue(IsarStatus.available),
             syncDeepLinkStateProvider.overrideWithValue(
               _ThrowingSyncDeepLinkState(
                 const PlaylistNotFoundException(),
@@ -436,6 +444,7 @@ void main() {
           overrides: [
             appRouterProvider.overrideWithValue(router),
             deepLinkHandlingEnabledProvider.overrideWithValue(true),
+            isarStatusProvider.overrideWithValue(IsarStatus.available),
             syncDeepLinkStateProvider.overrideWithValue(
               _ThrowingSyncDeepLinkState(
                 const StorageUnavailableException('playlists.insert'),
@@ -493,6 +502,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(countingUseCase),
           playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
@@ -551,6 +561,7 @@ void main() {
         overrides: [
           appRouterProvider.overrideWithValue(router),
           deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarStatusProvider.overrideWithValue(IsarStatus.available),
           syncDeepLinkStateProvider.overrideWithValue(throwingUseCase),
           playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         ],
@@ -586,5 +597,73 @@ void main() {
     await state.handleUriForTest(uri);
     await tester.pumpAndSettle();
     expect(throwingUseCase.callCount, 2, reason: 'passada a janela, retenta');
+  });
+  // Boot frio (bug 2026-09-25): o link chega logo após o primeiro frame, com
+  // o Isar ainda abrindo. Ler o caso de uso nessa hora prende o repositório
+  // degradado — o import terminava em StorageUnavailableException
+  // (`playlists.insert`) mesmo com o banco abrindo segundos depois.
+  testWidgets('link no boot frio espera o Isar abrir antes de importar', (
+    tester,
+  ) async {
+    final fakePlaylists = FakePlaylistsNotifier();
+    final router = GoRouter(
+      navigatorKey: rootNavigatorKey,
+      initialLocation: RoutePaths.home,
+      routes: [
+        GoRoute(
+          path: RoutePaths.home,
+          builder: (_, _) => const Scaffold(body: Text('Home Screen')),
+        ),
+      ],
+    );
+    // I/O síncrono: futuro de I/O real não completa no FakeAsync do teste.
+    final dir = Directory.systemTemp.createTempSync('deep_link_boot_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final bootIsar = Isar.open(schemas: [PlaylistSchema], directory: dir.path);
+    final opening = Completer<Isar>();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appRouterProvider.overrideWithValue(router),
+          deepLinkHandlingEnabledProvider.overrideWithValue(true),
+          isarOpenerProvider.overrideWithValue(() => opening.future),
+          // Como o provider real: o repositório é o do Isar da hora da leitura.
+          syncDeepLinkStateProvider.overrideWith(
+            (ref) => ref.watch(optionalIsarProvider) == null
+                ? _ThrowingSyncDeepLinkState(
+                    const StorageUnavailableException('playlists.insert'),
+                    importUseCase,
+                  )
+                : _StubSyncDeepLinkState(
+                    SyncDeepLinkResult.success('playlist-id'),
+                    importUseCase,
+                  ),
+          ),
+          playlistsProvider.overrideWith(() => fakePlaylists),
+        ],
+        child: DeepLinkListener(
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final state = tester.state<DeepLinkListenerState>(
+      find.byType(DeepLinkListener),
+    );
+    final handling = state.handleUriForTest(Uri.parse('/?p=0a1&n=Teste'));
+    await tester.pump();
+    opening.complete(bootIsar);
+    await handling;
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lista importada'), findsOneWidget);
+    expect(fakePlaylists.activatedImportId, 'playlist-id');
   });
 }

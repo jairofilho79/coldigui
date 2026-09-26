@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:coldigui/core/database/collections/playlist.dart';
+import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/core/utils/playlist_share_url_builder.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/playlists/data/datasources/playlist_local_datasource.dart';
@@ -208,5 +210,57 @@ void main() {
         );
 
     expect(imported.status, SharedImportStatus.invalid);
+  });
+  // Boot frio (bug 2026-09-25, par do deep link): importar com o Isar ainda
+  // abrindo prendia o repositório degradado e lançava
+  // StorageUnavailableException mesmo com o banco abrindo logo depois.
+  test('importar com o Isar ainda abrindo espera o banco', () async {
+    final opening = Completer<Isar>();
+    final c = ProviderContainer(
+      overrides: [
+        ...standardTestOverrides(
+          prefs: prefs,
+          isarOpener: () => opening.future,
+        ),
+        // Como o provider real: o repositório é o do Isar da hora da leitura.
+        playlistRepositoryProvider.overrideWith(
+          (ref) => ref.watch(optionalIsarProvider) == null
+              ? PlaylistRepositoryImpl(
+                  const PlaylistLocalDatasource.unavailable(),
+                )
+              : repository,
+        ),
+        praiseEntryResolverLoaderProvider.overrideWithValue(
+          () async =>
+              (shortId) => _catalog[shortId],
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    c.read(playlistsProvider);
+    await _flushAsync();
+
+    final importing = c
+        .read(playlistsProvider.notifier)
+        .importSharedFromUrl(
+          params: const PlaylistShareParams(
+            shareName: 'No boot',
+            praiseShortIds: ['0a1'],
+          ),
+        );
+    await _flushAsync();
+    // Outro banco (nome próprio): o dispose do provider o fecha sem fechar o
+    // do `repository` que o teste usa.
+    opening.complete(
+      Isar.open(
+        schemas: [PlaylistSchema],
+        directory: tempDir.path,
+        name: 'boot',
+      ),
+    );
+    final imported = await importing;
+
+    expect(imported.status, SharedImportStatus.imported);
+    expect(c.read(activePlaylistIdProvider), imported.playlistId);
   });
 }
