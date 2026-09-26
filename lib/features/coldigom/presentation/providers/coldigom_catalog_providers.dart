@@ -16,6 +16,8 @@ import '../../../catalog/domain/entities/youtube_material.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../data/adapters/coldigom_louvor_adapter.dart';
+import '../../data/datasources/coldigom_catalog_sync_metadata_store.dart'
+    show coldigomCatalogSchemaVersion;
 import '../../data/mappers/coldigom_praise_cache_mapper.dart';
 import '../../data/providers/coldigom_catalog_data_providers.dart';
 import '../../data/providers/coldigom_providers.dart';
@@ -324,11 +326,19 @@ class ColdigomCatalogSyncNotifier extends Notifier<ColdigomCatalogSyncState> {
     }
   }
 
+  /// Catálogo gravado com versão de esquema antiga nunca é «recente»: o app
+  /// anterior pode ter sincronizado há minutos sem ler os campos novos do
+  /// dump, e esperar o intervalo deixaria a tela sem eles (ex.: sem os
+  /// amendoins, spec louvores-agrupados §3.4). O catálogo só em memória veio
+  /// do sync deste app, então já está na versão atual.
   bool _hasFreshCatalog({required bool inMemory}) {
     if (!_hasCatalog(inMemory: inMemory)) return false;
-    final syncedAt = inMemory
-        ? state.lastSyncedAt
-        : ref.read(coldigomCatalogSyncMetadataStoreProvider).readSyncedAt();
+    final metadata = ref.read(coldigomCatalogSyncMetadataStoreProvider);
+    if (!inMemory &&
+        metadata.readCatalogSchemaVersion() < coldigomCatalogSchemaVersion) {
+      return false;
+    }
+    final syncedAt = inMemory ? state.lastSyncedAt : metadata.readSyncedAt();
     return syncedAt != null &&
         DateTime.now().toUtc().difference(syncedAt) <
             OfflineConfig.coldigomCatalogSyncMinInterval;

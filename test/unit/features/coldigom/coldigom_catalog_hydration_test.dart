@@ -355,6 +355,32 @@ void main() {
     expect(remote.calls, 1);
   });
 
+  test('requestSyncIfStale: catálogo recente de versão de esquema antiga '
+      'sincroniza já, sem esperar os 30 min', () async {
+    // O app anterior sincronizou há pouco (syncedAt recente) mas gravou as
+    // linhas sem os campos novos do dump (versão de esquema menor): o app
+    // novo não pode esperar o intervalo para baixar o dump inteiro.
+    final remote = _ScriptedRemote(
+      () async => ColdigomCatalogFresh(catalog: _catalog(), etag: '"v2"'),
+    );
+    await seed();
+    final store = ColdigomCatalogSyncMetadataStore(prefs);
+    await store.markReplaced(
+      etag: '"v1"',
+      count: 3,
+      at: DateTime.now().toUtc(),
+    );
+    await store.writeCatalogSchemaVersion(coldigomCatalogSchemaVersion - 1);
+
+    final c = container(remote: remote, online: true);
+    await c.read(coldigomCatalogSyncProvider.notifier).requestSyncIfStale();
+    await pumpEventQueue();
+
+    expect(remote.calls, 1);
+    expect(remote.lastIfNoneMatch, isNull);
+    expect(store.readCatalogSchemaVersion(), coldigomCatalogSchemaVersion);
+  });
+
   test(
     'sync espera o Isar abrir antes de tocar na rede/local (sem perder o ETag)',
     () async {
