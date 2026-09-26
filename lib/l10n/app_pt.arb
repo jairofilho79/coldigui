@@ -104,7 +104,7 @@
   "storagePreparing": "Preparando o armazenamento local…",
   "storageUnavailableTitle": "Armazenamento local indisponível",
   "storageUnavailableBody": "Esta área precisa do banco local do app. O catálogo online e o leitor de PDF continuam disponíveis nas outras abas.",
-  "libraryResultsSummary": "Mostrando {from}–{to} de {total} louvores",
+  "libraryResultsSummary": "Mostrando {from}–{to} de {total} resultados",
   "@libraryResultsSummary": {
     "placeholders": {
       "from": {

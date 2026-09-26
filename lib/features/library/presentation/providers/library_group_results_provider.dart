@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../catalog/domain/entities/catalog_list_entry.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
+import '../../../catalog/domain/usecases/cluster_catalog_list.dart';
 import '../../../catalog/domain/usecases/matches_catalog_filters.dart';
 import '../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../../catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../data/providers/library_providers.dart';
-import '../../domain/entities/paginated_louvor_groups.dart';
+import '../../domain/entities/paginated_catalog_entries.dart';
 import 'library_view_settings_provider.dart';
 
 /// Grupos da /biblioteca já filtrados e ordenados: índice local do catálogo →
@@ -44,12 +46,22 @@ final libraryFilteredGroupsProvider = Provider<List<LouvorGroup>>((ref) {
   return ref.watch(sortLouvorGroupsProvider)(filtered, sortBy: sortBy);
 });
 
-/// Página corrente da /biblioteca — [libraryFilteredGroupsProvider] paginado.
-final libraryGroupResultsProvider = Provider<PaginatedLouvorGroups>((ref) {
+/// Entradas da /biblioteca: [libraryFilteredGroupsProvider] com os grupos
+/// do coldigom juntados em amendoins — grupo inteiro, com quem não casou
+/// com os filtros esmaecido (spec louvores-agrupados §4.2–4.3).
+final libraryEntriesProvider = Provider<List<CatalogListEntry>>((ref) {
   final groups = ref.watch(libraryFilteredGroupsProvider);
+  final index = ref.watch(coldigomSearchIndexProvider);
+  return clusterCatalogList(groups, membersOf: index.membersOf);
+});
+
+/// Página corrente da /biblioteca — [libraryEntriesProvider] paginado em
+/// cartões.
+final libraryGroupResultsProvider = Provider<PaginatedCatalogEntries>((ref) {
+  final entries = ref.watch(libraryEntriesProvider);
   final view = ref.watch(libraryViewSettingsProvider);
-  return ref.watch(paginateLouvorGroupsProvider)(
-    groups,
+  return ref.watch(paginateCatalogEntriesProvider)(
+    entries,
     page: view.page,
     itemsPerPage: view.itemsPerPage,
   );

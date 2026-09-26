@@ -1,3 +1,4 @@
+import 'package:coldigui/features/catalog/domain/entities/catalog_list_entry.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/coldigom/data/adapters/coldigom_louvor_adapter.dart';
@@ -25,6 +26,7 @@ LouvorGroup catalogGroup({
   Map<String, String> pdfKinds = const {'k-partitura': 'Partitura'},
   Map<String, String> audioKinds = const {},
   String? shortId,
+  String? groupId,
 }) {
   final materials = <MaterialDto>[
     for (final kind in pdfKinds.entries)
@@ -52,6 +54,7 @@ LouvorGroup catalogGroup({
     tonality: tonality,
     tagNames: tags,
     shortId: shortId,
+    groupId: groupId,
     materials: materials,
   );
   return LouvorGroup.fromLouvores(
@@ -143,3 +146,12 @@ class _SeededLouvoresCache extends ColdigomLouvoresCacheNotifier {
   @override
   Map<String, Louvor> build() => {for (final l in _seed) l.pdfId: l};
 }
+
+/// Resumo legível de uma entrada da lista: o praiseId para chip solto e
+/// `[a (b)]` para amendoim — membro que não casou (esmaecido) entre
+/// parênteses.
+String describeEntry(CatalogListEntry entry) => switch (entry) {
+  SingleEntry(:final group) => group.groupId,
+  ClusterEntry(:final members) =>
+    '[${[for (final m in members) m.matched ? m.group.groupId : '(${m.group.groupId})'].join(' ')}]',
+};

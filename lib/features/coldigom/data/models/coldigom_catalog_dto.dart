@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
+import '../../domain/utils/praise_group_id.dart';
 import '../../domain/utils/praise_short_id.dart';
 
 /// Extensão do objeto no R2 por `type` do Worker — a outra metade da regra
@@ -92,6 +93,7 @@ class ColdigomCatalogPraiseDto {
     required this.lyrics,
     required this.materials,
     this.shortId,
+    this.groupId,
   });
 
   final String id;
@@ -110,11 +112,16 @@ class ColdigomCatalogPraiseDto {
   /// não o traz (praise sem `short_id` no coldigom) ou é inválido.
   final String? shortId;
 
+  /// `groupId` do praise ([normalizePraiseGroupId]) — chave do amendoim
+  /// (spec louvores-agrupados §3.2); `null` fora de grupo.
+  final String? groupId;
+
   factory ColdigomCatalogPraiseDto.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
     return ColdigomCatalogPraiseDto(
       id: id,
       shortId: normalizePraiseShortId(json['shortId']),
+      groupId: normalizePraiseGroupId(json['groupId']),
       number: json['number'] as String? ?? '',
       name: json['name'] as String? ?? '',
       author: json['author'] as String? ?? '',

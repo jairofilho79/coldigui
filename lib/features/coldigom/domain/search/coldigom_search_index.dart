@@ -1,5 +1,6 @@
 import '../../../../core/utils/louvor_search_tokens.dart';
 import '../../../catalog/domain/entities/louvor_group.dart';
+import '../../../catalog/domain/usecases/cluster_member_order.dart';
 import '../../../catalog/domain/utils/louvor_numero_normalizer.dart';
 import '../utils/praise_short_id.dart';
 
@@ -79,6 +80,7 @@ final class ColdigomSearchIndex {
     this.catalogIds,
     this._groupByShortId,
     this._groupByMaterialId,
+    this._membersByPraiseGroup,
   );
 
   /// Índice vazio — antes da hidratação e em modo degradado.
@@ -89,6 +91,7 @@ final class ColdigomSearchIndex {
     <String>{},
     <String, LouvorGroup>{},
     <String, LouvorGroup>{},
+    <String, List<LouvorGroup>>{},
   );
 
   /// [catalogIds] é o Isar inteiro (inclui praises sem material endereçável,
@@ -106,11 +109,18 @@ final class ColdigomSearchIndex {
     });
     final byShortId = <String, LouvorGroup>{};
     final byMaterialId = <String, LouvorGroup>{};
+    final membersByPraiseGroup = <String, List<LouvorGroup>>{};
     for (final entry in entries) {
       final shortId = normalizePraiseShortId(entry.group.coldigomMeta?.shortId);
       if (shortId != null) byShortId.putIfAbsent(shortId, () => entry.group);
       for (final material in entry.group.materials) {
         byMaterialId.putIfAbsent(material.id, () => entry.group);
+      }
+      final praiseGroup = praiseGroupKeyOf(entry.group);
+      if (praiseGroup != null) {
+        membersByPraiseGroup
+            .putIfAbsent(praiseGroup, () => [])
+            .add(entry.group);
       }
     }
     return ColdigomSearchIndex._(
@@ -120,6 +130,12 @@ final class ColdigomSearchIndex {
       catalogIds == null ? praiseIds : Set<String>.unmodifiable(catalogIds),
       Map<String, LouvorGroup>.unmodifiable(byShortId),
       Map<String, LouvorGroup>.unmodifiable(byMaterialId),
+      Map<String, List<LouvorGroup>>.unmodifiable({
+        for (final e in membersByPraiseGroup.entries)
+          e.key: List<LouvorGroup>.unmodifiable(
+            e.value..sort(compareClusterMembers),
+          ),
+      }),
     );
   }
 
@@ -158,6 +174,15 @@ final class ColdigomSearchIndex {
   /// de outro praise (desvio 2 do spec de 18/09).
   LouvorGroup? groupForMaterialId(String entryId) =>
       _groupByMaterialId[entryId];
+
+  final Map<String, List<LouvorGroup>> _membersByPraiseGroup;
+
+  /// Membros do grupo do coldigom [praiseGroupId] que estão no índice (com
+  /// material endereçável), na ordem fixa do amendoim
+  /// ([compareClusterMembers]) — **inclusive quando é um só**: o mínimo de 2
+  /// fica na junção, depois de somar os membros da busca remota (spec §3.3).
+  List<LouvorGroup> membersOf(String praiseGroupId) =>
+      _membersByPraiseGroup[praiseGroupId] ?? const [];
 
   /// Grupos que casam com [query], ranqueados; vazio para query em branco.
   List<LouvorGroup> search(String query) {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/catalog_list_entry.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
 
@@ -28,8 +29,10 @@ enum SearchFreshness {
 /// da busca local síncrona no índice do catálogo, da página remota
 /// `AsyncValue` e da conectividade —, nunca mutado na mão: não há geração a
 /// comparar nem escrita cruzada entre providers. A lista é 100 % local; o
-/// remoto só **valida** (O15): o que ele traz a mais entra em [newGroups],
-/// no fim, com o chip «novo».
+/// remoto só **valida** (O15): o que ele traz a mais entra em [newGroups]
+/// (com o chip «novo» quando o catálogo não o conhecia). Em [groups] esses
+/// extras ficam no fim; em [entries], o que a tela desenha, um extra membro
+/// de um grupo já na tela vai para o amendoim dele.
 final class HomeSearchState {
   HomeSearchState({
     required this.query,
@@ -38,10 +41,16 @@ final class HomeSearchState {
     this.newGroups = const [],
     this.offline = false,
     this.knownIds = const {},
+    List<CatalogListEntry>? entries,
   }) : newGroupIds = {
          for (final g in newGroups)
            if (!knownIds.contains(g.groupId)) g.groupId,
-       };
+       },
+       entries =
+           entries ??
+           [
+             for (final g in [...localGroups, ...newGroups]) SingleEntry(g),
+           ];
 
   /// Query já debounced (300 ms) — o texto cru vive em `homeSearchQueryProvider`.
   final String query;
@@ -70,10 +79,19 @@ final class HomeSearchState {
   /// `true` quando não há o que buscar — nenhuma fonte toca a rede.
   bool get isEmptyQuery => query.trim().isEmpty;
 
-  /// Lista exibida: local primeiro, extras do remoto no fim (sem reordenar) —
-  /// «extra» é só o que a busca textual local não trouxe, «novo» (chip) é
-  /// mais estrito: ver [newGroupIds].
+  /// Lista plana da busca: local primeiro, extras do remoto no fim (sem
+  /// reordenar) — é por ela que a Home sabe se há resultado (vazia → estado
+  /// vazio). A tela desenha [entries], não esta lista; a linha de estado
+  /// conta os «novos» ([newCount]). «Extra» é só o que a busca textual
+  /// local não trouxe, «novo» (chip) é mais estrito: ver [newGroupIds].
   List<LouvorGroup> get groups => [...localGroups, ...newGroups];
+
+  /// [groups] como a tela os desenha: os grupos do coldigom juntados em
+  /// amendoins (`clusterCatalogList`, spec louvores-agrupados §4.3). Um
+  /// «novo» que é membro de um grupo já na tela entra no amendoim, não no
+  /// fim. Sem valor no construtor, um chip solto por grupo — o provider
+  /// sempre passa o valor juntado.
+  final List<CatalogListEntry> entries;
 
   /// Ids dos cards que levam o chip «novo»: extras do remoto que o catálogo
   /// (não só esta busca) ainda não conhecia.

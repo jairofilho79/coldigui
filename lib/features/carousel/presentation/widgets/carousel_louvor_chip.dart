@@ -11,8 +11,10 @@ import 'package:flutter/material.dart';
 
 import 'chip_parts/chip_body.dart';
 import 'chip_parts/chip_buttons.dart';
+import 'chip_parts/chip_group_label.dart';
 import 'chip_parts/chip_nav_zone.dart';
 import 'chip_parts/metadata_row.dart';
+import 'chip_parts/peanut_lobe_border.dart';
 import 'chip_parts/share_overflow_button.dart';
 
 export 'chip_parts/chip_buttons.dart' show CarouselLouvorAddButton;
@@ -36,7 +38,9 @@ const carouselChipMetadataCompactWidth = 180.0;
 /// texto.
 const carouselChipMetadataMediumWidth = 280.0;
 
-const _modalChipRadius = 24.0;
+/// Raio da pílula (variante modal) — também o das pontas do amendoim
+/// (`PeanutLobeBorder`).
+const carouselChipModalRadius = 24.0;
 const _topBarChipRadius = 8.0;
 const _compactWidth = carouselChipMetadataCompactWidth;
 
@@ -111,8 +115,15 @@ class CarouselLouvorChip extends StatelessWidget {
     this.onPrevious,
     this.onNext,
     this.isNew = false,
+    this.lobePosition,
+    this.groupLabel,
+    this.dimmed = false,
     super.key,
-  });
+  }) : assert(
+         lobePosition == null ||
+             (variant == CarouselLouvorChipVariant.modal && !showNavArrows),
+         'gomo do amendoim só na variante modal, sem setas',
+       );
 
   /// Louvor enriquecido com metadados do manifest (`numero`, `nome`, etc.).
   final CarouselItem item;
@@ -191,6 +202,18 @@ class CarouselLouvorChip extends StatelessWidget {
   /// offline, sem competir com o título.
   final bool isNew;
 
+  /// Gomo do amendoim (spec louvores-agrupados §6.2): troca a pílula pela
+  /// [PeanutLobeBorder] desta posição, sem sombra própria (o cluster pinta
+  /// uma só) e com padding 20/12 — a curva da junta recua na altura do «+».
+  final LobePosition? lobePosition;
+
+  /// Etiqueta dourada da versão, entre o corpo e o «+» (§5).
+  final String? groupLabel;
+
+  /// Membro do grupo que não casou com a busca ou os filtros: esmaece só o
+  /// conteúdo; fundo e contorno ficam inteiros e o toque continua ativo (D3).
+  final bool dimmed;
+
   bool get _isTopBar => variant == CarouselLouvorChipVariant.topBar;
 
   Widget? get _trailingAction {
@@ -219,118 +242,143 @@ class CarouselLouvorChip extends StatelessWidget {
         LouvorMaterialIcons.kindForCategory(item.categoria),
       _ => item.kind,
     });
-    final chipRadius = _isTopBar ? _topBarChipRadius : _modalChipRadius;
+    final chipRadius = _isTopBar ? _topBarChipRadius : carouselChipModalRadius;
     final padding = _isTopBar
         ? const EdgeInsets.symmetric(horizontal: 6, vertical: 4)
+        : lobePosition != null
+        ? const EdgeInsets.fromLTRB(20, 6, 12, 6)
         : const EdgeInsets.symmetric(horizontal: 8, vertical: 6);
     const backgroundColor = AppColors.title;
 
     final l10n = AppLocalizations.of(context);
-    final body = Padding(
-      padding: showNavArrows ? padding : EdgeInsets.zero,
-      child: Row(
-        children: [
-          if (showDragHandle) ...[
-            Icon(
-              Icons.drag_indicator,
-              color: AppColors.textLight.withValues(alpha: 0.7),
-              size: 20,
-            ),
-            const SizedBox(width: 4),
-          ],
-          Expanded(
-            child: ChipBody(
-              borderRadius: BorderRadius.circular(chipRadius),
-              onTap: onTap,
-              onLongPress: onLongPress,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  // O chip «novo» tira espaço da linha de metadados — reserva
-                  // essa largura antes de decidir o breakpoint (compacto vs.
-                  // médio), senão `ChipMetadataRow` escolhe um layout largo
-                  // demais para o que sobra e estoura.
-                  final metadataWidth = isNew
-                      ? (width - _newChipReserve).clamp(0.0, width)
-                      : width;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+    // `labelTextWidth` só importa com etiqueta: aí a `Row` passa por um
+    // `LayoutBuilder` (abaixo) que mede a largura da linha de conteúdo.
+    Widget contentRow({
+      double labelTextWidth = ChipGroupLabel.maxTextWidth,
+    }) => Row(
+      children: [
+        if (showDragHandle) ...[
+          Icon(
+            Icons.drag_indicator,
+            color: AppColors.textLight.withValues(alpha: 0.7),
+            size: 20,
+          ),
+          const SizedBox(width: 4),
+        ],
+        Expanded(
+          child: ChipBody(
+            borderRadius: _inkRadius(chipRadius),
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                // O chip «novo» tira espaço da linha de metadados — reserva
+                // essa largura antes de decidir o breakpoint (compacto vs.
+                // médio), senão `ChipMetadataRow` escolhe um layout largo
+                // demais para o que sobra e estoura.
+                final metadataWidth = isNew
+                    ? (width - _newChipReserve).clamp(0.0, width)
+                    : width;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HighlightedText(
+                      text: _titleLine(item, _isTopBar),
+                      query: highlightQuery ?? '',
+                      style: AppTypography.headline.copyWith(
+                        fontSize: width < _compactWidth ? 12 : 14,
+                        height: 1.1,
+                        color: AppColors.textLight,
+                        shadows: const [],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if ((lyricsSnippet ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
                       HighlightedText(
-                        text: _titleLine(item, _isTopBar),
+                        text: lyricsSnippet!,
                         query: highlightQuery ?? '',
-                        style: AppTypography.headline.copyWith(
-                          fontSize: width < _compactWidth ? 12 : 14,
-                          height: 1.1,
-                          color: AppColors.textLight,
-                          shadows: const [],
+                        style: AppTypography.body.copyWith(
+                          fontStyle: FontStyle.italic,
+                          fontSize: width < _compactWidth ? 11 : 12.5,
+                          height: 1.2,
+                          color: AppColors.textLight.withValues(alpha: 0.64),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if ((lyricsSnippet ?? '').trim().isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        HighlightedText(
-                          text: lyricsSnippet!,
-                          query: highlightQuery ?? '',
-                          style: AppTypography.body.copyWith(
-                            fontStyle: FontStyle.italic,
-                            fontSize: width < _compactWidth ? 11 : 12.5,
-                            height: 1.2,
-                            color: AppColors.textLight.withValues(alpha: 0.64),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ChipMetadataRow(
-                              width: metadataWidth,
-                              numero: _isTopBar ? item.numero : null,
-                              summary: metadataSummary,
-                              materialKindsGroup: materialKindsGroup,
-                              onMaterialKindTap: onMaterialKindTap,
-                              classificationLabel: classificationLabel,
-                              categoria: item.categoria,
-                              categoryIcon: categoryIcon,
-                              offlineAvailability: offlineAvailability,
-                            ),
-                          ),
-                          if (isNew) ...[
-                            const SizedBox(width: 4),
-                            _NewChip(
-                              label: AppLocalizations.of(context)!
-                                  .searchResultNew,
-                            ),
-                          ],
-                        ],
-                      ),
                     ],
-                  );
-                },
-              ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChipMetadataRow(
+                            width: metadataWidth,
+                            numero: _isTopBar ? item.numero : null,
+                            summary: metadataSummary,
+                            materialKindsGroup: materialKindsGroup,
+                            onMaterialKindTap: onMaterialKindTap,
+                            classificationLabel: classificationLabel,
+                            categoria: item.categoria,
+                            categoryIcon: categoryIcon,
+                            offlineAvailability: offlineAvailability,
+                          ),
+                        ),
+                        if (isNew) ...[
+                          const SizedBox(width: 4),
+                          _NewChip(
+                            label: AppLocalizations.of(context)!
+                                .searchResultNew,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
-          if (_trailingAction != null) ...[
-            const SizedBox(width: 4),
-            _trailingAction!,
-          ],
-          if (onShare != null) ...[
-            const SizedBox(width: 2),
-            ShareOverflowButton(
-              onShare: onShare!,
-              shareLabel:
-                  AppLocalizations.of(context)?.sharePdf ?? 'Compartilhar',
-              loading: shareLoading,
-            ),
-          ],
+        ),
+        // Fora do `Expanded`: o `LayoutBuilder` do corpo já recebe a largura
+        // sem a etiqueta, e o breakpoint da linha de metadados sai certo.
+        if (groupLabel != null) ...[
+          const SizedBox(width: 6),
+          ChipGroupLabel(label: groupLabel!, textWidthLimit: labelTextWidth),
         ],
-      ),
+        if (_trailingAction != null) ...[
+          const SizedBox(width: 4),
+          _trailingAction!,
+        ],
+        if (onShare != null) ...[
+          const SizedBox(width: 2),
+          ShareOverflowButton(
+            onShare: onShare!,
+            shareLabel:
+                AppLocalizations.of(context)?.sharePdf ?? 'Compartilhar',
+            loading: shareLoading,
+          ),
+        ],
+      ],
+    );
+    final body = Padding(
+      padding: showNavArrows ? padding : EdgeInsets.zero,
+      // Com etiqueta, o teto do texto dela acompanha a largura da linha
+      // (`clamp(0.4 × W, 64, 128)`): num celular estreito o título não fica
+      // espremido por uma etiqueta de 128 px fixos. Sem etiqueta, nada de
+      // `LayoutBuilder` (não mexe no chip solto nem na barra).
+      child: groupLabel == null
+          ? contentRow()
+          : LayoutBuilder(
+              builder: (context, constraints) => contentRow(
+                labelTextWidth: ChipGroupLabel.maxTextWidthFor(
+                  constraints.maxWidth,
+                ),
+              ),
+            ),
     );
 
     // Com setas o chip vira o próprio carrossel: as zonas ficam coladas nas
@@ -347,14 +395,25 @@ class CarouselLouvorChip extends StatelessWidget {
             ),
           )
         : body;
+    final content = dimmed
+        ? Opacity(opacity: 0.45, child: constrainedBody)
+        : constrainedBody;
 
     return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(chipRadius),
-        border: Border.all(color: AppColors.gold, width: 2),
-        boxShadow: AppColors.shadowMd,
-      ),
+      decoration: lobePosition == null
+          ? BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(chipRadius),
+              border: Border.all(color: AppColors.gold, width: 2),
+              boxShadow: AppColors.shadowMd,
+            )
+          : ShapeDecoration(
+              color: backgroundColor,
+              shape: PeanutLobeBorder(
+                position: lobePosition!,
+                radius: carouselChipModalRadius,
+              ),
+            ),
       clipBehavior: showNavArrows ? Clip.antiAlias : Clip.none,
       padding: showNavArrows ? EdgeInsets.zero : padding,
       // `Stack`/`Positioned`, não `Row`+`stretch`: o corpo continua dono da
@@ -392,8 +451,27 @@ class CarouselLouvorChip extends StatelessWidget {
                 ),
               ],
             )
-          : constrainedBody,
+          : content,
     );
+  }
+
+  /// Ripple do corpo: no gomo, 24 do lado da pílula e 12 do lado da junta
+  /// — o `InkWell` fica recuado pelo padding e não vaza pelo bico.
+  BorderRadius _inkRadius(double chipRadius) {
+    const pill = Radius.circular(carouselChipModalRadius);
+    const joint = Radius.circular(12);
+    return switch (lobePosition) {
+      null => BorderRadius.circular(chipRadius),
+      LobePosition.first => const BorderRadius.vertical(
+        top: pill,
+        bottom: joint,
+      ),
+      LobePosition.middle => const BorderRadius.all(joint),
+      LobePosition.last => const BorderRadius.vertical(
+        top: joint,
+        bottom: pill,
+      ),
+    };
   }
 
   static String _titleLine(CarouselItem item, bool topBar) {

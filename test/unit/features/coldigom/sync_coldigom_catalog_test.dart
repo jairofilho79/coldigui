@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
@@ -362,6 +363,90 @@ void main() {
         await SharedPreferences.getInstance(),
       );
       expect(store.readKindTaxonomy(), isNull);
+    });
+  });
+
+  group('versão de esquema do catálogo (spec louvores-agrupados §3.4)', () {
+    /// Remoto que responde 200 sem `If-None-Match` e 304 com ele — o que o
+    /// servidor faz quando o ETag guardado é o do dump atual.
+    _ScriptedRemote etagAtual() => _ScriptedRemote(
+      (ifNoneMatch) async => ifNoneMatch == null
+          ? ColdigomCatalogFresh(catalog: _catalog(), etag: '"v1"')
+          : const ColdigomCatalogNotModified(),
+    );
+
+    Future<void> instalacaoComEtag() async {
+      await metadata.writeKindTaxonomy(MaterialKindTaxonomy.empty);
+      await local.replaceAll([_storedRow('p-001', shortId: '000')]);
+    }
+
+    test('sem versão gravada + ETag guardado → pede sem If-None-Match, '
+        'regrava e grava a versão', () async {
+      // App anterior a esta entrega: gravou ETag e linhas, nunca a versão.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(StorageKeys.coldigomCatalogEtag, '"v1"');
+      await instalacaoComEtag();
+      final remote = etagAtual();
+
+      final result = await usecase(remote).run();
+
+      expect(remote.ifNoneMatches, [null]);
+      expect(result, isA<ColdigomCatalogSyncReplaced>());
+      expect(metadata.readCatalogSchemaVersion(), coldigomCatalogSchemaVersion);
+    });
+
+    test('versão menor que a atual → pede sem If-None-Match', () async {
+      await metadata.markReplaced(
+        etag: '"v1"',
+        count: 1,
+        at: DateTime.utc(2026, 1, 1),
+      );
+      await metadata.writeCatalogSchemaVersion(
+        coldigomCatalogSchemaVersion - 1,
+      );
+      await instalacaoComEtag();
+      final remote = etagAtual();
+
+      await usecase(remote).run();
+
+      expect(remote.ifNoneMatches, [null]);
+    });
+
+    test('versão atual → manda o ETag e o 304 vira noop', () async {
+      await metadata.markReplaced(
+        etag: '"v1"',
+        count: 1,
+        at: DateTime.utc(2026, 1, 1),
+      );
+      await instalacaoComEtag();
+      final remote = etagAtual();
+
+      final result = await usecase(remote).run();
+
+      expect(remote.ifNoneMatches, ['"v1"']);
+      expect(result, isA<ColdigomCatalogSyncNoop>());
+    });
+
+    test('markReplaced grava a versão atual; ausente lê como 0', () async {
+      expect(metadata.readCatalogSchemaVersion(), 0);
+
+      await metadata.markReplaced(etag: '"v2"', count: 3, at: fixedNow);
+
+      expect(metadata.readCatalogSchemaVersion(), coldigomCatalogSchemaVersion);
+    });
+
+    test('sem Isar o dump não grava a versão (nem ETag)', () async {
+      final semIsar = SyncColdigomCatalog(
+        remote: etagAtual(),
+        local: const ColdigomCatalogLocalDatasource.unavailable(),
+        metadata: metadata,
+        now: () => fixedNow,
+      );
+
+      final result = await semIsar.run();
+
+      expect(result, isA<ColdigomCatalogSyncInMemory>());
+      expect(metadata.readCatalogSchemaVersion(), 0);
     });
   });
 }

@@ -47,4 +47,10 @@ class ColdigomPraiseCache {
   /// `shortId` e o dump inteiro substitui as linhas.
   /// Propriedade aditiva, sem migração.
   String? shortId;
+
+  /// `groupId` do praise (chave opaca, spec louvores-agrupados §3.2). Nulo
+  /// fora de grupo e em linhas gravadas antes do campo — o sync regrava tudo
+  /// uma vez pela versão de esquema do catálogo (§3.4).
+  /// Propriedade aditiva, sem migração.
+  String? groupId;
 }

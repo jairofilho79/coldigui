@@ -771,4 +771,95 @@ void main() {
     // a hidratação mesmo assim.
     expect(hydrationBuilds, 2);
   });
+
+  test('membro remoto de um grupo já na tela entra no amendoim, não no '
+      'fim', () async {
+    final index = catalogIndexOf([
+      catalogGroup(
+        praiseId: 'p-001',
+        number: '001',
+        name: 'Aleluia',
+        groupId: 'G',
+      ),
+      catalogGroup(praiseId: 'p-002', number: '002', name: 'São João'),
+    ]);
+    final remoteMember = catalogGroup(
+      praiseId: 'r-1',
+      number: '001',
+      name: 'Aleluia (PES)',
+      groupId: 'G',
+    );
+    final source = _RecordingCatalogSource(
+      (query) async =>
+          CatalogSearchPage(groups: [remoteMember], page: query.page),
+    );
+    final container = createContainer(source, index: index);
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    final state = container.read(homeSearchStateProvider);
+    expect([for (final e in state.entries) describeEntry(e)], ['[p-001 r-1]']);
+    // O que a linha de estado conta não muda: continua por praise.
+    expect([for (final g in state.groups) g.groupId], ['p-001', 'r-1']);
+    expect(state.newGroupIds, {'r-1'});
+  });
+
+  test('offline: o grupo vem do índice, com o membro que não casou '
+      'esmaecido', () async {
+    final index = catalogIndexOf([
+      catalogGroup(
+        praiseId: 'p-001',
+        number: '001',
+        name: 'Aleluia',
+        groupId: 'G',
+      ),
+      catalogGroup(
+        praiseId: 'p-009',
+        number: '009',
+        name: 'Hino da PES',
+        groupId: 'G',
+      ),
+    ]);
+    final container = createContainer(
+      _RecordingCatalogSource.ok(),
+      online: false,
+      index: index,
+    );
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    final state = container.read(homeSearchStateProvider);
+    expect(state.offline, isTrue);
+    expect(
+      [for (final e in state.entries) describeEntry(e)],
+      ['[p-001 (p-009)]'],
+    );
+  });
+
+  test('sem grupos: entries é um chip por grupo, na ordem de groups', () async {
+    final container = createContainer(_RecordingCatalogSource.ok());
+    keepStateAlive(container);
+    await pumpEventQueue();
+
+    container
+        .read(homeSearchDebouncedQueryProvider.notifier)
+        .setImmediate('aleluia');
+    await pumpEventQueue();
+
+    final state = container.read(homeSearchStateProvider);
+    expect(
+      [for (final e in state.entries) describeEntry(e)],
+      [for (final g in state.groups) g.groupId],
+    );
+  });
 }

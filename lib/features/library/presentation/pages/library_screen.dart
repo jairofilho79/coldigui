@@ -7,8 +7,10 @@ import 'package:coldigui/core/theme/app_typography.dart';
 import 'package:coldigui/core/theme/color_extensions.dart';
 import 'package:coldigui/core/utils/library_url_builder.dart';
 import 'package:coldigui/core/utils/url_sync_params.dart';
+import 'package:coldigui/features/catalog/domain/entities/catalog_list_entry.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/louvor_cluster_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/louvor_group_card_skeleton.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
@@ -294,7 +296,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         padding: EdgeInsets.only(
                           bottom: index < results.items.length - 1 ? 8 : 0,
                         ),
-                        child: LouvorGroupCard(group: results.items[index]),
+                        child: switch (results.items[index]) {
+                          SingleEntry(:final group) => LouvorGroupCard(
+                            key: ValueKey('card-${group.groupId}'),
+                            group: group,
+                          ),
+                          final ClusterEntry cluster => LouvorClusterCard(
+                            key: ValueKey('cluster-${cluster.praiseGroupId}'),
+                            entry: cluster,
+                          ),
+                        },
                       ),
                       childCount: results.items.length,
                     ),

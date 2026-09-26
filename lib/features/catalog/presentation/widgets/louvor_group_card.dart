@@ -8,6 +8,7 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/domain/entities/carousel_item.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_chip.dart';
+import 'package:coldigui/features/carousel/presentation/widgets/chip_parts/peanut_lobe_border.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
@@ -38,12 +39,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Long press: abre direto o material favorito do grupo (mesma resolução
 /// do "+"); sem favorito adicionável, cai no mesmo caminho do tap.
 class LouvorGroupCard extends ConsumerStatefulWidget {
-  const LouvorGroupCard({required this.group, this.isNew = false, super.key});
+  const LouvorGroupCard({
+    required this.group,
+    this.isNew = false,
+    this.lobePosition,
+    this.groupLabel,
+    this.dimmed = false,
+    super.key,
+  });
 
   final LouvorGroup group;
 
   /// Card vindo só da validação remota — chip «novo» (§6.3).
   final bool isNew;
+
+  /// Gomo do amendoim (`LouvorClusterCard`) — ver `CarouselLouvorChip`.
+  /// Com ele o card não leva o espaço de baixo: quem o põe é o cluster.
+  final LobePosition? lobePosition;
+
+  /// Etiqueta dourada da versão (`clusterMemberLabel`).
+  final String? groupLabel;
+
+  /// Membro que não casou com a busca ou os filtros (D3).
+  final bool dimmed;
 
   @override
   ConsumerState<LouvorGroupCard> createState() => _LouvorGroupCardState();
@@ -359,25 +377,28 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
               : () =>
                     unawaited(_handleAddPreferredMaterial(preferredMaterial)));
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: CarouselLouvorChip(
-        item: chipItem,
-        metadataSummary: metadataSummary,
-        materialKindsGroup: widget.group,
-        onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
-        highlightQuery: highlightQuery,
-        lyricsSnippet: lyricsSnippet,
-        onTap: isLoading ? null : _handleTap,
-        onLongPress: isLoading
-            ? null
-            : () => unawaited(_handleLongPress(preferredMaterial)),
-        onAdd: onAdd,
-        isAdded: isMultiMaterial ? false : isAdded,
-        loading: isLoading,
-        offlineAvailability: offlineAvailability,
-        isNew: widget.isNew,
-      ),
+    final chip = CarouselLouvorChip(
+      item: chipItem,
+      metadataSummary: metadataSummary,
+      materialKindsGroup: widget.group,
+      onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
+      highlightQuery: highlightQuery,
+      lyricsSnippet: lyricsSnippet,
+      onTap: isLoading ? null : _handleTap,
+      onLongPress: isLoading
+          ? null
+          : () => unawaited(_handleLongPress(preferredMaterial)),
+      onAdd: onAdd,
+      isAdded: isMultiMaterial ? false : isAdded,
+      loading: isLoading,
+      offlineAvailability: offlineAvailability,
+      isNew: widget.isNew,
+      lobePosition: widget.lobePosition,
+      groupLabel: widget.groupLabel,
+      dimmed: widget.dimmed,
     );
+    return widget.lobePosition == null
+        ? Padding(padding: const EdgeInsets.only(bottom: 8), child: chip)
+        : chip;
   }
 }

@@ -80,11 +80,17 @@ class SyncColdigomCatalog {
       // Idem sem taxonomia dos kinds gravada: o app anterior ao filtro por
       // classes guardou o ETag de um dump que já a trazia (spec
       // filtro-materiais §4.1).
+      // Idem com versão de esquema antiga: um campo novo do dump (hoje o
+      // `groupId`) que as linhas gravadas não têm (spec louvores-agrupados
+      // §3.4). Não se usa «alguma linha tem groupId»: sem grupo nenhum no
+      // servidor isso baixaria o dump inteiro a cada sync.
       final etag =
           !persist ||
               _local.count() == 0 ||
               !_local.hasAnyShortId() ||
-              _metadata.readKindTaxonomy() == null
+              _metadata.readKindTaxonomy() == null ||
+              _metadata.readCatalogSchemaVersion() <
+                  coldigomCatalogSchemaVersion
           ? null
           : _metadata.readEtag();
       final result = await _remote.fetchCatalog(ifNoneMatch: etag);

@@ -5,6 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 
+/// Versão do formato do dump que este app lê (spec louvores-agrupados
+/// §3.4). Sobe **uma** vez por campo novo do dump que o app passa a ler: o
+/// próximo sync ignora o ETag guardado e regrava as linhas, senão o `304`
+/// de um dump já com o campo — cujo ETag o app anterior guardou — manteria
+/// as linhas sem ele para sempre.
+///
+/// 1 = `groupId`.
+const coldigomCatalogSchemaVersion = 1;
+
 /// Metadados do sync do catálogo Coldigom em SharedPreferences: o ETag que
 /// vai no `If-None-Match`, quando foi a última validação e quantos praises o
 /// último dump trouxe (linha de estado do `/offline`).
@@ -25,6 +34,14 @@ class ColdigomCatalogSyncMetadataStore {
 
   int readCount() => _prefs.getInt(StorageKeys.coldigomCatalogCount) ?? 0;
 
+  /// Versão do formato com que as linhas atuais foram gravadas; `0` quando
+  /// nunca foi gravada (instalação anterior à trava).
+  int readCatalogSchemaVersion() =>
+      _prefs.getInt(StorageKeys.coldigomCatalogSchemaVersion) ?? 0;
+
+  Future<void> writeCatalogSchemaVersion(int version) =>
+      _prefs.setInt(StorageKeys.coldigomCatalogSchemaVersion, version);
+
   /// Dump novo gravado no Isar.
   Future<void> markReplaced({
     required String? etag,
@@ -37,6 +54,7 @@ class ColdigomCatalogSyncMetadataStore {
       await _prefs.setString(StorageKeys.coldigomCatalogEtag, etag);
     }
     await _prefs.setInt(StorageKeys.coldigomCatalogCount, count);
+    await writeCatalogSchemaVersion(coldigomCatalogSchemaVersion);
     await markValidated(at);
   }
 

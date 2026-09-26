@@ -6,6 +6,7 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../domain/entities/catalog_query.dart';
 import '../../domain/entities/louvor_group.dart';
+import '../../domain/usecases/cluster_catalog_list.dart';
 import '../../domain/usecases/matches_catalog_filters.dart';
 import '../../domain/utils/material_kind_selection.dart';
 import 'catalog_filters_provider.dart';
@@ -66,10 +67,14 @@ final homeLocalSearchProvider = Provider<List<LouvorGroup>>((ref) {
 ///
 /// A lista é a local (índice do catálogo); o remoto só valida (O15):
 /// sem rede nem é instanciado (`offline`), com rede o que ele trouxer a mais
-/// entra em `newGroups`, no fim, na ordem remota.
+/// entra em `newGroups`, na ordem remota. `groups` (lista plana, que diz se
+/// há resultado) põe esses extras no fim; `entries` (o que a tela desenha)
+/// junta os grupos do coldigom em amendoins, e um extra membro de um grupo
+/// já na tela vai para o amendoim dele.
 final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
   final query = ref.watch(homeSearchDebouncedQueryProvider);
   final localGroups = ref.watch(homeLocalSearchProvider);
+  final index = ref.watch(coldigomSearchIndexProvider);
   final filters = ref.watch(catalogFiltersProvider);
   final kindTaxonomy = ref.watch(coldigomKindTaxonomyProvider);
   // Observado incondicionalmente (mesmo com query vazia): assim o provider
@@ -90,6 +95,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
       query: query,
       localGroups: localGroups,
       remote: const AsyncData(CatalogSearchPage.empty),
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
     );
   }
 
@@ -99,6 +105,7 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
       localGroups: localGroups,
       remote: const AsyncLoading(),
       offline: true,
+      entries: clusterCatalogList(localGroups, membersOf: index.membersOf),
     );
   }
 
@@ -138,6 +145,16 @@ final homeSearchStateProvider = Provider<HomeSearchState>((ref) {
     // (tokens diferentes) — ele entra em `groups` do mesmo jeito (o remoto
     // achou), mas não é «novo» pro catálogo: só o chip some (§6.3).
     knownIds: knownIds,
+    // Um extra do remoto que é membro de um grupo já na tela entra no
+    // amendoim dele, não no fim. Vai também em `extraMembers` porque
+    // `membersOf` só sabe do índice: parte dos extras o índice nem conhece
+    // (os «novos»); os que ele conhece mas a busca local não achou já saem
+    // de `membersOf` e o praiseId não se repete.
+    entries: clusterCatalogList(
+      [...localGroups, ...newGroups],
+      membersOf: index.membersOf,
+      extraMembers: newGroups,
+    ),
   );
 });
 
