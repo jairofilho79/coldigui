@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/offline_config.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/utils/pdf_id_codec.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../chords/data/providers/chord_providers.dart';
 import '../../../coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 import '../../../coldigom/data/providers/coldigom_catalog_data_providers.dart';
@@ -27,6 +28,36 @@ final chordGestureCacheRevisionProvider =
       ChordGestureCacheRevisionNotifier.new,
     );
 
+/// Contagens e bytes por tipo de material dentro de um kind.
+class ColdigomTypeStats {
+  const ColdigomTypeStats({
+    required this.kind,
+    required this.rawType,
+    required this.total,
+    required this.downloaded,
+    required this.bytesKnown,
+    required this.bytesEstimated,
+    required this.pendingBytes,
+  });
+
+  final MaterialKind kind;
+  final String rawType;
+  final int total;
+  final int downloaded;
+
+  /// Soma dos `size` conhecidos.
+  final int bytesKnown;
+
+  /// Soma das médias estimadas para alvos sem `size`.
+  final int bytesEstimated;
+
+  /// Bytes só dos alvos ainda não baixados.
+  final int pendingBytes;
+
+  bool get hasEstimate => bytesEstimated > 0;
+  int get bytesTotal => bytesKnown + bytesEstimated;
+}
+
 /// Contagens e bytes de um kind Coldigom no `/offline` (§5.3/§5.4).
 class ColdigomKindStats {
   const ColdigomKindStats({
@@ -37,6 +68,7 @@ class ColdigomKindStats {
     required this.bytesKnown,
     required this.bytesEstimated,
     required this.pendingBytes,
+    this.types = const {},
   });
 
   final String kindId;
@@ -53,8 +85,29 @@ class ColdigomKindStats {
   /// Bytes (conhecidos + estimados) só dos alvos **ainda não** baixados.
   final int pendingBytes;
 
+  /// Contagens divididas por tipo de material (PDF, áudio, cifra, gestos).
+  final Map<MaterialKind, ColdigomTypeStats> types;
+
   bool get hasEstimate => bytesEstimated > 0;
   int get bytesTotal => bytesKnown + bytesEstimated;
+
+  /// Retorna [types] ou, se vazio (ex.: em mocks de teste sem types explícitos),
+  /// sintetiza um único tipo padrão para renderização do card.
+  Map<MaterialKind, ColdigomTypeStats> get effectiveTypes {
+    if (types.isNotEmpty) return types;
+    if (total == 0) return const {};
+    return {
+      MaterialKind.pdf: ColdigomTypeStats(
+        kind: MaterialKind.pdf,
+        rawType: 'pdf',
+        total: total,
+        downloaded: downloaded,
+        bytesKnown: bytesKnown,
+        bytesEstimated: bytesEstimated,
+        pendingBytes: pendingBytes,
+      ),
+    };
+  }
 }
 
 class OfflineColdigomStats {
@@ -66,8 +119,35 @@ class OfflineColdigomStats {
   final Map<String, ColdigomKindStats> byKind;
 
   /// Estimativa do que «Baixar selecionados» vai transferir.
-  int pendingBytes(Set<String> kindIds) =>
-      kindIds.fold(0, (sum, id) => sum + (byKind[id]?.pendingBytes ?? 0));
+  /// Se [selection] for fornecido, filtra apenas os tipos de material selecionados.
+  int pendingBytes(
+    Set<String> kindIds, {
+    Set<String>? selection,
+    MaterialKindTaxonomy? taxonomy,
+  }) {
+    if (selection == null) {
+      return kindIds.fold(
+        0,
+        (sum, id) => sum + (byKind[id]?.pendingBytes ?? 0),
+      );
+    }
+    var sum = 0;
+    for (final id in kindIds) {
+      final s = byKind[id];
+      if (s == null) continue;
+      for (final entry in s.effectiveTypes.entries) {
+        if (isOfflineTypeSelected(
+          kindId: id,
+          type: entry.key,
+          selection: selection,
+          parentId: taxonomy?.parentOf(id),
+        )) {
+          sum += entry.value.pendingBytes;
+        }
+      }
+    }
+    return sum;
+  }
 }
 
 /// Stats por kind a partir do catálogo local + índices (§5.3).
@@ -117,15 +197,28 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
   final estimated = <String, int>{};
   final pending = <String, int>{};
 
+  final typeTotal = <(String, MaterialKind), int>{};
+  final typeDownloaded = <(String, MaterialKind), int>{};
+  final typeKnown = <(String, MaterialKind), int>{};
+  final typeEstimated = <(String, MaterialKind), int>{};
+  final typePending = <(String, MaterialKind), int>{};
+  final typeRaw = <(String, MaterialKind), String>{};
+
   for (var i = 0; i < rows.length; i++) {
     for (final m in ColdigomPraiseCacheMapper.decodeMaterials(rows[i])) {
       final kindId = m.kindId;
       final r2Key = m.r2Key;
       if (kindId == null || r2Key == null || r2Key.isEmpty) continue;
       if (!isColdigomDownloadableType(m.type)) continue;
-      if (materialKindOfRawType(m.type) == MaterialKind.unknown) continue;
+      final matKind = materialKindOfRawType(m.type);
+      if (matKind == MaterialKind.unknown) continue;
+      final pair = (kindId, matKind);
+
       kindNames[kindId] = m.kindName;
       total.update(kindId, (v) => v + 1, ifAbsent: () => 1);
+      typeTotal.update(pair, (v) => v + 1, ifAbsent: () => 1);
+      typeRaw[pair] = m.type;
+
       final size = m.size;
       final bytes =
           size ??
@@ -133,13 +226,17 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
           0;
       if (size != null) {
         known.update(kindId, (v) => v + size, ifAbsent: () => size);
+        typeKnown.update(pair, (v) => v + size, ifAbsent: () => size);
       } else {
         estimated.update(kindId, (v) => v + bytes, ifAbsent: () => bytes);
+        typeEstimated.update(pair, (v) => v + bytes, ifAbsent: () => bytes);
       }
       if (present.contains(encodePdfId(r2Key))) {
         downloaded.update(kindId, (v) => v + 1, ifAbsent: () => 1);
+        typeDownloaded.update(pair, (v) => v + 1, ifAbsent: () => 1);
       } else {
         pending.update(kindId, (v) => v + bytes, ifAbsent: () => bytes);
+        typePending.update(pair, (v) => v + bytes, ifAbsent: () => bytes);
       }
     }
     if ((i + 1) % OfflineConfig.coldigomHydrationChunkSize == 0) {
@@ -157,6 +254,24 @@ final offlineColdigomStatsProvider = FutureProvider<OfflineColdigomStats>((
         bytesKnown: known[kindId] ?? 0,
         bytesEstimated: estimated[kindId] ?? 0,
         pendingBytes: pending[kindId] ?? 0,
+        types: {
+          for (final mk in [
+            MaterialKind.pdf,
+            MaterialKind.chord,
+            MaterialKind.gesture,
+            MaterialKind.audio,
+          ])
+            if (typeTotal.containsKey((kindId, mk)))
+              mk: ColdigomTypeStats(
+                kind: mk,
+                rawType: typeRaw[(kindId, mk)] ?? mk.name,
+                total: typeTotal[(kindId, mk)]!,
+                downloaded: typeDownloaded[(kindId, mk)] ?? 0,
+                bytesKnown: typeKnown[(kindId, mk)] ?? 0,
+                bytesEstimated: typeEstimated[(kindId, mk)] ?? 0,
+                pendingBytes: typePending[(kindId, mk)] ?? 0,
+              ),
+        },
       ),
   });
 });

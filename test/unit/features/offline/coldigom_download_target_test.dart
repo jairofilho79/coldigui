@@ -120,4 +120,83 @@ void main() {
     expect(isColdigomDownloadableType('youtube'), isFalse);
     expect(isColdigomDownloadableType('lyrics'), isFalse);
   });
+
+  group('isOfflineTypeSelected', () {
+    test('sem tipos explícitos segue a seleção do kind ou do parent', () {
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'alto',
+          type: MaterialKind.pdf,
+          selection: {'alto'},
+        ),
+        isTrue,
+      );
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'alto',
+          type: MaterialKind.pdf,
+          selection: {'sax'},
+          parentId: 'sax',
+        ),
+        isTrue,
+      );
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'alto',
+          type: MaterialKind.pdf,
+          selection: {'outra'},
+          parentId: 'sax',
+        ),
+        isFalse,
+      );
+    });
+
+    test('com tipos explícitos respeita exatamente a granularidade do tipo', () {
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'k-grade',
+          type: MaterialKind.pdf,
+          selection: {'k-grade:pdf'},
+        ),
+        isTrue,
+      );
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'k-grade',
+          type: MaterialKind.audio,
+          selection: {'k-grade:pdf'},
+        ),
+        isFalse,
+      );
+      // Explicit types on parent apply to children
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'alto',
+          type: MaterialKind.pdf,
+          selection: {'sax:pdf'},
+          parentId: 'sax',
+        ),
+        isTrue,
+      );
+      expect(
+        isOfflineTypeSelected(
+          kindId: 'alto',
+          type: MaterialKind.audio,
+          selection: {'sax:pdf'},
+          parentId: 'sax',
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  test('coldigomDownloadTargetsFrom filtra por material type quando selection fornecido', () {
+    final targets = coldigomDownloadTargetsFrom(
+      rows,
+      kindIds: {'k-grade', 'k-play'},
+      selection: {'k-grade:pdf'}, // k-play não selecionado, k-grade só pdf
+    );
+
+    expect(targets.map((t) => t.materialId), ['m-pdf', 'm-pdf3']);
+  });
 }

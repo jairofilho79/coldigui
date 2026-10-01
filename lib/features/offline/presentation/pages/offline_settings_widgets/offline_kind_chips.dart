@@ -3,14 +3,28 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
 import '../../../../../core/theme/color_extensions.dart';
 import '../../../../../core/utils/louvor_search_tokens.dart';
+import '../../../../../core/utils/material_id_kind.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../catalog/domain/entities/material_kind_taxonomy.dart';
+import '../../../../catalog/domain/utils/louvor_material_icons.dart';
 import '../../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../../../catalog/presentation/widgets/material_kind_chips.dart';
+import '../../../domain/entities/coldigom_download_target.dart';
 import '../../providers/offline_coldigom_stats_provider.dart';
 import 'coldigom_section.dart' show coldigomSizeLabel;
 
-const _pill = BorderRadius.all(Radius.circular(24));
+/// Rótulo traduzido do tipo de material para o card offline.
+String offlineMaterialKindLabel(AppLocalizations l10n, MaterialKind kind) {
+  return switch (kind) {
+    MaterialKind.pdf => l10n.pdfMaterialSection,
+    MaterialKind.chord => l10n.chordMaterialSection,
+    MaterialKind.gesture => l10n.gesturesMaterialSection,
+    MaterialKind.audio => l10n.audioMaterialSection,
+    MaterialKind.youtube => l10n.youtubeMaterialSection,
+    MaterialKind.lyrics => l10n.lyricsTab,
+    MaterialKind.unknown => '',
+  };
+}
 
 /// Um elemento da lista de download: kind individual ou família recolhida.
 sealed class OfflineKindUnit {
@@ -23,6 +37,7 @@ sealed class OfflineKindUnit {
   int get bytesTotal;
   int get pendingBytes;
   bool get hasEstimate;
+  Map<MaterialKind, ColdigomTypeStats> get types;
 }
 
 final class OfflineKindSingleUnit extends OfflineKindUnit {
@@ -50,6 +65,9 @@ final class OfflineKindSingleUnit extends OfflineKindUnit {
 
   @override
   bool get hasEstimate => kind.hasEstimate;
+
+  @override
+  Map<MaterialKind, ColdigomTypeStats> get types => kind.effectiveTypes;
 }
 
 final class OfflineKindFamilyUnit extends OfflineKindUnit {
@@ -95,6 +113,34 @@ final class OfflineKindFamilyUnit extends OfflineKindUnit {
   bool get hasEstimate =>
       (parentStats?.hasEstimate ?? false) ||
       children.any((c) => c.hasEstimate);
+
+  @override
+  Map<MaterialKind, ColdigomTypeStats> get types {
+    final result = <MaterialKind, ColdigomTypeStats>{};
+    final allStats = [
+      ?parentStats,
+      ...children,
+    ];
+    for (final s in allStats) {
+      for (final entry in s.effectiveTypes.entries) {
+        final existing = result[entry.key];
+        if (existing == null) {
+          result[entry.key] = entry.value;
+        } else {
+          result[entry.key] = ColdigomTypeStats(
+            kind: entry.key,
+            rawType: entry.value.rawType,
+            total: existing.total + entry.value.total,
+            downloaded: existing.downloaded + entry.value.downloaded,
+            bytesKnown: existing.bytesKnown + entry.value.bytesKnown,
+            bytesEstimated: existing.bytesEstimated + entry.value.bytesEstimated,
+            pendingBytes: existing.pendingBytes + entry.value.pendingBytes,
+          );
+        }
+      }
+    }
+    return result;
+  }
 }
 
 /// Seção de kinds no `/offline` (agrupada por classe da taxonomia).
@@ -285,7 +331,8 @@ class OfflineClassHeader extends StatelessWidget {
   }
 }
 
-/// Chip individual de tipo de material no `/offline` com dados de armazenamento.
+/// Chip/card individual de tipo de material no `/offline` com dados de armazenamento
+/// e divisão por material type.
 class OfflineKindChip extends StatelessWidget {
   const OfflineKindChip({
     super.key,
@@ -294,6 +341,8 @@ class OfflineKindChip extends StatelessWidget {
     required this.checked,
     required this.enabled,
     required this.onChanged,
+    this.selection = const {},
+    this.onToggleType,
     this.look = MaterialKindChipLook.normal,
   });
 
@@ -302,11 +351,31 @@ class OfflineKindChip extends StatelessWidget {
   final bool checked;
   final bool enabled;
   final VoidCallback onChanged;
+  final Set<String> selection;
+  final void Function(MaterialKind type)? onToggleType;
   final MaterialKindChipLook look;
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = checked || look == MaterialKindChipLook.selected;
+    final types = kind.effectiveTypes;
+    final hasSelectedType = types.keys.any(
+      (t) => isOfflineTypeSelected(
+        kindId: kind.kindId,
+        type: t,
+        selection: selection,
+      ),
+    );
+    final allSelected = types.isNotEmpty &&
+        types.keys.every(
+          (t) => isOfflineTypeSelected(
+            kindId: kind.kindId,
+            type: t,
+            selection: selection,
+          ),
+        );
+
+    final isSelected = checked || look == MaterialKindChipLook.selected || allSelected;
+    final isPartial = !isSelected && hasSelectedType;
     final isIncluded = look == MaterialKindChipLook.included;
     final isFullyDownloaded = kind.total > 0 && kind.downloaded == kind.total;
     final isPartiallyDownloaded =
@@ -316,100 +385,174 @@ class OfflineKindChip extends StatelessWidget {
       kind.bytesTotal,
       estimated: kind.hasEstimate,
     );
-    final badgeStr = isPartiallyDownloaded
-        ? '${kind.downloaded}/${kind.total} · $sizeStr'
-        : '${kind.total} · $sizeStr';
 
-    final tooltip = l10n.offlineColdigomKindSummary(kind.total, sizeStr);
+    final borderColor = isSelected
+        ? AppColors.gold
+        : (isPartial || isIncluded
+            ? AppColors.gold
+            : AppColors.title.withValues(alpha: 0.22));
+    final borderWidth = isSelected ? 2.0 : (isPartial ? 1.5 : 1.0);
+    final borderSide = BorderSide(color: borderColor, width: borderWidth);
 
-    return Tooltip(
-      message: tooltip,
-      child: FilterChip(
-        selected: isSelected,
-        showCheckmark: false,
-        selectedColor: AppColors.gold.withValues(alpha: 0.3),
-        backgroundColor: isIncluded
-            ? AppColors.gold.withValues(alpha: 0.12)
-            : AppColors.card,
-        side: BorderSide(
-          color: !isSelected && look == MaterialKindChipLook.normal
-              ? AppColors.title
-              : AppColors.gold,
-          width: isSelected ? 2 : 1.5,
-        ),
-        shape: isIncluded
-            ? const DashedRoundedRectangleBorder(borderRadius: _pill)
-            : const RoundedRectangleBorder(borderRadius: _pill),
-        onSelected: enabled ? (_) => onChanged() : null,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        label: IntrinsicWidth(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isFullyDownloaded) ...[
-                    Icon(
-                      Icons.check_circle_rounded,
-                      size: 13,
-                      color: isSelected
-                          ? AppColors.title
-                          : AppColors.gold,
+    final cardShape = isIncluded
+        ? DashedRoundedRectangleBorder(
+            side: borderSide,
+            borderRadius: BorderRadius.circular(12),
+          )
+        : RoundedRectangleBorder(
+            side: borderSide,
+            borderRadius: BorderRadius.circular(12),
+          );
+
+    final backgroundColor = isSelected
+        ? AppColors.gold.withValues(alpha: 0.16)
+        : (isPartial || isIncluded
+            ? AppColors.gold.withValues(alpha: 0.08)
+            : AppColors.card);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 260,
+        maxWidth: 360,
+      ),
+      child: Material(
+        color: backgroundColor,
+        shape: cardShape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? onChanged : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Checkbox(
+                        value: isSelected ? true : (isPartial ? null : false),
+                        tristate: true,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        activeColor: AppColors.gold,
+                        checkColor: AppColors.title,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        side: BorderSide(
+                          color: (isSelected || isPartial)
+                              ? AppColors.gold
+                              : AppColors.title.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
+                        onChanged: enabled ? (_) => onChanged() : null,
+                      ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        kind.kindName,
+                        style: AppTypography.body.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: (isSelected || isPartial)
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: AppColors.title,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isFullyDownloaded) ...[
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 15,
+                        color: AppColors.gold,
+                      ),
+                    ],
                   ],
-                  Text(
-                    kind.kindName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: AppColors.title,
-                    ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 30, top: 3, bottom: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.folder_outlined,
+                        size: 13.5,
+                        color: AppColors.title.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isPartiallyDownloaded
+                            ? '${kind.downloaded}/${kind.total} arq.'
+                            : '${kind.total} arq.',
+                        style: AppTypography.label.copyWith(
+                          fontSize: 11,
+                          color: AppColors.title.withValues(alpha: 0.75),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.storage_outlined,
+                        size: 13.5,
+                        color: AppColors.title.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        sizeStr,
+                        style: AppTypography.label.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.title.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 1.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.gold.withValues(alpha: 0.25)
-                          : AppColors.title.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Text(
-                      badgeStr,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.title.withValues(alpha: 0.8),
+                ),
+                if (isPartiallyDownloaded) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(left: 30, top: 2, bottom: 4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        minHeight: 2.5,
+                        value: kind.downloaded / kind.total,
+                        backgroundColor: AppColors.title.withValues(alpha: 0.12),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.gold,
+                        ),
                       ),
                     ),
                   ),
                 ],
-              ),
-              if (isPartiallyDownloaded) ...[
-                const SizedBox(height: 3),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: SizedBox(
-                    height: 2,
-                    child: LinearProgressIndicator(
-                      minHeight: 2,
-                      value: kind.downloaded / kind.total,
-                      backgroundColor: AppColors.title.withValues(alpha: 0.12),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.gold,
-                      ),
-                    ),
+                if (types.isNotEmpty) ...[
+                  Divider(
+                    height: 12,
+                    thickness: 0.8,
+                    color: AppColors.title.withValues(alpha: 0.12),
                   ),
-                ),
+                  for (final entry in types.entries)
+                    _MaterialTypeRow(
+                      kindId: kind.kindId,
+                      matKind: entry.key,
+                      typeStats: entry.value,
+                      l10n: l10n,
+                      enabled: enabled,
+                      selected: isOfflineTypeSelected(
+                        kindId: kind.kindId,
+                        type: entry.key,
+                        selection: selection,
+                      ),
+                      onToggle: onToggleType != null
+                          ? () => onToggleType!(entry.key)
+                          : null,
+                    ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -417,8 +560,116 @@ class OfflineKindChip extends StatelessWidget {
   }
 }
 
+/// Linha de divisão por tipo de material com ícone, contagem e tamanho.
+class _MaterialTypeRow extends StatelessWidget {
+  const _MaterialTypeRow({
+    required this.kindId,
+    required this.matKind,
+    required this.typeStats,
+    required this.l10n,
+    required this.enabled,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final String kindId;
+  final MaterialKind matKind;
+  final ColdigomTypeStats typeStats;
+  final AppLocalizations l10n;
+  final bool enabled;
+  final bool selected;
+  final VoidCallback? onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final typeSizeStr = coldigomSizeLabel(
+      typeStats.bytesTotal,
+      estimated: typeStats.hasEstimate,
+    );
+
+    return InkWell(
+      onTap: enabled && onToggle != null ? onToggle : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: Checkbox(
+                value: selected,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                activeColor: AppColors.gold,
+                checkColor: AppColors.title,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                side: BorderSide(
+                  color: selected
+                      ? AppColors.gold
+                      : AppColors.title.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                onChanged: enabled && onToggle != null ? (_) => onToggle!() : null,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              LouvorMaterialIcons.forKind(matKind),
+              size: 15,
+              color: AppColors.title.withValues(alpha: 0.85),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                offlineMaterialKindLabel(l10n, matKind),
+                style: AppTypography.label.copyWith(
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: AppColors.title,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.folder_outlined,
+              size: 12,
+              color: AppColors.title.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '${typeStats.total}',
+              style: AppTypography.label.copyWith(
+                fontSize: 10.5,
+                color: AppColors.title.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.storage_outlined,
+              size: 12,
+              color: AppColors.title.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              typeSizeStr,
+              style: AppTypography.label.copyWith(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.title.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Chip de família de tipos no `/offline`: corpo marca/desmarca o conjunto;
-/// seta recolhe ou expande as variantes.
+/// seta recolhe ou expande as variantes com hierarquia visual clara e fundo zebrado.
 class OfflineKindFamilyChip extends StatelessWidget {
   const OfflineKindFamilyChip({
     super.key,
@@ -431,6 +682,9 @@ class OfflineKindFamilyChip extends StatelessWidget {
     required this.expandTooltip,
     required this.bodyLabel,
     required this.refinedValue,
+    required this.l10n,
+    this.selection = const {},
+    this.onToggleType,
   });
 
   final OfflineKindFamilyUnit unit;
@@ -442,156 +696,330 @@ class OfflineKindFamilyChip extends StatelessWidget {
   final String expandTooltip;
   final String bodyLabel;
   final String refinedValue;
+  final AppLocalizations l10n;
+  final Set<String> selection;
+  final void Function(MaterialKind type)? onToggleType;
 
-  @override
-  Widget build(BuildContext context) {
-    final none = state == MaterialKindFamilyState.none;
-    final side = BorderSide(
-      color: none ? AppColors.title : AppColors.gold,
-      width: none ? 1.5 : 2,
-    );
-    final labelStyle = Theme.of(context).textTheme.labelLarge
-        ?.copyWith(color: AppColors.title);
-
-    final isFullyDownloaded =
-        unit.total > 0 && unit.downloaded == unit.total;
+  Widget _buildFamilyCard(BuildContext context) {
+    final isSelected = state == MaterialKindFamilyState.selected;
+    final isPartial = state == MaterialKindFamilyState.refined;
+    final isFullyDownloaded = unit.total > 0 && unit.downloaded == unit.total;
     final isPartiallyDownloaded =
         unit.downloaded > 0 && unit.downloaded < unit.total;
+
     final sizeStr = coldigomSizeLabel(
       unit.bytesTotal,
       estimated: unit.hasEstimate,
     );
-    final badgeStr = isPartiallyDownloaded
-        ? '${unit.downloaded}/${unit.total} · $sizeStr'
-        : '${unit.children.length} var. · $sizeStr';
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
-      child: Center(
-        widthFactor: 1,
-        child: Material(
-          color: state == MaterialKindFamilyState.selected
-              ? AppColors.gold.withValues(alpha: 0.3)
-              : AppColors.card,
-          shape: state == MaterialKindFamilyState.refined
-              ? DashedRoundedRectangleBorder(side: side, borderRadius: _pill)
-              : RoundedRectangleBorder(side: side, borderRadius: _pill),
-          clipBehavior: Clip.antiAlias,
-          child: IntrinsicHeight(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Semantics(
-                  container: true,
-                  button: true,
-                  selected: state == MaterialKindFamilyState.selected,
-                  label: bodyLabel,
-                  value: state == MaterialKindFamilyState.refined
-                      ? refinedValue
-                      : null,
-                  onTap: enabled ? onToggle : null,
-                  excludeSemantics: true,
-                  child: InkWell(
+    final borderColor = (isSelected || isPartial)
+        ? AppColors.gold
+        : AppColors.title.withValues(alpha: 0.22);
+    final borderWidth = isSelected ? 2.0 : (isPartial ? 1.5 : 1.0);
+    final borderSide = BorderSide(color: borderColor, width: borderWidth);
+
+    final cardShape = isPartial
+        ? DashedRoundedRectangleBorder(
+            side: borderSide,
+            borderRadius: BorderRadius.circular(12),
+          )
+        : RoundedRectangleBorder(
+            side: borderSide,
+            borderRadius: BorderRadius.circular(12),
+          );
+
+    final backgroundColor = isSelected
+        ? AppColors.gold.withValues(alpha: 0.16)
+        : (isPartial
+            ? AppColors.gold.withValues(alpha: 0.08)
+            : AppColors.card);
+
+    final types = unit.types;
+
+    return Material(
+      color: backgroundColor,
+      shape: cardShape,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? onToggle : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Semantics(
+                    button: true,
+                    selected: isSelected,
+                    label: bodyLabel,
+                    value: isPartial ? refinedValue : null,
                     onTap: enabled ? onToggle : null,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isFullyDownloaded) ...[
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  size: 13,
-                                  color: state == MaterialKindFamilyState.selected
-                                      ? AppColors.title
-                                      : AppColors.gold,
-                                ),
-                                const SizedBox(width: 4),
-                              ],
-                              Text(unit.name, style: labelStyle),
-                              const SizedBox(width: 6),
-                              Container(
-                                constraints:
-                                    const BoxConstraints(minWidth: 18),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: state == MaterialKindFamilyState.selected
-                                      ? AppColors.gold.withValues(alpha: 0.25)
-                                      : AppColors.title.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
-                                child: Text(
-                                  badgeStr,
-                                  textAlign: TextAlign.center,
-                                  style: labelStyle?.copyWith(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (isPartiallyDownloaded) ...[
-                            const SizedBox(height: 3),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
-                              child: SizedBox(
-                                width: 80,
-                                height: 2,
-                                child: LinearProgressIndicator(
-                                  minHeight: 2,
-                                  value: unit.downloaded / unit.total,
-                                  backgroundColor: AppColors.title
-                                      .withValues(alpha: 0.12),
-                                  valueColor: const AlwaysStoppedAnimation(
-                                    AppColors.gold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                    excludeSemantics: true,
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Checkbox(
+                        value: isSelected ? true : (isPartial ? null : false),
+                        tristate: true,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        activeColor: AppColors.gold,
+                        checkColor: AppColors.title,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        side: BorderSide(
+                          color: (isSelected || isPartial)
+                              ? AppColors.gold
+                              : AppColors.title.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
+                        onChanged: enabled ? (_) => onToggle() : null,
                       ),
                     ),
                   ),
-                ),
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: AppColors.title.withValues(alpha: 0.16),
-                ),
-                Semantics(
-                  button: true,
-                  label: expandTooltip,
-                  expanded: expanded,
-                  onTap: onExpand,
-                  excludeSemantics: true,
-                  child: Tooltip(
-                    message: expandTooltip,
-                    child: InkWell(
-                      onTap: onExpand,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          expanded ? Icons.expand_less : Icons.expand_more,
-                          size: 18,
-                          color: AppColors.title,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            unit.name,
+                            style: AppTypography.body.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: (isSelected || isPartial)
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: AppColors.title,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.title.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${unit.children.length} var.',
+                            style: AppTypography.label.copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.title.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ),
+                        if (isFullyDownloaded) ...[
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 15,
+                            color: AppColors.gold,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Semantics(
+                    button: true,
+                    label: expandTooltip,
+                    expanded: expanded,
+                    onTap: enabled ? onExpand : null,
+                    excludeSemantics: true,
+                    child: Tooltip(
+                      message: expandTooltip,
+                      child: InkWell(
+                        onTap: enabled ? onExpand : null,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            expanded ? Icons.expand_less : Icons.expand_more,
+                            size: 20,
+                            color: AppColors.title,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 30, top: 3, bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.folder_outlined,
+                      size: 13.5,
+                      color: AppColors.title.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isPartiallyDownloaded
+                          ? '${unit.downloaded}/${unit.total} arq.'
+                          : '${unit.total} arq.',
+                      style: AppTypography.label.copyWith(
+                        fontSize: 11,
+                        color: AppColors.title.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.storage_outlined,
+                      size: 13.5,
+                      color: AppColors.title.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      sizeStr,
+                      style: AppTypography.label.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.title.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isPartiallyDownloaded) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 30, top: 2, bottom: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      minHeight: 2.5,
+                      value: unit.downloaded / unit.total,
+                      backgroundColor: AppColors.title.withValues(alpha: 0.12),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.gold,
                       ),
                     ),
                   ),
                 ),
               ],
-            ),
+              if (types.isNotEmpty) ...[
+                Divider(
+                  height: 12,
+                  thickness: 0.8,
+                  color: AppColors.title.withValues(alpha: 0.12),
+                ),
+                for (final entry in types.entries)
+                  _MaterialTypeRow(
+                    kindId: unit.headId,
+                    matKind: entry.key,
+                    typeStats: entry.value,
+                    l10n: l10n,
+                    enabled: enabled,
+                    selected: isOfflineTypeSelected(
+                      kindId: unit.headId,
+                      type: entry.key,
+                      selection: selection,
+                    ),
+                    onToggle: onToggleType != null
+                        ? () => onToggleType!(entry.key)
+                        : null,
+                  ),
+              ],
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 260,
+        maxWidth: 360,
+      ),
+      child: _buildFamilyCard(context),
+    );
+  }
+}
+
+/// Contêiner com fundo zebrado e hierarquia visual conectando o pai e as variantes.
+class OfflineKindFamilyGroup extends StatelessWidget {
+  const OfflineKindFamilyGroup({
+    super.key,
+    required this.unit,
+    required this.familyChip,
+    required this.children,
+  });
+
+  final OfflineKindFamilyUnit unit;
+  final Widget familyChip;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.gold.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: familyChip,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 10, top: 10, bottom: 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.subdirectory_arrow_right_rounded,
+                  size: 18,
+                  color: AppColors.gold,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Variantes de ${unit.name} (${unit.children.length}):',
+                  style: AppTypography.label.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                    color: AppColors.title.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(left: 14),
+            padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: AppColors.gold.withValues(alpha: 0.45),
+                  width: 2,
+                ),
+              ),
+            ),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: children,
+            ),
+          ),
+        ],
       ),
     );
   }

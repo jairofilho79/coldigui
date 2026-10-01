@@ -7,6 +7,7 @@ import '../../../../../core/l10n/failure_message.dart';
 import '../../../../../core/theme/app_typography.dart';
 import '../../../../../core/theme/color_extensions.dart';
 import '../../../../../core/utils/byte_format.dart';
+import '../../../../../core/utils/material_id_kind.dart';
 import '../../../../../core/widgets/confirm_dialog.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../auth/presentation/providers/auth_state_provider.dart';
@@ -15,7 +16,9 @@ import '../../../../coldigom/presentation/providers/coldigom_catalog_providers.d
 import '../../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../../data/utils/storage_quota_estimator.dart';
 import '../../../domain/entities/coldigom_download_progress.dart';
+import '../../../domain/entities/coldigom_download_target.dart';
 import '../../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../../../catalog/presentation/widgets/material_kind_chips.dart';
 import '../../providers/offline_cache_status_provider.dart';
@@ -256,9 +259,11 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
     BuildContext context,
     WidgetRef ref,
     Set<String> kindIds,
+    Set<String> selection,
     int bytes,
-    bool estimated,
-  ) async {
+    bool estimated, {
+    MaterialKindTaxonomy? taxonomy,
+  }) async {
     final free = await estimateFreeStorageBytes();
     if (free != null && bytes > free && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +277,11 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
         ),
       );
     }
-    await ref.read(offlineColdigomDownloadProvider.notifier).start(kindIds);
+    await ref.read(offlineColdigomDownloadProvider.notifier).start(
+      kindIds,
+      selection: selection,
+      taxonomy: taxonomy,
+    );
   }
 
   Future<void> _remove(BuildContext context, WidgetRef ref) async {
@@ -311,6 +320,8 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
     required Set<String> selection,
     required bool enabled,
     required void Function(String) onToggle,
+    required void Function(String, MaterialKind, Set<MaterialKind>) onToggleType,
+    required void Function(OfflineKindFamilyUnit, MaterialKind) onToggleFamilyType,
   }) {
     switch (unit) {
       case OfflineKindSingleUnit(:final kind):
@@ -320,70 +331,62 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
             l10n: widget.l10n,
             checked: selection.contains(kind.kindId),
             enabled: enabled,
+            selection: selection,
             onChanged: () => onToggle(kind.kindId),
+            onToggleType: (type) =>
+                onToggleType(kind.kindId, type, kind.effectiveTypes.keys.toSet()),
           ),
         ];
       case OfflineKindFamilyUnit(:final parentId, :final children):
         final childIds = [for (final c in children) c.kindId];
         final state = materialKindFamilyState(parentId, childIds, selection);
         final open = _open[parentId] ?? state == MaterialKindFamilyState.refined;
-        return [
-          OfflineKindFamilyChip(
-            unit: unit,
-            state: state,
-            expanded: open,
-            enabled: enabled,
-            onToggle: () => onToggle(parentId),
-            onExpand: () => setState(() {
-              _open[parentId] = !open;
-            }),
-            expandTooltip: widget.l10n.materialKindShowVariants(unit.name),
-            bodyLabel: widget.l10n.materialKindFamilyVariantsLabel(
-              unit.name,
-              children.length,
-            ),
-            refinedValue: widget.l10n.materialKindFamilyRefinedValue,
+        final familyChip = OfflineKindFamilyChip(
+          unit: unit,
+          state: state,
+          expanded: open,
+          enabled: enabled,
+          selection: selection,
+          l10n: widget.l10n,
+          onToggle: () => onToggle(parentId),
+          onExpand: () => setState(() {
+            _open[parentId] = !open;
+          }),
+          expandTooltip: widget.l10n.materialKindShowVariants(unit.name),
+          bodyLabel: widget.l10n.materialKindFamilyVariantsLabel(
+            unit.name,
+            children.length,
           ),
-          if (open)
-            SizedBox(
-              width: double.infinity,
-              child: Container(
-                margin: const EdgeInsets.only(left: 14, top: 2, bottom: 4),
-                padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: AppColors.gold, width: 2),
-                  ),
+          refinedValue: widget.l10n.materialKindFamilyRefinedValue,
+          onToggleType: (type) => onToggleFamilyType(unit, type),
+        );
+        if (!open) {
+          return [familyChip];
+        }
+        return [
+          OfflineKindFamilyGroup(
+            unit: unit,
+            familyChip: familyChip,
+            children: [
+              for (final child in children)
+                OfflineKindChip(
+                  kind: child,
+                  l10n: widget.l10n,
+                  checked: state == MaterialKindFamilyState.selected ||
+                      selection.contains(child.kindId),
+                  enabled: enabled,
+                  look: state == MaterialKindFamilyState.selected
+                      ? MaterialKindChipLook.included
+                      : (selection.contains(child.kindId)
+                          ? MaterialKindChipLook.selected
+                          : MaterialKindChipLook.normal),
+                  selection: selection,
+                  onChanged: () => onToggle(child.kindId),
+                  onToggleType: (type) =>
+                      onToggleType(child.kindId, type, child.effectiveTypes.keys.toSet()),
                 ),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (final child in children)
-                      state == MaterialKindFamilyState.selected
-                          ? OfflineKindChip(
-                              kind: child,
-                              l10n: widget.l10n,
-                              checked: true,
-                              enabled: enabled,
-                              look: MaterialKindChipLook.included,
-                              onChanged: () => onToggle(child.kindId),
-                            )
-                          : OfflineKindChip(
-                              kind: child,
-                              l10n: widget.l10n,
-                              checked: selection.contains(child.kindId),
-                              enabled: enabled,
-                              look: selection.contains(child.kindId)
-                                  ? MaterialKindChipLook.selected
-                                  : MaterialKindChipLook.normal,
-                              onChanged: () => onToggle(child.kindId),
-                            ),
-                  ],
-                ),
-              ),
-            ),
+            ],
+          ),
         ];
     }
   }
@@ -416,8 +419,16 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
           availableKindIds: stats.byKind.keys.toSet(),
         );
 
-    final effectiveKindIds = effectiveMaterialKindIds(selection, taxonomy);
-    final pendingBytes = stats.pendingBytes(effectiveKindIds);
+    final selectedKindIds = {
+      for (final s in selection)
+        s.contains(':') ? s.split(':').first : s,
+    };
+    final effectiveKindIds = effectiveMaterialKindIds(selectedKindIds, taxonomy);
+    final pendingBytes = stats.pendingBytes(
+      effectiveKindIds,
+      selection: selection,
+      taxonomy: taxonomy,
+    );
     final estimated = effectiveKindIds.any(
       (id) => stats.byKind[id]?.hasEstimate ?? false,
     );
@@ -429,6 +440,62 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
             .read(offlineColdigomKindSelectionProvider.notifier)
             .toggle(kindId, currentEffective: selection, taxonomy: taxonomy),
       );
+    }
+
+    void toggleKindType(
+      String kindId,
+      MaterialKind type,
+      Set<MaterialKind> availableTypes,
+    ) {
+      unawaited(
+        ref
+            .read(offlineColdigomKindSelectionProvider.notifier)
+            .toggleType(
+              kindId,
+              type,
+              availableTypes: availableTypes,
+              currentEffective: selection,
+            ),
+      );
+    }
+
+    void toggleFamilyType(OfflineKindFamilyUnit unit, MaterialKind type) {
+      final isCurrentlySelected = isOfflineTypeSelected(
+        kindId: unit.headId,
+        type: type,
+        selection: selection,
+      );
+      for (final child in unit.children) {
+        if (child.effectiveTypes.containsKey(type)) {
+          final isChildTypeSelected = isOfflineTypeSelected(
+            kindId: child.kindId,
+            type: type,
+            selection: selection,
+          );
+          if (isChildTypeSelected == isCurrentlySelected) {
+            toggleKindType(
+              child.kindId,
+              type,
+              child.effectiveTypes.keys.toSet(),
+            );
+          }
+        }
+      }
+      if (unit.parentStats != null &&
+          unit.parentStats!.effectiveTypes.containsKey(type)) {
+        final isParentTypeSelected = isOfflineTypeSelected(
+          kindId: unit.parentId,
+          type: type,
+          selection: selection,
+        );
+        if (isParentTypeSelected == isCurrentlySelected) {
+          toggleKindType(
+            unit.parentId,
+            type,
+            unit.parentStats!.effectiveTypes.keys.toSet(),
+          );
+        }
+      }
     }
 
     final favoriteUnits = [
@@ -469,6 +536,8 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                     selection: selection,
                     enabled: canInteract,
                     onToggle: toggleKind,
+                    onToggleType: toggleKindType,
+                    onToggleFamilyType: toggleFamilyType,
                   ),
               ],
             ),
@@ -502,6 +571,8 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                           selection: selection,
                           enabled: canInteract,
                           onToggle: toggleKind,
+                          onToggleType: toggleKindType,
+                          onToggleFamilyType: toggleFamilyType,
                         ),
                     ],
                   ),
@@ -528,6 +599,8 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                     selection: selection,
                     enabled: canInteract,
                     onToggle: toggleKind,
+                    onToggleType: toggleKindType,
+                    onToggleFamilyType: toggleFamilyType,
                   ),
               ],
             ),
@@ -571,8 +644,10 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                           context,
                           ref,
                           effectiveKindIds,
+                          selection,
                           pendingBytes,
                           estimated,
+                          taxonomy: taxonomy,
                         ),
                       ),
                 child: Text(
@@ -620,8 +695,10 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                           context,
                           ref,
                           effectiveKindIds,
+                          selection,
                           pendingBytes,
                           estimated,
+                          taxonomy: taxonomy,
                         ),
                       ),
                 child: Text(widget.l10n.offlineColdigomRetry),

@@ -2,6 +2,7 @@ import '../../../../core/constants/offline_config.dart';
 import '../../../../core/database/collections/coldigom_praise_cache.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../../core/utils/pdf_id_codec.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../coldigom/data/mappers/coldigom_praise_cache_mapper.dart';
 
 /// `type` do Worker que o download sabe persistir (O10): PDF, áudio, cifra e
@@ -57,11 +58,47 @@ class ColdigomDownloadTarget {
       praiseNumber.isEmpty ? praiseName : '$praiseNumber · $praiseName';
 }
 
+/// Verifica se o tipo de material [type] de [kindId] está ativo dada a [selection].
+///
+/// Convenção:
+/// - Se [selection] contém `'$kindId:${type.name}'` ou `'$parentId:${type.name}'`,
+///   o tipo está explicitamente ativo.
+/// - Se há qualquer chave explícita de tipo para o kind ou parent, mas este tipo
+///   não foi incluído, então este tipo está inativo.
+/// - Caso contrário (sem chave explícita de tipo para o kind/parent), o tipo segue
+///   a marcação do próprio kind ou do parent: se [selection] contém [kindId] ou [parentId],
+///   está ativo.
+bool isOfflineTypeSelected({
+  required String kindId,
+  required MaterialKind type,
+  required Set<String> selection,
+  String? parentId,
+}) {
+  final explicitKey = '$kindId:${type.name}';
+  if (selection.contains(explicitKey)) return true;
+  if (parentId != null && selection.contains('$parentId:${type.name}')) {
+    return true;
+  }
+  final hasExplicitTypes = selection.any(
+    (s) =>
+        s.startsWith('$kindId:') ||
+        (parentId != null && s.startsWith('$parentId:')),
+  );
+  if (hasExplicitTypes) {
+    return false;
+  }
+  return selection.contains(kindId) ||
+      (parentId != null && selection.contains(parentId));
+}
+
 /// Alvos dos [kindIds] a partir das linhas do catálogo, em ordem de número
 /// (o utilizador vê o progresso «em ordem»).
+/// Se [selection] for fornecido, filtra apenas os tipos de material selecionados.
 List<ColdigomDownloadTarget> coldigomDownloadTargetsFrom(
   List<ColdigomPraiseCache> rows, {
   required Set<String> kindIds,
+  Set<String>? selection,
+  MaterialKindTaxonomy? taxonomy,
 }) {
   if (kindIds.isEmpty) return const [];
   final targets = <ColdigomDownloadTarget>[];
@@ -72,6 +109,18 @@ List<ColdigomDownloadTarget> coldigomDownloadTargetsFrom(
       if (kindId == null || !kindIds.contains(kindId)) continue;
       if (!isColdigomDownloadableType(m.type)) continue;
       if (r2Key == null || r2Key.isEmpty) continue;
+      final kind = materialKindOfRawType(m.type);
+      if (kind == MaterialKind.unknown) continue;
+      if (selection != null) {
+        if (!isOfflineTypeSelected(
+          kindId: kindId,
+          type: kind,
+          selection: selection,
+          parentId: taxonomy?.parentOf(kindId),
+        )) {
+          continue;
+        }
+      }
       targets.add(
         ColdigomDownloadTarget(
           praiseId: row.praiseId,
@@ -80,7 +129,7 @@ List<ColdigomDownloadTarget> coldigomDownloadTargetsFrom(
           materialId: m.id,
           kindId: kindId,
           rawType: m.type,
-          kind: materialKindOfRawType(m.type),
+          kind: kind,
           r2Key: r2Key,
           size: m.size,
         ),
