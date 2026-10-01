@@ -47,6 +47,14 @@ void main() {
           path: RoutePaths.favoriteMaterialKinds,
           builder: (_, _) => page('Favoritos'),
         ),
+        GoRoute(
+          path: RoutePaths.contribute,
+          builder: (_, _) => page('Contribuir'),
+        ),
+        GoRoute(
+          path: RoutePaths.myContributions,
+          builder: (_, _) => page('Minhas'),
+        ),
       ],
     );
   }
@@ -86,6 +94,8 @@ void main() {
     (RoutePaths.offline, 'Offline'),
     (RoutePaths.about, 'Sobre'),
     (RoutePaths.favoriteMaterialKinds, 'Favoritos'),
+    (RoutePaths.contribute, 'Contribuir'),
+    (RoutePaths.myContributions, 'Minhas'),
   ]) {
     testWidgets('em $path a seta volta para /perfil', (tester) async {
       await pump(tester, path);

@@ -379,6 +379,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Título, número, tom…'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('contribute-metadata-field')),
+      );
       await tester.tap(find.byKey(const Key('contribute-metadata-field')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tom').last);
@@ -408,6 +411,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Título, número, tom…'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('contribute-metadata-field')),
+    );
     await tester.tap(find.byKey(const Key('contribute-metadata-field')));
     await tester.pumpAndSettle();
 

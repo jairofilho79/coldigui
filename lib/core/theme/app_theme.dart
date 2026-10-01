@@ -89,6 +89,13 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(_borderRadius),
           borderSide: const BorderSide(color: AppColors.goldLight, width: 2),
         ),
+        labelStyle: AppTypography.body.copyWith(
+          color: AppColors.title.withValues(alpha: 0.75),
+        ),
+        floatingLabelStyle: AppTypography.label.copyWith(
+          color: AppColors.title,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.card,

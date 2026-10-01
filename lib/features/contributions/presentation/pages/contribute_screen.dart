@@ -6,6 +6,7 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/plpcg_primary_app_bar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/device/device_snapshot_provider.dart';
@@ -16,6 +17,7 @@ import '../../domain/validators/attachment_rules.dart';
 import '../providers/contribute_form_provider.dart';
 import '../utils/pick_files.dart';
 import '../utils/rejection_message.dart';
+import '../widgets/contribute_help_collapse.dart';
 import '../widgets/contribution_attachments_section.dart';
 import '../widgets/contribution_context_fields.dart';
 import '../widgets/contribution_kind_chips.dart';
@@ -71,12 +73,9 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
     if (user == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.contributeTitle),
-          leading: const _ContributeBackButton(),
-        ),
-        body: const SignInToContribute(),
+      return const Scaffold(
+        appBar: PlpcgPrimaryAppBar(),
+        body: SignInToContribute(),
       );
     }
 
@@ -136,10 +135,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         (state.submit is ContributeIdle || state.submit is ContributeFailed);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.contributeTitle),
-        leading: const _ContributeBackButton(),
-      ),
+      appBar: const PlpcgPrimaryAppBar(),
       // `SingleChildScrollView` (não `ListView`): o formulário inteiro
       // precisa existir na árvore de elementos de uma vez — um `ListView`
       // (sliver) só constrói os filhos perto do viewport.
@@ -151,8 +147,11 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
               inputDecorationTheme:
                   Theme.of(context).inputDecorationTheme.copyWith(
                         floatingLabelStyle: AppTypography.label.copyWith(
-                          color: AppColors.textLight,
-                          fontWeight: FontWeight.w600,
+                          color: AppColors.title,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        labelStyle: AppTypography.body.copyWith(
+                          color: AppColors.title.withValues(alpha: 0.75),
                         ),
                         counterStyle: AppTypography.body.copyWith(
                           fontSize: 12,
@@ -165,6 +164,20 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Text(
+                      l10n.contributeTitle,
+                      style: AppTypography.headline.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textLight,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const ContributeHelpCollapse(),
+                  const SizedBox(height: 20),
                   Text(
                     l10n.contributeKindLabel,
                     style: AppTypography.label.copyWith(
@@ -297,26 +310,45 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.gold,
                         foregroundColor: AppColors.title,
-                        disabledBackgroundColor:
-                            AppColors.gold.withValues(alpha: 0.35),
-                        disabledForegroundColor:
-                            AppColors.title.withValues(alpha: 0.6),
+                        disabledBackgroundColor: const Color(0xFF351C1B),
+                        disabledForegroundColor: const Color(0xFFB85959),
                         side: BorderSide(
                           color: canSend
                               ? AppColors.gold
-                              : AppColors.gold.withValues(alpha: 0.4),
-                          width: 2,
+                              : const Color(0x55D4AF37),
+                          width: canSend ? 2 : 1.5,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        textStyle: AppTypography.body.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
                       ),
                       onPressed: canSend ? () => _send(snapshot) : null,
-                      child: Text(l10n.contributeSend),
+                      child: Text(
+                        l10n.contributeSend,
+                        style: canSend
+                            ? AppTypography.body.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: AppColors.title,
+                              )
+                            : AppTypography.body.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                color: const Color(0xFFB85959),
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0xD0000000),
+                                    offset: Offset(0, -1.2),
+                                    blurRadius: 1.0,
+                                  ),
+                                  Shadow(
+                                    color: Color(0x35FFE29A),
+                                    offset: Offset(0, 1.2),
+                                    blurRadius: 1.0,
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
                   ),
                 ],
@@ -360,23 +392,5 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
-  }
-}
-
-/// Botão de voltar do `AppBar` com o mesmo fallback do `ContributeSent`
-/// acima: sem isto, o `AppBar` padrão só mostra a seta quando `canPop()` já
-/// era `true` na hora de montar a tela, mas some (sem fallback nenhum) num
-/// link direto ou F5 na web — a pessoa fica sem jeito de sair da tela.
-class _ContributeBackButton extends StatelessWidget {
-  const _ContributeBackButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const BackButtonIcon(),
-      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-      onPressed: () =>
-          context.canPop() ? context.pop() : context.go(RoutePaths.profile),
-    );
   }
 }

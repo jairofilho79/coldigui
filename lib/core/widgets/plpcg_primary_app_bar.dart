@@ -23,7 +23,8 @@ class PlpcgPrimaryAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    final path = GoRouterState.of(context).uri.path;
+    final router = GoRouter.maybeOf(context);
+    final path = router == null ? null : GoRouterState.of(context).uri.path;
     // Rotas empilhadas sobre uma aba: seta volta com `pop`; sem pilha (deep
     // link direto), cai na raiz da aba dona.
     final backFallback = switch (path) {
@@ -36,21 +37,30 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       RoutePaths.library ||
       RoutePaths.offline ||
       RoutePaths.about ||
+      RoutePaths.contribute ||
+      RoutePaths.myContributions ||
       RoutePaths.favoriteMaterialKinds => RoutePaths.profile,
       _ => null,
     };
 
+    final canPop =
+        router != null ? router.canPop() : Navigator.of(context).canPop();
+
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: backFallback == null
+      leading: backFallback == null && !canPop
           ? null
           : IconButton(
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Voltar',
               onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
+                if (canPop) {
+                  if (router != null) {
+                    router.pop();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                } else if (backFallback != null) {
                   goToShellDestination(context, backFallback);
                 }
               },
@@ -59,7 +69,11 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       title: Tooltip(
         message: 'Início',
         child: InkWell(
-          onTap: () => goToShellDestination(context, RoutePaths.home),
+          onTap: () {
+            if (GoRouter.maybeOf(context) != null) {
+              goToShellDestination(context, RoutePaths.home);
+            }
+          },
           borderRadius: BorderRadius.circular(8),
           child: const PlpcgAppBarTitle(),
         ),
