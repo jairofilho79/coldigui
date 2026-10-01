@@ -2,11 +2,13 @@ import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_button.dart';
+import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
 import 'package:coldigui/features/offline/domain/exceptions/offline_bulk_exceptions.dart';
 import 'package:coldigui/features/offline/presentation/pages/offline_settings_widgets/coldigom_section.dart';
+import 'package:coldigui/features/offline/presentation/pages/offline_settings_widgets/offline_kind_chips.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_cache_status_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_download_provider.dart';
 import 'package:coldigui/features/offline/presentation/providers/offline_coldigom_stats_provider.dart';
@@ -134,6 +136,7 @@ _pump(
   OfflineColdigomDownloadState downloadState =
       const OfflineColdigomDownloadState(),
   Map<String, int> rank = const {'k-grade': 0, 'k-play': 1},
+  OfflineColdigomStats stats = _stats,
   List<Override> extra = const [],
   Object? cacheRefreshError,
 }) async {
@@ -147,7 +150,7 @@ _pump(
       sharedPreferencesProvider.overrideWithValue(_prefs),
       authStateProvider.overrideWith(loggedIn ? _LoggedIn.new : _LoggedOut.new),
       favoriteMaterialKindRankProvider.overrideWithValue(rank),
-      offlineColdigomStatsProvider.overrideWith((ref) async => _stats),
+      offlineColdigomStatsProvider.overrideWith((ref) async => stats),
       coldigomCatalogSyncProvider.overrideWith(() => sync),
       offlineColdigomDownloadProvider.overrideWith(() => download),
       offlineCacheStatusProvider.overrideWith(() => cache),
@@ -182,20 +185,20 @@ void main() {
       expect(find.text('Tipos'), findsOneWidget);
       expect(find.text('Seus tipos favoritos'), findsNothing);
       expect(find.text('Outros tipos'), findsNothing);
-      final tiles = tester
-          .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-          .map((t) => (t.title as Text).data)
+      final chips = tester
+          .widgetList<OfflineKindChip>(find.byType(OfflineKindChip))
+          .map((t) => t.kind.kindName)
           .toList();
-      expect(tiles, ['Cifra', 'Grade', 'Playback']);
+      expect(chips, ['Cifra', 'Grade', 'Playback']);
       expect(
         tester
-            .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
-            .every((t) => t.value == false),
+            .widgetList<OfflineKindChip>(find.byType(OfflineKindChip))
+            .every((t) => t.checked == false),
         isTrue,
         reason: 'deslogado nada vem pré-marcado pelo rank',
       );
 
-      await tester.tap(find.widgetWithText(CheckboxListTile, 'Grade'));
+      await tester.tap(find.widgetWithText(OfflineKindChip, 'Grade'));
       await tester.pumpAndSettle();
       final baixar = find.textContaining('Baixar selecionados');
       await tester.ensureVisible(baixar);
@@ -233,14 +236,14 @@ void main() {
     (tester) async {
       await _pump(tester);
 
-      final tiles = tester
-          .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
+      final chips = tester
+          .widgetList<OfflineKindChip>(find.byType(OfflineKindChip))
           .toList();
-      expect(tiles.map((t) => (t.title as Text).data), ['Grade', 'Playback']);
-      expect(tiles.every((t) => t.value == true), isTrue);
+      expect(chips.map((t) => t.kind.kindName), ['Grade', 'Playback']);
+      expect(chips.every((t) => t.checked == true), isTrue);
       expect(find.text('Outros tipos'), findsOneWidget);
       expect(find.text('Cifra'), findsNothing);
-      expect(find.textContaining('10 materiais · ~'), findsOneWidget);
+      expect(find.textContaining('10 · ~'), findsOneWidget);
       expect(find.textContaining('Baixar selecionados (~'), findsOneWidget);
 
       await tester.tap(find.text('Outros tipos'));
@@ -254,7 +257,7 @@ void main() {
     (tester) async {
       final handles = await _pump(tester);
 
-      await tester.tap(find.widgetWithText(CheckboxListTile, 'Playback'));
+      await tester.tap(find.widgetWithText(OfflineKindChip, 'Playback'));
       await tester.pumpAndSettle();
       expect(_prefs.getString('offlineColdigomKindIds'), '["k-grade"]');
 
@@ -537,6 +540,137 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'com taxonomia: seções por classe taxonômica e Outros tipos fechado quando logado',
+    (tester) async {
+      final taxonomy = MaterialKindTaxonomy(
+        classes: const [
+          MaterialKindClass(id: 'regencia', label: 'Regência e geral'),
+          MaterialKindClass(id: 'metais', label: 'Metais'),
+        ],
+        kinds: const {
+          'k-grade': MaterialKindTaxon(
+            name: 'Grade',
+            classId: 'regencia',
+            order: 10,
+          ),
+          'k-play': MaterialKindTaxon(
+            name: 'Playback',
+            classId: 'regencia',
+            order: 20,
+          ),
+          'k-cifra': MaterialKindTaxon(
+            name: 'Cifra',
+            classId: 'metais',
+            order: 10,
+          ),
+        },
+      );
+
+      await _pump(
+        tester,
+        extra: [
+          coldigomKindTaxonomyProvider.overrideWithValue(taxonomy),
+        ],
+      );
+
+      // Logado: Seus tipos favoritos (Grade e Playback) aparecem no topo com cabeçalho
+      expect(find.text('SEUS TIPOS FAVORITOS'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Grade'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsOneWidget);
+
+      // Outros tipos fechado
+      expect(find.text('METAIS'), findsNothing);
+
+      // Abre Outros tipos -> Seção METAIS com Cifra
+      await tester.tap(find.text('Outros tipos'));
+      await tester.pumpAndSettle();
+      expect(find.text('METAIS'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Cifra'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'família de tipos: exibe variante count e dados de armazenamento; expande variantes',
+    (tester) async {
+      const familyStats = OfflineColdigomStats({
+        'alto': ColdigomKindStats(
+          kindId: 'alto',
+          kindName: 'Saxofone alto',
+          total: 5,
+          downloaded: 5,
+          bytesKnown: 0,
+          bytesEstimated: 5 * 200 * 1024,
+          pendingBytes: 0,
+        ),
+        'tenor': ColdigomKindStats(
+          kindId: 'tenor',
+          kindName: 'Saxofone tenor',
+          total: 3,
+          downloaded: 0,
+          bytesKnown: 0,
+          bytesEstimated: 3 * 300 * 1024,
+          pendingBytes: 3 * 300 * 1024,
+        ),
+      });
+
+      final taxonomy = MaterialKindTaxonomy(
+        classes: const [
+          MaterialKindClass(id: 'metais', label: 'Metais'),
+        ],
+        kinds: const {
+          'sax': MaterialKindTaxon(name: 'Saxofone', classId: 'metais'),
+          'alto': MaterialKindTaxon(
+            name: 'Saxofone alto',
+            classId: 'metais',
+            parentId: 'sax',
+            order: 10,
+          ),
+          'tenor': MaterialKindTaxon(
+            name: 'Saxofone tenor',
+            classId: 'metais',
+            parentId: 'sax',
+            order: 20,
+          ),
+        },
+      );
+
+      await _pump(
+        tester,
+        loggedIn: false,
+        stats: familyStats,
+        extra: [
+          coldigomKindTaxonomyProvider.overrideWithValue(taxonomy),
+        ],
+      );
+
+      expect(find.text('METAIS'), findsOneWidget);
+      // Família Saxofone recolhida
+      expect(
+        find.widgetWithText(OfflineKindFamilyChip, 'Saxofone'),
+        findsOneWidget,
+      );
+      expect(find.text('Saxofone alto'), findsNothing);
+
+      // Abre variantes
+      await tester.tap(find.byTooltip('Ver variantes de Saxofone'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saxofone alto'), findsOneWidget);
+      expect(find.text('Saxofone tenor'), findsOneWidget);
+
+      // Alto está 100% baixado -> ícone de checkmark presente
+      expect(find.byIcon(Icons.check_circle_rounded), findsWidgets);
+
+      // Toca em Saxofone (corpo) para selecionar a família inteira
+      await tester.tap(find.widgetWithText(OfflineKindFamilyChip, 'Saxofone'));
+      await tester.pumpAndSettle();
+
+      // Botão de download reflete os pendingBytes do tenor
+      expect(find.textContaining('Baixar selecionados (~'), findsOneWidget);
     },
   );
 }

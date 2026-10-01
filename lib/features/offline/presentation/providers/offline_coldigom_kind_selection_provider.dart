@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
+import '../../../catalog/domain/utils/material_kind_selection.dart';
 import '../../data/providers/offline_coldigom_providers.dart';
 
 /// Kinds marcados para download (O11).
@@ -36,12 +38,25 @@ class OfflineColdigomKindSelectionNotifier extends Notifier<Set<String>> {
 
   /// [currentEffective] é o que a UI mostrava (pré-marcação ou decisão): o
   /// primeiro toque transforma a pré-marcação em decisão gravada.
+  /// Com [taxonomy], segue as regras de família (marcar pai inclui variantes).
   Future<void> toggle(
     String kindId, {
     required Set<String> currentEffective,
+    MaterialKindTaxonomy? taxonomy,
   }) async {
-    final next = {...currentEffective};
-    if (!next.remove(kindId)) next.add(kindId);
+    final Set<String> next;
+    if (taxonomy != null && taxonomy.kinds.isNotEmpty) {
+      next = toggleMaterialKindSelection(currentEffective, kindId, taxonomy);
+    } else {
+      final copy = {...currentEffective};
+      if (!copy.remove(kindId)) copy.add(kindId);
+      next = copy;
+    }
+    state = next;
+    await ref.read(offlineColdigomKindSelectionStoreProvider).write(next);
+  }
+
+  Future<void> setSelection(Set<String> next) async {
     state = next;
     await ref.read(offlineColdigomKindSelectionStoreProvider).write(next);
   }

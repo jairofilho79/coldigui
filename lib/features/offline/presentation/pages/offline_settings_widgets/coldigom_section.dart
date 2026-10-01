@@ -16,11 +16,14 @@ import '../../../../material_kind_prefs/presentation/providers/material_kind_pre
 import '../../../data/utils/storage_quota_estimator.dart';
 import '../../../domain/entities/coldigom_download_progress.dart';
 import '../../../domain/exceptions/offline_bulk_exceptions.dart';
+import '../../../../catalog/domain/utils/material_kind_selection.dart';
+import '../../../../catalog/presentation/widgets/material_kind_chips.dart';
 import '../../providers/offline_cache_status_provider.dart';
 import '../../providers/offline_coldigom_download_provider.dart';
 import '../../providers/offline_coldigom_kind_selection_provider.dart';
 import '../../providers/offline_coldigom_stats_provider.dart';
 import '../../providers/offline_maintenance_lock_provider.dart';
+import 'offline_kind_chips.dart';
 
 /// Quantos alvos ainda faltam no último `progress` conhecido — usado tanto
 /// no snackbar de conclusão quanto na linha persistente sob os botões
@@ -229,7 +232,7 @@ class _SignInRow extends StatelessWidget {
   }
 }
 
-class _KindsBody extends ConsumerWidget {
+class _KindsBody extends ConsumerStatefulWidget {
   const _KindsBody({
     required this.l10n,
     required this.busy,
@@ -242,6 +245,13 @@ class _KindsBody extends ConsumerWidget {
   final OfflineColdigomDownloadState download;
   final bool signedIn;
 
+  @override
+  ConsumerState<_KindsBody> createState() => _KindsBodyState();
+}
+
+class _KindsBodyState extends ConsumerState<_KindsBody> {
+  final Map<String, bool> _open = {};
+
   Future<void> _start(
     BuildContext context,
     WidgetRef ref,
@@ -249,14 +259,12 @@ class _KindsBody extends ConsumerWidget {
     int bytes,
     bool estimated,
   ) async {
-    // Aviso de espaço (O13): informa, não bloqueia — o download para limpo
-    // em `InsufficientDiskSpaceException` se o navegador negar.
     final free = await estimateFreeStorageBytes();
     if (free != null && bytes > free && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            l10n.offlineColdigomSpaceWarning(
+            widget.l10n.offlineColdigomSpaceWarning(
               coldigomSizeLabel(bytes, estimated: estimated),
               formatCompactBytes(free),
             ),
@@ -270,8 +278,8 @@ class _KindsBody extends ConsumerWidget {
   Future<void> _remove(BuildContext context, WidgetRef ref) async {
     final confirmed = await showConfirmDialog(
       context: context,
-      title: l10n.offlineColdigomRemoveConfirmTitle,
-      message: l10n.offlineColdigomRemoveConfirmBody,
+      title: widget.l10n.offlineColdigomRemoveConfirmTitle,
+      message: widget.l10n.offlineColdigomRemoveConfirmBody,
     );
     if (confirmed != true || !context.mounted) return;
     final result = await ref
@@ -281,11 +289,13 @@ class _KindsBody extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          l10n.offlineColdigomRemoved(result.removedPdfs, result.removedAudios),
+          widget.l10n.offlineColdigomRemoved(
+            result.removedPdfs,
+            result.removedAudios,
+          ),
         ),
       ),
     );
-    // Só a releitura do uso de disco: a remoção já foi feita e anunciada.
     unawaited(
       ref
           .read(offlineCacheStatusProvider.notifier)
@@ -296,12 +306,95 @@ class _KindsBody extends ConsumerWidget {
     );
   }
 
+  List<Widget> _renderUnit({
+    required OfflineKindUnit unit,
+    required Set<String> selection,
+    required bool enabled,
+    required void Function(String) onToggle,
+  }) {
+    switch (unit) {
+      case OfflineKindSingleUnit(:final kind):
+        return [
+          OfflineKindChip(
+            kind: kind,
+            l10n: widget.l10n,
+            checked: selection.contains(kind.kindId),
+            enabled: enabled,
+            onChanged: () => onToggle(kind.kindId),
+          ),
+        ];
+      case OfflineKindFamilyUnit(:final parentId, :final children):
+        final childIds = [for (final c in children) c.kindId];
+        final state = materialKindFamilyState(parentId, childIds, selection);
+        final open = _open[parentId] ?? state == MaterialKindFamilyState.refined;
+        return [
+          OfflineKindFamilyChip(
+            unit: unit,
+            state: state,
+            expanded: open,
+            enabled: enabled,
+            onToggle: () => onToggle(parentId),
+            onExpand: () => setState(() {
+              _open[parentId] = !open;
+            }),
+            expandTooltip: widget.l10n.materialKindShowVariants(unit.name),
+            bodyLabel: widget.l10n.materialKindFamilyVariantsLabel(
+              unit.name,
+              children.length,
+            ),
+            refinedValue: widget.l10n.materialKindFamilyRefinedValue,
+          ),
+          if (open)
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                margin: const EdgeInsets.only(left: 14, top: 2, bottom: 4),
+                padding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: AppColors.gold, width: 2),
+                  ),
+                ),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    for (final child in children)
+                      state == MaterialKindFamilyState.selected
+                          ? OfflineKindChip(
+                              kind: child,
+                              l10n: widget.l10n,
+                              checked: true,
+                              enabled: enabled,
+                              look: MaterialKindChipLook.included,
+                              onChanged: () => onToggle(child.kindId),
+                            )
+                          : OfflineKindChip(
+                              kind: child,
+                              l10n: widget.l10n,
+                              checked: selection.contains(child.kindId),
+                              enabled: enabled,
+                              look: selection.contains(child.kindId)
+                                  ? MaterialKindChipLook.selected
+                                  : MaterialKindChipLook.normal,
+                              onChanged: () => onToggle(child.kindId),
+                            ),
+                  ],
+                ),
+              ),
+            ),
+        ];
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final stats =
         ref.watch(offlineColdigomStatsProvider).value ??
         OfflineColdigomStats.empty;
-    final rank = signedIn
+    final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
+    final rank = widget.signedIn
         ? ref.watch(favoriteMaterialKindRankProvider)
         : const <String, int>{};
     final favoriteIds = rank.keys.toList()
@@ -310,14 +403,10 @@ class _KindsBody extends ConsumerWidget {
       for (final id in favoriteIds)
         if (stats.byKind.containsKey(id)) stats.byKind[id]!,
     ];
-    final others =
-        [
-          for (final s in stats.byKind.values)
-            if (!rank.containsKey(s.kindId)) s,
-        ]..sort(
-          (a, b) =>
-              a.kindName.toLowerCase().compareTo(b.kindName.toLowerCase()),
-        );
+    final others = [
+      for (final s in stats.byKind.values)
+        if (!rank.containsKey(s.kindId)) s,
+    ];
 
     ref.watch(offlineColdigomKindSelectionProvider);
     final selection = ref
@@ -326,74 +415,144 @@ class _KindsBody extends ConsumerWidget {
           favoriteKindIds: favoriteIds,
           availableKindIds: stats.byKind.keys.toSet(),
         );
-    final pendingBytes = stats.pendingBytes(selection);
-    final estimated = selection.any(
+
+    final effectiveKindIds = effectiveMaterialKindIds(selection, taxonomy);
+    final pendingBytes = stats.pendingBytes(effectiveKindIds);
+    final estimated = effectiveKindIds.any(
       (id) => stats.byKind[id]?.hasEstimate ?? false,
     );
+    final canInteract = !widget.busy && !widget.download.isActive;
 
-    Widget tile(ColdigomKindStats kind) => _KindTile(
-      kind: kind,
-      l10n: l10n,
-      checked: selection.contains(kind.kindId),
-      enabled: !busy && !download.isActive,
-      onChanged: () => unawaited(
+    void toggleKind(String kindId) {
+      unawaited(
         ref
             .read(offlineColdigomKindSelectionProvider.notifier)
-            .toggle(kind.kindId, currentEffective: selection),
-      ),
+            .toggle(kindId, currentEffective: selection, taxonomy: taxonomy),
+      );
+    }
+
+    final favoriteUnits = [
+      for (final kind in favorites) OfflineKindSingleUnit(kind),
+    ];
+    final otherSections = buildOfflineKindSections(
+      kinds: others,
+      taxonomy: taxonomy,
     );
 
-    final result = download.result;
+    final result = widget.download.result;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (signedIn) ...[
-          _sectionLabel(l10n.offlineColdigomFavoriteKinds),
+        if (widget.signedIn) ...[
+          OfflineClassHeader(
+            label: widget.l10n.offlineColdigomFavoriteKinds,
+            count: favorites.length,
+          ),
           if (favorites.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               child: Text(
-                l10n.offlineColdigomNoFavorites,
+                widget.l10n.offlineColdigomNoFavorites,
                 style: AppTypography.hint(),
               ),
             )
           else
-            for (final kind in favorites) tile(kind),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final unit in favoriteUnits)
+                  ..._renderUnit(
+                    unit: unit,
+                    selection: selection,
+                    enabled: canInteract,
+                    onToggle: toggleKind,
+                  ),
+              ],
+            ),
+          const SizedBox(height: 12),
           if (others.isNotEmpty)
             ExpansionTile(
               title: Text(
-                l10n.offlineColdigomOtherKinds,
-                style: AppTypography.label,
+                widget.l10n.offlineColdigomOtherKinds,
+                style: AppTypography.label.copyWith(
+                  color: AppColors.title,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               tilePadding: EdgeInsets.zero,
-              children: [for (final kind in others) tile(kind)],
+              childrenPadding: const EdgeInsets.only(top: 4, bottom: 8),
+              children: [
+                for (final section in otherSections) ...[
+                  if (taxonomy.classes.isNotEmpty)
+                    OfflineClassHeader(
+                      label: section.label ?? widget.l10n.materialKindOtherClass,
+                      count: section.count,
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final unit in section.units)
+                        ..._renderUnit(
+                          unit: unit,
+                          selection: selection,
+                          enabled: canInteract,
+                          onToggle: toggleKind,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
             ),
         ] else ...[
-          // Sem conta não há favoritos: `others` já é a lista inteira, por nome.
-          _sectionLabel(l10n.offlineKindsAll),
-          for (final kind in others) tile(kind),
+          _sectionLabel(widget.l10n.offlineKindsAll),
+          for (final section in otherSections) ...[
+            if (taxonomy.classes.isNotEmpty)
+              OfflineClassHeader(
+                label: section.label ?? widget.l10n.materialKindOtherClass,
+                count: section.count,
+              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (final unit in section.units)
+                  ..._renderUnit(
+                    unit: unit,
+                    selection: selection,
+                    enabled: canInteract,
+                    onToggle: toggleKind,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
         const SizedBox(height: 12),
-        if (download.isActive && download.progress != null) ...[
-          // Emissão inicial tem `kindId: ''` (nenhum alvo processado ainda,
-          // ver doc de [ColdigomDownloadProgress]) — só a barra faz sentido
-          // aí; "· 0/0" não diz nada ao usuário.
-          if (download.progress!.kindId.isNotEmpty) ...[
+        if (widget.download.isActive && widget.download.progress != null) ...[
+          if (widget.download.progress!.kindId.isNotEmpty) ...[
             Text(
-              l10n.offlineColdigomProgress(
-                stats.byKind[download.progress!.kindId]?.kindName ?? '',
-                download.progress!.doneInKind,
-                download.progress!.totalInKind,
+              widget.l10n.offlineColdigomProgress(
+                stats.byKind[widget.download.progress!.kindId]?.kindName ?? '',
+                widget.download.progress!.doneInKind,
+                widget.download.progress!.totalInKind,
               ),
               style: AppTypography.body.copyWith(color: AppColors.title),
             ),
-            Text(download.progress!.currentTitle, style: AppTypography.hint()),
+            Text(widget.download.progress!.currentTitle, style: AppTypography.hint()),
             const SizedBox(height: 6),
           ],
           LinearProgressIndicator(
-            value: download.progress!.total == 0
+            value: widget.download.progress!.total == 0
                 ? null
-                : download.progress!.doneTotal / download.progress!.total,
+                : widget.download.progress!.doneTotal /
+                    widget.download.progress!.total,
           ),
           const SizedBox(height: 12),
         ],
@@ -402,69 +561,70 @@ class _KindsBody extends ConsumerWidget {
             Expanded(
               child: FilledButton(
                 onPressed:
-                    busy ||
-                        download.isActive ||
-                        download.removing ||
+                    widget.busy ||
+                        widget.download.isActive ||
+                        widget.download.removing ||
                         selection.isEmpty
                     ? null
                     : () => unawaited(
                         _start(
                           context,
                           ref,
-                          selection,
+                          effectiveKindIds,
                           pendingBytes,
                           estimated,
                         ),
                       ),
                 child: Text(
-                  l10n.offlineColdigomDownloadSelected(
+                  widget.l10n.offlineColdigomDownloadSelected(
                     coldigomSizeLabel(pendingBytes, estimated: estimated),
                   ),
                 ),
               ),
             ),
-            if (download.isActive) ...[
+            if (widget.download.isActive) ...[
               const SizedBox(width: 12),
               OutlinedButton(
-                onPressed: download.isRunning
+                onPressed: widget.download.isRunning
                     ? ref.read(offlineColdigomDownloadProvider.notifier).stop
                     : null,
                 child: Text(
-                  download.status == OfflineColdigomDownloadStatus.cancelling
-                      ? l10n.offlineStoppingDownload
-                      : l10n.offlineColdigomStop,
+                  widget.download.status ==
+                          OfflineColdigomDownloadStatus.cancelling
+                      ? widget.l10n.offlineStoppingDownload
+                      : widget.l10n.offlineColdigomStop,
                 ),
               ),
             ],
           ],
         ),
-        if (!download.isActive &&
+        if (!widget.download.isActive &&
             result != null &&
             (result.cancelled || result.hasFailures)) ...[
           const SizedBox(height: 6),
-          // `Wrap` (não `Row`): "N não baixados" + «Tentar de novo» não cabem
-          // lado a lado a 400px — aqui a segunda linha é preferível a overflow.
           Wrap(
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                _resultStatusText(l10n, download),
+                _resultStatusText(widget.l10n, widget.download),
                 style: AppTypography.hint(),
               ),
               TextButton(
-                onPressed: busy || selection.isEmpty || download.removing
+                onPressed: widget.busy ||
+                        selection.isEmpty ||
+                        widget.download.removing
                     ? null
                     : () => unawaited(
                         _start(
                           context,
                           ref,
-                          selection,
+                          effectiveKindIds,
                           pendingBytes,
                           estimated,
                         ),
                       ),
-                child: Text(l10n.offlineColdigomRetry),
+                child: Text(widget.l10n.offlineColdigomRetry),
               ),
             ],
           ),
@@ -472,11 +632,13 @@ class _KindsBody extends ConsumerWidget {
         Align(
           alignment: Alignment.center,
           child: TextButton(
-            onPressed: busy || download.isActive || download.removing
+            onPressed: widget.busy ||
+                    widget.download.isActive ||
+                    widget.download.removing
                 ? null
                 : () => unawaited(_remove(context, ref)),
             style: TextButton.styleFrom(foregroundColor: AppColors.title),
-            child: Text(l10n.offlineColdigomRemove),
+            child: Text(widget.l10n.offlineColdigomRemove),
           ),
         ),
       ],
@@ -493,49 +655,4 @@ class _KindsBody extends ConsumerWidget {
       ),
     ),
   );
-}
-
-/// Uma linha por kind: nome, «N materiais · ~X MB», barra fina baixados/total.
-class _KindTile extends StatelessWidget {
-  const _KindTile({
-    required this.kind,
-    required this.l10n,
-    required this.checked,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final ColdigomKindStats kind;
-  final AppLocalizations l10n;
-  final bool checked;
-  final bool enabled;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return CheckboxListTile(
-      value: checked,
-      enabled: enabled,
-      onChanged: (_) => onChanged(),
-      contentPadding: EdgeInsets.zero,
-      controlAffinity: ListTileControlAffinity.leading,
-      title: Text(kind.kindName),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.offlineColdigomKindSummary(
-              kind.total,
-              coldigomSizeLabel(kind.bytesTotal, estimated: kind.hasEstimate),
-            ),
-          ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            minHeight: 2,
-            value: kind.total == 0 ? 0 : kind.downloaded / kind.total,
-          ),
-        ],
-      ),
-    );
-  }
 }
