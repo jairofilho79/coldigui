@@ -733,13 +733,13 @@ void main() {
       expect(find.byIcon(Icons.storage_outlined), findsWidgets);
 
       // Subdivisão por tipo de material visível com seus ícones e contagens
-      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('PDF'), findsOneWidget);
       expect(find.text('Áudio'), findsOneWidget);
       expect(find.text('10'), findsOneWidget);
       expect(find.text('5'), findsOneWidget);
 
       // Marca o kind para download
-      await tester.tap(find.widgetWithText(OfflineKindChip, 'Multi Material'));
+      await tester.tap(find.text('Multi Material'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Baixar selecionados (~15,0 MB)'), findsOneWidget);
@@ -757,6 +757,214 @@ void main() {
 
       expect(handles.download.started, [{'k-multi'}]);
       expect(handles.download.lastSelection, {'k-multi:pdf'});
+    },
+  );
+
+  testWidgets(
+    'pesquisa por nome: destaca com borda dourada por padrão e filtra quando o toggle é ativado',
+    (tester) async {
+      await _pump(
+        tester,
+        loggedIn: true,
+        rank: const {'k-grade': 0, 'k-play': 1},
+      );
+
+      // Campo de busca e chip toggle visíveis
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.widgetWithText(FilterChip, 'Filtrar'), findsOneWidget);
+
+      // Ambos favoritos visíveis inicialmente
+      expect(find.widgetWithText(OfflineKindChip, 'Grade'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsOneWidget);
+
+      // Digita "Grade" no campo de busca
+      await tester.enterText(find.byType(TextField), 'Grade');
+      await tester.pumpAndSettle();
+
+      // Por padrão (toggle desligado): ambos continuam na tela
+      expect(find.widgetWithText(OfflineKindChip, 'Grade'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsOneWidget);
+
+      // Card que deu match possui isHighlighted = true (borda dourada brilhante)
+      final gradeChip = tester.widget<OfflineKindChip>(
+        find.widgetWithText(OfflineKindChip, 'Grade'),
+      );
+      final playChip = tester.widget<OfflineKindChip>(
+        find.widgetWithText(OfflineKindChip, 'Playback'),
+      );
+      expect(gradeChip.isHighlighted, isTrue);
+      expect(playChip.isHighlighted, isFalse);
+
+      // Ativa o chip toggle "Filtrar"
+      await tester.tap(find.widgetWithText(FilterChip, 'Filtrar'));
+      await tester.pumpAndSettle();
+
+      // Agora apenas o match ("Grade") permanece visível; "Playback" sumiu
+      expect(find.widgetWithText(OfflineKindChip, 'Grade'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsNothing);
+
+      // Limpa a busca através do botão suffix (clear)
+      await tester.tap(find.byTooltip('Limpar pesquisa'));
+      await tester.pumpAndSettle();
+
+      // Ambos voltam a ficar visíveis
+      expect(find.widgetWithText(OfflineKindChip, 'Grade'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'botão de outros tipos: possui borda e affordance de botão, exibe contagem e expande/recolhe ao tocar',
+    (tester) async {
+      await _pump(
+        tester,
+        loggedIn: true,
+        rank: const {'k-grade': 0}, // Apenas grade é favorito, play e cifra vão para outros
+      );
+
+      // Botão "Outros tipos" presente com contagem (2 outros tipos)
+      expect(find.text('Outros tipos'), findsOneWidget);
+      expect(find.text('2'), findsWidgets); // badge com contagem
+      expect(find.byIcon(Icons.layers_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+
+      // Cards de outros tipos ainda não visíveis
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsNothing);
+      expect(find.widgetWithText(OfflineKindChip, 'Cifra'), findsNothing);
+
+      // Toca para expandir
+      await tester.tap(find.text('Outros tipos'));
+      await tester.pumpAndSettle();
+
+      // Agora os cards de outros tipos aparecem e chevron inverte
+      expect(find.byIcon(Icons.keyboard_arrow_up_rounded), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Cifra'), findsOneWidget);
+
+      // Toca novamente para recolher
+      await tester.tap(find.text('Outros tipos'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+      expect(find.widgetWithText(OfflineKindChip, 'Playback'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'rótulos de material type: PDF, Extraídos (chords) e Extraídos (gestos)',
+    (tester) async {
+      const stats = OfflineColdigomStats({
+        'k-cifra-gesto': ColdigomKindStats(
+          kindId: 'k-cifra-gesto',
+          kindName: 'Cifra Completa',
+          total: 8,
+          downloaded: 0,
+          bytesKnown: 0,
+          bytesEstimated: 8000,
+          pendingBytes: 8000,
+          types: {
+            MaterialKind.chord: ColdigomTypeStats(
+              kind: MaterialKind.chord,
+              rawType: 'chords',
+              total: 5,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 5000,
+              pendingBytes: 5000,
+            ),
+            MaterialKind.gesture: ColdigomTypeStats(
+              kind: MaterialKind.gesture,
+              rawType: 'gestures',
+              total: 3,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 3000,
+              pendingBytes: 3000,
+            ),
+          },
+        ),
+      });
+
+      await _pump(
+        tester,
+        loggedIn: false,
+        stats: stats,
+      );
+
+      // Confirma os novos nomes padronizados
+      expect(find.text('Extraídos (chords)'), findsOneWidget);
+      expect(find.text('Extraídos (gestos)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'alinhamento vertical dos cards: cards com 1 tipo e 2 tipos possuem a mesma altura',
+    (tester) async {
+      const stats = OfflineColdigomStats({
+        'k-1-type': ColdigomKindStats(
+          kindId: 'k-1-type',
+          kindName: 'Violão',
+          total: 10,
+          downloaded: 0,
+          bytesKnown: 0,
+          bytesEstimated: 10000,
+          pendingBytes: 10000,
+          types: {
+            MaterialKind.pdf: ColdigomTypeStats(
+              kind: MaterialKind.pdf,
+              rawType: 'pdf',
+              total: 10,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 10000,
+              pendingBytes: 10000,
+            ),
+          },
+        ),
+        'k-2-types': ColdigomKindStats(
+          kindId: 'k-2-types',
+          kindName: 'Cifra',
+          total: 8,
+          downloaded: 0,
+          bytesKnown: 0,
+          bytesEstimated: 8000,
+          pendingBytes: 8000,
+          types: {
+            MaterialKind.chord: ColdigomTypeStats(
+              kind: MaterialKind.chord,
+              rawType: 'chords',
+              total: 5,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 5000,
+              pendingBytes: 5000,
+            ),
+            MaterialKind.gesture: ColdigomTypeStats(
+              kind: MaterialKind.gesture,
+              rawType: 'gestures',
+              total: 3,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 3000,
+              pendingBytes: 3000,
+            ),
+          },
+        ),
+      });
+
+      await _pump(
+        tester,
+        loggedIn: false,
+        stats: stats,
+      );
+
+      final size1 = tester.getSize(find.widgetWithText(OfflineKindChip, 'Violão'));
+      final size2 = tester.getSize(find.widgetWithText(OfflineKindChip, 'Cifra'));
+
+      // Ambos os cards possuem a exata mesma altura vertical (140px)
+      expect(size1.height, 140.0);
+      expect(size2.height, 140.0);
+      expect(size1.height, equals(size2.height));
     },
   );
 }

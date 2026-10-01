@@ -16,9 +16,9 @@ import 'coldigom_section.dart' show coldigomSizeLabel;
 /// Rótulo traduzido do tipo de material para o card offline.
 String offlineMaterialKindLabel(AppLocalizations l10n, MaterialKind kind) {
   return switch (kind) {
-    MaterialKind.pdf => l10n.pdfMaterialSection,
-    MaterialKind.chord => l10n.chordMaterialSection,
-    MaterialKind.gesture => l10n.gesturesMaterialSection,
+    MaterialKind.pdf => 'PDF',
+    MaterialKind.chord => 'Extraídos (chords)',
+    MaterialKind.gesture => 'Extraídos (gestos)',
     MaterialKind.audio => l10n.audioMaterialSection,
     MaterialKind.youtube => l10n.youtubeMaterialSection,
     MaterialKind.lyrics => l10n.lyricsTab,
@@ -344,6 +344,7 @@ class OfflineKindChip extends StatelessWidget {
     this.selection = const {},
     this.onToggleType,
     this.look = MaterialKindChipLook.normal,
+    this.isHighlighted = false,
   });
 
   final ColdigomKindStats kind;
@@ -354,6 +355,7 @@ class OfflineKindChip extends StatelessWidget {
   final Set<String> selection;
   final void Function(MaterialKind type)? onToggleType;
   final MaterialKindChipLook look;
+  final bool isHighlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -386,12 +388,15 @@ class OfflineKindChip extends StatelessWidget {
       estimated: kind.hasEstimate,
     );
 
-    final borderColor = isSelected
+    final borderColor = isHighlighted
         ? AppColors.gold
-        : (isPartial || isIncluded
+        : (isSelected
             ? AppColors.gold
-            : AppColors.title.withValues(alpha: 0.22));
-    final borderWidth = isSelected ? 2.0 : (isPartial ? 1.5 : 1.0);
+            : (isPartial || isIncluded
+                ? AppColors.gold
+                : AppColors.title.withValues(alpha: 0.22)));
+    final borderWidth =
+        isHighlighted ? 2.2 : (isSelected ? 2.0 : (isPartial ? 1.5 : 1.0));
     final borderSide = BorderSide(color: borderColor, width: borderWidth);
 
     final cardShape = isIncluded
@@ -414,19 +419,33 @@ class OfflineKindChip extends StatelessWidget {
       constraints: const BoxConstraints(
         minWidth: 260,
         maxWidth: 360,
+        minHeight: 140,
       ),
-      child: Material(
-        color: backgroundColor,
-        shape: cardShape,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: enabled ? onChanged : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isHighlighted
+              ? [
+                  BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.55),
+                    blurRadius: 10,
+                    spreadRadius: 1.5,
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: backgroundColor,
+          shape: cardShape,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled ? onChanged : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 Row(
                   children: [
                     SizedBox(
@@ -529,34 +548,44 @@ class OfflineKindChip extends StatelessWidget {
                   ),
                 ],
                 if (types.isNotEmpty) ...[
-                  Divider(
-                    height: 12,
-                    thickness: 0.8,
-                    color: AppColors.title.withValues(alpha: 0.12),
-                  ),
-                  for (final entry in types.entries)
-                    _MaterialTypeRow(
-                      kindId: kind.kindId,
-                      matKind: entry.key,
-                      typeStats: entry.value,
-                      l10n: l10n,
-                      enabled: enabled,
-                      selected: isOfflineTypeSelected(
-                        kindId: kind.kindId,
-                        type: entry.key,
-                        selection: selection,
-                      ),
-                      onToggle: onToggleType != null
-                          ? () => onToggleType!(entry.key)
-                          : null,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 64),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Divider(
+                          height: 12,
+                          thickness: 0.8,
+                          color: AppColors.title.withValues(alpha: 0.12),
+                        ),
+                        for (final entry in types.entries)
+                          _MaterialTypeRow(
+                            kindId: kind.kindId,
+                            matKind: entry.key,
+                            typeStats: entry.value,
+                            l10n: l10n,
+                            enabled: enabled,
+                            selected: isOfflineTypeSelected(
+                              kindId: kind.kindId,
+                              type: entry.key,
+                              selection: selection,
+                            ),
+                            onToggle: onToggleType != null
+                                ? () => onToggleType!(entry.key)
+                                : null,
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ],
             ),
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -685,6 +714,7 @@ class OfflineKindFamilyChip extends StatelessWidget {
     required this.l10n,
     this.selection = const {},
     this.onToggleType,
+    this.isHighlighted = false,
   });
 
   final OfflineKindFamilyUnit unit;
@@ -699,6 +729,7 @@ class OfflineKindFamilyChip extends StatelessWidget {
   final AppLocalizations l10n;
   final Set<String> selection;
   final void Function(MaterialKind type)? onToggleType;
+  final bool isHighlighted;
 
   Widget _buildFamilyCard(BuildContext context) {
     final isSelected = state == MaterialKindFamilyState.selected;
@@ -712,10 +743,13 @@ class OfflineKindFamilyChip extends StatelessWidget {
       estimated: unit.hasEstimate,
     );
 
-    final borderColor = (isSelected || isPartial)
+    final borderColor = isHighlighted
         ? AppColors.gold
-        : AppColors.title.withValues(alpha: 0.22);
-    final borderWidth = isSelected ? 2.0 : (isPartial ? 1.5 : 1.0);
+        : ((isSelected || isPartial)
+            ? AppColors.gold
+            : AppColors.title.withValues(alpha: 0.22));
+    final borderWidth =
+        isHighlighted ? 2.2 : (isSelected ? 2.0 : (isPartial ? 1.5 : 1.0));
     final borderSide = BorderSide(color: borderColor, width: borderWidth);
 
     final cardShape = isPartial
@@ -906,27 +940,36 @@ class OfflineKindFamilyChip extends StatelessWidget {
                 ),
               ],
               if (types.isNotEmpty) ...[
-                Divider(
-                  height: 12,
-                  thickness: 0.8,
-                  color: AppColors.title.withValues(alpha: 0.12),
-                ),
-                for (final entry in types.entries)
-                  _MaterialTypeRow(
-                    kindId: unit.headId,
-                    matKind: entry.key,
-                    typeStats: entry.value,
-                    l10n: l10n,
-                    enabled: enabled,
-                    selected: isOfflineTypeSelected(
-                      kindId: unit.headId,
-                      type: entry.key,
-                      selection: selection,
-                    ),
-                    onToggle: onToggleType != null
-                        ? () => onToggleType!(entry.key)
-                        : null,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 64),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Divider(
+                        height: 12,
+                        thickness: 0.8,
+                        color: AppColors.title.withValues(alpha: 0.12),
+                      ),
+                      for (final entry in types.entries)
+                        _MaterialTypeRow(
+                          kindId: unit.headId,
+                          matKind: entry.key,
+                          typeStats: entry.value,
+                          l10n: l10n,
+                          enabled: enabled,
+                          selected: isOfflineTypeSelected(
+                            kindId: unit.headId,
+                            type: entry.key,
+                            selection: selection,
+                          ),
+                          onToggle: onToggleType != null
+                              ? () => onToggleType!(entry.key)
+                              : null,
+                        ),
+                    ],
                   ),
+                ),
               ],
             ],
           ),
@@ -941,8 +984,23 @@ class OfflineKindFamilyChip extends StatelessWidget {
       constraints: const BoxConstraints(
         minWidth: 260,
         maxWidth: 360,
+        minHeight: 140,
       ),
-      child: _buildFamilyCard(context),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isHighlighted
+              ? [
+                  BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.55),
+                    blurRadius: 10,
+                    spreadRadius: 1.5,
+                  ),
+                ]
+              : null,
+        ),
+        child: _buildFamilyCard(context),
+      ),
     );
   }
 }
@@ -1014,6 +1072,8 @@ class OfflineKindFamilyGroup extends StatelessWidget {
               ),
             ),
             child: Wrap(
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.start,
               spacing: 8,
               runSpacing: 8,
               children: children,

@@ -7,6 +7,7 @@ import '../../../../../core/l10n/failure_message.dart';
 import '../../../../../core/theme/app_typography.dart';
 import '../../../../../core/theme/color_extensions.dart';
 import '../../../../../core/utils/byte_format.dart';
+import '../../../../../core/utils/louvor_search_tokens.dart';
 import '../../../../../core/utils/material_id_kind.dart';
 import '../../../../../core/widgets/confirm_dialog.dart';
 import '../../../../../l10n/app_localizations.dart';
@@ -254,6 +255,111 @@ class _KindsBody extends ConsumerStatefulWidget {
 
 class _KindsBodyState extends ConsumerState<_KindsBody> {
   final Map<String, bool> _open = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _filterOnlyMatches = false;
+  bool _otherKindsExpanded = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesQuery(String name, String query) {
+    final q = LouvorSearchTokens.normalize(query.trim());
+    if (q.isEmpty) return false;
+    return LouvorSearchTokens.normalize(name).contains(q);
+  }
+
+  bool _unitMatches(OfflineKindUnit unit, String query) {
+    if (_matchesQuery(unit.name, query)) return true;
+    if (unit is OfflineKindFamilyUnit) {
+      return unit.children.any((c) => _matchesQuery(c.kindName, query));
+    }
+    return false;
+  }
+
+  Widget _buildOtherKindsButton({
+    required int totalCount,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+  }) {
+    return Semantics(
+      button: true,
+      expanded: isExpanded,
+      label: widget.l10n.offlineColdigomOtherKinds,
+      child: Material(
+        color: isExpanded
+            ? AppColors.gold.withValues(alpha: 0.1)
+            : AppColors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isExpanded
+                ? AppColors.gold
+                : AppColors.title.withValues(alpha: 0.28),
+            width: 1.5,
+          ),
+        ),
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.layers_outlined,
+                  size: 20,
+                  color: isExpanded ? AppColors.gold : AppColors.title,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.l10n.offlineColdigomOtherKinds,
+                    style: AppTypography.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isExpanded ? AppColors.gold : AppColors.title,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isExpanded
+                        ? AppColors.gold.withValues(alpha: 0.22)
+                        : AppColors.title.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$totalCount',
+                    style: AppTypography.label.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isExpanded ? AppColors.gold : AppColors.title,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 22,
+                  color: isExpanded ? AppColors.gold : AppColors.title,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _start(
     BuildContext context,
@@ -322,6 +428,7 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
     required void Function(String) onToggle,
     required void Function(String, MaterialKind, Set<MaterialKind>) onToggleType,
     required void Function(OfflineKindFamilyUnit, MaterialKind) onToggleFamilyType,
+    bool isHighlighted = false,
   }) {
     switch (unit) {
       case OfflineKindSingleUnit(:final kind):
@@ -332,6 +439,7 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
             checked: selection.contains(kind.kindId),
             enabled: enabled,
             selection: selection,
+            isHighlighted: isHighlighted,
             onChanged: () => onToggle(kind.kindId),
             onToggleType: (type) =>
                 onToggleType(kind.kindId, type, kind.effectiveTypes.keys.toSet()),
@@ -347,6 +455,7 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
           expanded: open,
           enabled: enabled,
           selection: selection,
+          isHighlighted: isHighlighted,
           l10n: widget.l10n,
           onToggle: () => onToggle(parentId),
           onExpand: () => setState(() {
@@ -375,6 +484,9 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
                   checked: state == MaterialKindFamilyState.selected ||
                       selection.contains(child.kindId),
                   enabled: enabled,
+                  isHighlighted: isHighlighted ||
+                      (_searchQuery.isNotEmpty &&
+                          _matchesQuery(child.kindName, _searchQuery)),
                   look: state == MaterialKindFamilyState.selected
                       ? MaterialKindChipLook.included
                       : (selection.contains(child.kindId)
@@ -506,35 +618,159 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
       taxonomy: taxonomy,
     );
 
+    final hasQuery = _searchQuery.trim().isNotEmpty;
+    final displayedFavorites = (_filterOnlyMatches && hasQuery)
+        ? favoriteUnits.where((u) => _unitMatches(u, _searchQuery)).toList()
+        : favoriteUnits;
+
+    final displayedOtherSections = (_filterOnlyMatches && hasQuery)
+        ? otherSections
+            .map((s) => OfflineKindSection(
+                  classId: s.classId,
+                  label: s.label,
+                  units: s.units
+                      .where((u) => _unitMatches(u, _searchQuery))
+                      .toList(),
+                ))
+            .where((s) => s.units.isNotEmpty)
+            .toList()
+        : otherSections;
+
+    final totalOtherCount =
+        displayedOtherSections.fold(0, (sum, s) => sum + s.count);
+    final isOtherExpanded =
+        _otherKindsExpanded || (_filterOnlyMatches && hasQuery);
+
     final result = widget.download.result;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Pesquisar tipo de material...',
+                    hintStyle: AppTypography.hint(),
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'Limpar pesquisa',
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.card,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppColors.title.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppColors.title.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppColors.gold,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  style: AppTypography.body.copyWith(fontSize: 13.5),
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _filterOnlyMatches,
+                label: const Text('Filtrar'),
+                avatar: Icon(
+                  _filterOnlyMatches
+                      ? Icons.filter_alt
+                      : Icons.filter_alt_outlined,
+                  size: 16,
+                  color: _filterOnlyMatches
+                      ? AppColors.title
+                      : AppColors.title.withValues(alpha: 0.7),
+                ),
+                selectedColor: AppColors.gold.withValues(alpha: 0.25),
+                checkmarkColor: AppColors.title,
+                labelStyle: AppTypography.label.copyWith(
+                  fontSize: 12,
+                  fontWeight:
+                      _filterOnlyMatches ? FontWeight.w700 : FontWeight.w500,
+                  color: AppColors.title,
+                ),
+                side: BorderSide(
+                  color: _filterOnlyMatches
+                      ? AppColors.gold
+                      : AppColors.title.withValues(alpha: 0.25),
+                  width: _filterOnlyMatches ? 1.5 : 1.0,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    _filterOnlyMatches = selected;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
         if (widget.signedIn) ...[
           OfflineClassHeader(
             label: widget.l10n.offlineColdigomFavoriteKinds,
-            count: favorites.length,
+            count: displayedFavorites.length,
           ),
-          if (favorites.isEmpty)
+          if (displayedFavorites.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               child: Text(
-                widget.l10n.offlineColdigomNoFavorites,
+                _filterOnlyMatches && hasQuery
+                    ? 'Nenhum favorito encontrado para esta pesquisa'
+                    : widget.l10n.offlineColdigomNoFavorites,
                 style: AppTypography.hint(),
               ),
             )
           else
             Wrap(
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.start,
               spacing: 8,
               runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                for (final unit in favoriteUnits)
+                for (final unit in displayedFavorites)
                   ..._renderUnit(
                     unit: unit,
                     selection: selection,
                     enabled: canInteract,
+                    isHighlighted: hasQuery && _unitMatches(unit, _searchQuery),
                     onToggle: toggleKind,
                     onToggleType: toggleKindType,
                     onToggleFamilyType: toggleFamilyType,
@@ -542,62 +778,67 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
               ],
             ),
           const SizedBox(height: 12),
-          if (others.isNotEmpty)
-            ExpansionTile(
-              title: Text(
-                widget.l10n.offlineColdigomOtherKinds,
-                style: AppTypography.label.copyWith(
-                  color: AppColors.title,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(top: 4, bottom: 8),
-              children: [
-                for (final section in otherSections) ...[
-                  if (taxonomy.classes.isNotEmpty)
-                    OfflineClassHeader(
-                      label: section.label ?? widget.l10n.materialKindOtherClass,
-                      count: section.count,
-                    ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      for (final unit in section.units)
-                        ..._renderUnit(
-                          unit: unit,
-                          selection: selection,
-                          enabled: canInteract,
-                          onToggle: toggleKind,
-                          onToggleType: toggleKindType,
-                          onToggleFamilyType: toggleFamilyType,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ],
+          if (displayedOtherSections.isNotEmpty) ...[
+            _buildOtherKindsButton(
+              totalCount: totalOtherCount,
+              isExpanded: isOtherExpanded,
+              onToggle: () {
+                setState(() {
+                  _otherKindsExpanded = !_otherKindsExpanded;
+                });
+              },
             ),
+            if (isOtherExpanded) ...[
+              const SizedBox(height: 10),
+              for (final section in displayedOtherSections) ...[
+                if (taxonomy.classes.isNotEmpty)
+                  OfflineClassHeader(
+                    label: section.label ?? widget.l10n.materialKindOtherClass,
+                    count: section.count,
+                  ),
+                Wrap(
+                  alignment: WrapAlignment.start,
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final unit in section.units)
+                      ..._renderUnit(
+                        unit: unit,
+                        selection: selection,
+                        enabled: canInteract,
+                        isHighlighted:
+                            hasQuery && _unitMatches(unit, _searchQuery),
+                        onToggle: toggleKind,
+                        onToggleType: toggleKindType,
+                        onToggleFamilyType: toggleFamilyType,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ],
         ] else ...[
           _sectionLabel(widget.l10n.offlineKindsAll),
-          for (final section in otherSections) ...[
+          for (final section in displayedOtherSections) ...[
             if (taxonomy.classes.isNotEmpty)
               OfflineClassHeader(
                 label: section.label ?? widget.l10n.materialKindOtherClass,
                 count: section.count,
               ),
             Wrap(
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.start,
               spacing: 8,
               runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 for (final unit in section.units)
                   ..._renderUnit(
                     unit: unit,
                     selection: selection,
                     enabled: canInteract,
+                    isHighlighted: hasQuery && _unitMatches(unit, _searchQuery),
                     onToggle: toggleKind,
                     onToggleType: toggleKindType,
                     onToggleFamilyType: toggleFamilyType,
@@ -606,6 +847,20 @@ class _KindsBodyState extends ConsumerState<_KindsBody> {
             ),
             const SizedBox(height: 10),
           ],
+        ],
+        if (_filterOnlyMatches &&
+            hasQuery &&
+            displayedFavorites.isEmpty &&
+            displayedOtherSections.isEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Nenhum tipo de material encontrado para "$_searchQuery"',
+                style: AppTypography.hint(),
+              ),
+            ),
+          ),
         ],
         const SizedBox(height: 12),
         if (widget.download.isActive && widget.download.progress != null) ...[

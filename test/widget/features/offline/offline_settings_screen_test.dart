@@ -113,7 +113,7 @@ void main() {
     expect(find.text('Acervo PLPCG (PDFs)'), findsNothing);
     expect(find.text('Coldigom por tipo de material'), findsNothing);
     expect(find.text('Atualizar'), findsOneWidget);
-    expect(find.byType(FilterChip), findsNothing);
+    expect(find.widgetWithText(FilterChip, 'Filtrar'), findsOneWidget);
     expect(find.text('Limpar cache offline'), findsNothing);
   });
 
