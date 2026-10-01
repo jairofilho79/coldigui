@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/entities/louvor.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
@@ -44,22 +46,40 @@ class MaterialDropdown extends ConsumerWidget {
     final selected = value != null && options.any((o) => o.$1 == value)
         ? value
         : null;
-    return DropdownButtonFormField<String?>(
-      initialValue: selected,
-      decoration: InputDecoration(labelText: l10n.contributeMaterialLabel),
-      // `hint` além do item `value: null`: deixa a seleção "geral" visível
-      // mesmo quando o `DropdownButtonFormField` não repinta o item nulo
-      // como conteúdo do botão.
-      hint: Text(l10n.contributeMaterialWhole),
-      items: [
-        DropdownMenuItem(
-          value: null,
-          child: Text(l10n.contributeMaterialWhole),
+    return GoldenTaggedContainer(
+      label: l10n.contributeMaterialLabel,
+      contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+      child: DropdownButtonFormField<String?>(
+        initialValue: selected,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
         ),
-        for (final option in options)
-          DropdownMenuItem(value: option.$1, child: Text(option.$2)),
-      ],
-      onChanged: onChanged,
+        // `hint` além do item `value: null`: deixa a seleção "geral" visível
+        // mesmo quando o `DropdownButtonFormField` não repinta o item nulo
+        // como conteúdo do botão.
+        hint: Text(l10n.contributeMaterialWhole, style: AppTypography.input),
+        items: [
+          DropdownMenuItem(
+            value: null,
+            child: Text(
+              l10n.contributeMaterialWhole,
+              style: AppTypography.input,
+            ),
+          ),
+          for (final option in options)
+            DropdownMenuItem(
+              value: option.$1,
+              child: Text(option.$2, style: AppTypography.input),
+            ),
+        ],
+        onChanged: onChanged,
+      ),
     );
   }
 }
@@ -93,51 +113,89 @@ class MetadataFields extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButtonFormField<MetadataField>(
-          key: const Key('contribute-metadata-field'),
-          initialValue: field,
-          decoration: InputDecoration(labelText: l10n.contributeMetadataField),
-          items: [
-            for (final f in MetadataField.values)
-              DropdownMenuItem(
-                value: f,
-                child: Text(metadataFieldLabel(l10n, f)),
-              ),
-          ],
-          onChanged: (f) {
-            if (f == null) return;
-            onFieldChanged(f);
-            // Só preenche se o usuário ainda não editou "Valor atual" —
-            // trocar de campo depois de digitar não pode apagar o que a
-            // pessoa já escreveu.
-            if ((current ?? '').trim().isEmpty) {
-              final prefill = _prefillFor(f, meta);
-              if (prefill != null) onCurrentChanged(prefill);
-            }
-          },
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          // `ValueKey(field)`: sem isto, o `TextFormField` mantém o
-          // `EditableText` já montado quando `field` muda — `initialValue`
-          // só vale na primeira construção, então o prefill nunca apareceria
-          // (a raiz do bug reportado na revisão). Trocar a `Key` força o
-          // Flutter a recriar o campo com o novo valor inicial.
-          key: ValueKey(field),
-          initialValue: current,
-          decoration: InputDecoration(
-            labelText: l10n.contributeMetadataCurrent,
+        GoldenTaggedContainer(
+          label: l10n.contributeMetadataField,
+          contentPadding:
+              GoldenTaggedContainer.compactContentPaddingFor(context),
+          child: DropdownButtonFormField<MetadataField>(
+            key: const Key('contribute-metadata-field'),
+            initialValue: field,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+            items: [
+              for (final f in MetadataField.values)
+                DropdownMenuItem(
+                  value: f,
+                  child: Text(
+                    metadataFieldLabel(l10n, f),
+                    style: AppTypography.input,
+                  ),
+                ),
+            ],
+            onChanged: (f) {
+              if (f == null) return;
+              onFieldChanged(f);
+              // Só preenche se o usuário ainda não editou "Valor atual" —
+              // trocar de campo depois de digitar não pode apagar o que a
+              // pessoa já escreveu.
+              if ((current ?? '').trim().isEmpty) {
+                final prefill = _prefillFor(f, meta);
+                if (prefill != null) onCurrentChanged(prefill);
+              }
+            },
           ),
-          onChanged: onCurrentChanged,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          key: const Key('contribute-proposed'),
-          initialValue: proposed,
-          decoration: InputDecoration(
-            labelText: l10n.contributeMetadataProposed,
+        const SizedBox(height: 16),
+        GoldenTaggedContainer(
+          label: l10n.contributeMetadataCurrent,
+          contentPadding:
+              GoldenTaggedContainer.compactContentPaddingFor(context),
+          child: TextFormField(
+            // `ValueKey(field)`: sem isto, o `TextFormField` mantém o
+            // `EditableText` já montado quando `field` muda — `initialValue`
+            // só vale na primeira construção, então o prefill nunca apareceria
+            // (a raiz do bug reportado na revisão). Trocar a `Key` força o
+            // Flutter a recriar o campo com o novo valor inicial.
+            key: ValueKey(field),
+            initialValue: current,
+            style: AppTypography.input,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+            onChanged: onCurrentChanged,
           ),
-          onChanged: onProposedChanged,
+        ),
+        const SizedBox(height: 16),
+        GoldenTaggedContainer(
+          label: l10n.contributeMetadataProposed,
+          contentPadding:
+              GoldenTaggedContainer.compactContentPaddingFor(context),
+          child: TextFormField(
+            key: const Key('contribute-proposed'),
+            initialValue: proposed,
+            style: AppTypography.input,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+            onChanged: onProposedChanged,
+          ),
         ),
       ],
     );
@@ -175,29 +233,41 @@ class DuplicateField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final lookup = ref.watch(catalogMaterialLookupProvider);
-    return Autocomplete<Louvor>(
-      optionsBuilder: (textEditingValue) {
-        final q = textEditingValue.text.trim().toLowerCase();
-        if (q.isEmpty) return const Iterable<Louvor>.empty();
-        return lookup.coldigomLouvoresByPdfId.values
-            .where(
-              (l) =>
-                  l.numero.toLowerCase().contains(q) ||
-                  l.nome.toLowerCase().contains(q),
-            )
-            .take(8);
-      },
-      displayStringForOption: (l) => '${l.numero} — ${l.nome}',
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        return TextFormField(
-          key: const Key('contribute-duplicate'),
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(labelText: l10n.contributeDuplicateOf),
-        );
-      },
-      onSelected: (l) =>
-          onSelected(praiseId: l.groupId, source: ContributionSource.coldigom),
+    return GoldenTaggedContainer(
+      label: l10n.contributeDuplicateOf,
+      contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+      child: Autocomplete<Louvor>(
+        optionsBuilder: (textEditingValue) {
+          final q = textEditingValue.text.trim().toLowerCase();
+          if (q.isEmpty) return const Iterable<Louvor>.empty();
+          return lookup.coldigomLouvoresByPdfId.values
+              .where(
+                (l) =>
+                    l.numero.toLowerCase().contains(q) ||
+                    l.nome.toLowerCase().contains(q),
+              )
+              .take(8);
+        },
+        displayStringForOption: (l) => '${l.numero} — ${l.nome}',
+        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+          return TextFormField(
+            key: const Key('contribute-duplicate'),
+            controller: controller,
+            focusNode: focusNode,
+            style: AppTypography.input,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+          );
+        },
+        onSelected: (l) =>
+            onSelected(praiseId: l.groupId, source: ContributionSource.coldigom),
+      ),
     );
   }
 }
@@ -218,14 +288,29 @@ class SuggestedKindDropdown extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final kindsAsync = ref.watch(coldigomMaterialKindsProvider);
     final kinds = kindsAsync.asData?.value ?? const [];
-    return DropdownButtonFormField<String?>(
-      initialValue: value,
-      decoration: InputDecoration(labelText: l10n.contributeSuggestedKind),
-      items: [
-        for (final kind in kinds)
-          DropdownMenuItem(value: kind.id, child: Text(kind.name)),
-      ],
-      onChanged: onChanged,
+    return GoldenTaggedContainer(
+      label: l10n.contributeSuggestedKind,
+      contentPadding: GoldenTaggedContainer.compactContentPaddingFor(context),
+      child: DropdownButtonFormField<String?>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+        ),
+        items: [
+          for (final kind in kinds)
+            DropdownMenuItem(
+              value: kind.id,
+              child: Text(kind.name, style: AppTypography.input),
+            ),
+        ],
+        onChanged: onChanged,
+      ),
     );
   }
 }

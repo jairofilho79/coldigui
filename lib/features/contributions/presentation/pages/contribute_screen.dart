@@ -6,6 +6,7 @@ import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../core/widgets/plpcg_primary_app_bar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
@@ -242,28 +243,64 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  TextFormField(
-                    key: const Key('contribute-title'),
-                    initialValue: draft.title,
-                    maxLength: kMaxTitleLength,
-                    decoration: InputDecoration(
-                      labelText: l10n.contributeTitleField,
+                  GoldenTaggedContainer(
+                    label: l10n.contributeTitleField,
+                    contentPadding:
+                        GoldenTaggedContainer.compactContentPaddingFor(context),
+                    child: TextFormField(
+                      key: const Key('contribute-title'),
+                      initialValue: draft.title,
+                      maxLength: kMaxTitleLength,
+                      style: AppTypography.input,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        counterStyle: AppTypography.body.copyWith(
+                          fontSize: 12,
+                          color: AppColors.title.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      onChanged: notifier.setTitle,
                     ),
-                    onChanged: notifier.setTitle,
                   ),
-                  TextFormField(
-                    key: const Key('contribute-body'),
-                    initialValue: draft.body,
-                    maxLength: kMaxBodyLength,
-                    minLines: 4,
-                    maxLines: null,
-                    decoration: InputDecoration(
-                      labelText: l10n.contributeBodyField,
-                      hintText: draft.kind == ContributionKind.bug
-                          ? l10n.contributeBodyHintBug
-                          : null,
+                  const SizedBox(height: 16),
+                  GoldenTaggedContainer(
+                    label: l10n.contributeBodyField,
+                    contentPadding: EdgeInsets.fromLTRB(
+                      12,
+                      MediaQuery.textScalerOf(context).scale(14),
+                      12,
+                      MediaQuery.textScalerOf(context).scale(8),
                     ),
-                    onChanged: notifier.setBody,
+                    child: TextFormField(
+                      key: const Key('contribute-body'),
+                      initialValue: draft.body,
+                      maxLength: kMaxBodyLength,
+                      minLines: 4,
+                      maxLines: null,
+                      style: AppTypography.input,
+                      decoration: InputDecoration(
+                        hintText: draft.kind == ContributionKind.bug
+                            ? l10n.contributeBodyHintBug
+                            : null,
+                        hintStyle: AppTypography.hint(italic: true),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        counterStyle: AppTypography.body.copyWith(
+                          fontSize: 12,
+                          color: AppColors.title.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      onChanged: notifier.setBody,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   AttachmentsSection(
@@ -310,8 +347,8 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.gold,
                         foregroundColor: AppColors.title,
-                        disabledBackgroundColor: const Color(0xFF351C1B),
-                        disabledForegroundColor: const Color(0xFFB85959),
+                        disabledBackgroundColor: AppColors.background,
+                        disabledForegroundColor: const Color(0xFF351C1B),
                         side: BorderSide(
                           color: canSend
                               ? AppColors.gold
@@ -334,16 +371,16 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                             : AppTypography.body.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
-                                color: const Color(0xFFB85959),
+                                color: const Color(0xFF351C1B),
                                 shadows: const [
                                   Shadow(
                                     color: Color(0xD0000000),
-                                    offset: Offset(0, -1.2),
+                                    offset: Offset(0, -1.0),
                                     blurRadius: 1.0,
                                   ),
                                   Shadow(
                                     color: Color(0x35FFE29A),
-                                    offset: Offset(0, 1.2),
+                                    offset: Offset(0, 1.0),
                                     blurRadius: 1.0,
                                   ),
                                 ],

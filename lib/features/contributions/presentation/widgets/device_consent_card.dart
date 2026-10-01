@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/device_snapshot.dart';
 
@@ -90,22 +90,28 @@ class DeviceConsentCard extends StatelessWidget {
                   onSameDevice(selection.isEmpty ? null : selection.first),
             ),
             if (sameDevice == false) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               // `initialValue` (não `controller`): o estado mora no
               // `ContributeFormNotifier`; sem `TextEditingController` aqui,
               // o widget não perde o cursor a cada rebuild do `Consumer`.
-              TextFormField(
-                key: const Key('contribute-other-device'),
-                initialValue: otherDeviceNote,
-                decoration: InputDecoration(
-                  labelText: l10n.contributeOtherDevice,
-                  floatingLabelStyle: AppTypography.label.copyWith(
-                    color: AppColors.title,
-                    fontWeight: FontWeight.w600,
+              GoldenTaggedContainer(
+                label: l10n.contributeOtherDevice,
+                contentPadding:
+                    GoldenTaggedContainer.compactContentPaddingFor(context),
+                child: TextFormField(
+                  key: const Key('contribute-other-device'),
+                  initialValue: otherDeviceNote,
+                  style: AppTypography.input,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  border: const OutlineInputBorder(),
+                  onChanged: onOtherDeviceNote,
                 ),
-                onChanged: onOtherDeviceNote,
               ),
             ],
           ],
