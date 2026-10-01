@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/contribution_attachment.dart';
 import '../../domain/entities/contribution_kind.dart';
@@ -35,19 +37,36 @@ class AttachmentsSection extends StatelessWidget {
       children: [
         Text(
           l10n.contributeAttachments,
-          style: Theme.of(context).textTheme.labelLarge,
+          style: AppTypography.label.copyWith(
+            color: AppColors.textLight,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: AppColors.gold,
+            foregroundColor: AppColors.title,
+            disabledBackgroundColor: AppColors.gold.withValues(alpha: 0.4),
+            disabledForegroundColor: AppColors.title.withValues(alpha: 0.6),
+            side: const BorderSide(color: AppColors.gold, width: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            textStyle: AppTypography.body.copyWith(fontWeight: FontWeight.w700),
+          ),
           onPressed: () => _addFiles(context, l10n),
-          icon: const Icon(Icons.attach_file, size: 18),
+          icon: const Icon(Icons.attach_file, size: 18, color: AppColors.title),
           label: Text(l10n.contributeAddFile),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 6),
         Text(
           l10n.contributeAttachmentTooLarge,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: AppTypography.body.copyWith(
+            fontSize: 12,
+            color: AppColors.textLight.withValues(alpha: 0.8),
+          ),
         ),
         if (attachments.isNotEmpty) ...[
           const SizedBox(height: 4),
