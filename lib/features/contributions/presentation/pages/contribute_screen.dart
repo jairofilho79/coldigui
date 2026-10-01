@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/routing/route_paths.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../data/device/device_snapshot_provider.dart';
@@ -144,133 +146,181 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.contributeKindLabel,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 8),
-                KindChips(selected: draft.kind, onSelected: notifier.setKind),
-                if (subkindsOf(draft.kind).isNotEmpty) ...[
-                  const SizedBox(height: 16),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              inputDecorationTheme:
+                  Theme.of(context).inputDecorationTheme.copyWith(
+                        floatingLabelStyle: AppTypography.label.copyWith(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        counterStyle: AppTypography.body.copyWith(
+                          fontSize: 12,
+                          color: AppColors.textLight.withValues(alpha: 0.8),
+                        ),
+                      ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    l10n.contributeSubkindLabel,
-                    style: Theme.of(context).textTheme.labelLarge,
+                    l10n.contributeKindLabel,
+                    style: AppTypography.label.copyWith(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  SubkindChips(
+                  KindChips(selected: draft.kind, onSelected: notifier.setKind),
+                  if (subkindsOf(draft.kind).isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.contributeSubkindLabel,
+                      style: AppTypography.label.copyWith(
+                        color: AppColors.textLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SubkindChips(
+                      kind: draft.kind,
+                      selected: draft.subkind,
+                      onSelected: notifier.setSubkind,
+                    ),
+                  ],
+                  if (widget.target?.praiseId != null) ...[
+                    const SizedBox(height: 16),
+                    MaterialDropdown(
+                      praiseId: widget.target!.praiseId!,
+                      value: draft.target?.materialId,
+                      onChanged: notifier.setMaterial,
+                    ),
+                  ],
+                  if (draft.subkind == ContributionSubkind.wrongMetadata) ...[
+                    const SizedBox(height: 16),
+                    MetadataFields(
+                      praiseId: widget.target?.praiseId,
+                      field: draft.metadataField,
+                      current: draft.metadataCurrent,
+                      proposed: draft.metadataProposed,
+                      onFieldChanged: (f) => notifier.setMetadata(field: f),
+                      onCurrentChanged: (v) => notifier.setMetadata(current: v),
+                      onProposedChanged: (v) =>
+                          notifier.setMetadata(proposed: v),
+                    ),
+                  ],
+                  if (draft.subkind == ContributionSubkind.duplicate) ...[
+                    const SizedBox(height: 16),
+                    DuplicateField(
+                      onSelected: ({required praiseId, required source}) =>
+                          notifier.setDuplicate(
+                            praiseId: praiseId,
+                            source: source,
+                          ),
+                    ),
+                  ],
+                  if (draft.kind == ContributionKind.content) ...[
+                    const SizedBox(height: 16),
+                    SuggestedKindDropdown(
+                      value: draft.suggestedKindId,
+                      onChanged: notifier.setSuggestedKind,
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    key: const Key('contribute-title'),
+                    initialValue: draft.title,
+                    maxLength: kMaxTitleLength,
+                    decoration: InputDecoration(
+                      labelText: l10n.contributeTitleField,
+                    ),
+                    onChanged: notifier.setTitle,
+                  ),
+                  TextFormField(
+                    key: const Key('contribute-body'),
+                    initialValue: draft.body,
+                    maxLength: kMaxBodyLength,
+                    minLines: 4,
+                    maxLines: null,
+                    decoration: InputDecoration(
+                      labelText: l10n.contributeBodyField,
+                      hintText: draft.kind == ContributionKind.bug
+                          ? l10n.contributeBodyHintBug
+                          : null,
+                    ),
+                    onChanged: notifier.setBody,
+                  ),
+                  const SizedBox(height: 16),
+                  AttachmentsSection(
                     kind: draft.kind,
-                    selected: draft.subkind,
-                    onSelected: notifier.setSubkind,
+                    attachments: draft.attachments,
+                    pickFiles: widget.pickFiles,
+                    onAdd: notifier.addAttachment,
+                    onRemove: notifier.removeAttachment,
                   ),
-                ],
-                if (widget.target?.praiseId != null) ...[
                   const SizedBox(height: 16),
-                  MaterialDropdown(
-                    praiseId: widget.target!.praiseId!,
-                    value: draft.target?.materialId,
-                    onChanged: notifier.setMaterial,
+                  LinksSection(
+                    links: draft.links,
+                    onAdd: notifier.addLink,
+                    onRemove: notifier.removeLink,
                   ),
-                ],
-                if (draft.subkind == ContributionSubkind.wrongMetadata) ...[
-                  const SizedBox(height: 16),
-                  MetadataFields(
-                    praiseId: widget.target?.praiseId,
-                    field: draft.metadataField,
-                    current: draft.metadataCurrent,
-                    proposed: draft.metadataProposed,
-                    onFieldChanged: (f) => notifier.setMetadata(field: f),
-                    onCurrentChanged: (v) => notifier.setMetadata(current: v),
-                    onProposedChanged: (v) => notifier.setMetadata(proposed: v),
-                  ),
-                ],
-                if (draft.subkind == ContributionSubkind.duplicate) ...[
-                  const SizedBox(height: 16),
-                  DuplicateField(
-                    onSelected: ({required praiseId, required source}) =>
-                        notifier.setDuplicate(
-                          praiseId: praiseId,
-                          source: source,
+                  // Ordem do spec §6.2: o cartão de consentimento do
+                  // dispositivo vem depois de anexos/links, logo antes do
+                  // botão de enviar — só para bug.
+                  if (isBug) ...[
+                    const SizedBox(height: 16),
+                    DeviceConsentCard(
+                      snapshot: snapshot,
+                      sameDevice: draft.sameDevice,
+                      otherDeviceNote: draft.otherDeviceNote ?? '',
+                      onSameDevice: notifier.setSameDevice,
+                      onOtherDeviceNote: notifier.setOtherDeviceNote,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  if (state.submit case ContributeSending(:final progress))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        color: AppColors.gold,
+                        backgroundColor: AppColors.gold.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      key: const Key('contribute-send'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.gold,
+                        foregroundColor: AppColors.title,
+                        disabledBackgroundColor:
+                            AppColors.gold.withValues(alpha: 0.35),
+                        disabledForegroundColor:
+                            AppColors.title.withValues(alpha: 0.6),
+                        side: BorderSide(
+                          color: canSend
+                              ? AppColors.gold
+                              : AppColors.gold.withValues(alpha: 0.4),
+                          width: 2,
                         ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        textStyle: AppTypography.body.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      onPressed: canSend ? () => _send(snapshot) : null,
+                      child: Text(l10n.contributeSend),
+                    ),
                   ),
                 ],
-                if (draft.kind == ContributionKind.content) ...[
-                  const SizedBox(height: 16),
-                  SuggestedKindDropdown(
-                    value: draft.suggestedKindId,
-                    onChanged: notifier.setSuggestedKind,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                TextFormField(
-                  key: const Key('contribute-title'),
-                  initialValue: draft.title,
-                  maxLength: kMaxTitleLength,
-                  decoration: InputDecoration(
-                    labelText: l10n.contributeTitleField,
-                  ),
-                  onChanged: notifier.setTitle,
-                ),
-                TextFormField(
-                  key: const Key('contribute-body'),
-                  initialValue: draft.body,
-                  maxLength: kMaxBodyLength,
-                  minLines: 4,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    labelText: l10n.contributeBodyField,
-                    hintText: draft.kind == ContributionKind.bug
-                        ? l10n.contributeBodyHintBug
-                        : null,
-                  ),
-                  onChanged: notifier.setBody,
-                ),
-                const SizedBox(height: 16),
-                AttachmentsSection(
-                  kind: draft.kind,
-                  attachments: draft.attachments,
-                  pickFiles: widget.pickFiles,
-                  onAdd: notifier.addAttachment,
-                  onRemove: notifier.removeAttachment,
-                ),
-                const SizedBox(height: 16),
-                LinksSection(
-                  links: draft.links,
-                  onAdd: notifier.addLink,
-                  onRemove: notifier.removeLink,
-                ),
-                // Ordem do spec §6.2: o cartão de consentimento do
-                // dispositivo vem depois de anexos/links, logo antes do
-                // botão de enviar — só para bug.
-                if (isBug) ...[
-                  const SizedBox(height: 16),
-                  DeviceConsentCard(
-                    snapshot: snapshot,
-                    sameDevice: draft.sameDevice,
-                    otherDeviceNote: draft.otherDeviceNote ?? '',
-                    onSameDevice: notifier.setSameDevice,
-                    onOtherDeviceNote: notifier.setOtherDeviceNote,
-                  ),
-                ],
-                const SizedBox(height: 24),
-                if (state.submit case ContributeSending(:final progress))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: LinearProgressIndicator(value: progress),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: const Key('contribute-send'),
-                    onPressed: canSend ? () => _send(snapshot) : null,
-                    child: Text(l10n.contributeSend),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

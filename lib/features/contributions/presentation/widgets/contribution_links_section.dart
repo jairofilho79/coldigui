@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// «Links (YouTube / Drive)» (spec §6.2 item 9): campo + botão de adicionar
@@ -50,9 +52,12 @@ class _LinksSectionState extends State<LinksSection> {
       children: [
         Text(
           l10n.contributeLinks,
-          style: Theme.of(context).textTheme.labelLarge,
+          style: AppTypography.label.copyWith(
+            color: AppColors.textLight,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -64,8 +69,12 @@ class _LinksSectionState extends State<LinksSection> {
                 ),
               ),
             ),
-            IconButton(
-              visualDensity: VisualDensity.compact,
+            const SizedBox(width: 8),
+            IconButton.filled(
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.gold,
+                foregroundColor: AppColors.title,
+              ),
               icon: const Icon(Icons.add),
               onPressed: () => _add(l10n),
             ),

@@ -92,18 +92,26 @@ abstract final class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.card,
-        selectedColor: AppColors.gold.withValues(alpha: 0.25),
+        selectedColor: Color.alphaBlend(
+          AppColors.gold.withValues(alpha: 0.35),
+          AppColors.card,
+        ),
         disabledColor: const Color(0xFF9CA3AF),
         labelStyle: AppTypography.label,
         secondaryLabelStyle: AppTypography.label.copyWith(
-          color: AppColors.textLight,
+          color: AppColors.title,
+          fontWeight: FontWeight.w600,
         ),
+        deleteIconColor: AppColors.title,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_chipRadius),
-          side: const BorderSide(color: AppColors.title, width: 1.5),
         ),
-        side: const BorderSide(color: AppColors.title, width: 1.5),
+        side: WidgetStateBorderSide.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? const BorderSide(color: AppColors.gold, width: 2)
+              : const BorderSide(color: AppColors.title, width: 1.5),
+        ),
         showCheckmark: false,
       ),
       dropdownMenuTheme: DropdownMenuThemeData(

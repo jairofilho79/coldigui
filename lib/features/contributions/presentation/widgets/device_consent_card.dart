@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/color_extensions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/device_snapshot.dart';
 
@@ -98,6 +99,10 @@ class DeviceConsentCard extends StatelessWidget {
                 initialValue: otherDeviceNote,
                 decoration: InputDecoration(
                   labelText: l10n.contributeOtherDevice,
+                  floatingLabelStyle: AppTypography.label.copyWith(
+                    color: AppColors.title,
+                    fontWeight: FontWeight.w600,
+                  ),
                   border: const OutlineInputBorder(),
                 ),
                 onChanged: onOtherDeviceNote,
