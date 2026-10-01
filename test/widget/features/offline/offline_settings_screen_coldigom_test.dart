@@ -1,4 +1,5 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
+import 'package:coldigui/core/utils/material_id_kind.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/auth/presentation/widgets/google_sign_in_button.dart';
@@ -48,12 +49,20 @@ class _FixedDownload extends OfflineColdigomDownloadNotifier {
   _FixedDownload(this.fixed);
   final OfflineColdigomDownloadState fixed;
   final started = <Set<String>>[];
+  Set<String>? lastSelection;
   var stops = 0;
   var removes = 0;
   @override
   OfflineColdigomDownloadState build() => fixed;
   @override
-  Future<void> start(Set<String> kindIds) async => started.add(kindIds);
+  Future<void> start(
+    Set<String> kindIds, {
+    Set<String>? selection,
+    MaterialKindTaxonomy? taxonomy,
+  }) async {
+    started.add(kindIds);
+    lastSelection = selection;
+  }
   @override
   void stop() => stops++;
   @override
@@ -243,7 +252,9 @@ void main() {
       expect(chips.every((t) => t.checked == true), isTrue);
       expect(find.text('Outros tipos'), findsOneWidget);
       expect(find.text('Cifra'), findsNothing);
-      expect(find.textContaining('10 · ~'), findsOneWidget);
+      expect(find.textContaining('4/10 arq.'), findsOneWidget);
+      expect(find.byIcon(Icons.folder_outlined), findsWidgets);
+      expect(find.byIcon(Icons.storage_outlined), findsWidgets);
       expect(find.textContaining('Baixar selecionados (~'), findsOneWidget);
 
       await tester.tap(find.text('Outros tipos'));
@@ -671,6 +682,81 @@ void main() {
 
       // Botão de download reflete os pendingBytes do tenor
       expect(find.textContaining('Baixar selecionados (~'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'subdivisão por material type: desmarcar áudio exclui os bytes e alvos do download',
+    (tester) async {
+      const stats = OfflineColdigomStats({
+        'k-multi': ColdigomKindStats(
+          kindId: 'k-multi',
+          kindName: 'Multi Material',
+          total: 15,
+          downloaded: 0,
+          bytesKnown: 0,
+          bytesEstimated: 15 * 1024 * 1024,
+          pendingBytes: 15 * 1024 * 1024,
+          types: {
+            MaterialKind.pdf: ColdigomTypeStats(
+              kind: MaterialKind.pdf,
+              rawType: 'pdf',
+              total: 10,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 10 * 1024 * 1024,
+              pendingBytes: 10 * 1024 * 1024,
+            ),
+            MaterialKind.audio: ColdigomTypeStats(
+              kind: MaterialKind.audio,
+              rawType: 'mp3',
+              total: 5,
+              downloaded: 0,
+              bytesKnown: 0,
+              bytesEstimated: 5 * 1024 * 1024,
+              pendingBytes: 5 * 1024 * 1024,
+            ),
+          },
+        ),
+      });
+
+      final handles = await _pump(
+        tester,
+        loggedIn: false,
+        stats: stats,
+      );
+
+      // Card exibe total com ícones de pasta e storage
+      expect(find.text('Multi Material'), findsOneWidget);
+      expect(find.text('15 arq.'), findsOneWidget);
+      expect(find.byIcon(Icons.folder_outlined), findsWidgets);
+      expect(find.byIcon(Icons.storage_outlined), findsWidgets);
+
+      // Subdivisão por tipo de material visível com seus ícones e contagens
+      expect(find.text('Partituras'), findsOneWidget);
+      expect(find.text('Áudio'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+
+      // Marca o kind para download
+      await tester.tap(find.widgetWithText(OfflineKindChip, 'Multi Material'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Baixar selecionados (~15,0 MB)'), findsOneWidget);
+
+      // Desmarca apenas Áudio
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+
+      // Botão de download agora reflete apenas os 10 PDFs (~10,0 MB)
+      expect(find.textContaining('Baixar selecionados (~10,0 MB)'), findsOneWidget);
+
+      // Inicia o download e verifica que selection foi enviada para o usecase
+      await tester.tap(find.textContaining('Baixar selecionados'));
+      await tester.pumpAndSettle();
+
+      expect(handles.download.started, [{'k-multi'}]);
+      expect(handles.download.lastSelection, {'k-multi:pdf'});
     },
   );
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/features/catalog/domain/entities/material_kind_taxonomy.dart';
 import 'package:coldigui/features/offline/data/providers/offline_coldigom_providers.dart';
 import 'package:coldigui/features/offline/domain/entities/coldigom_download_progress.dart';
 import 'package:coldigui/features/offline/domain/usecases/download_coldigom_materials.dart';
@@ -37,6 +38,8 @@ class _ScriptedDownload implements DownloadColdigomMaterials {
   @override
   Future<ColdigomDownloadResult> call({
     required Set<String> kindIds,
+    Set<String>? selection,
+    MaterialKindTaxonomy? taxonomy,
     CancelToken? cancelToken,
     void Function(ColdigomDownloadProgress)? onProgress,
   }) async {

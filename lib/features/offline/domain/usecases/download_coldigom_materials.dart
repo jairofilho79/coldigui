@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/constants/offline_config.dart';
 import '../../../../core/utils/material_id_kind.dart';
 import '../../../audio_player/data/datasources/audio_bytes_datasource.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../../chords/data/datasources/chord_content_datasource.dart';
 import '../../../chords/data/datasources/chord_content_local_datasource.dart';
 import '../../../coldigom/data/datasources/coldigom_catalog_local_datasource.dart';
@@ -92,12 +93,16 @@ class DownloadColdigomMaterials {
 
   Future<ColdigomDownloadResult> call({
     required Set<String> kindIds,
+    Set<String>? selection,
+    MaterialKindTaxonomy? taxonomy,
     CancelToken? cancelToken,
     void Function(ColdigomDownloadProgress)? onProgress,
   }) async {
     final targets = coldigomDownloadTargetsFrom(
       _catalog.findAllSync(),
       kindIds: kindIds,
+      selection: selection,
+      taxonomy: taxonomy,
     );
     final present = await _collectPresent(targets);
 

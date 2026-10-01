@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/isar_provider.dart';
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/failures/app_failure.dart';
+import '../../../catalog/domain/entities/material_kind_taxonomy.dart';
 import '../../data/providers/offline_coldigom_providers.dart';
 import '../../domain/entities/coldigom_download_progress.dart';
 import '../../domain/usecases/remove_coldigom_downloads.dart';
@@ -88,7 +89,11 @@ class OfflineColdigomDownloadNotifier
     return const OfflineColdigomDownloadState();
   }
 
-  Future<void> start(Set<String> kindIds) async {
+  Future<void> start(
+    Set<String> kindIds, {
+    Set<String>? selection,
+    MaterialKindTaxonomy? taxonomy,
+  }) async {
     if (state.isActive || kindIds.isEmpty) return;
     if (!ref.read(isarAvailableProvider)) {
       state = state.copyWith(
@@ -113,6 +118,8 @@ class OfflineColdigomDownloadNotifier
           .read(downloadColdigomMaterialsProvider)
           .call(
             kindIds: kindIds,
+            selection: selection,
+            taxonomy: taxonomy,
             cancelToken: _cancelToken,
             onProgress: (progress) {
               if (!state.isActive) return;
