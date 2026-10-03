@@ -404,6 +404,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get readerSwitchMaterial => 'Trocar material';
 
   @override
+  String get readerSwitchPraiseSwipe => 'Deslize para trocar de versão';
+
+  @override
+  String get relatedPraisesTitle => 'Versões';
+
+  @override
+  String relatedPraisesSwapped(String tag) {
+    return 'Versão trocada: $tag';
+  }
+
+  @override
   String get cardAddedSwapMaterial => 'Adicionado à lista';
 
   @override

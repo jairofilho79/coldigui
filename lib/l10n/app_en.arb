@@ -209,6 +209,23 @@
   "@readerSwitchMaterial": {
     "description": "Tooltip for switching PDF material variant in the reader toolbar"
   },
+  "readerSwitchPraiseSwipe": "Swipe to switch version",
+  "@readerSwitchPraiseSwipe": {
+    "description": "Swipe hint on switch material button to switch between versions of the same hymn"
+  },
+  "relatedPraisesTitle": "Versions",
+  "@relatedPraisesTitle": {
+    "description": "Title of the versions/related praises section in the material sheet"
+  },
+  "relatedPraisesSwapped": "Switched to version: {tag}",
+  "@relatedPraisesSwapped": {
+    "description": "Message displayed when switching praise version in active playlist",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
   "cardAddedSwapMaterial": "Added to the list",
   "@cardAddedSwapMaterial": {
     "description": "Snackbar for the always-visible card «+» (C5) — the preferred material was added to the active list"

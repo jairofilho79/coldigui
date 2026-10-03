@@ -12,6 +12,9 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/confirm_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/providers/carousel_items_provider.dart';
+import '../../../carousel/presentation/utils/related_praises_swapper.dart';
+import '../../../catalog/domain/usecases/cluster_member_label.dart';
+import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../offline/presentation/providers/material_availability_map_provider.dart';
 import '../../../pdf_opening/domain/entities/pdf_offline_availability.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
@@ -53,6 +56,8 @@ Future<void> showMaterialSheet(
   LouvorGroup group, {
   bool canAddToPlaylist = true,
   MaterialSheetOpener? onMaterialSelected,
+  String? currentMaterialId,
+  String? currentEntryKey,
 }) {
   // O `context`/`ref` capturados aqui são os de quem abriu o sheet: eles
   // sobrevivem ao pop do modal, o `BuildContext` do sheet não.
@@ -77,6 +82,8 @@ Future<void> showMaterialSheet(
         group: group,
         onMaterialSelected: open,
         canAddToPlaylist: canAddToPlaylist,
+        currentMaterialId: currentMaterialId,
+        currentEntryKey: currentEntryKey,
       );
     },
   );
@@ -88,22 +95,33 @@ class MaterialSheet extends ConsumerStatefulWidget {
     required this.group,
     required this.onMaterialSelected,
     this.canAddToPlaylist = true,
+    this.currentMaterialId,
+    this.currentEntryKey,
     super.key,
   });
 
   final LouvorGroup group;
   final MaterialSheetOpener onMaterialSelected;
   final bool canAddToPlaylist;
+  final String? currentMaterialId;
+  final String? currentEntryKey;
 
   @override
   ConsumerState<MaterialSheet> createState() => _MaterialSheetState();
 }
 
 class _MaterialSheetState extends ConsumerState<MaterialSheet> {
+  late LouvorGroup _currentGroup;
   String? _addingId;
 
   /// Aba escolhida; null = a primeira presente.
   MaterialKind? _selectedKind;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentGroup = widget.group;
+  }
 
   void _handleTap(CatalogMaterial material) {
     Navigator.of(context).pop();
@@ -256,12 +274,15 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final l10n = AppLocalizations.of(context)!;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.75;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final group = widget.group;
+    final group = _currentGroup;
     final meta = group.coldigomMeta;
     final activeMaterialIds = ref.watch(activeMaterialIdsProvider);
     // Favoritos da conta (spec D9): sobem dentro de cada aba, o resto mantém
     // a ordem do servidor. Vazio para deslogado e para o acervo PLPCG.
     final rank = ref.watch(favoriteMaterialKindRankProvider);
+
+    final index = ref.watch(coldigomSearchIndexProvider);
+    final relatedPraises = resolveRelatedPraisesForGroup(group, index);
 
     // O14: `.value ?? true` cobre o `AsyncLoading` inicial do stream — sem
     // sinal ainda, o sheet trata como online (nada desabilita à toa).
@@ -352,6 +373,35 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             ),
             const SizedBox(height: 16),
             _SheetHeader(group: group, l10n: l10n),
+            if (relatedPraises.length > 1) ...[
+              const SizedBox(height: 12),
+              _RelatedPraisesBar(
+                praises: relatedPraises,
+                selectedPraise: group,
+                l10n: l10n,
+                onSelected: (target) async {
+                  if (target.groupId == group.groupId) return;
+                  final effectiveKey = widget.currentEntryKey;
+                  if (!widget.canAddToPlaylist && effectiveKey != null) {
+                    await swapToRelatedPraise(
+                      ref: ref,
+                      context: context,
+                      targetGroup: target,
+                      currentEntryKey: effectiveKey,
+                      currentMaterialId: widget.currentMaterialId,
+                      allMembers: relatedPraises,
+                    );
+                  }
+                  if (mounted) {
+                    setState(() {
+                      _currentGroup = ref
+                          .read(catalogMaterialLookupProvider)
+                          .withPraiseMeta(target);
+                    });
+                  }
+                },
+              ),
+            ],
             if (meta != null && meta.hasAnyField) ...[
               const SizedBox(height: 16),
               _ColdigomMetaBlock(meta: meta, l10n: l10n),
@@ -827,3 +877,152 @@ class _ColdigomMetaBlock extends StatelessWidget {
     );
   }
 }
+
+/// Seção no sheet com tags das versões/praises relacionados (mesmo `group_id`).
+class _RelatedPraisesBar extends StatefulWidget {
+  const _RelatedPraisesBar({
+    required this.praises,
+    required this.selectedPraise,
+    required this.l10n,
+    required this.onSelected,
+  });
+
+  final List<LouvorGroup> praises;
+  final LouvorGroup selectedPraise;
+  final AppLocalizations l10n;
+  final ValueChanged<LouvorGroup> onSelected;
+
+  @override
+  State<_RelatedPraisesBar> createState() => _RelatedPraisesBarState();
+}
+
+class _RelatedPraisesBarState extends State<_RelatedPraisesBar> {
+  double _dragDelta = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.swap_horiz,
+              size: 14,
+              color: AppColors.title.withValues(alpha: 0.7),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              widget.l10n.relatedPraisesTitle.toUpperCase(),
+              style: AppTypography.tagLabel.copyWith(
+                color: AppColors.title.withValues(alpha: 0.7),
+                letterSpacing: 1.1,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: (_) => _dragDelta = 0,
+          onHorizontalDragUpdate: (details) =>
+              _dragDelta += details.primaryDelta ?? 0,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            final delta = _dragDelta;
+            _dragDelta = 0;
+            if (delta.abs() < 20 && velocity.abs() < 50) return;
+            final currentIndex = widget.praises.indexWhere(
+              (p) => p.groupId == widget.selectedPraise.groupId,
+            );
+            final isNext = delta != 0 ? delta < 0 : velocity < 0;
+            final targetIndex =
+                (currentIndex + (isNext ? 1 : -1) + widget.praises.length) %
+                    widget.praises.length;
+            widget.onSelected(widget.praises[targetIndex]);
+          },
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final praise in widget.praises)
+                _RelatedPraiseChip(
+                  praise: praise,
+                  allPraises: widget.praises,
+                  isSelected: praise.groupId == widget.selectedPraise.groupId,
+                  onTap: () => widget.onSelected(praise),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RelatedPraiseChip extends StatelessWidget {
+  const _RelatedPraiseChip({
+    required this.praise,
+    required this.allPraises,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final LouvorGroup praise;
+  final List<LouvorGroup> allPraises;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = clusterMemberLabel(praise, allPraises) ??
+        praise.coldigomMeta?.tagNames.firstOrNull ??
+        (praise.numero.isNotEmpty ? '#${praise.numero}' : praise.nome);
+
+    return Material(
+      color: isSelected
+          ? AppColors.gold.withValues(alpha: 0.28)
+          : AppColors.card,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.gold
+                  : AppColors.gold.withValues(alpha: 0.35),
+              width: isSelected ? 1.8 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                const Icon(
+                  Icons.check,
+                  size: 13,
+                  color: AppColors.title,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: AppTypography.label.copyWith(
+                  color: AppColors.title,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

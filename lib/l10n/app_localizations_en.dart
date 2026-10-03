@@ -402,6 +402,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readerSwitchMaterial => 'Switch material';
 
   @override
+  String get readerSwitchPraiseSwipe => 'Swipe to switch version';
+
+  @override
+  String get relatedPraisesTitle => 'Versions';
+
+  @override
+  String relatedPraisesSwapped(String tag) {
+    return 'Switched to version: $tag';
+  }
+
+  @override
   String get cardAddedSwapMaterial => 'Added to the list';
 
   @override

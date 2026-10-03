@@ -253,6 +253,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       ref,
       group,
       canAddToPlaylist: false,
+      currentEntryKey: key,
       onMaterialSelected: (material) async {
         if (material is ChordMaterialRef || material is YoutubeMaterialRef) {
           await ref

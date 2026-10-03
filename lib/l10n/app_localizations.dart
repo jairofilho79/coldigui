@@ -746,6 +746,24 @@ abstract class AppLocalizations {
   /// **'Trocar material'**
   String get readerSwitchMaterial;
 
+  /// Dica de swipe no botão de trocar material para alternar entre versões do mesmo louvor
+  ///
+  /// In pt, this message translates to:
+  /// **'Deslize para trocar de versão'**
+  String get readerSwitchPraiseSwipe;
+
+  /// Título da seção de versões/praises relacionados no sheet de materiais
+  ///
+  /// In pt, this message translates to:
+  /// **'Versões'**
+  String get relatedPraisesTitle;
+
+  /// Mensagem exibida ao alternar a versão do louvor na playlist ativa
+  ///
+  /// In pt, this message translates to:
+  /// **'Versão trocada: {tag}'**
+  String relatedPraisesSwapped(String tag);
+
   /// Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa
   ///
   /// In pt, this message translates to:

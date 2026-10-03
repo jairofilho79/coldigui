@@ -221,6 +221,23 @@
   "@readerSwitchMaterial": {
     "description": "Tooltip do ícone de troca de material na barra do leitor PDF"
   },
+  "readerSwitchPraiseSwipe": "Deslize para trocar de versão",
+  "@readerSwitchPraiseSwipe": {
+    "description": "Dica de swipe no botão de trocar material para alternar entre versões do mesmo louvor"
+  },
+  "relatedPraisesTitle": "Versões",
+  "@relatedPraisesTitle": {
+    "description": "Título da seção de versões/praises relacionados no sheet de materiais"
+  },
+  "relatedPraisesSwapped": "Versão trocada: {tag}",
+  "@relatedPraisesSwapped": {
+    "description": "Mensagem exibida ao alternar a versão do louvor na playlist ativa",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
   "cardAddedSwapMaterial": "Adicionado à lista",
   "@cardAddedSwapMaterial": {
     "description": "Snackbar do «+» sempre visível do card de louvor (C5) — o material preferido foi adicionado à lista ativa"
