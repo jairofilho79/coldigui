@@ -18,6 +18,16 @@ class ContributionTarget {
     'materialId': materialId,
   };
 
+  factory ContributionTarget.fromJson(Map<String, dynamic> json) =>
+      ContributionTarget(
+        source: ContributionSource.values.firstWhere(
+          (s) => s.wireName == json['source'],
+          orElse: () => ContributionSource.coldigom,
+        ),
+        praiseId: json['praiseId'] as String?,
+        materialId: json['materialId'] as String?,
+      );
+
   ContributionTarget copyWith({String? materialId}) => ContributionTarget(
     source: source,
     praiseId: praiseId,

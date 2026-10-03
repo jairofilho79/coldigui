@@ -1935,4 +1935,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contributionFileScanBlocked => 'rejected';
+
+  @override
+  String get contributeClearForm => 'Clear form';
+
+  @override
+  String get contributeClearFormConfirmTitle => 'Clear form?';
+
+  @override
+  String get contributeClearFormConfirmMessage =>
+      'Are you sure you want to clear all filled fields? This action cannot be undone.';
+
+  @override
+  String get contributeClearFormCancel => 'Cancel';
+
+  @override
+  String get contributeClearFormConfirm => 'Clear';
 }

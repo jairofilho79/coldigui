@@ -2,9 +2,11 @@ import 'dart:typed_data';
 
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/contributions/data/datasources/contribution_draft_local_datasource.dart';
 import 'package:coldigui/features/contributions/data/datasources/contributions_remote_datasource.dart';
 import 'package:coldigui/features/contributions/data/providers/contributions_providers.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_attachment.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_draft.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_summary.dart';
 import 'package:coldigui/features/contributions/domain/entities/device_snapshot.dart';
@@ -214,4 +216,100 @@ void main() {
       ),
     );
   });
+
+  group('persistência local do rascunho', () {
+    test('carrega rascunho salvo do datasource ao inicializar o notifier', () {
+      final mem = InMemoryContributionDraftLocalDatasource();
+      const saved = ContributionDraft(
+        kind: ContributionKind.improvement,
+        subkind: ContributionSubkind.feature,
+        title: 'Rascunho recuperado',
+        body: 'Texto recuperado',
+      );
+      mem.write(args, saved);
+
+      final c = ProviderContainer(
+        overrides: [
+          contributionDraftLocalDatasourceProvider.overrideWithValue(mem),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      final state = c.read(contributeFormProvider(args));
+      expect(state.draft.title, 'Rascunho recuperado');
+      expect(state.draft.body, 'Texto recuperado');
+      expect(state.draft.kind, ContributionKind.improvement);
+    });
+
+    test('alterações no formulário persistem no datasource imediatamente', () {
+      final mem = InMemoryContributionDraftLocalDatasource();
+      final c = ProviderContainer(
+        overrides: [
+          contributionDraftLocalDatasourceProvider.overrideWithValue(mem),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      final n = c.read(contributeFormProvider(args).notifier);
+      n.setTitle('Novo título');
+      n.setBody('Novo corpo');
+
+      final saved = mem.read(args);
+      expect(saved, isNotNull);
+      expect(saved!.title, 'Novo título');
+      expect(saved.body, 'Novo corpo');
+    });
+
+    test('clearDraft remove do datasource e reseta o formulário', () {
+      final mem = InMemoryContributionDraftLocalDatasource();
+      final c = ProviderContainer(
+        overrides: [
+          contributionDraftLocalDatasourceProvider.overrideWithValue(mem),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      final n = c.read(contributeFormProvider(args).notifier);
+      n.setTitle('Para apagar');
+      n.setBody('Corpo para apagar');
+      expect(mem.read(args), isNotNull);
+
+      n.clearDraft();
+
+      expect(mem.read(args), isNull);
+      final state = c.read(contributeFormProvider(args));
+      expect(state.draft.title, isEmpty);
+      expect(state.draft.body, isEmpty);
+    });
+
+    test('submit bem-sucedido limpa o rascunho persistido', () async {
+      final mem = InMemoryContributionDraftLocalDatasource();
+      final ds = _FakeDs(
+        (_) async => (id: 'c-clean', status: ContributionStatus.recebida),
+      );
+      final c = ProviderContainer(
+        overrides: [
+          contributionsRemoteDatasourceProvider.overrideWithValue(ds),
+          contributionDraftLocalDatasourceProvider.overrideWithValue(mem),
+          authStateProvider.overrideWith(
+            () => FakeAuthNotifier(
+              const AuthUser(googleSub: 'u', sessionToken: 'sess_t'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      final n = c.read(contributeFormProvider(args).notifier);
+      n.setKind(ContributionKind.other);
+      n.setTitle('Enviado com sucesso');
+      n.setBody('Corpo');
+      expect(mem.read(args), isNotNull);
+
+      await n.submit(device: null, appVersion: '1.0');
+      expect(c.read(contributeFormProvider(args)).submit, isA<ContributeSent>());
+      expect(mem.read(args), isNull);
+    });
+  });
 }
+

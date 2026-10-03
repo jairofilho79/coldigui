@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'contribution_attachment.dart';
 import 'contribution_kind.dart';
 import 'contribution_target.dart';
@@ -115,6 +117,128 @@ class ContributionDraft {
       'appRoute': appRoute,
       'appVersion': appVersion,
     };
+  }
+
+  Map<String, dynamic> toStorageJson() => {
+    'kind': kind.wireName,
+    'subkind': subkind?.wireName,
+    'target': target?.toJson(),
+    'title': title,
+    'body': body,
+    'links': links,
+    'attachments': [
+      for (final a in attachments)
+        // Só salva bytes se menores ou iguais a 1 MB para não estourar a cota de localStorage
+        if (a.bytes.lengthInBytes <= 1024 * 1024)
+          {
+            'name': a.name,
+            'size': a.size,
+            'bytes': base64Encode(a.bytes),
+          },
+    ],
+    'metadataField': metadataField?.name,
+    'metadataCurrent': metadataCurrent,
+    'metadataProposed': metadataProposed,
+    'duplicateOtherPraiseId': duplicateOtherPraiseId,
+    'duplicateOtherSource': duplicateOtherSource?.wireName,
+    'suggestedKindId': suggestedKindId,
+    'sameDevice': sameDevice,
+    'otherDeviceNote': otherDeviceNote,
+    'appRoute': appRoute,
+  };
+
+  factory ContributionDraft.fromStorageJson(Map<String, dynamic> json) {
+    ContributionKind? kind;
+    final kindWire = json['kind'] as String?;
+    if (kindWire != null) {
+      for (final k in ContributionKind.values) {
+        if (k.wireName == kindWire) {
+          kind = k;
+          break;
+        }
+      }
+    }
+
+    ContributionSubkind? subkind;
+    final subkindWire = json['subkind'] as String?;
+    if (subkindWire != null) {
+      for (final s in ContributionSubkind.values) {
+        if (s.wireName == subkindWire) {
+          subkind = s;
+          break;
+        }
+      }
+    }
+
+    ContributionTarget? target;
+    if (json['target'] is Map) {
+      target = ContributionTarget.fromJson(
+        Map<String, dynamic>.from(json['target'] as Map),
+      );
+    }
+
+    final links = (json['links'] as List?)?.cast<String>() ?? const [];
+
+    final attachments = <ContributionAttachment>[];
+    final attachmentsRaw = json['attachments'] as List?;
+    if (attachmentsRaw != null) {
+      for (final item in attachmentsRaw) {
+        if (item is Map) {
+          final name = item['name'] as String? ?? '';
+          final size = item['size'] as int? ?? 0;
+          final b64 = item['bytes'] as String?;
+          if (b64 != null) {
+            try {
+              final bytes = base64Decode(b64);
+              attachments.add(
+                ContributionAttachment(name: name, size: size, bytes: bytes),
+              );
+            } catch (_) {}
+          }
+        }
+      }
+    }
+
+    MetadataField? metadataField;
+    final metaFieldName = json['metadataField'] as String?;
+    if (metaFieldName != null) {
+      for (final m in MetadataField.values) {
+        if (m.name == metaFieldName) {
+          metadataField = m;
+          break;
+        }
+      }
+    }
+
+    ContributionSource? duplicateOtherSource;
+    final dupSourceWire = json['duplicateOtherSource'] as String?;
+    if (dupSourceWire != null) {
+      for (final s in ContributionSource.values) {
+        if (s.wireName == dupSourceWire) {
+          duplicateOtherSource = s;
+          break;
+        }
+      }
+    }
+
+    return ContributionDraft(
+      kind: kind ?? ContributionKind.other,
+      subkind: subkind,
+      target: target,
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      links: links,
+      attachments: attachments,
+      metadataField: metadataField,
+      metadataCurrent: json['metadataCurrent'] as String?,
+      metadataProposed: json['metadataProposed'] as String?,
+      duplicateOtherPraiseId: json['duplicateOtherPraiseId'] as String?,
+      duplicateOtherSource: duplicateOtherSource,
+      suggestedKindId: json['suggestedKindId'] as String?,
+      sameDevice: json['sameDevice'] as bool?,
+      otherDeviceNote: json['otherDeviceNote'] as String?,
+      appRoute: json['appRoute'] as String?,
+    );
   }
 
   ContributionDraft copyWith({

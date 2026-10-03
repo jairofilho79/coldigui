@@ -1127,5 +1127,10 @@
   "contributionFilesTitle": "Anexos",
   "contributionFileScanPending": "verificando",
   "contributionFileScanClean": "ok",
-  "contributionFileScanBlocked": "recusado"
+  "contributionFileScanBlocked": "recusado",
+  "contributeClearForm": "Limpar formulário",
+  "contributeClearFormConfirmTitle": "Limpar formulário?",
+  "contributeClearFormConfirmMessage": "Tem certeza de que deseja limpar todos os campos preenchidos? Esta ação não pode ser desfeita.",
+  "contributeClearFormCancel": "Cancelar",
+  "contributeClearFormConfirm": "Limpar"
 }

@@ -6,6 +6,7 @@ import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
 import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
+import 'package:coldigui/features/contributions/data/datasources/contribution_draft_local_datasource.dart';
 import 'package:coldigui/features/contributions/data/datasources/contributions_remote_datasource.dart';
 import 'package:coldigui/features/contributions/data/device/device_snapshot_provider.dart';
 import 'package:coldigui/features/contributions/data/providers/contributions_providers.dart';
@@ -114,7 +115,9 @@ List<Override> _logged() => [
 ];
 
 void main() {
-  testWidgets('deslogado vê o convite para entrar', (tester) async {
+  testWidgets('deslogado vê todo o formulário com login no lugar de enviar', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       const ContributeScreen(),
@@ -125,7 +128,115 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Entre com Google para contribuir.'), findsOneWidget);
+    expect(find.byKey(const Key('contribute-title')), findsOneWidget);
+    expect(find.byKey(const Key('contribute-body')), findsOneWidget);
+    expect(find.byKey(const Key('contribute-send')), findsNothing);
+    expect(find.byKey(const Key('contribute-clear-form')), findsOneWidget);
   });
+
+  testWidgets(
+    'limpar formulário abre modal de confirmação; cancelar mantém e confirmar limpa',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await pumpApp(tester, const ContributeScreen(), overrides: _logged());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('contribute-title')),
+        'Meu título',
+      );
+      await tester.enterText(
+        find.byKey(const Key('contribute-body')),
+        'Meu corpo',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const Key('contribute-clear-form')),
+      );
+      await tester.tap(find.byKey(const Key('contribute-clear-form')));
+      await tester.pumpAndSettle();
+
+      // Modal aberto com título e mensagem
+      expect(find.text('Limpar formulário?'), findsOneWidget);
+      expect(
+        find.text(
+          'Tem certeza de que deseja limpar todos os campos preenchidos? Esta ação não pode ser desfeita.',
+        ),
+        findsOneWidget,
+      );
+
+      // Cancela: campos continuam preenchidos
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meu título'), findsOneWidget);
+      expect(find.text('Meu corpo'), findsOneWidget);
+
+      // Abre modal de novo e confirma
+      await tester.tap(find.byKey(const Key('contribute-clear-form')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Limpar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meu título'), findsNothing);
+      expect(find.text('Meu corpo'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'rascunho persiste e é restaurado quando a tela é reconstruída após login',
+    (tester) async {
+      final sharedStorage = InMemoryContributionDraftLocalDatasource();
+
+      // Usuário deslogado preenche a tela
+      await pumpApp(
+        tester,
+        const ContributeScreen(),
+        overrides: [
+          authStateProvider.overrideWith(() => FakeAuthNotifier(null)),
+          deviceSnapshotPortProvider.overrideWithValue(FakeDeviceSnapshotPort()),
+          contributionDraftLocalDatasourceProvider.overrideWithValue(
+            sharedStorage,
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('contribute-title')),
+        'Título pré-login',
+      );
+      await tester.enterText(
+        find.byKey(const Key('contribute-body')),
+        'Corpo pré-login',
+      );
+      await tester.pumpAndSettle();
+
+      // Usuário loga e a tela remonta logada
+      await pumpApp(
+        tester,
+        const ContributeScreen(),
+        overrides: [
+          ..._logged(),
+          contributionDraftLocalDatasourceProvider.overrideWithValue(
+            sharedStorage,
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      // O conteúdo inserido foi preservado!
+      expect(find.text('Título pré-login'), findsOneWidget);
+      expect(find.text('Corpo pré-login'), findsOneWidget);
+      // E agora que está logado, o botão de enviar aparece no lugar do de login
+      expect(find.byKey(const Key('contribute-send')), findsOneWidget);
+    },
+  );
+
 
   testWidgets(
     'bug: Enviar só habilita depois de responder sobre o dispositivo',

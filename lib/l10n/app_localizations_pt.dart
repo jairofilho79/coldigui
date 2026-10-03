@@ -1950,4 +1950,20 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get contributionFileScanBlocked => 'recusado';
+
+  @override
+  String get contributeClearForm => 'Limpar formulário';
+
+  @override
+  String get contributeClearFormConfirmTitle => 'Limpar formulário?';
+
+  @override
+  String get contributeClearFormConfirmMessage =>
+      'Tem certeza de que deseja limpar todos os campos preenchidos? Esta ação não pode ser desfeita.';
+
+  @override
+  String get contributeClearFormCancel => 'Cancelar';
+
+  @override
+  String get contributeClearFormConfirm => 'Limpar';
 }

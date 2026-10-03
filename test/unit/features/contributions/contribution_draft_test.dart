@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:coldigui/features/contributions/domain/entities/contribution_attachment.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_draft.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
@@ -175,4 +178,77 @@ void main() {
       ['title', 'number', 'author', 'tonality', 'rhythm', 'tags'],
     );
   });
+
+  group('toStorageJson e fromStorageJson', () {
+    test('serializa e restaura rascunho completo', () {
+      const draft = ContributionDraft(
+        kind: ContributionKind.wrongInfo,
+        subkind: ContributionSubkind.wrongMetadata,
+        target: target,
+        title: 'Título salvo',
+        body: 'Descrição salva',
+        links: ['https://youtu.be/abc', 'https://drive.google.com/file'],
+        metadataField: MetadataField.author,
+        metadataCurrent: 'Antigo',
+        metadataProposed: 'Novo',
+        duplicateOtherPraiseId: 'p-dup',
+        duplicateOtherSource: ContributionSource.coldigom,
+        suggestedKindId: 'kind-1',
+        sameDevice: true,
+        otherDeviceNote: null,
+        appRoute: '/route-1',
+      );
+
+      final json = draft.toStorageJson();
+      final restored = ContributionDraft.fromStorageJson(json);
+
+      expect(restored.kind, draft.kind);
+      expect(restored.subkind, draft.subkind);
+      expect(restored.target?.source, draft.target?.source);
+      expect(restored.target?.praiseId, draft.target?.praiseId);
+      expect(restored.target?.materialId, draft.target?.materialId);
+      expect(restored.title, draft.title);
+      expect(restored.body, draft.body);
+      expect(restored.links, draft.links);
+      expect(restored.metadataField, draft.metadataField);
+      expect(restored.metadataCurrent, draft.metadataCurrent);
+      expect(restored.metadataProposed, draft.metadataProposed);
+      expect(restored.duplicateOtherPraiseId, draft.duplicateOtherPraiseId);
+      expect(restored.duplicateOtherSource, draft.duplicateOtherSource);
+      expect(restored.suggestedKindId, draft.suggestedKindId);
+      expect(restored.sameDevice, draft.sameDevice);
+      expect(restored.appRoute, draft.appRoute);
+    });
+
+    test('anexos menores que 1MB são preservados com bytes; maiores são omitidos no storage', () {
+      final smallBytes = [1, 2, 3, 4];
+      final small = ContributionAttachment(
+        name: 'foto.jpg',
+        size: 4,
+        bytes: Uint8List.fromList(smallBytes),
+      );
+      final big = ContributionAttachment(
+        name: 'grande.pdf',
+        size: 2 * 1024 * 1024,
+        bytes: Uint8List(2 * 1024 * 1024),
+      );
+
+      final draft = const ContributionDraft(
+        kind: ContributionKind.bug,
+        title: 'Bug',
+        body: 'Desc',
+      ).copyWith(attachments: [small, big]);
+
+      final json = draft.toStorageJson();
+      final attachmentsJson = json['attachments'] as List;
+      expect(attachmentsJson.length, 1);
+      expect((attachmentsJson.first as Map)['name'], 'foto.jpg');
+
+      final restored = ContributionDraft.fromStorageJson(json);
+      expect(restored.attachments.length, 1);
+      expect(restored.attachments.first.name, 'foto.jpg');
+      expect(restored.attachments.first.bytes, smallBytes);
+    });
+  });
 }
+

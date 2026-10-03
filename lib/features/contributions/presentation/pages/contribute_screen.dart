@@ -66,6 +66,8 @@ class ContributeScreen extends ConsumerStatefulWidget {
 }
 
 class _ContributeScreenState extends ConsumerState<ContributeScreen> {
+  int _formResetIndex = 0;
+
   ContributeFormArgs get _args =>
       ContributeFormArgs(target: widget.target, from: widget.from);
 
@@ -73,12 +75,6 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
-    if (user == null) {
-      return const Scaffold(
-        appBar: PlpcgPrimaryAppBar(),
-        body: SignInToContribute(),
-      );
-    }
 
     final args = _args;
     final state = ref.watch(contributeFormProvider(args));
@@ -162,9 +158,11 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: Form(
+                key: ValueKey(_formResetIndex),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   Center(
                     child: Text(
                       l10n.contributeTitle,
@@ -339,52 +337,82 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                         backgroundColor: AppColors.gold.withValues(alpha: 0.25),
                       ),
                     ),
+                  if (user == null)
+                    const Center(child: SignInToContribute())
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton(
+                        key: const Key('contribute-send'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.gold,
+                          foregroundColor: AppColors.title,
+                          disabledBackgroundColor: AppColors.background,
+                          disabledForegroundColor: const Color(0xFF351C1B),
+                          side: BorderSide(
+                            color: canSend
+                                ? AppColors.gold
+                                : const Color(0x55D4AF37),
+                            width: canSend ? 2 : 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        onPressed: canSend ? () => _send(snapshot) : null,
+                        child: Text(
+                          l10n.contributeSend,
+                          style: canSend
+                              ? AppTypography.body.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  color: AppColors.title,
+                                )
+                              : AppTypography.body.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  color: const Color(0xFF351C1B),
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0xD0000000),
+                                      offset: Offset(0, -1.0),
+                                      blurRadius: 1.0,
+                                    ),
+                                    Shadow(
+                                      color: Color(0x35FFE29A),
+                                      offset: Offset(0, 1.0),
+                                      blurRadius: 1.0,
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      key: const Key('contribute-send'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.gold,
-                        foregroundColor: AppColors.title,
-                        disabledBackgroundColor: AppColors.background,
-                        disabledForegroundColor: const Color(0xFF351C1B),
-                        side: BorderSide(
-                          color: canSend
-                              ? AppColors.gold
-                              : const Color(0x55D4AF37),
-                          width: canSend ? 2 : 1.5,
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      key: const Key('contribute-clear-form'),
+                      onPressed: () => _confirmClearForm(context),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: AppColors.gold,
+                      ),
+                      label: Text(
+                        l10n.contributeClearForm,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0x55D4AF37)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
-                      ),
-                      onPressed: canSend ? () => _send(snapshot) : null,
-                      child: Text(
-                        l10n.contributeSend,
-                        style: canSend
-                            ? AppTypography.body.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                color: AppColors.title,
-                              )
-                            : AppTypography.body.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                color: const Color(0xFF351C1B),
-                                shadows: const [
-                                  Shadow(
-                                    color: Color(0xD0000000),
-                                    offset: Offset(0, -1.0),
-                                    blurRadius: 1.0,
-                                  ),
-                                  Shadow(
-                                    color: Color(0x35FFE29A),
-                                    offset: Offset(0, 1.0),
-                                    blurRadius: 1.0,
-                                  ),
-                                ],
-                              ),
                       ),
                     ),
                   ),
@@ -394,7 +422,37 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           ),
         ),
       ),
+    ),
+  );
+}
+
+  Future<void> _confirmClearForm(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.contributeClearFormConfirmTitle),
+        content: Text(l10n.contributeClearFormConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.contributeClearFormCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.gold),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.contributeClearFormConfirm),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed == true && mounted) {
+      ref.read(contributeFormProvider(_args).notifier).clearDraft();
+      setState(() {
+        _formResetIndex++;
+      });
+    }
   }
 
   Future<void> _send(DeviceSnapshot? snapshot) {

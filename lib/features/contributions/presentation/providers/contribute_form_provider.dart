@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/data/auth_remote_datasource.dart'
     show AuthUnauthorizedException;
 import '../../../auth/presentation/providers/auth_state_provider.dart';
+import '../../data/datasources/contribution_draft_local_datasource.dart';
 import '../../data/datasources/contributions_remote_datasource.dart';
 import '../../data/providers/contributions_providers.dart';
 import '../../domain/entities/contribution_attachment.dart';
@@ -116,18 +117,41 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
   final ContributeFormArgs arg;
 
   @override
-  ContributeFormState build() => ContributeFormState(
-    draft: ContributionDraft(
-      kind: arg.target != null
-          ? ContributionKind.wrongInfo
-          : ContributionKind.other,
-      target: arg.target,
-      appRoute: arg.from,
-    ),
-  );
+  ContributeFormState build() {
+    final savedDraft =
+        ref.watch(contributionDraftLocalDatasourceProvider).read(arg);
+    return ContributeFormState(
+      draft:
+          savedDraft ??
+          ContributionDraft(
+            kind:
+                arg.target != null
+                    ? ContributionKind.wrongInfo
+                    : ContributionKind.other,
+            target: arg.target,
+            appRoute: arg.from,
+          ),
+    );
+  }
 
-  void _draft(ContributionDraft d) =>
-      state = state.copyWith(draft: d, submit: const ContributeIdle());
+  void _draft(ContributionDraft d) {
+    state = state.copyWith(draft: d, submit: const ContributeIdle());
+    ref.read(contributionDraftLocalDatasourceProvider).write(arg, d);
+  }
+
+  void clearDraft() {
+    ref.read(contributionDraftLocalDatasourceProvider).clear(arg);
+    state = ContributeFormState(
+      draft: ContributionDraft(
+        kind:
+            arg.target != null
+                ? ContributionKind.wrongInfo
+                : ContributionKind.other,
+        target: arg.target,
+        appRoute: arg.from,
+      ),
+    );
+  }
 
   void setKind(ContributionKind kind) {
     // Trocar de kind limpa o subkind e os anexos que o novo kind não aceita
@@ -284,6 +308,7 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
           );
       if (!ref.mounted) return;
       state = state.copyWith(submit: ContributeSent(out.id));
+      await ref.read(contributionDraftLocalDatasourceProvider).clear(arg);
     } on ContributionQuotaExceeded catch (e) {
       if (!ref.mounted) return;
       state = state.copyWith(

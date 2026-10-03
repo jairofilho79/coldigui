@@ -3331,6 +3331,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'recusado'**
   String get contributionFileScanBlocked;
+
+  /// No description provided for @contributeClearForm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar formulário'**
+  String get contributeClearForm;
+
+  /// No description provided for @contributeClearFormConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar formulário?'**
+  String get contributeClearFormConfirmTitle;
+
+  /// No description provided for @contributeClearFormConfirmMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tem certeza de que deseja limpar todos os campos preenchidos? Esta ação não pode ser desfeita.'**
+  String get contributeClearFormConfirmMessage;
+
+  /// No description provided for @contributeClearFormCancel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar'**
+  String get contributeClearFormCancel;
+
+  /// No description provided for @contributeClearFormConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get contributeClearFormConfirm;
 }
 
 class _AppLocalizationsDelegate

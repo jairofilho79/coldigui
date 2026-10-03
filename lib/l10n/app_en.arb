@@ -965,5 +965,10 @@
   "contributionFilesTitle": "Attachments",
   "contributionFileScanPending": "checking",
   "contributionFileScanClean": "ok",
-  "contributionFileScanBlocked": "rejected"
+  "contributionFileScanBlocked": "rejected",
+  "contributeClearForm": "Clear form",
+  "contributeClearFormConfirmTitle": "Clear form?",
+  "contributeClearFormConfirmMessage": "Are you sure you want to clear all filled fields? This action cannot be undone.",
+  "contributeClearFormCancel": "Cancel",
+  "contributeClearFormConfirm": "Clear"
 }
