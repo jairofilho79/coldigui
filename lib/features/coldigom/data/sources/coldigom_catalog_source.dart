@@ -139,6 +139,9 @@ class ColdigomCatalogSource implements CatalogSource {
   /// de quem chama. Um praise só com link de YouTube continua `null`
   /// ([ColdigomGroupParts.isEmpty]).
   LouvorGroup? findGroupById(String groupId) {
+    final indexed = index.groupById(groupId);
+    if (indexed != null) return indexed;
+
     final parts = partsOfGroup(groupId);
     if (parts.isEmpty) return null;
     final groups = LouvorGroup.fromLouvores(
@@ -180,13 +183,20 @@ class ColdigomCatalogSource implements CatalogSource {
 
   /// Versão síncrona de [groupForMaterial].
   LouvorGroup? findGroupForMaterial(String materialId) {
+    final indexed = index.groupForMaterialId(materialId);
+    if (indexed != null) return indexed;
+
     if (materialIdKindOf(materialId) == MaterialKind.lyrics) {
       return findGroupById(materialId.substring('lyrics:'.length));
     }
     // O material em cache sabe o seu praise; o path do id é fallback, porque
     // ~1400 PDFs do coldigom têm `r2_key` na pasta de outro praise.
     final praiseId =
-        louvores[materialId]?.praiseId ?? coldigomPraiseIdFromPdfId(materialId);
+        louvores[materialId]?.praiseId ??
+        audioTracks[materialId]?.groupId ??
+        chords[materialId]?.groupId ??
+        gestures[materialId]?.groupId ??
+        coldigomPraiseIdFromPdfId(materialId);
     if (praiseId == null) return null;
     return findGroupById(praiseId);
   }

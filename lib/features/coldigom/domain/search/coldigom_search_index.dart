@@ -81,6 +81,7 @@ final class ColdigomSearchIndex {
     this._groupByShortId,
     this._groupByMaterialId,
     this._membersByPraiseGroup,
+    this._groupByPraiseId,
   );
 
   /// Índice vazio — antes da hidratação e em modo degradado.
@@ -92,6 +93,7 @@ final class ColdigomSearchIndex {
     <String, LouvorGroup>{},
     <String, LouvorGroup>{},
     <String, List<LouvorGroup>>{},
+    <String, LouvorGroup>{},
   );
 
   /// [catalogIds] é o Isar inteiro (inclui praises sem material endereçável,
@@ -107,10 +109,12 @@ final class ColdigomSearchIndex {
     final praiseIds = Set<String>.unmodifiable({
       for (final e in entries) e.praiseId,
     });
+    final byPraiseId = <String, LouvorGroup>{};
     final byShortId = <String, LouvorGroup>{};
     final byMaterialId = <String, LouvorGroup>{};
     final membersByPraiseGroup = <String, List<LouvorGroup>>{};
     for (final entry in entries) {
+      byPraiseId.putIfAbsent(entry.praiseId, () => entry.group);
       final shortId = normalizePraiseShortId(entry.group.coldigomMeta?.shortId);
       if (shortId != null) byShortId.putIfAbsent(shortId, () => entry.group);
       for (final material in entry.group.materials) {
@@ -136,6 +140,7 @@ final class ColdigomSearchIndex {
             e.value..sort(compareClusterMembers),
           ),
       }),
+      Map<String, LouvorGroup>.unmodifiable(byPraiseId),
     );
   }
 
@@ -157,8 +162,12 @@ final class ColdigomSearchIndex {
 
   final Map<String, LouvorGroup> _groupByShortId;
   final Map<String, LouvorGroup> _groupByMaterialId;
+  final Map<String, LouvorGroup> _groupByPraiseId;
 
   bool get isEmpty => entries.isEmpty;
+
+  /// Grupo do praise pelo [groupId] (praiseId). `null` para desconhecido.
+  LouvorGroup? groupById(String groupId) => _groupByPraiseId[groupId];
 
   /// Grupo do praise com [shortId] (link `?p=`, spec §4.3); a entrada é
   /// normalizada (`0A1` → `0a1`). `null` para inválido ou desconhecido.

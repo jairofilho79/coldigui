@@ -1,6 +1,7 @@
 import '../../../support/fakes/fake_playlists_notifier.dart';
 
 import 'package:coldigui/core/database/isar_provider.dart';
+import 'package:coldigui/core/platform/platform_capabilities.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
@@ -10,6 +11,8 @@ import 'package:coldigui/features/carousel/presentation/widgets/carousel_louvor_
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_swap_material_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
+import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
 import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
@@ -185,12 +188,14 @@ class _Harness {
     required this.carousel,
     required this.readerActions,
     required this.audio,
+    this.openedYoutube = const [],
   });
 
   final GoRouter router;
   final _RecordingActiveEditor carousel;
   final _FakeReaderCarouselActions readerActions;
   final _RecordingAudioSession audio;
+  final List<YoutubeMaterial> openedYoutube;
 
   String get location => router.state.uri.toString();
 }
@@ -259,7 +264,8 @@ Future<_Harness> _pumpSwapSheet(
     ],
   );
 
-  await tester.pumpWidget(
+    final openedYoutube = <YoutubeMaterial>[];
+    await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -269,6 +275,17 @@ Future<_Harness> _pumpSwapSheet(
         readerCarouselActionsProvider.overrideWith(() => readerActions),
         playlistsProvider.overrideWith(FakePlaylistsNotifier.new),
         audioPlayerSessionProvider.overrideWith(() => audio),
+        openMaterialProvider.overrideWithValue(
+          OpenMaterial(
+            openYoutube: (
+              material, {
+              capabilities = PlatformCapabilities.native,
+            }) async {
+              openedYoutube.add(material);
+              return true;
+            },
+          ),
+        ),
         chordSongProvider.overrideWith(
           (ref, r2Key) async => parseChordPro('{title: X}\n\nA [Bb]noite,\n'),
         ),
@@ -287,6 +304,11 @@ Future<_Harness> _pumpSwapSheet(
   capturedRef
       .read(coldigomCacheWriterProvider)
       .mergeChords(group.chordMaterials);
+  if (group.youtubeMaterials.isNotEmpty) {
+    capturedRef
+        .read(coldigomYoutubeCacheProvider.notifier)
+        .mergeYoutube(group.youtubeMaterials);
+  }
   await tester.tap(find.text('trocar'));
   await tester.pumpAndSettle();
 
@@ -295,6 +317,7 @@ Future<_Harness> _pumpSwapSheet(
     carousel: carousel,
     readerActions: readerActions,
     audio: audio,
+    openedYoutube: openedYoutube,
   );
 }
 
@@ -489,6 +512,40 @@ void main() {
         _voiceAudioId2,
       ]);
       expect(harness.audio.startIndex, 0);
+    },
+  );
+
+  testWidgets(
+    'aba de YouTube aparece no sheet de troca e abre o vídeo pelo openMaterialProvider',
+    (tester) async {
+      const youtube = YoutubeMaterial(
+        id: 'yt1',
+        url: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
+        nome: 'Comigo habita',
+        numero: '692',
+        groupId: 'g1',
+        categoria: 'Vídeo Oficial',
+        classificacao: 'Básico',
+      );
+      final group = LouvorGroup.fromLouvores(
+        [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
+        youtubeMaterials: const [youtube],
+      ).first;
+
+      final harness = await _pumpSwapSheet(tester, group: group);
+
+      expect(find.byType(MaterialSheet), findsOneWidget);
+      expect(find.text('YouTube'), findsOneWidget);
+
+      await tester.tap(find.text('YouTube'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vídeo Oficial'), findsOneWidget);
+
+      await tester.tap(find.text('Vídeo Oficial'));
+      await tester.pumpAndSettle();
+
+      expect(harness.openedYoutube.map((y) => y.id).toList(), ['yt1']);
     },
   );
 }

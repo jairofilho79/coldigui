@@ -1,6 +1,7 @@
 import 'package:coldigui/core/utils/pdf_id_codec.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
+import 'package:coldigui/features/catalog/domain/entities/youtube_material.dart';
 import 'package:coldigui/features/catalog/domain/utils/find_louvor_group_by_pdf_id.dart';
 import 'package:coldigui/features/chords/domain/entities/chord_material.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
@@ -106,6 +107,55 @@ void main() {
               categoria: 'Cifra',
               classificacao: 'ColAdultos',
             ),
+          },
+        ),
+      );
+
+      expect(group, isNull);
+    });
+
+    test('inclui YouTube do cache no grupo de um PDF coldigom', () {
+      const yt = YoutubeMaterial(
+        id: 'yt1',
+        url: 'https://youtube.com/watch?v=abc',
+        nome: 'Comigo habita',
+        numero: '002',
+        groupId: 'p9',
+        categoria: 'YouTube',
+        classificacao: 'ColAdultos',
+      );
+      final group = findSwapMaterialGroup(
+        pdfId: coldigomPdfId,
+        source: ColdigomCatalogSource(
+          louvores: {coldigomPdfId: coldigomPdf},
+          youtube: const {
+            'p9': [yt],
+          },
+        ),
+      );
+
+      expect(group, isNotNull);
+      expect(group!.youtubeMaterials.single.id, 'yt1');
+      expect(group.totalMaterials, 2);
+    });
+
+    test('não mistura YouTube de outro praise', () {
+      final group = findSwapMaterialGroup(
+        pdfId: coldigomPdfId,
+        source: ColdigomCatalogSource(
+          louvores: {coldigomPdfId: coldigomPdf},
+          youtube: const {
+            'p8': [
+              YoutubeMaterial(
+                id: 'yt_other',
+                url: 'https://youtube.com/watch?v=other',
+                nome: 'Outro',
+                numero: '003',
+                groupId: 'p8',
+                categoria: 'YouTube',
+                classificacao: 'ColAdultos',
+              ),
+            ],
           },
         ),
       );

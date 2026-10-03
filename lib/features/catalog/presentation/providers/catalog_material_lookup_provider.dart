@@ -76,16 +76,24 @@ final class CatalogMaterialLookup {
   List<YoutubeMaterial> youtube(String groupId) =>
       youtubeByGroupId[groupId] ?? const [];
 
-  /// [group] com a [ColdigomPraiseMetadata] em cache anexada, quando falta.
+  /// [group] com a [ColdigomPraiseMetadata] e vídeos YouTube em cache
+  /// anexados, quando faltam.
   ///
   /// Quem não é Coldigom não tem entrada no cache, então não precisa de
   /// checagem por acervo. Só lê o cache — nunca busca na rede: um praise cujo
   /// detalhe ainda não foi carregado abre o sheet sem o cabeçalho de
   /// metadados.
   LouvorGroup withPraiseMeta(LouvorGroup group) {
-    if (group.coldigomMeta != null) return group;
-    final meta = praiseMeta(group.groupId);
-    return meta == null ? group : group.withColdigomMeta(meta);
+    var result = group;
+    if (result.coldigomMeta == null) {
+      final meta = praiseMeta(result.groupId);
+      if (meta != null) result = result.withColdigomMeta(meta);
+    }
+    if (result.youtubeMaterials.isEmpty) {
+      final yt = youtube(result.groupId);
+      if (yt.isNotEmpty) result = result.withYoutubeMaterials(yt);
+    }
+    return result;
   }
 
   /// Faixas na ordem de [audioIds], **ignorando** ids sem hit no cache.

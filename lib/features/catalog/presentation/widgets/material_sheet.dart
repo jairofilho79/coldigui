@@ -26,6 +26,7 @@ import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
 import '../../domain/utils/louvor_material_icons.dart';
+import '../providers/catalog_material_lookup_provider.dart';
 import '../providers/open_material_provider.dart';
 import 'material_sheet_actions.dart';
 
@@ -306,7 +307,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
 
     final gestureMaterials = group.gestureMaterials;
     final audioTracks = group.audioTracks;
-    final youtubeMaterials = group.youtubeMaterials;
+    final youtubeMaterials = group.youtubeMaterials.isNotEmpty
+        ? group.youtubeMaterials
+        : ref.watch(catalogMaterialLookupProvider).youtube(group.groupId);
 
     // Abas por tipo (PDF / Cifras / Gestos / Áudio / YouTube / Letra) só quando há mais de um
     // tipo — com 17 PDFs e 14 áudios a lista corrida escondia o áudio no fim

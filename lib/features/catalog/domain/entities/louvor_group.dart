@@ -132,6 +132,25 @@ class LouvorGroup {
     );
   }
 
+  /// Cópia com [youtubeMaterials] anexados quando ainda não presentes.
+  LouvorGroup withYoutubeMaterials(List<YoutubeMaterial> youtube) {
+    if (youtube.isEmpty) return this;
+    final existingIds = {for (final y in youtubeMaterials) y.id};
+    final newItems = [
+      for (final y in youtube)
+        if (!existingIds.contains(y.id)) YoutubeMaterialRef(y),
+    ];
+    if (newItems.isEmpty) return this;
+    return LouvorGroup(
+      groupId: groupId,
+      numero: numero,
+      nome: nome,
+      sections: sections,
+      extras: [...extras, ...newItems],
+      coldigomMeta: coldigomMeta,
+    );
+  }
+
   /// PDFs de todas as seções, ordenados por categoria (sem labels de ritmo).
   List<LouvorMaterialEntry> get flatPdfMaterials {
     final entries = [for (final section in sections) ...section.materials];
