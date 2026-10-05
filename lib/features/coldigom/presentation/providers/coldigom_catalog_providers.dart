@@ -199,10 +199,14 @@ final coldigomSearchIndexProvider = Provider<ColdigomSearchIndex>((ref) {
 /// §4.1). Lê as prefs; [ColdigomCatalogSyncNotifier] invalida depois de um
 /// dump novo. Vazia antes do primeiro dump com taxonomia.
 final coldigomKindTaxonomyProvider = Provider<MaterialKindTaxonomy>((ref) {
-  return ref
-          .watch(coldigomCatalogSyncMetadataStoreProvider)
-          .readKindTaxonomy() ??
-      MaterialKindTaxonomy.empty;
+  try {
+    return ref
+            .watch(coldigomCatalogSyncMetadataStoreProvider)
+            .readKindTaxonomy() ??
+        MaterialKindTaxonomy.empty;
+  } catch (_) {
+    return MaterialKindTaxonomy.empty;
+  }
 });
 
 /// Estado do sync do catálogo Coldigom — a linha «Catálogo: N louvores ·

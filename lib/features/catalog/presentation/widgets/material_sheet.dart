@@ -18,16 +18,21 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../../offline/presentation/providers/material_availability_map_provider.dart';
 import '../../../pdf_opening/domain/entities/pdf_offline_availability.dart';
 import '../../../playlists/presentation/providers/active_playlist_editor.dart';
+import '../../../audio_player/domain/entities/audio_track.dart';
 import '../../../chords/domain/entities/chord_material.dart';
 import '../../../chords/presentation/providers/available_chords_provider.dart';
 import '../../../coldigom/domain/entities/coldigom_praise_metadata.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../gestures/domain/entities/gesture_material.dart';
 import '../../../material_kind_prefs/domain/usecases/order_by_favorite_kinds.dart';
 import '../../../material_kind_prefs/presentation/providers/material_kind_prefs_provider.dart';
 import '../../domain/entities/catalog_material.dart';
 import '../../domain/entities/louvor_group.dart';
+import '../../domain/entities/material_kind_taxonomy.dart';
+import '../../domain/entities/youtube_material.dart';
+import '../../domain/usecases/build_material_sheet_sections.dart';
 import '../../domain/utils/louvor_material_icons.dart';
 import '../providers/catalog_material_lookup_provider.dart';
 import '../providers/open_material_provider.dart';
@@ -205,12 +210,17 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     IconData? icon,
     String? subtitle,
     bool enabled = true,
+    bool shaded = false,
   }) {
     final showAdd =
         widget.canAddToPlaylist && canAddMaterialToPlaylist(material);
     final isAdded = activeMaterialIds.contains(material.id);
     return ListTile(
       enabled: enabled,
+      tileColor: shaded ? const Color(0x0A6A2F2F) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
       leading: Icon(
         icon ?? LouvorMaterialIcons.forMaterial(material),
         color: iconColor,
@@ -280,6 +290,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     // Favoritos da conta (spec D9): sobem dentro de cada aba, o resto mantém
     // a ordem do servidor. Vazio para deslogado e para o acervo PLPCG.
     final rank = ref.watch(favoriteMaterialKindRankProvider);
+    final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
 
     final index = ref.watch(coldigomSearchIndexProvider);
     final relatedPraises = resolveRelatedPraisesForGroup(group, index);
@@ -289,6 +300,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final online = ref.watch(connectivityStreamProvider).value ?? true;
     final availability = ref.watch(materialAvailabilityMapProvider);
 
+    var tileIndex = 0;
     // Helper local para não repetir `_availabilityFor` nos seis pontos que
     // montam um tile — o subtítulo de indisponibilidade ganha do autor do
     // áudio: é a informação acionável offline.
@@ -304,6 +316,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         availability: availability,
         l10n: l10n,
       );
+      final isShaded = (tileIndex++).isOdd;
       return _materialTile(
         material: material,
         icon: icon,
@@ -312,6 +325,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
         l10n: l10n,
         enabled: state.enabled,
         subtitle: state.subtitle ?? subtitle,
+        shaded: isShaded,
       );
     }
 
@@ -444,49 +458,43 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
               child: ListView(
                 children: switch (selectedKind) {
                   null => const [],
-                  MaterialKind.pdf => _pdfTiles(group, l10n, rank, tileFor),
-                  MaterialKind.chord => _chordTiles(
+                  MaterialKind.pdf => _pdfTiles(
                     group,
-                    availableChords,
-                    chordsAsync.hasError,
+                    taxonomy,
                     l10n,
                     rank,
                     tileFor,
                   ),
-                  MaterialKind.gesture => [
-                    for (final gesture in orderByFavoriteKinds(
-                      gestureMaterials,
-                      rank,
-                      kindIdOf: (g) => g.materialKindId,
-                    ))
-                      tileFor(
-                        GestureMaterialRef(gesture),
-                        iconColor: AppColors.title,
-                      ),
-                  ],
-                  MaterialKind.audio => [
-                    for (final track in orderByFavoriteKinds(
-                      audioTracks,
-                      rank,
-                      kindIdOf: (t) => t.materialKindId,
-                    ))
-                      tileFor(
-                        AudioMaterial(track),
-                        iconColor: AppColors.title,
-                        subtitle: track.author,
-                      ),
-                  ],
-                  MaterialKind.youtube => [
-                    for (final item in orderByFavoriteKinds(
-                      youtubeMaterials,
-                      rank,
-                      kindIdOf: (y) => y.materialKindId,
-                    ))
-                      tileFor(
-                        YoutubeMaterialRef(item),
-                        iconColor: AppColors.youtube,
-                      ),
-                  ],
+                  MaterialKind.chord => _chordTiles(
+                    group,
+                    availableChords,
+                    chordsAsync.hasError,
+                    taxonomy,
+                    l10n,
+                    rank,
+                    tileFor,
+                  ),
+                  MaterialKind.gesture => _gestureTiles(
+                    gestureMaterials,
+                    taxonomy,
+                    l10n,
+                    rank,
+                    tileFor,
+                  ),
+                  MaterialKind.audio => _audioTiles(
+                    audioTracks,
+                    taxonomy,
+                    l10n,
+                    rank,
+                    tileFor,
+                  ),
+                  MaterialKind.youtube => _youtubeTiles(
+                    youtubeMaterials,
+                    taxonomy,
+                    l10n,
+                    rank,
+                    tileFor,
+                  ),
                   MaterialKind.lyrics => [
                     tileFor(group.lyrics!, iconColor: AppColors.title),
                   ],
@@ -504,11 +512,13 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     );
   }
 
-  /// PDFs por seção; o rótulo da seção só quando há mais de uma. Classificação
-  /// vazia (praise Coldigom sem ritmo) cai em «Partituras» em vez de um rótulo
-  /// em branco.
+  /// PDFs por seção. Quando a taxonomia Coldigom está disponível, agrupa os PDFs
+  /// pelas classes taxonômicas (Regência, Vozes, Metais, etc.), igual na
+  /// Biblioteca e no Offline. Sem taxonomia, faz fallback para as seções
+  /// de classificação do grupo (manifesto).
   List<Widget> _pdfTiles(
     LouvorGroup group,
+    MaterialKindTaxonomy taxonomy,
     AppLocalizations l10n,
     Map<String, int> rank,
     Widget Function(
@@ -519,6 +529,37 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     })
     tileFor,
   ) {
+    final allEntries = [
+      for (final section in group.sections) ...section.materials,
+    ];
+    final taxonomySections = buildMaterialSheetSections<LouvorMaterialEntry>(
+      items: allEntries,
+      kindIdOf: (e) => e.louvor.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (e) => e.categoria,
+    );
+
+    if (taxonomySections.isNotEmpty) {
+      final showHeaders = taxonomySections.length > 1;
+      return [
+        for (final section in taxonomySections) ...[
+          if (showHeaders && section.label != null)
+            _ClassHeader(
+              label: section.label!,
+              count: section.items.length,
+            ),
+          for (final entry in section.items)
+            tileFor(
+              PdfMaterial(entry.louvor),
+              icon: LouvorMaterialIcons.forEntry(entry),
+              iconColor: AppColors.title,
+            ),
+        ],
+      ];
+    }
+
     final showSectionLabels = group.sections.length > 1;
     return [
       for (final section in group.sections) ...[
@@ -548,6 +589,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     LouvorGroup group,
     List<ChordMaterial> availableChords,
     bool hasError,
+    MaterialKindTaxonomy taxonomy,
     AppLocalizations l10n,
     Map<String, int> rank,
     Widget Function(
@@ -558,13 +600,39 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     })
     tileFor,
   ) {
+    final taxonomySections = buildMaterialSheetSections<ChordMaterial>(
+      items: availableChords,
+      kindIdOf: (c) => c.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (c) => c.categoria,
+    );
+
+    final showHeaders = taxonomySections.length > 1;
+    final tiles = taxonomySections.isNotEmpty
+        ? [
+            for (final section in taxonomySections) ...[
+              if (showHeaders && section.label != null)
+                _ClassHeader(
+                  label: section.label!,
+                  count: section.items.length,
+                ),
+              for (final chord in section.items)
+                tileFor(ChordMaterialRef(chord), iconColor: AppColors.title),
+            ],
+          ]
+        : [
+            for (final chord in orderByFavoriteKinds(
+              availableChords,
+              rank,
+              kindIdOf: (c) => c.materialKindId,
+            ))
+              tileFor(ChordMaterialRef(chord), iconColor: AppColors.title),
+          ];
+
     return [
-      for (final chord in orderByFavoriteKinds(
-        availableChords,
-        rank,
-        kindIdOf: (c) => c.materialKindId,
-      ))
-        tileFor(ChordMaterialRef(chord), iconColor: AppColors.title),
+      ...tiles,
       // Defensivo: `availableChordsProvider` engole falha de rede por cifra
       // (a cifra fica listada), então este ramo só é alcançado por erro
       // inesperado. Fica porque o custo é uma linha e a alternativa — aba
@@ -582,6 +650,167 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     ];
   }
 
+  List<Widget> _gestureTiles(
+    List<GestureMaterial> gestures,
+    MaterialKindTaxonomy taxonomy,
+    AppLocalizations l10n,
+    Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
+  ) {
+    final taxonomySections = buildMaterialSheetSections<GestureMaterial>(
+      items: gestures,
+      kindIdOf: (g) => g.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (g) => g.categoria,
+    );
+
+    final showHeaders = taxonomySections.length > 1;
+    if (taxonomySections.isNotEmpty) {
+      return [
+        for (final section in taxonomySections) ...[
+          if (showHeaders && section.label != null)
+            _ClassHeader(
+              label: section.label!,
+              count: section.items.length,
+            ),
+          for (final gesture in section.items)
+            tileFor(
+              GestureMaterialRef(gesture),
+              iconColor: AppColors.title,
+            ),
+        ],
+      ];
+    }
+
+    return [
+      for (final gesture in orderByFavoriteKinds(
+        gestures,
+        rank,
+        kindIdOf: (g) => g.materialKindId,
+      ))
+        tileFor(
+          GestureMaterialRef(gesture),
+          iconColor: AppColors.title,
+        ),
+    ];
+  }
+
+  List<Widget> _audioTiles(
+    List<AudioTrack> audioTracks,
+    MaterialKindTaxonomy taxonomy,
+    AppLocalizations l10n,
+    Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
+  ) {
+    final taxonomySections = buildMaterialSheetSections<AudioTrack>(
+      items: audioTracks,
+      kindIdOf: (t) => t.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (t) => t.categoria,
+    );
+
+    final showHeaders = taxonomySections.length > 1;
+    if (taxonomySections.isNotEmpty) {
+      return [
+        for (final section in taxonomySections) ...[
+          if (showHeaders && section.label != null)
+            _ClassHeader(
+              label: section.label!,
+              count: section.items.length,
+            ),
+          for (final track in section.items)
+            tileFor(
+              AudioMaterial(track),
+              iconColor: AppColors.title,
+              subtitle: track.author,
+            ),
+        ],
+      ];
+    }
+
+    return [
+      for (final track in orderByFavoriteKinds(
+        audioTracks,
+        rank,
+        kindIdOf: (t) => t.materialKindId,
+      ))
+        tileFor(
+          AudioMaterial(track),
+          iconColor: AppColors.title,
+          subtitle: track.author,
+        ),
+    ];
+  }
+
+  List<Widget> _youtubeTiles(
+    List<YoutubeMaterial> youtubeMaterials,
+    MaterialKindTaxonomy taxonomy,
+    AppLocalizations l10n,
+    Map<String, int> rank,
+    Widget Function(
+      CatalogMaterial, {
+      required Color iconColor,
+      IconData? icon,
+      String? subtitle,
+    })
+    tileFor,
+  ) {
+    final taxonomySections = buildMaterialSheetSections<YoutubeMaterial>(
+      items: youtubeMaterials,
+      kindIdOf: (y) => y.materialKindId,
+      taxonomy: taxonomy,
+      rank: rank,
+      otherLabel: l10n.materialKindOtherClass,
+      labelOf: (y) => y.categoria,
+    );
+
+    final showHeaders = taxonomySections.length > 1;
+    if (taxonomySections.isNotEmpty) {
+      return [
+        for (final section in taxonomySections) ...[
+          if (showHeaders && section.label != null)
+            _ClassHeader(
+              label: section.label!,
+              count: section.items.length,
+            ),
+          for (final item in section.items)
+            tileFor(
+              YoutubeMaterialRef(item),
+              iconColor: AppColors.youtube,
+            ),
+        ],
+      ];
+    }
+
+    return [
+      for (final item in orderByFavoriteKinds(
+        youtubeMaterials,
+        rank,
+        kindIdOf: (y) => y.materialKindId,
+      ))
+        tileFor(
+          YoutubeMaterialRef(item),
+          iconColor: AppColors.youtube,
+        ),
+    ];
+  }
+
   static String _kindLabel(AppLocalizations l10n, MaterialKind kind) {
     return switch (kind) {
       MaterialKind.pdf => l10n.pdfMaterialSection,
@@ -592,6 +821,42 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
       MaterialKind.lyrics => l10n.lyricsTab,
       MaterialKind.unknown => throw StateError('kind sem aba: $kind'),
     };
+  }
+}
+
+/// Rótulo da classe taxonômica: caixa-alta pequena, contagem e um fio até a borda
+/// (mesmo padrão visual da Biblioteca e do Offline).
+class _ClassHeader extends StatelessWidget {
+  const _ClassHeader({required this.label, required this.count});
+
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTypography.label.copyWith(
+      fontSize: 11.5,
+      letterSpacing: 1,
+      color: AppColors.title.withValues(alpha: 0.7),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 6),
+      child: Row(
+        children: [
+          Text(label.toUpperCase(), style: style),
+          const SizedBox(width: 6),
+          Text('$count', style: style.copyWith(fontWeight: FontWeight.w400)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.title.withValues(alpha: 0.16),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
