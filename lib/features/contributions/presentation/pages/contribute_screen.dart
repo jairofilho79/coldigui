@@ -16,6 +16,7 @@ import '../../domain/entities/contribution_target.dart';
 import '../../domain/entities/device_snapshot.dart';
 import '../../domain/validators/attachment_rules.dart';
 import '../providers/contribute_form_provider.dart';
+import '../utils/contribution_labels.dart';
 import '../utils/pick_files.dart';
 import '../utils/rejection_message.dart';
 import '../widgets/contribute_help_collapse.dart';
@@ -67,9 +68,32 @@ class ContributeScreen extends ConsumerStatefulWidget {
 
 class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   int _formResetIndex = 0;
+  late final TextEditingController _titleController;
 
   ContributeFormArgs get _args =>
       ContributeFormArgs(target: widget.target, from: widget.from);
+
+  @override
+  void initState() {
+    super.initState();
+    final initialDraft = ref.read(contributeFormProvider(_args)).draft;
+    _titleController = TextEditingController(text: initialDraft.title);
+  }
+
+  @override
+  void didUpdateWidget(covariant ContributeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.target != oldWidget.target || widget.from != oldWidget.from) {
+      final newDraft = ref.read(contributeFormProvider(_args)).draft;
+      _titleController.text = newDraft.title;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +124,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final snapshot = snapshotAsync.value;
 
     ref.listen(contributeFormProvider(args), (previous, next) {
+      if (next.draft.title != _titleController.text) {
+        _titleController.value = TextEditingValue(
+          text: next.draft.title,
+          selection: TextSelection.collapsed(offset: next.draft.title.length),
+        );
+      }
       final messenger = ScaffoldMessenger.of(context);
       switch (next.submit) {
         case ContributeSent():
@@ -141,20 +171,20 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
           constraints: const BoxConstraints(maxWidth: 640),
           child: Theme(
             data: Theme.of(context).copyWith(
-              inputDecorationTheme:
-                  Theme.of(context).inputDecorationTheme.copyWith(
-                        floatingLabelStyle: AppTypography.label.copyWith(
-                          color: AppColors.title,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        labelStyle: AppTypography.body.copyWith(
-                          color: AppColors.title.withValues(alpha: 0.75),
-                        ),
-                        counterStyle: AppTypography.body.copyWith(
-                          fontSize: 12,
-                          color: AppColors.textLight.withValues(alpha: 0.8),
-                        ),
-                      ),
+              inputDecorationTheme: Theme.of(context).inputDecorationTheme
+                  .copyWith(
+                    floatingLabelStyle: AppTypography.label.copyWith(
+                      color: AppColors.title,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    labelStyle: AppTypography.body.copyWith(
+                      color: AppColors.title.withValues(alpha: 0.75),
+                    ),
+                    counterStyle: AppTypography.body.copyWith(
+                      fontSize: 12,
+                      color: AppColors.textLight.withValues(alpha: 0.8),
+                    ),
+                  ),
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -163,268 +193,283 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  Center(
-                    child: Text(
-                      l10n.contributeTitle,
-                      style: AppTypography.headline.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textLight,
+                    Center(
+                      child: Text(
+                        l10n.contributeTitle,
+                        style: AppTypography.headline.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textLight,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  const ContributeHelpCollapse(),
-                  const SizedBox(height: 20),
-                  Text(
-                    l10n.contributeKindLabel,
-                    style: AppTypography.label.copyWith(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  KindChips(selected: draft.kind, onSelected: notifier.setKind),
-                  if (subkindsOf(draft.kind).isNotEmpty) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    const ContributeHelpCollapse(),
+                    const SizedBox(height: 20),
                     Text(
-                      l10n.contributeSubkindLabel,
+                      l10n.contributeKindLabel,
                       style: AppTypography.label.copyWith(
                         color: AppColors.textLight,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    SubkindChips(
-                      kind: draft.kind,
-                      selected: draft.subkind,
-                      onSelected: notifier.setSubkind,
+                    KindChips(
+                      selected: draft.kind,
+                      onSelected: (kind) => notifier.setKind(kind, title: ''),
                     ),
-                  ],
-                  if (widget.target?.praiseId != null) ...[
+                    if (subkindsOf(draft.kind).isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.contributeSubkindLabel,
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SubkindChips(
+                        kind: draft.kind,
+                        selected: draft.subkind,
+                        onSelected: (subkind) {
+                          final autoTitle = contributionAutoTitle(
+                            l10n,
+                            draft.kind,
+                            subkind,
+                          );
+                          notifier.setSubkind(subkind, title: autoTitle);
+                        },
+                      ),
+                    ],
+                    if (widget.target?.praiseId != null) ...[
+                      const SizedBox(height: 16),
+                      MaterialDropdown(
+                        praiseId: widget.target!.praiseId!,
+                        value: draft.target?.materialId,
+                        onChanged: notifier.setMaterial,
+                      ),
+                    ],
+                    if (draft.subkind == ContributionSubkind.wrongMetadata) ...[
+                      const SizedBox(height: 16),
+                      MetadataFields(
+                        praiseId: widget.target?.praiseId,
+                        field: draft.metadataField,
+                        current: draft.metadataCurrent,
+                        proposed: draft.metadataProposed,
+                        onFieldChanged: (f) => notifier.setMetadata(field: f),
+                        onCurrentChanged: (v) =>
+                            notifier.setMetadata(current: v),
+                        onProposedChanged: (v) =>
+                            notifier.setMetadata(proposed: v),
+                      ),
+                    ],
+                    if (draft.subkind == ContributionSubkind.duplicate) ...[
+                      const SizedBox(height: 16),
+                      DuplicateField(
+                        onSelected: ({required praiseId, required source}) =>
+                            notifier.setDuplicate(
+                              praiseId: praiseId,
+                              source: source,
+                            ),
+                      ),
+                    ],
+                    if (draft.kind == ContributionKind.content) ...[
+                      const SizedBox(height: 16),
+                      SuggestedKindDropdown(
+                        value: draft.suggestedKindId,
+                        onChanged: notifier.setSuggestedKind,
+                      ),
+                    ],
                     const SizedBox(height: 16),
-                    MaterialDropdown(
-                      praiseId: widget.target!.praiseId!,
-                      value: draft.target?.materialId,
-                      onChanged: notifier.setMaterial,
-                    ),
-                  ],
-                  if (draft.subkind == ContributionSubkind.wrongMetadata) ...[
-                    const SizedBox(height: 16),
-                    MetadataFields(
-                      praiseId: widget.target?.praiseId,
-                      field: draft.metadataField,
-                      current: draft.metadataCurrent,
-                      proposed: draft.metadataProposed,
-                      onFieldChanged: (f) => notifier.setMetadata(field: f),
-                      onCurrentChanged: (v) => notifier.setMetadata(current: v),
-                      onProposedChanged: (v) =>
-                          notifier.setMetadata(proposed: v),
-                    ),
-                  ],
-                  if (draft.subkind == ContributionSubkind.duplicate) ...[
-                    const SizedBox(height: 16),
-                    DuplicateField(
-                      onSelected: ({required praiseId, required source}) =>
-                          notifier.setDuplicate(
-                            praiseId: praiseId,
-                            source: source,
+                    GoldenTaggedContainer(
+                      label: l10n.contributeTitleField,
+                      contentPadding:
+                          GoldenTaggedContainer.compactContentPaddingFor(
+                            context,
                           ),
+                      child: TextFormField(
+                        key: const Key('contribute-title'),
+                        controller: _titleController,
+                        maxLength: kMaxTitleLength,
+                        style: AppTypography.input,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          counterStyle: AppTypography.body.copyWith(
+                            fontSize: 12,
+                            color: AppColors.title.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        onChanged: notifier.setTitle,
+                      ),
                     ),
-                  ],
-                  if (draft.kind == ContributionKind.content) ...[
                     const SizedBox(height: 16),
-                    SuggestedKindDropdown(
-                      value: draft.suggestedKindId,
-                      onChanged: notifier.setSuggestedKind,
+                    GoldenTaggedContainer(
+                      label: l10n.contributeBodyField,
+                      contentPadding: EdgeInsets.fromLTRB(
+                        12,
+                        MediaQuery.textScalerOf(context).scale(14),
+                        12,
+                        MediaQuery.textScalerOf(context).scale(8),
+                      ),
+                      child: TextFormField(
+                        key: const Key('contribute-body'),
+                        initialValue: draft.body,
+                        maxLength: kMaxBodyLength,
+                        minLines: 4,
+                        maxLines: null,
+                        style: AppTypography.input,
+                        decoration: InputDecoration(
+                          hintText: draft.kind == ContributionKind.bug
+                              ? l10n.contributeBodyHintBug
+                              : null,
+                          hintStyle: AppTypography.hint(italic: true),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          counterStyle: AppTypography.body.copyWith(
+                            fontSize: 12,
+                            color: AppColors.title.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        onChanged: notifier.setBody,
+                      ),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  GoldenTaggedContainer(
-                    label: l10n.contributeTitleField,
-                    contentPadding:
-                        GoldenTaggedContainer.compactContentPaddingFor(context),
-                    child: TextFormField(
-                      key: const Key('contribute-title'),
-                      initialValue: draft.title,
-                      maxLength: kMaxTitleLength,
-                      style: AppTypography.input,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        counterStyle: AppTypography.body.copyWith(
-                          fontSize: 12,
-                          color: AppColors.title.withValues(alpha: 0.6),
+                    const SizedBox(height: 16),
+                    AttachmentsSection(
+                      kind: draft.kind,
+                      attachments: draft.attachments,
+                      pickFiles: widget.pickFiles,
+                      onAdd: notifier.addAttachment,
+                      onRemove: notifier.removeAttachment,
+                    ),
+                    const SizedBox(height: 16),
+                    LinksSection(
+                      links: draft.links,
+                      onAdd: notifier.addLink,
+                      onRemove: notifier.removeLink,
+                    ),
+                    // Ordem do spec §6.2: o cartão de consentimento do
+                    // dispositivo vem depois de anexos/links, logo antes do
+                    // botão de enviar — só para bug.
+                    if (isBug) ...[
+                      const SizedBox(height: 16),
+                      DeviceConsentCard(
+                        snapshot: snapshot,
+                        sameDevice: draft.sameDevice,
+                        otherDeviceNote: draft.otherDeviceNote ?? '',
+                        onSameDevice: notifier.setSameDevice,
+                        onOtherDeviceNote: notifier.setOtherDeviceNote,
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    if (state.submit case ContributeSending(:final progress))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          color: AppColors.gold,
+                          backgroundColor: AppColors.gold.withValues(
+                            alpha: 0.25,
+                          ),
                         ),
                       ),
-                      onChanged: notifier.setTitle,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GoldenTaggedContainer(
-                    label: l10n.contributeBodyField,
-                    contentPadding: EdgeInsets.fromLTRB(
-                      12,
-                      MediaQuery.textScalerOf(context).scale(14),
-                      12,
-                      MediaQuery.textScalerOf(context).scale(8),
-                    ),
-                    child: TextFormField(
-                      key: const Key('contribute-body'),
-                      initialValue: draft.body,
-                      maxLength: kMaxBodyLength,
-                      minLines: 4,
-                      maxLines: null,
-                      style: AppTypography.input,
-                      decoration: InputDecoration(
-                        hintText: draft.kind == ContributionKind.bug
-                            ? l10n.contributeBodyHintBug
-                            : null,
-                        hintStyle: AppTypography.hint(italic: true),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                        counterStyle: AppTypography.body.copyWith(
-                          fontSize: 12,
-                          color: AppColors.title.withValues(alpha: 0.6),
+                    if (user == null)
+                      const Center(child: SignInToContribute())
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton(
+                          key: const Key('contribute-send'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.gold,
+                            foregroundColor: AppColors.title,
+                            disabledBackgroundColor: AppColors.background,
+                            disabledForegroundColor: const Color(0xFF351C1B),
+                            side: BorderSide(
+                              color: canSend
+                                  ? AppColors.gold
+                                  : const Color(0x55D4AF37),
+                              width: canSend ? 2 : 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          onPressed: canSend ? () => _send(snapshot) : null,
+                          child: Text(
+                            l10n.contributeSend,
+                            style: canSend
+                                ? AppTypography.body.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    color: AppColors.title,
+                                  )
+                                : AppTypography.body.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    color: const Color(0xFF351C1B),
+                                    shadows: const [
+                                      Shadow(
+                                        color: Color(0xD0000000),
+                                        offset: Offset(0, -1.0),
+                                        blurRadius: 1.0,
+                                      ),
+                                      Shadow(
+                                        color: Color(0x35FFE29A),
+                                        offset: Offset(0, 1.0),
+                                        blurRadius: 1.0,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ),
-                      onChanged: notifier.setBody,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  AttachmentsSection(
-                    kind: draft.kind,
-                    attachments: draft.attachments,
-                    pickFiles: widget.pickFiles,
-                    onAdd: notifier.addAttachment,
-                    onRemove: notifier.removeAttachment,
-                  ),
-                  const SizedBox(height: 16),
-                  LinksSection(
-                    links: draft.links,
-                    onAdd: notifier.addLink,
-                    onRemove: notifier.removeLink,
-                  ),
-                  // Ordem do spec §6.2: o cartão de consentimento do
-                  // dispositivo vem depois de anexos/links, logo antes do
-                  // botão de enviar — só para bug.
-                  if (isBug) ...[
-                    const SizedBox(height: 16),
-                    DeviceConsentCard(
-                      snapshot: snapshot,
-                      sameDevice: draft.sameDevice,
-                      otherDeviceNote: draft.otherDeviceNote ?? '',
-                      onSameDevice: notifier.setSameDevice,
-                      onOtherDeviceNote: notifier.setOtherDeviceNote,
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  if (state.submit case ContributeSending(:final progress))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        color: AppColors.gold,
-                        backgroundColor: AppColors.gold.withValues(alpha: 0.25),
-                      ),
-                    ),
-                  if (user == null)
-                    const Center(child: SignInToContribute())
-                  else
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
-                      child: FilledButton(
-                        key: const Key('contribute-send'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.gold,
-                          foregroundColor: AppColors.title,
-                          disabledBackgroundColor: AppColors.background,
-                          disabledForegroundColor: const Color(0xFF351C1B),
-                          side: BorderSide(
-                            color: canSend
-                                ? AppColors.gold
-                                : const Color(0x55D4AF37),
-                            width: canSend ? 2 : 1.5,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        key: const Key('contribute-clear-form'),
+                        onPressed: () => _confirmClearForm(context),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: AppColors.gold,
+                        ),
+                        label: Text(
+                          l10n.contributeClearForm,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.gold,
+                            fontWeight: FontWeight.w600,
                           ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0x55D4AF37)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
-                        onPressed: canSend ? () => _send(snapshot) : null,
-                        child: Text(
-                          l10n.contributeSend,
-                          style: canSend
-                              ? AppTypography.body.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                  color: AppColors.title,
-                                )
-                              : AppTypography.body.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                  color: const Color(0xFF351C1B),
-                                  shadows: const [
-                                    Shadow(
-                                      color: Color(0xD0000000),
-                                      offset: Offset(0, -1.0),
-                                      blurRadius: 1.0,
-                                    ),
-                                    Shadow(
-                                      color: Color(0x35FFE29A),
-                                      offset: Offset(0, 1.0),
-                                      blurRadius: 1.0,
-                                    ),
-                                  ],
-                                ),
-                        ),
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: OutlinedButton.icon(
-                      key: const Key('contribute-clear-form'),
-                      onPressed: () => _confirmClearForm(context),
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 20,
-                        color: AppColors.gold,
-                      ),
-                      label: Text(
-                        l10n.contributeClearForm,
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0x55D4AF37)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _confirmClearForm(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
@@ -449,6 +494,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
 
     if (confirmed == true && mounted) {
       ref.read(contributeFormProvider(_args).notifier).clearDraft();
+      _titleController.text = '';
       setState(() {
         _formResetIndex++;
       });

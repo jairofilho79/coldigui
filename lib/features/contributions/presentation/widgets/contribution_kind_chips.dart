@@ -62,7 +62,7 @@ class SubkindChips extends StatelessWidget {
         for (final subkind in subkindsOf(kind))
           ChoiceChip(
             key: Key('subkind-${subkind.wireName}'),
-            label: Text(_subkindLabel(l10n, subkind)),
+            label: Text(contributionSubkindLabel(l10n, subkind)),
             selected: selected == subkind,
             showCheckmark: false,
             onSelected: (_) => onSelected(subkind),
@@ -70,31 +70,4 @@ class SubkindChips extends StatelessWidget {
       ],
     );
   }
-
-  static String _subkindLabel(
-    AppLocalizations l10n,
-    ContributionSubkind subkind,
-  ) => switch (subkind) {
-    ContributionSubkind.bugScreen => l10n.contributeSubkindBugScreen,
-    ContributionSubkind.bugReader => l10n.contributeSubkindBugReader,
-    ContributionSubkind.bugAudio => l10n.contributeSubkindBugAudio,
-    ContributionSubkind.bugSearch => l10n.contributeSubkindBugSearch,
-    ContributionSubkind.bugOffline => l10n.contributeSubkindBugOffline,
-    ContributionSubkind.bugLogin => l10n.contributeSubkindBugLogin,
-    ContributionSubkind.bugPlaylistLive =>
-      l10n.contributeSubkindBugPlaylistLive,
-    ContributionSubkind.bugOther => l10n.contributeSubkindBugOther,
-    ContributionSubkind.wrongMetadata => l10n.contributeSubkindWrongMetadata,
-    ContributionSubkind.wrongLyrics => l10n.contributeSubkindWrongLyrics,
-    ContributionSubkind.wrongMaterial => l10n.contributeSubkindWrongMaterial,
-    ContributionSubkind.wrongKind => l10n.contributeSubkindWrongKind,
-    ContributionSubkind.duplicate => l10n.contributeSubkindDuplicate,
-    ContributionSubkind.addMaterial => l10n.contributeSubkindAddMaterial,
-    ContributionSubkind.addPraise => l10n.contributeSubkindAddPraise,
-    ContributionSubkind.replaceMaterial =>
-      l10n.contributeSubkindReplaceMaterial,
-    ContributionSubkind.remove => l10n.contributeSubkindRemove,
-    ContributionSubkind.feature => l10n.contributeSubkindFeature,
-    ContributionSubkind.behavior => l10n.contributeSubkindBehavior,
-  };
 }

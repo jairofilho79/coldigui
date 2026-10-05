@@ -198,7 +198,9 @@ void main() {
         const ContributeScreen(),
         overrides: [
           authStateProvider.overrideWith(() => FakeAuthNotifier(null)),
-          deviceSnapshotPortProvider.overrideWithValue(FakeDeviceSnapshotPort()),
+          deviceSnapshotPortProvider.overrideWithValue(
+            FakeDeviceSnapshotPort(),
+          ),
           contributionDraftLocalDatasourceProvider.overrideWithValue(
             sharedStorage,
           ),
@@ -236,7 +238,6 @@ void main() {
       expect(find.byKey(const Key('contribute-send')), findsOneWidget);
     },
   );
-
 
   testWidgets(
     'bug: Enviar só habilita depois de responder sobre o dispositivo',
@@ -532,5 +533,113 @@ void main() {
       expect(find.text(label), findsWidgets, reason: label);
     }
     expect(find.text('Categoria'), findsNothing);
+  });
+
+  testWidgets(
+    'preenchimento automático do título pela combinação de kind e subkind (somente Outro vazio)',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await pumpApp(tester, const ContributeScreen(), overrides: _logged());
+      await tester.pumpAndSettle();
+
+      final titleFinder = find.byKey(const Key('contribute-title'));
+
+      // Inicialmente (kind: other), título vem vazio
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        isEmpty,
+      );
+
+      // Troca para Bug na app: sem subkind selecionado, título segue vazio
+      await tester.tap(find.text('Bug na app'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        isEmpty,
+      );
+
+      // Seleciona Leitor: título preenchido automaticamente
+      await tester.tap(find.text('Leitor'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        'Bug na app - Leitor',
+      );
+
+      // Troca para Áudio: título atualiza automaticamente
+      await tester.tap(find.text('Áudio'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        'Bug na app - Áudio',
+      );
+
+      // Troca para Conteúdo: título zera até escolher o subkind
+      await tester.tap(find.text('Conteúdo'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        isEmpty,
+      );
+
+      // Seleciona Adicionar louvor: título preenche
+      await tester.tap(find.text('Adicionar louvor'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        'Conteúdo - Adicionar louvor',
+      );
+
+      // Troca para Outro: título volta a ficar vazio
+      await tester.tap(find.text('Outro'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        isEmpty,
+      );
+
+      // Usuário pode editar manualmente o campo título
+      await tester.enterText(titleFinder, 'Meu título personalizado');
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextFormField>(titleFinder).controller?.text,
+        'Meu título personalizado',
+      );
+    },
+  );
+
+  testWidgets('com alvo: escolher subkind preenche automaticamente o título', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await pumpApp(
+      tester,
+      const ContributeScreen(
+        target: ContributionTarget(
+          source: ContributionSource.coldigom,
+          praiseId: 'p1',
+        ),
+      ),
+      overrides: _logged(),
+    );
+    await tester.pumpAndSettle();
+
+    final titleFinder = find.byKey(const Key('contribute-title'));
+    expect(tester.widget<TextFormField>(titleFinder).controller?.text, isEmpty);
+
+    // Clica em Letra
+    await tester.tap(find.text('Letra'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextFormField>(titleFinder).controller?.text,
+      'Informação errada - Letra',
+    );
   });
 }

@@ -118,16 +118,16 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
 
   @override
   ContributeFormState build() {
-    final savedDraft =
-        ref.watch(contributionDraftLocalDatasourceProvider).read(arg);
+    final savedDraft = ref
+        .watch(contributionDraftLocalDatasourceProvider)
+        .read(arg);
     return ContributeFormState(
       draft:
           savedDraft ??
           ContributionDraft(
-            kind:
-                arg.target != null
-                    ? ContributionKind.wrongInfo
-                    : ContributionKind.other,
+            kind: arg.target != null
+                ? ContributionKind.wrongInfo
+                : ContributionKind.other,
             target: arg.target,
             appRoute: arg.from,
           ),
@@ -143,17 +143,16 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     ref.read(contributionDraftLocalDatasourceProvider).clear(arg);
     state = ContributeFormState(
       draft: ContributionDraft(
-        kind:
-            arg.target != null
-                ? ContributionKind.wrongInfo
-                : ContributionKind.other,
+        kind: arg.target != null
+            ? ContributionKind.wrongInfo
+            : ContributionKind.other,
         target: arg.target,
         appRoute: arg.from,
       ),
     );
   }
 
-  void setKind(ContributionKind kind) {
+  void setKind(ContributionKind kind, {String? title}) {
     // Trocar de kind limpa o subkind e os anexos que o novo kind não aceita
     // (bug só imagem).
     final keep = state.draft.attachments
@@ -176,6 +175,7 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
       state.draft.copyWith(
         kind: kind,
         subkind: null,
+        title: title ?? '',
         attachments: keep,
         sameDevice: null,
         otherDeviceNote: null,
@@ -183,8 +183,9 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     );
   }
 
-  void setSubkind(ContributionSubkind? s) =>
-      _draft(state.draft.copyWith(subkind: s));
+  void setSubkind(ContributionSubkind? s, {String? title}) => _draft(
+    state.draft.copyWith(subkind: s, title: title ?? state.draft.title),
+  );
   void setTitle(String v) => _draft(state.draft.copyWith(title: v));
   void setBody(String v) => _draft(state.draft.copyWith(body: v));
   void setMaterial(String? materialId) => _draft(
