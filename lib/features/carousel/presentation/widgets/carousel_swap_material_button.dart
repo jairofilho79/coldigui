@@ -10,6 +10,7 @@ import 'package:coldigui/features/audio_player/presentation/utils/open_audio_in_
 import 'package:coldigui/features/carousel/presentation/providers/carousel_focused_index_provider.dart';
 import 'package:coldigui/features/carousel/presentation/providers/carousel_items_provider.dart';
 import 'package:coldigui/features/carousel/presentation/utils/open_carousel_pdf_in_reader.dart';
+import 'package:coldigui/features/carousel/presentation/utils/playlist_bar_tag_formatter.dart';
 import 'package:coldigui/features/carousel/presentation/utils/related_praises_swapper.dart';
 import 'package:coldigui/features/carousel/presentation/widgets/carousel_bar_action_button.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
@@ -88,6 +89,7 @@ class CarouselSwapMaterialButton extends ConsumerStatefulWidget {
     this.audioId,
     this.group,
     this.showLabel = true,
+    this.barWidth,
     super.key,
   });
 
@@ -98,6 +100,10 @@ class CarouselSwapMaterialButton extends ConsumerStatefulWidget {
 
   /// Legenda sob o ícone (barra larga) — repassado a [CarouselBarActionButton].
   final bool showLabel;
+
+  /// Largura total da barra, usada para adaptar responsivamente o tamanho da
+  /// tag da versão.
+  final double? barWidth;
 
   @override
   ConsumerState<CarouselSwapMaterialButton> createState() =>
@@ -133,6 +139,14 @@ class _CarouselSwapMaterialButtonState
         ? (clusterMemberLabel(group, relatedPraises) ??
             group.coldigomMeta?.tagNames.firstOrNull ??
             (group.numero.isNotEmpty ? '#${group.numero}' : group.nome))
+        : null;
+
+    final displayTag = currentTag != null
+        ? formatPlaylistBarTag(
+            currentTag,
+            barWidth: widget.barWidth,
+            isCompact: !widget.showLabel,
+          )
         : null;
 
     final effectiveKey =
@@ -182,9 +196,12 @@ class _CarouselSwapMaterialButtonState
           mainAxisSize: MainAxisSize.min,
           children: [
             _CarouselVersionTagChip(
-              tag: currentTag,
+              tag: displayTag ?? currentTag,
               tooltip:
                   '${l10n.relatedPraisesTitle}: $currentTag (${l10n.readerSwitchPraiseSwipe})',
+              maxWidth: widget.barWidth != null
+                  ? (widget.barWidth! * 0.18).clamp(72.0, 160.0)
+                  : 140.0,
               onTap: () => showCarouselSwapMaterialSheet(
                 context: context,
                 ref: ref,
@@ -219,12 +236,17 @@ class _CarouselSwapMaterialButtonState
                     color: AppColors.gold,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    currentTag,
-                    style: const TextStyle(
-                      color: AppColors.card,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 56),
+                    child: Text(
+                      displayTag ?? currentTag,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.card,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
@@ -402,6 +424,7 @@ class _CarouselVersionTagChip extends StatelessWidget {
     this.tooltip,
     this.onPrevious,
     this.onNext,
+    this.maxWidth,
   });
 
   final String tag;
@@ -409,9 +432,21 @@ class _CarouselVersionTagChip extends StatelessWidget {
   final String? tooltip;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final textWidget = Text(
+      tag,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTypography.label.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.title,
+      ),
+    );
+
     final chip = Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -432,14 +467,13 @@ class _CarouselVersionTagChip extends StatelessWidget {
             color: AppColors.title.withValues(alpha: 0.9),
           ),
           const SizedBox(width: 4),
-          Text(
-            tag,
-            style: AppTypography.label.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.title,
-            ),
-          ),
+          if (maxWidth != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth!),
+              child: textWidget,
+            )
+          else
+            textWidget,
         ],
       ),
     );

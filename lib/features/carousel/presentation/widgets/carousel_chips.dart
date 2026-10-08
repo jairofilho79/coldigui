@@ -503,6 +503,7 @@ class _CarouselChipsBarState extends ConsumerState<_CarouselChipsBar> {
                       entryKey: item.key,
                       group: swapGroup,
                       showLabel: showLabels,
+                      barWidth: barWidth,
                     ),
               trailingActions: [
                 CarouselBarTrailingActions(showLabels: showLabels),
