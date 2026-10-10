@@ -64,3 +64,14 @@ String metadataFieldLabel(AppLocalizations l10n, MetadataField field) =>
       MetadataField.rhythm => l10n.contributeMetadataRhythm,
       MetadataField.tags => l10n.contributeMetadataTags,
     };
+
+/// Gera um título conciso a partir do corpo do texto (primeira linha ou sentença, até 80 caracteres).
+String deriveTitleFromBody(String body) {
+  final trimmed = body.trim();
+  if (trimmed.isEmpty) return '';
+  final firstLine = trimmed.split('\n').first.trim();
+  final candidate = firstLine.isNotEmpty ? firstLine : trimmed;
+  if (candidate.length <= 80) return candidate;
+  return '${candidate.substring(0, 77)}...';
+}
+

@@ -7,6 +7,9 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
+import '../../../contributions/domain/entities/contribution_kind.dart';
+import '../../../contributions/domain/entities/contribution_target.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
 import '../providers/lyrics_reader_font_size_provider.dart';
 
@@ -51,7 +54,12 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _LyricsToolbar(title: title, fontSize: fontSize, l10n: l10n),
+            _LyricsToolbar(
+              title: title,
+              fontSize: fontSize,
+              l10n: l10n,
+              praiseId: _praiseId,
+            ),
             const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
             Expanded(
               child: text.isEmpty
@@ -82,17 +90,19 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen> {
   }
 }
 
-/// Título do louvor + A−/A+.
+/// Título do louvor + A−/A+ + Sugerir melhoria.
 class _LyricsToolbar extends ConsumerWidget {
   const _LyricsToolbar({
     required this.title,
     required this.fontSize,
     required this.l10n,
+    required this.praiseId,
   });
 
   final String title;
   final double fontSize;
   final AppLocalizations l10n;
+  final String praiseId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,6 +136,20 @@ class _LyricsToolbar extends ConsumerWidget {
             onPressed: LyricsReaderFontSize.canIncrease(fontSize)
                 ? size.increase
                 : null,
+          ),
+          IconButton(
+            tooltip: l10n.contributeReportTooltip,
+            icon: const Icon(Icons.handshake_outlined, color: AppColors.title),
+            onPressed: praiseId.isEmpty
+                ? null
+                : () => openContribute(
+                      context,
+                      target: ContributionTarget(
+                        source: ContributionSource.coldigom,
+                        praiseId: praiseId,
+                        materialId: 'lyrics:$praiseId',
+                      ),
+                    ),
           ),
         ],
       ),

@@ -123,7 +123,6 @@ void main() {
       expect(
         const ContributionDraft(
           kind: ContributionKind.other,
-          title: 't',
           body: 'b',
         ).isValid,
         isTrue,
@@ -131,12 +130,40 @@ void main() {
       expect(
         const ContributionDraft(
           kind: ContributionKind.other,
-          title: ' ',
-          body: 'b',
+          body: ' ',
         ).isValid,
         isFalse,
       );
     });
+
+    test('sendDeviceData controla inclusão de dispositivo no payload', () {
+      const withDevice = ContributionDraft(
+        kind: ContributionKind.other,
+        body: 'b',
+        sendDeviceData: true,
+      );
+      expect(
+        withDevice.toPayload(
+          device: {'platform': 'android'},
+          appVersion: '1',
+        )['device'],
+        {'platform': 'android', 'same_device': true},
+      );
+
+      const withoutDevice = ContributionDraft(
+        kind: ContributionKind.other,
+        body: 'b',
+        sendDeviceData: false,
+      );
+      expect(
+        withoutDevice.toPayload(
+          device: {'platform': 'android'},
+          appVersion: '1',
+        )['device'],
+        isNull,
+      );
+    });
+
     test('bug exige resposta sobre o dispositivo, e nota se não foi este', () {
       const base = ContributionDraft(
         kind: ContributionKind.bug,
@@ -217,6 +244,7 @@ void main() {
       expect(restored.duplicateOtherSource, draft.duplicateOtherSource);
       expect(restored.suggestedKindId, draft.suggestedKindId);
       expect(restored.sameDevice, draft.sameDevice);
+      expect(restored.sendDeviceData, draft.sendDeviceData);
       expect(restored.appRoute, draft.appRoute);
     });
 

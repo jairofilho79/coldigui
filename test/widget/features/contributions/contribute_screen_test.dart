@@ -4,25 +4,22 @@ import 'package:coldigui/core/network/connectivity_stream_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
-import 'package:coldigui/features/coldigom/data/providers/coldigom_providers.dart';
-import 'package:coldigui/features/coldigom/domain/entities/coldigom_praise_metadata.dart';
 import 'package:coldigui/features/contributions/data/datasources/contribution_draft_local_datasource.dart';
 import 'package:coldigui/features/contributions/data/datasources/contributions_remote_datasource.dart';
 import 'package:coldigui/features/contributions/data/device/device_snapshot_provider.dart';
 import 'package:coldigui/features/contributions/data/providers/contributions_providers.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_attachment.dart';
-import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_summary.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
 import 'package:coldigui/features/contributions/domain/validators/attachment_rules.dart';
 import 'package:coldigui/features/contributions/presentation/pages/contribute_screen.dart';
-import 'package:coldigui/features/contributions/presentation/widgets/device_consent_card.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,12 +27,6 @@ import '../../../support/fakes/fake_auth_notifier.dart';
 import '../../../support/fakes/fake_device_snapshot_port.dart';
 import '../../../support/pump_app.dart';
 
-/// `PlatformFile` de mentira — `lengthSync()` devolve o tamanho sem I/O
-/// nenhuma (como um `File`/`Blob` real reportaria) e `readAsBytes()` avisa
-/// via [onRead] se chegou a ser chamado. `base class` (não `class` puro):
-/// `PlatformFile` em si é `base` — subclasses fora do pacote precisam
-/// declarar isso também para manter a garantia de que só se estende, nunca
-/// se implementa.
 base class _FakePlatformFile extends PlatformFile {
   _FakePlatformFile({required this.name, required this.sizeBytes, this.onRead});
 
@@ -66,8 +57,6 @@ base class _FakePlatformFile extends PlatformFile {
   Stream<Uint8List> readAsByteStream() => Stream.value(Uint8List(0));
 }
 
-/// Datasource de mentira que sempre estoura a quota — usado para checar a
-/// hora local na snackbar (spec §6.2/D-quota).
 class _QuotaDs extends ContributionsRemoteDatasource {
   _QuotaDs(this.resetAt) : super(Dio());
   final DateTime resetAt;
@@ -81,8 +70,6 @@ class _QuotaDs extends ContributionsRemoteDatasource {
   }) async => throw ContributionQuotaExceeded(resetAt);
 }
 
-/// Datasource de mentira que sempre envia com sucesso — usado para checar a
-/// navegação pós-envio sem depender de rede de verdade.
 class _SentDs extends ContributionsRemoteDatasource {
   _SentDs() : super(Dio());
 
@@ -93,15 +80,6 @@ class _SentDs extends ContributionsRemoteDatasource {
     required List<ContributionAttachment> attachments,
     void Function(int, int)? onProgress,
   }) async => (id: 'c1', status: ContributionStatus.pendente);
-}
-
-/// Praise meta fixa para o teste de prefill — evita depender de rede/cache
-/// real dos providers coldigom.
-class _FakePraiseMetaNotifier extends ColdigomPraiseMetaCacheNotifier {
-  _FakePraiseMetaNotifier(this._map);
-  final Map<String, ColdigomPraiseMetadata> _map;
-  @override
-  Map<String, ColdigomPraiseMetadata> build() => _map;
 }
 
 List<Override> _logged() => [
@@ -115,7 +93,7 @@ List<Override> _logged() => [
 ];
 
 void main() {
-  testWidgets('deslogado vê todo o formulário com login no lugar de enviar', (
+  testWidgets('deslogado vê formulário simplificado com login no lugar de enviar', (
     tester,
   ) async {
     await pumpApp(
@@ -128,8 +106,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Entre com Google para contribuir.'), findsOneWidget);
-    expect(find.byKey(const Key('contribute-title')), findsOneWidget);
+    // Campo título foi removido da UI
+    expect(find.byKey(const Key('contribute-title')), findsNothing);
+    // TextArea e checkbox do aparelho presentes
     expect(find.byKey(const Key('contribute-body')), findsOneWidget);
+    expect(find.byKey(const Key('contribute-device-checkbox')), findsOneWidget);
     expect(find.byKey(const Key('contribute-send')), findsNothing);
     expect(find.byKey(const Key('contribute-clear-form')), findsOneWidget);
   });
@@ -145,12 +126,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byKey(const Key('contribute-title')),
-        'Meu título',
-      );
-      await tester.enterText(
         find.byKey(const Key('contribute-body')),
-        'Meu corpo',
+        'Meu relato do problema',
       );
       await tester.pumpAndSettle();
 
@@ -160,7 +137,6 @@ void main() {
       await tester.tap(find.byKey(const Key('contribute-clear-form')));
       await tester.pumpAndSettle();
 
-      // Modal aberto com título e mensagem
       expect(find.text('Limpar formulário?'), findsOneWidget);
       expect(
         find.text(
@@ -169,12 +145,10 @@ void main() {
         findsOneWidget,
       );
 
-      // Cancela: campos continuam preenchidos
+      // Cancela: corpo continua preenchido
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
-
-      expect(find.text('Meu título'), findsOneWidget);
-      expect(find.text('Meu corpo'), findsOneWidget);
+      expect(find.text('Meu relato do problema'), findsOneWidget);
 
       // Abre modal de novo e confirma
       await tester.tap(find.byKey(const Key('contribute-clear-form')));
@@ -182,8 +156,7 @@ void main() {
       await tester.tap(find.text('Limpar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Meu título'), findsNothing);
-      expect(find.text('Meu corpo'), findsNothing);
+      expect(find.text('Meu relato do problema'), findsNothing);
     },
   );
 
@@ -192,7 +165,6 @@ void main() {
     (tester) async {
       final sharedStorage = InMemoryContributionDraftLocalDatasource();
 
-      // Usuário deslogado preenche a tela
       await pumpApp(
         tester,
         const ContributeScreen(),
@@ -209,16 +181,11 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byKey(const Key('contribute-title')),
-        'Título pré-login',
-      );
-      await tester.enterText(
         find.byKey(const Key('contribute-body')),
         'Corpo pré-login',
       );
       await tester.pumpAndSettle();
 
-      // Usuário loga e a tela remonta logada
       await pumpApp(
         tester,
         const ContributeScreen(),
@@ -231,46 +198,32 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // O conteúdo inserido foi preservado!
-      expect(find.text('Título pré-login'), findsOneWidget);
       expect(find.text('Corpo pré-login'), findsOneWidget);
-      // E agora que está logado, o botão de enviar aparece no lugar do de login
       expect(find.byKey(const Key('contribute-send')), findsOneWidget);
     },
   );
 
   testWidgets(
-    'bug: Enviar só habilita depois de responder sobre o dispositivo',
+    'preencher o corpo habilita o botão de enviar diretamente (sem título nem tipo)',
     (tester) async {
-      // Viewport maior que o padrão do `flutter_test` (800×600 lógicos): o
-      // formulário completo (spec §6.2 — anexos/links antes do cartão de
-      // dispositivo, sem compactação) não cabe em 600px de altura, e o
-      // teste precisa tocar o "Sim" do `SegmentedButton` lá embaixo.
       tester.view.physicalSize = const Size(800, 1700);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
+
       await pumpApp(tester, const ContributeScreen(), overrides: _logged());
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bug na app'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Leitor'));
-      await tester.enterText(
-        find.byKey(const Key('contribute-title')),
-        'Trava',
-      );
-      await tester.enterText(
-        find.byKey(const Key('contribute-body')),
-        'Na página 3',
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(DeviceConsentCard), findsOneWidget);
-      expect(find.text('Isto será enviado'), findsOneWidget);
+
       final sendBefore = tester.widget<FilledButton>(
         find.byKey(const Key('contribute-send')),
       );
       expect(sendBefore.onPressed, isNull);
-      await tester.tap(find.text('Sim'));
-      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('contribute-body')),
+        'Encontrei um erro ao rolar a página',
+      );
+      await tester.pump();
+
       final sendAfter = tester.widget<FilledButton>(
         find.byKey(const Key('contribute-send')),
       );
@@ -279,7 +232,32 @@ void main() {
   );
 
   testWidgets(
-    'com alvo, «Informação errada» vem selecionada e o seletor de material aparece',
+    'checkbox do aparelho vem marcado por padrão e pode ser alternado',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1700);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await pumpApp(tester, const ContributeScreen(), overrides: _logged());
+      await tester.pumpAndSettle();
+
+      final checkboxFinder = find.byKey(const Key('contribute-device-checkbox'));
+      expect(tester.widget<Checkbox>(checkboxFinder).value, isTrue);
+
+      // Desmarca pelo checkbox
+      await tester.tap(checkboxFinder);
+      await tester.pumpAndSettle();
+      expect(tester.widget<Checkbox>(checkboxFinder).value, isFalse);
+
+      // Marca de volta tocando na linha inteira
+      await tester.tap(find.byKey(const Key('contribute-device-toggle')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<Checkbox>(checkboxFinder).value, isTrue);
+    },
+  );
+
+  testWidgets(
+    'com alvo, exibe indicador de louvor vinculado',
     (tester) async {
       await pumpApp(
         tester,
@@ -292,28 +270,12 @@ void main() {
         overrides: _logged(),
       );
       await tester.pumpAndSettle();
-      final chip = tester.widget<ChoiceChip>(
-        find.widgetWithText(ChoiceChip, 'Informação errada'),
-      );
-      expect(chip.selected, isTrue);
-      expect(find.text('Sobre qual material?'), findsOneWidget);
+      expect(find.text('Relato vinculado ao louvor'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'kind conteúdo mostra o botão de anexar e o texto do limite de 32 MB',
-    (tester) async {
-      await pumpApp(tester, const ContributeScreen(), overrides: _logged());
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conteúdo'));
-      await tester.pumpAndSettle();
-      expect(find.text('Anexar arquivo'), findsOneWidget);
-      expect(find.textContaining('32 MB'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'kind bug restringe o seletor de arquivos a imagens (só screenshot)',
+    'seletor de arquivos aceita extensões completas e exibe limite de 32 MB',
     (tester) async {
       Set<String>? capturedExtensions;
       Future<List<PlatformFile>> fakePickFiles({
@@ -329,13 +291,15 @@ void main() {
         overrides: _logged(),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bug na app'));
-      await tester.pumpAndSettle();
+
+      expect(find.text('Anexar arquivo'), findsOneWidget);
+      expect(find.textContaining('32 MB'), findsOneWidget);
+
       await tester.ensureVisible(find.text('Anexar arquivo'));
       await tester.tap(find.text('Anexar arquivo'));
       await tester.pumpAndSettle();
 
-      expect(capturedExtensions, kImageExtensions);
+      expect(capturedExtensions, kAllowedExtensions);
     },
   );
 
@@ -359,15 +323,9 @@ void main() {
         overrides: _logged(),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Conteúdo'));
-      await tester.pumpAndSettle();
+
       await tester.ensureVisible(find.text('Anexar arquivo'));
       await tester.tap(find.text('Anexar arquivo'));
-      // `pump()` simples (não `pumpAndSettle`): a `SnackBar` tem um timer de
-      // alguns segundos para sumir sozinha, e `pumpAndSettle` avança o
-      // relógio simulado até não sobrar nenhum frame agendado — inclusive
-      // o do próprio timer, fechando a `SnackBar` antes do `expect` abaixo
-      // rodar. `pump()` sem duração não avança esse relógio.
       await tester.pump();
       await tester.pump();
 
@@ -398,23 +356,16 @@ void main() {
       ],
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('contribute-title')), 't');
-    await tester.enterText(find.byKey(const Key('contribute-body')), 'b');
-    // O `pump()` aqui é o que faz o Riverpod reconstruir o botão com
-    // `canSend: true` — sem ele, `onPressed` ainda reflete o rascunho de
-    // antes do segundo `enterText` (`ConsumerStatefulWidget.build` só
-    // reage à mudança de estado no próximo frame, e `enterText` não pede
-    // um sozinho).
+    await tester.enterText(
+      find.byKey(const Key('contribute-body')),
+      'Texto do problema',
+    );
     await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('contribute-send')));
     await tester.tap(find.byKey(const Key('contribute-send')));
-    // `pump()` simples (não `pumpAndSettle`) — mesmo motivo do teste de
-    // anexo grande acima: a `SnackBar` não pode sumir sozinha antes do
-    // `expect`.
     await tester.pump();
     await tester.pump();
 
-    // Local, não literal: o horário depende do fuso de quem roda o teste.
     final local = resetAt.toLocal();
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
@@ -422,8 +373,7 @@ void main() {
   });
 
   testWidgets(
-    'envio sem tela anterior no histórico (link direto/F5) manda pro Perfil '
-    'sem lançar',
+    'envio sem tela anterior no histórico (link direto/F5) manda pro Perfil sem lançar',
     (tester) async {
       final router = GoRouter(
         initialLocation: RoutePaths.contribute,
@@ -455,10 +405,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('contribute-title')), 't');
-      await tester.enterText(find.byKey(const Key('contribute-body')), 'b');
-      // Sem isto, `canSend` no botão ainda reflete o rascunho de antes do
-      // segundo `enterText` — ver o comentário no teste da quota acima.
+      await tester.enterText(
+        find.byKey(const Key('contribute-body')),
+        'Texto para envio',
+      );
       await tester.pump();
       await tester.ensureVisible(find.byKey(const Key('contribute-send')));
       await tester.tap(find.byKey(const Key('contribute-send')));
@@ -467,179 +417,4 @@ void main() {
       expect(find.text('Perfil'), findsOneWidget);
     },
   );
-
-  testWidgets(
-    'metadata: escolher «Tom» preenche «Valor atual» com o tom do praise',
-    (tester) async {
-      await pumpApp(
-        tester,
-        const ContributeScreen(
-          target: ContributionTarget(
-            source: ContributionSource.coldigom,
-            praiseId: 'p1',
-          ),
-        ),
-        overrides: [
-          ..._logged(),
-          coldigomPraiseMetaCacheProvider.overrideWith(
-            () => _FakePraiseMetaNotifier({
-              'p1': const ColdigomPraiseMetadata(name: 'Nome', tonality: 'Dm'),
-            }),
-          ),
-        ],
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Título, número, tom…'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(
-        find.byKey(const Key('contribute-metadata-field')),
-      );
-      await tester.tap(find.byKey(const Key('contribute-metadata-field')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Tom').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Dm'), findsOneWidget);
-    },
-  );
-
-  testWidgets('metadata: o campo não oferece «Categoria»', (tester) async {
-    await pumpApp(
-      tester,
-      const ContributeScreen(
-        target: ContributionTarget(
-          source: ContributionSource.coldigom,
-          praiseId: 'p1',
-        ),
-      ),
-      overrides: [
-        ..._logged(),
-        coldigomPraiseMetaCacheProvider.overrideWith(
-          () => _FakePraiseMetaNotifier({
-            'p1': const ColdigomPraiseMetadata(name: 'Nome'),
-          }),
-        ),
-      ],
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Título, número, tom…'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('contribute-metadata-field')),
-    );
-    await tester.tap(find.byKey(const Key('contribute-metadata-field')));
-    await tester.pumpAndSettle();
-
-    for (final label in ['Título', 'Número', 'Autor', 'Tom', 'Ritmo', 'Tags']) {
-      expect(find.text(label), findsWidgets, reason: label);
-    }
-    expect(find.text('Categoria'), findsNothing);
-  });
-
-  testWidgets(
-    'preenchimento automático do título pela combinação de kind e subkind (somente Outro vazio)',
-    (tester) async {
-      tester.view.physicalSize = const Size(800, 1700);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      await pumpApp(tester, const ContributeScreen(), overrides: _logged());
-      await tester.pumpAndSettle();
-
-      final titleFinder = find.byKey(const Key('contribute-title'));
-
-      // Inicialmente (kind: other), título vem vazio
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        isEmpty,
-      );
-
-      // Troca para Bug na app: sem subkind selecionado, título segue vazio
-      await tester.tap(find.text('Bug na app'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        isEmpty,
-      );
-
-      // Seleciona Leitor: título preenchido automaticamente
-      await tester.tap(find.text('Leitor'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        'Bug na app - Leitor',
-      );
-
-      // Troca para Áudio: título atualiza automaticamente
-      await tester.tap(find.text('Áudio'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        'Bug na app - Áudio',
-      );
-
-      // Troca para Conteúdo: título zera até escolher o subkind
-      await tester.tap(find.text('Conteúdo'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        isEmpty,
-      );
-
-      // Seleciona Adicionar louvor: título preenche
-      await tester.tap(find.text('Adicionar louvor'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        'Conteúdo - Adicionar louvor',
-      );
-
-      // Troca para Outro: título volta a ficar vazio
-      await tester.tap(find.text('Outro'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        isEmpty,
-      );
-
-      // Usuário pode editar manualmente o campo título
-      await tester.enterText(titleFinder, 'Meu título personalizado');
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextFormField>(titleFinder).controller?.text,
-        'Meu título personalizado',
-      );
-    },
-  );
-
-  testWidgets('com alvo: escolher subkind preenche automaticamente o título', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1700);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    await pumpApp(
-      tester,
-      const ContributeScreen(
-        target: ContributionTarget(
-          source: ContributionSource.coldigom,
-          praiseId: 'p1',
-        ),
-      ),
-      overrides: _logged(),
-    );
-    await tester.pumpAndSettle();
-
-    final titleFinder = find.byKey(const Key('contribute-title'));
-    expect(tester.widget<TextFormField>(titleFinder).controller?.text, isEmpty);
-
-    // Clica em Letra
-    await tester.tap(find.text('Letra'));
-    await tester.pumpAndSettle();
-
-    expect(
-      tester.widget<TextFormField>(titleFinder).controller?.text,
-      'Informação errada - Letra',
-    );
-  });
 }

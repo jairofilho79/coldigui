@@ -13,6 +13,10 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../contributions/domain/entities/contribution_kind.dart';
+import '../../../contributions/domain/entities/contribution_target.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
@@ -375,6 +379,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                     linear: linear,
                     autoscroll: autoscroll,
                     l10n: l10n,
+                    gestureId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
                   ),
                   Expanded(
                     child: docAsync.when(
@@ -501,6 +506,7 @@ class _GestureReaderToolbar extends ConsumerWidget {
     required this.linear,
     required this.autoscroll,
     required this.l10n,
+    required this.gestureId,
   });
 
   final GestureReaderMode mode;
@@ -509,6 +515,7 @@ class _GestureReaderToolbar extends ConsumerWidget {
   final bool linear;
   final GestureAutoscrollState autoscroll;
   final AppLocalizations l10n;
+  final String gestureId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -608,6 +615,26 @@ class _GestureReaderToolbar extends ConsumerWidget {
             tooltip: l10n.gesturesReaderFullscreen,
             icon: const Icon(Icons.fullscreen),
             onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+          ),
+          _ToolbarSeparator(color: palette.divider),
+          IconButton(
+            style: style,
+            tooltip: l10n.contributeReportTooltip,
+            icon: const Icon(Icons.handshake_outlined),
+            onPressed: () {
+              final praiseId = ref
+                  .read(catalogMaterialLookupProvider)
+                  .gesture(gestureId)
+                  ?.groupId;
+              openContribute(
+                context,
+                target: ContributionTarget(
+                  source: ContributionSource.coldigom,
+                  praiseId: praiseId,
+                  materialId: gestureId,
+                ),
+              );
+            },
           ),
         ],
       ),

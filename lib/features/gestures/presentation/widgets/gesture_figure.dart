@@ -99,37 +99,47 @@ class _Placeholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final pad = side < 50 ? 2.0 : 4.0;
     return Container(
       key: gesturePlaceholderKey(gestureId),
       width: side,
       height: side,
-      padding: const EdgeInsets.all(6),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: palette.placeholderBg,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: palette.placeholderBorder, width: 1.5),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.pan_tool_outlined,
-            size: 20,
-            color: palette.placeholderBorder,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n?.gestureNotFound ?? 'gesto não encontrado',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-          ),
-          Text(
-            gestureId,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 9, color: palette.sectionLabel),
-          ),
-        ],
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.pan_tool_outlined,
+              size: side < 50 ? 16 : 20,
+              color: palette.placeholderBorder,
+            ),
+            if (side >= 50) ...[
+              const SizedBox(height: 2),
+              if (side >= 80)
+                Text(
+                  l10n?.gestureNotFound ?? 'gesto não encontrado',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 9, color: palette.sectionLabel),
+                ),
+              Text(
+                gestureId,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 8, color: palette.sectionLabel),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

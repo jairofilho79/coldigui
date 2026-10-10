@@ -115,7 +115,7 @@ void main() {
     expect(ds.lastPayload!['appVersion'], '1.2.3+4');
   });
 
-  test('device só vai no payload quando o kind é bug', () async {
+  test('sendDeviceData controla se o aparelho vai no payload', () async {
     const snapshot = DeviceSnapshot(
       appVersion: '1.2.3',
       buildNumber: '4',
@@ -128,32 +128,27 @@ void main() {
       pwaStandalone: false,
     );
 
-    final dsOther = _FakeDs(
+    final dsWithDevice = _FakeDs(
       (_) async => (id: 'c1', status: ContributionStatus.pendente),
     );
-    final cOther = _container(dsOther);
-    final nOther = cOther.read(contributeFormProvider(args).notifier);
-    nOther.setKind(ContributionKind.other);
-    nOther.setTitle('t');
-    nOther.setBody('b');
-    await nOther.submit(device: snapshot, appVersion: snapshot.versionLabel);
-    // `appVersion` não é dado de dispositivo — o servidor guarda
-    // `app_version` para todo kind, só o objeto `device` é bug-only.
-    expect(dsOther.lastPayload!['device'], isNull);
-    expect(dsOther.lastPayload!['appVersion'], '1.2.3+4');
+    final cWith = _container(dsWithDevice);
+    final nWith = cWith.read(contributeFormProvider(args).notifier);
+    nWith.setBody('b');
+    await nWith.submit(device: snapshot, appVersion: snapshot.versionLabel);
+    expect(dsWithDevice.lastPayload!['device'], isNotNull);
+    expect(dsWithDevice.lastPayload!['device']['platform'], 'android');
+    expect(dsWithDevice.lastPayload!['appVersion'], '1.2.3+4');
 
-    final dsBug = _FakeDs(
+    final dsWithoutDevice = _FakeDs(
       (_) async => (id: 'c2', status: ContributionStatus.pendente),
     );
-    final cBug = _container(dsBug);
-    final nBug = cBug.read(contributeFormProvider(args).notifier);
-    nBug.setKind(ContributionKind.bug);
-    nBug.setSubkind(ContributionSubkind.bugReader);
-    nBug.setTitle('t');
-    nBug.setBody('b');
-    nBug.setSameDevice(true);
-    await nBug.submit(device: snapshot, appVersion: snapshot.versionLabel);
-    expect(dsBug.lastPayload!['device']['platform'], 'android');
+    final cWithout = _container(dsWithoutDevice);
+    final nWithout = cWithout.read(contributeFormProvider(args).notifier);
+    nWithout.setBody('b');
+    nWithout.setSendDeviceData(false);
+    await nWithout.submit(device: snapshot, appVersion: snapshot.versionLabel);
+    expect(dsWithoutDevice.lastPayload!['device'], isNull);
+    expect(dsWithoutDevice.lastPayload!['appVersion'], '1.2.3+4');
   });
 
   test('429 → Failed(quota) com resetAt; 413 → Failed(rejected) com file; DioException de rede → offline', () async {

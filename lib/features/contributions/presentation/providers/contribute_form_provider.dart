@@ -14,6 +14,7 @@ import '../../domain/entities/contribution_kind.dart';
 import '../../domain/entities/contribution_target.dart';
 import '../../domain/entities/device_snapshot.dart';
 import '../../domain/validators/attachment_rules.dart';
+import '../utils/contribution_labels.dart';
 
 /// Estado do envio (spec §6.2) — `Idle` até o usuário apertar Enviar.
 sealed class ContributeSubmitState {
@@ -125,11 +126,10 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
       draft:
           savedDraft ??
           ContributionDraft(
-            kind: arg.target != null
-                ? ContributionKind.wrongInfo
-                : ContributionKind.other,
+            kind: ContributionKind.other,
             target: arg.target,
             appRoute: arg.from,
+            sendDeviceData: true,
           ),
     );
   }
@@ -143,11 +143,10 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     ref.read(contributionDraftLocalDatasourceProvider).clear(arg);
     state = ContributeFormState(
       draft: ContributionDraft(
-        kind: arg.target != null
-            ? ContributionKind.wrongInfo
-            : ContributionKind.other,
+        kind: ContributionKind.other,
         target: arg.target,
         appRoute: arg.from,
+        sendDeviceData: true,
       ),
     );
   }
@@ -187,7 +186,17 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     state.draft.copyWith(subkind: s, title: title ?? state.draft.title),
   );
   void setTitle(String v) => _draft(state.draft.copyWith(title: v));
-  void setBody(String v) => _draft(state.draft.copyWith(body: v));
+  void setBody(String v) => _draft(
+    state.draft.copyWith(
+      body: v,
+      title: state.draft.title.isEmpty ||
+              state.draft.title == deriveTitleFromBody(state.draft.body)
+          ? deriveTitleFromBody(v)
+          : state.draft.title,
+    ),
+  );
+  void setSendDeviceData(bool v) =>
+      _draft(state.draft.copyWith(sendDeviceData: v));
   void setMaterial(String? materialId) => _draft(
     state.draft.copyWith(
       target: state.draft.target?.copyWith(materialId: materialId),
@@ -284,10 +293,8 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
         rejectedError: null,
         rejectedFile: null,
       );
-      // Spec P9/§3/§6.2: só bug carrega o aparelho no payload — garantido
-      // aqui (não só na tela) para nenhum chamador futuro vazar o snapshot
-      // num kind que não pediu consentimento para isso.
-      final effectiveDevice = state.draft.kind == ContributionKind.bug
+      // Dados do aparelho são incluídos quando consentido pelo usuário (marcado por padrão)
+      final effectiveDevice = state.draft.sendDeviceData
           ? device
           : null;
       final payload = state.draft.toPayload(

@@ -3367,6 +3367,198 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Limpar'**
   String get contributeClearFormConfirm;
+
+  /// No description provided for @contributeSendDeviceData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar dados do aparelho para ajudar no diagnóstico'**
+  String get contributeSendDeviceData;
+
+  /// No description provided for @contributeBodyHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descreva aqui o problema, erro ou sugestão que você encontrou...'**
+  String get contributeBodyHint;
+
+  /// No description provided for @contributeLinkedPraise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Relato vinculado ao louvor'**
+  String get contributeLinkedPraise;
+
+  /// No description provided for @contributeEditorTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugerir melhoria no material'**
+  String get contributeEditorTitle;
+
+  /// No description provided for @contributeEditorRawTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editor'**
+  String get contributeEditorRawTab;
+
+  /// No description provided for @contributeEditorPreviewTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pré-visualização'**
+  String get contributeEditorPreviewTab;
+
+  /// No description provided for @contributeEditorAddLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar linha'**
+  String get contributeEditorAddLine;
+
+  /// No description provided for @contributeEditorRemoveLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover linha'**
+  String get contributeEditorRemoveLine;
+
+  /// No description provided for @contributeEditorChangeGesture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trocar gesto'**
+  String get contributeEditorChangeGesture;
+
+  /// No description provided for @contributeEditorSearchGesture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar gesto por nome ou gatilho...'**
+  String get contributeEditorSearchGesture;
+
+  /// No description provided for @contributeEditorRestore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar original'**
+  String get contributeEditorRestore;
+
+  /// No description provided for @contributeEditorNotesLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Observações sobre a sugestão (opcional)'**
+  String get contributeEditorNotesLabel;
+
+  /// No description provided for @contributeEditorNotesHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descreva brevemente o que você ajustou ou por que...'**
+  String get contributeEditorNotesHint;
+
+  /// No description provided for @contributeEditorTriggerLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gatilho'**
+  String get contributeEditorTriggerLabel;
+
+  /// No description provided for @contributeEditorLyricsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Texto cantado'**
+  String get contributeEditorLyricsLabel;
+
+  /// No description provided for @contributeEditorAddGestureLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar gesto'**
+  String get contributeEditorAddGestureLine;
+
+  /// No description provided for @contributeEditorAddTextLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar texto livre'**
+  String get contributeEditorAddTextLine;
+
+  /// No description provided for @contributeEditorAddChorus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar coro'**
+  String get contributeEditorAddChorus;
+
+  /// No description provided for @contributeEditorAddRepeat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar repetição'**
+  String get contributeEditorAddRepeat;
+
+  /// No description provided for @contributeEditorMoveUp.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mover para cima'**
+  String get contributeEditorMoveUp;
+
+  /// No description provided for @contributeEditorMoveDown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mover para baixo'**
+  String get contributeEditorMoveDown;
+
+  /// No description provided for @contributeEditorInsertChord.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inserir acorde [ ]'**
+  String get contributeEditorInsertChord;
+
+  /// No description provided for @contributeEditorInsertComment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Inserir comentário (coro)'**
+  String get contributeEditorInsertComment;
+
+  /// No description provided for @contributeEditorSwitchToGeneral.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alternar para formulário comum'**
+  String get contributeEditorSwitchToGeneral;
+
+  /// No description provided for @contributeEditorSwitchToExtracted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar material extraído'**
+  String get contributeEditorSwitchToExtracted;
+
+  /// No description provided for @contributeEditorLoading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando material...'**
+  String get contributeEditorLoading;
+
+  /// No description provided for @contributeEditorNoGestureFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum gesto encontrado'**
+  String get contributeEditorNoGestureFound;
+
+  /// No description provided for @contributeEditorSelectGesture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher gesto'**
+  String get contributeEditorSelectGesture;
+
+  /// No description provided for @contributeEditorLyricsKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra'**
+  String get contributeEditorLyricsKind;
+
+  /// No description provided for @contributeEditorChordKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cifra'**
+  String get contributeEditorChordKind;
+
+  /// No description provided for @contributeEditorGestureKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gestos'**
+  String get contributeEditorGestureKind;
+
+  /// No description provided for @contributeEditorGeneralKind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Geral'**
+  String get contributeEditorGeneralKind;
 }
 
 class _AppLocalizationsDelegate

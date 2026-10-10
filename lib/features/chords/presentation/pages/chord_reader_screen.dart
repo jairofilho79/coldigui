@@ -11,6 +11,10 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../contributions/domain/entities/contribution_kind.dart';
+import '../../../contributions/domain/entities/contribution_target.dart';
+import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/chord_providers.dart';
@@ -626,6 +630,26 @@ class _ChordReaderToolbar extends ConsumerWidget {
             ),
             onPressed: () =>
                 ref.read(chordReaderModeProvider.notifier).toggle(),
+          ),
+          _ToolbarSeparator(color: palette.comment),
+          IconButton(
+            style: style,
+            tooltip: l10n.contributeReportTooltip,
+            icon: const Icon(Icons.handshake_outlined),
+            onPressed: () {
+              final praiseId = ref
+                  .read(catalogMaterialLookupProvider)
+                  .chord(chordId)
+                  ?.groupId;
+              openContribute(
+                context,
+                target: ContributionTarget(
+                  source: ContributionSource.coldigom,
+                  praiseId: praiseId,
+                  materialId: chordId,
+                ),
+              );
+            },
           ),
         ],
       ),

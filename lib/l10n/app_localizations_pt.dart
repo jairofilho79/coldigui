@@ -1969,4 +1969,106 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get contributeClearFormConfirm => 'Limpar';
+
+  @override
+  String get contributeSendDeviceData =>
+      'Enviar dados do aparelho para ajudar no diagnóstico';
+
+  @override
+  String get contributeBodyHint =>
+      'Descreva aqui o problema, erro ou sugestão que você encontrou...';
+
+  @override
+  String get contributeLinkedPraise => 'Relato vinculado ao louvor';
+
+  @override
+  String get contributeEditorTitle => 'Sugerir melhoria no material';
+
+  @override
+  String get contributeEditorRawTab => 'Editor';
+
+  @override
+  String get contributeEditorPreviewTab => 'Pré-visualização';
+
+  @override
+  String get contributeEditorAddLine => 'Adicionar linha';
+
+  @override
+  String get contributeEditorRemoveLine => 'Remover linha';
+
+  @override
+  String get contributeEditorChangeGesture => 'Trocar gesto';
+
+  @override
+  String get contributeEditorSearchGesture =>
+      'Buscar gesto por nome ou gatilho...';
+
+  @override
+  String get contributeEditorRestore => 'Restaurar original';
+
+  @override
+  String get contributeEditorNotesLabel =>
+      'Observações sobre a sugestão (opcional)';
+
+  @override
+  String get contributeEditorNotesHint =>
+      'Descreva brevemente o que você ajustou ou por que...';
+
+  @override
+  String get contributeEditorTriggerLabel => 'Gatilho';
+
+  @override
+  String get contributeEditorLyricsLabel => 'Texto cantado';
+
+  @override
+  String get contributeEditorAddGestureLine => 'Adicionar gesto';
+
+  @override
+  String get contributeEditorAddTextLine => 'Adicionar texto livre';
+
+  @override
+  String get contributeEditorAddChorus => 'Adicionar coro';
+
+  @override
+  String get contributeEditorAddRepeat => 'Adicionar repetição';
+
+  @override
+  String get contributeEditorMoveUp => 'Mover para cima';
+
+  @override
+  String get contributeEditorMoveDown => 'Mover para baixo';
+
+  @override
+  String get contributeEditorInsertChord => 'Inserir acorde [ ]';
+
+  @override
+  String get contributeEditorInsertComment => 'Inserir comentário (coro)';
+
+  @override
+  String get contributeEditorSwitchToGeneral =>
+      'Alternar para formulário comum';
+
+  @override
+  String get contributeEditorSwitchToExtracted => 'Editar material extraído';
+
+  @override
+  String get contributeEditorLoading => 'Carregando material...';
+
+  @override
+  String get contributeEditorNoGestureFound => 'Nenhum gesto encontrado';
+
+  @override
+  String get contributeEditorSelectGesture => 'Escolher gesto';
+
+  @override
+  String get contributeEditorLyricsKind => 'Letra';
+
+  @override
+  String get contributeEditorChordKind => 'Cifra';
+
+  @override
+  String get contributeEditorGestureKind => 'Gestos';
+
+  @override
+  String get contributeEditorGeneralKind => 'Geral';
 }

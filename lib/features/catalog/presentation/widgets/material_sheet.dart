@@ -386,7 +386,11 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            _SheetHeader(group: group, l10n: l10n),
+            _SheetHeader(
+              group: group,
+              l10n: l10n,
+              selectedKind: _selectedKind,
+            ),
             if (relatedPraises.length > 1) ...[
               const SizedBox(height: 12),
               _RelatedPraisesBar(
@@ -947,10 +951,15 @@ class _KindSegmentChip extends StatelessWidget {
 
 /// Cabeçalho: número destacado, nome e o botão de fechar.
 class _SheetHeader extends StatelessWidget {
-  const _SheetHeader({required this.group, required this.l10n});
+  const _SheetHeader({
+    required this.group,
+    required this.l10n,
+    this.selectedKind,
+  });
 
   final LouvorGroup group;
   final AppLocalizations l10n;
+  final MaterialKind? selectedKind;
 
   @override
   Widget build(BuildContext context) {
@@ -998,11 +1007,22 @@ class _SheetHeader extends StatelessWidget {
             // enquanto o `context` do sheet ainda está montado. Se o `pop`
             // viesse antes, o `context` morreria e `GoRouter.of(context)`
             // dentro de `openContribute` já não teria a quem perguntar.
+            String? targetMaterialId;
+            if (selectedKind == MaterialKind.lyrics && group.lyrics != null) {
+              targetMaterialId = 'lyrics:${group.groupId}';
+            } else if (selectedKind == MaterialKind.chord &&
+                group.chordMaterials.isNotEmpty) {
+              targetMaterialId = group.chordMaterials.first.chordId;
+            } else if (selectedKind == MaterialKind.gesture &&
+                group.gestureMaterials.isNotEmpty) {
+              targetMaterialId = group.gestureMaterials.first.gestureId;
+            }
             openContribute(
               context,
               target: ContributionTarget(
                 source: ContributionSource.coldigom,
                 praiseId: group.groupId,
+                materialId: targetMaterialId,
               ),
             );
             Navigator.of(context).pop();

@@ -23,6 +23,7 @@ class ContributionDraft {
     this.suggestedKindId,
     this.sameDevice,
     this.otherDeviceNote,
+    this.sendDeviceData = true,
     this.appRoute,
   });
 
@@ -41,11 +42,12 @@ class ContributionDraft {
   final String? suggestedKindId;
   final bool? sameDevice;
   final String? otherDeviceNote;
+  final bool sendDeviceData;
   final String? appRoute;
 
   /// Regras mínimas de envio — o servidor ainda revalida tudo (spec §4.2).
   bool get isValid {
-    if (title.trim().isEmpty || body.trim().isEmpty) return false;
+    if (body.trim().isEmpty) return false;
     if (subkindsOf(kind).isNotEmpty &&
         (subkind == null || subkind!.kind != kind)) {
       return false;
@@ -104,12 +106,24 @@ class ContributionDraft {
         'same_device': sameDevice,
         if (sameDevice == false) 'other_device_note': otherDeviceNote!.trim(),
       };
+    } else if (device != null && sendDeviceData) {
+      deviceJson = {
+        ...device,
+        'same_device': true,
+      };
+    } else if (!sendDeviceData) {
+      deviceJson = null;
     }
+
+    final effectiveTitle = title.trim().isNotEmpty
+        ? title.trim()
+        : _deriveTitle(body);
+
     return {
       'kind': kind.wireName,
       'subkind': subkind?.wireName,
       'target': target?.toJson(),
-      'title': title.trim(),
+      'title': effectiveTitle,
       'body': body.trim(),
       'fields': _fields(),
       'links': links,
@@ -119,6 +133,15 @@ class ContributionDraft {
     };
   }
 
+  static String _deriveTitle(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return 'Contribuição';
+    final firstLine = trimmed.split('\n').first.trim();
+    final candidate = firstLine.isNotEmpty ? firstLine : trimmed;
+    if (candidate.length <= 80) return candidate;
+    return '${candidate.substring(0, 77)}...';
+  }
+
   Map<String, dynamic> toStorageJson() => {
     'kind': kind.wireName,
     'subkind': subkind?.wireName,
@@ -126,6 +149,7 @@ class ContributionDraft {
     'title': title,
     'body': body,
     'links': links,
+    'sendDeviceData': sendDeviceData,
     'attachments': [
       for (final a in attachments)
         // Só salva bytes se menores ou iguais a 1 MB para não estourar a cota de localStorage
@@ -237,6 +261,7 @@ class ContributionDraft {
       suggestedKindId: json['suggestedKindId'] as String?,
       sameDevice: json['sameDevice'] as bool?,
       otherDeviceNote: json['otherDeviceNote'] as String?,
+      sendDeviceData: json['sendDeviceData'] as bool? ?? true,
       appRoute: json['appRoute'] as String?,
     );
   }
@@ -257,6 +282,7 @@ class ContributionDraft {
     Object? suggestedKindId = _sentinel,
     Object? sameDevice = _sentinel,
     Object? otherDeviceNote = _sentinel,
+    Object? sendDeviceData = _sentinel,
     Object? appRoute = _sentinel,
   }) {
     return ContributionDraft(
@@ -293,6 +319,9 @@ class ContributionDraft {
       otherDeviceNote: otherDeviceNote == _sentinel
           ? this.otherDeviceNote
           : otherDeviceNote as String?,
+      sendDeviceData: sendDeviceData == _sentinel
+          ? this.sendDeviceData
+          : sendDeviceData as bool,
       appRoute: appRoute == _sentinel ? this.appRoute : appRoute as String?,
     );
   }
