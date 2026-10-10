@@ -74,6 +74,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get filtersClear => 'Limpar filtros';
+
+  @override
   String get sharePdf => 'Compartilhar';
 
   @override

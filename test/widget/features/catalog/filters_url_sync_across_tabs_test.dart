@@ -150,7 +150,7 @@ void main() {
     expect(currentUri(router).path, RoutePaths.library);
 
     containerOf(tester)
-        .read(catalogFiltersProvider.notifier)
+        .read(libraryCatalogFiltersProvider.notifier)
         .toggleTonality('Dm');
     await tester.pumpAndSettle();
 
@@ -198,11 +198,13 @@ void main() {
       );
       final container = containerOf(tester);
       expect(
-        container.read(catalogFiltersProvider),
+        container.read(libraryCatalogFiltersProvider),
         const CatalogFilterState(tags: {'Coletânea', 'Coletânea · Clamor'}),
       );
 
-      container.read(catalogFiltersProvider.notifier).toggleTag('Coletânea');
+      container
+          .read(libraryCatalogFiltersProvider.notifier)
+          .toggleTag('Coletânea');
       await tester.pumpAndSettle();
 
       expect(currentUri(router).path, RoutePaths.library);
@@ -210,6 +212,41 @@ void main() {
         currentUri(router).queryParameters,
         isNot(contains(UrlSyncParams.category)),
       );
+    },
+  );
+
+  testWidgets(
+    'filtros da página inicial e da /biblioteca mantêm estados independentes',
+    (tester) async {
+      final router = await pumpShell(tester, initialLocation: RoutePaths.home);
+      final container = containerOf(tester);
+
+      // 1. Aplica filtro na tela inicial
+      container.read(homeCatalogFiltersProvider.notifier).toggleTonality('Dm');
+      await tester.pumpAndSettle();
+      expect(container.read(homeCatalogFiltersProvider).tonalities, {'Dm'});
+      expect(container.read(libraryCatalogFiltersProvider).tonalities, isEmpty);
+
+      // 2. Navega para a biblioteca
+      router.go(RoutePaths.library);
+      await tester.pumpAndSettle();
+      expect(container.read(libraryCatalogFiltersProvider).tonalities, isEmpty);
+
+      // 3. Aplica filtro diferente na biblioteca
+      container
+          .read(libraryCatalogFiltersProvider.notifier)
+          .toggleTonality('G');
+      await tester.pumpAndSettle();
+      expect(container.read(libraryCatalogFiltersProvider).tonalities, {'G'});
+      // Home continua intacta
+      expect(container.read(homeCatalogFiltersProvider).tonalities, {'Dm'});
+
+      // 4. Limpa filtros na biblioteca
+      container.read(libraryCatalogFiltersProvider.notifier).clear();
+      await tester.pumpAndSettle();
+      expect(container.read(libraryCatalogFiltersProvider).isEmpty, isTrue);
+      // Home continua intacta com Dm
+      expect(container.read(homeCatalogFiltersProvider).tonalities, {'Dm'});
     },
   );
 }

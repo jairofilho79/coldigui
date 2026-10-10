@@ -25,14 +25,20 @@ typedef _ChipItem = ({String id, String name});
 /// aparecem em «Subtags» (recursivo — subtag marcada abre as filhas dela),
 /// rotuladas só pelo último nível (`PES · 9.2026` → `9.2026`).
 class CatalogFilterSections extends ConsumerWidget {
-  const CatalogFilterSections({super.key});
+  const CatalogFilterSections({
+    super.key,
+    this.scope = CatalogFilterScope.home,
+  });
+
+  /// Escopo de filtros associado à tela (página inicial ou biblioteca).
+  final CatalogFilterScope scope;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final options = ref.watch(catalogFilterOptionsProvider);
-    final selected = ref.watch(catalogFiltersProvider);
-    final notifier = ref.read(catalogFiltersProvider.notifier);
+    final selected = ref.watch(catalogFiltersProviderFor(scope));
+    final notifier = ref.read(catalogFiltersProviderFor(scope).notifier);
 
     final sections = [
       _ChipSection(
@@ -92,7 +98,7 @@ class CatalogFilterSections extends ConsumerWidget {
         if (options.materialKinds.isNotEmpty ||
             selected.materialKindIds.isNotEmpty) ...[
           if (sections.isNotEmpty) const SizedBox(height: 8),
-          const MaterialKindFilterSection(),
+          MaterialKindFilterSection(scope: scope),
         ],
       ],
     );

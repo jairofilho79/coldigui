@@ -75,7 +75,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _hadSavedFiltersAtMount = !ref.read(catalogFiltersProvider).isEmpty;
+    _hadSavedFiltersAtMount = !ref.read(libraryCatalogFiltersProvider).isEmpty;
     WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateFromUrl());
   }
 
@@ -109,7 +109,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   void _hydrateFilters() {
     ref
-        .read(catalogFiltersProvider.notifier)
+        .read(libraryCatalogFiltersProvider.notifier)
         .hydrateFromUrl(
           tonality: widget.initialTonality,
           rhythm: widget.initialRhythm,
@@ -163,11 +163,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (goRouter == null) return;
 
     final uri = goRouter.routerDelegate.currentConfiguration.uri;
-    // Aba fora de cena (ramo do shell ainda montado): os filtros são
-    // partilhados com a página inicial e mexer neles lá não pode trazer o
-    // usuário para cá. Só a rota corrente espelha estado na URL.
     if (uri.path != RoutePaths.library) return;
-    final filters = ref.read(catalogFiltersProvider);
+    final filters = ref.read(libraryCatalogFiltersProvider);
     final view = ref.read(libraryViewSettingsProvider);
     final target = buildLibraryLocation(
       tonality: filters.tonalityUrlValue,
@@ -204,7 +201,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final status = ref.watch(catalogIndexStatusProvider);
     final results = ref.watch(libraryGroupResultsProvider);
 
-    ref.listen<CatalogFilterState>(catalogFiltersProvider, (_, _) {
+    ref.listen<CatalogFilterState>(libraryCatalogFiltersProvider, (_, _) {
       if (!_urlSyncEnabled) return;
       _syncUrlFromState();
     });
@@ -260,6 +257,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FiltersPanel(
+                        scope: CatalogFilterScope.library,
                         initiallyExpanded:
                             widget._hasInitialFilters ||
                             _hadSavedFiltersAtMount,

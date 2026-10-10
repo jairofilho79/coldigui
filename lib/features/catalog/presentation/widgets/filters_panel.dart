@@ -18,10 +18,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Cabeçalho compacto: [GoldenTaggedContainer.compactContentPaddingFor] e
 /// altura intrínseca alinham texto e chevron.
 class FiltersPanel extends ConsumerStatefulWidget {
-  const FiltersPanel({super.key, this.initiallyExpanded = false});
+  const FiltersPanel({
+    super.key,
+    this.initiallyExpanded = false,
+    this.scope = CatalogFilterScope.home,
+  });
 
   /// Expande ao montar quando há filtro ativo (da URL ou gravado).
   final bool initiallyExpanded;
+
+  /// Escopo de filtros associado à tela (página inicial ou biblioteca).
+  final CatalogFilterScope scope;
 
   @override
   ConsumerState<FiltersPanel> createState() => _FiltersPanelState();
@@ -44,7 +51,8 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final activeCount = ref.watch(
-      catalogFiltersProvider.select((filters) => filters.activeCount),
+      catalogFiltersProviderFor(widget.scope)
+          .select((filters) => filters.activeCount),
     );
     final header = activeCount > 0
         ? l10n.filtersActiveCount(activeCount)
@@ -63,12 +71,12 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            InkWell(
-              onTap: _toggle,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _toggle,
                     child: Text(
                       header,
                       style: AppTypography.body.copyWith(
@@ -77,21 +85,55 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
                       ),
                     ),
                   ),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: AppColors.title,
-                    size: 20,
+                ),
+                if (activeCount > 0) ...[
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () => ref
+                        .read(catalogFiltersProviderFor(widget.scope).notifier)
+                        .clear(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.title,
+                      side: const BorderSide(color: AppColors.gold, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      minimumSize: const Size(0, 28),
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: AppTypography.label.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    child: Text(l10n.filtersClear),
                   ),
+                  const SizedBox(width: 4),
                 ],
-              ),
+                InkWell(
+                  onTap: _toggle,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: AppColors.title,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_expanded) ...[
               const SizedBox(height: 12),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
-                child: CatalogFilterSections(),
+                child: CatalogFilterSections(scope: widget.scope),
               ),
             ],
           ],

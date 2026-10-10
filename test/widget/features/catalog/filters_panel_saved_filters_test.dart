@@ -55,12 +55,14 @@ Future<void> _pump(WidgetTester tester, Widget screen) async {
 }
 
 void _persistFilters() {
+  final payload = jsonEncode({
+    'v': 2,
+    'tonalities': ['G'],
+    'tags': ['PES'],
+  });
   SharedPreferences.setMockInitialValues({
-    StorageKeys.catalogFilters: jsonEncode({
-      'v': 2,
-      'tonalities': ['G'],
-      'tags': ['PES'],
-    }),
+    StorageKeys.catalogFilters: payload,
+    StorageKeys.libraryCatalogFilters: payload,
   });
 }
 

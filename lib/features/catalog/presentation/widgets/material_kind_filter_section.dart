@@ -18,7 +18,13 @@ import 'material_kind_chips.dart';
 /// Os tipos marcados e as famílias abertas ficam só aqui — não vão para a
 /// URL nem para as prefs, e voltam ao padrão quando o painel reabre.
 class MaterialKindFilterSection extends ConsumerStatefulWidget {
-  const MaterialKindFilterSection({super.key});
+  const MaterialKindFilterSection({
+    super.key,
+    this.scope = CatalogFilterScope.home,
+  });
+
+  /// Escopo de filtros associado à tela (página inicial ou biblioteca).
+  final CatalogFilterScope scope;
 
   @override
   ConsumerState<MaterialKindFilterSection> createState() =>
@@ -41,9 +47,9 @@ class _MaterialKindFilterSectionState
     );
     final taxonomy = ref.watch(coldigomKindTaxonomyProvider);
     final selected = ref.watch(
-      catalogFiltersProvider.select((s) => s.materialKindIds),
+      catalogFiltersProviderFor(widget.scope).select((s) => s.materialKindIds),
     );
-    final notifier = ref.read(catalogFiltersProvider.notifier);
+    final notifier = ref.read(catalogFiltersProviderFor(widget.scope).notifier);
     final view = buildMaterialKindSections(
       options: options,
       taxonomy: taxonomy,

@@ -45,6 +45,10 @@
       "count": { "type": "int" }
     }
   },
+  "filtersClear": "Clear filters",
+  "@filtersClear": {
+    "description": "Button to quickly clear all active filters in the filters panel"
+  },
   "sharePdf": "Share",
   "savePdf": "Download",
   "pdfShareSuccess": "PDF ready to share",

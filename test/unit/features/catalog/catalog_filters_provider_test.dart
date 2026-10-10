@@ -167,35 +167,61 @@ void main() {
     },
   );
 
+  test('mexer num filtro da biblioteca volta à página 1; da tela inicial não mexe na biblioteca', () async {
+    await setUpPrefs();
+    final container = createContainer();
+    container.read(libraryViewSettingsProvider.notifier).setPage(3);
+
+    container.read(catalogFiltersProvider.notifier).toggleTag('CIAs');
+    expect(container.read(libraryViewSettingsProvider).page, 3);
+
+    container
+        .read(libraryCatalogFiltersProvider.notifier)
+        .hydrateFromUrl(tags: 'PES');
+    expect(container.read(libraryViewSettingsProvider).page, 3);
+
+    container.read(libraryCatalogFiltersProvider.notifier).toggleTag('CIAs');
+    expect(container.read(libraryViewSettingsProvider).page, 1);
+  });
+
   test(
-    'mexer num filtro volta a /biblioteca à página 1; hidratar da URL não',
+    'clear na biblioteca esvazia, apaga a pref e volta à página 1',
     () async {
       await setUpPrefs();
       final container = createContainer();
-      container.read(libraryViewSettingsProvider.notifier).setPage(3);
+      container.read(libraryCatalogFiltersProvider.notifier).toggleTag('PES');
+      container.read(libraryViewSettingsProvider.notifier).setPage(2);
 
-      container
-          .read(catalogFiltersProvider.notifier)
-          .hydrateFromUrl(tags: 'PES');
-      expect(container.read(libraryViewSettingsProvider).page, 3);
+      container.read(libraryCatalogFiltersProvider.notifier).clear();
 
-      container.read(catalogFiltersProvider.notifier).toggleTag('CIAs');
+      expect(container.read(libraryCatalogFiltersProvider).isEmpty, isTrue);
       expect(container.read(libraryViewSettingsProvider).page, 1);
+      await pumpEventQueue();
+      expect(prefs.getString(StorageKeys.libraryCatalogFilters), isNull);
     },
   );
 
-  test('clear esvazia, apaga a pref e volta à página 1', () async {
+  test('homeCatalogFiltersProvider e libraryCatalogFiltersProvider têm estados e prefs independentes', () async {
     await setUpPrefs();
     final container = createContainer();
-    container.read(catalogFiltersProvider.notifier).toggleTag('PES');
-    container.read(libraryViewSettingsProvider.notifier).setPage(2);
 
-    container.read(catalogFiltersProvider.notifier).clear();
+    container.read(homeCatalogFiltersProvider.notifier).toggleTag('PES');
+    container.read(libraryCatalogFiltersProvider.notifier).toggleTonality('Dm');
 
-    expect(container.read(catalogFiltersProvider).isEmpty, isTrue);
-    expect(container.read(libraryViewSettingsProvider).page, 1);
+    expect(container.read(homeCatalogFiltersProvider).tags, {'PES'});
+    expect(container.read(homeCatalogFiltersProvider).tonalities, isEmpty);
+
+    expect(container.read(libraryCatalogFiltersProvider).tags, isEmpty);
+    expect(container.read(libraryCatalogFiltersProvider).tonalities, {'Dm'});
+
     await pumpEventQueue();
-    expect(prefs.getString(StorageKeys.catalogFilters), isNull);
+    expect(prefs.getString(StorageKeys.catalogFilters), contains('PES'));
+    expect(prefs.getString(StorageKeys.catalogFilters), isNot(contains('Dm')));
+    expect(prefs.getString(StorageKeys.libraryCatalogFilters), contains('Dm'));
+    expect(
+      prefs.getString(StorageKeys.libraryCatalogFilters),
+      isNot(contains('PES')),
+    );
   });
 
   test('hydrateFromUrl converte category legado em subtag', () async {

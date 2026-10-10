@@ -194,6 +194,12 @@ abstract class AppLocalizations {
   /// **'Filtros ({count})'**
   String filtersActiveCount(int count);
 
+  /// Botão para limpar todos os filtros ativos de forma rápida no painel de filtros
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar filtros'**
+  String get filtersClear;
+
   /// No description provided for @sharePdf.
   ///
   /// In pt, this message translates to:

@@ -117,7 +117,8 @@ void main() {
         tags: const ['PES'],
       ),
     ]);
-    final filters = c.read(catalogFiltersProvider.notifier)..toggleTag('CIAs');
+    final filters = c.read(libraryCatalogFiltersProvider.notifier)
+      ..toggleTag('CIAs');
     expect(ids(c), ['p1', 'p2']);
 
     filters.toggleTonality('Dm');
@@ -131,7 +132,9 @@ void main() {
     final c = containerWith(numbered(25));
     c.read(libraryViewSettingsProvider.notifier).setPage(3);
 
-    c.read(catalogFiltersProvider.notifier).toggleMaterialKind('k-partitura');
+    c
+        .read(libraryCatalogFiltersProvider.notifier)
+        .toggleMaterialKind('k-partitura');
 
     expect(c.read(libraryGroupResultsProvider).page, 1);
     expect(c.read(libraryGroupResultsProvider).totalItems, 25);
@@ -183,7 +186,7 @@ void main() {
       catalogGroup(praiseId: 'x', number: '004', name: 'Outro', tonality: 'Em'),
     ]);
 
-    c.read(catalogFiltersProvider.notifier).toggleTonality('Em');
+    c.read(libraryCatalogFiltersProvider.notifier).toggleTonality('Em');
 
     expect(ids(c), ['[(col) pes]', 'x']);
   });

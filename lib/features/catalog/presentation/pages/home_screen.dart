@@ -269,6 +269,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: FiltersPanel(
+                    scope: CatalogFilterScope.home,
                     initiallyExpanded:
                         widget._hasInitialFilters || _hadSavedFiltersAtMount,
                   ),

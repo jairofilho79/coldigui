@@ -15,23 +15,58 @@ import '../../domain/utils/material_kind_selection.dart';
 // O objeto de valor mora no domínio; quem importava daqui continua a vê-lo.
 export '../../domain/entities/catalog_filter_state.dart';
 
-/// Filtros do catálogo — um estado só para a página inicial e a /biblioteca
-/// (spec fim-fonte §2.2, C5).
-final catalogFiltersProvider =
+/// Escopos de tela com estado de filtro independente.
+enum CatalogFilterScope { home, library }
+
+class HomeCatalogFiltersNotifier extends CatalogFiltersNotifier {
+  HomeCatalogFiltersNotifier() : super(scope: CatalogFilterScope.home);
+}
+
+class LibraryCatalogFiltersNotifier extends CatalogFiltersNotifier {
+  LibraryCatalogFiltersNotifier() : super(scope: CatalogFilterScope.library);
+}
+
+/// Filtros do catálogo da página inicial.
+final homeCatalogFiltersProvider =
     NotifierProvider<CatalogFiltersNotifier, CatalogFilterState>(
-      CatalogFiltersNotifier.new,
+      HomeCatalogFiltersNotifier.new,
     );
 
-/// Seleção, persistência (C13: pref `catalogFilters`, formato v3; a v2 é
-/// lida e convertida) e hidratação da URL.
+/// Filtros do catálogo da /biblioteca (independente da Home).
+final libraryCatalogFiltersProvider =
+    NotifierProvider<CatalogFiltersNotifier, CatalogFilterState>(
+      LibraryCatalogFiltersNotifier.new,
+    );
+
+/// Filtros do catálogo — padrão / página inicial (compatibilidade retroativa).
+final catalogFiltersProvider = homeCatalogFiltersProvider;
+
+/// Retorna o provider de filtros adequado para o escopo da tela.
+NotifierProvider<CatalogFiltersNotifier, CatalogFilterState>
+catalogFiltersProviderFor(CatalogFilterScope scope) => switch (scope) {
+  CatalogFilterScope.home => homeCatalogFiltersProvider,
+  CatalogFilterScope.library => libraryCatalogFiltersProvider,
+};
+
+/// Seleção, persistência e hidratação da URL por tela.
 ///
-/// Mexer num filtro (toggle ou [clear]) volta a /biblioteca à página 1 — o
-/// conjunto de resultados mudou. Hidratar da URL não: a URL traz a página.
+/// Mexer num filtro (toggle ou [clear]) na biblioteca volta a /biblioteca à
+/// página 1 — o conjunto de resultados mudou. Hidratar da URL não: a URL traz
+/// a página.
 class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
+  CatalogFiltersNotifier({this.scope = CatalogFilterScope.home});
+
+  final CatalogFilterScope scope;
+
+  String get _storageKey => switch (scope) {
+    CatalogFilterScope.home => StorageKeys.catalogFilters,
+    CatalogFilterScope.library => StorageKeys.libraryCatalogFilters,
+  };
+
   @override
   CatalogFilterState build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    final raw = prefs.getString(StorageKeys.catalogFilters);
+    final raw = prefs.getString(_storageKey);
     if (raw == null || raw.isEmpty) return CatalogFilterState.empty;
 
     CatalogFilterState? stored;
@@ -43,9 +78,10 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
     if (stored == null) {
       // Formato antigo `{materials, arranjos}` (filtros que já não existem)
       // ou pref ilegível: descarta e apaga (spec §2.2).
-      AppLogger.of('catalog')
-          .warn('Filtros gravados em formato antigo ou inválido; descartados');
-      unawaited(prefs.remove(StorageKeys.catalogFilters));
+      AppLogger.of('catalog').warn(
+        'Filtros ($scope) gravados em formato antigo ou inválido; descartados',
+      );
+      unawaited(prefs.remove(_storageKey));
       return CatalogFilterState.empty;
     }
     return stored;
@@ -111,10 +147,10 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
   /// Tira todos os filtros e apaga a pref.
   void clear() {
     state = CatalogFilterState.empty;
-    unawaited(
-      ref.read(sharedPreferencesProvider).remove(StorageKeys.catalogFilters),
-    );
-    ref.read(libraryViewSettingsProvider.notifier).setPage(1);
+    unawaited(ref.read(sharedPreferencesProvider).remove(_storageKey));
+    if (scope == CatalogFilterScope.library) {
+      ref.read(libraryViewSettingsProvider.notifier).setPage(1);
+    }
   }
 
   void _apply(CatalogFilterState next) {
@@ -122,12 +158,11 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
     unawaited(
       ref
           .read(sharedPreferencesProvider)
-          .setString(
-            StorageKeys.catalogFilters,
-            jsonEncode(next.toPersistedJson()),
-          ),
+          .setString(_storageKey, jsonEncode(next.toPersistedJson())),
     );
-    ref.read(libraryViewSettingsProvider.notifier).setPage(1);
+    if (scope == CatalogFilterScope.library) {
+      ref.read(libraryViewSettingsProvider.notifier).setPage(1);
+    }
   }
 
   static Set<String> _toggle(Set<String> current, String value) {
