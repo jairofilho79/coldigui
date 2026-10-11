@@ -74,4 +74,14 @@ abstract final class StorageKeys {
 
   /// Kinds Coldigom marcados para download no /offline (O11) — JSON array.
   static const String offlineColdigomKindIds = 'offlineColdigomKindIds';
+
+  /// Log cronológico dos ajustes de autoscroll por louvor (JSON array).
+  static const String autoscrollAdjustmentsLog = 'autoscrollAdjustmentsLog';
+
+  /// Mapa de recomendações de autoscroll por louvor: `praiseId` -> `{speed, fontSize, updatedAt}` (JSON map).
+  static const String praiseAutoscrollRecommendations =
+      'praiseAutoscrollRecommendations';
+
+  /// Velocidade do autoscroll no leitor de letras `/letra` (`int` 1–15).
+  static const String lyricsAutoscrollSpeed = 'lyricsAutoscrollSpeed';
 }

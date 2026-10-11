@@ -1,12 +1,12 @@
+import '../../../autoscroll/domain/entities/autoscroll_speed_config.dart';
+
 /// Faixa da velocidade do autoscroll do leitor de gestos.
 ///
-/// Níveis inteiros, como na cifra, mas mais lentos por nível: a linha de
-/// gesto (figura de 96 dp) é mais alta que a de cifra, e a regente faz os
-/// gestos com as mãos enquanto lê — 10 px/s por nível dá 10–50 px/s.
+/// Níveis inteiros de 1 a 15, com padrão no meio (8).
 abstract final class GestureAutoscrollSpeed {
-  static const int min = 1;
-  static const int max = 5;
-  static const int initial = 3;
+  static const int min = AutoscrollSpeedConfig.min;
+  static const int max = AutoscrollSpeedConfig.max;
+  static const int initial = AutoscrollSpeedConfig.initial;
 
   /// Pixels por segundo por nível — o motor multiplica pelo nível.
   static const double pxPerSecondPerLevel = 10;

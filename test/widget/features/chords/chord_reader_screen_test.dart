@@ -221,11 +221,24 @@ void main() {
 
       expect(find.byTooltip('Pausar rolagem automática'), findsOneWidget);
 
-      // Tocar no rotulo de velocidade avanca de 3 para 4.
-      await tester.tap(find.text('3x'));
+      // Não exibe rótulo numérico "3x" ou similar cru na barra
+      expect(find.text('3x'), findsNothing);
+      expect(find.text('8x'), findsNothing);
+
+      // Tocar no botão de velocidade abre o slider magnético com "Lento" e "Rápido"
+      expect(find.byKey(chordReaderSpeedKey), findsOneWidget);
+      await tester.tap(find.byKey(chordReaderSpeedKey));
       await tester.pump();
 
-      expect(find.text('4x'), findsOneWidget);
+      expect(find.text('Lento'), findsOneWidget);
+      expect(find.text('Rápido'), findsOneWidget);
+      expect(find.byType(Slider), findsOneWidget);
+
+      final sliderWidget = tester.widget<Slider>(find.byType(Slider));
+      expect(sliderWidget.min, 1.0);
+      expect(sliderWidget.max, 15.0);
+      expect(sliderWidget.divisions, 14);
+      expect(sliderWidget.value, 8.0);
     });
   });
 

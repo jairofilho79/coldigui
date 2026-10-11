@@ -11,6 +11,9 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../autoscroll/domain/entities/autoscroll_adjustment.dart';
+import '../../../autoscroll/presentation/providers/autoscroll_telemetry_providers.dart';
+import '../../../autoscroll/presentation/widgets/autoscroll_speed_slider_bar.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
@@ -26,6 +29,9 @@ import '../providers/chord_reader_mode_provider.dart';
 import '../theme/chord_reader_theme.dart';
 import '../utils/transpose_label_memo.dart';
 import '../widgets/chordpro_view.dart';
+
+const Key chordReaderAutoscrollKey = Key('chordReaderAutoscroll');
+const Key chordReaderSpeedKey = Key('chordReaderSpeed');
 
 /// Leitor de cifras ChordPro — rota `/cifra`, filha do [ShellScaffold].
 ///
@@ -55,12 +61,56 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
 
   Ticker? _autoscrollTicker;
   Duration? _autoscrollLastTick;
+  var _showSpeedSlider = false;
+
+  String get _currentPraiseId {
+    final fromLookup =
+        ref.read(catalogMaterialLookupProvider).chord(_r2Key)?.groupId;
+    if (fromLookup != null && fromLookup.isNotEmpty) return fromLookup;
+    return widget.queryParams[UrlSyncParams.praiseId] ?? '';
+  }
+
+  void _applySpeedRecommendation() {
+    final praiseId = _currentPraiseId;
+    if (praiseId.isEmpty) return;
+    final fontSize = ref.read(chordReaderFontSizeProvider);
+    final rec = ref
+        .read(autoscrollTelemetryDatasourceProvider)
+        .getRecommendedSpeed(
+          praiseId: praiseId,
+          currentFontSize: fontSize,
+          materialKind: 'chord',
+        );
+    if (rec != null) {
+      ref.read(chordAutoscrollProvider.notifier).setSpeed(rec);
+    }
+  }
+
+  void _onSpeedChanged(int speed) {
+    ref.read(chordAutoscrollProvider.notifier).setSpeed(speed);
+    final praiseId = _currentPraiseId;
+    if (praiseId.isNotEmpty) {
+      final fontSize = ref.read(chordReaderFontSizeProvider);
+      ref.read(autoscrollTelemetryDatasourceProvider).recordAdjustment(
+            AutoscrollAdjustment(
+              praiseId: praiseId,
+              materialKind: 'chord',
+              speed: speed,
+              fontSize: fontSize,
+              timestamp: DateTime.now(),
+            ),
+          );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     clearSnackbarsOnEnter(context);
     _schedulePublishRouteParams();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _applySpeedRecommendation();
+    });
   }
 
   @override
@@ -73,7 +123,13 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
     final newId = widget.queryParams[UrlSyncParams.pdfId];
     // C9: o autoscroll não atravessa a troca de louvor — sem isso a rolagem
     // automática de uma música continuaria correndo sozinha na próxima.
-    if (oldId != newId) _stopAutoscroll();
+    if (oldId != newId) {
+      _stopAutoscroll();
+      _showSpeedSlider = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applySpeedRecommendation();
+      });
+    }
   }
 
   void _schedulePublishRouteParams() {
@@ -158,12 +214,16 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
       }
       if (key == LogicalKeyboardKey.bracketRight) {
         final speed = ref.read(chordAutoscrollProvider).speed;
-        ref.read(chordAutoscrollProvider.notifier).setSpeed(speed + 1);
+        _onSpeedChanged(speed + 1);
         return KeyEventResult.handled;
       }
       if (key == LogicalKeyboardKey.bracketLeft) {
         final speed = ref.read(chordAutoscrollProvider).speed;
-        ref.read(chordAutoscrollProvider.notifier).setSpeed(speed - 1);
+        _onSpeedChanged(speed - 1);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.escape && _showSpeedSlider) {
+        setState(() => _showSpeedSlider = false);
         return KeyEventResult.handled;
       }
     }
@@ -282,6 +342,22 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
       }
     });
 
+    ref.listen<double>(chordReaderFontSizeProvider, (previous, next) {
+      if (previous == null || previous == next) return;
+      final praiseId = _currentPraiseId;
+      if (praiseId.isEmpty) return;
+      final rec = ref
+          .read(autoscrollTelemetryDatasourceProvider)
+          .getRecommendedSpeed(
+            praiseId: praiseId,
+            currentFontSize: next,
+            materialKind: 'chord',
+          );
+      if (rec != null) {
+        ref.read(chordAutoscrollProvider.notifier).setSpeed(rec);
+      }
+    });
+
     return Focus(
       focusNode: _keyboardFocusNode,
       autofocus: true,
@@ -303,8 +379,22 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                   semitones: semitones,
                   chordId: r2Key,
                   autoscroll: autoscroll,
+                  showSpeedSlider: _showSpeedSlider,
+                  onToggleSpeedSlider: () =>
+                      setState(() => _showSpeedSlider = !_showSpeedSlider),
                   l10n: l10n,
                 ),
+                if (_showSpeedSlider)
+                  AutoscrollSpeedSliderBar(
+                    speed: autoscroll.speed,
+                    onSpeedChanged: _onSpeedChanged,
+                    onClose: () => setState(() => _showSpeedSlider = false),
+                    backgroundColor: palette.background,
+                    foregroundColor: palette.lyric,
+                    activeColor: palette.chord,
+                    inactiveColor: palette.comment.withValues(alpha: 0.35),
+                    dividerColor: palette.comment.withValues(alpha: 0.2),
+                  ),
                 Expanded(
                   // Important 4 (onda 4): colunas pela largura DISPONÍVEL —
                   // `LayoutBuilder` aqui já mede o espaço real desta área
@@ -500,6 +590,8 @@ class _ChordReaderToolbar extends ConsumerWidget {
     required this.semitones,
     required this.chordId,
     required this.autoscroll,
+    required this.showSpeedSlider,
+    required this.onToggleSpeedSlider,
     required this.l10n,
   });
 
@@ -511,6 +603,8 @@ class _ChordReaderToolbar extends ConsumerWidget {
   /// Chave da família de [chordReaderTransposeProvider] (C10).
   final String chordId;
   final ChordAutoscrollState autoscroll;
+  final bool showSpeedSlider;
+  final VoidCallback onToggleSpeedSlider;
   final AppLocalizations l10n;
 
   @override
@@ -584,6 +678,7 @@ class _ChordReaderToolbar extends ConsumerWidget {
           ),
           _ToolbarSeparator(color: palette.comment),
           IconButton(
+            key: chordReaderAutoscrollKey,
             style: style,
             tooltip: autoscroll.running
                 ? l10n.chordAutoscrollPause
@@ -597,26 +692,21 @@ class _ChordReaderToolbar extends ConsumerWidget {
           ),
           SizedBox(
             width: _transposeLabelWidth,
-            child: TextButton(
-              onPressed: () => autoscrollNotifier.setSpeed(
-                autoscroll.speed >= kChordAutoscrollMaxSpeed
-                    ? kChordAutoscrollMinSpeed
-                    : autoscroll.speed + 1,
-              ),
-              style: TextButton.styleFrom(
+            child: IconButton(
+              key: chordReaderSpeedKey,
+              style: IconButton.styleFrom(
                 foregroundColor: palette.chord,
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(_transposeLabelWidth, 40),
-                textStyle: AppTypography.label.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
               ),
-              child: Tooltip(
-                message: l10n.chordAutoscrollSpeed(autoscroll.speed),
-                child: Text('${autoscroll.speed}x'),
+              tooltip: l10n.autoscrollSpeedTooltip,
+              icon: Icon(
+                Icons.speed,
+                color: showSpeedSlider ? palette.chord : null,
               ),
+              onPressed: onToggleSpeedSlider,
             ),
           ),
           _ToolbarSeparator(color: palette.comment),

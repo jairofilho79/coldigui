@@ -750,6 +750,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get lyricsAutoscrollPlay => 'Start autoscroll';
+
+  @override
+  String get lyricsAutoscrollPause => 'Pause autoscroll';
+
+  @override
+  String lyricsAutoscrollSpeed(int speed) {
+    return 'Scroll speed: $speed';
+  }
+
+  @override
+  String get autoscrollSpeedTooltip => 'Scroll speed';
+
+  @override
+  String get autoscrollSlow => 'Slow';
+
+  @override
+  String get autoscrollFast => 'Fast';
+
+  @override
+  String get autoscrollClose => 'Close speed settings';
+
+  @override
   String get coldigomMetaTonality => 'Key';
 
   @override

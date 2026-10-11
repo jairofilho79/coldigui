@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../autoscroll/domain/entities/autoscroll_speed_config.dart';
+
 /// Velocidade mínima aceita por [ChordAutoscrollNotifier.setSpeed].
-const int kChordAutoscrollMinSpeed = 1;
+const int kChordAutoscrollMinSpeed = AutoscrollSpeedConfig.min;
 
 /// Velocidade máxima aceita por [ChordAutoscrollNotifier.setSpeed].
-const int kChordAutoscrollMaxSpeed = 5;
+const int kChordAutoscrollMaxSpeed = AutoscrollSpeedConfig.max;
 
-/// Velocidade inicial do autoscroll, antes de qualquer ajuste do usuário.
-const int kChordAutoscrollDefaultSpeed = 3;
+/// Velocidade inicial do autoscroll, antes de qualquer ajuste do usuário (meio).
+const int kChordAutoscrollDefaultSpeed = AutoscrollSpeedConfig.initial;
 
 /// Pixels por segundo, por unidade de velocidade — o motor (no `State` da
 /// tela) multiplica isso por [ChordAutoscrollState.speed].

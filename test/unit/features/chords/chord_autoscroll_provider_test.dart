@@ -34,9 +34,9 @@ void main() {
     });
 
     test('setSpeed satura no teto', () {
-      container.read(chordAutoscrollProvider.notifier).setSpeed(6);
+      container.read(chordAutoscrollProvider.notifier).setSpeed(16);
 
-      expect(container.read(chordAutoscrollProvider).speed, 5);
+      expect(container.read(chordAutoscrollProvider).speed, 15);
     });
 
     test('setSpeed satura no piso', () {

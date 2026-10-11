@@ -131,4 +131,35 @@ void main() {
     expect(find.textContaining('Letra só em memória'), findsOneWidget);
     expect(find.text('Ainda há tempo'), findsOneWidget);
   });
+
+  testWidgets('play/pause e slider magnético de velocidade de autoscroll', (
+    tester,
+  ) async {
+    await _pump(tester, lyrics: 'Letra para rolagem');
+
+    expect(find.byTooltip('Iniciar rolagem automática'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Iniciar rolagem automática'));
+    await tester.pump();
+    expect(find.byTooltip('Pausar rolagem automática'), findsOneWidget);
+
+    // Não exibe texto cru "1x", "2x" etc.
+    expect(find.text('3x'), findsNothing);
+    expect(find.text('8x'), findsNothing);
+
+    // Tocar no botão de velocidade abre o slider magnético
+    expect(find.byKey(lyricsReaderSpeedKey), findsOneWidget);
+    await tester.tap(find.byKey(lyricsReaderSpeedKey));
+    await tester.pump();
+
+    expect(find.text('Lento'), findsOneWidget);
+    expect(find.text('Rápido'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
+
+    final sliderWidget = tester.widget<Slider>(find.byType(Slider));
+    expect(sliderWidget.min, 1.0);
+    expect(sliderWidget.max, 15.0);
+    expect(sliderWidget.divisions, 14);
+    expect(sliderWidget.value, 8.0);
+  });
 }

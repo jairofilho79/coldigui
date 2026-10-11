@@ -753,6 +753,29 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get lyricsAutoscrollPlay => 'Iniciar rolagem automática';
+
+  @override
+  String get lyricsAutoscrollPause => 'Pausar rolagem automática';
+
+  @override
+  String lyricsAutoscrollSpeed(int speed) {
+    return 'Velocidade da rolagem: $speed';
+  }
+
+  @override
+  String get autoscrollSpeedTooltip => 'Velocidade da rolagem';
+
+  @override
+  String get autoscrollSlow => 'Lento';
+
+  @override
+  String get autoscrollFast => 'Rápido';
+
+  @override
+  String get autoscrollClose => 'Fechar ajuste de velocidade';
+
+  @override
   String get coldigomMetaTonality => 'Tom';
 
   @override

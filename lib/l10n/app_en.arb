@@ -388,6 +388,20 @@
       }
     }
   },
+  "lyricsAutoscrollPlay": "Start autoscroll",
+  "lyricsAutoscrollPause": "Pause autoscroll",
+  "lyricsAutoscrollSpeed": "Scroll speed: {speed}",
+  "@lyricsAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "autoscrollSpeedTooltip": "Scroll speed",
+  "autoscrollSlow": "Slow",
+  "autoscrollFast": "Fast",
+  "autoscrollClose": "Close speed settings",
   "coldigomMetaTonality": "Key",
   "coldigomMetaAuthor": "Author",
   "coldigomMetaRhythm": "Rhythm",

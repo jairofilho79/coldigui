@@ -435,7 +435,7 @@ void main() {
   testWidgets(
     'barra: play alterna o provider; velocidade cicla 3→4→5→1 e persiste',
     (tester) async {
-      final prefs = await _pump(
+      await _pump(
         tester,
         document: () async => _fixture('182_quero_viver.json'),
       );
@@ -449,19 +449,23 @@ void main() {
       await tester.pump();
       expect(container.read(gestureAutoscrollProvider).running, isFalse);
 
-      expect(find.text('3x'), findsOneWidget);
+      // Não exibe texto "3x", "4x" cru na barra
+      expect(find.text('3x'), findsNothing);
+      expect(find.text('8x'), findsNothing);
+
+      // Tocar no botão de velocidade abre o slider magnético com "Lento" e "Rápido"
       await tester.tap(find.byKey(gestureReaderSpeedKey));
       await tester.pump();
-      expect(find.text('4x'), findsOneWidget);
-      // Um `pump` entre os dois toques: o botão fecha sobre o campo `autoscroll`
-      // do build anterior, então sem rebuild os dois toques leriam a mesma
-      // velocidade — como no `_ChordReaderToolbar` que este widget espelha.
-      await tester.tap(find.byKey(gestureReaderSpeedKey));
-      await tester.pump();
-      await tester.tap(find.byKey(gestureReaderSpeedKey));
-      await tester.pump();
-      expect(find.text('1x'), findsOneWidget);
-      expect(prefs.getInt(StorageKeys.gestureAutoscrollSpeed), 1);
+
+      expect(find.text('Lento'), findsOneWidget);
+      expect(find.text('Rápido'), findsOneWidget);
+      expect(find.byType(Slider), findsOneWidget);
+
+      final sliderWidget = tester.widget<Slider>(find.byType(Slider));
+      expect(sliderWidget.min, 1.0);
+      expect(sliderWidget.max, 15.0);
+      expect(sliderWidget.divisions, 14);
+      expect(sliderWidget.value, 8.0);
     },
   );
 
@@ -520,6 +524,7 @@ void main() {
       (tester) async {
         await pumpShort(tester);
         final container = _containerOf(tester);
+        container.read(gestureAutoscrollProvider.notifier).setSpeed(3);
         container.read(gestureAutoscrollProvider.notifier).toggle();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 16));
@@ -699,11 +704,11 @@ void main() {
       expect(container.read(gestureAutoscrollProvider).running, isFalse);
       await tester.sendKeyEvent(LogicalKeyboardKey.bracketRight);
       await tester.pump();
-      expect(container.read(gestureAutoscrollProvider).speed, 4);
+      expect(container.read(gestureAutoscrollProvider).speed, 9);
       await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.bracketLeft);
       await tester.pump();
-      expect(container.read(gestureAutoscrollProvider).speed, 2);
+      expect(container.read(gestureAutoscrollProvider).speed, 7);
     });
   });
 }

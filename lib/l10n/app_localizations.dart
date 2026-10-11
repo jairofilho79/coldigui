@@ -1352,6 +1352,48 @@ abstract class AppLocalizations {
   /// **'Velocidade da rolagem: {speed}'**
   String chordAutoscrollSpeed(int speed);
 
+  /// No description provided for @lyricsAutoscrollPlay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Iniciar rolagem automática'**
+  String get lyricsAutoscrollPlay;
+
+  /// No description provided for @lyricsAutoscrollPause.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pausar rolagem automática'**
+  String get lyricsAutoscrollPause;
+
+  /// No description provided for @lyricsAutoscrollSpeed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da rolagem: {speed}'**
+  String lyricsAutoscrollSpeed(int speed);
+
+  /// No description provided for @autoscrollSpeedTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Velocidade da rolagem'**
+  String get autoscrollSpeedTooltip;
+
+  /// No description provided for @autoscrollSlow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lento'**
+  String get autoscrollSlow;
+
+  /// No description provided for @autoscrollFast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rápido'**
+  String get autoscrollFast;
+
+  /// No description provided for @autoscrollClose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar ajuste de velocidade'**
+  String get autoscrollClose;
+
   /// No description provided for @coldigomMetaTonality.
   ///
   /// In pt, this message translates to:

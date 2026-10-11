@@ -13,6 +13,9 @@ import '../../../../core/utils/url_sync_params.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../app_shell/presentation/widgets/app_shortcuts.dart';
+import '../../../autoscroll/domain/entities/autoscroll_adjustment.dart';
+import '../../../autoscroll/presentation/providers/autoscroll_telemetry_providers.dart';
+import '../../../autoscroll/presentation/widgets/autoscroll_speed_slider_bar.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
@@ -79,6 +82,49 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
 
   Ticker? _autoscrollTicker;
   Duration? _autoscrollLastTick;
+  var _showSpeedSlider = false;
+
+  String get _currentPraiseId {
+    final fromLookup = ref
+        .read(catalogMaterialLookupProvider)
+        .gesture(widget.queryParams[UrlSyncParams.pdfId] ?? '')
+        ?.groupId;
+    if (fromLookup != null && fromLookup.isNotEmpty) return fromLookup;
+    return widget.queryParams[UrlSyncParams.praiseId] ?? '';
+  }
+
+  void _applySpeedRecommendation() {
+    final praiseId = _currentPraiseId;
+    if (praiseId.isEmpty) return;
+    final fontSize = ref.read(gestureReaderFontSizeProvider);
+    final rec = ref
+        .read(autoscrollTelemetryDatasourceProvider)
+        .getRecommendedSpeed(
+          praiseId: praiseId,
+          currentFontSize: fontSize,
+          materialKind: 'gesture',
+        );
+    if (rec != null) {
+      ref.read(gestureAutoscrollProvider.notifier).setSpeed(rec);
+    }
+  }
+
+  void _onSpeedChanged(int speed) {
+    ref.read(gestureAutoscrollProvider.notifier).setSpeed(speed);
+    final praiseId = _currentPraiseId;
+    if (praiseId.isNotEmpty) {
+      final fontSize = ref.read(gestureReaderFontSizeProvider);
+      ref.read(autoscrollTelemetryDatasourceProvider).recordAdjustment(
+            AutoscrollAdjustment(
+              praiseId: praiseId,
+              materialKind: 'gesture',
+              speed: speed,
+              fontSize: fontSize,
+              timestamp: DateTime.now(),
+            ),
+          );
+    }
+  }
 
   /// Rolagem manual em curso (ou dentro do 1 s de espera). O `Ticker`
   /// continua vivo, só deixa de mover a página — assim a retomada parte de
@@ -91,6 +137,9 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
     super.initState();
     clearSnackbarsOnEnter(context);
     _schedulePublishRouteParams();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _applySpeedRecommendation();
+    });
   }
 
   /// `context.replace()` do carousel (Ctrl+←/→) reaproveita a key da página:
@@ -105,6 +154,10 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
     if (_r2Key != _r2KeyOf(oldWidget.queryParams)) {
       _prefetched = false;
       _stopAutoscroll();
+      _showSpeedSlider = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applySpeedRecommendation();
+      });
     }
   }
 
@@ -180,17 +233,22 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
       return KeyEventResult.ignored;
     }
     if (!keyboardFocusIsInsideTextField()) {
-      final notifier = ref.read(gestureAutoscrollProvider.notifier);
       if (key == LogicalKeyboardKey.keyS) {
-        notifier.toggle();
+        ref.read(gestureAutoscrollProvider.notifier).toggle();
         return KeyEventResult.handled;
       }
       if (key == LogicalKeyboardKey.bracketRight) {
-        notifier.setSpeed(ref.read(gestureAutoscrollProvider).speed + 1);
+        final speed = ref.read(gestureAutoscrollProvider).speed;
+        _onSpeedChanged(speed + 1);
         return KeyEventResult.handled;
       }
       if (key == LogicalKeyboardKey.bracketLeft) {
-        notifier.setSpeed(ref.read(gestureAutoscrollProvider).speed - 1);
+        final speed = ref.read(gestureAutoscrollProvider).speed;
+        _onSpeedChanged(speed - 1);
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.escape && _showSpeedSlider) {
+        setState(() => _showSpeedSlider = false);
         return KeyEventResult.handled;
       }
     }
@@ -354,6 +412,22 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
       }
     });
 
+    ref.listen<double>(gestureReaderFontSizeProvider, (previous, next) {
+      if (previous == null || previous == next) return;
+      final praiseId = _currentPraiseId;
+      if (praiseId.isEmpty) return;
+      final rec = ref
+          .read(autoscrollTelemetryDatasourceProvider)
+          .getRecommendedSpeed(
+            praiseId: praiseId,
+            currentFontSize: next,
+            materialKind: 'gesture',
+          );
+      if (rec != null) {
+        ref.read(gestureAutoscrollProvider.notifier).setSpeed(rec);
+      }
+    });
+
     return Focus(
       focusNode: _keyboardFocusNode,
       autofocus: true,
@@ -378,9 +452,23 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                     fontSize: fontSize,
                     linear: linear,
                     autoscroll: autoscroll,
+                    showSpeedSlider: _showSpeedSlider,
+                    onToggleSpeedSlider: () =>
+                        setState(() => _showSpeedSlider = !_showSpeedSlider),
                     l10n: l10n,
                     gestureId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
                   ),
+                  if (_showSpeedSlider)
+                    AutoscrollSpeedSliderBar(
+                      speed: autoscroll.speed,
+                      onSpeedChanged: _onSpeedChanged,
+                      onClose: () => setState(() => _showSpeedSlider = false),
+                      backgroundColor: palette.paper,
+                      foregroundColor: palette.lyric,
+                      activeColor: palette.toolbarIcon,
+                      inactiveColor: palette.divider,
+                      dividerColor: palette.divider,
+                    ),
                   Expanded(
                     child: docAsync.when(
                       loading: () => Center(
@@ -505,6 +593,8 @@ class _GestureReaderToolbar extends ConsumerWidget {
     required this.fontSize,
     required this.linear,
     required this.autoscroll,
+    required this.showSpeedSlider,
+    required this.onToggleSpeedSlider,
     required this.l10n,
     required this.gestureId,
   });
@@ -514,6 +604,8 @@ class _GestureReaderToolbar extends ConsumerWidget {
   final double fontSize;
   final bool linear;
   final GestureAutoscrollState autoscroll;
+  final bool showSpeedSlider;
+  final VoidCallback onToggleSpeedSlider;
   final AppLocalizations l10n;
   final String gestureId;
 
@@ -559,28 +651,21 @@ class _GestureReaderToolbar extends ConsumerWidget {
           ),
           SizedBox(
             width: _speedLabelWidth,
-            // TextButton, não InkWell: traz o próprio Material.
-            child: TextButton(
+            child: IconButton(
               key: gestureReaderSpeedKey,
-              onPressed: () => autoscrollNotifier.setSpeed(
-                autoscroll.speed >= GestureAutoscrollSpeed.max
-                    ? GestureAutoscrollSpeed.min
-                    : autoscroll.speed + 1,
-              ),
-              style: TextButton.styleFrom(
+              style: IconButton.styleFrom(
                 foregroundColor: palette.toolbarIcon,
                 visualDensity: VisualDensity.compact,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(_speedLabelWidth, 40),
-                textStyle: AppTypography.label.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
               ),
-              child: Tooltip(
-                message: l10n.gesturesAutoscrollSpeed(autoscroll.speed),
-                child: Text('${autoscroll.speed}x'),
+              tooltip: l10n.autoscrollSpeedTooltip,
+              icon: Icon(
+                Icons.speed,
+                color: showSpeedSlider ? palette.toolbarIcon : null,
               ),
+              onPressed: onToggleSpeedSlider,
             ),
           ),
           _ToolbarSeparator(color: palette.divider),

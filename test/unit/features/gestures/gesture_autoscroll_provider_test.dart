@@ -19,16 +19,16 @@ Future<(ProviderContainer, SharedPreferences)> _setup({
 }
 
 void main() {
-  test('faixa: 1–5, inicial 3, clamp', () {
+  test('faixa: 1–15, inicial 8, clamp', () {
     expect(GestureAutoscrollSpeed.min, 1);
-    expect(GestureAutoscrollSpeed.max, 5);
-    expect(GestureAutoscrollSpeed.initial, 3);
+    expect(GestureAutoscrollSpeed.max, 15);
+    expect(GestureAutoscrollSpeed.initial, 8);
     expect(GestureAutoscrollSpeed.clamp(0), 1);
-    expect(GestureAutoscrollSpeed.clamp(9), 5);
+    expect(GestureAutoscrollSpeed.clamp(20), 15);
     expect(GestureAutoscrollSpeed.pxPerSecondPerLevel, 10);
   });
 
-  test('começa parado na velocidade salva (ou 3)', () async {
+  test('começa parado na velocidade salva (ou 8)', () async {
     final (c, _) = await _setup(
       initial: {StorageKeys.gestureAutoscrollSpeed: 4},
     );
@@ -57,10 +57,10 @@ void main() {
     addTearDown(sub.close);
     final n = c.read(gestureAutoscrollProvider.notifier);
     n.toggle();
-    n.setSpeed(9);
-    expect(c.read(gestureAutoscrollProvider).speed, 5);
+    n.setSpeed(20);
+    expect(c.read(gestureAutoscrollProvider).speed, 15);
     expect(c.read(gestureAutoscrollProvider).running, isTrue);
-    expect(prefs.getInt(StorageKeys.gestureAutoscrollSpeed), 5);
+    expect(prefs.getInt(StorageKeys.gestureAutoscrollSpeed), 15);
     n.setSpeed(-1);
     expect(c.read(gestureAutoscrollProvider).speed, 1);
   });

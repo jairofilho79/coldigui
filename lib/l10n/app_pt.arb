@@ -400,6 +400,20 @@
       }
     }
   },
+  "lyricsAutoscrollPlay": "Iniciar rolagem automática",
+  "lyricsAutoscrollPause": "Pausar rolagem automática",
+  "lyricsAutoscrollSpeed": "Velocidade da rolagem: {speed}",
+  "@lyricsAutoscrollSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "int"
+      }
+    }
+  },
+  "autoscrollSpeedTooltip": "Velocidade da rolagem",
+  "autoscrollSlow": "Lento",
+  "autoscrollFast": "Rápido",
+  "autoscrollClose": "Fechar ajuste de velocidade",
   "coldigomMetaTonality": "Tom",
   "coldigomMetaAuthor": "Autor",
   "coldigomMetaRhythm": "Ritmo",
