@@ -12,6 +12,7 @@ import '../../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../../chords/data/providers/chord_providers.dart';
+import '../../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import '../../../../gestures/data/providers/gesture_providers.dart';
 import '../../../../gestures/domain/entities/gesture_document.dart';
@@ -61,10 +62,16 @@ class _ExtractedMaterialEditorScaffoldState
 
   String get _r2Key {
     if (_materialId.isEmpty) return '';
+    final lower = _materialId.toLowerCase();
+    if (lower.endsWith('.chord') ||
+        lower.endsWith('.chordpro') ||
+        lower.endsWith('.gestures')) {
+      return _materialId;
+    }
     try {
       return PdfPathNormalizer.getPdfRelPath(_materialId);
     } catch (_) {
-      return '';
+      return _materialId;
     }
   }
 
@@ -72,8 +79,16 @@ class _ExtractedMaterialEditorScaffoldState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
+    final group = ref
+            .watch(coldigomCatalogSourceProvider)
+            .findGroupForMaterial(_materialId) ??
+        ref.watch(coldigomCatalogSourceProvider).findGroupById(_praiseId);
     final row = ref.watch(coldigomCatalogRowProvider(_praiseId));
-    final praiseTitle = row?.name ?? _praiseId;
+    final praiseTitle = group?.nome ??
+        row?.name ??
+        (row?.lyrics.isNotEmpty == true
+            ? row!.lyrics.split('\n').first
+            : _praiseId);
 
     final args = ContributeFormArgs(target: widget.target);
     final formState = ref.watch(contributeFormProvider(args));

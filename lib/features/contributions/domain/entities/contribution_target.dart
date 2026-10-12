@@ -28,9 +28,10 @@ class ContributionTarget {
         materialId: json['materialId'] as String?,
       );
 
-  ContributionTarget copyWith({String? materialId}) => ContributionTarget(
-    source: source,
-    praiseId: praiseId,
-    materialId: materialId ?? this.materialId,
-  );
+  ContributionTarget copyWith({String? praiseId, String? materialId}) =>
+      ContributionTarget(
+        source: source,
+        praiseId: praiseId ?? this.praiseId,
+        materialId: materialId ?? this.materialId,
+      );
 }

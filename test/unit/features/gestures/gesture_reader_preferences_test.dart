@@ -1,6 +1,7 @@
 import 'package:coldigui/core/constants/storage_keys.dart';
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/features/gestures/data/datasources/gesture_reader_preferences_datasource.dart';
+import 'package:coldigui/features/gestures/domain/entities/gesture_autoscroll_speed.dart';
 import 'package:coldigui/features/gestures/presentation/providers/gesture_reader_linear_provider.dart';
 import 'package:coldigui/features/gestures/presentation/providers/gesture_reader_mode_provider.dart';
 import 'package:coldigui/features/gestures/presentation/theme/gesture_reader_theme.dart';
@@ -22,12 +23,12 @@ Future<(ProviderContainer, SharedPreferences)> _setup({
 
 void main() {
   group('datasource', () {
-    test('defaults: claro, linear ligado, velocidade 3', () async {
+    test('defaults: claro, linear ligado, velocidade padrão', () async {
       final (_, prefs) = await _setup();
       final ds = GestureReaderPreferencesDatasource(prefs);
       expect(ds.getMode(), GestureReaderMode.light);
       expect(ds.getLinear(), isTrue);
-      expect(ds.getAutoscrollSpeed(), 3);
+      expect(ds.getAutoscrollSpeed(), GestureAutoscrollSpeed.initial);
     });
 
     test('valores inválidos caem no default ou são grampeados', () async {
@@ -39,7 +40,7 @@ void main() {
       );
       final ds = GestureReaderPreferencesDatasource(prefs);
       expect(ds.getMode(), GestureReaderMode.light);
-      expect(ds.getAutoscrollSpeed(), 5);
+      expect(ds.getAutoscrollSpeed(), GestureAutoscrollSpeed.max);
     });
 
     test('save/get ida e volta', () async {

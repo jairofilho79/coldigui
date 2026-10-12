@@ -15,6 +15,7 @@ import '../../../autoscroll/domain/entities/autoscroll_adjustment.dart';
 import '../../../autoscroll/presentation/providers/autoscroll_telemetry_providers.dart';
 import '../../../autoscroll/presentation/widgets/autoscroll_speed_slider_bar.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
@@ -64,9 +65,15 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
   var _showSpeedSlider = false;
 
   String get _currentPraiseId {
+    final rawPdfId = widget.queryParams[UrlSyncParams.pdfId] ?? '';
     final fromLookup =
-        ref.read(catalogMaterialLookupProvider).chord(_r2Key)?.groupId;
+        ref.read(catalogMaterialLookupProvider).chord(rawPdfId)?.groupId;
     if (fromLookup != null && fromLookup.isNotEmpty) return fromLookup;
+    final fromSource = ref
+        .read(coldigomCatalogSourceProvider)
+        .findGroupForMaterial(rawPdfId)
+        ?.groupId;
+    if (fromSource != null && fromSource.isNotEmpty) return fromSource;
     return widget.queryParams[UrlSyncParams.praiseId] ?? '';
   }
 
@@ -378,6 +385,7 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                   fontSize: fontSize,
                   semitones: semitones,
                   chordId: r2Key,
+                  rawPdfId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
                   praiseId: _currentPraiseId,
                   autoscroll: autoscroll,
                   showSpeedSlider: _showSpeedSlider,
@@ -590,6 +598,7 @@ class _ChordReaderToolbar extends ConsumerWidget {
     required this.fontSize,
     required this.semitones,
     required this.chordId,
+    required this.rawPdfId,
     this.praiseId,
     required this.autoscroll,
     required this.showSpeedSlider,
@@ -597,6 +606,7 @@ class _ChordReaderToolbar extends ConsumerWidget {
     required this.l10n,
   });
 
+  final String rawPdfId;
   final String? praiseId;
 
   final ChordReaderMode mode;
@@ -731,20 +741,28 @@ class _ChordReaderToolbar extends ConsumerWidget {
             tooltip: l10n.contributeReportTooltip,
             icon: const Icon(Icons.handshake_outlined),
             onPressed: () {
+              final effectiveMaterialId =
+                  rawPdfId.isNotEmpty ? rawPdfId : chordId;
               final lookupPraiseId = ref
                   .read(catalogMaterialLookupProvider)
-                  .chord(chordId)
+                  .chord(effectiveMaterialId)
+                  ?.groupId;
+              final sourcePraiseId = ref
+                  .read(coldigomCatalogSourceProvider)
+                  .findGroupForMaterial(effectiveMaterialId)
                   ?.groupId;
               final effectivePraiseId =
                   (lookupPraiseId != null && lookupPraiseId.isNotEmpty)
                       ? lookupPraiseId
-                      : praiseId;
+                      : ((sourcePraiseId != null && sourcePraiseId.isNotEmpty)
+                          ? sourcePraiseId
+                          : praiseId);
               openContribute(
                 context,
                 target: ContributionTarget(
                   source: ContributionSource.coldigom,
                   praiseId: effectivePraiseId,
-                  materialId: chordId,
+                  materialId: effectiveMaterialId,
                 ),
               );
             },

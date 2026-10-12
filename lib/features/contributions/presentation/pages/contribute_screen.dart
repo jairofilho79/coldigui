@@ -12,6 +12,7 @@ import '../../../../core/widgets/plpcg_primary_app_bar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_state_provider.dart';
 import '../../../catalog/presentation/providers/catalog_material_lookup_provider.dart';
+import '../../../coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import '../../data/device/device_snapshot_provider.dart';
 import '../../domain/entities/contribution_target.dart';
 import '../../domain/entities/device_snapshot.dart';
@@ -139,9 +140,21 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       }
     });
 
+    final targetMaterialId = widget.target?.materialId;
+    final effectivePraiseId = widget.target?.praiseId ??
+        (targetMaterialId != null
+            ? (ref.watch(catalogMaterialLookupProvider).chord(targetMaterialId)?.groupId ??
+               ref.watch(catalogMaterialLookupProvider).gesture(targetMaterialId)?.groupId ??
+               ref.watch(coldigomCatalogSourceProvider).findGroupForMaterial(targetMaterialId)?.groupId)
+            : null);
+
     // Se o alvo for um material extraído (ou selecionado pelo usuário)
     if (_selectedExtractedKind != null && widget.target != null) {
-      ContributionTarget effectiveTarget = widget.target!;
+      ContributionTarget effectiveTarget =
+          (effectivePraiseId != null && widget.target!.praiseId == null)
+              ? widget.target!.copyWith(praiseId: effectivePraiseId)
+              : widget.target!;
+
       if (_selectedExtractedKind == MaterialKind.lyrics &&
           (effectiveTarget.materialId == null ||
               !effectiveTarget.materialId!.startsWith('lyrics:'))) {
@@ -154,9 +167,15 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         final chords = ref
             .watch(catalogMaterialLookupProvider)
             .chordsOfGroup(effectiveTarget.praiseId!);
-        if (chords.isNotEmpty) {
+        final chordsFromSource = ref
+            .watch(coldigomCatalogSourceProvider)
+            .findGroupById(effectiveTarget.praiseId!)
+            ?.chordMaterials;
+        final effectiveChords =
+            chords.isNotEmpty ? chords : (chordsFromSource ?? []);
+        if (effectiveChords.isNotEmpty) {
           effectiveTarget =
-              effectiveTarget.copyWith(materialId: chords.first.chordId);
+              effectiveTarget.copyWith(materialId: effectiveChords.first.chordId);
         }
       } else if (_selectedExtractedKind == MaterialKind.gesture &&
           effectiveTarget.materialId == null &&
@@ -167,9 +186,15 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
             .values
             .where((g) => g.groupId == effectiveTarget.praiseId)
             .toList();
-        if (gestures.isNotEmpty) {
+        final gesturesFromSource = ref
+            .watch(coldigomCatalogSourceProvider)
+            .findGroupById(effectiveTarget.praiseId!)
+            ?.gestureMaterials;
+        final effectiveGestures =
+            gestures.isNotEmpty ? gestures : (gesturesFromSource ?? []);
+        if (effectiveGestures.isNotEmpty) {
           effectiveTarget =
-              effectiveTarget.copyWith(materialId: gestures.first.gestureId);
+              effectiveTarget.copyWith(materialId: effectiveGestures.first.gestureId);
         }
       }
 
@@ -229,7 +254,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    if (widget.target?.praiseId != null) ...[
+                    if (effectivePraiseId != null) ...[
                       const SizedBox(height: 12),
                       Center(
                         child: Container(
