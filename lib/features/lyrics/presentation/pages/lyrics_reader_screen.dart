@@ -17,12 +17,14 @@ import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart
 import '../../../contributions/domain/entities/contribution_kind.dart';
 import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
+import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../domain/entities/lyrics_reader_font_size.dart';
 import '../providers/lyrics_autoscroll_provider.dart';
 import '../providers/lyrics_reader_font_size_provider.dart';
 
 const Key lyricsReaderAutoscrollKey = Key('lyricsReaderAutoscroll');
 const Key lyricsReaderSpeedKey = Key('lyricsReaderSpeed');
+const Key lyricsReaderFullscreenKey = Key('lyricsReaderFullscreen');
 
 /// Leitor de letra Coldigom (`/letra?praiseId=`) — O6.
 ///
@@ -390,6 +392,19 @@ class _LyricsToolbar extends ConsumerWidget {
               color: showSpeedSlider ? AppColors.gold : AppColors.title,
             ),
             onPressed: onToggleSpeedSlider,
+          ),
+          IconButton(
+            key: lyricsReaderFullscreenKey,
+            tooltip: ref.watch(readerFullscreenProvider)
+                ? l10n.readerExitFullscreenTooltip
+                : l10n.readerFullscreenTooltip,
+            icon: Icon(
+              ref.watch(readerFullscreenProvider)
+                  ? Icons.fullscreen_exit
+                  : Icons.fullscreen,
+              color: AppColors.title,
+            ),
+            onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
           ),
           IconButton(
             tooltip: l10n.contributeReportTooltip,

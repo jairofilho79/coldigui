@@ -6,7 +6,9 @@ import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_data_
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/lyrics/domain/entities/lyrics_reader_font_size.dart';
 import 'package:coldigui/features/lyrics/presentation/pages/lyrics_reader_screen.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -162,4 +164,30 @@ void main() {
     expect(sliderWidget.divisions, 14);
     expect(sliderWidget.value, 8.0);
   });
+
+  testWidgets('botão de fullscreen alterna entre tela cheia e normal', (tester) async {
+    await _pump(tester, lyrics: 'Letra');
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LyricsReaderScreen)),
+    );
+
+    expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+    expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+    expect(container.read(readerFullscreenProvider), isFalse);
+
+    await tester.tap(find.byKey(lyricsReaderFullscreenKey));
+    await tester.pumpAndSettle();
+
+    expect(container.read(readerFullscreenProvider), isTrue);
+    expect(find.byIcon(Icons.fullscreen_exit), findsOneWidget);
+    expect(find.byIcon(Icons.fullscreen), findsNothing);
+
+    await tester.tap(find.byKey(lyricsReaderFullscreenKey));
+    await tester.pumpAndSettle();
+
+    expect(container.read(readerFullscreenProvider), isFalse);
+    expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+    expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+  });
 }
+

@@ -23,6 +23,7 @@ import 'package:coldigui/features/gestures/presentation/widgets/gesture_focus_vi
 import 'package:coldigui/features/gestures/presentation/widgets/instruction_card_view.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/newer_schema_banner.dart';
 import 'package:coldigui/features/gestures/presentation/widgets/section_label_view.dart';
+import 'package:coldigui/features/pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import 'package:coldigui/features/pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -710,5 +711,29 @@ void main() {
       await tester.pump();
       expect(container.read(gestureAutoscrollProvider).speed, 7);
     });
+
+    testWidgets('botão de fullscreen alterna entre tela cheia e normal', (tester) async {
+      await pumpShort(tester);
+      final container = _containerOf(tester);
+
+      expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+      expect(container.read(readerFullscreenProvider), isFalse);
+
+      await tester.tap(find.byKey(gestureReaderFullscreenKey));
+      await tester.pumpAndSettle();
+
+      expect(container.read(readerFullscreenProvider), isTrue);
+      expect(find.byIcon(Icons.fullscreen_exit), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen), findsNothing);
+
+      await tester.tap(find.byKey(gestureReaderFullscreenKey));
+      await tester.pumpAndSettle();
+
+      expect(container.read(readerFullscreenProvider), isFalse);
+      expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+    });
   });
 }
+

@@ -121,6 +121,15 @@ void main() {
     expect(container.read(readerFullscreenProvider), isTrue);
   });
 
+  testWidgets('F no leitor de letras também liga a tela cheia', (tester) async {
+    final container = await _pumpShortcuts(tester, path: RoutePaths.lyrics);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pumpAndSettle();
+
+    expect(container.read(readerFullscreenProvider), isTrue);
+  });
+
   testWidgets('F fora do leitor não mexe na tela cheia', (tester) async {
     final container = await _pumpShortcuts(tester, path: RoutePaths.home);
 
@@ -132,6 +141,19 @@ void main() {
 
   testWidgets('Esc sai da tela cheia', (tester) async {
     final container = await _pumpShortcuts(tester, path: RoutePaths.reader);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pumpAndSettle();
+    expect(container.read(readerFullscreenProvider), isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(container.read(readerFullscreenProvider), isFalse);
+  });
+
+  testWidgets('Esc no leitor de letras sai da tela cheia', (tester) async {
+    final container = await _pumpShortcuts(tester, path: RoutePaths.lyrics);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
     await tester.pumpAndSettle();

@@ -47,6 +47,7 @@ const Key gestureReaderThemeKey = ValueKey('gesture-reader-theme');
 const Key gestureReaderLinearKey = ValueKey('gesture-reader-linear');
 const Key gestureReaderAutoscrollKey = ValueKey('gesture-reader-autoscroll');
 const Key gestureReaderSpeedKey = ValueKey('gesture-reader-speed');
+const Key gestureReaderFullscreenKey = ValueKey('gesture-reader-fullscreen');
 
 /// Quanto esperar depois que o dedo solta a página antes de voltar a rolar.
 const Duration kGestureAutoscrollResumeDelay = Duration(seconds: 1);
@@ -705,9 +706,16 @@ class _GestureReaderToolbar extends ConsumerWidget {
                 ref.read(gestureReaderModeProvider.notifier).toggle(),
           ),
           IconButton(
+            key: gestureReaderFullscreenKey,
             style: style,
-            tooltip: l10n.gesturesReaderFullscreen,
-            icon: const Icon(Icons.fullscreen),
+            tooltip: ref.watch(readerFullscreenProvider)
+                ? l10n.readerExitFullscreenTooltip
+                : l10n.gesturesReaderFullscreen,
+            icon: Icon(
+              ref.watch(readerFullscreenProvider)
+                  ? Icons.fullscreen_exit
+                  : Icons.fullscreen,
+            ),
             onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
           ),
           _ToolbarSeparator(color: palette.divider),

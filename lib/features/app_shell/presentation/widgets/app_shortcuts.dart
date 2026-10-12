@@ -151,7 +151,7 @@ void _showReaderActionError(BuildContext context) {
 /// | `Espaço` | play/pause (fora do leitor PDF, que consome a tecla) |
 /// | `Ctrl+Espaço` / `Cmd+Espaço` | play/pause também dentro do leitor |
 /// | `J` / `L` | ±10 s no áudio (mesma guarda de foco do Espaço) — C12 |
-/// | `F` | tela cheia no leitor PDF, no de cifras e no de gestos |
+/// | `F` | tela cheia no leitor PDF, no de cifras, no de gestos e no de letras |
 /// | `Esc` | sai da tela cheia |
 class AppShortcuts extends ConsumerWidget {
   const AppShortcuts({required this.path, required this.child, super.key});
@@ -164,7 +164,8 @@ class AppShortcuts extends ConsumerWidget {
   bool get _isReaderRoute =>
       path == RoutePaths.reader ||
       path == RoutePaths.chords ||
-      path == RoutePaths.gestos;
+      path == RoutePaths.gestos ||
+      path == RoutePaths.lyrics;
 
   void _focusSearch(BuildContext context, WidgetRef ref) {
     goToShellDestination(context, RoutePaths.home);

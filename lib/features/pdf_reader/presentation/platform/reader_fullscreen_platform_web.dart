@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -28,7 +29,33 @@ class _WebReaderFullscreenPlatform implements ReaderFullscreenPlatform {
   }
 
   @override
-  Stream<bool> get changes => web.EventStreamProviders.fullscreenChangeEvent
-      .forTarget(web.document)
-      .map((_) => web.document.fullscreenElement != null);
+  Stream<bool> get changes {
+    late final StreamController<bool> controller;
+    StreamSubscription<web.Event>? sub1;
+    StreamSubscription<web.Event>? sub2;
+
+    void onEvent(web.Event _) {
+      if (!controller.isClosed) {
+        controller.add(web.document.fullscreenElement != null);
+      }
+    }
+
+    controller = StreamController<bool>.broadcast(
+      onListen: () {
+        sub1 = const web.EventStreamProvider<web.Event>('fullscreenchange')
+            .forTarget(web.document, useCapture: true)
+            .listen(onEvent);
+        sub2 = const web.EventStreamProvider<web.Event>('webkitfullscreenchange')
+            .forTarget(web.document, useCapture: true)
+            .listen(onEvent);
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
 }
+

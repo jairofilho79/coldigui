@@ -21,6 +21,7 @@ import '../../../contributions/domain/entities/contribution_target.dart';
 import '../../../contributions/presentation/utils/open_contribute.dart';
 import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import '../../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_reader_font_size.dart';
 import '../providers/chord_autoscroll_provider.dart';
@@ -32,6 +33,7 @@ import '../widgets/chordpro_view.dart';
 
 const Key chordReaderAutoscrollKey = Key('chordReaderAutoscroll');
 const Key chordReaderSpeedKey = Key('chordReaderSpeed');
+const Key chordReaderFullscreenKey = Key('chordReaderFullscreen');
 
 /// Leitor de cifras ChordPro — rota `/cifra`, filha do [ShellScaffold].
 ///
@@ -582,10 +584,14 @@ class _ChordReaderToolbar extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _toolbarGroupGap),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          IconButton(
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
             style: style,
             tooltip: l10n.chordReaderTransposeDown,
             icon: const Icon(Icons.remove),
@@ -687,6 +693,19 @@ class _ChordReaderToolbar extends ConsumerWidget {
             onPressed: () =>
                 ref.read(chordReaderModeProvider.notifier).toggle(),
           ),
+          IconButton(
+            key: chordReaderFullscreenKey,
+            style: style,
+            tooltip: ref.watch(readerFullscreenProvider)
+                ? l10n.readerExitFullscreenTooltip
+                : l10n.readerFullscreenTooltip,
+            icon: Icon(
+              ref.watch(readerFullscreenProvider)
+                  ? Icons.fullscreen_exit
+                  : Icons.fullscreen,
+            ),
+            onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+          ),
           _ToolbarSeparator(color: palette.comment),
           IconButton(
             style: style,
@@ -721,9 +740,12 @@ class _ChordReaderToolbar extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }
+
 
 /// Traço entre grupos de controles.
 ///

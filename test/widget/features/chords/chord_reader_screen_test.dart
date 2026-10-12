@@ -610,5 +610,29 @@ void main() {
         expect(lastPaddingBottom(tester), 24);
       },
     );
+
+    testWidgets('botão de fullscreen alterna entre tela cheia e normal', (tester) async {
+      await _pump(tester, available: true);
+      final container = _containerOf(tester);
+
+      expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+      expect(container.read(readerFullscreenProvider), isFalse);
+
+      await tester.tap(find.byKey(chordReaderFullscreenKey));
+      await tester.pumpAndSettle();
+
+      expect(container.read(readerFullscreenProvider), isTrue);
+      expect(find.byIcon(Icons.fullscreen_exit), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen), findsNothing);
+
+      await tester.tap(find.byKey(chordReaderFullscreenKey));
+      await tester.pumpAndSettle();
+
+      expect(container.read(readerFullscreenProvider), isFalse);
+      expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+      expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+    });
   });
 }
+
