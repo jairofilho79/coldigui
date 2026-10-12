@@ -20,6 +20,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart' hide SearchBar;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// UC-01, UC-02 — página inicial / Pesquisador.
 ///
@@ -268,24 +269,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
-                  child: FiltersPanel(
-                    scope: CatalogFilterScope.home,
-                    initiallyExpanded:
-                        widget._hasInitialFilters || _hadSavedFiltersAtMount,
+                  child: SpotlightGuideTarget(
+                    id: 'home-filters-panel',
+                    child: FiltersPanel(
+                      scope: CatalogFilterScope.home,
+                      initiallyExpanded:
+                          widget._hasInitialFilters || _hadSavedFiltersAtMount,
+                    ),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
                 SliverToBoxAdapter(
-                  child: SearchBar(
-                    key: ValueKey(_searchHydrationEpoch),
-                    hintText: l10n.searchHint,
-                    initialValue: _searchBarInitialValue,
-                    focusNode: _searchFocusNode,
-                    onQueryChanged: (value) {
-                      ref
-                          .read(homeSearchQueryProvider.notifier)
-                          .setQuery(value);
-                    },
+                  child: SpotlightGuideTarget(
+                    id: 'home-search-bar',
+                    child: SearchBar(
+                      key: ValueKey(_searchHydrationEpoch),
+                      hintText: l10n.searchHint,
+                      initialValue: _searchBarInitialValue,
+                      focusNode: _searchFocusNode,
+                      onQueryChanged: (value) {
+                        ref
+                            .read(homeSearchQueryProvider.notifier)
+                            .setQuery(value);
+                      },
+                    ),
                   ),
                 ),
                 if (status == CatalogIndexStatus.loading) ...[

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../routing/route_paths.dart';
 import '../routing/shell_navigation.dart';
 import '../theme/color_extensions.dart';
+import '../tutorial/presentation/providers/tutorial_provider.dart';
 import 'plpcg_app_bar_title.dart';
 
 /// Barra superior PLPCG — título central e divisor dourado.
 ///
 /// Usada como `appBar` do [ShellScaffold] — compartilhada por todas as rotas,
-/// inclusive `/leitor`. Sem `actions` (badge offline removido).
+/// inclusive `/leitor`.
+/// Ação de tutorial `(i)` à direita dispara o guia de uso da tela atual.
 /// Toque no título → [RoutePaths.home] via `go` (limpa a pilha de `push`).
 /// Em `/leitor`, `/audio`, `/cifra`, `/gestos`, `/letra`, `/listas/publicas`,
 /// `/biblioteca`, `/offline`, `/sobre` e `/materiais-favoritos`, exibe voltar
@@ -78,6 +82,26 @@ class PlpcgPrimaryAppBar extends StatelessWidget
           child: const PlpcgAppBarTitle(),
         ),
       ),
+      actions: [
+        SpotlightGuideTarget(
+          id: 'app-info-button',
+          child: IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Como usar esta tela',
+            onPressed: () {
+              try {
+                final container =
+                    ProviderScope.containerOf(context, listen: false);
+                container
+                    .read(tutorialControllerProvider)
+                    .startTutorialForRoute(context, path);
+              } catch (_) {
+                // Em testes unitários sem ProviderScope, no-op seguro.
+              }
+            },
+          ),
+        ),
+      ],
       bottom: const PreferredSize(
         preferredSize: Size.fromHeight(4),
         child: Divider(height: 4, thickness: 4, color: AppColors.gold),

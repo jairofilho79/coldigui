@@ -25,6 +25,9 @@ import '../../carousel/presentation/widgets/carousel_chips.dart';
 import '../../offline/presentation/widgets/offline_lifecycle_listener.dart';
 import '../../pdf_reader/presentation/providers/reader_fullscreen_provider.dart';
 import '../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
+
+import '../../../core/tutorial/presentation/providers/tutorial_provider.dart';
 import 'utils/browser_title.dart';
 import 'widgets/app_shortcuts.dart';
 import 'widgets/plpcg_bottom_nav_bar.dart';
@@ -212,6 +215,8 @@ class ShellScaffold extends ConsumerWidget {
       ],
     );
 
+    final tutorialNotifier = ref.watch(tutorialControllerProvider);
+
     return LiveLifecycleListener(
       child: OfflineLifecycleListener(
         child: StageWakelockListener(
@@ -221,65 +226,83 @@ class ShellScaffold extends ConsumerWidget {
             child: Title(
               color: Theme.of(context).colorScheme.primary,
               title: title,
-              child: Scaffold(
-                appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
-                body: hideChrome
-                    ? Column(
-                        children: [
-                          // No topo, e não em `bottom: 0`: o rodapé da tela é
-                          // a área do gesto de sistema (Android e iOS), onde
-                          // um toque na barra virava «ir para o início».
-                          // `SafeArea` tira a barra de baixo do notch/status
-                          // bar; a faixa preta cobre esse recuo.
-                          if (currentTrack != null)
-                            const ColoredBox(
-                              color: Colors.black,
-                              child: SafeArea(
-                                bottom: false,
-                                child: SizedBox(
-                                  height: kMiniPlayerBarHeight,
-                                  child: MiniPlayerBar(overlay: true),
+              child: SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                autoStart: false,
+                missingTargetBehavior: SpotlightGuideMissingTargetBehavior.skip,
+                barrier: const SpotlightGuideBarrierStyle(
+                  color: Color(0x99000000),
+                  blurSigma: 3,
+                ),
+                barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
+                onBarrierTap: (c) => c.hide(),
+                child: Scaffold(
+                  appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
+                  body: hideChrome
+                      ? Column(
+                          children: [
+                            // No topo, e não em `bottom: 0`: o rodapé da tela é
+                            // a área do gesto de sistema (Android e iOS), onde
+                            // um toque na barra virava «ir para o início».
+                            // `SafeArea` tira a barra de baixo do notch/status
+                            // bar; a faixa preta cobre esse recuo.
+                            if (currentTrack != null)
+                              const ColoredBox(
+                                color: Colors.black,
+                                child: SafeArea(
+                                  bottom: false,
+                                  child: SizedBox(
+                                    height: kMiniPlayerBarHeight,
+                                    child: MiniPlayerBar(overlay: true),
+                                  ),
                                 ),
                               ),
+                            // Espaço reservado em vez de sobreposição: o leitor
+                            // começa abaixo da barra e não perde a parte de cima
+                            // do PDF. Sem o recuo de cima (já consumido pela
+                            // barra), o `SafeArea` das telas não o soma de novo.
+                            Expanded(
+                              child: MediaQuery.removePadding(
+                                context: context,
+                                removeTop: currentTrack != null,
+                                child: navigationShell,
+                              ),
                             ),
-                          // Espaço reservado em vez de sobreposição: o leitor
-                          // começa abaixo da barra e não perde a parte de cima
-                          // do PDF. Sem o recuo de cima (já consumido pela
-                          // barra), o `SafeArea` das telas não o soma de novo.
-                          Expanded(
-                            child: MediaQuery.removePadding(
-                              context: context,
-                              removeTop: currentTrack != null,
-                              child: navigationShell,
-                            ),
+                          ],
+                        )
+                      : SafeArea(
+                          top: false,
+                          bottom: false,
+                          child: showRail
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    SpotlightGuideTarget(
+                                      id: 'home-bottom-nav',
+                                      child: PlpcgNavigationRail(
+                                        selectedIndex:
+                                            navigationShell.currentIndex,
+                                        onDestinationSelected:
+                                            navigationShell.goBranch,
+                                        destinations: destinations,
+                                      ),
+                                    ),
+                                    Expanded(child: bodyColumn),
+                                  ],
+                                )
+                              : bodyColumn,
+                        ),
+                  bottomNavigationBar: (isImmersive || showRail)
+                      ? null
+                      : SpotlightGuideTarget(
+                          id: 'home-bottom-nav',
+                          child: PlpcgBottomNavBar(
+                            selectedIndex: navigationShell.currentIndex,
+                            onDestinationSelected: navigationShell.goBranch,
+                            destinations: destinations,
                           ),
-                        ],
-                      )
-                    : SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: showRail
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  PlpcgNavigationRail(
-                                    selectedIndex: navigationShell.currentIndex,
-                                    onDestinationSelected:
-                                        navigationShell.goBranch,
-                                    destinations: destinations,
-                                  ),
-                                  Expanded(child: bodyColumn),
-                                ],
-                              )
-                            : bodyColumn,
-                      ),
-                bottomNavigationBar: (isImmersive || showRail)
-                    ? null
-                    : PlpcgBottomNavBar(
-                        selectedIndex: navigationShell.currentIndex,
-                        onDestinationSelected: navigationShell.goBranch,
-                        destinations: destinations,
-                      ),
+                        ),
+                ),
               ),
             ),
           ),

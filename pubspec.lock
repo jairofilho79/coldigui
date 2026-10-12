@@ -1161,6 +1161,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.2"
+  spotlight_guide:
+    dependency: "direct main"
+    description:
+      name: spotlight_guide
+      sha256: f4b1ce3eec8ee0fa45f834db9b091e1ae0c4f4cccbd2b7a35c3d33dd362b5ea8
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   sqflite:
     dependency: transitive
     description:
