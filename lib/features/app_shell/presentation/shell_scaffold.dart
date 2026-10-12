@@ -229,7 +229,7 @@ class ShellScaffold extends ConsumerWidget {
               child: SpotlightGuidePortal(
                 controller: tutorialNotifier.portalController,
                 autoStart: false,
-                missingTargetBehavior: SpotlightGuideMissingTargetBehavior.skip,
+                missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
                 barrier: const SpotlightGuideBarrierStyle(
                   color: Color(0x99000000),
                   blurSigma: 0,

@@ -165,6 +165,22 @@ class CatalogFiltersNotifier extends Notifier<CatalogFilterState> {
     }
   }
 
+  CatalogFilterState? _backupBeforeTutorial;
+
+  /// Aplica filtros de demonstração durante o tutorial sem persistir no disco.
+  void setTutorialFilters(CatalogFilterState demoFilters) {
+    _backupBeforeTutorial ??= state;
+    state = demoFilters;
+  }
+
+  /// Restaura os filtros originais que estavam ativos antes do tutorial.
+  void restoreTutorialFilters() {
+    if (_backupBeforeTutorial != null) {
+      state = _backupBeforeTutorial!;
+      _backupBeforeTutorial = null;
+    }
+  }
+
   static Set<String> _toggle(Set<String> current, String value) {
     final next = Set<String>.from(current);
     if (!next.remove(value)) next.add(value);

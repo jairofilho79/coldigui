@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
+import '../../../../core/theme/color_extensions.dart';
+import '../../../../features/catalog/presentation/providers/catalog_filter_options_provider.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../widgets/coldigui_tutorial_hint.dart';
@@ -13,21 +15,33 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
         targetId: 'home-search-bar',
-        placement: SpotlightGuidePlacement.bottom,
+        placement: SpotlightGuidePlacement.verticalAuto,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         onReveal: (context) async {
-          ProviderScope.containerOf(context.context)
+          final container = ProviderScope.containerOf(context.context);
+          container
               .read(
                 filtersPanelExpandedOverrideProvider(CatalogFilterScope.home)
                     .notifier,
               )
               .set(false);
+          container
+              .read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
+              .restoreTutorialFilters();
           await Future<void>.delayed(const Duration(milliseconds: 150));
         },
         targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(4),
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           shape: SpotlightGuideRoundedRectShape(
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
+          layers: [
+            SpotlightGuideTargetRingLayer(
+              color: AppColors.gold,
+              width: 2.5,
+              outset: 2,
+            ),
+          ],
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -38,48 +52,36 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
       ),
     ),
 
-    // 2. Painel de Filtros (Inativo / Recolhido)
+    // 2. Painel de Filtros (Ativo / Expandido)
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
         targetId: 'home-filters-panel',
-        placement: SpotlightGuidePlacement.bottom,
+        placement: SpotlightGuidePlacement.verticalAuto,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         onReveal: (context) async {
-          ProviderScope.containerOf(context.context)
-              .read(
-                filtersPanelExpandedOverrideProvider(CatalogFilterScope.home)
-                    .notifier,
-              )
-              .set(false);
-          await Future<void>.delayed(const Duration(milliseconds: 150));
-        },
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(4),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-        ),
-        hintBuilder: (context, guide) => ColdiguiTutorialHint(
-          guide: guide,
-          title: 'Filtros do Catálogo (Recolhido)',
-          message:
-              'Quando **inativo**, o painel fica **fechado** exibindo **"Toque para filtrar"** para economizar espaço e manter a visualização limpa.',
-        ),
-      ),
-    ),
-
-    // 3. Painel de Filtros (Ativo / Expandido)
-    SpotlightGuideStep.item(
-      SpotlightGuideStepItem(
-        targetId: 'home-filters-panel',
-        placement: SpotlightGuidePlacement.bottom,
-        onReveal: (context) async {
-          ProviderScope.containerOf(context.context)
+          final container = ProviderScope.containerOf(context.context);
+          container
               .read(
                 filtersPanelExpandedOverrideProvider(CatalogFilterScope.home)
                     .notifier,
               )
               .set(true);
-          // Aguarda o painel expandir para o holofote englobar todas as opções
+
+          final options = container.read(catalogFilterOptionsProvider);
+          final sampleTonality =
+              options.tonalities.isNotEmpty ? options.tonalities.first : 'C';
+          final sampleRhythm =
+              options.rhythms.isNotEmpty ? options.rhythms.first : 'Adoração';
+
+          container
+              .read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
+              .setTutorialFilters(
+                CatalogFilterState(
+                  tonalities: {sampleTonality},
+                  rhythms: {sampleRhythm},
+                ),
+              );
+
           await Future<void>.delayed(const Duration(milliseconds: 250));
         },
         targetDecoration: const SpotlightGuideTargetDecoration(
@@ -87,12 +89,60 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           shape: SpotlightGuideRoundedRectShape(
             borderRadius: BorderRadius.all(Radius.circular(14)),
           ),
+          layers: [
+            SpotlightGuideTargetRingLayer(
+              color: AppColors.gold,
+              width: 2.5,
+              outset: 2,
+            ),
+          ],
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
-          title: 'Filtros do Catálogo (Expandido)',
+          title: 'Filtros Ativos',
           message:
-              'Ao **abrir**, você refina por **Tom musical**, **Ritmo**, **Coletâneas/Tags** e **Tipo de material** (**Partitura**, **Cifra** ou **Áudio**). Com filtros selecionados, o botão **"Limpar filtros"** surge para desmarcar tudo.',
+              'Quando **ativos**, os botões de filtro selecionados ganham **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e o botão **"Limpar filtros"** surge para desmarcar tudo.',
+        ),
+      ),
+    ),
+
+    // 3. Painel de Filtros (Inativo / Desmarcado)
+    SpotlightGuideStep.item(
+      SpotlightGuideStepItem(
+        targetId: 'home-filters-panel',
+        placement: SpotlightGuidePlacement.verticalAuto,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
+        onReveal: (context) async {
+          final container = ProviderScope.containerOf(context.context);
+          container
+              .read(
+                filtersPanelExpandedOverrideProvider(CatalogFilterScope.home)
+                    .notifier,
+              )
+              .set(true);
+          container
+              .read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
+              .setTutorialFilters(CatalogFilterState.empty);
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        },
+        targetDecoration: const SpotlightGuideTargetDecoration(
+          padding: EdgeInsets.all(6),
+          shape: SpotlightGuideRoundedRectShape(
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+          ),
+          layers: [
+            SpotlightGuideTargetRingLayer(
+              color: AppColors.gold,
+              width: 2.5,
+              outset: 2,
+            ),
+          ],
+        ),
+        hintBuilder: (context, guide) => ColdiguiTutorialHint(
+          guide: guide,
+          title: 'Filtros Inativos',
+          message:
+              'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Você também pode tocar no cabeçalho ou na seta para **recolher o painel** e aproveitar mais espaço na tela.',
         ),
       ),
     ),
@@ -102,8 +152,10 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
       SpotlightGuideStepItem(
         targetId: 'home-bottom-nav',
         placement: SpotlightGuidePlacement.top,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         onReveal: (context) async {
-          ProviderScope.containerOf(context.context)
+          final container = ProviderScope.containerOf(context.context);
+          container
               .read(
                 filtersPanelExpandedOverrideProvider(CatalogFilterScope.home)
                     .notifier,
@@ -116,6 +168,13 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           shape: SpotlightGuideRoundedRectShape(
             borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
+          layers: [
+            SpotlightGuideTargetRingLayer(
+              color: AppColors.gold,
+              width: 2.5,
+              outset: 2,
+            ),
+          ],
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -131,11 +190,19 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
       SpotlightGuideStepItem(
         targetId: 'app-info-button',
         placement: SpotlightGuidePlacement.bottom,
+        missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         targetDecoration: const SpotlightGuideTargetDecoration(
           padding: EdgeInsets.all(4),
           shape: SpotlightGuideRoundedRectShape(
             borderRadius: BorderRadius.all(Radius.circular(20)),
           ),
+          layers: [
+            SpotlightGuideTargetRingLayer(
+              color: AppColors.gold,
+              width: 2.5,
+              outset: 2,
+            ),
+          ],
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,

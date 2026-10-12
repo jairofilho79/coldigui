@@ -4,10 +4,12 @@ import 'package:coldigui/core/tutorial/presentation/widgets/coldigui_tutorial_hi
 import 'package:coldigui/core/widgets/plpcg_primary_app_bar.dart';
 import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
+import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
@@ -57,21 +59,35 @@ void main() {
               return SpotlightGuidePortal(
                 controller: tutorial.portalController,
                 autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
                 child: Scaffold(
                   appBar: const PlpcgPrimaryAppBar(),
-                  body: Column(
-                    children: [
-                      SpotlightGuideTarget(
-                        id: 'home-search-bar',
-                        child: const Text('Barra de Busca'),
+                  body: CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: SpotlightGuideTarget(
+                          id: 'home-filters-panel',
+                          child: const SizedBox(
+                            height: 50,
+                            child: Text('Painel de Filtros'),
+                          ),
+                        ),
                       ),
-                      SpotlightGuideTarget(
-                        id: 'home-filters-panel',
-                        child: const Text('Painel de Filtros'),
+                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                      SliverToBoxAdapter(
+                        child: SpotlightGuideTarget(
+                          id: 'home-search-bar',
+                          child: const SizedBox(
+                            height: 50,
+                            child: Text('Barra de Busca'),
+                          ),
+                        ),
                       ),
-                      SpotlightGuideTarget(
-                        id: 'home-bottom-nav',
-                        child: const Text('Navegação'),
+                      SliverToBoxAdapter(
+                        child: SpotlightGuideTarget(
+                          id: 'home-bottom-nav',
+                          child: const Text('Navegação'),
+                        ),
                       ),
                     ],
                   ),
@@ -82,8 +98,14 @@ void main() {
         ],
       );
 
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
           child: Consumer(
             builder: (context, ref, child) {
               container = ProviderScope.containerOf(context);
@@ -108,27 +130,72 @@ void main() {
       expect(find.text('Pesquisa Inteligente'), findsOneWidget);
       expect(find.text('Próximo'), findsOneWidget);
 
-      // Avança para o Passo 2: Filtros do Catálogo (Recolhido / Inativo)
-      await tester.tap(find.text('Próximo'));
-      await tester.pumpAndSettle();
-      expect(find.text('Filtros do Catálogo (Recolhido)'), findsOneWidget);
-      expect(
-        container.read(
-          filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
-        ),
-        isFalse,
+      final barrierFinder = find.byWidgetPredicate(
+        (w) =>
+            w is CustomPaint &&
+            w.painter.runtimeType.toString() == '_SpotlightBarrierPainter',
       );
+      expect(barrierFinder, findsWidgets);
+      final customPaint = tester.widget<CustomPaint>(barrierFinder.first);
+      dynamic painter = customPaint.painter;
+      expect(painter.targetHoles.isNotEmpty, isTrue);
 
-      // Avança para o Passo 3: Filtros do Catálogo (Expandido / Ativo)
+      // Avança para o Passo 2: Filtros Ativos
       await tester.tap(find.text('Próximo'));
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
-      expect(find.text('Filtros do Catálogo (Expandido)'), findsOneWidget);
+      expect(find.text('Filtros Ativos'), findsOneWidget);
       expect(
         container.read(
           filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
         ),
         isTrue,
+      );
+      expect(
+        container
+            .read(catalogFiltersProviderFor(CatalogFilterScope.home))
+            .activeCount,
+        greaterThan(0),
+      );
+
+      // Avança para o Passo 3: Filtros Inativos
+      await tester.tap(find.text('Próximo'));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Filtros Inativos'), findsOneWidget);
+      expect(
+        container.read(
+          filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
+        ),
+        isTrue,
+      );
+      expect(
+        container
+            .read(catalogFiltersProviderFor(CatalogFilterScope.home))
+            .activeCount,
+        equals(0),
+      );
+
+      // Avança para o Passo 4: Navegação Principal
+      await tester.tap(find.text('Próximo'));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Navegação Principal'), findsOneWidget);
+
+      // Avança para o Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      // Toca em Concluir e verifica restauração dos estados
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(
+          filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
+        ),
+        isNull,
       );
     });
 

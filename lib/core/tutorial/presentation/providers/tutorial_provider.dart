@@ -58,6 +58,9 @@ class TutorialController {
               .notifier,
         )
         .set(null);
+    _ref
+        ?.read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
+        .restoreTutorialFilters();
   }
 
   /// Fecha o tutorial ativo se houver e restaura o estado.
