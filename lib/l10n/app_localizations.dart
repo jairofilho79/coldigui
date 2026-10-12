@@ -3601,6 +3601,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Geral'**
   String get contributeEditorGeneralKind;
+
+  /// No description provided for @contributeEditorGeneralHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.'**
+  String get contributeEditorGeneralHint;
 }
 
 class _AppLocalizationsDelegate

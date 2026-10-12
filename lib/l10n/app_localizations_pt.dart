@@ -2094,4 +2094,8 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get contributeEditorGeneralKind => 'Geral';
+
+  @override
+  String get contributeEditorGeneralHint =>
+      'Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.';
 }

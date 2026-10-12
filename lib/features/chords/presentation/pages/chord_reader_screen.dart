@@ -378,6 +378,7 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                   fontSize: fontSize,
                   semitones: semitones,
                   chordId: r2Key,
+                  praiseId: _currentPraiseId,
                   autoscroll: autoscroll,
                   showSpeedSlider: _showSpeedSlider,
                   onToggleSpeedSlider: () =>
@@ -589,11 +590,14 @@ class _ChordReaderToolbar extends ConsumerWidget {
     required this.fontSize,
     required this.semitones,
     required this.chordId,
+    this.praiseId,
     required this.autoscroll,
     required this.showSpeedSlider,
     required this.onToggleSpeedSlider,
     required this.l10n,
   });
+
+  final String? praiseId;
 
   final ChordReaderMode mode;
   final ChordReaderPalette palette;
@@ -727,15 +731,19 @@ class _ChordReaderToolbar extends ConsumerWidget {
             tooltip: l10n.contributeReportTooltip,
             icon: const Icon(Icons.handshake_outlined),
             onPressed: () {
-              final praiseId = ref
+              final lookupPraiseId = ref
                   .read(catalogMaterialLookupProvider)
                   .chord(chordId)
                   ?.groupId;
+              final effectivePraiseId =
+                  (lookupPraiseId != null && lookupPraiseId.isNotEmpty)
+                      ? lookupPraiseId
+                      : praiseId;
               openContribute(
                 context,
                 target: ContributionTarget(
                   source: ContributionSource.coldigom,
-                  praiseId: praiseId,
+                  praiseId: effectivePraiseId,
                   materialId: chordId,
                 ),
               );

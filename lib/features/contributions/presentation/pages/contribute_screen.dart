@@ -339,6 +339,40 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                           ],
                         ),
                       ),
+                    ] else ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.gold.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.lightbulb_outline,
+                              size: 18,
+                              color: AppColors.gold,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                l10n.contributeEditorGeneralHint,
+                                style: AppTypography.body.copyWith(
+                                  fontSize: 12.5,
+                                  color: AppColors.textLight.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 20),
                     GoldenTaggedContainer(

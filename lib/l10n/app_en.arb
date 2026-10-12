@@ -1020,5 +1020,6 @@
   "contributeEditorLyricsKind": "Lyrics",
   "contributeEditorChordKind": "Chord",
   "contributeEditorGestureKind": "Gestures",
-  "contributeEditorGeneralKind": "General"
+  "contributeEditorGeneralKind": "General",
+  "contributeEditorGeneralHint": "To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar."
 }

@@ -457,6 +457,7 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                         setState(() => _showSpeedSlider = !_showSpeedSlider),
                     l10n: l10n,
                     gestureId: widget.queryParams[UrlSyncParams.pdfId] ?? '',
+                    praiseId: _currentPraiseId,
                   ),
                   if (_showSpeedSlider)
                     AutoscrollSpeedSliderBar(
@@ -597,7 +598,10 @@ class _GestureReaderToolbar extends ConsumerWidget {
     required this.onToggleSpeedSlider,
     required this.l10n,
     required this.gestureId,
+    this.praiseId,
   });
+
+  final String? praiseId;
 
   final GestureReaderMode mode;
   final GestureReaderPalette palette;
@@ -707,15 +711,19 @@ class _GestureReaderToolbar extends ConsumerWidget {
             tooltip: l10n.contributeReportTooltip,
             icon: const Icon(Icons.handshake_outlined),
             onPressed: () {
-              final praiseId = ref
+              final lookupPraiseId = ref
                   .read(catalogMaterialLookupProvider)
                   .gesture(gestureId)
                   ?.groupId;
+              final effectivePraiseId =
+                  (lookupPraiseId != null && lookupPraiseId.isNotEmpty)
+                      ? lookupPraiseId
+                      : praiseId;
               openContribute(
                 context,
                 target: ContributionTarget(
                   source: ContributionSource.coldigom,
-                  praiseId: praiseId,
+                  praiseId: effectivePraiseId,
                   materialId: gestureId,
                 ),
               );

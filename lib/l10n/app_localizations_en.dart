@@ -2078,4 +2078,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contributeEditorGeneralKind => 'General';
+
+  @override
+  String get contributeEditorGeneralHint =>
+      'To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar.';
 }

@@ -389,7 +389,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
             _SheetHeader(
               group: group,
               l10n: l10n,
-              selectedKind: _selectedKind,
+              selectedKind: selectedKind,
             ),
             if (relatedPraises.length > 1) ...[
               const SizedBox(height: 12),
