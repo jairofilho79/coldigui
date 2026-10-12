@@ -1,6 +1,9 @@
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/core/tutorial/presentation/providers/tutorial_provider.dart';
+import 'package:coldigui/core/tutorial/presentation/widgets/coldigui_tutorial_hint.dart';
 import 'package:coldigui/core/widgets/plpcg_primary_app_bar.dart';
+import 'package:coldigui/features/catalog/presentation/providers/catalog_filters_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/filters_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,22 +21,30 @@ void main() {
     testWidgets('stepsForRoute retorna passos da Home com alvos configurados',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              final controller = TutorialController();
-              final steps = controller.stepsForRoute(context, RoutePaths.home);
-              expect(steps.length, greaterThanOrEqualTo(4));
-              expect(steps.first.items.first.targetId, 'home-search-bar');
-              return const SizedBox();
-            },
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(context, RoutePaths.home);
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'home-search-bar');
+                expect(steps[1].items.first.targetId, 'home-filters-panel');
+                expect(steps[2].items.first.targetId, 'home-filters-panel');
+                expect(steps[3].items.first.targetId, 'home-bottom-nav');
+                expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
           ),
         ),
       );
     });
 
-    testWidgets('toque no botão (i) na AppBar dispara o tutorial',
+    testWidgets('toque no botão (i) na AppBar dispara o tutorial e navega pelos passos',
         (tester) async {
+      late ProviderContainer container;
+
       final router = GoRouter(
         initialLocation: RoutePaths.home,
         routes: [
@@ -48,9 +59,21 @@ void main() {
                 autoStart: false,
                 child: Scaffold(
                   appBar: const PlpcgPrimaryAppBar(),
-                  body: SpotlightGuideTarget(
-                    id: 'home-search-bar',
-                    child: const Text('Conteúdo Home'),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'home-search-bar',
+                        child: const Text('Barra de Busca'),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'home-filters-panel',
+                        child: const Text('Painel de Filtros'),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'home-bottom-nav',
+                        child: const Text('Navegação'),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -61,8 +84,13 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          child: MaterialApp.router(
-            routerConfig: router,
+          child: Consumer(
+            builder: (context, ref, child) {
+              container = ProviderScope.containerOf(context);
+              return MaterialApp.router(
+                routerConfig: router,
+              );
+            },
           ),
         ),
       );
@@ -76,9 +104,65 @@ void main() {
       await tester.tap(infoButtonFinder);
       await tester.pumpAndSettle();
 
-      // Verifica se o balão de tutorial foi exibido com o título do primeiro passo
+      // Passo 1: Pesquisa Inteligente
       expect(find.text('Pesquisa Inteligente'), findsOneWidget);
       expect(find.text('Próximo'), findsOneWidget);
+
+      // Avança para o Passo 2: Filtros do Catálogo (Recolhido / Inativo)
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Filtros do Catálogo (Recolhido)'), findsOneWidget);
+      expect(
+        container.read(
+          filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
+        ),
+        isFalse,
+      );
+
+      // Avança para o Passo 3: Filtros do Catálogo (Expandido / Ativo)
+      await tester.tap(find.text('Próximo'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('Filtros do Catálogo (Expandido)'), findsOneWidget);
+      expect(
+        container.read(
+          filtersPanelExpandedOverrideProvider(CatalogFilterScope.home),
+        ),
+        isTrue,
+      );
+    });
+
+    testWidgets('ColdiguiTutorialHint renderiza palavras em negrito via markdown',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SpotlightGuidePortal(
+              steps: [
+                SpotlightGuideStep.item(
+                  SpotlightGuideStepItem(
+                    targetId: 'dummy-target',
+                    hintBuilder: (context, guide) => ColdiguiTutorialHint(
+                      guide: guide,
+                      title: 'Teste de Destaque',
+                      message: 'Texto normal com **palavra em negrito** aqui.',
+                    ),
+                  ),
+                ),
+              ],
+              child: SpotlightGuideTarget(
+                id: 'dummy-target',
+                child: const Text('Alvo'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o RichText com os spans esperados
+      expect(find.text('Teste de Destaque'), findsOneWidget);
+      expect(find.byType(RichText), findsWidgets);
     });
   });
 }

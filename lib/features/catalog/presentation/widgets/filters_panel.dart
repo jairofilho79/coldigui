@@ -7,6 +7,27 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Notifier para override programático de expansão do painel de filtros.
+class FiltersPanelExpandedNotifier extends Notifier<bool?> {
+  FiltersPanelExpandedNotifier(this.scope);
+
+  final CatalogFilterScope scope;
+
+  @override
+  bool? build() => null;
+
+  void set(bool? value) => state = value;
+}
+
+/// Override programático para expansão do painel de filtros (ex.: tutoriais).
+/// Quando `null`, segue o estado interno de expansão do usuário.
+final filtersPanelExpandedOverrideProvider =
+    NotifierProvider.family<
+      FiltersPanelExpandedNotifier,
+      bool?,
+      CatalogFilterScope
+    >(FiltersPanelExpandedNotifier.new);
+
 /// Painel de filtros colapsável com container dourado (§5.2).
 ///
 /// Usado na página inicial e na /biblioteca, com o mesmo conteúdo
@@ -45,7 +66,15 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
     }
   }
 
-  void _toggle() => setState(() => _expanded = !_expanded);
+  void _toggle() {
+    final override =
+        ref.read(filtersPanelExpandedOverrideProvider(widget.scope));
+    final current = override ?? _expanded;
+    ref
+        .read(filtersPanelExpandedOverrideProvider(widget.scope).notifier)
+        .set(null);
+    setState(() => _expanded = !current);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,18 +83,22 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
       catalogFiltersProviderFor(widget.scope)
           .select((filters) => filters.activeCount),
     );
+    final override =
+        ref.watch(filtersPanelExpandedOverrideProvider(widget.scope));
+    final isExpanded = override ?? _expanded;
+
     final header = activeCount > 0
         ? l10n.filtersActiveCount(activeCount)
-        : _expanded
+        : isExpanded
         ? l10n.filtersTitle
         : l10n.filtersTapToExpand;
 
     return Semantics(
-      expanded: _expanded,
+      expanded: isExpanded,
       child: GoldenTaggedContainer(
         label: l10n.filtersTitle,
-        onTap: _expanded ? null : _toggle,
-        contentPadding: _expanded
+        onTap: isExpanded ? null : _toggle,
+        contentPadding: isExpanded
             ? GoldenTaggedContainer.expandedSectionPaddingFor(context)
             : GoldenTaggedContainer.compactContentPaddingFor(context),
         child: Column(
@@ -119,7 +152,7 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
                   child: Padding(
                     padding: const EdgeInsets.all(4.0),
                     child: Icon(
-                      _expanded
+                      isExpanded
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
                       color: AppColors.title,
@@ -129,7 +162,7 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
                 ),
               ],
             ),
-            if (_expanded) ...[
+            if (isExpanded) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
@@ -142,3 +175,4 @@ class _FiltersPanelState extends ConsumerState<FiltersPanel> {
     );
   }
 }
+

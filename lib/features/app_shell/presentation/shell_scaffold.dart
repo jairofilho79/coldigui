@@ -232,10 +232,11 @@ class ShellScaffold extends ConsumerWidget {
                 missingTargetBehavior: SpotlightGuideMissingTargetBehavior.skip,
                 barrier: const SpotlightGuideBarrierStyle(
                   color: Color(0x99000000),
-                  blurSigma: 3,
+                  blurSigma: 0,
                 ),
                 barrierDismissBehavior: SpotlightGuideDismissBehavior.anytime,
-                onBarrierTap: (c) => c.hide(),
+                onBarrierTap: (c) => tutorialNotifier.hide(),
+                onFinish: () => tutorialNotifier.resetTutorialState(),
                 child: Scaffold(
                   appBar: hideChrome ? null : const PlpcgPrimaryAppBar(),
                   body: hideChrome
