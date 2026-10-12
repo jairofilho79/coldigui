@@ -23,12 +23,11 @@ import '../../../pdf_reader/domain/entities/carousel_reader_position.dart';
 import '../../../pdf_reader/presentation/providers/reader_route_params_provider.dart';
 import '../../data/providers/chord_providers.dart';
 import '../../domain/entities/chord_reader_font_size.dart';
-import '../../domain/entities/chordpro_song.dart';
-import '../../domain/usecases/transpose_chord.dart';
 import '../providers/chord_autoscroll_provider.dart';
 import '../providers/chord_reader_mode_provider.dart';
 import '../theme/chord_reader_theme.dart';
 import '../utils/transpose_label_memo.dart';
+import '../widgets/chord_header.dart';
 import '../widgets/chordpro_view.dart';
 
 const Key chordReaderAutoscrollKey = Key('chordReaderAutoscroll');
@@ -452,7 +451,7 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                                     12,
                                   ),
                                   sliver: SliverToBoxAdapter(
-                                    child: _ChordHeader(
+                                    child: ChordHeader(
                                       song: song,
                                       semitones: semitones,
                                       palette: palette,
@@ -492,53 +491,6 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
   }
 }
 
-/// Título e metadados (subtítulo, tom já transposto, ritmo, artista).
-class _ChordHeader extends StatelessWidget {
-  const _ChordHeader({
-    required this.song,
-    required this.semitones,
-    required this.palette,
-  });
-
-  final ChordProSong song;
-  final int semitones;
-  final ChordReaderPalette palette;
-
-  /// Cabeçalho com o tom já transposto — o músico lê o tom em que vai tocar,
-  /// não o do arquivo.
-  String get _meta {
-    return [
-      if (song.subtitle.isNotEmpty) song.subtitle,
-      if (transposeKeyLabel(song.key, semitones).isNotEmpty)
-        transposeKeyLabel(song.key, semitones),
-      if (song.rhythm.isNotEmpty) song.rhythm,
-      if (song.artist.isNotEmpty) song.artist,
-    ].join(' · ');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final meta = _meta;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (song.title.isNotEmpty)
-          Text(
-            song.title,
-            style: AppTypography.headline.copyWith(color: palette.chord),
-          ),
-        if (meta.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
-            child: Text(
-              meta,
-              style: AppTypography.label.copyWith(color: palette.comment),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 class _Unavailable extends StatelessWidget {
   const _Unavailable({required this.message, required this.palette});

@@ -300,4 +300,76 @@ void main() {
       },
     );
   });
+
+  group('acordes suspensos e introducao', () {
+    testWidgets('acordes suspensos consecutivos tem espacamento e nao colidem', (
+      tester,
+    ) async {
+      await _pump(tester, '[A(Sus4)] [A]\n');
+
+      final sus4Finder = find.text('A(Sus4)');
+      final aFinder = find.text('A');
+
+      expect(sus4Finder, findsOneWidget);
+      expect(aFinder, findsOneWidget);
+
+      final sus4TopRight = tester.getTopRight(sus4Finder);
+      final aTopLeft = tester.getTopLeft(aFinder);
+
+      // Distância entre o fim de A(Sus4) e o início de A deve ser >= 16px (nunca colados em 0px)
+      expect(aTopLeft.dx - sus4TopRight.dx, greaterThanOrEqualTo(16.0));
+    });
+
+    testWidgets('acordes sem espacos tambem nao colidem', (tester) async {
+      await _pump(tester, '[Dm][C]\n');
+
+      final dmTopRight = tester.getTopRight(find.text('Dm'));
+      final cTopLeft = tester.getTopLeft(find.text('C'));
+
+      expect(cTopLeft.dx - dmTopRight.dx, greaterThanOrEqualTo(16.0));
+    });
+
+    testWidgets('mais espacos aumentam a distancia entre acordes suspensos', (
+      tester,
+    ) async {
+      await _pump(tester, '[Dm] [C]\n[Dm]    [C]\n');
+
+      final dms = find.text('Dm');
+      final cs = find.text('C');
+
+      final dist1Space = tester.getTopLeft(cs.first).dx - tester.getTopRight(dms.first).dx;
+      final dist4Spaces = tester.getTopLeft(cs.last).dx - tester.getTopRight(dms.last).dx;
+
+      expect(dist4Spaces, greaterThan(dist1Space));
+    });
+
+    testWidgets('acordes de introducao ficam abaixo do rotulo e alinhados entre si', (
+      tester,
+    ) async {
+      const source =
+          'Introdução: [Dm]    [C6(add9)]\n'
+          '[A]  [Dm]\n';
+
+      await _pump(tester, source);
+
+      final introFinder = find.text('Introdução:');
+      final dm1Finder = find.text('Dm');
+      final aFinder = find.text('A');
+
+      expect(introFinder, findsOneWidget);
+      expect(dm1Finder, findsNWidgets(2));
+      expect(aFinder, findsOneWidget);
+
+      final introBottom = tester.getBottomLeft(introFinder);
+      final dmTop = tester.getTopLeft(dm1Finder.first);
+      final aTop = tester.getTopLeft(aFinder);
+
+      // Os acordes estão estritamente ABAIXO do texto da introdução (não acima!)
+      expect(dmTop.dy, greaterThan(introBottom.dy));
+      expect(aTop.dy, greaterThan(dmTop.dy));
+
+      // As duas linhas de acordes da introdução estão alinhadas no mesmo x inicial
+      expect(dmTop.dx, equals(aTop.dx));
+    });
+  });
 }

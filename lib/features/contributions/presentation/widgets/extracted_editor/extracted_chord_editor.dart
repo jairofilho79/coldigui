@@ -7,6 +7,7 @@ import '../../../../../core/widgets/golden_tagged_container.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../chords/domain/usecases/parse_chordpro.dart';
 import '../../../../chords/presentation/theme/chord_reader_theme.dart';
+import '../../../../chords/presentation/widgets/chord_header.dart';
 import '../../../../chords/presentation/widgets/chordpro_view.dart';
 
 /// Editor amigável e simplificado para Cifras (ChordPro), com alteração do raw e preview live responsivo.
@@ -230,6 +231,21 @@ class _ExtractedChordEditorState extends State<ExtractedChordEditor> {
                   )
                 : CustomScrollView(
                     slivers: [
+                      if (song.title.isNotEmpty ||
+                          song.subtitle.isNotEmpty ||
+                          song.key.isNotEmpty ||
+                          song.rhythm.isNotEmpty ||
+                          song.artist.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: ChordHeader(
+                              song: song,
+                              semitones: 0,
+                              palette: ChordReaderMode.light.palette,
+                            ),
+                          ),
+                        ),
                       ChordProView(
                         song: song,
                         palette: ChordReaderMode.light.palette,

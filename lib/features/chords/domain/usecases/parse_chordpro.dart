@@ -2,6 +2,21 @@ import '../entities/chordpro_song.dart';
 
 final _directiveRe = RegExp(r'^\{([^:}]+):\s*(.*)\}$');
 
+final _sectionHeaderRe = RegExp(
+  r'^(introdução|introducao|instrumentos|inst\.?|interlúdio|interludio|intro|solo|final|coda|ponte|bridge|coro|refrão|refrao)\s*:(.*)$',
+  caseSensitive: false,
+);
+
+final _sectionHeaderStandaloneRe = RegExp(
+  r'^(introdução|introducao|instrumentos|inst\.?|interlúdio|interludio|intro|solo|final|coda|ponte|bridge|coro|refrão|refrao)$',
+  caseSensitive: false,
+);
+
+final _bracketSectionHeaderRe = RegExp(
+  r'^\[(introdução|introducao|instrumentos|inst\.?|interlúdio|interludio|intro|solo|final|coda|ponte|bridge|coro|refrão|refrao)\]$',
+  caseSensitive: false,
+);
+
 /// Converte o conteúdo de um `.chord` em [ChordProSong].
 ///
 /// Não normaliza acordes, não transpõe e não corrige OCR — só estrutura.
@@ -47,6 +62,40 @@ ChordProSong parseChordPro(String source) {
           if (value.isNotEmpty) lines.add(ChordProCommentLine(value));
         default:
           break; // meta, column e quaisquer outras: ignoradas em silêncio.
+      }
+      continue;
+    }
+
+    final bracketHeader = _bracketSectionHeaderRe.firstMatch(trimmed);
+    if (bracketHeader != null) {
+      lines.add(ChordProCommentLine(bracketHeader.group(1)!));
+      continue;
+    }
+
+    final standaloneHeader = _sectionHeaderStandaloneRe.firstMatch(trimmed);
+    if (standaloneHeader != null) {
+      lines.add(ChordProCommentLine(trimmed));
+      continue;
+    }
+
+    final headerMatch = _sectionHeaderRe.firstMatch(trimmed);
+    if (headerMatch != null) {
+      final colonIndex = trimmed.indexOf(':');
+      final label = '${trimmed.substring(0, colonIndex).trim()}:';
+      final rest = headerMatch.group(2)!.trim();
+
+      if (rest.isEmpty) {
+        lines.add(ChordProCommentLine(label));
+      } else if (!rest.contains('[')) {
+        // Texto descritivo sem acordes (ex.: "Introdução: 2x" ou "Instrumentos: Flauta")
+        lines.add(ChordProCommentLine(trimmed));
+      } else {
+        // Há acordes na mesma linha (ex.: "Introdução: [Dm] [C]").
+        // Separa o rótulo da introdução/instrumentos dos acordes, para que
+        // os acordes fiquem alinhados na linha abaixo em vez de flutuarem
+        // acima do texto ou disputarem espaço horizontal com ele.
+        lines.add(ChordProCommentLine(label));
+        lines.add(ChordProLyricLine(parseChordProLine(rest)));
       }
       continue;
     }

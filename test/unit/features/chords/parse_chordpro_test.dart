@@ -161,4 +161,68 @@ void main() {
       expect(cells.single.text, 'a[Cm b');
     });
   });
+
+  group('secoes e introducao', () {
+    test('separa rotulo de introducao com acordes na mesma linha', () {
+      final song = parseChordPro(
+        'Introdução: [Dm]    [C6(add9)]        [Bb(maj7)]        [A(Sus4)]\n'
+        '[A]  [Dm]   [C6(add9)]        [Bb(maj7)]        [A(Sus4)] [A]\n',
+      );
+
+      expect(song.lines, hasLength(3));
+      expect(song.lines[0], isA<ChordProCommentLine>());
+      expect((song.lines[0] as ChordProCommentLine).text, 'Introdução:');
+
+      final line1 = song.lines[1] as ChordProLyricLine;
+      expect(
+        line1.cells.map((c) => c.chord).toList(),
+        ['Dm', 'C6(add9)', 'Bb(maj7)', 'A(Sus4)'],
+      );
+
+      final line2 = song.lines[2] as ChordProLyricLine;
+      expect(
+        line2.cells.map((c) => c.chord).toList(),
+        ['A', 'Dm', 'C6(add9)', 'Bb(maj7)', 'A(Sus4)', 'A'],
+      );
+    });
+
+    test('introducao isolada em sua propria linha vira linha de comentario', () {
+      final song = parseChordPro(
+        'Introdução:\n'
+        '[Dm] [C]\n',
+      );
+
+      expect(song.lines, hasLength(2));
+      expect(song.lines[0], isA<ChordProCommentLine>());
+      expect((song.lines[0] as ChordProCommentLine).text, 'Introdução:');
+      expect(song.lines[1], isA<ChordProLyricLine>());
+    });
+
+    test('instrumentos com acordes na mesma linha separa rotulo e acordes', () {
+      final song = parseChordPro('Instrumentos: [G] [D] [Em] [C]\n');
+      expect(song.lines, hasLength(2));
+      expect((song.lines[0] as ChordProCommentLine).text, 'Instrumentos:');
+      expect(song.lines[1], isA<ChordProLyricLine>());
+    });
+
+    test('intro e solo com acordes sao reconhecidos', () {
+      final song = parseChordPro('Intro: [C] [G]\nSolo: [Am] [F]\n');
+      expect(song.lines, hasLength(4));
+      expect((song.lines[0] as ChordProCommentLine).text, 'Intro:');
+      expect((song.lines[2] as ChordProCommentLine).text, 'Solo:');
+    });
+
+    test('rotulo de secao entre colchetes vira comentario', () {
+      final song = parseChordPro('[Introdução]\n[Dm] [C]\n');
+      expect((song.lines[0] as ChordProCommentLine).text, 'Introdução');
+      expect(song.lines[1], isA<ChordProLyricLine>());
+    });
+
+    test('rotulo com texto descritivo sem acordes permanece em linha unica de comentario', () {
+      final song = parseChordPro('Introdução: 2x teclado e cordas\nletra\n');
+      expect(song.lines[0], isA<ChordProCommentLine>());
+      expect((song.lines[0] as ChordProCommentLine).text, 'Introdução: 2x teclado e cordas');
+      expect(song.lines[1], isA<ChordProLyricLine>());
+    });
+  });
 }

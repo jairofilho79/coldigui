@@ -160,40 +160,70 @@ class ChordProView extends StatelessWidget {
     return switch (line) {
       ChordProStanzaBreak() => SizedBox(height: fontSize * 1.1),
       ChordProCommentLine(:final text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(top: 4, bottom: 6),
         child: Text(
           text,
           style: lyricStyle.copyWith(
             fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.w600,
             fontSize: fontSize * 0.875,
             color: palette.comment,
           ),
         ),
       ),
-      ChordProLyricLine(:final cells) => Container(
-        key: lyricIndex.isOdd ? chordStripeKey(lyricIndex) : null,
-        width: double.infinity,
-        color: lyricIndex.isOdd ? palette.stripe : null,
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
-          children: [
-            for (var j = 0; j < cells.length; j++)
-              _ChordCellView(
-                cell: cells[j],
-                barKey: chordBarKey(index, j),
-                barColor: palette.bar,
-                lyricStyle: lyricStyle,
-                chordStyle: chordStyle,
-                semitones: semitones,
-                preferFlats: preferFlats,
-                memo: memo,
-              ),
-          ],
-        ),
-      ),
+      ChordProLyricLine(:final cells) => () {
+        final isChordOnlyLine = cells.isNotEmpty &&
+            !cells.any((c) => c.text.trim().isNotEmpty) &&
+            cells.any((c) => c.chord != null);
+
+        return Container(
+          key: lyricIndex.isOdd ? chordStripeKey(lyricIndex) : null,
+          width: double.infinity,
+          color: lyricIndex.isOdd ? palette.stripe : null,
+          padding: EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: isChordOnlyLine ? 3 : 1,
+          ),
+          child: Wrap(
+            crossAxisAlignment: isChordOnlyLine
+                ? WrapCrossAlignment.start
+                : WrapCrossAlignment.end,
+            runSpacing: isChordOnlyLine ? 4 : 2,
+            children: [
+              for (var j = 0; j < cells.length; j++)
+                _ChordCellView(
+                  cell: cells[j],
+                  barKey: chordBarKey(index, j),
+                  barColor: palette.bar,
+                  lyricStyle: lyricStyle,
+                  chordStyle: chordStyle,
+                  semitones: semitones,
+                  preferFlats: preferFlats,
+                  memo: memo,
+                  isChordOnlyLine: isChordOnlyLine,
+                  isLastCell: j == cells.length - 1,
+                ),
+            ],
+          ),
+        );
+      }(),
     };
   }
+}
+
+/// Espaçamento horizontal após um acorde suspenso (sem letra embaixo).
+///
+/// Garante que acordes sem sílaba (ex.: introdução, solo, interlúdio) não
+/// fiquem colados uns aos outros (como `A(Sus4)A`), mesmo quando separados por
+/// apenas 1 espaço ou nenhum no ChordPro, e respeita espaços extras digitados
+/// pelo usuário para esticar a distância entre tempos/compassos.
+double _computeSuspendedSpacing(String text, double chordFontSize) {
+  final base = chordFontSize * 1.25;
+  final spaceCount = text.replaceAll('\t', '    ').length;
+  if (spaceCount <= 1) {
+    return base;
+  }
+  return base + (spaceCount - 1) * (chordFontSize * 0.5);
 }
 
 class _ChordCellView extends StatelessWidget {
@@ -206,6 +236,8 @@ class _ChordCellView extends StatelessWidget {
     required this.semitones,
     required this.preferFlats,
     required this.memo,
+    this.isChordOnlyLine = false,
+    this.isLastCell = false,
   });
 
   final ChordCell cell;
@@ -216,9 +248,34 @@ class _ChordCellView extends StatelessWidget {
   final int semitones;
   final bool preferFlats;
   final TransposeLabelMemo? memo;
+  final bool isChordOnlyLine;
+  final bool isLastCell;
 
   @override
   Widget build(BuildContext context) {
+    final chord = cell.chord;
+    final label = chord == null
+        ? ''
+        : (memo?.label(chord, semitones, preferFlats: preferFlats) ??
+              transposeChordLabel(chord, semitones, preferFlats: preferFlats));
+
+    final isSuspended = chord != null && cell.text.trim().isEmpty;
+    final fontSize = chordStyle.fontSize ?? 13.0;
+    final rightSpacing = (!isLastCell && isSuspended)
+        ? _computeSuspendedSpacing(cell.text, fontSize)
+        : 0.0;
+
+    if (isChordOnlyLine) {
+      final chordWidget = Text(label, style: chordStyle, softWrap: false);
+      if (rightSpacing > 0) {
+        return Padding(
+          padding: EdgeInsets.only(right: rightSpacing),
+          child: chordWidget,
+        );
+      }
+      return chordWidget;
+    }
+
     // Célula sem acorde não tem rótulo para alinhar, então pode quebrar: sem
     // isso um trecho longo estoura a largura da viewport e é cortado em
     // silêncio (TextOverflow.clip, sem reticências). Com acorde, o texto tem
@@ -229,13 +286,7 @@ class _ChordCellView extends StatelessWidget {
       softWrap: cell.chord == null,
     );
 
-    final chord = cell.chord;
-    final label = chord == null
-        ? ''
-        : (memo?.label(chord, semitones, preferFlats: preferFlats) ??
-              transposeChordLabel(chord, semitones, preferFlats: preferFlats));
-
-    return Column(
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -256,5 +307,13 @@ class _ChordCellView extends StatelessWidget {
           lyric,
       ],
     );
+
+    if (rightSpacing > 0) {
+      return Padding(
+        padding: EdgeInsets.only(right: rightSpacing),
+        child: content,
+      );
+    }
+    return content;
   }
 }
