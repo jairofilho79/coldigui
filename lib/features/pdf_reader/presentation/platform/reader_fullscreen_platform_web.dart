@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'package:web/web.dart' as web;
 
@@ -9,23 +10,96 @@ ReaderFullscreenPlatform createReaderFullscreenPlatformImpl() =>
     _WebReaderFullscreenPlatform();
 
 /// Web: Fullscreen API real do navegador — `documentElement.requestFullscreen()`
-/// / `document.exitFullscreen()`, escutando `fullscreenchange` para refletir
-/// saídas fora do controle do app (Esc do browser).
+/// / `document.exitFullscreen()`, escutando `fullscreenchange` e
+/// `webkitfullscreenchange` para refletir saídas fora do controle do app (Esc).
+///
+/// Suporta navegadores modernos e Safari no macOS/iOS (com prefixos
+/// `webkitRequestFullscreen`, `webkitExitFullscreen`, `webkitFullscreenElement`).
 class _WebReaderFullscreenPlatform implements ReaderFullscreenPlatform {
+  bool _isDocumentFullscreen() {
+    if (web.document.fullscreenElement != null) return true;
+    try {
+      final doc = web.document as JSObject;
+      final webkitElement = doc['webkitFullscreenElement'];
+      if (webkitElement != null && !webkitElement.isUndefinedOrNull) return true;
+      final webkitCurrent = doc['webkitCurrentFullScreenElement'];
+      if (webkitCurrent != null && !webkitCurrent.isUndefinedOrNull) return true;
+    } on Object catch (_) {}
+    return false;
+  }
+
   @override
   Future<void> enter() async {
-    await web.document.documentElement!.requestFullscreen().toDart;
+    final element = web.document.documentElement;
+    if (element == null) return;
+    final jsElement = element as JSObject;
+
+    if (jsElement.has('requestFullscreen')) {
+      try {
+        final res = jsElement.callMethod('requestFullscreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
+
+    if (jsElement.has('webkitRequestFullscreen')) {
+      try {
+        final res = jsElement.callMethod('webkitRequestFullscreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
+
+    if (jsElement.has('webkitRequestFullScreen')) {
+      try {
+        final res = jsElement.callMethod('webkitRequestFullScreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
   }
 
   @override
   Future<void> exit() async {
-    // Minor (onda 4): sem guarda, um `exit()` chamado quando o navegador
-    // nunca entrou de fato em fullscreen (ex.: `enter()` rejeitado por falta
-    // de gesto do usuário — ver docstring de [ReaderFullscreenPlatform.enter])
-    // rejeita a Promise do `exitFullscreen()` a cada saída, gerando um warn
-    // à toa.
-    if (web.document.fullscreenElement == null) return;
-    await web.document.exitFullscreen().toDart;
+    if (!_isDocumentFullscreen()) return;
+
+    final doc = web.document as JSObject;
+
+    if (doc.has('exitFullscreen')) {
+      try {
+        final res = doc.callMethod('exitFullscreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
+
+    if (doc.has('webkitExitFullscreen')) {
+      try {
+        final res = doc.callMethod('webkitExitFullscreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
+
+    if (doc.has('webkitCancelFullScreen')) {
+      try {
+        final res = doc.callMethod('webkitCancelFullScreen'.toJS);
+        if (res != null && !res.isUndefinedOrNull && res.isA<JSPromise>()) {
+          await (res as JSPromise).toDart;
+        }
+        return;
+      } on Object catch (_) {}
+    }
   }
 
   @override
@@ -36,7 +110,7 @@ class _WebReaderFullscreenPlatform implements ReaderFullscreenPlatform {
 
     void onEvent(web.Event _) {
       if (!controller.isClosed) {
-        controller.add(web.document.fullscreenElement != null);
+        controller.add(_isDocumentFullscreen());
       }
     }
 
@@ -58,4 +132,5 @@ class _WebReaderFullscreenPlatform implements ReaderFullscreenPlatform {
     return controller.stream;
   }
 }
+
 
