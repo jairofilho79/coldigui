@@ -14,10 +14,11 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home e playlists', () {
+    test('hasTutorialFor reconhece as rotas home, playlists e profile', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.profile), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -59,6 +60,30 @@ void main() {
                 expect(steps[1].items.first.targetId, 'playlists-import-button');
                 expect(steps[2].items.first.targetId, 'playlists-live-room-button');
                 expect(steps[3].items.first.targetId, 'home-bottom-nav');
+                expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos do Perfil com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.profile);
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'profile-account-panel');
+                expect(steps[1].items.first.targetId, 'profile-library-tile');
+                expect(steps[2].items.first.targetId, 'profile-contribute-tile');
+                expect(steps[3].items.first.targetId, 'profile-offline-tile');
                 expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
@@ -352,6 +377,116 @@ void main() {
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Criar Novas Listas'), findsOneWidget);
+
+      // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela de Perfil dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.profile,
+        routes: [
+          GoRoute(
+            path: RoutePaths.profile,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'profile-account-panel',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Mock Account Panel'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'profile-library-tile',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Library Tile'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'profile-contribute-tile',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Contribute Tile'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'profile-offline-tile',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Offline Tile'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Conta & Sincronização
+      expect(find.text('Conta & Sincronização'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Biblioteca Completa
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Biblioteca Completa'), findsOneWidget);
+
+      // Passo 3: Contribuir
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Contribuir'), findsOneWidget);
+
+      // Passo 4: Modo Offline
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Modo Offline'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));

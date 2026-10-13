@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/routing/route_paths.dart';
@@ -31,54 +32,63 @@ class ProfileScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            auth.when(
-              data: (user) => _AccountPanel(
-                child: user == null
-                    ? const _SignedOutHeader()
-                    : _SignedInHeader(user: user),
-              ),
-              loading: () => const _AccountPanel(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
+            SpotlightGuideTarget(
+              id: 'profile-account-panel',
+              child: auth.when(
+                data: (user) => _AccountPanel(
+                  child: user == null
+                      ? const _SignedOutHeader()
+                      : _SignedInHeader(user: user),
                 ),
-              ),
-              error: (e, _) => _AccountPanel(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // O botão já mostra a própria UI de D15 para esse
-                      // erro (título + texto + ação) — duplicar o texto
-                      // genérico aqui deixaria a mensagem repetida.
-                      if (e is! OidcContextMismatchException) ...[
-                        Text(
-                          userMessageFor(l10n, e),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(height: 16),
+                loading: () => const _AccountPanel(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+                error: (e, _) => _AccountPanel(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // O botão já mostra a própria UI de D15 para esse
+                        // erro (título + texto + ação) — duplicar o texto
+                        // genérico aqui deixaria a mensagem repetida.
+                        if (e is! OidcContextMismatchException) ...[
+                          Text(
+                            userMessageFor(l10n, e),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        const Center(child: GoogleSignInButton()),
                       ],
-                      const Center(child: GoogleSignInButton()),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            _ProfilePageTile(
-              icon: Icons.library_books,
-              title: 'Biblioteca',
-              onTap: () => goToShellDestination(context, RoutePaths.library),
+            SpotlightGuideTarget(
+              id: 'profile-library-tile',
+              child: _ProfilePageTile(
+                icon: Icons.library_books,
+                title: 'Biblioteca',
+                onTap: () => goToShellDestination(context, RoutePaths.library),
+              ),
             ),
             const SizedBox(height: 10),
-            _ProfilePageTile(
-              icon: Icons.handshake_outlined,
-              title: l10n.contributeTitle,
-              // `openContribute` (não `context.push` direto): manda o
-              // `from` no payload — o Perfil é de onde a maioria dos
-              // envios parte, e sem o `from` isso não vai pro servidor.
-              onTap: () => openContribute(context),
+            SpotlightGuideTarget(
+              id: 'profile-contribute-tile',
+              child: _ProfilePageTile(
+                icon: Icons.handshake_outlined,
+                title: l10n.contributeTitle,
+                // `openContribute` (não `context.push` direto): manda o
+                // `from` no payload — o Perfil é de onde a maioria dos
+                // envios parte, e sem o `from` isso não vai pro servidor.
+                onTap: () => openContribute(context),
+              ),
             ),
             if (auth.asData?.value != null) ...[
               const SizedBox(height: 10),
@@ -99,10 +109,13 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 10),
-            _ProfilePageTile(
-              icon: Icons.cloud_download,
-              title: 'Offline',
-              onTap: () => goToShellDestination(context, RoutePaths.offline),
+            SpotlightGuideTarget(
+              id: 'profile-offline-tile',
+              child: _ProfilePageTile(
+                icon: Icons.cloud_download,
+                title: 'Offline',
+                onTap: () => goToShellDestination(context, RoutePaths.offline),
+              ),
             ),
             const SizedBox(height: 10),
             _ProfilePageTile(
