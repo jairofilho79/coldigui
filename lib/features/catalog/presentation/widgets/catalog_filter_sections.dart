@@ -6,6 +6,7 @@ import 'package:coldigui/features/catalog/presentation/providers/catalog_filters
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import 'material_kind_filter_section.dart';
 
@@ -40,20 +41,20 @@ class CatalogFilterSections extends ConsumerWidget {
     final selected = ref.watch(catalogFiltersProviderFor(scope));
     final notifier = ref.read(catalogFiltersProviderFor(scope).notifier);
 
-    final sections = [
-      _ChipSection(
+    final rawSections = [
+      (
         title: l10n.coldigomFilterTonality,
         items: _withSelected(_named(options.tonalities), selected.tonalities),
         selectedIds: selected.tonalities,
         onToggle: notifier.toggleTonality,
       ),
-      _ChipSection(
+      (
         title: l10n.coldigomFilterRhythm,
         items: _withSelected(_named(options.rhythms), selected.rhythms),
         selectedIds: selected.rhythms,
         onToggle: notifier.toggleRhythm,
       ),
-      _ChipSection(
+      (
         title: l10n.coldigomFilterTags,
         items: _withSelected(
           _named([
@@ -68,7 +69,7 @@ class CatalogFilterSections extends ConsumerWidget {
         selectedIds: selected.tags,
         onToggle: notifier.toggleTag,
       ),
-      _ChipSection(
+      (
         title: l10n.coldigomFilterSubtags,
         items: [
           for (final item in _withSelected(
@@ -86,14 +87,23 @@ class CatalogFilterSections extends ConsumerWidget {
         selectedIds: selected.tags,
         onToggle: notifier.toggleTag,
       ),
-    ].where((section) => section.items.isNotEmpty).toList();
+    ];
+
+    final sections = rawSections.where((s) => s.items.isNotEmpty).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 8),
-          sections[i],
+          _ChipSection(
+            title: sections[i].title,
+            items: sections[i].items,
+            selectedIds: sections[i].selectedIds,
+            onToggle: sections[i].onToggle,
+            highlightFirstItemAsSample:
+                i == 0 && scope == CatalogFilterScope.home,
+          ),
         ],
         if (options.materialKinds.isNotEmpty ||
             selected.materialKindIds.isNotEmpty) ...[
@@ -127,12 +137,14 @@ class _ChipSection extends StatelessWidget {
     required this.items,
     required this.selectedIds,
     required this.onToggle,
+    this.highlightFirstItemAsSample = false,
   });
 
   final String title;
   final List<_ChipItem> items;
   final Set<String> selectedIds;
   final void Function(String) onToggle;
+  final bool highlightFirstItemAsSample;
 
   @override
   Widget build(BuildContext context) {
@@ -145,24 +157,36 @@ class _ChipSection extends StatelessWidget {
           spacing: 8,
           runSpacing: 4,
           children: [
-            for (final item in items)
-              FilterChip(
-                label: Text(item.name),
-                selected: selectedIds.contains(item.id),
-                showCheckmark: false,
-                selectedColor: AppColors.gold.withValues(alpha: 0.3),
-                backgroundColor: AppColors.card,
-                side: BorderSide(
-                  color: selectedIds.contains(item.id)
-                      ? AppColors.gold
-                      : AppColors.title,
-                  width: selectedIds.contains(item.id) ? 2 : 1.5,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                onSelected: (_) => onToggle(item.id),
-              ),
+            for (var i = 0; i < items.length; i++) ...[
+              () {
+                final item = items[i];
+                final chip = FilterChip(
+                  label: Text(item.name),
+                  selected: selectedIds.contains(item.id),
+                  showCheckmark: false,
+                  selectedColor: AppColors.gold.withValues(alpha: 0.3),
+                  backgroundColor: AppColors.card,
+                  side: BorderSide(
+                    color: selectedIds.contains(item.id)
+                        ? AppColors.gold
+                        : AppColors.title,
+                    width: selectedIds.contains(item.id) ? 2 : 1.5,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  onSelected: (_) => onToggle(item.id),
+                );
+
+                if (i == 0 && highlightFirstItemAsSample) {
+                  return SpotlightGuideTarget(
+                    id: 'home-filter-chip-sample',
+                    child: chip,
+                  );
+                }
+                return chip;
+              }(),
+            ],
           ],
         ),
       ],

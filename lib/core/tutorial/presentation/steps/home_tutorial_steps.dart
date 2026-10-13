@@ -8,6 +8,17 @@ import '../../../../features/catalog/presentation/providers/catalog_filters_prov
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../widgets/coldigui_tutorial_hint.dart';
 
+
+/// Layer customizada que força a limpeza transparente do furo do alvo via
+/// [BlendMode.clear] (saveLayer) em vez de [Path.combine], garantindo que o
+/// elemento destacado não fique escurecido nem com blur residual na Web/CanvasKit.
+class SpotlightWebClearHoleLayer extends SpotlightGuideTargetLayer {
+  const SpotlightWebClearHoleLayer();
+
+  @override
+  void paint(Canvas canvas, SpotlightGuideTargetLayerContext context) {}
+}
+
 /// Passos do tutorial da tela inicial / Pesquisador ([HomeScreen]).
 List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
   return [
@@ -33,9 +44,10 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         targetDecoration: const SpotlightGuideTargetDecoration(
           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderRadius: BorderRadius.all(Radius.circular(10)),
           ),
           layers: [
+            SpotlightWebClearHoleLayer(),
             SpotlightGuideTargetRingLayer(
               color: AppColors.gold,
               width: 2.5,
@@ -52,10 +64,10 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
       ),
     ),
 
-    // 2. Painel de Filtros (Ativo / Expandido)
+    // 2. Filtro Ativo
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
-        targetId: 'home-filters-panel',
+        targetId: 'home-filter-chip-sample',
         placement: SpotlightGuidePlacement.verticalAuto,
         missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         onReveal: (context) async {
@@ -70,26 +82,24 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           final options = container.read(catalogFilterOptionsProvider);
           final sampleTonality =
               options.tonalities.isNotEmpty ? options.tonalities.first : 'C';
-          final sampleRhythm =
-              options.rhythms.isNotEmpty ? options.rhythms.first : 'Adoração';
 
           container
               .read(catalogFiltersProviderFor(CatalogFilterScope.home).notifier)
               .setTutorialFilters(
                 CatalogFilterState(
                   tonalities: {sampleTonality},
-                  rhythms: {sampleRhythm},
                 ),
               );
 
           await Future<void>.delayed(const Duration(milliseconds: 250));
         },
         targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(6),
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
           layers: [
+            SpotlightWebClearHoleLayer(),
             SpotlightGuideTargetRingLayer(
               color: AppColors.gold,
               width: 2.5,
@@ -101,15 +111,15 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           guide: guide,
           title: 'Filtros Ativos',
           message:
-              'Quando **ativos**, os botões de filtro selecionados ganham **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e o botão **"Limpar filtros"** surge para desmarcar tudo.',
+              'Quando **ativo**, o botão do filtro selecionado ganha **destaque dourado**. O cabeçalho exibe a contagem de **filtros ativos** e você pode tocar em **"Limpar filtros"** para desmarcar tudo.',
         ),
       ),
     ),
 
-    // 3. Painel de Filtros (Inativo / Desmarcado)
+    // 3. Filtro Inativo
     SpotlightGuideStep.item(
       SpotlightGuideStepItem(
-        targetId: 'home-filters-panel',
+        targetId: 'home-filter-chip-sample',
         placement: SpotlightGuidePlacement.verticalAuto,
         missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
         onReveal: (context) async {
@@ -126,11 +136,12 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           await Future<void>.delayed(const Duration(milliseconds: 150));
         },
         targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(6),
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
           layers: [
+            SpotlightWebClearHoleLayer(),
             SpotlightGuideTargetRingLayer(
               color: AppColors.gold,
               width: 2.5,
@@ -142,7 +153,7 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
           guide: guide,
           title: 'Filtros Inativos',
           message:
-              'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Você também pode tocar no cabeçalho ou na seta para **recolher o painel** e aproveitar mais espaço na tela.',
+              'Com os filtros **inativos** (desmarcados), a busca abrange **todo o catálogo**. Toque em qualquer botão para **ativá-lo** ou recolha o painel para ganhar espaço.',
         ),
       ),
     ),
@@ -169,6 +180,7 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
             borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
           layers: [
+            SpotlightWebClearHoleLayer(),
             SpotlightGuideTargetRingLayer(
               color: AppColors.gold,
               width: 2.5,
@@ -197,6 +209,7 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
             borderRadius: BorderRadius.all(Radius.circular(20)),
           ),
           layers: [
+            SpotlightWebClearHoleLayer(),
             SpotlightGuideTargetRingLayer(
               color: AppColors.gold,
               width: 2.5,

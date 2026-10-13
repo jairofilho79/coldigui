@@ -31,8 +31,8 @@ void main() {
                 final steps = controller.stepsForRoute(context, RoutePaths.home);
                 expect(steps.length, 5);
                 expect(steps[0].items.first.targetId, 'home-search-bar');
-                expect(steps[1].items.first.targetId, 'home-filters-panel');
-                expect(steps[2].items.first.targetId, 'home-filters-panel');
+                expect(steps[1].items.first.targetId, 'home-filter-chip-sample');
+                expect(steps[2].items.first.targetId, 'home-filter-chip-sample');
                 expect(steps[3].items.first.targetId, 'home-bottom-nav');
                 expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
@@ -66,10 +66,10 @@ void main() {
                     slivers: [
                       SliverToBoxAdapter(
                         child: SpotlightGuideTarget(
-                          id: 'home-filters-panel',
+                          id: 'home-filter-chip-sample',
                           child: const SizedBox(
-                            height: 50,
-                            child: Text('Painel de Filtros'),
+                            height: 36,
+                            child: Text('Filtro Sample'),
                           ),
                         ),
                       ),
