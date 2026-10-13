@@ -6,6 +6,7 @@ import '../../../../features/catalog/presentation/providers/catalog_filters_prov
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
 import '../steps/home_tutorial_steps.dart';
+import '../steps/playlists_tutorial_steps.dart';
 
 /// Controlador que orquestra a execução dos tutoriais no [SpotlightGuidePortal].
 class TutorialController {
@@ -21,6 +22,7 @@ class TutorialController {
     if (path == null) return false;
     return switch (path) {
       RoutePaths.home => true,
+      RoutePaths.playlists => true,
       _ => false,
     };
   }
@@ -33,6 +35,7 @@ class TutorialController {
     if (path == null) return const [];
     return switch (path) {
       RoutePaths.home => buildHomeTutorialSteps(context),
+      RoutePaths.playlists => buildPlaylistsTutorialSteps(context),
       _ => const [],
     };
   }

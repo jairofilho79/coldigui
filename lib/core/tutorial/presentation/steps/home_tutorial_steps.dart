@@ -2,22 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotlight_guide/spotlight_guide.dart';
 
-import '../../../../core/theme/color_extensions.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filter_options_provider.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../widgets/coldigui_tutorial_hint.dart';
 
-
-/// Layer customizada que força a limpeza transparente do furo do alvo via
-/// [BlendMode.clear] (saveLayer) em vez de [Path.combine], garantindo que o
-/// elemento destacado não fique escurecido nem com blur residual na Web/CanvasKit.
-class SpotlightWebClearHoleLayer extends SpotlightGuideTargetLayer {
-  const SpotlightWebClearHoleLayer();
-
-  @override
-  void paint(Canvas canvas, SpotlightGuideTargetLayerContext context) {}
-}
 
 /// Passos do tutorial da tela inicial / Pesquisador ([HomeScreen]).
 List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
@@ -41,19 +30,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
               .restoreTutorialFilters();
           await Future<void>.delayed(const Duration(milliseconds: 150));
         },
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-          layers: [
-            SpotlightWebClearHoleLayer(),
-            SpotlightGuideTargetRingLayer(
-              color: AppColors.gold,
-              width: 2.5,
-              outset: 2,
-            ),
-          ],
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 10,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -93,19 +72,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
 
           await Future<void>.delayed(const Duration(milliseconds: 250));
         },
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
-          ),
-          layers: [
-            SpotlightWebClearHoleLayer(),
-            SpotlightGuideTargetRingLayer(
-              color: AppColors.gold,
-              width: 2.5,
-              outset: 2,
-            ),
-          ],
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -135,19 +104,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
               .setTutorialFilters(CatalogFilterState.empty);
           await Future<void>.delayed(const Duration(milliseconds: 150));
         },
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
-          ),
-          layers: [
-            SpotlightWebClearHoleLayer(),
-            SpotlightGuideTargetRingLayer(
-              color: AppColors.gold,
-              width: 2.5,
-              outset: 2,
-            ),
-          ],
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -174,19 +133,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
               .set(false);
           await Future<void>.delayed(const Duration(milliseconds: 150));
         },
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(6),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          layers: [
-            SpotlightWebClearHoleLayer(),
-            SpotlightGuideTargetRingLayer(
-              color: AppColors.gold,
-              width: 2.5,
-              outset: 2,
-            ),
-          ],
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 16,
+          padding: const EdgeInsets.all(6),
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,
@@ -203,19 +152,9 @@ List<SpotlightGuideStep> buildHomeTutorialSteps(BuildContext context) {
         targetId: 'app-info-button',
         placement: SpotlightGuidePlacement.bottom,
         missingTargetBehavior: SpotlightGuideMissingTargetBehavior.wait,
-        targetDecoration: const SpotlightGuideTargetDecoration(
-          padding: EdgeInsets.all(4),
-          shape: SpotlightGuideRoundedRectShape(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-          layers: [
-            SpotlightWebClearHoleLayer(),
-            SpotlightGuideTargetRingLayer(
-              color: AppColors.gold,
-              width: 2.5,
-              outset: 2,
-            ),
-          ],
+        targetDecoration: coldiguiTargetDecoration(
+          borderRadius: 20,
+          padding: const EdgeInsets.all(4),
         ),
         hintBuilder: (context, guide) => ColdiguiTutorialHint(
           guide: guide,

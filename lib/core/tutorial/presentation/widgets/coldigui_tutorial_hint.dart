@@ -3,6 +3,39 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../theme/color_extensions.dart';
 
+/// Layer customizada que força a limpeza transparente do furo do alvo via
+/// [BlendMode.clear] (saveLayer) em vez de [Path.combine], garantindo que o
+/// elemento destacado não fique escurecido nem com blur residual na Web/CanvasKit.
+class SpotlightWebClearHoleLayer extends SpotlightGuideTargetLayer {
+  const SpotlightWebClearHoleLayer();
+
+  @override
+  void paint(Canvas canvas, SpotlightGuideTargetLayerContext context) {}
+}
+
+/// Cria a decoração padrão com anel dourado e furo 100% transparente do Coldigui.
+SpotlightGuideTargetDecoration coldiguiTargetDecoration({
+  EdgeInsetsGeometry padding = const EdgeInsets.all(4),
+  double borderRadius = 12,
+  double ringWidth = 2.5,
+  double ringOutset = 2,
+}) {
+  return SpotlightGuideTargetDecoration(
+    padding: padding,
+    shape: SpotlightGuideRoundedRectShape(
+      borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+    ),
+    layers: [
+      const SpotlightWebClearHoleLayer(),
+      SpotlightGuideTargetRingLayer(
+        color: AppColors.gold,
+        width: ringWidth,
+        outset: ringOutset,
+      ),
+    ],
+  );
+}
+
 /// Balão de tutorial estilizado com a identidade visual do Coldigui / PLPCG.
 ///
 /// Apresenta borda dourada, fundo litúrgico escuro, tipografia temática,

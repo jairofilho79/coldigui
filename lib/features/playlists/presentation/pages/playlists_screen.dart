@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/database/storage_unavailable_exception.dart';
 import '../../../../core/providers/feature_flags_provider.dart';
@@ -281,47 +282,56 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen>
           ],
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: FloatingActionButton.extended(
-              heroTag: 'live-room-menu',
-              onPressed: _toggleLiveMenu,
-              icon: Icon(_liveMenuOpen ? Icons.close : Icons.sensors),
-              label: Text(l10n.liveRoomMenu),
+            child: SpotlightGuideTarget(
+              id: 'playlists-live-room-button',
+              child: FloatingActionButton.extended(
+                heroTag: 'live-room-menu',
+                onPressed: _toggleLiveMenu,
+                icon: Icon(_liveMenuOpen ? Icons.close : Icons.sensors),
+                label: Text(l10n.liveRoomMenu),
+              ),
             ),
           ),
-          FloatingActionButton.extended(
-            heroTag: 'playlist-import',
-            onPressed: () => _importPlaylist(context),
-            icon: const Icon(Icons.download),
-            label: Text(l10n.playlistImport),
+          SpotlightGuideTarget(
+            id: 'playlists-import-button',
+            child: FloatingActionButton.extended(
+              heroTag: 'playlist-import',
+              onPressed: () => _importPlaylist(context),
+              icon: const Icon(Icons.download),
+              label: Text(l10n.playlistImport),
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
-          Material(
-            color: Theme.of(context).colorScheme.surface,
-            child: TabBar(
-              controller: _tabController,
-              tabs: [
-                Tab(text: l10n.playlistTabUnsaved),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(l10n.playlistTabSaved),
-                      if (syncing) ...[
-                        const SizedBox(width: 8),
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+          SpotlightGuideTarget(
+            id: 'playlists-tabs',
+            child: Material(
+              color: Theme.of(context).colorScheme.surface,
+              child: TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(text: l10n.playlistTabUnsaved),
+                  Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(l10n.playlistTabSaved),
+                        if (syncing) ...[
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                Tab(text: l10n.playlistTabFavorites),
-              ],
+                  Tab(text: l10n.playlistTabFavorites),
+                ],
+              ),
             ),
           ),
           const PlaylistSyncErrorBanner(),
