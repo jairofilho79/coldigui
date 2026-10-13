@@ -101,7 +101,7 @@ void main() {
     expect(_shape(out.items), 'g:a !backToChorus');
   });
 
-  test('coro dentro de Nx conta como último coro', () {
+  test('coro dentro de Nx conta como último coro e preserva repetições', () {
     final out = linearizeGestureDocument(
       _doc([
         RepeatBlock(
@@ -113,7 +113,66 @@ void main() {
         const InstructionCard(InstructionKind.backToChorus),
       ]),
     );
-    expect(_shape(out.items), 'coro g:c 2ª coro g:c coro g:c');
+    expect(_shape(out.items), 'coro g:c 2ª g:c coro g:c 2ª g:c');
+  });
+
+  test('097 Jesus é o Caminho: volta ao coro e finalização preservam a repetição 2x do coro', () {
+    final doc = GestureDocument(
+      schemaMajor: 1,
+      title: '97 - JESUS É O CAMINHO',
+      dictionaryVersion: 0,
+      items: [
+        RepeatBlock(
+          count: 2,
+          children: [
+            _g('Jesus:caminho'),
+            _g('Eu:ceu'),
+          ],
+        ),
+        RepeatBlock(
+          count: 2,
+          children: [
+            ChorusBlock(
+              children: [
+                RepeatBlock(
+                  count: 2,
+                  children: [_g('Eu:vou')],
+                ),
+                _g('Eu:ceu'),
+              ],
+            ),
+          ],
+        ),
+        RepeatBlock(
+          count: 2,
+          children: [
+            _g('Jesus:verdade'),
+            _g('Eu:ceu'),
+          ],
+        ),
+        const InstructionCard(InstructionKind.backToChorus),
+        RepeatBlock(
+          count: 2,
+          children: [
+            _g('Jesus:vida'),
+            _g('Eu:ceu'),
+          ],
+        ),
+        const InstructionCard(InstructionKind.backToChorusAndFinish),
+      ],
+    );
+    final out = linearizeGestureDocument(doc);
+    const chorusShape =
+        'coro g:Eu:vou 2ª g:Eu:vou g:Eu:ceu 2ª g:Eu:vou 2ª g:Eu:vou g:Eu:ceu';
+    expect(
+      _shape(out.items),
+      'g:Jesus:caminho g:Eu:ceu 2ª g:Jesus:caminho g:Eu:ceu '
+      '$chorusShape '
+      'g:Jesus:verdade g:Eu:ceu 2ª g:Jesus:verdade g:Eu:ceu '
+      '$chorusShape '
+      'g:Jesus:vida g:Eu:ceu 2ª g:Jesus:vida g:Eu:ceu '
+      '$chorusShape',
+    );
   });
 
   test(

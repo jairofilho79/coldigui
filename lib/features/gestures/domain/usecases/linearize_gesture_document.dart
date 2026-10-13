@@ -4,10 +4,12 @@ import '../entities/gesture_document.dart';
 /// regente só precise descer a página.
 ///
 /// - `Nx` → filhos N vezes, com [SectionLabel.pass] antes de cada passagem a
-///   partir da 2ª.
+///   partir da 2ª. Quando `Nx` envolve diretamente um `CORO`, trata-se como a
+///   repetição do próprio coro (rótulo «CORO» na 1ª passagem, «kª vez» nas
+///   seguintes), e todo o trecho repetido é registrado para «Voltar ao coro».
 /// - `CORO` → [SectionLabel.chorus] + filhos; vira o "último coro visto".
-/// - «Voltar ao coro» (e «… e finalizar») → rótulo + cartões do último coro;
-///   sem coro anterior, a instrução fica como está.
+/// - «Voltar ao coro» (e «… e finalizar») → rótulo + cartões do último coro
+///   (incluindo suas repetições); sem coro anterior, a instrução fica como está.
 /// - «Repetir o louvor» → rótulo «2ª vez» + cópia de tudo que a **raiz** já
 ///   emitiu até ali; sem nada antes, a instrução fica.
 /// - `link` e `final` continuam blocos, com os filhos linearizados.
@@ -48,6 +50,32 @@ void _linearize(
       case InstructionCard(:final kind):
         _instruction(kind, item, out, state);
       case RepeatBlock(:final count, :final children):
+        final nonText = children.where((c) => c is! TextLine).toList();
+        if (nonText.length == 1 && nonText.first is ChorusBlock) {
+          final chorus = nonText.first as ChorusBlock;
+          final leadText = children.takeWhile((c) => c is TextLine).toList();
+          final trailText = children.reversed
+              .takeWhile((c) => c is TextLine)
+              .toList()
+              .reversed
+              .toList();
+
+          out.addAll(leadText);
+          _linearize(
+            [
+              ChorusBlock(
+                children: [
+                  RepeatBlock(count: count, children: chorus.children),
+                ],
+              ),
+            ],
+            out,
+            state,
+          );
+          out.addAll(trailText);
+          break;
+        }
+
         final pass = <GestureItem>[];
         _linearize(children, pass, state);
         for (var k = 1; k <= count; k++) {
