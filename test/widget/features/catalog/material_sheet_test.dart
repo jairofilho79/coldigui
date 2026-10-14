@@ -1112,5 +1112,90 @@ void main() {
         expect(capturedQuery?['praiseId'], 'g1');
       },
     );
+
+    testWidgets(
+      'botão de expandir tem ícone diagonal, distância segura do fechar e navega para /louvor/:id',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final group = LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first;
+
+        String? navigatedRoute;
+        final router = GoRouter(
+          initialLocation: '/',
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, _) => Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) => ElevatedButton(
+                    onPressed: () => showMaterialSheet(context, ref, group),
+                    child: const Text('abrir'),
+                  ),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: '/louvor/:id',
+              builder: (context, state) {
+                navigatedRoute = state.uri.toString();
+                return const Scaffold(body: Text('tela-louvor'));
+              },
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              isarStatusProvider.overrideWithValue(IsarStatus.available),
+              activeEntriesProvider.overrideWithValue(const []),
+            ],
+            child: MaterialApp.router(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('pt'),
+              routerConfig: router,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('abrir'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(MaterialSheet), findsOneWidget);
+
+        // Verifica a presença do botão com o ícone de setas diagonais (open_in_full)
+        final expandFinder = find.byIcon(Icons.open_in_full);
+        final closeFinder = find.byIcon(Icons.close);
+        final reportFinder = find.byIcon(Icons.handshake_outlined);
+
+        expect(expandFinder, findsOneWidget);
+        expect(closeFinder, findsOneWidget);
+        expect(reportFinder, findsOneWidget);
+
+        // Verifica que o botão de expandir não está colado ao de fechar (separados pelo botão de reportar)
+        final expandOffset = tester.getCenter(expandFinder);
+        final reportOffset = tester.getCenter(reportFinder);
+        final closeOffset = tester.getCenter(closeFinder);
+
+        expect(expandOffset.dx < reportOffset.dx, isTrue);
+        expect(reportOffset.dx < closeOffset.dx, isTrue);
+        // Distância horizontal entre expandir e fechar deve ser superior a 60px para evitar misclick
+        expect((closeOffset.dx - expandOffset.dx).abs(), greaterThan(60));
+
+        // Toque no botão de expandir
+        await tester.tap(expandFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.text('tela-louvor'), findsOneWidget);
+        expect(find.byType(MaterialSheet), findsNothing);
+        expect(navigatedRoute, '/louvor/g1');
+      },
+    );
   });
 }

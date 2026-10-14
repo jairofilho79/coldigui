@@ -2098,4 +2098,43 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get contributeEditorGeneralHint =>
       'Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.';
+
+  @override
+  String get praiseOpenDetailsTooltip => 'Ver página completa';
+
+  @override
+  String get praiseShareTooltip => 'Compartilhar louvor';
+
+  @override
+  String get praiseShareLinkCopied => 'Link do louvor copiado!';
+
+  @override
+  String get praiseNotFound => 'Louvor não encontrado';
+
+  @override
+  String get praiseBackToSearch => 'Voltar para o início';
+
+  @override
+  String get praiseLyricsSectionTitle => 'Letra';
+
+  @override
+  String get praiseMaterialsSectionTitle => 'Materiais';
+
+  @override
+  String get praiseLyricsCopyTooltip => 'Copiar letra';
+
+  @override
+  String get praiseLyricsCopied => 'Letra copiada!';
+
+  @override
+  String get praiseOpenLyricsReader => 'Abrir no leitor de letra';
+
+  @override
+  String get praiseNoLyricsAvailable => 'Letra não disponível para este louvor';
+
+  @override
+  String get praiseIncreaseFontSizeTooltip => 'Aumentar fonte';
+
+  @override
+  String get praiseDecreaseFontSizeTooltip => 'Diminuir fonte';
 }

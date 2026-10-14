@@ -128,6 +128,7 @@ class ShellScaffold extends ConsumerWidget {
       RoutePaths.playlists => 'Listas',
       RoutePaths.publicPlaylists => 'Listas públicas',
       RoutePaths.audio => 'Áudio',
+      String p when p.startsWith('/louvor/') => 'Louvor',
       _ => 'PLPCG',
     };
   }

@@ -14,6 +14,7 @@ import '../../features/app_shell/presentation/pages/placeholder_tab_screen.dart'
 import '../../features/app_shell/presentation/pages/profile_screen.dart';
 import '../../features/app_shell/presentation/shell_scaffold.dart';
 import '../../features/catalog/presentation/pages/home_screen.dart';
+import '../../features/catalog/presentation/pages/praise_screen.dart';
 import '../../features/chords/presentation/pages/chord_reader_screen.dart';
 import '../../features/contributions/presentation/pages/contribute_screen.dart';
 import '../../features/contributions/presentation/pages/contribution_detail_screen.dart';
@@ -177,6 +178,13 @@ StatefulShellBranch _branchFor(AppTab tab, FeatureFlags flags) {
             GoRoute(
               path: 'letra',
               builder: (context, state) => LyricsReaderScreen(
+                queryParams: safeQueryParameters(state.uri),
+              ),
+            ),
+            GoRoute(
+              path: 'louvor/:id',
+              builder: (context, state) => PraiseScreen(
+                id: state.pathParameters['id'] ?? '',
                 queryParams: safeQueryParameters(state.uri),
               ),
             ),

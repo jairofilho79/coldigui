@@ -1021,5 +1021,18 @@
   "contributeEditorChordKind": "Chord",
   "contributeEditorGestureKind": "Gestures",
   "contributeEditorGeneralKind": "General",
-  "contributeEditorGeneralHint": "To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar."
+  "contributeEditorGeneralHint": "To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar.",
+  "praiseOpenDetailsTooltip": "Open full praise page",
+  "praiseShareTooltip": "Share praise",
+  "praiseShareLinkCopied": "Praise link copied!",
+  "praiseNotFound": "Praise not found",
+  "praiseBackToSearch": "Back to home",
+  "praiseLyricsSectionTitle": "Lyrics",
+  "praiseMaterialsSectionTitle": "Materials",
+  "praiseLyricsCopyTooltip": "Copy lyrics",
+  "praiseLyricsCopied": "Lyrics copied!",
+  "praiseOpenLyricsReader": "Open in lyrics reader",
+  "praiseNoLyricsAvailable": "Lyrics not available for this praise",
+  "praiseIncreaseFontSizeTooltip": "Increase font size",
+  "praiseDecreaseFontSizeTooltip": "Decrease font size"
 }

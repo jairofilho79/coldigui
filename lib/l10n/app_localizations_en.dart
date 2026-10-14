@@ -2082,4 +2082,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get contributeEditorGeneralHint =>
       'To suggest edits for Lyrics, Chords, or Gestures, open the desired song in the app and tap the 🤝 icon in the top toolbar.';
+
+  @override
+  String get praiseOpenDetailsTooltip => 'Open full praise page';
+
+  @override
+  String get praiseShareTooltip => 'Share praise';
+
+  @override
+  String get praiseShareLinkCopied => 'Praise link copied!';
+
+  @override
+  String get praiseNotFound => 'Praise not found';
+
+  @override
+  String get praiseBackToSearch => 'Back to home';
+
+  @override
+  String get praiseLyricsSectionTitle => 'Lyrics';
+
+  @override
+  String get praiseMaterialsSectionTitle => 'Materials';
+
+  @override
+  String get praiseLyricsCopyTooltip => 'Copy lyrics';
+
+  @override
+  String get praiseLyricsCopied => 'Lyrics copied!';
+
+  @override
+  String get praiseOpenLyricsReader => 'Open in lyrics reader';
+
+  @override
+  String get praiseNoLyricsAvailable => 'Lyrics not available for this praise';
+
+  @override
+  String get praiseIncreaseFontSizeTooltip => 'Increase font size';
+
+  @override
+  String get praiseDecreaseFontSizeTooltip => 'Decrease font size';
 }

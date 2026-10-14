@@ -1183,5 +1183,18 @@
   "contributeEditorChordKind": "Cifra",
   "contributeEditorGestureKind": "Gestos",
   "contributeEditorGeneralKind": "Geral",
-  "contributeEditorGeneralHint": "Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior."
+  "contributeEditorGeneralHint": "Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.",
+  "praiseOpenDetailsTooltip": "Ver página completa",
+  "praiseShareTooltip": "Compartilhar louvor",
+  "praiseShareLinkCopied": "Link do louvor copiado!",
+  "praiseNotFound": "Louvor não encontrado",
+  "praiseBackToSearch": "Voltar para o início",
+  "praiseLyricsSectionTitle": "Letra",
+  "praiseMaterialsSectionTitle": "Materiais",
+  "praiseLyricsCopyTooltip": "Copiar letra",
+  "praiseLyricsCopied": "Letra copiada!",
+  "praiseOpenLyricsReader": "Abrir no leitor de letra",
+  "praiseNoLyricsAvailable": "Letra não disponível para este louvor",
+  "praiseIncreaseFontSizeTooltip": "Aumentar fonte",
+  "praiseDecreaseFontSizeTooltip": "Diminuir fonte"
 }

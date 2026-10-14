@@ -37,6 +37,7 @@ class PlpcgPrimaryAppBar extends StatelessWidget
       RoutePaths.chords ||
       RoutePaths.gestos ||
       RoutePaths.lyrics => RoutePaths.home,
+      String p when p.startsWith('/louvor/') => RoutePaths.home,
       RoutePaths.publicPlaylists => RoutePaths.playlists,
       RoutePaths.library ||
       RoutePaths.offline ||

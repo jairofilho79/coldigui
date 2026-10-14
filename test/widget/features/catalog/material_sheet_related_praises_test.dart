@@ -1,6 +1,7 @@
 import 'package:coldigui/core/providers/shared_prefs_provider.dart';
 import 'package:coldigui/core/routing/route_paths.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/related_praises_bar.dart';
 import 'package:coldigui/features/coldigom/data/providers/coldigom_catalog_source_provider.dart';
 import 'package:coldigui/features/coldigom/data/sources/coldigom_catalog_source.dart';
 import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
@@ -24,9 +25,7 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Finder findRelatedBar() => find.byWidgetPredicate(
-        (w) => w.runtimeType.toString() == '_RelatedPraisesBar',
-      );
+  Finder findRelatedBar() => find.byType(RelatedPraisesBar);
 
   testWidgets(
     'exibe barra de versões quando há praises relacionados no índice e alterna ao tocar no chip',

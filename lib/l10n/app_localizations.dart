@@ -3607,6 +3607,84 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Para sugerir ajustes em Letras, Cifras ou Gestos, abra o louvor desejado no app e toque no ícone 🤝 na barra superior.'**
   String get contributeEditorGeneralHint;
+
+  /// No description provided for @praiseOpenDetailsTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver página completa'**
+  String get praiseOpenDetailsTooltip;
+
+  /// No description provided for @praiseShareTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compartilhar louvor'**
+  String get praiseShareTooltip;
+
+  /// No description provided for @praiseShareLinkCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Link do louvor copiado!'**
+  String get praiseShareLinkCopied;
+
+  /// No description provided for @praiseNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Louvor não encontrado'**
+  String get praiseNotFound;
+
+  /// No description provided for @praiseBackToSearch.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar para o início'**
+  String get praiseBackToSearch;
+
+  /// No description provided for @praiseLyricsSectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra'**
+  String get praiseLyricsSectionTitle;
+
+  /// No description provided for @praiseMaterialsSectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais'**
+  String get praiseMaterialsSectionTitle;
+
+  /// No description provided for @praiseLyricsCopyTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Copiar letra'**
+  String get praiseLyricsCopyTooltip;
+
+  /// No description provided for @praiseLyricsCopied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra copiada!'**
+  String get praiseLyricsCopied;
+
+  /// No description provided for @praiseOpenLyricsReader.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir no leitor de letra'**
+  String get praiseOpenLyricsReader;
+
+  /// No description provided for @praiseNoLyricsAvailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Letra não disponível para este louvor'**
+  String get praiseNoLyricsAvailable;
+
+  /// No description provided for @praiseIncreaseFontSizeTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aumentar fonte'**
+  String get praiseIncreaseFontSizeTooltip;
+
+  /// No description provided for @praiseDecreaseFontSizeTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diminuir fonte'**
+  String get praiseDecreaseFontSizeTooltip;
 }
 
 class _AppLocalizationsDelegate
