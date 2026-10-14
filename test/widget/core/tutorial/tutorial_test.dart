@@ -14,12 +14,13 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile e reader', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader e library', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.profile), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.reader), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.library), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -109,6 +110,30 @@ void main() {
                 expect(steps[1].items.first.targetId, 'reader-fullscreen-button');
                 expect(steps[2].items.first.targetId, 'reader-page-indicator');
                 expect(steps[3].items.first.targetId, 'reader-pdf-view');
+                expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos da Biblioteca com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.library);
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'library-filters-panel');
+                expect(steps[1].items.first.targetId, 'library-sort-selector');
+                expect(steps[2].items.first.targetId, 'library-pagination-controls');
+                expect(steps[3].items.first.targetId, 'library-first-card');
                 expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
@@ -622,6 +647,116 @@ void main() {
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Virada de Páginas'), findsOneWidget);
+
+      // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela da Biblioteca dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.library,
+        routes: [
+          GoRoute(
+            path: RoutePaths.library,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'library-filters-panel',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Filters Panel'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'library-sort-selector',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Sort Selector'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'library-pagination-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Pagination'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'library-first-card',
+                        child: const SizedBox(
+                          height: 100,
+                          child: Text('Mock First Praise Card'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Filtros do Catálogo
+      expect(find.text('Filtros do Catálogo'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Ordenação do Acervo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ordenação do Acervo'), findsOneWidget);
+
+      // Passo 3: Paginação e Exibição
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Paginação e Exibição'), findsOneWidget);
+
+      // Passo 4: Cards de Louvor
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cards de Louvor'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));

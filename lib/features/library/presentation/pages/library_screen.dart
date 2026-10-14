@@ -21,6 +21,7 @@ import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// UC-03 — /biblioteca: o catálogo local inteiro, filtrado (os mesmos filtros
 /// da página inicial, [catalogFiltersProvider]), ordenado e paginado (spec
@@ -256,11 +257,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      FiltersPanel(
-                        scope: CatalogFilterScope.library,
-                        initiallyExpanded:
-                            widget._hasInitialFilters ||
-                            _hadSavedFiltersAtMount,
+                      SpotlightGuideTarget(
+                        id: 'library-filters-panel',
+                        child: FiltersPanel(
+                          scope: CatalogFilterScope.library,
+                          initiallyExpanded:
+                              widget._hasInitialFilters ||
+                              _hadSavedFiltersAtMount,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       const LibraryViewControls(),
@@ -290,11 +294,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index < results.items.length - 1 ? 8 : 0,
-                        ),
-                        child: switch (results.items[index]) {
+                      (context, index) {
+                        final card = switch (results.items[index]) {
                           SingleEntry(:final group) => LouvorGroupCard(
                             key: ValueKey('card-${group.groupId}'),
                             group: group,
@@ -303,8 +304,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             key: ValueKey('cluster-${cluster.praiseGroupId}'),
                             entry: cluster,
                           ),
-                        },
-                      ),
+                        };
+
+                        final paddedCard = Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index < results.items.length - 1 ? 8 : 0,
+                          ),
+                          child: card,
+                        );
+
+                        if (index == 0) {
+                          return SpotlightGuideTarget(
+                            id: 'library-first-card',
+                            child: paddedCard,
+                          );
+                        }
+                        return paddedCard;
+                      },
                       childCount: results.items.length,
                     ),
                   ),
