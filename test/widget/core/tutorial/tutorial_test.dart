@@ -14,11 +14,12 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists e profile', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile e reader', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.profile), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.reader), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -84,6 +85,30 @@ void main() {
                 expect(steps[1].items.first.targetId, 'profile-library-tile');
                 expect(steps[2].items.first.targetId, 'profile-contribute-tile');
                 expect(steps[3].items.first.targetId, 'profile-offline-tile');
+                expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos do Leitor com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.reader);
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'reader-fit-mode-button');
+                expect(steps[1].items.first.targetId, 'reader-fullscreen-button');
+                expect(steps[2].items.first.targetId, 'reader-page-indicator');
+                expect(steps[3].items.first.targetId, 'reader-pdf-view');
                 expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
@@ -487,6 +512,116 @@ void main() {
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Modo Offline'), findsOneWidget);
+
+      // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela do Leitor dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.reader,
+        routes: [
+          GoRoute(
+            path: RoutePaths.reader,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'reader-fit-mode-button',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Fit Mode'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'reader-fullscreen-button',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Fullscreen'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'reader-page-indicator',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Page Indicator'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'reader-pdf-view',
+                        child: const SizedBox(
+                          height: 200,
+                          child: Text('Mock PDF Area'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Ajuste de Tela
+      expect(find.text('Ajuste de Tela'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Modo Tela Cheia
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Modo Tela Cheia'), findsOneWidget);
+
+      // Passo 3: Indicador de Páginas
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Indicador de Páginas'), findsOneWidget);
+
+      // Passo 4: Virada de Páginas
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Virada de Páginas'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));

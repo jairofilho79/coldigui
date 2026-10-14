@@ -35,6 +35,7 @@ import 'package:coldigui/features/pdf_reader/presentation/widgets/pdf_reader_pdf
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// Query param que, se presente na rota, sinaliza uma página específica
 /// pedida explicitamente (deep link) — desliga a restauração da última
@@ -470,7 +471,10 @@ class _ReaderScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     // Em fullscreen com áudio, o mini-player fica no topo e o
     // `shell_scaffold.dart` já entrega esta tela abaixo dele — nada a reservar.
-    final pdfArea = ColoredBox(color: AppColors.pdfArea, child: body);
+    final pdfArea = SpotlightGuideTarget(
+      id: 'reader-pdf-view',
+      child: ColoredBox(color: AppColors.pdfArea, child: body),
+    );
 
     return Column(
       children: [
@@ -519,25 +523,34 @@ class _ReaderScaffold extends StatelessWidget {
                     },
                   ),
                 if (onToggleFitMode != null)
-                  IconButton(
-                    tooltip: fitModeTooltip ?? 'Ajustar largura/página (Z)',
-                    icon: Icon(
-                      fitModeIsPageWidth
-                          ? Icons.fit_screen
-                          : Icons.fit_screen_outlined,
+                  SpotlightGuideTarget(
+                    id: 'reader-fit-mode-button',
+                    child: IconButton(
+                      tooltip: fitModeTooltip ?? 'Ajustar largura/página (Z)',
+                      icon: Icon(
+                        fitModeIsPageWidth
+                            ? Icons.fit_screen
+                            : Icons.fit_screen_outlined,
+                      ),
+                      onPressed: () =>
+                          _runAndRestoreKeyboardFocus(onToggleFitMode!),
                     ),
-                    onPressed: () =>
-                        _runAndRestoreKeyboardFocus(onToggleFitMode!),
                   ),
                 if (onToggleFullscreen != null)
-                  IconButton(
-                    tooltip: fullscreenTooltip ?? 'Tela cheia (F)',
-                    icon: const Icon(Icons.fullscreen),
-                    onPressed: () =>
-                        _runAndRestoreKeyboardFocus(onToggleFullscreen!),
+                  SpotlightGuideTarget(
+                    id: 'reader-fullscreen-button',
+                    child: IconButton(
+                      tooltip: fullscreenTooltip ?? 'Tela cheia (F)',
+                      icon: const Icon(Icons.fullscreen),
+                      onPressed: () =>
+                          _runAndRestoreKeyboardFocus(onToggleFullscreen!),
+                    ),
                   ),
                 if (filePath != null)
-                  PdfReaderPageIndicator(filePath: filePath!),
+                  SpotlightGuideTarget(
+                    id: 'reader-page-indicator',
+                    child: PdfReaderPageIndicator(filePath: filePath!),
+                  ),
               ],
             ),
           ),
