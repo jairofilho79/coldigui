@@ -1,7 +1,14 @@
 import 'package:coldigui/features/auth/domain/entities/auth_user.dart';
 import 'package:coldigui/features/auth/presentation/providers/auth_state_provider.dart';
+import 'package:coldigui/features/chords/data/datasources/chord_content_local_datasource.dart';
+import 'package:coldigui/features/chords/data/providers/chord_providers.dart';
+import 'package:coldigui/features/chords/domain/entities/chordpro_song.dart';
+import 'package:coldigui/features/contributions/data/datasources/contributions_remote_datasource.dart';
 import 'package:coldigui/features/contributions/data/device/device_snapshot_provider.dart';
+import 'package:coldigui/features/contributions/data/providers/contributions_providers.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_attachment.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_kind.dart';
+import 'package:coldigui/features/contributions/domain/entities/contribution_summary.dart';
 import 'package:coldigui/features/contributions/domain/entities/contribution_target.dart';
 import 'package:coldigui/features/contributions/presentation/pages/contribute_screen.dart';
 import 'package:coldigui/features/contributions/presentation/widgets/extracted_editor/extracted_chord_editor.dart';
@@ -11,12 +18,48 @@ import 'package:coldigui/features/contributions/presentation/widgets/extracted_e
 import 'package:coldigui/features/gestures/data/providers/gesture_providers.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_dictionary.dart';
 import 'package:coldigui/features/gestures/domain/entities/gesture_document.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/fakes/fake_auth_notifier.dart';
 import '../../../support/fakes/fake_device_snapshot_port.dart';
 import '../../../support/pump_app.dart';
+
+class _FakeChordLocal implements ChordContentLocalDatasource {
+  _FakeChordLocal(this.key, this.content);
+  final String key;
+  final String content;
+
+  @override
+  ChordCacheEntry? read(String r2Key) =>
+      ChordCacheEntry(content: content, fetchedAt: DateTime.now());
+
+  @override
+  void write(String r2Key, String content) {}
+
+  @override
+  List<String> allKeysWithContent() => [key];
+}
+
+class _SentFakeDs extends ContributionsRemoteDatasource {
+  _SentFakeDs() : super(Dio());
+
+  Map<String, dynamic>? lastPayload;
+  List<ContributionAttachment>? lastAttachments;
+
+  @override
+  Future<({String id, ContributionStatus status})> submit({
+    required String sessionToken,
+    required Map<String, dynamic> payload,
+    required List<ContributionAttachment> attachments,
+    void Function(int, int)? onProgress,
+  }) async {
+    lastPayload = payload;
+    lastAttachments = attachments;
+    return (id: 'c1', status: ContributionStatus.pendente);
+  }
+}
 
 const _mockUser = AuthUser(
   googleSub: 'u1',
@@ -245,6 +288,135 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ExtractedLyricsEditor), findsOneWidget);
+    });
+
+    testWidgets('envia sugestão de letra com sucesso mesmo com from preenchido', (tester) async {
+      final fakeDs = _SentFakeDs();
+
+      await pumpApp(
+        tester,
+        const ContributeScreen(
+          target: ContributionTarget(
+            source: ContributionSource.coldigom,
+            praiseId: '182',
+            materialId: 'lyrics:182',
+          ),
+          from: '/letra/182',
+        ),
+        overrides: [
+          authStateProvider.overrideWith(() => FakeAuthNotifier(_mockUser)),
+          deviceSnapshotPortProvider.overrideWithValue(FakeDeviceSnapshotPort()),
+          gestureDictionaryProvider.overrideWith((ref) => _mockDictionary),
+          gestureFigureProvider.overrideWith((ref, key) => null),
+          contributionsRemoteDatasourceProvider.overrideWithValue(fakeDs),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      // Insere texto para ter conteúdo de letra a sugerir
+      final inputFinder = find.byType(TextFormField).first;
+      await tester.ensureVisible(inputFinder);
+      await tester.pumpAndSettle();
+      await tester.enterText(inputFinder, 'Nova letra de louvor');
+      await tester.pumpAndSettle();
+
+      final sendBtnFinder = find.byKey(const Key('contribute-send-extracted'));
+      await tester.ensureVisible(sendBtnFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(sendBtnFinder);
+      await tester.pumpAndSettle();
+
+      expect(fakeDs.lastPayload, isNotNull);
+      expect(fakeDs.lastPayload!['title'], contains('Ajuste na Letra'));
+      expect(fakeDs.lastAttachments, isNotEmpty);
+      expect(fakeDs.lastAttachments!.first.name, 'letra_sugerida.txt');
+      expect(find.text('Recebido, obrigado!'), findsOneWidget);
+    });
+
+    testWidgets('envia sugestão de cifra com sucesso mesmo com praiseId sem materialId e com from', (tester) async {
+      final fakeDs = _SentFakeDs();
+
+      await pumpApp(
+        tester,
+        const ContributeScreen(
+          target: ContributionTarget(
+            source: ContributionSource.coldigom,
+            praiseId: '182',
+            materialId: '182.chord',
+          ),
+          from: '/cifras/182',
+        ),
+        overrides: [
+          authStateProvider.overrideWith(() => FakeAuthNotifier(_mockUser)),
+          deviceSnapshotPortProvider.overrideWithValue(FakeDeviceSnapshotPort()),
+          gestureDictionaryProvider.overrideWith((ref) => _mockDictionary),
+          gestureFigureProvider.overrideWith((ref, key) => null),
+          contributionsRemoteDatasourceProvider.overrideWithValue(fakeDs),
+          chordContentLocalDatasourceProvider.overrideWithValue(
+            _FakeChordLocal('182.chord', '[G]Louvor'),
+          ),
+          chordSongProvider.overrideWith(
+            (ref, key) async => const ChordProSong(title: 'Louvor'),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final sendBtnFinder = find.byKey(const Key('contribute-send-extracted'));
+      await tester.ensureVisible(sendBtnFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(sendBtnFinder);
+      await tester.pumpAndSettle();
+
+      expect(fakeDs.lastPayload, isNotNull);
+      expect(fakeDs.lastPayload!['title'], contains('Ajuste na Cifra'));
+      expect(fakeDs.lastAttachments, isNotEmpty);
+      expect(fakeDs.lastAttachments!.first.name, 'cifra_sugerida.chordpro');
+      expect(find.text('Recebido, obrigado!'), findsOneWidget);
+    });
+
+    testWidgets('envia sugestão de gesto com sucesso mesmo com praiseId sem materialId e com from', (tester) async {
+      final fakeDs = _SentFakeDs();
+
+      await pumpApp(
+        tester,
+        const ContributeScreen(
+          target: ContributionTarget(
+            source: ContributionSource.coldigom,
+            praiseId: '182',
+            materialId: '182.gestures',
+          ),
+          from: '/gestos/182',
+        ),
+        overrides: [
+          authStateProvider.overrideWith(() => FakeAuthNotifier(_mockUser)),
+          deviceSnapshotPortProvider.overrideWithValue(FakeDeviceSnapshotPort()),
+          gestureDictionaryProvider.overrideWith((ref) => _mockDictionary),
+          gestureFigureProvider.overrideWith((ref, key) => null),
+          contributionsRemoteDatasourceProvider.overrideWithValue(fakeDs),
+          gestureDocumentProvider.overrideWith(
+            (ref, key) async => const GestureDocument(
+              schemaMajor: 1,
+              title: 'Louvor Teste',
+              dictionaryVersion: 1,
+              items: [],
+            ),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final sendBtnFinder = find.byKey(const Key('contribute-send-extracted'));
+      await tester.ensureVisible(sendBtnFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(sendBtnFinder);
+      await tester.pumpAndSettle();
+
+      expect(fakeDs.lastPayload, isNotNull);
+      expect(fakeDs.lastPayload!['title'], contains('Ajuste nos Gestos'));
+      expect(fakeDs.lastAttachments, isNotEmpty);
+      expect(fakeDs.lastAttachments!.first.name, 'gestos_sugeridos.txt');
+      expect(find.text('Recebido, obrigado!'), findsOneWidget);
     });
   });
 }

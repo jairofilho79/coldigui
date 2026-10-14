@@ -238,6 +238,9 @@ class ContributeFormNotifier extends Notifier<ContributeFormState> {
     return null;
   }
 
+  void setAttachments(List<ContributionAttachment> list) =>
+      _draft(state.draft.copyWith(attachments: list));
+
   void removeAttachment(int i) => _draft(
     state.draft.copyWith(
       attachments: [...state.draft.attachments]..removeAt(i),

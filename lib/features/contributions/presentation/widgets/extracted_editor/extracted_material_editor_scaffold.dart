@@ -35,6 +35,7 @@ class ExtractedMaterialEditorScaffold extends ConsumerStatefulWidget {
     required this.onSwitchToGeneral,
     required this.onSend,
     required this.snapshot,
+    this.formArgs,
     super.key,
   });
 
@@ -43,6 +44,7 @@ class ExtractedMaterialEditorScaffold extends ConsumerStatefulWidget {
   final VoidCallback onSwitchToGeneral;
   final Future<void> Function(DeviceSnapshot? snapshot) onSend;
   final DeviceSnapshot? snapshot;
+  final ContributeFormArgs? formArgs;
 
   @override
   ConsumerState<ExtractedMaterialEditorScaffold> createState() =>
@@ -90,7 +92,7 @@ class _ExtractedMaterialEditorScaffoldState
             ? row!.lyrics.split('\n').first
             : _praiseId);
 
-    final args = ContributeFormArgs(target: widget.target);
+    final args = widget.formArgs ?? ContributeFormArgs(target: widget.target);
     final formState = ref.watch(contributeFormProvider(args));
     final notifier = ref.read(contributeFormProvider(args).notifier);
     final draft = formState.draft;
@@ -394,13 +396,13 @@ class _ExtractedMaterialEditorScaffoldState
         // Anexa como .txt
         if (lyrics.isNotEmpty) {
           final bytes = utf8.encode(lyrics);
-          notifier.addAttachment(
+          notifier.setAttachments([
             ContributionAttachment(
               name: 'letra_sugerida.txt',
               size: bytes.length,
               bytes: bytes,
             ),
-          );
+          ]);
         }
 
       case MaterialKind.chord:
@@ -414,13 +416,13 @@ class _ExtractedMaterialEditorScaffoldState
         // Anexa como .chordpro
         if (chordPro.isNotEmpty) {
           final bytes = utf8.encode(chordPro);
-          notifier.addAttachment(
+          notifier.setAttachments([
             ContributionAttachment(
               name: 'cifra_sugerida.chordpro',
               size: bytes.length,
               bytes: bytes,
             ),
-          );
+          ]);
         }
 
       case MaterialKind.gesture:
@@ -435,13 +437,13 @@ class _ExtractedMaterialEditorScaffoldState
         // Anexa como .txt
         if (jsonString.isNotEmpty) {
           final bytes = utf8.encode(jsonString);
-          notifier.addAttachment(
+          notifier.setAttachments([
             ContributionAttachment(
               name: 'gestos_sugeridos.txt',
               size: bytes.length,
               bytes: bytes,
             ),
-          );
+          ]);
         }
 
       default:

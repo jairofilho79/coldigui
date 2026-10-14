@@ -73,6 +73,13 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final matId = target.materialId;
     if (matId == null || matId.isEmpty) return null;
     if (matId.startsWith('lyrics:')) return MaterialKind.lyrics;
+    final lower = matId.toLowerCase();
+    if (lower.endsWith('.chord') || lower.endsWith('.chordpro')) {
+      return MaterialKind.chord;
+    }
+    if (lower.endsWith('.gestures')) {
+      return MaterialKind.gesture;
+    }
     final kind = materialIdKindOf(matId);
     if (kind == MaterialKind.chord ||
         kind == MaterialKind.gesture ||
@@ -96,15 +103,90 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     }
   }
 
-  ContributeFormArgs get _args =>
-      ContributeFormArgs(target: widget.target, from: widget.from);
+  ContributionTarget? _resolveEffectiveTarget(
+    ContributionTarget? target,
+    MaterialKind? kind,
+  ) {
+    if (target == null) return null;
+    final targetMaterialId = target.materialId;
+    final effectivePraiseId = target.praiseId ??
+        (targetMaterialId != null
+            ? (ref.watch(catalogMaterialLookupProvider).chord(targetMaterialId)?.groupId ??
+               ref.watch(catalogMaterialLookupProvider).gesture(targetMaterialId)?.groupId ??
+               ref.watch(coldigomCatalogSourceProvider).findGroupForMaterial(targetMaterialId)?.groupId)
+            : null);
+
+    var effective = (effectivePraiseId != null && target.praiseId == null)
+        ? target.copyWith(praiseId: effectivePraiseId)
+        : target;
+
+    if (kind == MaterialKind.lyrics &&
+        (effective.materialId == null ||
+            !effective.materialId!.startsWith('lyrics:'))) {
+      effective = effective.copyWith(
+        materialId: 'lyrics:${effective.praiseId}',
+      );
+    } else if (kind == MaterialKind.chord &&
+        effective.materialId == null &&
+        effective.praiseId != null) {
+      final chords = ref
+          .watch(catalogMaterialLookupProvider)
+          .chordsOfGroup(effective.praiseId!);
+      final chordsFromSource = ref
+          .watch(coldigomCatalogSourceProvider)
+          .findGroupById(effective.praiseId!)
+          ?.chordMaterials;
+      final effectiveChords =
+          chords.isNotEmpty ? chords : (chordsFromSource ?? []);
+      if (effectiveChords.isNotEmpty) {
+        effective =
+            effective.copyWith(materialId: effectiveChords.first.chordId);
+      }
+    } else if (kind == MaterialKind.gesture &&
+        effective.materialId == null &&
+        effective.praiseId != null) {
+      final gestures = ref
+          .watch(catalogMaterialLookupProvider)
+          .gesturesById
+          .values
+          .where((g) => g.groupId == effective.praiseId)
+          .toList();
+      final gesturesFromSource = ref
+          .watch(coldigomCatalogSourceProvider)
+          .findGroupById(effective.praiseId!)
+          ?.gestureMaterials;
+      final effectiveGestures =
+          gestures.isNotEmpty ? gestures : (gesturesFromSource ?? []);
+      if (effectiveGestures.isNotEmpty) {
+        effective =
+            effective.copyWith(materialId: effectiveGestures.first.gestureId);
+      }
+    }
+    return effective;
+  }
+
+  ContributeFormArgs _formArgsFor(ContributionTarget? target) =>
+      ContributeFormArgs(target: target ?? widget.target, from: widget.from);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authStateProvider).asData?.value;
 
-    final args = _args;
+    final effectiveTarget = _resolveEffectiveTarget(
+      widget.target,
+      _selectedExtractedKind,
+    );
+    final targetMaterialId = widget.target?.materialId;
+    final effectivePraiseId = effectiveTarget?.praiseId ??
+        widget.target?.praiseId ??
+        (targetMaterialId != null
+            ? (ref.watch(catalogMaterialLookupProvider).chord(targetMaterialId)?.groupId ??
+               ref.watch(catalogMaterialLookupProvider).gesture(targetMaterialId)?.groupId ??
+               ref.watch(coldigomCatalogSourceProvider).findGroupForMaterial(targetMaterialId)?.groupId)
+            : null);
+
+    final args = _formArgsFor(effectiveTarget);
     final state = ref.watch(contributeFormProvider(args));
     final notifier = ref.read(contributeFormProvider(args).notifier);
     final draft = state.draft;
@@ -125,10 +207,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       switch (next.submit) {
         case ContributeSent():
           messenger.showSnackBar(SnackBar(content: Text(l10n.contributeSent)));
-          if (context.canPop()) {
-            context.pop();
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
           } else {
-            context.go(RoutePaths.profile);
+            try {
+              context.go(RoutePaths.profile);
+            } catch (_) {}
           }
         case ContributeFailed(:final failure):
           messenger.showSnackBar(
@@ -140,71 +224,16 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       }
     });
 
-    final targetMaterialId = widget.target?.materialId;
-    final effectivePraiseId = widget.target?.praiseId ??
-        (targetMaterialId != null
-            ? (ref.watch(catalogMaterialLookupProvider).chord(targetMaterialId)?.groupId ??
-               ref.watch(catalogMaterialLookupProvider).gesture(targetMaterialId)?.groupId ??
-               ref.watch(coldigomCatalogSourceProvider).findGroupForMaterial(targetMaterialId)?.groupId)
-            : null);
-
     // Se o alvo for um material extraído (ou selecionado pelo usuário)
-    if (_selectedExtractedKind != null && widget.target != null) {
-      ContributionTarget effectiveTarget =
-          (effectivePraiseId != null && widget.target!.praiseId == null)
-              ? widget.target!.copyWith(praiseId: effectivePraiseId)
-              : widget.target!;
-
-      if (_selectedExtractedKind == MaterialKind.lyrics &&
-          (effectiveTarget.materialId == null ||
-              !effectiveTarget.materialId!.startsWith('lyrics:'))) {
-        effectiveTarget = effectiveTarget.copyWith(
-          materialId: 'lyrics:${effectiveTarget.praiseId}',
-        );
-      } else if (_selectedExtractedKind == MaterialKind.chord &&
-          effectiveTarget.materialId == null &&
-          effectiveTarget.praiseId != null) {
-        final chords = ref
-            .watch(catalogMaterialLookupProvider)
-            .chordsOfGroup(effectiveTarget.praiseId!);
-        final chordsFromSource = ref
-            .watch(coldigomCatalogSourceProvider)
-            .findGroupById(effectiveTarget.praiseId!)
-            ?.chordMaterials;
-        final effectiveChords =
-            chords.isNotEmpty ? chords : (chordsFromSource ?? []);
-        if (effectiveChords.isNotEmpty) {
-          effectiveTarget =
-              effectiveTarget.copyWith(materialId: effectiveChords.first.chordId);
-        }
-      } else if (_selectedExtractedKind == MaterialKind.gesture &&
-          effectiveTarget.materialId == null &&
-          effectiveTarget.praiseId != null) {
-        final gestures = ref
-            .watch(catalogMaterialLookupProvider)
-            .gesturesById
-            .values
-            .where((g) => g.groupId == effectiveTarget.praiseId)
-            .toList();
-        final gesturesFromSource = ref
-            .watch(coldigomCatalogSourceProvider)
-            .findGroupById(effectiveTarget.praiseId!)
-            ?.gestureMaterials;
-        final effectiveGestures =
-            gestures.isNotEmpty ? gestures : (gesturesFromSource ?? []);
-        if (effectiveGestures.isNotEmpty) {
-          effectiveTarget =
-              effectiveTarget.copyWith(materialId: effectiveGestures.first.gestureId);
-        }
-      }
-
+    if (_selectedExtractedKind != null && effectiveTarget != null) {
       return Scaffold(
         appBar: const PlpcgPrimaryAppBar(),
         body: ExtractedMaterialEditorScaffold(
           target: effectiveTarget,
           materialKind: _selectedExtractedKind!,
+          formArgs: args,
           onSwitchToGeneral: () => setState(() => _selectedExtractedKind = null),
-          onSend: _send,
+          onSend: (snap) => _send(args, snap),
           snapshot: snapshot,
         ),
       );
@@ -519,7 +548,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                               borderRadius: BorderRadius.circular(24),
                             ),
                           ),
-                          onPressed: canSend ? () => _send(snapshot) : null,
+                          onPressed: canSend ? () => _send(args, snapshot) : null,
                           child: Text(
                             l10n.contributeSend,
                             style: canSend
@@ -554,7 +583,7 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
                       height: 44,
                       child: OutlinedButton.icon(
                         key: const Key('contribute-clear-form'),
-                        onPressed: () => _confirmClearForm(context),
+                        onPressed: () => _confirmClearForm(context, args),
                         icon: const Icon(
                           Icons.delete_outline,
                           size: 20,
@@ -585,7 +614,10 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     );
   }
 
-  Future<void> _confirmClearForm(BuildContext context) async {
+  Future<void> _confirmClearForm(
+    BuildContext context,
+    ContributeFormArgs args,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -607,16 +639,16 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      ref.read(contributeFormProvider(_args).notifier).clearDraft();
+      ref.read(contributeFormProvider(args).notifier).clearDraft();
       setState(() {
         _formResetIndex++;
       });
     }
   }
 
-  Future<void> _send(DeviceSnapshot? snapshot) {
+  Future<void> _send(ContributeFormArgs args, DeviceSnapshot? snapshot) {
     return ref
-        .read(contributeFormProvider(_args).notifier)
+        .read(contributeFormProvider(args).notifier)
         .submit(device: snapshot, appVersion: snapshot?.versionLabel ?? '');
   }
 
