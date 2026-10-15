@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../widgets/about_info_card.dart';
 
@@ -44,11 +45,20 @@ class AboutScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: const [
-            AboutInfoCard(title: 'Quem somos', paragraphs: [_quemSomosBody]),
+            SpotlightGuideTarget(
+              id: 'about-who-we-are',
+              child: AboutInfoCard(
+                title: 'Quem somos',
+                paragraphs: [_quemSomosBody],
+              ),
+            ),
             SizedBox(height: 16),
-            AboutInfoCard(
-              title: 'Objetivo',
-              paragraphs: [_objetivoParagraph1, _objetivoParagraph2],
+            SpotlightGuideTarget(
+              id: 'about-mission',
+              child: AboutInfoCard(
+                title: 'Objetivo',
+                paragraphs: [_objetivoParagraph1, _objetivoParagraph2],
+              ),
             ),
           ],
         ),

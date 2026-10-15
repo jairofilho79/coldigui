@@ -5,6 +5,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
+import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
@@ -41,6 +42,7 @@ class TutorialController {
       RoutePaths.offline => true,
       RoutePaths.lyrics => true,
       RoutePaths.praise => true,
+      RoutePaths.about => true,
       final p when p.startsWith('/louvor/') => true,
       _ => false,
     };
@@ -64,6 +66,7 @@ class TutorialController {
       RoutePaths.offline => buildOfflineTutorialSteps(context),
       RoutePaths.lyrics => buildLyricsTutorialSteps(context),
       RoutePaths.praise => buildPraiseTutorialSteps(context),
+      RoutePaths.about => buildAboutTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
         buildPraiseTutorialSteps(context),
       _ => const [],

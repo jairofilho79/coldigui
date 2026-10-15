@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics e praise', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise e about', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -28,6 +28,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.lyrics), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.praise), isTrue);
       expect(controller.hasTutorialFor('/louvor/0a1'), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.about), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -290,6 +291,29 @@ void main() {
                 expect(steps[2].items.first.targetId, 'praise-materials-section');
                 expect(steps[3].items.first.targetId, 'praise-lyrics-section');
                 expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da tela Sobre com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.about);
+                expect(steps.length, 3);
+                expect(steps[0].items.first.targetId, 'about-who-we-are');
+                expect(steps[1].items.first.targetId, 'about-mission');
+                expect(steps[2].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -1610,6 +1634,88 @@ void main() {
       expect(find.text('Letra e Metadados'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela Sobre dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.about,
+        routes: [
+          GoRoute(
+            path: RoutePaths.about,
+            builder: (context, state) {
+              final tutorialNotifier =
+                  ProviderScope.containerOf(context).read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'about-who-we-are',
+                        child: const SizedBox(
+                          height: 100,
+                          child: Text('Quem somos card'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'about-mission',
+                        child: const SizedBox(
+                          height: 100,
+                          child: Text('Objetivo card'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Quem Somos
+      expect(find.text('Quem Somos'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Nosso Objetivo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nosso Objetivo'), findsOneWidget);
+
+      // Passo 3: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
