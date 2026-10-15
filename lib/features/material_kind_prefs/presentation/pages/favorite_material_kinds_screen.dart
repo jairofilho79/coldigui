@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/errors/user_message_for.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -93,16 +94,19 @@ class _FavoriteMaterialKindsScreenState
   Widget _signedOut(AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Text(
-            l10n.favoriteMaterialKindsSignInPrompt,
-            textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(color: AppColors.textLight),
-          ),
-          const SizedBox(height: 16),
-          const GoogleSignInButton(),
-        ],
+      child: SpotlightGuideTarget(
+        id: 'fav-signin-prompt',
+        child: Column(
+          children: [
+            Text(
+              l10n.favoriteMaterialKindsSignInPrompt,
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(color: AppColors.textLight),
+            ),
+            const SizedBox(height: 16),
+            const GoogleSignInButton(),
+          ],
+        ),
       ),
     );
   }
@@ -142,9 +146,12 @@ class _FavoriteMaterialKindsScreenState
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           sliver: SliverList.list(
             children: [
-              Text(
-                l10n.favoriteMaterialKindsHelp(kMaxFavoriteMaterialKinds),
-                style: AppTypography.body.copyWith(color: AppColors.textLight),
+              SpotlightGuideTarget(
+                id: 'fav-intro-help',
+                child: Text(
+                  l10n.favoriteMaterialKindsHelp(kMaxFavoriteMaterialKinds),
+                  style: AppTypography.body.copyWith(color: AppColors.textLight),
+                ),
               ),
               if (showSyncPending) ...[
                 const SizedBox(height: 8),
@@ -170,20 +177,28 @@ class _FavoriteMaterialKindsScreenState
                 ),
               ],
               const SizedBox(height: 20),
-              _sectionLabel(
-                l10n.favoriteMaterialKindsYours(
-                  chosen.length,
-                  kMaxFavoriteMaterialKinds,
+              SpotlightGuideTarget(
+                id: 'fav-current-section',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel(
+                      l10n.favoriteMaterialKindsYours(
+                        chosen.length,
+                        kMaxFavoriteMaterialKinds,
+                      ),
+                    ),
+                    if (chosen.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          l10n.favoriteMaterialKindsEmpty,
+                          style: _secondaryText,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              if (chosen.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    l10n.favoriteMaterialKindsEmpty,
-                    style: _secondaryText,
-                  ),
-                ),
             ],
           ),
         ),
@@ -267,7 +282,10 @@ class _FavoriteMaterialKindsScreenState
                     ),
                   ),
                 ),
-              _searchField(l10n),
+              SpotlightGuideTarget(
+                id: 'fav-search-field',
+                child: _searchField(l10n),
+              ),
               const SizedBox(height: 12),
               if (kindsAsync.isLoading)
                 const Padding(

@@ -8,6 +8,7 @@ import '../../../routing/route_paths.dart';
 import '../steps/about_tutorial_steps.dart';
 import '../steps/audio_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
+import '../steps/favorite_material_kinds_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
@@ -43,6 +44,7 @@ class TutorialController {
       RoutePaths.lyrics => true,
       RoutePaths.praise => true,
       RoutePaths.about => true,
+      RoutePaths.favoriteMaterialKinds => true,
       final p when p.startsWith('/louvor/') => true,
       _ => false,
     };
@@ -67,6 +69,8 @@ class TutorialController {
       RoutePaths.lyrics => buildLyricsTutorialSteps(context),
       RoutePaths.praise => buildPraiseTutorialSteps(context),
       RoutePaths.about => buildAboutTutorialSteps(context),
+      RoutePaths.favoriteMaterialKinds =>
+        buildFavoriteMaterialKindsTutorialSteps(context),
       final p when p.startsWith('/louvor/') =>
         buildPraiseTutorialSteps(context),
       _ => const [],

@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise e about', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos, audio, offline, lyrics, praise, about e favoriteMaterialKinds', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -29,6 +29,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.praise), isTrue);
       expect(controller.hasTutorialFor('/louvor/0a1'), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.about), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.favoriteMaterialKinds), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -314,6 +315,33 @@ void main() {
                 expect(steps[0].items.first.targetId, 'about-who-we-are');
                 expect(steps[1].items.first.targetId, 'about-mission');
                 expect(steps[2].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets(
+        'stepsForRoute retorna passos da tela de Materiais Favoritos com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps = controller.stepsForRoute(
+                  context,
+                  RoutePaths.favoriteMaterialKinds,
+                );
+                expect(steps.length, 5);
+                expect(steps[0].items.first.targetId, 'fav-intro-help');
+                expect(steps[1].items.first.targetId, 'fav-current-section');
+                expect(steps[2].items.first.targetId, 'fav-search-field');
+                expect(steps[3].items.first.targetId, 'fav-signin-prompt');
+                expect(steps[4].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -1716,6 +1744,102 @@ void main() {
       expect(find.text('Nosso Objetivo'), findsOneWidget);
 
       // Passo 3: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela de Materiais Favoritos dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.favoriteMaterialKinds,
+        routes: [
+          GoRoute(
+            path: RoutePaths.favoriteMaterialKinds,
+            builder: (context, state) {
+              final tutorialNotifier =
+                  ProviderScope.containerOf(context).read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorialNotifier.portalController,
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: ListView(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'fav-intro-help',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Intro help'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'fav-current-section',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Current favorites'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'fav-search-field',
+                        child: const SizedBox(
+                          height: 60,
+                          child: Text('Search field'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Prioridade de Materiais
+      expect(find.text('Prioridade de Materiais'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Seus Favoritos e Ordem
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Seus Favoritos e Ordem'), findsOneWidget);
+
+      // Passo 3: Adicionar Novos Materiais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Adicionar Novos Materiais'), findsOneWidget);
+
+      // fav-signin-prompt é pulado com .skip
+
+      // Passo 4: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
