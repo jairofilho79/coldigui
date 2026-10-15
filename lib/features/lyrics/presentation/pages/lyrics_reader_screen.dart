@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -277,35 +278,38 @@ class _LyricsReaderScreenState extends ConsumerState<LyricsReaderScreen>
                   ),
                 const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
                 Expanded(
-                  child: text.isEmpty
-                      ? Center(
-                          child: Text(
-                            l10n.lyricsReaderEmpty,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textDark.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        )
-                      : NotificationListener<UserScrollNotification>(
-                          onNotification: (notification) {
-                            if (notification.direction != ScrollDirection.idle) {
-                              ref.read(lyricsAutoscrollProvider.notifier).stop();
-                            }
-                            return false;
-                          },
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                            child: SelectableText(
-                              text,
+                  child: SpotlightGuideTarget(
+                    id: 'lyrics-content-view',
+                    child: text.isEmpty
+                        ? Center(
+                            child: Text(
+                              l10n.lyricsReaderEmpty,
                               style: AppTypography.body.copyWith(
-                                color: AppColors.textDark,
-                                fontSize: fontSize,
-                                height: 1.5,
+                                color: AppColors.textDark.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          )
+                        : NotificationListener<UserScrollNotification>(
+                            onNotification: (notification) {
+                              if (notification.direction != ScrollDirection.idle) {
+                                ref.read(lyricsAutoscrollProvider.notifier).stop();
+                              }
+                              return false;
+                            },
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                              child: SelectableText(
+                                text,
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textDark,
+                                  fontSize: fontSize,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
               ],
             ),
@@ -357,54 +361,73 @@ class _LyricsToolbar extends ConsumerWidget {
               ),
             ),
           ),
-          IconButton(
-            tooltip: l10n.lyricsReaderDecreaseFont,
-            icon: const Icon(Icons.text_decrease, color: AppColors.title),
-            onPressed: LyricsReaderFontSize.canDecrease(fontSize)
-                ? size.decrease
-                : null,
-          ),
-          IconButton(
-            tooltip: l10n.lyricsReaderIncreaseFont,
-            icon: const Icon(Icons.text_increase, color: AppColors.title),
-            onPressed: LyricsReaderFontSize.canIncrease(fontSize)
-                ? size.increase
-                : null,
-          ),
-          IconButton(
-            key: lyricsReaderAutoscrollKey,
-            tooltip: autoscroll.running
-                ? l10n.lyricsAutoscrollPause
-                : l10n.lyricsAutoscrollPlay,
-            icon: Icon(
-              autoscroll.running
-                  ? Icons.pause_circle_outline
-                  : Icons.play_circle_outline,
-              color: AppColors.title,
+          SpotlightGuideTarget(
+            id: 'lyrics-font-size-controls',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: l10n.lyricsReaderDecreaseFont,
+                  icon: const Icon(Icons.text_decrease, color: AppColors.title),
+                  onPressed: LyricsReaderFontSize.canDecrease(fontSize)
+                      ? size.decrease
+                      : null,
+                ),
+                IconButton(
+                  tooltip: l10n.lyricsReaderIncreaseFont,
+                  icon: const Icon(Icons.text_increase, color: AppColors.title),
+                  onPressed: LyricsReaderFontSize.canIncrease(fontSize)
+                      ? size.increase
+                      : null,
+                ),
+              ],
             ),
-            onPressed: autoscrollNotifier.toggle,
           ),
-          IconButton(
-            key: lyricsReaderSpeedKey,
-            tooltip: l10n.autoscrollSpeedTooltip,
-            icon: Icon(
-              Icons.speed,
-              color: showSpeedSlider ? AppColors.gold : AppColors.title,
+          SpotlightGuideTarget(
+            id: 'lyrics-autoscroll-controls',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: lyricsReaderAutoscrollKey,
+                  tooltip: autoscroll.running
+                      ? l10n.lyricsAutoscrollPause
+                      : l10n.lyricsAutoscrollPlay,
+                  icon: Icon(
+                    autoscroll.running
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                    color: AppColors.title,
+                  ),
+                  onPressed: autoscrollNotifier.toggle,
+                ),
+                IconButton(
+                  key: lyricsReaderSpeedKey,
+                  tooltip: l10n.autoscrollSpeedTooltip,
+                  icon: Icon(
+                    Icons.speed,
+                    color: showSpeedSlider ? AppColors.gold : AppColors.title,
+                  ),
+                  onPressed: onToggleSpeedSlider,
+                ),
+              ],
             ),
-            onPressed: onToggleSpeedSlider,
           ),
-          IconButton(
-            key: lyricsReaderFullscreenKey,
-            tooltip: ref.watch(readerFullscreenProvider)
-                ? l10n.readerExitFullscreenTooltip
-                : l10n.readerFullscreenTooltip,
-            icon: Icon(
-              ref.watch(readerFullscreenProvider)
-                  ? Icons.fullscreen_exit
-                  : Icons.fullscreen,
-              color: AppColors.title,
+          SpotlightGuideTarget(
+            id: 'lyrics-fullscreen-button',
+            child: IconButton(
+              key: lyricsReaderFullscreenKey,
+              tooltip: ref.watch(readerFullscreenProvider)
+                  ? l10n.readerExitFullscreenTooltip
+                  : l10n.readerFullscreenTooltip,
+              icon: Icon(
+                ref.watch(readerFullscreenProvider)
+                    ? Icons.fullscreen_exit
+                    : Icons.fullscreen,
+                color: AppColors.title,
+              ),
+              onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
             ),
-            onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
           ),
           IconButton(
             tooltip: l10n.contributeReportTooltip,
