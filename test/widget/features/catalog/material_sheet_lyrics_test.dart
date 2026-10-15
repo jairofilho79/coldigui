@@ -1,11 +1,14 @@
+import 'package:coldigui/core/database/collections/coldigom_praise_cache.dart';
 import 'package:coldigui/core/database/isar_provider.dart';
 import 'package:coldigui/features/audio_player/domain/entities/audio_track.dart';
 import 'package:coldigui/features/catalog/domain/entities/catalog_material.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor.dart';
 import 'package:coldigui/features/catalog/domain/entities/louvor_group.dart';
 import 'package:coldigui/features/catalog/presentation/providers/open_material_provider.dart';
+import 'package:coldigui/features/catalog/presentation/widgets/coldigom_meta_block.dart';
 import 'package:coldigui/features/catalog/presentation/widgets/material_sheet.dart';
-import 'package:coldigui/features/catalog/presentation/widgets/material_sheet_actions.dart';
+import 'package:coldigui/features/coldigom/domain/search/coldigom_search_index.dart';
+import 'package:coldigui/features/coldigom/presentation/providers/coldigom_catalog_providers.dart';
 import 'package:coldigui/features/playlists/presentation/providers/active_playlist_editor.dart';
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +31,8 @@ final _pdf = Louvor.fromManifest(
   groupId: 'p1',
 );
 
+const _sampleLyrics = 'Comigo habita, ó Deus\nA noite vem\nAs trevas descem\nSenhor comigo fica\nNão me desampares';
+
 class _OpenSpy extends OpenMaterial {
   CatalogMaterial? opened;
 
@@ -42,17 +47,29 @@ class _OpenSpy extends OpenMaterial {
   }
 }
 
-Future<_OpenSpy> _pumpSheet(WidgetTester tester, LouvorGroup group) async {
+Future<_OpenSpy> _pumpSheet(
+  WidgetTester tester,
+  LouvorGroup group, {
+  String lyrics = _sampleLyrics,
+}) async {
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   final spy = _OpenSpy();
+  final cacheRow = ColdigomPraiseCache()
+    ..praiseId = group.groupId
+    ..name = group.nome
+    ..number = group.numero
+    ..lyrics = lyrics;
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         isarStatusProvider.overrideWithValue(IsarStatus.available),
         activeEntriesProvider.overrideWithValue(const []),
         openMaterialProvider.overrideWithValue(spy),
+        coldigomSearchIndexProvider.overrideWithValue(ColdigomSearchIndex.empty),
+        coldigomCatalogRowProvider(group.groupId).overrideWithValue(cacheRow),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -75,7 +92,7 @@ Future<_OpenSpy> _pumpSheet(WidgetTester tester, LouvorGroup group) async {
 }
 
 void main() {
-  testWidgets('grupo com PDF e letra ganha a aba «Letra» com um tile sem +', (
+  testWidgets('grupo com PDF e letra não tem aba de letra, e prévia de 5 linhas abre o leitor', (
     tester,
   ) async {
     final group = LouvorGroup.fromLouvores(
@@ -84,23 +101,20 @@ void main() {
     ).single;
     final spy = await _pumpSheet(tester, group);
 
-    expect(find.text('Letra'), findsOneWidget);
-    await tester.tap(find.text('Letra'));
+    // Aba de letra não existe no segment bar
+    expect(find.byType(ColdigomMetaBlock), findsOneWidget);
+    expect(find.text('LETRA'), findsOneWidget);
+    expect(find.textContaining('Comigo habita, ó Deus'), findsOneWidget);
+
+    // Tocar na prévia da letra abre no leitor de letras
+    await tester.tap(find.textContaining('Comigo habita, ó Deus'));
     await tester.pumpAndSettle();
 
-    final tile = find.widgetWithText(ListTile, 'Letra');
-    expect(tile, findsOneWidget);
-    expect(
-      find.descendant(of: tile, matching: find.byType(MaterialAddTrailing)),
-      findsNothing,
-    );
-
-    await tester.tap(tile);
-    await tester.pumpAndSettle();
-    expect(spy.opened, same(_lyrics));
+    expect(spy.opened, isA<LyricsMaterial>());
+    expect(spy.opened?.id, _lyrics.id);
   });
 
-  testWidgets('grupo só com letra mostra o tile direto, sem abas', (
+  testWidgets('grupo só com letra exibe a prévia no bloco de meta e ao tocar abre o leitor', (
     tester,
   ) async {
     final group = LouvorGroup(
@@ -110,8 +124,14 @@ void main() {
       sections: const [],
       lyrics: _lyrics,
     );
-    await _pumpSheet(tester, group);
+    final spy = await _pumpSheet(tester, group);
 
-    expect(find.widgetWithText(ListTile, 'Letra'), findsOneWidget);
+    expect(find.byType(ColdigomMetaBlock), findsOneWidget);
+    expect(find.text('LETRA'), findsOneWidget);
+
+    await tester.tap(find.text('LETRA'));
+    await tester.pumpAndSettle();
+
+    expect(spy.opened, isA<LyricsMaterial>());
   });
 }

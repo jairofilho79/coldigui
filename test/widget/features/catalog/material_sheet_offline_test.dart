@@ -54,6 +54,26 @@ const _youtube = YoutubeMaterial(
   classificacao: 'Básico',
 );
 
+final _track2 = AudioTrack(
+  audioId: 'a2',
+  r2Key: 'assets/praises/p1/a2.mp3',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'p1',
+  categoria: 'Voz',
+  classificacao: 'Básico',
+);
+
+const _youtube2 = YoutubeMaterial(
+  id: 'yt2',
+  url: 'https://www.youtube.com/watch?v=2Pks43ceAac',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'p1',
+  categoria: 'Culto',
+  classificacao: 'Básico',
+);
+
 const _lyrics = LyricsMaterial(
   praiseId: 'p1',
   nome: 'Comigo habita',
@@ -94,8 +114,8 @@ class _OpenSpy extends OpenMaterial {
 
 LouvorGroup _group() => LouvorGroup.fromLouvores(
   [_pdf(_pdfDownloaded, 'Grade'), _pdf(_pdfMissing, 'Partitura')],
-  audioTracks: [_track],
-  youtubeMaterials: const [_youtube],
+  audioTracks: [_track, _track2],
+  youtubeMaterials: const [_youtube, _youtube2],
   lyricsByGroupId: const {'p1': _lyrics},
 ).single;
 
@@ -191,7 +211,7 @@ void main() {
   );
 
   testWidgets(
-    'offline: áudio não baixado desabilitado; YouTube «Precisa de ligação»; letra ativa',
+    'offline: áudio não baixado desabilitado; YouTube «Precisa de ligação»',
     (tester) async {
       await _pumpSheet(tester, online: false);
 
@@ -200,10 +220,7 @@ void main() {
 
       await _openTab(tester, 'YouTube');
       expect(_tile(tester, 'Vídeo').enabled, isFalse);
-      expect(find.text('Precisa de ligação'), findsOneWidget);
-
-      await _openTab(tester, 'Letra');
-      expect(_tile(tester, 'Letra').enabled, isTrue);
+      expect(find.text('Precisa de ligação'), findsWidgets);
     },
   );
 

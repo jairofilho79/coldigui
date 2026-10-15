@@ -84,6 +84,27 @@ const _youtube = YoutubeMaterial(
   classificacao: 'Básico',
 );
 
+const _track2 = AudioTrack(
+  audioId: 'audio2',
+  r2Key: 'audio-key-2',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'g1',
+  categoria: 'Voz',
+  classificacao: 'Básico',
+  author: 'CIAS',
+);
+
+const _youtube2 = YoutubeMaterial(
+  id: 'yt2',
+  url: 'https://www.youtube.com/watch?v=2Pks43ceAac',
+  nome: 'Comigo habita',
+  numero: '692',
+  groupId: 'g1',
+  categoria: 'Culto',
+  classificacao: 'Básico',
+);
+
 // ------------------------------------------------------------------- fakes
 
 /// Registra o material que o sheet mandou abrir pelo `openMaterialProvider`.
@@ -272,7 +293,7 @@ void main() {
         sections: LouvorGroup.fromLouvores([
           _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
         ]).first.sections,
-        chordMaterials: [_chord('Cifra I', 'k1')],
+        chordMaterials: [_chord('Cifra I', 'k1'), _chord('Cifra II', 'k2')],
       );
 
       await _pumpSheet(
@@ -291,7 +312,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Cifra I'), findsOneWidget);
+      expect(find.text('Cifra II'), findsOneWidget);
       expect(find.text('Partitura'), findsNothing);
+    });
+
+    testWidgets('aba com 1 material abre direto no leitor ao tocar na aba', (
+      tester,
+    ) async {
+      final opener = _OpenMaterialSpy();
+      final group = LouvorGroup(
+        groupId: 'g1',
+        numero: '692',
+        nome: 'Comigo habita',
+        sections: LouvorGroup.fromLouvores([
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+        ]).first.sections,
+        chordMaterials: [_chord('Cifra I', 'k1')],
+      );
+
+      await _pumpSheet(
+        tester,
+        group: group,
+        opener: opener,
+        overrides: [chordSongProvider.overrideWith((ref, r2Key) async => song)],
+      );
+
+      await tester.tap(find.text('Cifras'));
+      await tester.pumpAndSettle();
+
+      expect(opener.opened, isA<ChordMaterialRef>());
+      expect(opener.opened!.id, 'chord-Cifra I');
     });
 
     testWidgets('seção sem classificação usa «Partituras» como rótulo', (
@@ -330,7 +380,7 @@ void main() {
       final opener = _OpenMaterialSpy();
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
-        youtubeMaterials: const [_youtube],
+        youtubeMaterials: const [_youtube, _youtube2],
       ).first;
 
       await _pumpSheet(
@@ -349,10 +399,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Gestos CIAs'), findsOneWidget);
+      expect(find.text('Culto'), findsOneWidget);
       expect(find.byType(CarouselLouvorAddButton), findsNothing);
 
       final youtubeIcon = tester.widget<Icon>(
-        find.byIcon(LouvorMaterialIcons.youtube),
+        find.byIcon(LouvorMaterialIcons.youtube).first,
       );
       expect(youtubeIcon.color, AppColors.youtube);
 
@@ -378,8 +429,8 @@ void main() {
           _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
           _pdf(categoria: 'Cifra I', pdfId: 'pdf2'),
         ],
-        audioTracks: const [_track],
-        youtubeMaterials: const [_youtube],
+        audioTracks: const [_track, _track2],
+        youtubeMaterials: const [_youtube, _youtube2],
         coldigomMetaByGroupId: const {
           'g1': ColdigomPraiseMetadata(
             name: 'Comigo habita',
@@ -426,8 +477,8 @@ void main() {
 
       expect(find.text('Partitura'), findsNothing);
       expect(find.text('Playback'), findsOneWidget);
-      // Autor no bloco de meta e no subtítulo da faixa.
-      expect(find.text('CIAS'), findsNWidgets(2));
+      // Autor no bloco de meta e no subtítulo das faixas.
+      expect(find.text('CIAS'), findsNWidgets(3));
 
       await tester.tap(find.text('YouTube'));
       await tester.pumpAndSettle();
@@ -593,13 +644,16 @@ void main() {
       );
     }
 
-    GestureMaterial gesture() => GestureMaterial(
-      gestureId: encodePdfId('assets/praises/p1/m1.gestures'),
-      r2Key: 'assets/praises/p1/m1.gestures',
+    GestureMaterial gesture([
+      String key = 'm1.gestures',
+      String categoria = 'Gestos',
+    ]) => GestureMaterial(
+      gestureId: encodePdfId('assets/praises/p1/$key'),
+      r2Key: 'assets/praises/p1/$key',
       nome: 'N',
       numero: '1',
       groupId: 'p1',
-      categoria: 'Gestos',
+      categoria: categoria,
       classificacao: 'x',
       author: '',
     );
@@ -642,7 +696,10 @@ void main() {
           sections: LouvorGroup.fromLouvores([
             _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
           ]).first.sections,
-          gestureMaterials: [gesture()],
+          gestureMaterials: [
+            gesture('m1.gestures', 'Gestos 1'),
+            gesture('m2.gestures', 'Gestos 2'),
+          ],
         );
 
         await _pumpSheet(tester, group: group);
@@ -654,7 +711,7 @@ void main() {
         await tester.tap(find.text('Gestos'));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.pan_tool_outlined), findsOneWidget);
+        expect(find.byIcon(Icons.pan_tool_outlined), findsNWidgets(2));
         expect(find.text('Partitura'), findsNothing);
       },
     );
@@ -665,7 +722,7 @@ void main() {
       final opener = _OpenMaterialSpy();
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
-        audioTracks: const [_track],
+        audioTracks: const [_track, _track2],
       ).first;
 
       await _pumpSheet(tester, group: group, opener: opener);
@@ -677,9 +734,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Playback'), findsOneWidget);
-      expect(find.text('CIAS'), findsOneWidget);
+      expect(find.text('CIAS'), findsWidgets);
 
       await tester.tap(find.text('Playback'));
+      await tester.pumpAndSettle();
+
+      expect(opener.opened, isA<AudioMaterial>());
+      expect(opener.opened!.id, 'audio1');
+    });
+
+    testWidgets('aba com 1 material abre direto pelo opener ao tocar na aba', (
+      tester,
+    ) async {
+      final opener = _OpenMaterialSpy();
+      final group = LouvorGroup.fromLouvores(
+        [
+          _pdf(categoria: 'Partitura', pdfId: 'pdf1'),
+          _pdf(categoria: 'Cifra I', pdfId: 'pdf2'),
+        ],
+        audioTracks: const [_track],
+      ).first;
+
+      await _pumpSheet(tester, group: group, opener: opener);
+
+      expect(find.text('Áudio'), findsOneWidget);
+      await tester.tap(find.text('Áudio'));
       await tester.pumpAndSettle();
 
       expect(opener.opened, isA<AudioMaterial>());
@@ -747,7 +826,7 @@ void main() {
       final editor = _RecordingActiveEditor();
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
-        audioTracks: const [_track],
+        audioTracks: const [_track, _track2],
       ).first;
 
       await _pumpSheet(tester, group: group, editor: () => editor);
@@ -765,7 +844,7 @@ void main() {
 
       await tester.tap(find.text('Áudio'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(CarouselLouvorAddButton));
+      await tester.tap(find.byType(CarouselLouvorAddButton).first);
       await tester.pumpAndSettle();
       expect(editor.added.last, (
         id: 'audio1',
@@ -941,7 +1020,7 @@ void main() {
     testWidgets('canAddToPlaylist falso esconde todos os +', (tester) async {
       final group = LouvorGroup.fromLouvores(
         [_pdf(categoria: 'Partitura', pdfId: 'pdf1')],
-        audioTracks: const [_track],
+        audioTracks: const [_track, _track2],
       ).first;
 
       await _pumpSheet(

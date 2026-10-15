@@ -307,18 +307,22 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                           },
                         ),
                       ],
-                      if (meta != null && meta.hasAnyField) ...[
+                      if (isWide) ...[
+                        if (meta != null && meta.hasAnyField) ...[
+                          const SizedBox(height: 16),
+                          ColdigomMetaBlock(
+                            meta: meta,
+                            l10n: l10n,
+                            showLyricsPreview: false,
+                          ),
+                        ],
                         const SizedBox(height: 16),
-                        ColdigomMetaBlock(meta: meta, l10n: l10n),
-                      ],
-                      const SizedBox(height: 16),
-                      const Divider(
-                        color: AppColors.gold,
-                        height: 1,
-                        thickness: 1.5,
-                      ),
-                      const SizedBox(height: 20),
-                      if (isWide)
+                        const Divider(
+                          color: AppColors.gold,
+                          height: 1,
+                          thickness: 1.5,
+                        ),
+                        const SizedBox(height: 20),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -337,22 +341,26 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
                               child: _buildMaterialsSection(group, l10n),
                             ),
                           ],
-                        )
-                      else ...[
-                        _buildMaterialsSection(group, l10n),
-                        const SizedBox(height: 24),
+                        ),
+                      ] else ...[
+                        if ((meta != null && meta.hasAnyField) ||
+                            lyricsText.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          ColdigomMetaBlock(
+                            meta: meta,
+                            lyricsText: lyricsText,
+                            onOpenLyrics: () => _handleOpenLyricsReader(group),
+                            l10n: l10n,
+                          ),
+                        ],
+                        const SizedBox(height: 16),
                         const Divider(
                           color: AppColors.gold,
                           height: 1,
-                          thickness: 1,
+                          thickness: 1.5,
                         ),
                         const SizedBox(height: 20),
-                        _buildLyricsSection(
-                          lyricsText: lyricsText,
-                          fontSize: effectiveFontSize,
-                          l10n: l10n,
-                          group: group,
-                        ),
+                        _buildMaterialsSection(group, l10n),
                       ],
                     ],
                   ),
@@ -447,7 +455,6 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
         PraiseMaterialsView(
           group: group,
           canAddToPlaylist: true,
-          includeLyricsKind: false,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
         ),

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
+import '../../../../core/utils/material_id_kind.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../carousel/presentation/utils/related_praises_swapper.dart';
 import '../../../coldigom/presentation/providers/coldigom_catalog_providers.dart';
@@ -28,9 +29,9 @@ typedef MaterialSheetOpener = Future<void> Function(CatalogMaterial material);
 ///
 /// Substitui `showLouvorMaterialSheet` e `showColdigomMaterialSheet`: o acervo
 /// deixou de decidir o layout. O grupo é renderizado sempre igual — uma aba por
-/// tipo presente (PDF, cifras, gestos, áudio, YouTube, letra) quando há mais de
-/// um, senão a lista direta — e o cabeçalho de metadados aparece quando o
-/// grupo tem [LouvorGroup.coldigomMeta].
+/// tipo presente (PDF, cifras, gestos, áudio, YouTube) quando há mais de
+/// um, senão a lista direta — e o cabeçalho de metadados e prévia da letra
+/// aparecem quando disponíveis.
 ///
 /// [canAddToPlaylist] `false` esconde os `+` — é o caso da troca de material no
 /// leitor, onde o louvor já está na lista.
@@ -44,6 +45,7 @@ Future<void> showMaterialSheet(
   LouvorGroup group, {
   bool canAddToPlaylist = true,
   MaterialSheetOpener? onMaterialSelected,
+  MaterialKind? initialKind,
   String? currentMaterialId,
   String? currentEntryKey,
 }) {
@@ -70,6 +72,7 @@ Future<void> showMaterialSheet(
         group: group,
         onMaterialSelected: open,
         canAddToPlaylist: canAddToPlaylist,
+        initialKind: initialKind,
         currentMaterialId: currentMaterialId,
         currentEntryKey: currentEntryKey,
       );
@@ -83,6 +86,7 @@ class MaterialSheet extends ConsumerStatefulWidget {
     required this.group,
     required this.onMaterialSelected,
     this.canAddToPlaylist = true,
+    this.initialKind,
     this.currentMaterialId,
     this.currentEntryKey,
     super.key,
@@ -91,6 +95,7 @@ class MaterialSheet extends ConsumerStatefulWidget {
   final LouvorGroup group;
   final MaterialSheetOpener onMaterialSelected;
   final bool canAddToPlaylist;
+  final MaterialKind? initialKind;
   final String? currentMaterialId;
   final String? currentEntryKey;
 
@@ -120,6 +125,16 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     });
   }
 
+  void _handleOpenLyrics() {
+    final lyrics = _currentGroup.lyrics ??
+        LyricsMaterial(
+          praiseId: _currentGroup.groupId,
+          nome: _currentGroup.nome,
+          numero: _currentGroup.numero,
+        );
+    _handleTap(lyrics);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -127,6 +142,9 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final group = _currentGroup;
     final meta = group.coldigomMeta;
+
+    final catalogRow = ref.watch(coldigomCatalogRowProvider(group.groupId));
+    final lyricsText = catalogRow?.lyrics.trim() ?? '';
 
     final index = ref.watch(coldigomSearchIndexProvider);
     final relatedPraises = resolveRelatedPraisesForGroup(group, index);
@@ -183,9 +201,14 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
                 },
               ),
             ],
-            if (meta != null && meta.hasAnyField) ...[
+            if ((meta != null && meta.hasAnyField) || lyricsText.isNotEmpty) ...[
               const SizedBox(height: 16),
-              ColdigomMetaBlock(meta: meta, l10n: l10n),
+              ColdigomMetaBlock(
+                meta: meta,
+                lyricsText: lyricsText,
+                onOpenLyrics: _handleOpenLyrics,
+                l10n: l10n,
+              ),
             ],
             const SizedBox(height: 12),
             const Divider(color: AppColors.gold, height: 1, thickness: 1.5),
@@ -194,6 +217,7 @@ class _MaterialSheetState extends ConsumerState<MaterialSheet> {
               child: PraiseMaterialsView(
                 group: group,
                 canAddToPlaylist: widget.canAddToPlaylist,
+                initialKind: widget.initialKind,
                 onMaterialSelected: (m) async => _handleTap(m),
                 currentMaterialId: widget.currentMaterialId,
               ),

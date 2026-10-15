@@ -152,8 +152,58 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
   ///
   /// Reaberto tanto pelo tap no corpo do card (multi-material) quanto pelo
   /// toque num ícone de `MaterialKindsRow` (C5).
-  Future<void> _openMaterialSheet() async {
-    await showMaterialSheet(context, ref, _resolvedGroup);
+  Future<void> _openMaterialSheet({MaterialKind? initialKind}) async {
+    await showMaterialSheet(
+      context,
+      ref,
+      _resolvedGroup,
+      initialKind: initialKind,
+    );
+  }
+
+  Future<void> _handleKindTap(MaterialKind kind) async {
+    final group = _resolvedGroup;
+    final materials = _materialsForKind(kind, group);
+    if (materials.length == 1) {
+      await ref.read(openMaterialProvider).open(
+        context,
+        ref,
+        materials.first,
+        audioQueue: group.audioTracks,
+      );
+    } else {
+      await _openMaterialSheet(initialKind: kind);
+    }
+  }
+
+  List<CatalogMaterial> _materialsForKind(MaterialKind kind, LouvorGroup group) {
+    return switch (kind) {
+      MaterialKind.pdf => [
+        for (final s in group.sections)
+          for (final e in s.materials)
+            PdfMaterial(e.louvor),
+      ],
+      MaterialKind.chord => [
+        for (final c in group.chordMaterials)
+          ChordMaterialRef(c),
+      ],
+      MaterialKind.gesture => [
+        for (final g in group.gestureMaterials)
+          GestureMaterialRef(g),
+      ],
+      MaterialKind.audio => [
+        for (final a in group.audioTracks)
+          AudioMaterial(a),
+      ],
+      MaterialKind.youtube => [
+        for (final y in group.youtubeMaterials)
+          YoutubeMaterialRef(y),
+      ],
+      MaterialKind.lyrics => [
+        if (group.lyrics != null) group.lyrics!,
+      ],
+      MaterialKind.unknown => const <CatalogMaterial>[],
+    };
   }
 
   /// Pressionar e segurar o card: com favorito disponível — [preferredMaterial],
@@ -382,7 +432,7 @@ class _LouvorGroupCardState extends ConsumerState<LouvorGroupCard> {
       item: chipItem,
       metadataSummary: metadataSummary,
       materialKindsGroup: widget.group,
-      onMaterialKindTap: (_) => unawaited(_openMaterialSheet()),
+      onMaterialKindTap: (kind) => unawaited(_handleKindTap(kind)),
       highlightQuery: highlightQuery,
       lyricsSnippet: lyricsSnippet,
       onTap: isLoading ? null : _handleTap,

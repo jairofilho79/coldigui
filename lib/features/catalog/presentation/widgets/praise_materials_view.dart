@@ -43,7 +43,7 @@ class PraiseMaterialsView extends ConsumerStatefulWidget {
     required this.group,
     this.canAddToPlaylist = true,
     this.onMaterialSelected,
-    this.includeLyricsKind = true,
+    this.initialKind,
     this.currentMaterialId,
     this.shrinkWrap = false,
     this.physics,
@@ -53,7 +53,7 @@ class PraiseMaterialsView extends ConsumerStatefulWidget {
   final LouvorGroup group;
   final bool canAddToPlaylist;
   final PraiseMaterialOpener? onMaterialSelected;
-  final bool includeLyricsKind;
+  final MaterialKind? initialKind;
   final String? currentMaterialId;
   final bool shrinkWrap;
   final ScrollPhysics? physics;
@@ -66,6 +66,12 @@ class PraiseMaterialsView extends ConsumerStatefulWidget {
 class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
   String? _addingId;
   MaterialKind? _selectedKind;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedKind = widget.initialKind;
+  }
 
   void _handleTap(CatalogMaterial material) {
     final open = widget.onMaterialSelected ??
@@ -252,7 +258,6 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
       if (gestureMaterials.isNotEmpty) MaterialKind.gesture,
       if (audioTracks.isNotEmpty) MaterialKind.audio,
       if (youtubeMaterials.isNotEmpty) MaterialKind.youtube,
-      if (widget.includeLyricsKind && group.lyrics != null) MaterialKind.lyrics,
     ];
 
     if (kinds.isEmpty) {
@@ -267,6 +272,33 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           ),
         ),
       );
+    }
+
+    List<CatalogMaterial> materialsForKind(MaterialKind kind) {
+      return switch (kind) {
+        MaterialKind.pdf => [
+          for (final section in group.sections)
+            for (final entry in section.materials)
+              PdfMaterial(entry.louvor),
+        ],
+        MaterialKind.chord => [
+          for (final chord in availableChords)
+            ChordMaterialRef(chord),
+        ],
+        MaterialKind.gesture => [
+          for (final gesture in gestureMaterials)
+            GestureMaterialRef(gesture),
+        ],
+        MaterialKind.audio => [
+          for (final track in audioTracks)
+            AudioMaterial(track),
+        ],
+        MaterialKind.youtube => [
+          for (final y in youtubeMaterials)
+            YoutubeMaterialRef(y),
+        ],
+        MaterialKind.lyrics || MaterialKind.unknown => const <CatalogMaterial>[],
+      };
     }
 
     final showSegments = kinds.length > 1;
@@ -314,10 +346,7 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
           rank,
           tileFor,
         ),
-        MaterialKind.lyrics => [
-          tileFor(group.lyrics!, iconColor: AppColors.title),
-        ],
-        MaterialKind.unknown => const <Widget>[],
+        MaterialKind.lyrics || MaterialKind.unknown => const <Widget>[],
       },
     );
 
@@ -353,7 +382,14 @@ class _PraiseMaterialsViewState extends ConsumerState<PraiseMaterialsView> {
             labels: [for (final kind in kinds) _kindLabel(l10n, kind)],
             selectedIndex: kinds.indexOf(selectedKind),
             onSelected: (index) {
-              setState(() => _selectedKind = kinds[index]);
+              final tappedKind = kinds[index];
+              final materials = materialsForKind(tappedKind);
+              if (materials.length == 1) {
+                _selectedKind = tappedKind;
+                _handleTap(materials.first);
+              } else {
+                setState(() => _selectedKind = tappedKind);
+              }
             },
           ),
           const SizedBox(height: 8),

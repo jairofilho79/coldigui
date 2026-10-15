@@ -148,12 +148,8 @@ void main() {
       await tester.tap(find.text(pt.cardSwapMaterialAction));
       await tester.pumpAndSettle();
 
-      expect(find.byType(MaterialSheet), findsOneWidget);
-
-      // A aba «Áudio» primeiro; a faixa tem a mesma categoria «Áudio».
-      await tester.tap(find.text('Áudio').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Áudio').last);
+      // A aba «Áudio» tem apenas 1 material: o toque nela já seleciona/abre diretamente.
+      await tester.tap(find.text('Áudio'));
       await tester.pumpAndSettle();
 
       expect(editor.replaced, [
