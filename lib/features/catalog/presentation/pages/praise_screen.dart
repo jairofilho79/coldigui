@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/network/connectivity_stream_provider.dart';
 import '../../../../core/routing/route_paths.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/color_extensions.dart';
@@ -45,6 +48,22 @@ class PraiseScreen extends ConsumerStatefulWidget {
 
 class _PraiseScreenState extends ConsumerState<PraiseScreen> {
   double? _fontSize;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(catalogIndexStatusProvider) != CatalogIndexStatus.ready) {
+        unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
+      }
+    });
+  }
+
+  void _retryCatalog() {
+    ref.invalidate(coldigomCatalogHydrationProvider);
+    unawaited(ref.read(coldigomCatalogSyncProvider.notifier).sync());
+  }
 
   double _resolveFontSize(double globalFontSize) {
     return _fontSize ?? globalFontSize;
@@ -105,50 +124,137 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
     final globalFontSize = ref.watch(lyricsReaderFontSizeProvider);
     final effectiveFontSize = _resolveFontSize(globalFontSize);
 
-    final hydration = ref.watch(coldigomCatalogHydrationProvider);
+    final status = ref.watch(catalogIndexStatusProvider);
     final index = ref.watch(coldigomSearchIndexProvider);
+
+    ref.listen<AsyncValue<bool>>(connectivityStreamProvider, (previous, next) {
+      if (next.value != true) return;
+      if (ref.read(catalogIndexStatusProvider) == CatalogIndexStatus.failed) {
+        _retryCatalog();
+      }
+    });
 
     final rawGroup = index.groupByShortId(widget.id) ??
         index.groupById(widget.id) ??
         index.groupForMaterialId(widget.id);
 
     if (rawGroup == null) {
-      if (hydration.isLoading) {
-        return const Center(
-          child: CircularProgressIndicator(color: AppColors.title),
+      if (status == CatalogIndexStatus.loading) {
+        return const Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
         );
       }
 
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.music_off_outlined,
-                size: 56,
-                color: AppColors.title,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.praiseNotFound,
-                style: AppTypography.headline.copyWith(
-                  color: AppColors.title,
-                  fontSize: 20,
+      if (status == CatalogIndexStatus.failed) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Material(
+                  color: AppColors.card,
+                  elevation: 3,
+                  shadowColor: Colors.black.withValues(alpha: 0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: AppColors.gold, width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_outlined,
+                          size: 48,
+                          color: AppColors.title,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.catalogLoadError,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.headline.copyWith(
+                            color: AppColors.title,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _retryCatalog,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.title,
+                            foregroundColor: AppColors.textLight,
+                          ),
+                          child: Text(l10n.retry),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => context.go(RoutePaths.home),
-                icon: const Icon(Icons.arrow_back),
-                label: Text(l10n.praiseBackToSearch),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.title,
-                  foregroundColor: AppColors.textLight,
+            ),
+          ),
+        );
+      }
+
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Material(
+                color: AppColors.card,
+                elevation: 3,
+                shadowColor: Colors.black.withValues(alpha: 0.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppColors.gold, width: 1.5),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.music_off_outlined,
+                        size: 56,
+                        color: AppColors.title,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.praiseNotFound,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.headline.copyWith(
+                          color: AppColors.title,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => context.go(RoutePaths.home),
+                        icon: const Icon(Icons.arrow_back),
+                        label: Text(l10n.praiseBackToSearch),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.title,
+                          foregroundColor: AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -171,80 +277,93 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildPraiseHeader(group, l10n),
-                    if (relatedPraises.length > 1) ...[
-                      const SizedBox(height: 12),
-                      RelatedPraisesBar(
-                        praises: relatedPraises,
-                        selectedPraise: group,
-                        l10n: l10n,
-                        onSelected: (target) {
-                          if (target.groupId == group.groupId) return;
-                          final nextId =
-                              target.coldigomMeta?.shortId ?? target.groupId;
-                          context.go(RoutePaths.praiseFor(nextId));
-                        },
-                      ),
-                    ],
-                    if (meta != null && meta.hasAnyField) ...[
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                child: Material(
+                  color: AppColors.card,
+                  elevation: 3,
+                  shadowColor: Colors.black.withValues(alpha: 0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: AppColors.gold, width: 1.5),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildPraiseHeader(group, l10n),
+                      if (relatedPraises.length > 1) ...[
+                        const SizedBox(height: 12),
+                        RelatedPraisesBar(
+                          praises: relatedPraises,
+                          selectedPraise: group,
+                          l10n: l10n,
+                          onSelected: (target) {
+                            if (target.groupId == group.groupId) return;
+                            final nextId =
+                                target.coldigomMeta?.shortId ?? target.groupId;
+                            context.go(RoutePaths.praiseFor(nextId));
+                          },
+                        ),
+                      ],
+                      if (meta != null && meta.hasAnyField) ...[
+                        const SizedBox(height: 16),
+                        ColdigomMetaBlock(meta: meta, l10n: l10n),
+                      ],
                       const SizedBox(height: 16),
-                      ColdigomMetaBlock(meta: meta, l10n: l10n),
-                    ],
-                    const SizedBox(height: 16),
-                    const Divider(
-                      color: AppColors.gold,
-                      height: 1,
-                      thickness: 1.5,
-                    ),
-                    const SizedBox(height: 20),
-                    if (isWide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: _buildLyricsSection(
-                              lyricsText: lyricsText,
-                              fontSize: effectiveFontSize,
-                              l10n: l10n,
-                              group: group,
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            flex: 5,
-                            child: _buildMaterialsSection(group, l10n),
-                          ),
-                        ],
-                      )
-                    else ...[
-                      _buildMaterialsSection(group, l10n),
-                      const SizedBox(height: 24),
                       const Divider(
                         color: AppColors.gold,
                         height: 1,
-                        thickness: 1,
+                        thickness: 1.5,
                       ),
                       const SizedBox(height: 20),
-                      _buildLyricsSection(
-                        lyricsText: lyricsText,
-                        fontSize: effectiveFontSize,
-                        l10n: l10n,
-                        group: group,
-                      ),
+                      if (isWide)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: _buildLyricsSection(
+                                lyricsText: lyricsText,
+                                fontSize: effectiveFontSize,
+                                l10n: l10n,
+                                group: group,
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              flex: 5,
+                              child: _buildMaterialsSection(group, l10n),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        _buildMaterialsSection(group, l10n),
+                        const SizedBox(height: 24),
+                        const Divider(
+                          color: AppColors.gold,
+                          height: 1,
+                          thickness: 1,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildLyricsSection(
+                          lyricsText: lyricsText,
+                          fontSize: effectiveFontSize,
+                          l10n: l10n,
+                          group: group,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
   }
 
   Widget _buildPraiseHeader(LouvorGroup group, AppLocalizations l10n) {
@@ -392,40 +511,44 @@ class _PraiseScreenState extends ConsumerState<PraiseScreen> {
         ),
         const SizedBox(height: 12),
         if (lyricsText.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.card,
+          Material(
+            color: const Color(0xFFFFFDF5),
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+              side: BorderSide(
                 color: AppColors.gold.withValues(alpha: 0.3),
               ),
             ),
-            child: Text(
-              l10n.praiseNoLyricsAvailable,
-              style: AppTypography.body.copyWith(
-                color: AppColors.textDark.withValues(alpha: 0.6),
-                fontStyle: FontStyle.italic,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                l10n.praiseNoLyricsAvailable,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textDark.withValues(alpha: 0.6),
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           )
         else
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.card,
+          Material(
+            color: const Color(0xFFFFFDF5),
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+              side: BorderSide(
                 color: AppColors.gold.withValues(alpha: 0.35),
               ),
             ),
-            child: SelectableText(
-              lyricsText,
-              style: AppTypography.body.copyWith(
-                color: AppColors.textDark,
-                fontSize: fontSize,
-                height: 1.6,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              child: SelectableText(
+                lyricsText,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textDark,
+                  fontSize: fontSize,
+                  height: 1.6,
+                ),
               ),
             ),
           ),

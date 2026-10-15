@@ -262,7 +262,7 @@ class _SheetHeader extends StatelessWidget {
                 group.coldigomMeta?.shortId ?? group.groupId;
             final router = GoRouter.of(context);
             Navigator.of(context).pop();
-            router.push(RoutePaths.praiseFor(praiseId));
+            router.go(RoutePaths.praiseFor(praiseId));
           },
           icon: const Icon(Icons.open_in_full, color: AppColors.title),
           style: IconButton.styleFrom(
@@ -293,6 +293,7 @@ class _SheetHeader extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
         ),
+        const SizedBox(width: 8),
         IconButton(
           tooltip: l10n.carouselListClose,
           onPressed: () => Navigator.of(context).pop(),

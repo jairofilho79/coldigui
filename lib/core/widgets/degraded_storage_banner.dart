@@ -38,6 +38,9 @@ class DegradedStorageBanner extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => ref.invalidate(isarInitializerProvider),
               child: const Text('Tentar novamente'),
             ),

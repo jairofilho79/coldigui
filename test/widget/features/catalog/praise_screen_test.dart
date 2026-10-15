@@ -391,8 +391,10 @@ void main() {
           overrides: [
             isarStatusProvider.overrideWithValue(IsarStatus.available),
             sharedPreferencesProvider.overrideWithValue(prefs),
+            catalogIndexStatusProvider.overrideWithValue(CatalogIndexStatus.ready),
             coldigomCatalogHydrationProvider.overrideWithValue(const AsyncData(ColdigomSearchIndex.empty)),
             coldigomSearchIndexProvider.overrideWithValue(ColdigomSearchIndex.empty),
+            coldigomCatalogSyncProvider.overrideWith(() => FakeColdigomCatalogSyncNotifier()),
           ],
           child: MaterialApp.router(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -412,6 +414,93 @@ void main() {
 
       expect(find.text('tela-home'), findsOneWidget);
       expect(currentPath, RoutePaths.home);
+    },
+  );
+
+  testWidgets(
+    'exibe indicador de carregamento enquanto o catálogo está sincronizando',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/louvor/0a1',
+        routes: [
+          GoRoute(
+            path: '/louvor/:id',
+            builder: (context, state) => PraiseScreen(
+              id: state.pathParameters['id'] ?? '',
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            isarStatusProvider.overrideWithValue(IsarStatus.available),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            catalogIndexStatusProvider.overrideWithValue(CatalogIndexStatus.loading),
+            coldigomSearchIndexProvider.overrideWithValue(ColdigomSearchIndex.empty),
+            coldigomCatalogSyncProvider.overrideWith(
+              () => FakeColdigomCatalogSyncNotifier(
+                const ColdigomCatalogSyncState(isSyncing: true),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'exibe mensagem de erro e botão tentar novamente quando o catálogo falha',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/louvor/0a1',
+        routes: [
+          GoRoute(
+            path: '/louvor/:id',
+            builder: (context, state) => PraiseScreen(
+              id: state.pathParameters['id'] ?? '',
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            isarStatusProvider.overrideWithValue(IsarStatus.available),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            catalogIndexStatusProvider.overrideWithValue(CatalogIndexStatus.failed),
+            coldigomSearchIndexProvider.overrideWithValue(ColdigomSearchIndex.empty),
+            coldigomCatalogSyncProvider.overrideWith(
+              () => FakeColdigomCatalogSyncNotifier(
+                const ColdigomCatalogSyncState(
+                  lastResult: ColdigomCatalogSyncFailed('falha'),
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('pt'),
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.cloud_off_outlined), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
     },
   );
 
