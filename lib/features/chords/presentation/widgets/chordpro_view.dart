@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/chordpro_song.dart';
@@ -77,17 +78,18 @@ class ChordProView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lyricStyle = TextStyle(
+    final defaultStyle = DefaultTextStyle.of(context).style;
+    final lyricStyle = defaultStyle.merge(TextStyle(
       fontSize: fontSize,
       height: 1.35,
       color: palette.lyric,
-    );
-    final chordStyle = TextStyle(
+    ));
+    final chordStyle = defaultStyle.merge(TextStyle(
       fontSize: fontSize * _chordToLyricRatio,
       height: 1.1,
       fontWeight: FontWeight.w700,
       color: palette.chord,
-    );
+    ));
 
     // Grafia do resultado vem do tom de destino: Sol subindo um é Láb, não Sol#.
     final preferFlats = preferFlatsForKey(song.key, semitones);
@@ -261,9 +263,33 @@ class _ChordCellView extends StatelessWidget {
 
     final isSuspended = chord != null && cell.text.trim().isEmpty;
     final fontSize = chordStyle.fontSize ?? 13.0;
-    final rightSpacing = (!isLastCell && isSuspended)
-        ? _computeSuspendedSpacing(cell.text, fontSize)
-        : 0.0;
+    double rightSpacing = 0.0;
+    if (!isLastCell && chord != null) {
+      if (isSuspended) {
+        rightSpacing = _computeSuspendedSpacing(cell.text, fontSize);
+      } else {
+        final trimmed = cell.text.trimRight();
+        final trailing = cell.text.substring(trimmed.length);
+        if (trailing.isNotEmpty) {
+          final tpChord = TextPainter(
+            text: TextSpan(text: label, style: chordStyle),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          final tpLyric = TextPainter(
+            text: TextSpan(text: cell.text, style: lyricStyle),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          final chordWidth = tpChord.width;
+          final lyricWidth = tpLyric.width;
+          final targetRight = math.max(
+            lyricWidth,
+            chordWidth + _computeSuspendedSpacing(trailing, fontSize),
+          );
+          final colWidth = math.max(chordWidth, lyricWidth);
+          rightSpacing = math.max(0.0, targetRight - colWidth);
+        }
+      }
+    }
 
     if (isChordOnlyLine) {
       final chordWidget = Text(label, style: chordStyle, softWrap: false);

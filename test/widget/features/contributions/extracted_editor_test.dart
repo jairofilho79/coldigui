@@ -160,6 +160,46 @@ void main() {
 
       expect(find.byType(CustomScrollView), findsOneWidget);
     });
+
+    testWidgets('respeita espacamento entre acordes no preview', (tester) async {
+      String currentText = 'O cla[Gm7]mor da meia-noite se ouvi[A(Sus4)]rá. [A]';
+
+      await pumpApp(
+        tester,
+        ExtractedChordEditor(
+          initialChordPro: currentText,
+          onChanged: (val) => currentText = val,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Muda para a aba de preview
+      await tester.tap(find.text('Pré-visualização'));
+      await tester.pumpAndSettle();
+
+      final aFinder = find.text('A');
+      expect(aFinder, findsOneWidget);
+      final initialOffset = tester.getTopLeft(aFinder);
+
+      // Volta para a aba de edição
+      await tester.tap(find.text('Editor'));
+      await tester.pumpAndSettle();
+
+      // Altera o texto para conter múltiplos espaços
+      final inputFinder = find.byType(TextFormField);
+      await tester.enterText(
+        inputFinder,
+        'O cla[Gm7]mor da meia-noite se ouvi[A(Sus4)]rá.         [A]',
+      );
+      await tester.pumpAndSettle();
+
+      // Volta para a aba de preview
+      await tester.tap(find.text('Pré-visualização'));
+      await tester.pumpAndSettle();
+
+      final newOffset = tester.getTopLeft(find.text('A'));
+      expect(newOffset.dx, greaterThan(initialOffset.dx + 30.0));
+    });
   });
 
   group('ExtractedGestureEditor', () {

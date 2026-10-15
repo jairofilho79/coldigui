@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:coldigui/features/chords/domain/usecases/parse_chordpro.dart';
 import 'package:coldigui/features/chords/presentation/theme/chord_reader_theme.dart';
 import 'package:coldigui/features/chords/presentation/widgets/chordpro_view.dart';
@@ -63,6 +65,76 @@ void main() {
       greaterThan(tester.getSize(find.text('Deus e Amor ')).width),
     );
   });
+
+
+  testWidgets(
+    'respeita espacamento entre acordes quando ha espacos apos a letra',
+    (tester) async {
+      final fontData = File('assets/fonts/OpenSans[wght].ttf').readAsBytesSync();
+      final fontLoader = FontLoader('OpenSans');
+      fontLoader.addFont(Future.value(ByteData.view(fontData.buffer)));
+      await fontLoader.load();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'OpenSans'),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 600,
+                child: CustomScrollView(
+                  slivers: [
+                    ChordProView(
+                      song: parseChordPro(
+                        'O cla[Gm7]mor da meia-noite se ouvi[A(Sus4)]rá. [A]\n',
+                      ),
+                      palette: ChordReaderMode.light.palette,
+                      fontSize: 15,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final a1 = tester.getTopLeft(find.text('A'));
+      final sus1 = tester.getTopRight(find.text('A(Sus4)'));
+      // O acorde A não colide com A(Sus4) mesmo com 1 espaço
+      expect(a1.dx - sus1.dx, greaterThanOrEqualTo(10.0));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'OpenSans'),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 600,
+                child: CustomScrollView(
+                  slivers: [
+                    ChordProView(
+                      song: parseChordPro(
+                        'O cla[Gm7]mor da meia-noite se ouvi[A(Sus4)]rá.         [A]\n',
+                      ),
+                      palette: ChordReaderMode.light.palette,
+                      fontSize: 15,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final a2 = tester.getTopLeft(find.text('A'));
+      final sus2 = tester.getTopRight(find.text('A(Sus4)'));
+
+      // Espaços adicionais aumentam expressivamente a distância entre os acordes
+      expect(a2.dx - sus2.dx, greaterThan(a1.dx - sus1.dx + 30.0));
+    },
+  );
 
   testWidgets('celula sem acorde quebra em vez de ser cortada', (tester) async {
     tester.view.physicalSize = const Size(360, 640);
