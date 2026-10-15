@@ -21,6 +21,7 @@ import 'package:coldigui/features/contributions/presentation/utils/open_contribu
 import 'package:coldigui/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 /// Página de reprodução de áudio Coldigom — metadados + seeker + controles.
 class AudioPlayerScreen extends ConsumerWidget {
@@ -66,218 +67,242 @@ class AudioPlayerScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          LouvorMaterialIcons.audio,
-                          size: 96,
-                          color: AppColors.textLight.withValues(alpha: 0.85),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.headline.copyWith(
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                        if (subtitleParts.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            subtitleParts.join(' · '),
-                            textAlign: TextAlign.center,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textLight.withValues(
-                                alpha: 0.75,
+                    child: Center(
+                      child: SpotlightGuideTarget(
+                        id: 'audio-track-info',
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              LouvorMaterialIcons.audio,
+                              size: 96,
+                              color: AppColors.textLight.withValues(alpha: 0.85),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              title,
+                              textAlign: TextAlign.center,
+                              style: AppTypography.headline.copyWith(
+                                color: AppColors.textLight,
                               ),
                             ),
-                          ),
-                        ],
-                        if (track?.classificacao.isNotEmpty == true) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            track!.classificacao,
-                            textAlign: TextAlign.center,
-                            style: AppTypography.label.copyWith(
-                              color: AppColors.goldLight,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (track != null && materialPdfId != null)
-                        IconButton(
-                          tooltip: l10n.audioOpenSheetMusic,
-                          onPressed: () => openMaterialForGroupInReader(
-                            ref: ref,
-                            context: context,
-                            groupId: track.groupId,
-                          ),
-                          icon: const Icon(
-                            Icons.menu_book,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                      IconButton(
-                        tooltip: l10n.audioFlagAdd,
-                        onPressed: !canAddFlag
-                            ? null
-                            : () => _addFlag(
-                                context,
-                                ref,
-                                audioId,
-                                positionState.position,
-                              ),
-                        icon: Icon(
-                          Icons.flag,
-                          color: canAddFlag
-                              ? AppColors.textLight
-                              : AppColors.textLight.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: l10n.audioFollowReader,
-                        onPressed: () => toggleAudioFollowReader(ref),
-                        icon: Icon(
-                          followingAudio ? Icons.link : Icons.link_off,
-                          color: followingAudio
-                              ? AppColors.goldLight
-                              : AppColors.textLight.withValues(alpha: 0.55),
-                        ),
-                      ),
-                      if (track != null)
-                        PopupMenuButton<double>(
-                          tooltip: l10n.audioSpeed,
-                          initialValue: session.speed,
-                          onSelected: (value) => ref
-                              .read(audioPlayerSessionProvider.notifier)
-                              .setSpeed(value),
-                          itemBuilder: (context) => [
-                            for (final option in kAudioSpeedOptions)
-                              PopupMenuItem<double>(
-                                value: option,
-                                child: Text(
-                                  l10n.audioSpeedValue(
-                                    formatAudioSpeed(option),
+                            if (subtitleParts.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                subtitleParts.join(' · '),
+                                textAlign: TextAlign.center,
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textLight.withValues(
+                                    alpha: 0.75,
                                   ),
                                 ),
                               ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Center(
-                              child: Text(
-                                l10n.audioSpeedValue(
-                                  formatAudioSpeed(session.speed),
-                                ),
+                            ],
+                            if (track?.classificacao.isNotEmpty == true) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                track!.classificacao,
+                                textAlign: TextAlign.center,
                                 style: AppTypography.label.copyWith(
-                                  color: AppColors.textLight,
+                                  color: AppColors.goldLight,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SpotlightGuideTarget(
+                    id: 'audio-quick-actions',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (track != null && materialPdfId != null)
+                          IconButton(
+                            tooltip: l10n.audioOpenSheetMusic,
+                            onPressed: () => openMaterialForGroupInReader(
+                              ref: ref,
+                              context: context,
+                              groupId: track.groupId,
+                            ),
+                            icon: const Icon(
+                              Icons.menu_book,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        IconButton(
+                          tooltip: l10n.audioFlagAdd,
+                          onPressed: !canAddFlag
+                              ? null
+                              : () => _addFlag(
+                                  context,
+                                  ref,
+                                  audioId,
+                                  positionState.position,
+                                ),
+                          icon: Icon(
+                            Icons.flag,
+                            color: canAddFlag
+                                ? AppColors.textLight
+                                : AppColors.textLight.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.audioFollowReader,
+                          onPressed: () => toggleAudioFollowReader(ref),
+                          icon: Icon(
+                            followingAudio ? Icons.link : Icons.link_off,
+                            color: followingAudio
+                                ? AppColors.goldLight
+                                : AppColors.textLight.withValues(alpha: 0.55),
+                          ),
+                        ),
+                        if (track != null)
+                          PopupMenuButton<double>(
+                            tooltip: l10n.audioSpeed,
+                            initialValue: session.speed,
+                            onSelected: (value) => ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .setSpeed(value),
+                            itemBuilder: (context) => [
+                              for (final option in kAudioSpeedOptions)
+                                PopupMenuItem<double>(
+                                  value: option,
+                                  child: Text(
+                                    l10n.audioSpeedValue(
+                                      formatAudioSpeed(option),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Center(
+                                child: Text(
+                                  l10n.audioSpeedValue(
+                                    formatAudioSpeed(session.speed),
+                                  ),
+                                  style: AppTypography.label.copyWith(
+                                    color: AppColors.textLight,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      if (track != null)
-                        IconButton(
-                          tooltip: l10n.contributeReportTooltip,
-                          onPressed: () => openContribute(
-                            context,
-                            target: ContributionTarget(
-                              source: ContributionSource.coldigom,
-                              praiseId: track.groupId,
-                              materialId: track.audioId,
+                        if (track != null)
+                          IconButton(
+                            tooltip: l10n.contributeReportTooltip,
+                            onPressed: () => openContribute(
+                              context,
+                              target: ContributionTarget(
+                                source: ContributionSource.coldigom,
+                                praiseId: track.groupId,
+                                materialId: track.audioId,
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.handshake_outlined,
+                              color: AppColors.textLight,
                             ),
                           ),
-                          icon: const Icon(
-                            Icons.handshake_outlined,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  AudioSeekBar(
-                    position: positionState.position,
-                    duration: positionState.duration,
-                    flags: flags,
-                    onFlagTap: (flag) {
-                      ref
-                          .read(audioPlayerSessionProvider.notifier)
-                          .seek(flag.position);
-                    },
-                    onSeek: (value) {
-                      ref.read(audioPlayerSessionProvider.notifier).seek(value);
-                    },
+                  SpotlightGuideTarget(
+                    id: 'audio-seek-bar',
+                    child: AudioSeekBar(
+                      position: positionState.position,
+                      duration: positionState.duration,
+                      flags: flags,
+                      onFlagTap: (flag) {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .seek(flag.position);
+                      },
+                      onSeek: (value) {
+                        ref.read(audioPlayerSessionProvider.notifier).seek(value);
+                      },
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  AudioTransportControls(
-                    playing: session.playing,
-                    buffering: session.buffering,
-                    hasPrevious:
-                        session.hasPrevious ||
-                        positionState.position > Duration.zero,
-                    hasNext: session.hasNext,
-                    onPrevious: () {
-                      ref
-                          .read(audioPlayerSessionProvider.notifier)
-                          .skipToPrevious();
-                    },
-                    onPlayPause: () {
-                      ref.read(audioPlayerSessionProvider.notifier).playPause();
-                    },
-                    onNext: () {
-                      ref
-                          .read(audioPlayerSessionProvider.notifier)
-                          .skipToNext();
-                    },
-                    onSeekBack10: track == null
-                        ? null
-                        : () => ref
-                              .read(audioPlayerSessionProvider.notifier)
-                              .seekBy(const Duration(seconds: -10)),
-                    onSeekForward10: track == null
-                        ? null
-                        : () => ref
-                              .read(audioPlayerSessionProvider.notifier)
-                              .seekBy(const Duration(seconds: 10)),
-                    seekBack10Tooltip: l10n.audioSeekBack10,
-                    seekForward10Tooltip: l10n.audioSeekForward10,
-                    playTooltip: l10n.audioPlay,
-                    pauseTooltip: l10n.audioPause,
-                    previousTooltip: l10n.audioPrevious,
-                    nextTooltip: l10n.audioNext,
+                  SpotlightGuideTarget(
+                    id: 'audio-transport-controls',
+                    child: AudioTransportControls(
+                      playing: session.playing,
+                      buffering: session.buffering,
+                      hasPrevious:
+                          session.hasPrevious ||
+                          positionState.position > Duration.zero,
+                      hasNext: session.hasNext,
+                      onPrevious: () {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .skipToPrevious();
+                      },
+                      onPlayPause: () {
+                        ref.read(audioPlayerSessionProvider.notifier).playPause();
+                      },
+                      onNext: () {
+                        ref
+                            .read(audioPlayerSessionProvider.notifier)
+                            .skipToNext();
+                      },
+                      onSeekBack10: track == null
+                          ? null
+                          : () => ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .seekBy(const Duration(seconds: -10)),
+                      onSeekForward10: track == null
+                          ? null
+                          : () => ref
+                                .read(audioPlayerSessionProvider.notifier)
+                                .seekBy(const Duration(seconds: 10)),
+                      seekBack10Tooltip: l10n.audioSeekBack10,
+                      seekForward10Tooltip: l10n.audioSeekForward10,
+                      playTooltip: l10n.audioPlay,
+                      pauseTooltip: l10n.audioPause,
+                      previousTooltip: l10n.audioPrevious,
+                      nextTooltip: l10n.audioNext,
+                    ),
                   ),
                   const AudioFlagSyncErrorRow(),
                   if (track != null) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      l10n.audioFlagListTitle,
-                      style: AppTypography.label.copyWith(
-                        color: AppColors.textLight.withValues(alpha: 0.85),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 160),
-                      child: SingleChildScrollView(
-                        child: AudioFlagList(
-                          flags: flags,
-                          onSeek: (flag) {
-                            ref
-                                .read(audioPlayerSessionProvider.notifier)
-                                .seek(flag.position);
-                          },
-                          onDelete: (flag) {
-                            ref
-                                .read(audioFlagActionsProvider)
-                                .remove(audioId: audioId, flagId: flag.flagId);
-                          },
-                        ),
+                    SpotlightGuideTarget(
+                      id: 'audio-flag-list',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            l10n.audioFlagListTitle,
+                            style: AppTypography.label.copyWith(
+                              color: AppColors.textLight.withValues(alpha: 0.85),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 160),
+                            child: SingleChildScrollView(
+                              child: AudioFlagList(
+                                flags: flags,
+                                onSeek: (flag) {
+                                  ref
+                                      .read(audioPlayerSessionProvider.notifier)
+                                      .seek(flag.position);
+                                },
+                                onDelete: (flag) {
+                                  ref
+                                      .read(audioFlagActionsProvider)
+                                      .remove(audioId: audioId, flagId: flag.flagId);
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

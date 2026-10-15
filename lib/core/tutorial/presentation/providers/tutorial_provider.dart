@@ -5,6 +5,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 import '../../../../features/catalog/presentation/providers/catalog_filters_provider.dart';
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
+import '../steps/audio_tutorial_steps.dart';
 import '../steps/chords_tutorial_steps.dart';
 import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
@@ -33,6 +34,7 @@ class TutorialController {
       RoutePaths.library => true,
       RoutePaths.chords => true,
       RoutePaths.gestos => true,
+      RoutePaths.audio => true,
       _ => false,
     };
   }
@@ -51,6 +53,7 @@ class TutorialController {
       RoutePaths.library => buildLibraryTutorialSteps(context),
       RoutePaths.chords => buildChordsTutorialSteps(context),
       RoutePaths.gestos => buildGesturesTutorialSteps(context),
+      RoutePaths.audio => buildAudioTutorialSteps(context),
       _ => const [],
     };
   }

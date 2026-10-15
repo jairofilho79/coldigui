@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords e gestos', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords, gestos e audio', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -23,6 +23,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.library), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.chords), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.gestos), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.audio), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -186,6 +187,31 @@ void main() {
                 expect(steps[2].items.first.targetId, 'gestures-view-mode-button');
                 expect(steps[3].items.first.targetId, 'gestures-mode-controls');
                 expect(steps[4].items.first.targetId, 'gestures-content-view');
+                expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos de Áudio com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.audio);
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'audio-track-info');
+                expect(steps[1].items.first.targetId, 'audio-quick-actions');
+                expect(steps[2].items.first.targetId, 'audio-seek-bar');
+                expect(steps[3].items.first.targetId, 'audio-transport-controls');
+                expect(steps[4].items.first.targetId, 'audio-flag-list');
                 expect(steps[5].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
@@ -1053,6 +1079,128 @@ void main() {
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Cartões de Gestos'), findsOneWidget);
+
+      // Passo 6: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela do Reprodutor de Áudio dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.audio,
+        routes: [
+          GoRoute(
+            path: RoutePaths.audio,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'audio-track-info',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Audio Track Info'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'audio-quick-actions',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Audio Quick Actions'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'audio-seek-bar',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Audio Seek Bar'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'audio-transport-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Audio Transport Controls'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'audio-flag-list',
+                        child: const SizedBox(
+                          height: 80,
+                          child: Text('Mock Audio Flag List'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Informações da Faixa
+      expect(find.text('Informações da Faixa'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Ações e Sincronização
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ações e Sincronização'), findsOneWidget);
+
+      // Passo 3: Barra de Progresso
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Barra de Progresso'), findsOneWidget);
+
+      // Passo 4: Controles de Reprodução
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Controles de Reprodução'), findsOneWidget);
+
+      // Passo 5: Marcadores de Estudo
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Marcadores de Estudo'), findsOneWidget);
 
       // Passo 6: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
