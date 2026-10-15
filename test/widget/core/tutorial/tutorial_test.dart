@@ -14,13 +14,14 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader e library', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library e chords', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.profile), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.reader), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.library), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.chords), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -135,6 +136,31 @@ void main() {
                 expect(steps[2].items.first.targetId, 'library-pagination-controls');
                 expect(steps[3].items.first.targetId, 'library-first-card');
                 expect(steps[4].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos de Cifras com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.chords);
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'chords-transpose-controls');
+                expect(steps[1].items.first.targetId, 'chords-font-size-controls');
+                expect(steps[2].items.first.targetId, 'chords-autoscroll-controls');
+                expect(steps[3].items.first.targetId, 'chords-mode-controls');
+                expect(steps[4].items.first.targetId, 'chords-content-view');
+                expect(steps[5].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
             ),
@@ -759,6 +785,128 @@ void main() {
       expect(find.text('Cards de Louvor'), findsOneWidget);
 
       // Passo 5: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela do Leitor de Cifras dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.chords,
+        routes: [
+          GoRoute(
+            path: RoutePaths.chords,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'chords-transpose-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Transpose'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'chords-font-size-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Font Size'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'chords-autoscroll-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Autoscroll'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'chords-mode-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Mode'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'chords-content-view',
+                        child: const SizedBox(
+                          height: 200,
+                          child: Text('Mock Chords Content'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Transposição de Tom
+      expect(find.text('Transposição de Tom'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Tamanho da Fonte
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tamanho da Fonte'), findsOneWidget);
+
+      // Passo 3: Rolagem Automática
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Rolagem Automática'), findsOneWidget);
+
+      // Passo 4: Tema e Tela Cheia
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tema e Tela Cheia'), findsOneWidget);
+
+      // Passo 5: Leitura e Diagramação
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Leitura e Diagramação'), findsOneWidget);
+
+      // Passo 6: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Ajuda & Tutoriais'), findsOneWidget);

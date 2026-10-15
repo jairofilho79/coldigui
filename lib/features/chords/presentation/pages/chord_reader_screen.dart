@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/layout/breakpoints.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -410,78 +411,81 @@ class _ChordReaderScreenState extends ConsumerState<ChordReaderScreen>
                   // `LayoutBuilder` aqui já mede o espaço real desta área
                   // (dentro do `Expanded` acima), que hoje equivale à largura
                   // da tela (sem painel lateral tirando espaço).
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final columns =
-                          constraints.maxWidth >= kWideLayoutBreakpoint ? 2 : 1;
-                      return songAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (_, _) => _Unavailable(
-                          message: l10n.chordReaderUnavailable,
-                          palette: palette,
-                        ),
-                        data: (song) {
-                          if (song == null) {
-                            return _Unavailable(
-                              message: l10n.chordReaderUnavailable,
-                              palette: palette,
-                            );
-                          }
-                          return NotificationListener<UserScrollNotification>(
-                            // A11: rolar com o dedo/mouse é o jeito mais
-                            // claro de dizer "eu assumo daqui" — para o
-                            // autoscroll na hora, sem esperar o usuário
-                            // achar o botão de pausa.
-                            onNotification: (notification) {
-                              if (notification.direction !=
-                                  ScrollDirection.idle) {
-                                ref
-                                    .read(chordAutoscrollProvider.notifier)
-                                    .stop();
-                              }
-                              return false;
-                            },
-                            child: CustomScrollView(
-                              controller: _scrollController,
-                              slivers: [
-                                SliverPadding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    12,
-                                  ),
-                                  sliver: SliverToBoxAdapter(
-                                    child: ChordHeader(
-                                      song: song,
-                                      semitones: semitones,
-                                      palette: palette,
+                  child: SpotlightGuideTarget(
+                    id: 'chords-content-view',
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns =
+                            constraints.maxWidth >= kWideLayoutBreakpoint ? 2 : 1;
+                        return songAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, _) => _Unavailable(
+                            message: l10n.chordReaderUnavailable,
+                            palette: palette,
+                          ),
+                          data: (song) {
+                            if (song == null) {
+                              return _Unavailable(
+                                message: l10n.chordReaderUnavailable,
+                                palette: palette,
+                              );
+                            }
+                            return NotificationListener<UserScrollNotification>(
+                              // A11: rolar com o dedo/mouse é o jeito mais
+                              // claro de dizer "eu assumo daqui" — para o
+                              // autoscroll na hora, sem esperar o usuário
+                              // achar o botão de pausa.
+                              onNotification: (notification) {
+                                if (notification.direction !=
+                                    ScrollDirection.idle) {
+                                  ref
+                                      .read(chordAutoscrollProvider.notifier)
+                                      .stop();
+                                }
+                                return false;
+                              },
+                              child: CustomScrollView(
+                                controller: _scrollController,
+                                slivers: [
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      12,
+                                    ),
+                                    sliver: SliverToBoxAdapter(
+                                      child: ChordHeader(
+                                        song: song,
+                                        semitones: semitones,
+                                        palette: palette,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    24,
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      24,
+                                    ),
+                                    sliver: ChordProView(
+                                      song: song,
+                                      palette: palette,
+                                      fontSize: fontSize,
+                                      semitones: semitones,
+                                      memo: _transposeMemo,
+                                      columns: columns,
+                                    ),
                                   ),
-                                  sliver: ChordProView(
-                                    song: song,
-                                    palette: palette,
-                                    fontSize: fontSize,
-                                    semitones: semitones,
-                                    memo: _transposeMemo,
-                                    columns: columns,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -591,121 +595,153 @@ class _ChordReaderToolbar extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-            style: style,
-            tooltip: l10n.chordReaderTransposeDown,
-            icon: const Icon(Icons.remove),
-            onPressed: semitones > -ChordReaderTransposeNotifier.limit
-                ? transpose.down
-                : null,
-          ),
-          SizedBox(
-            width: _transposeLabelWidth,
-            child: semitones == 0
-                ? null
-                // TextButton, não InkWell: ele traz o próprio Material, e a
-                // tela do leitor é um ColoredBox sem Scaffold acima.
-                : TextButton(
-                    onPressed: transpose.reset,
-                    style: TextButton.styleFrom(
-                      foregroundColor: palette.chord,
-                      visualDensity: VisualDensity.compact,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(_transposeLabelWidth, 40),
-                      textStyle: AppTypography.label.copyWith(
-                        fontWeight: FontWeight.w700,
+              SpotlightGuideTarget(
+                id: 'chords-transpose-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderTransposeDown,
+                      icon: const Icon(Icons.remove),
+                      onPressed: semitones > -ChordReaderTransposeNotifier.limit
+                          ? transpose.down
+                          : null,
+                    ),
+                    SizedBox(
+                      width: _transposeLabelWidth,
+                      child: semitones == 0
+                          ? null
+                          // TextButton, não InkWell: ele traz o próprio Material, e a
+                          // tela do leitor é um ColoredBox sem Scaffold acima.
+                          : TextButton(
+                              onPressed: transpose.reset,
+                              style: TextButton.styleFrom(
+                                foregroundColor: palette.chord,
+                                visualDensity: VisualDensity.compact,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(_transposeLabelWidth, 40),
+                                textStyle: AppTypography.label.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              child: Tooltip(
+                                message: l10n.chordReaderResetTranspose,
+                                child: Text(semitones > 0 ? '+$semitones' : '$semitones'),
+                              ),
+                            ),
+                    ),
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderTransposeUp,
+                      icon: const Icon(Icons.add),
+                      onPressed: semitones < ChordReaderTransposeNotifier.limit
+                          ? transpose.up
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-font-size-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderDecreaseFont,
+                      icon: const Icon(Icons.text_decrease),
+                      onPressed: ChordReaderFontSize.canDecrease(fontSize)
+                          ? size.decrease
+                          : null,
+                    ),
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderIncreaseFont,
+                      icon: const Icon(Icons.text_increase),
+                      onPressed: ChordReaderFontSize.canIncrease(fontSize)
+                          ? size.increase
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-autoscroll-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: chordReaderAutoscrollKey,
+                      style: style,
+                      tooltip: autoscroll.running
+                          ? l10n.chordAutoscrollPause
+                          : l10n.chordAutoscrollPlay,
+                      icon: Icon(
+                        autoscroll.running
+                            ? Icons.pause_circle_outline
+                            : Icons.play_circle_outline,
+                      ),
+                      onPressed: autoscrollNotifier.toggle,
+                    ),
+                    SizedBox(
+                      width: _transposeLabelWidth,
+                      child: IconButton(
+                        key: chordReaderSpeedKey,
+                        style: IconButton.styleFrom(
+                          foregroundColor: palette.chord,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(_transposeLabelWidth, 40),
+                        ),
+                        tooltip: l10n.autoscrollSpeedTooltip,
+                        icon: Icon(
+                          Icons.speed,
+                          color: showSpeedSlider ? palette.chord : null,
+                        ),
+                        onPressed: onToggleSpeedSlider,
                       ),
                     ),
-                    child: Tooltip(
-                      message: l10n.chordReaderResetTranspose,
-                      child: Text(semitones > 0 ? '+$semitones' : '$semitones'),
+                  ],
+                ),
+              ),
+              _ToolbarSeparator(color: palette.comment),
+              SpotlightGuideTarget(
+                id: 'chords-mode-controls',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      style: style,
+                      tooltip: l10n.chordReaderToggleTheme,
+                      icon: Icon(
+                        mode == ChordReaderMode.light
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
+                      ),
+                      onPressed: () =>
+                          ref.read(chordReaderModeProvider.notifier).toggle(),
                     ),
-                  ),
-          ),
-          IconButton(
-            style: style,
-            tooltip: l10n.chordReaderTransposeUp,
-            icon: const Icon(Icons.add),
-            onPressed: semitones < ChordReaderTransposeNotifier.limit
-                ? transpose.up
-                : null,
-          ),
-          _ToolbarSeparator(color: palette.comment),
-          IconButton(
-            style: style,
-            tooltip: l10n.chordReaderDecreaseFont,
-            icon: const Icon(Icons.text_decrease),
-            onPressed: ChordReaderFontSize.canDecrease(fontSize)
-                ? size.decrease
-                : null,
-          ),
-          IconButton(
-            style: style,
-            tooltip: l10n.chordReaderIncreaseFont,
-            icon: const Icon(Icons.text_increase),
-            onPressed: ChordReaderFontSize.canIncrease(fontSize)
-                ? size.increase
-                : null,
-          ),
-          _ToolbarSeparator(color: palette.comment),
-          IconButton(
-            key: chordReaderAutoscrollKey,
-            style: style,
-            tooltip: autoscroll.running
-                ? l10n.chordAutoscrollPause
-                : l10n.chordAutoscrollPlay,
-            icon: Icon(
-              autoscroll.running
-                  ? Icons.pause_circle_outline
-                  : Icons.play_circle_outline,
-            ),
-            onPressed: autoscrollNotifier.toggle,
-          ),
-          SizedBox(
-            width: _transposeLabelWidth,
-            child: IconButton(
-              key: chordReaderSpeedKey,
-              style: IconButton.styleFrom(
-                foregroundColor: palette.chord,
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(_transposeLabelWidth, 40),
+                    IconButton(
+                      key: chordReaderFullscreenKey,
+                      style: style,
+                      tooltip: ref.watch(readerFullscreenProvider)
+                          ? l10n.readerExitFullscreenTooltip
+                          : l10n.readerFullscreenTooltip,
+                      icon: Icon(
+                        ref.watch(readerFullscreenProvider)
+                            ? Icons.fullscreen_exit
+                            : Icons.fullscreen,
+                      ),
+                      onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+                    ),
+                  ],
+                ),
               ),
-              tooltip: l10n.autoscrollSpeedTooltip,
-              icon: Icon(
-                Icons.speed,
-                color: showSpeedSlider ? palette.chord : null,
-              ),
-              onPressed: onToggleSpeedSlider,
-            ),
-          ),
-          _ToolbarSeparator(color: palette.comment),
-          IconButton(
-            style: style,
-            tooltip: l10n.chordReaderToggleTheme,
-            icon: Icon(
-              mode == ChordReaderMode.light
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
-            ),
-            onPressed: () =>
-                ref.read(chordReaderModeProvider.notifier).toggle(),
-          ),
-          IconButton(
-            key: chordReaderFullscreenKey,
-            style: style,
-            tooltip: ref.watch(readerFullscreenProvider)
-                ? l10n.readerExitFullscreenTooltip
-                : l10n.readerFullscreenTooltip,
-            icon: Icon(
-              ref.watch(readerFullscreenProvider)
-                  ? Icons.fullscreen_exit
-                  : Icons.fullscreen,
-            ),
-            onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
-          ),
           _ToolbarSeparator(color: palette.comment),
           IconButton(
             style: style,
