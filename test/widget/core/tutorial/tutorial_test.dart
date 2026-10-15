@@ -14,7 +14,7 @@ import 'package:spotlight_guide/spotlight_guide.dart';
 
 void main() {
   group('TutorialController', () {
-    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library e chords', () {
+    test('hasTutorialFor reconhece as rotas home, playlists, profile, reader, library, chords e gestos', () {
       final controller = TutorialController();
       expect(controller.hasTutorialFor(RoutePaths.home), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.playlists), isTrue);
@@ -22,6 +22,7 @@ void main() {
       expect(controller.hasTutorialFor(RoutePaths.reader), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.library), isTrue);
       expect(controller.hasTutorialFor(RoutePaths.chords), isTrue);
+      expect(controller.hasTutorialFor(RoutePaths.gestos), isTrue);
       expect(controller.hasTutorialFor('/rota-inexistente'), isFalse);
     });
 
@@ -160,6 +161,31 @@ void main() {
                 expect(steps[2].items.first.targetId, 'chords-autoscroll-controls');
                 expect(steps[3].items.first.targetId, 'chords-mode-controls');
                 expect(steps[4].items.first.targetId, 'chords-content-view');
+                expect(steps[5].items.first.targetId, 'app-info-button');
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('stepsForRoute retorna passos de Gestos com alvos configurados',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) {
+                final controller = TutorialController();
+                final steps =
+                    controller.stepsForRoute(context, RoutePaths.gestos);
+                expect(steps.length, 6);
+                expect(steps[0].items.first.targetId, 'gestures-font-size-controls');
+                expect(steps[1].items.first.targetId, 'gestures-autoscroll-controls');
+                expect(steps[2].items.first.targetId, 'gestures-view-mode-button');
+                expect(steps[3].items.first.targetId, 'gestures-mode-controls');
+                expect(steps[4].items.first.targetId, 'gestures-content-view');
                 expect(steps[5].items.first.targetId, 'app-info-button');
                 return const SizedBox();
               },
@@ -905,6 +931,128 @@ void main() {
       await tester.tap(find.text('Próximo'));
       await tester.pumpAndSettle();
       expect(find.text('Leitura e Diagramação'), findsOneWidget);
+
+      // Passo 6: Ajuda & Tutoriais
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsOneWidget);
+      expect(find.text('Concluir'), findsOneWidget);
+
+      await tester.tap(find.text('Concluir'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ajuda & Tutoriais'), findsNothing);
+    });
+
+    testWidgets(
+        'toque no botão (i) na tela do Leitor de Gestos dispara o tutorial e navega pelos passos',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: RoutePaths.gestos,
+        routes: [
+          GoRoute(
+            path: RoutePaths.gestos,
+            builder: (context, state) {
+              final tutorial = ProviderScope.containerOf(context)
+                  .read(tutorialControllerProvider);
+
+              return SpotlightGuidePortal(
+                controller: tutorial.portalController,
+                autoStart: false,
+                onFinish: () => tutorial.resetTutorialState(),
+                child: Scaffold(
+                  appBar: const PlpcgPrimaryAppBar(),
+                  body: Column(
+                    children: [
+                      SpotlightGuideTarget(
+                        id: 'gestures-font-size-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Font Size'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'gestures-autoscroll-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Autoscroll'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'gestures-view-mode-button',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock View Mode'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'gestures-mode-controls',
+                        child: const SizedBox(
+                          height: 48,
+                          child: Text('Mock Mode'),
+                        ),
+                      ),
+                      SpotlightGuideTarget(
+                        id: 'gestures-content-view',
+                        child: const SizedBox(
+                          height: 200,
+                          child: Text('Mock Gestures Content'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Encontra o botão (i)
+      final infoButtonFinder = find.byIcon(Icons.info_outline);
+      expect(infoButtonFinder, findsOneWidget);
+
+      // Toca no botão (i)
+      await tester.tap(infoButtonFinder);
+      await tester.pumpAndSettle();
+
+      // Passo 1: Tamanho da Letra
+      expect(find.text('Tamanho da Letra'), findsOneWidget);
+      expect(find.text('Próximo'), findsOneWidget);
+
+      // Passo 2: Rolagem Automática
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Rolagem Automática'), findsOneWidget);
+
+      // Passo 3: Modo Linear vs. Estruturado
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Modo Linear vs. Estruturado'), findsOneWidget);
+
+      // Passo 4: Tema e Tela Cheia
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tema e Tela Cheia'), findsOneWidget);
+
+      // Passo 5: Cartões de Gestos
+      await tester.tap(find.text('Próximo'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cartões de Gestos'), findsOneWidget);
 
       // Passo 6: Ajuda & Tutoriais
       await tester.tap(find.text('Próximo'));

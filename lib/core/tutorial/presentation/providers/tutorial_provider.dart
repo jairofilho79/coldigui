@@ -6,6 +6,7 @@ import '../../../../features/catalog/presentation/providers/catalog_filters_prov
 import '../../../../features/catalog/presentation/widgets/filters_panel.dart';
 import '../../../routing/route_paths.dart';
 import '../steps/chords_tutorial_steps.dart';
+import '../steps/gestures_tutorial_steps.dart';
 import '../steps/home_tutorial_steps.dart';
 import '../steps/library_tutorial_steps.dart';
 import '../steps/playlists_tutorial_steps.dart';
@@ -31,6 +32,7 @@ class TutorialController {
       RoutePaths.reader => true,
       RoutePaths.library => true,
       RoutePaths.chords => true,
+      RoutePaths.gestos => true,
       _ => false,
     };
   }
@@ -48,6 +50,7 @@ class TutorialController {
       RoutePaths.reader => buildReaderTutorialSteps(context),
       RoutePaths.library => buildLibraryTutorialSteps(context),
       RoutePaths.chords => buildChordsTutorialSteps(context),
+      RoutePaths.gestos => buildGesturesTutorialSteps(context),
       _ => const [],
     };
   }

@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotlight_guide/spotlight_guide.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/pdf_path_normalizer.dart';
@@ -477,68 +478,71 @@ class _GestureReaderScreenState extends ConsumerState<GestureReaderScreen>
                       dividerColor: palette.divider,
                     ),
                   Expanded(
-                    child: docAsync.when(
-                      loading: () => Center(
-                        child: CircularProgressIndicator(
-                          color: palette.toolbarIcon,
+                    child: SpotlightGuideTarget(
+                      id: 'gestures-content-view',
+                      child: docAsync.when(
+                        loading: () => Center(
+                          child: CircularProgressIndicator(
+                            color: palette.toolbarIcon,
+                          ),
                         ),
-                      ),
-                      error: (_, _) => _Message(
-                        message: l10n.gesturesReaderUnavailable,
-                        color: palette.sectionLabel,
-                        onTap: () {
-                          ref.invalidate(gestureDocumentProvider(_r2Key));
-                          // Um dicionário sem sinal na primeira abertura
-                          // também merece outra chance no retoque manual.
-                          ref.invalidate(gestureDictionaryProvider);
-                        },
-                        key: gestureReaderRetryKey,
-                      ),
-                      data: (document) {
-                        if (document == null) {
-                          return _Message(
-                            message: l10n.gesturesReaderEmpty,
-                            color: palette.sectionLabel,
-                          );
-                        }
-                        if (dictionary.byId.isNotEmpty) {
-                          _maybePrefetch(document, dictionary);
-                        }
-                        // Leitura linear: expande antes da página, do flatten
-                        // e do foco, para os três falarem do mesmo índice.
-                        final shown = linear
-                            ? linearizeGestureDocument(document)
-                            : document;
-                        final flat = flattenGestureCards(shown);
-                        return Column(
-                          children: [
-                            if (document.isNewerSchema)
-                              const NewerSchemaBanner(),
-                            Expanded(
-                              child: NotificationListener<ScrollNotification>(
-                                onNotification: _onScrollNotification,
-                                child: GestureDocumentView(
-                                  key: _documentViewKey,
-                                  document: shown,
-                                  dictionary: dictionary,
-                                  fontSize: fontSize,
-                                  palette: palette,
-                                  scrollController: _scrollController,
-                                  onCardTap: flat.isEmpty
-                                      ? null
-                                      : (index) => _openFocus(
-                                          flat,
-                                          dictionary,
-                                          index,
-                                          fontSize,
-                                          palette,
-                                        ),
+                        error: (_, _) => _Message(
+                          message: l10n.gesturesReaderUnavailable,
+                          color: palette.sectionLabel,
+                          onTap: () {
+                            ref.invalidate(gestureDocumentProvider(_r2Key));
+                            // Um dicionário sem sinal na primeira abertura
+                            // também merece outra chance no retoque manual.
+                            ref.invalidate(gestureDictionaryProvider);
+                          },
+                          key: gestureReaderRetryKey,
+                        ),
+                        data: (document) {
+                          if (document == null) {
+                            return _Message(
+                              message: l10n.gesturesReaderEmpty,
+                              color: palette.sectionLabel,
+                            );
+                          }
+                          if (dictionary.byId.isNotEmpty) {
+                            _maybePrefetch(document, dictionary);
+                          }
+                          // Leitura linear: expande antes da página, do flatten
+                          // e do foco, para os três falarem do mesmo índice.
+                          final shown = linear
+                              ? linearizeGestureDocument(document)
+                              : document;
+                          final flat = flattenGestureCards(shown);
+                          return Column(
+                            children: [
+                              if (document.isNewerSchema)
+                                const NewerSchemaBanner(),
+                              Expanded(
+                                child: NotificationListener<ScrollNotification>(
+                                  onNotification: _onScrollNotification,
+                                  child: GestureDocumentView(
+                                    key: _documentViewKey,
+                                    document: shown,
+                                    dictionary: dictionary,
+                                    fontSize: fontSize,
+                                    palette: palette,
+                                    scrollController: _scrollController,
+                                    onCardTap: flat.isEmpty
+                                        ? null
+                                        : (index) => _openFocus(
+                                            flat,
+                                            dictionary,
+                                            index,
+                                            fontSize,
+                                            palette,
+                                          ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -629,94 +633,121 @@ class _GestureReaderToolbar extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          IconButton(
-            style: style,
-            tooltip: l10n.gesturesReaderDecreaseFont,
-            icon: const Icon(Icons.text_decrease),
-            onPressed: GestureReaderFontSize.canDecrease(fontSize)
-                ? size.decrease
-                : null,
-          ),
-          IconButton(
-            style: style,
-            tooltip: l10n.gesturesReaderIncreaseFont,
-            icon: const Icon(Icons.text_increase),
-            onPressed: GestureReaderFontSize.canIncrease(fontSize)
-                ? size.increase
-                : null,
+          SpotlightGuideTarget(
+            id: 'gestures-font-size-controls',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  style: style,
+                  tooltip: l10n.gesturesReaderDecreaseFont,
+                  icon: const Icon(Icons.text_decrease),
+                  onPressed: GestureReaderFontSize.canDecrease(fontSize)
+                      ? size.decrease
+                      : null,
+                ),
+                IconButton(
+                  style: style,
+                  tooltip: l10n.gesturesReaderIncreaseFont,
+                  icon: const Icon(Icons.text_increase),
+                  onPressed: GestureReaderFontSize.canIncrease(fontSize)
+                      ? size.increase
+                      : null,
+                ),
+              ],
+            ),
           ),
           _ToolbarSeparator(color: palette.divider),
-          IconButton(
-            key: gestureReaderAutoscrollKey,
-            style: style,
-            tooltip: autoscroll.running
-                ? l10n.gesturesAutoscrollPause
-                : l10n.gesturesAutoscrollPlay,
-            icon: Icon(
-              autoscroll.running
-                  ? Icons.pause_circle_outline
-                  : Icons.play_circle_outline,
+          SpotlightGuideTarget(
+            id: 'gestures-autoscroll-controls',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: gestureReaderAutoscrollKey,
+                  style: style,
+                  tooltip: autoscroll.running
+                      ? l10n.gesturesAutoscrollPause
+                      : l10n.gesturesAutoscrollPlay,
+                  icon: Icon(
+                    autoscroll.running
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                  ),
+                  onPressed: autoscrollNotifier.toggle,
+                ),
+                SizedBox(
+                  width: _speedLabelWidth,
+                  child: IconButton(
+                    key: gestureReaderSpeedKey,
+                    style: IconButton.styleFrom(
+                      foregroundColor: palette.toolbarIcon,
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(_speedLabelWidth, 40),
+                    ),
+                    tooltip: l10n.autoscrollSpeedTooltip,
+                    icon: Icon(
+                      Icons.speed,
+                      color: showSpeedSlider ? palette.toolbarIcon : null,
+                    ),
+                    onPressed: onToggleSpeedSlider,
+                  ),
+                ),
+              ],
             ),
-            onPressed: autoscrollNotifier.toggle,
           ),
-          SizedBox(
-            width: _speedLabelWidth,
+          _ToolbarSeparator(color: palette.divider),
+          SpotlightGuideTarget(
+            id: 'gestures-view-mode-button',
             child: IconButton(
-              key: gestureReaderSpeedKey,
-              style: IconButton.styleFrom(
-                foregroundColor: palette.toolbarIcon,
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(_speedLabelWidth, 40),
-              ),
-              tooltip: l10n.autoscrollSpeedTooltip,
+              key: gestureReaderLinearKey,
+              style: style,
+              // O ícone mostra o estado atual; o tooltip, a ação.
+              tooltip: linear
+                  ? l10n.gesturesReaderStructured
+                  : l10n.gesturesReaderLinear,
               icon: Icon(
-                Icons.speed,
-                color: showSpeedSlider ? palette.toolbarIcon : null,
+                linear ? Icons.view_agenda_outlined : Icons.account_tree_outlined,
               ),
-              onPressed: onToggleSpeedSlider,
+              onPressed: () =>
+                  ref.read(gestureReaderLinearProvider.notifier).toggle(),
             ),
           ),
           _ToolbarSeparator(color: palette.divider),
-          IconButton(
-            key: gestureReaderLinearKey,
-            style: style,
-            // O ícone mostra o estado atual; o tooltip, a ação.
-            tooltip: linear
-                ? l10n.gesturesReaderStructured
-                : l10n.gesturesReaderLinear,
-            icon: Icon(
-              linear ? Icons.view_agenda_outlined : Icons.account_tree_outlined,
+          SpotlightGuideTarget(
+            id: 'gestures-mode-controls',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: gestureReaderThemeKey,
+                  style: style,
+                  tooltip: l10n.gesturesReaderToggleTheme,
+                  icon: Icon(
+                    mode == GestureReaderMode.light
+                        ? Icons.dark_mode
+                        : Icons.light_mode,
+                  ),
+                  onPressed: () =>
+                      ref.read(gestureReaderModeProvider.notifier).toggle(),
+                ),
+                IconButton(
+                  key: gestureReaderFullscreenKey,
+                  style: style,
+                  tooltip: ref.watch(readerFullscreenProvider)
+                      ? l10n.readerExitFullscreenTooltip
+                      : l10n.gesturesReaderFullscreen,
+                  icon: Icon(
+                    ref.watch(readerFullscreenProvider)
+                        ? Icons.fullscreen_exit
+                        : Icons.fullscreen,
+                  ),
+                  onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
+                ),
+              ],
             ),
-            onPressed: () =>
-                ref.read(gestureReaderLinearProvider.notifier).toggle(),
-          ),
-          _ToolbarSeparator(color: palette.divider),
-          IconButton(
-            key: gestureReaderThemeKey,
-            style: style,
-            tooltip: l10n.gesturesReaderToggleTheme,
-            icon: Icon(
-              mode == GestureReaderMode.light
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
-            ),
-            onPressed: () =>
-                ref.read(gestureReaderModeProvider.notifier).toggle(),
-          ),
-          IconButton(
-            key: gestureReaderFullscreenKey,
-            style: style,
-            tooltip: ref.watch(readerFullscreenProvider)
-                ? l10n.readerExitFullscreenTooltip
-                : l10n.gesturesReaderFullscreen,
-            icon: Icon(
-              ref.watch(readerFullscreenProvider)
-                  ? Icons.fullscreen_exit
-                  : Icons.fullscreen,
-            ),
-            onPressed: () => ref.read(toggleReaderFullscreenProvider).call(),
           ),
           _ToolbarSeparator(color: palette.divider),
           IconButton(
